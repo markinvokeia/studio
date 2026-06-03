@@ -176,7 +176,7 @@ export default function SequencesPage() {
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [pagination, setPagination] = React.useState({
     pageIndex: 0,
-    pageSize: 10,
+    pageSize: 25,
   });
   const [searchTerm, setSearchTerm] = React.useState('');
   const [activeOnly, setActiveOnly] = React.useState(true);
@@ -359,9 +359,10 @@ export default function SequencesPage() {
             isRefreshing={isRefreshing}
             manualPagination={true}
             pageCount={Math.ceil(total / pagination.pageSize)}
+            rowCount={total}
             pagination={pagination}
             onPaginationChange={setPagination}
-            customToolbar={(table) => (
+            customToolbar={(table, pagination) => (
               <div className="flex flex-wrap items-center justify-between gap-4 w-full">
                 {/* Search and Filters Section */}
                 <div className="flex items-center space-x-2">
@@ -447,12 +448,13 @@ export default function SequencesPage() {
                   </DropdownMenu>
                 </div>
 
-                {/* Buttons Section */}
+                {/* Buttons Section — action → pagination → refresh */}
                 <div className="flex items-center gap-2">
                   <Button onClick={handleCreate} className="h-9">
                     <PlusCircle className="h-4 w-4" />
                     {t('createNew')}
                   </Button>
+                  {pagination}
                   <Button
                     variant="outline"
                     size="icon"

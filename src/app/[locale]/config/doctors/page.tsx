@@ -22,18 +22,19 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { PhoneInput } from '@/components/ui/phone-input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { UserLogs } from '@/components/users/user-logs';
-import { UserMessages } from '@/components/users/user-messages';
+import { VerticalTabStrip, VerticalTab } from '@/components/ui/vertical-tab-strip';
+import { DoctorAvailability } from '@/components/users/doctor-availability';
+import { DoctorAvailabilityExceptions } from '@/components/users/doctor-availability-exceptions';
 import { UserServices } from '@/components/users/user-services';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { User, UserRole } from '@/lib/types';
 import api from '@/services/api';
+import { useLicenseStore } from '@/stores/license-store';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, UserSquare, X } from 'lucide-react';
+import { AlertTriangle, CalendarClock, CalendarX, ClipboardList, Stethoscope, UserSquare, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -178,6 +179,7 @@ function DoctorsTableNarrow({ columns, users, selectedUser, onRowSelectionChange
       rowSelection={rowSelection}
       setRowSelection={setRowSelection}
       pageCount={Math.ceil(userCount / pagination.pageSize)}
+      rowCount={userCount}
       pagination={pagination}
       onPaginationChange={setPagination}
       manualPagination={true}
@@ -193,9 +195,10 @@ function DoctorsTableNarrow({ columns, users, selectedUser, onRowSelectionChange
           onClick={() => onRowSelectionChange([row])}
         />
       )}
-      customToolbar={(table: any) => (
+      customToolbar={(table: any, pagination: React.ReactNode) => (
         <DataTableAdvancedToolbar
           table={table}
+          endSlot={pagination}
           filterPlaceholder={t('UsersPage.filterPlaceholder')}
           searchQuery={(columnFilters.find((f: any) => f.id === 'email')?.value as string) || ''}
           onSearchChange={(value: string) => {
@@ -249,7 +252,7 @@ export default function DoctorsPage() {
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
-    pageSize: 10,
+    pageSize: 25,
   });
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [showOnlyActive, setShowOnlyActive] = React.useState(true);
@@ -318,6 +321,16 @@ export default function DoctorsPage() {
   };
 
   const handleCreate = () => {
+    const { canAddUserByRole, license } = useLicenseStore.getState();
+    if (!canAddUserByRole('doctor', userCount)) {
+      toast({
+        variant: 'destructive',
+        title: t('License.enforcement.limitReachedTitle'),
+        description: t('License.enforcement.doctorLimitReached', { max: license?.maxDoctors ?? 0 }),
+      });
+      return;
+    }
+
     form.reset({
       name: '',
       email: '',
@@ -448,8 +461,8 @@ export default function DoctorsPage() {
     tabMap: {
       'Detalles': 'details',
       'Servicios': 'services',
-      'Mensajes': 'messages',
-      'Historial': 'logs',
+      'Disponibilidad': 'availability',
+      'Excepciones': 'exceptions',
     },
     onFilter: (v) => {
       setPagination((prev) => ({ ...prev, pageIndex: 0 }));
@@ -518,72 +531,74 @@ export default function DoctorsPage() {
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent className="flex-1 overflow-auto p-4 pt-0">
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
-                  <TabsList className="h-auto items-center justify-start flex-wrap flex-none">
-                    <TabsTrigger value="details">{t('DoctorsPage.tabs.details')}</TabsTrigger>
-                    <TabsTrigger value="services">{t('UsersPage.tabs.services')}</TabsTrigger>
-                    <TabsTrigger value="messages">{t('UsersPage.tabs.messages')}</TabsTrigger>
-                    <TabsTrigger value="logs">{t('UsersPage.tabs.logs')}</TabsTrigger>
-                  </TabsList>
-                  <div className="flex-1 overflow-auto mt-4">
-                    <TabsContent value="details" className="m-0">
-                      <Form {...detailForm}>
-                        <form onSubmit={detailForm.handleSubmit(onDetailSubmit)} className="space-y-4">
-                          {detailError && (
-                            <Alert variant="destructive">
-                              <AlertTriangle className="h-4 w-4" />
-                              <AlertTitle>{t('DoctorsPage.createDialog.validation.errorTitle')}</AlertTitle>
-                              <AlertDescription>{detailError}</AlertDescription>
-                            </Alert>
-                          )}
-                          <FormField control={detailForm.control} name="name" render={({ field }) => (
-                            <FormItem><FormLabel>{t('DoctorsPage.createDialog.name')}</FormLabel><FormControl><Input placeholder={t('DoctorsPage.createDialog.namePlaceholder')} {...field} /></FormControl><FormMessage /></FormItem>
-                          )} />
-                          <FormField control={detailForm.control} name="email" render={({ field }) => (
-                            <FormItem><FormLabel>{t('DoctorsPage.createDialog.email')}</FormLabel><FormControl><Input type="email" placeholder={t('DoctorsPage.createDialog.emailPlaceholder')} {...field} /></FormControl><FormMessage /></FormItem>
-                          )} />
-                          <FormField control={detailForm.control} name="phone" render={({ field }) => (
-                            <FormItem><FormLabel>{t('DoctorsPage.createDialog.phone')}</FormLabel><FormControl>
-                              <PhoneInput {...field} defaultCountry="UY" placeholder={t('DoctorsPage.createDialog.phonePlaceholder')} onChange={field.onChange} value={field.value} />
-                            </FormControl><FormMessage /></FormItem>
-                          )} />
-                          <FormField control={detailForm.control} name="identity_document" render={({ field }) => (
-                            <FormItem><FormLabel>{t('DoctorsPage.createDialog.identity_document')}</FormLabel><FormControl><Input placeholder={t('DoctorsPage.createDialog.identity_document_placeholder')} {...field} /></FormControl><FormMessage /></FormItem>
-                          )} />
-                          <FormField control={detailForm.control} name="color" render={({ field }) => (
-                            <FormItem><FormLabel>{t('DoctorsPage.createDialog.color')}</FormLabel><FormControl>
-                              <div className="flex items-center gap-2">
-                                <Input type="color" className="p-1 h-10 w-14" {...field} />
-                                <Input placeholder="#FFFFFF" {...field} />
-                              </div>
-                            </FormControl><FormMessage /></FormItem>
-                          )} />
-                          <FormField control={detailForm.control} name="is_active" render={({ field }) => (
-                            <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                              <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                              <FormLabel>{t('DoctorsPage.createDialog.isActive')}</FormLabel>
-                            </FormItem>
-                          )} />
-                          <div className="flex gap-2 pt-2">
-                            <Button type="submit" disabled={isSavingDetail}>
-                              {isSavingDetail ? t('DoctorsPage.createDialog.editSave') + '...' : t('DoctorsPage.createDialog.editSave')}
-                            </Button>
-                          </div>
-                        </form>
-                      </Form>
-                    </TabsContent>
-                    <TabsContent value="services" className="m-0">
-                      <UserServices userId={selectedUser.id} isSalesUser={selectedUser.is_sales !== false} />
-                    </TabsContent>
-                    <TabsContent value="messages" className="m-0">
-                      <UserMessages userId={selectedUser.id} />
-                    </TabsContent>
-                    <TabsContent value="logs" className="m-0">
-                      <UserLogs userId={selectedUser.id} />
-                    </TabsContent>
-                  </div>
-                </Tabs>
+              <CardContent className="flex-1 overflow-hidden flex flex-col p-0 pt-0">
+                <VerticalTabStrip
+                  tabs={[
+                    { id: 'details', icon: ClipboardList, label: t('DoctorsPage.tabs.details') },
+                    { id: 'services', icon: Stethoscope, label: t('UsersPage.tabs.services') },
+                    { id: 'availability', icon: CalendarClock, label: t('DoctorsPage.tabs.availability') },
+                    { id: 'exceptions', icon: CalendarX, label: t('DoctorsPage.tabs.exceptions') },
+                  ] satisfies VerticalTab[]}
+                  activeTabId={activeTab}
+                  onTabClick={(tab) => setActiveTab(tab.id)}
+                />
+                <div className="flex-1 overflow-auto px-4 py-4">
+                  {activeTab === 'details' && (
+                    <Form {...detailForm}>
+                      <form onSubmit={detailForm.handleSubmit(onDetailSubmit)} className="space-y-4">
+                        {detailError && (
+                          <Alert variant="destructive">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertTitle>{t('DoctorsPage.createDialog.validation.errorTitle')}</AlertTitle>
+                            <AlertDescription>{detailError}</AlertDescription>
+                          </Alert>
+                        )}
+                        <FormField control={detailForm.control} name="name" render={({ field }) => (
+                          <FormItem><FormLabel>{t('DoctorsPage.createDialog.name')}</FormLabel><FormControl><Input placeholder={t('DoctorsPage.createDialog.namePlaceholder')} {...field} /></FormControl><FormMessage /></FormItem>
+                        )} />
+                        <FormField control={detailForm.control} name="email" render={({ field }) => (
+                          <FormItem><FormLabel>{t('DoctorsPage.createDialog.email')}</FormLabel><FormControl><Input type="email" placeholder={t('DoctorsPage.createDialog.emailPlaceholder')} {...field} /></FormControl><FormMessage /></FormItem>
+                        )} />
+                        <FormField control={detailForm.control} name="phone" render={({ field }) => (
+                          <FormItem><FormLabel>{t('DoctorsPage.createDialog.phone')}</FormLabel><FormControl>
+                            <PhoneInput {...field} defaultCountry="UY" placeholder={t('DoctorsPage.createDialog.phonePlaceholder')} onChange={field.onChange} value={field.value} />
+                          </FormControl><FormMessage /></FormItem>
+                        )} />
+                        <FormField control={detailForm.control} name="identity_document" render={({ field }) => (
+                          <FormItem><FormLabel>{t('DoctorsPage.createDialog.identity_document')}</FormLabel><FormControl><Input placeholder={t('DoctorsPage.createDialog.identity_document_placeholder')} {...field} /></FormControl><FormMessage /></FormItem>
+                        )} />
+                        <FormField control={detailForm.control} name="color" render={({ field }) => (
+                          <FormItem><FormLabel>{t('DoctorsPage.createDialog.color')}</FormLabel><FormControl>
+                            <div className="flex items-center gap-2">
+                              <Input type="color" className="p-1 h-10 w-14" {...field} />
+                              <Input placeholder="#FFFFFF" {...field} />
+                            </div>
+                          </FormControl><FormMessage /></FormItem>
+                        )} />
+                        <FormField control={detailForm.control} name="is_active" render={({ field }) => (
+                          <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                            <FormLabel>{t('DoctorsPage.createDialog.isActive')}</FormLabel>
+                          </FormItem>
+                        )} />
+                        <div className="flex gap-2 pt-2">
+                          <Button type="submit" disabled={isSavingDetail}>
+                            {isSavingDetail ? t('DoctorsPage.createDialog.editSave') + '...' : t('DoctorsPage.createDialog.editSave')}
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  )}
+                  {activeTab === 'services' && (
+                    <UserServices userId={selectedUser.id} isSalesUser={selectedUser.is_sales !== false} />
+                  )}
+                  {activeTab === 'availability' && (
+                    <DoctorAvailability userId={selectedUser.id} />
+                  )}
+                  {activeTab === 'exceptions' && (
+                    <DoctorAvailabilityExceptions userId={selectedUser.id} />
+                  )}
+                </div>
               </CardContent>
             </Card>
           )

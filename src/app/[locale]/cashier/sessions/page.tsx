@@ -303,7 +303,7 @@ export default function CashSessionsPage() {
     const [isPrinting, setIsPrinting] = React.useState(false);
     const [isPrintingClose, setIsPrintingClose] = React.useState(false);
 
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
+    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
         id: false,
@@ -404,6 +404,7 @@ export default function CashSessionsPage() {
                         columns={columns}
                         data={sessions}
                         pageCount={Math.ceil(sessionCount / pagination.pageSize)}
+                        rowCount={sessionCount}
                         pagination={pagination}
                         onPaginationChange={setPagination}
                         columnFilters={columnFilters}

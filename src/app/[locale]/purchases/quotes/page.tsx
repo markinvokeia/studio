@@ -45,6 +45,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { useToast } from '@/hooks/use-toast';
+import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { usePermissions } from '@/hooks/usePermissions';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { invoiceOrder } from '@/lib/invoice-actions';
@@ -112,7 +113,7 @@ async function getQuotes(t: (key: string) => string): Promise<Quote[]> {
             id: apiQuote.id ? String(apiQuote.id) : `qt_${Math.random().toString(36).substr(2, 9)}`,
             doc_no: apiQuote.doc_no || t('defaults.notAvailable'),
             user_id: apiQuote.user_id || t('defaults.notAvailable'),
-            total: apiQuote.total || 0,
+            total: Number(apiQuote.total_presupuesto ?? apiQuote.total ?? 0),
             status: apiQuote.status || 'draft',
             payment_status: apiQuote.payment_status || 'unpaid',
             billing_status: apiQuote.billing_status || 'not invoiced',
@@ -393,6 +394,7 @@ function QuotesPageContent() {
     const { toast } = useToast();
     const { user, activeCashSession } = useAuth();
     const { hasPermission } = usePermissions();
+    const { printQuote } = usePrintDocument();
 
     // Permission checks for UI elements
     const canViewList = hasPermission(PURCHASES_PERMISSIONS.QUOTES_VIEW_LIST);
@@ -1012,37 +1014,9 @@ function QuotesPageContent() {
         setIsRightExpanded(false);
     };
 
-    const handlePrintQuote = React.useCallback(async (quote: Quote) => {
-        const fileName = getDocumentFileName(quote, 'quote');
-
-        toast({
-            title: t('generatingPdf'),
-            description: t('pleaseWait', { id: fileName }),
-        });
-
-        try {
-            const blob = await api.getBlob(API_ROUTES.PURCHASES.QUOTES_PRINT, { quote_id: quote.id.toString() });
-            const url = window.URL.createObjectURL(blob);
-            const anchor = document.createElement('a');
-            anchor.href = url;
-            anchor.download = `${fileName}.pdf`;
-            document.body.appendChild(anchor);
-            anchor.click();
-            window.URL.revokeObjectURL(url);
-            anchor.remove();
-
-            toast({
-                title: t('downloadStarted'),
-                description: t('pdfDownloading', { id: fileName }),
-            });
-        } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: t('printError'),
-                description: error instanceof Error ? error.message : t('couldNotPrint'),
-            });
-        }
-    }, [t, toast]);
+    const handlePrintQuote = React.useCallback((quote: Quote) => {
+        printQuote(quote, false);
+    }, [printQuote]);
 
     const handleSendEmailClick = React.useCallback((quote: Quote) => {
         setSelectedQuoteForEmail(quote);
@@ -1385,6 +1359,15 @@ function QuotesPageContent() {
                                         </Button>
                                     )}
                                 </div>
+                                {selectedQuote.status?.toLowerCase() === 'rejected' && selectedQuote.notes && (
+                                    <div className="mx-4 mt-3 flex gap-2.5 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2.5">
+                                        <XCircle className="h-4 w-4 shrink-0 text-destructive mt-0.5" />
+                                        <div>
+                                            <p className="text-xs font-medium text-destructive">{t('rejectedBanner.title')}</p>
+                                            <p className="text-xs text-muted-foreground mt-0.5">{selectedQuote.notes}</p>
+                                        </div>
+                                    </div>
+                                )}
                                 <CardContent className="flex-1 flex flex-col overflow-hidden p-0 min-h-0 bg-card">
                                     <VerticalTabStrip
                                         tabs={quoteTabs}

@@ -21,6 +21,9 @@ import { api } from '@/services/api';
 import { getPurchaseServices, getSalesServices, getUsersServicesBatch } from '@/services/services';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { CalendarCheck, CheckCircle2 } from 'lucide-react';
+import { DataListRow } from '@/components/ui/data-list-row';
+import { ViewModeToggle } from '@/components/ui/view-mode-toggle';
+import { useTableViewMode } from '@/hooks/use-table-view-mode';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
@@ -65,7 +68,12 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
   const { toast } = useToast();
   const { isNarrow: panelNarrow } = useNarrowMode();
   const viewportNarrow = useViewportNarrow();
-  const isNarrow = panelNarrow || viewportNarrow;
+  const [viewMode, setViewMode] = useTableViewMode('quote-items', 'list');
+  // Toggle on desktop/tablet; mobile always shows cards.
+  const showToggle = !viewportNarrow;
+  // Render the list view on desktop; mobile keeps DataCard.
+  const useListView = !viewportNarrow && viewMode === 'list';
+  const isNarrow = panelNarrow || viewportNarrow || useListView;
   const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false);
   const [isClinicSessionDialogOpen, setIsClinicSessionDialogOpen] = React.useState(false);
   const [isAppointmentDialogOpen, setIsAppointmentDialogOpen] = React.useState(false);
@@ -558,13 +566,58 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
           enableSingleRowSelection
           rowSelection={rowSelection}
           setRowSelection={setRowSelection}
-          extraButtons={toolbarActions}
+          primaryActions={isNarrow ? undefined : toolbarActions}
+          viewControls={showToggle ? <ViewModeToggle value={viewMode} onChange={setViewMode} /> : undefined}
           isNarrow={isNarrow}
+          cardListClassName={useListView ? 'gap-0 px-0 py-0 rounded-md border' : undefined}
           renderCard={(item: OrderItem, isSelected: boolean) => {
             const statusVariant: any = { completed: 'success', scheduled: 'info', cancelled: 'destructive' }[item.status?.toLowerCase() ?? ''] ?? 'default';
             const canScheduleCard = canSchedule && !item.scheduled_date && item.status !== 'completed' && !item.completed_date;
             const canCompleteCard = canComplete && !item.completed_date;
             const fmt = (v: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
+            const actionsEl = isSelected && (canScheduleCard || canCompleteCard) ? (
+              <>
+                {canScheduleCard && (
+                  <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1"
+                    onClick={(e) => { e.stopPropagation(); handleActionClick(item, 'schedule'); }}>
+                    <CalendarCheck className="h-3 w-3" />{t('actions.schedule')}
+                  </Button>
+                )}
+                {canCompleteCard && (
+                  <Button variant="default" size="sm" className="h-6 px-2 text-xs gap-1 bg-green-600 hover:bg-green-700 text-white"
+                    onClick={(e) => { e.stopPropagation(); handleActionClick(item, 'complete'); }}>
+                    <CheckCircle2 className="h-3 w-3" />{t('actions.complete')}
+                  </Button>
+                )}
+              </>
+            ) : null;
+            if (useListView) {
+              return (
+                <DataListRow
+                  isSelected={isSelected}
+                  onClick={() => handleRowSelectionChange([item])}
+                  title={item.service_name || String(item.id)}
+                  badge={item.status ? (
+                    <Badge variant={statusVariant} className="text-[10px] font-normal capitalize">
+                      {t(`status.${item.status.toLowerCase()}`)}
+                    </Badge>
+                  ) : undefined}
+                  meta={(
+                    <>
+                      <span>{t('columns.id')}: {item.id}</span>
+                      {item.tooth_number ? <span>{t('columns.toothNumber')}: {item.tooth_number}</span> : null}
+                      <span>{t('columns.quantity')}: {item.quantity}</span>
+                      {item.unit_price != null ? <span>{t('columns.unitPrice')}: {fmt(item.unit_price)}</span> : null}
+                      {item.total != null ? <span className="font-medium text-foreground">{t('columns.total')}: {fmt(item.total)}</span> : null}
+                      {item.scheduled_date ? <span>{t('columns.scheduled')}: {formatDateTime(item.scheduled_date)}</span> : null}
+                      {item.completed_date ? <span>{t('columns.completed')}: {formatDateTime(item.completed_date)}</span> : null}
+                      {item.invoiced_date ? <span>{t('columns.invoiced')}: {formatDateTime(item.invoiced_date)}</span> : null}
+                    </>
+                  )}
+                  actions={actionsEl}
+                />
+              );
+            }
             return (
               <DataCard
                 isSelected={isSelected}

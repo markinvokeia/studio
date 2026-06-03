@@ -40,6 +40,10 @@ interface DataTableAdvancedToolbarProps<TData> {
     extraButtons?: React.ReactNode;
     columnTranslations?: { [key: string]: string };
     isCompact?: boolean;
+    /** Rendered at the end of the secondary action group (e.g. pagination); wraps with it when narrow */
+    endSlot?: React.ReactNode;
+    /** View controls (e.g. a view-mode toggle) rendered after pagination, alongside refresh/columns */
+    viewControls?: React.ReactNode;
 }
 
 export function DataTableAdvancedToolbar<TData>({
@@ -57,6 +61,8 @@ export function DataTableAdvancedToolbar<TData>({
     extraButtons,
     columnTranslations = {},
     isCompact = false,
+    endSlot,
+    viewControls,
 }: DataTableAdvancedToolbarProps<TData>) {
     const t = useTranslations('DataTableToolbar');
     const inputRef = React.useRef<HTMLInputElement>(null);
@@ -176,12 +182,14 @@ export function DataTableAdvancedToolbar<TData>({
 
     return (
         <div className="flex flex-col gap-2 w-full">
-            {/* Row 1: Search + Create + Refresh */}
-            <div className="flex items-center gap-2 w-full">
-                <div className={isCompact ? "flex-1 min-w-0" : "flex-1 min-w-0 sm:max-w-[724px]"}>
-                    {SearchBar}
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
+            {/* Row 1: when narrow, the secondary group (refresh/columns + endSlot) wraps below,
+                keeping search + create on the first line. */}
+            <div className="flex flex-wrap items-center gap-2 w-full">
+                {/* Primary group: search + create */}
+                <div className="flex items-center gap-2 flex-1">
+                    <div className={isCompact ? "flex-1 min-w-[12rem]" : "flex-1 min-w-[12rem] sm:max-w-[724px]"}>
+                        {SearchBar}
+                    </div>
                     {onCreate && (
                         <Button
                             variant="default"
@@ -201,6 +209,13 @@ export function DataTableAdvancedToolbar<TData>({
                             )}
                         </Button>
                     )}
+                </div>
+                {/* Secondary group: action buttons → pagination → refresh → columns — wraps below when narrow */}
+                <div className="flex items-center gap-2 shrink-0">
+                    {/* Action buttons — desktop only (inline); before pagination */}
+                    {extraButtons && <div className="hidden sm:flex items-center gap-2">{extraButtons}</div>}
+                    {/* Pagination — after the action buttons, before the control buttons */}
+                    {endSlot}
                     {onRefresh && (
                         <Button
                             variant="outline"
@@ -213,6 +228,8 @@ export function DataTableAdvancedToolbar<TData>({
                             <span className="sr-only">{t('refresh')}</span>
                         </Button>
                     )}
+                    {/* View controls (e.g. view-mode toggle) — desktop only */}
+                    {viewControls && <div className="hidden sm:flex items-center gap-2">{viewControls}</div>}
                     {/* Column toggle — desktop only */}
                     {table && (
                         <DropdownMenu>
@@ -247,8 +264,6 @@ export function DataTableAdvancedToolbar<TData>({
                             </DropdownMenuContent>
                         </DropdownMenu>
                     )}
-                    {/* Extra buttons — desktop only (inline) */}
-                    {extraButtons && <div className="hidden sm:flex items-center gap-2">{extraButtons}</div>}
                 </div>
             </div>
             {/* Row 2 — mobile only: extra action buttons */}

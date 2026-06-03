@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { Group, Panel, Separator } from 'react-resizable-panels';
+import { Group, Panel, Separator, useDefaultLayout } from 'react-resizable-panels';
+import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { usePanelWidth } from '@/hooks/use-panel-width';
 import { LEFT_PANEL_NARROW_THRESHOLD } from '@/lib/design-tokens';
@@ -37,6 +38,12 @@ interface TwoPanelLayoutProps {
     className?: string;
     /** When true, renders only the right panel at full width. */
     forceRightOnly?: boolean;
+    /**
+     * Persists the resizable split position in localStorage. Defaults to a key
+     * derived from the current route, so each two-panel view remembers its own
+     * last divider position independently.
+     */
+    storageKey?: string;
 }
 
 const DESKTOP_BREAKPOINT = 1024;
@@ -61,11 +68,22 @@ export function TwoPanelLayout({
     minRightSize = 20,
     className,
     forceRightOnly = false,
+    storageKey,
 }: TwoPanelLayoutProps) {
     const [isDesktop, setIsDesktop] = React.useState<boolean>(getIsDesktop);
     const leftPanelRef = React.useRef<HTMLDivElement>(null);
     const leftPanelWidth = usePanelWidth(leftPanelRef);
     const isNarrow = isRightPanelOpen && leftPanelWidth > 0 && leftPanelWidth < LEFT_PANEL_NARROW_THRESHOLD;
+
+    // Persist the split position per view. Key falls back to the route so each
+    // two-panel page remembers its own divider position independently.
+    const pathname = usePathname();
+    const layoutId = storageKey ?? `two-panel:${(pathname || 'default').replace(/^\/(es|en)(?=\/|$)/, '')}`;
+    const { defaultLayout, onLayoutChanged } = useDefaultLayout({
+        id: layoutId,
+        panelIds: isRightPanelOpen ? ['left-panel-v4', 'right-panel-v4'] : ['left-panel-v4'],
+        storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+    });
 
     React.useEffect(() => {
         const mq = window.matchMedia(`(min-width: ${DESKTOP_BREAKPOINT}px)`);
@@ -90,7 +108,12 @@ export function TwoPanelLayout({
         return (
             <MobileBackContext.Provider value={{ onBack }}>
                 <div className={cn("flex-1 w-full overflow-hidden flex flex-col min-h-0", className)}>
-                    <Group orientation="horizontal" className="flex-1">
+                    <Group
+                        orientation="horizontal"
+                        className="flex-1"
+                        defaultLayout={defaultLayout}
+                        onLayoutChanged={onLayoutChanged}
+                    >
                         <Panel
                             defaultSize={isRightPanelOpen ? `${leftPanelDefaultSize}%` : '100%'}
                             minSize={isRightPanelOpen ? `${minLeftSize}%` : '100%'}

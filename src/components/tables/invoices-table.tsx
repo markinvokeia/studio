@@ -48,6 +48,9 @@ import * as z from 'zod';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Checkbox } from '../ui/checkbox';
 import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
+import { DataListRow } from '@/components/ui/data-list-row';
+import { ViewModeToggle } from '@/components/ui/view-mode-toggle';
+import { useTableViewMode } from '@/hooks/use-table-view-mode';
 import { DatePickerInput } from '../ui/date-picker';
 import { DialogDescription } from '../ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
@@ -276,7 +279,11 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const { user, checkActiveSession } = useAuth();
   const { isNarrow: panelNarrow } = useNarrowMode();
   const viewportNarrow = useViewportNarrow();
-  const isNarrow = isCompact || panelNarrow || viewportNarrow;
+  const [viewMode, setViewMode] = useTableViewMode('invoices', 'table');
+  const showToggle = !viewportNarrow;
+  const useListView = showToggle && viewMode === 'list';
+  const isNarrow = panelNarrow || viewportNarrow || useListView;
+  const viewToggleEl = showToggle ? <ViewModeToggle value={viewMode} onChange={setViewMode} /> : undefined;
   const locale = useLocale();
 
   const { toast } = useToast();
@@ -401,9 +408,10 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
             rowSelection={rowSelection}
             setRowSelection={setRowSelection}
             getRowClassName={(row: Invoice) => row.is_historical ? 'bg-amber-50/50 dark:bg-amber-950/30' : ''}
-            customToolbar={standalone ? (table) => (
+            customToolbar={standalone ? (table, pagination) => (
               <DataTableAdvancedToolbar
                 table={table}
+                endSlot={pagination}
                 isCompact={isCompact}
                 filterPlaceholder={t('filterPlaceholder')}
                 searchQuery={(table.getState().columnFilters.find((f: any) => f.id === 'doc_no')?.value as string) || ''}
@@ -433,6 +441,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                 ]}
                 onClearFilters={() => onFilterChange?.('')}
                 columnTranslations={mergedColumnTranslations}
+                viewControls={viewToggleEl}
                 extraButtons={
                   <>
                     {onImport && (
@@ -449,24 +458,47 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
             onFilterChange={onFilterChange}
             filterValue={filterValue}
             isNarrow={isNarrow}
-            renderCard={(row: Invoice, _isSelected: boolean) => (
-              <DataCard isSelected={_isSelected}
-                title={row.doc_no || String(row.id)}
-                subtitle={[
-                  row.user_name,
-                  formatDisplayDate(row.createdAt),
-                  row.total != null
-                    ? [row.currency, new Intl.NumberFormat('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(row.total))].filter(Boolean).join(' ')
-                    : undefined,
-                  row.status,
-                ].filter(Boolean).join(' · ')}
-                fields={[
-                  { label: columnTranslations.due_date || "Due Date", value: row.due_date ? formatDisplayDate(row.due_date) : '-' },
-                ]}
-                showArrow
-                onClick={() => onRowSelectionChange?.([row])}
-              />
-            )}
+            viewControls={viewToggleEl}
+            cardListClassName={useListView ? 'gap-0 px-0 py-0 rounded-md border' : undefined}
+            renderCard={(row: Invoice, _isSelected: boolean) => {
+              const amount = row.total != null
+                ? [row.currency, new Intl.NumberFormat('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(row.total))].filter(Boolean).join(' ')
+                : undefined;
+              if (useListView) {
+                return (
+                  <DataListRow
+                    isSelected={_isSelected}
+                    onClick={() => onRowSelectionChange?.([row])}
+                    title={row.doc_no || String(row.id)}
+                    badge={row.status ? <Badge variant={({ paid: 'success', sent: 'default', draft: 'outline', overdue: 'destructive', booked: 'info' }[row.status?.toLowerCase()] ?? 'default') as any} className="capitalize text-[10px]">{tStatus(row.status?.toLowerCase() || '')}</Badge> : undefined}
+                    meta={(
+                      <>
+                        {row.user_name ? <span>{row.user_name}</span> : null}
+                        <span>{formatDisplayDate(row.createdAt)}</span>
+                        {amount ? <span className="font-medium text-foreground">{t('columns.total')}: {amount}</span> : null}
+                        {row.due_date ? <span>{mergedColumnTranslations.due_date}: {formatDisplayDate(row.due_date)}</span> : null}
+                      </>
+                    )}
+                  />
+                );
+              }
+              return (
+                <DataCard isSelected={_isSelected}
+                  title={row.doc_no || String(row.id)}
+                  subtitle={[
+                    row.user_name,
+                    formatDisplayDate(row.createdAt),
+                    amount,
+                    row.status,
+                  ].filter(Boolean).join(' · ')}
+                  fields={[
+                    { label: columnTranslations.due_date || "Due Date", value: row.due_date ? formatDisplayDate(row.due_date) : '-' },
+                  ]}
+                  showArrow
+                  onClick={() => onRowSelectionChange?.([row])}
+                />
+              );
+            }}
           />
         </CardContent>
       </Card>

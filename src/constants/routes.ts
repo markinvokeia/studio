@@ -286,6 +286,7 @@ export const API_ROUTES = {
         ALERT_CATEGORY: '/alert_category',
         ALERT_CONFIG_WEBHOOK: '/system/alert-config',
         ALERT_INSTANCES: '/system/alert-instances',
+        ALERT_STATISTICS: '/system/alert-statistics',
         ALERT_INSTANCES_COMPLETE: '/system/alert-instances/complete',
         ALERT_INSTANCES_IGNORE: '/system/alert-instances/ignore',
         ALERT_INSTANCES_SEND_EMAIL: '/system/alert-instances/send-email',
@@ -364,6 +365,9 @@ export const API_ROUTES = {
     MUTUAL_SOCIETIES_UPSERT: '/mutual-society',
     MUTUAL_SOCIETIES_DELETE: '/mutual-society',
     MUTUAL_SOCIETIES_ASSIGN_USER: '/mutual-society/user',
+    PRINT_TEMPLATES:        '/print-templates',
+    PRINT_TEMPLATES_UPSERT: '/print-templates/upsert',
+    PRINT_TEMPLATES_DELETE: '/print-templates/delete',
     STICKY_NOTES: '/sticky-notes',
     STICKY_NOTES_UPSERT: '/sticky-notes/upsert',
     STICKY_NOTES_DELETE: '/sticky-notes/delete',
@@ -388,5 +392,14 @@ export const API_ROUTES = {
         GASTOS_OPERATIVOS:    '/reports/gastos-operativos',
         ESTADO_RESULTADOS:    '/reports/estado-resultados',
         KPIS:                 '/reports/kpis',
+        USERS_BY_ROLE:        '/reports/users-by-role',
+    },
+    LICENSE: {
+        GET:  '/license',
+        SAVE: '/license',
+    },
+    SUBSCRIPTIONS: {
+        LIST:   '/subscriptions',
+        CREATE: '/subscriptions',
     },
 };

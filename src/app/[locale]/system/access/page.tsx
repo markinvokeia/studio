@@ -59,7 +59,7 @@ export default function AccessLogPage() {
     const [data, setData] = React.useState<AccessLog[]>([]);
     const [logCount, setLogCount] = React.useState(0);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
+    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({ id: false, ip_address: false });
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedLog, setSelectedLog] = React.useState<AccessLog | null>(null);
@@ -131,6 +131,7 @@ export default function AccessLogPage() {
                             />
                         )}
                         pageCount={Math.ceil(logCount / pagination.pageSize)}
+                        rowCount={logCount}
                         pagination={pagination}
                         onPaginationChange={setPagination}
                         manualPagination={true}

@@ -27,7 +27,7 @@ export default function CurrenciesPage() {
 
     const [data, setData] = React.useState<ExchangeRateHistoryItem[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
+    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
     const [totalPages, setTotalPages] = React.useState(0);
     const [selectedItem, setSelectedItem] = React.useState<ExchangeRateHistoryItem | null>(null);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});

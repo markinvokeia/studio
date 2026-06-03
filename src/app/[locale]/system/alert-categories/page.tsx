@@ -315,6 +315,7 @@ export default function AlertCategoriesPage() {
                     onPaginationChange={onPaginationChange}
                     manualPagination={true}
                     pageCount={Math.ceil(total / pageSize)}
+                    rowCount={total}
                     enableSingleRowSelection
                     rowSelection={rowSelection}
                     setRowSelection={setRowSelection}

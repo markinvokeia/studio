@@ -8,7 +8,8 @@ import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
 import { getDocumentFileName } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import type { Invoice } from '@/lib/types';
+import { usePrintDocument } from '@/hooks/usePrintDocument';
+import type { Invoice, Payment } from '@/lib/types';
 import type { CreatedPayment } from './step-payment';
 
 interface StepConfirmationProps {
@@ -57,62 +58,76 @@ export function StepConfirmation({
   onClose,
 }: StepConfirmationProps) {
   const { toast } = useToast();
-  const [printingInvoiceId, setPrintingInvoiceId] = React.useState<string | null>(null);
-  const [printingPaymentId, setPrintingPaymentId] = React.useState<string | null>(null);
+  const { printInvoice, printPayment } = usePrintDocument();
 
-  const handlePrintInvoice = async (id: string, docNo?: string) => {
-    setPrintingInvoiceId(id);
-    try {
-      const endpoint = isSales ? API_ROUTES.SALES.API_INVOICE_PRINT : API_ROUTES.PURCHASES.API_INVOICE_PRINT;
-      const blob = await api.getBlob(endpoint, { id });
-      const fileName = getDocumentFileName({ id, doc_no: docNo, invoice_doc_no: docNo }, 'invoice');
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${fileName}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      URL.revokeObjectURL(url);
-      a.remove();
-    } catch {
-      toast({ title: 'Error al imprimir la factura', variant: 'destructive' });
-    } finally {
-      setPrintingInvoiceId(null);
-    }
+  const handlePrintInvoice = (inv: Invoice) => {
+    printInvoice(inv, isSales);
   };
 
-  const handlePrintPayment = async (payment: CreatedPayment) => {
+  const handlePrintInvoiceById = (id: string, docNo?: string) => {
+    const inv: Invoice = {
+      id,
+      doc_no: docNo,
+      invoice_doc_no: docNo,
+      invoice_ref: docNo || id,
+      order_id: '',
+      quote_id: '',
+      user_name: patientName || '',
+      user_id: '',
+      total: total ?? 0,
+      currency: currency as 'UYU' | 'USD',
+      status: 'booked',
+      payment_status: 'unpaid',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    printInvoice(inv, isSales);
+  };
+
+  const handlePrintPayment = (payment: CreatedPayment) => {
     if (!payment.transactionId) {
       toast({ title: 'No se encontró el recibo del pago', variant: 'destructive' });
       return;
     }
-    setPrintingPaymentId(payment.transactionId);
-    try {
-      const endpoint = isSales ? API_ROUTES.SALES.API_PAYMENT_PRINT : API_ROUTES.PURCHASES.API_PAYMENT_PRINT;
-      const blob = await api.getBlob(endpoint, {
-        transaction_id: payment.transactionId,
-        transaction_type: payment.transactionType || 'direct_payment',
-      });
-      const fileName = getDocumentFileName(
-        { id: payment.transactionId, doc_no: payment.docNo, payment_doc_no: payment.docNo },
-        'payment',
-      );
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${fileName}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      URL.revokeObjectURL(url);
-      a.remove();
-    } catch {
-      toast({ title: 'Error al imprimir el recibo', variant: 'destructive' });
-    } finally {
-      setPrintingPaymentId(null);
-    }
+    const p: Payment = {
+      id: payment.transactionId,
+      doc_no: payment.docNo,
+      payment_doc_no: payment.docNo,
+      order_id: '',
+      invoice_id: null,
+      quote_id: null,
+      user_name: patientName || '',
+      payment_date: payment.date || new Date().toISOString(),
+      amount_applied: payment.amount ?? 0,
+      source_amount: payment.amount ?? 0,
+      source_currency: (payment.currency as 'UYU' | 'USD') || 'UYU',
+      payment_method: payment.methodName || '',
+      transaction_type: (payment.transactionType as Payment['transaction_type']) || 'direct_payment',
+      transaction_id: payment.transactionId,
+      status: 'completed',
+      notes: payment.notes || '',
+      createdAt: payment.date || new Date().toISOString(),
+      updatedAt: payment.date || new Date().toISOString(),
+      amount: payment.amount ?? 0,
+      method: payment.methodName || '',
+      type: null,
+    };
+    printPayment(p, isSales);
   };
 
   const hasPayments = payments.length > 0;
+
+  // Payments arrive newest-first (stacked, latest on top), so the array index
+  // can't be used for the "Pago N" label. Rank them chronologically by date so
+  // the first payment made is always "Pago 1" regardless of display order.
+  const paymentNumberByIndex = React.useMemo(() => {
+    const ranked = payments
+      .map((p, idx) => ({ idx, t: p.date ? new Date(p.date).getTime() : 0 }))
+      .sort((a, b) => a.t - b.t);
+    const map = new Map<number, number>();
+    ranked.forEach((entry, rank) => map.set(entry.idx, rank + 1));
+    return map;
+  }, [payments]);
 
   return (
     <div className="flex flex-col gap-5 py-2">
@@ -138,16 +153,16 @@ export function StepConfirmation({
               <span className="text-muted-foreground shrink-0">Factura</span>
               <div className="flex items-center gap-2 min-w-0">
                 <span className="font-medium truncate">#{inv.doc_no || inv.invoice_doc_no || inv.id}</span>
+                <span className="tabular-nums whitespace-nowrap font-semibold text-emerald-600">
+                  {fmtCurrency(inv.total || 0, inv.currency || currency)}
+                </span>
                 <button
                   type="button"
-                  onClick={() => handlePrintInvoice(inv.id, inv.doc_no || inv.invoice_doc_no)}
-                  disabled={printingInvoiceId === inv.id}
-                  className="shrink-0 text-muted-foreground hover:text-foreground disabled:opacity-40 transition-colors"
+                  onClick={() => handlePrintInvoice(inv)}
+                  className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
                   title="Imprimir factura"
                 >
-                  {printingInvoiceId === inv.id
-                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    : <Printer className="h-3.5 w-3.5" />}
+                  <Printer className="h-3.5 w-3.5" />
                 </button>
               </div>
             </div>
@@ -157,17 +172,19 @@ export function StepConfirmation({
             <span className="text-muted-foreground shrink-0">Factura</span>
             <div className="flex items-center gap-2 min-w-0">
               <span className="font-medium truncate">#{invoiceDocNo}</span>
+              {total !== undefined && (
+                <span className="tabular-nums whitespace-nowrap font-semibold text-emerald-600">
+                  {fmtCurrency(total, currency)}
+                </span>
+              )}
               {invoiceId && (
                 <button
                   type="button"
-                  onClick={() => handlePrintInvoice(invoiceId, invoiceDocNo)}
-                  disabled={printingInvoiceId === invoiceId}
-                  className="shrink-0 text-muted-foreground hover:text-foreground disabled:opacity-40 transition-colors"
+                  onClick={() => handlePrintInvoiceById(invoiceId!, invoiceDocNo)}
+                  className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
                   title="Imprimir factura"
                 >
-                  {printingInvoiceId === invoiceId
-                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    : <Printer className="h-3.5 w-3.5" />}
+                  <Printer className="h-3.5 w-3.5" />
                 </button>
               )}
             </div>
@@ -183,11 +200,9 @@ export function StepConfirmation({
             >
               {/* Left: label */}
               <span className="text-muted-foreground shrink-0 flex items-center gap-1.5 pt-0.5">
-                {payments.length > 1 ? `Pago ${i + 1}` : 'Pago'}
+                {payments.length > 1 ? `Pago ${paymentNumberByIndex.get(i) ?? i + 1}` : 'Pago'}
                 {p.isNew && (
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40 px-1 rounded">
-                    Nuevo
-                  </span>
+                  <span className="text-[10px] text-muted-foreground">(en esta sesión)</span>
                 )}
               </span>
 
@@ -197,12 +212,18 @@ export function StepConfirmation({
                   {/* Top line: doc no (or transaction ref) + amount + currency */}
                   <div className="flex items-center gap-1.5 font-medium">
                     <span className="truncate">
-                      {p.docNo ? `#${p.docNo}` : `Ref. #${p.transactionId}`}
+                      {p.docNo
+                        ? `#${p.docNo}`
+                        : (p.transactionType === 'payment_allocation' || p.transactionType === 'credit_note_allocation' || p.methodName === 'Crédito')
+                          ? 'Crédito aplicado'
+                          : p.transactionId
+                            ? `Ref. #${p.transactionId}`
+                            : '—'}
                     </span>
                     {p.amount != null && p.currency && (
                       <>
                         <span className="text-muted-foreground">·</span>
-                        <span className="tabular-nums whitespace-nowrap">{fmtCurrency(p.amount, p.currency)}</span>
+                        <span className="tabular-nums whitespace-nowrap text-red-600 dark:text-red-400">−{fmtCurrency(p.amount, p.currency)}</span>
                       </>
                     )}
                   </div>
@@ -219,13 +240,10 @@ export function StepConfirmation({
                   <button
                     type="button"
                     onClick={() => handlePrintPayment(p)}
-                    disabled={printingPaymentId === p.transactionId}
-                    className="shrink-0 text-muted-foreground hover:text-foreground disabled:opacity-40 transition-colors mt-0.5"
+                    className="shrink-0 text-muted-foreground hover:text-foreground transition-colors mt-0.5"
                     title="Imprimir recibo"
                   >
-                    {printingPaymentId === p.transactionId
-                      ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      : <Printer className="h-3.5 w-3.5" />}
+                    <Printer className="h-3.5 w-3.5" />
                   </button>
                 )}
               </div>
@@ -239,7 +257,7 @@ export function StepConfirmation({
             {appliedCredits.map((c) => (
               <div key={c.source_id} className="flex justify-between items-center px-4 py-2.5 text-sm">
                 <span className="text-muted-foreground shrink-0">
-                  {c.type === 'credit_note' ? 'Nota de crédito' : 'Referencia de pago'} #{c.source_id}
+                  {c.type === 'credit_note' ? 'Nota de crédito' : 'Crédito'} #{c.source_id}
                 </span>
                 <span className="tabular-nums font-medium text-emerald-600">
                   − {new Intl.NumberFormat('es-UY', { style: 'currency', currency: c.currency }).format(c.amount)}
@@ -257,22 +275,7 @@ export function StepConfirmation({
           </>
         )}
 
-        {/* Totals */}
-        {total !== undefined && (
-          <div className="flex justify-between px-4 py-2.5 font-semibold">
-            <span>Total facturado</span>
-            <span className="tabular-nums text-primary">{fmtCurrency(total, currency)}</span>
-          </div>
-        )}
-        {totalPaid !== undefined && totalPaid > 0 && (
-          <div className="flex justify-between px-4 py-2.5 font-semibold">
-            <span>
-              Total pagado{' '}
-              <span className="font-normal text-muted-foreground text-xs">(en esta sesión)</span>
-            </span>
-            <span className="tabular-nums text-emerald-600">{fmtCurrency(totalPaid, currency)}</span>
-          </div>
-        )}
+        {/* Total pendiente */}
         {pendingAfter !== undefined && (
           <div className="flex justify-between px-4 py-2.5 font-semibold">
             <span>Total pendiente</span>

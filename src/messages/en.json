@@ -39,11 +39,13 @@
     "Holidays": "Holidays",
     "Calendars": "Calendars",
     "Doctors": "Doctors",
+    "Staff": "Receptionists & Administration",
     "DoctorAvailability": "Doctor Availability",
     "DoctorAvailabilityExceptions": "Availability Exceptions",
     "Currencies": "Currencies & Exchange Rates",
     "Sequences": "Sequences",
     "MutualSocieties": "Mutual Societies",
+    "PrintTemplates": "Document Templates",
     "System": "System",
     "SystemUsers": "Users",
     "Roles": "Roles",
@@ -54,6 +56,8 @@
     "AccessLog": "Access Log",
     "ErrorLog": "Error Log",
     "ImportData": "Import Data",
+    "Licenses": "Licenses",
+    "Subscriptions": "Subscriptions",
     "AlertsCenter": "Alerts Center",
     "AlertsConfig": "Alerts Configuration",
     "AlertCategories": "Alert Categories",
@@ -296,6 +300,10 @@
     "light": "Invoke",
     "dark": "Dark",
     "system": "Claro",
+    "density": "Table density",
+    "densityComfortable": "Comfortable",
+    "densityNormal": "Normal",
+    "densityCompact": "Compact",
     "logoutConfirmation": {
       "title": "Active Cash Session",
       "description": "You have an open cash session. Please close it before logging out.",
@@ -356,6 +364,7 @@
     "selected": "{count, plural, one {# selected} other {# selected}} of {total} row(s).",
     "rowsPerPage": "Rows per page",
     "all": "All",
+    "range": "{from}–{to}/{total}",
     "page": "Page {current} of {total}",
     "goToFirst": "Go to first page",
     "goToPrevious": "Go to previous page",
@@ -831,6 +840,7 @@
       "timelineEmptyDescription": "There are no recorded clinical sessions for this patient yet.",
       "latestSessionBadge": "Latest session",
       "currentAppointmentBadge": "Current appointment",
+      "viewPatientFile": "Patient file",
       "noClinicalSignals": "No recorded allergies or complications.",
       "moreAlertTags": "+{count} more",
       "sessionExistsToday": "A clinical session already exists for today. Only one session per patient per day is allowed.",
@@ -1138,7 +1148,10 @@
       "to": "To",
       "selectDate": "Select date",
       "print": "Print",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "errorTitle": "No movements",
+      "errorNoData": "The patient has no financial movements in the selected period.",
+      "errorGeneric": "Could not generate the financial summary."
     },
     "description": "Manage all patients in the system.",
     "filterPlaceholder": "Filter patients by email...",
@@ -1170,7 +1183,15 @@
       "orders": "Orders",
       "invoices": "Invoices",
       "payments": "Payments",
-      "notes": "Notes"
+      "notes": "Notes",
+      "details": "Details",
+      "clinical": "Clinical history",
+      "financial": "Finance",
+      "management": "Management",
+      "info": "Info",
+      "anamnesis": "Anamnesis",
+      "summary": "Summary",
+      "history": "Timeline"
     },
     "createDialog": {
       "title": "Create New Patient",
@@ -1301,7 +1322,13 @@
     "currentDebt": "Current Debt",
     "openMenu": "Open menu",
     "active": "Active",
-    "inactive": "Inactive"
+    "inactive": "Inactive",
+    "activateSuccess": "Patient activated",
+    "activateSuccessDescription": "{name} has been successfully activated.",
+    "deactivateSuccess": "Patient deactivated",
+    "deactivateSuccessDescription": "{name} has been successfully deactivated.",
+    "toggleStatusError": "Error updating status",
+    "toggleStatusErrorDescription": "Could not update the patient status."
   },
   "UserRoles": {
     "addRoles": "Mark/Unmark Roles",
@@ -1349,7 +1376,7 @@
   "UserServices": {
     "addServices": "Mark/Unmark Services",
     "dialog": {
-      "title": "Add Services to User",
+      "title": "Add Services to Doctor",
       "description": "Select the services to assign to this user.",
       "availableServices": "Available Services",
       "cancel": "Cancel",
@@ -1845,6 +1872,9 @@
     "defaults": {
       "noEmail": "no-email@example.com",
       "notAvailable": "N/A"
+    },
+    "rejectedBanner": {
+      "title": "Rejection reason"
     }
   },
   "SalesQuotesPage": {
@@ -2563,9 +2593,11 @@
       "type": "Type",
       "paymentTypes": {
         "direct_payment": "Direct Payment",
+        "payment": "Payment",
         "prepaid": "Prepaid",
         "payment_allocation": "Payment Allocation",
-        "credit_note_allocation": "Credit Note Allocation"
+        "credit_note_allocation": "Credit Note Allocation",
+        "credit_note": "Credit Note"
       },
       "credit_note": "Credit Note",
       "invoice": "Invoice",
@@ -3004,6 +3036,8 @@
     "locationPlaceholder": "e.g. 123 Main St, City, Country",
     "phoneLabel": "Phone",
     "phonePlaceholder": "e.g. +1 234 567 890",
+    "rutLabel": "RUT",
+    "rutPlaceholder": "e.g. 21234567-8",
     "emailLabel": "Email",
     "emailPlaceholder": "e.g. john.doe@example.com",
     "save": "Save",
@@ -3251,6 +3285,7 @@
       "ErrorActivateDescription": "Could not activate doctor.",
       "ErrorDeactivateDescription": "Could not deactivate doctor.",
       "validation": {
+        "errorTitle": "Error",
         "nameRequired": "Name is required.",
         "emailInvalid": "Invalid email.",
         "phoneInvalid": "Invalid phone number.",
@@ -3266,7 +3301,9 @@
       "showOnlyActive": "Show only active"
     },
     "tabs": {
-      "details": "Detalles"
+      "details": "Detalles",
+      "availability": "Availability",
+      "exceptions": "Exceptions"
     }
   },
   "UserLogsPage": {
@@ -3291,6 +3328,7 @@
       "noDoctorFound": "No doctor found",
       "selectDay": "Select day",
       "save": "Save Changes",
+      "edit": "Edit",
       "createTitle": "Create Availability",
       "createDescription": "Create a new availability for the doctor",
       "editTitle": "Edit Availability",
@@ -3339,7 +3377,8 @@
       "description": "Are you sure you want to delete this availability? This action cannot be undone.",
       "cancel": "Cancel",
       "confirm": "Delete"
-    }
+    },
+    "empty": "No availability rules for this doctor."
   },
   "DoctorAvailabilityColumns": {
     "doctor": "Doctor",
@@ -3408,7 +3447,8 @@
     "validation": {
       "doctorRequired": "Doctor is required.",
       "dateRequired": "Date is required."
-    }
+    },
+    "empty": "No availability exceptions for this doctor."
   },
   "CurrenciesPage": {
     "title": "Currencies",
@@ -3578,6 +3618,51 @@
       "showOnlyActive": "Show only active"
     }
   },
+  "StaffPage": {
+    "title": "Staff — Receptionists & Admins",
+    "description": "Manage system users with receptionist and admin roles",
+    "filterPlaceholder": "Search by name or email...",
+    "filters": {
+      "showOnlyActive": "Show only active"
+    },
+    "createDialog": {
+      "createTitle": "Create system user",
+      "createDescription": "Create a new receptionist or administrator",
+      "role": "Role",
+      "rolePlaceholder": "Select role...",
+      "name": "Name",
+      "namePlaceholder": "e.g. Mary Smith",
+      "email": "Email",
+      "emailPlaceholder": "e.g. mary@clinic.com",
+      "phone": "Phone",
+      "phonePlaceholder": "e.g. 099 123 456",
+      "identity_document": "Identity Document",
+      "identity_document_placeholder": "e.g. 12345678",
+      "isActive": "Is Active?",
+      "save": "Save",
+      "cancel": "Cancel",
+      "createSuccessTitle": "User Created",
+      "createSuccessDescription": "The user has been created and the role assigned successfully.",
+      "editSuccessTitle": "User Updated",
+      "editSuccessDescription": "The user has been updated successfully.",
+      "validation": {
+        "roleRequired": "Please select a role."
+      }
+    },
+    "tabs": {
+      "details": "Details",
+      "roles": "Roles",
+      "logs": "History"
+    },
+    "noSelection": "Select a user to view their details",
+    "columns": {
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "status": "Status",
+      "role": "Role"
+    }
+  },
   "RolesPage": {
     "title": "Roles",
     "description": "Manage roles for the clinic",
@@ -3687,6 +3772,7 @@
       "resource": "Resource",
       "resourcePlaceholder": "e.g. user",
       "create": "Create",
+      "save": "Save",
       "cancel": "Cancel",
       "editTitle": "Edit Permission",
       "editDescription": "Edit the permission for the clinic",
@@ -3722,6 +3808,7 @@
       "successDescription": "Permission \"{name}\" has been saved successfully.",
       "deleteSuccessDescription": "Permission deleted successfully"
     },
+    "close": "Close",
     "detailsFor": "Details for {name}",
     "tabs": {
       "users": "Users",
@@ -4262,7 +4349,23 @@
       "procedure": "Procedure",
       "status": "Status",
       "notes": "Clinical Notes",
-      "clinicalNotes": "Clinical Notes"
+      "clinicalNotes": "Clinical Notes",
+      "invoiceNo": "Invoice No.",
+      "paymentNo": "Payment No.",
+      "total": "Total",
+      "amount": "Amount",
+      "paidAmount": "Paid",
+      "dueDate": "Due",
+      "paymentStatus": "Payment status",
+      "method": "Method",
+      "invoice": "Invoice",
+      "transactionType": "Type",
+      "printReceipt": "Print receipt",
+      "paid": "Paid",
+      "partiallyPaid": "Partially paid",
+      "unpaid": "Unpaid",
+      "creditNote": "Credit note",
+      "allocation": "Allocation"
     },
     "actions": {
       "title": "Actions",
@@ -4398,6 +4501,8 @@
     "title": "Calendar",
     "create": "Create",
     "today": "Today",
+    "collapseMonth": "Collapse month",
+    "expandMonth": "Expand month",
     "timeZone": "GMT-03",
     "views": {
       "2day": "2 Days",
@@ -4569,7 +4674,8 @@
     "pagination": {
       "showing": "Showing",
       "of": "of",
-      "page": "Page {current} of {total}"
+      "page": "Page {current} of {total}",
+      "all": "All"
     },
     "filters": {
       "title": "Filters",
@@ -5301,6 +5407,34 @@
       "codeRequired": "Code is required."
     }
   },
+  "Config": {
+    "PrintTemplates": {
+      "title": "Document Templates",
+      "description": "Customize the HTML for each print template for your clinic.",
+      "tabs": {
+        "invoice": "Invoice",
+        "quote": "Quote",
+        "payment": "Payment",
+        "credit_note": "Credit Note",
+        "prepayment": "Prepayment",
+        "financial_summary": "Financial Summary"
+      },
+      "editor": "HTML Editor",
+      "preview": "Preview",
+      "insertVariable": "Insert variable",
+      "snippets": "Snippets",
+      "save": "Save template",
+      "resetDefault": "Restore default",
+      "saveSuccess": "Template saved successfully",
+      "resetSuccess": "Template restored to default",
+      "groups": {
+        "document": "Document",
+        "patient": "Patient",
+        "clinic": "Clinic",
+        "tables": "Tables"
+      }
+    }
+  },
   "MutualSocietiesColumns": {
     "id": "ID",
     "name": "Name",
@@ -5352,7 +5486,8 @@
       "invoices": "Invoices",
       "payments": "Payments",
       "appointments": "Appointments",
-      "clinicalSessions": "Clinical Sessions"
+      "clinicalSessions": "Clinical Sessions",
+      "mutualSocieties": "Mutual Societies"
     },
     "upload": {
       "exampleCsv": "Download example CSV",
@@ -6456,6 +6591,147 @@
     "confirmation": {
       "paymentTitle": "Payment recorded!",
       "invoiceTitle": "Invoice created!"
+    }
+  },
+  "PrintTemplates": {
+    "quote": "Quote",
+    "invoice": "Invoice",
+    "payment": "Payment Receipt",
+    "credit_note": "Credit Note",
+    "prepayment": "Prepayment",
+    "patient": "Patient",
+    "date": "Date",
+    "dueDate": "Due Date",
+    "status": "Status",
+    "billingStatus": "Billing Status",
+    "paymentStatus": "Payment Status",
+    "services": "Services",
+    "service": "Service",
+    "tooth": "Tooth",
+    "qty": "Qty.",
+    "unitPrice": "Unit Price",
+    "total": "Total",
+    "invoices": "Invoices",
+    "payments": "Payments",
+    "paymentDate": "Payment Date",
+    "paymentMethod": "Method",
+    "amount": "Amount",
+    "subtotal": "Subtotal",
+    "amountInvoiced": "Invoiced",
+    "pendingInvoice": "Pending Invoice",
+    "amountPaid": "Paid",
+    "pendingPayment": "Pending Payment",
+    "creditedAmount": "Credited Amount",
+    "originalInvoice": "Original Invoice",
+    "availableCredit": "Available as credit",
+    "exchangeRate": "Exchange rate",
+    "notes": "Notes",
+    "reference": "Reference",
+    "docNo": "Document No.",
+    "invoiceRef": "Invoice Ref.",
+    "currency": "Currency",
+    "noItems": "No items",
+    "noPayments": "No payments recorded",
+    "noInvoices": "No associated invoices",
+    "summary": "Summary",
+    "generatingPrint": "Preparing print…",
+    "quoteStatus": {
+      "draft": "Draft",
+      "sent": "Sent",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "pending": "Pending",
+      "confirmed": "Confirmed"
+    },
+    "invoiceStatus": {
+      "draft": "Draft",
+      "sent": "Sent",
+      "paid": "Paid",
+      "overdue": "Overdue",
+      "booked": "Booked"
+    },
+    "paymentStatusLabels": {
+      "unpaid": "Unpaid",
+      "paid": "Paid",
+      "partial": "Partial",
+      "partially_paid": "Partially Paid"
+    },
+    "transactionType": {
+      "direct_payment": "Direct Payment",
+      "credit_note_allocation": "Credit Note Application",
+      "payment_allocation": "Payment Application"
+    },
+    "financialSummary": {
+      "title": "Financial Summary",
+      "to": "to",
+      "id": "ID / Tax No.",
+      "email": "Email",
+      "phone": "Phone",
+      "concept": "Concept",
+      "balance": "Balance",
+      "finalBalance": "Final Balance"
+    }
+  },
+  "License": {
+    "expired": {
+      "title": "License Expired",
+      "description": "Your InvokeIA license has expired. Please contact us to renew it.",
+      "contact": "Contact:",
+      "banner": "⚠ LICENSE EXPIRED — User access is blocked. Renew:"
+    },
+    "expiringSoon": {
+      "message": "Your license expires in {days} day(s). Please contact"
+    },
+    "masterKey": {
+      "prompt": "Enter Master Key",
+      "promptDescription": "Enter the master key to access license management.",
+      "placeholder": "Master key...",
+      "invalid": "Invalid master key. Could not decrypt the current license.",
+      "submit": "Verify"
+    },
+    "management": {
+      "title": "License Management",
+      "description": "View and generate InvokeIA licenses",
+      "currentLicense": "Current License",
+      "generateNew": "Generate New License",
+      "generatedKey": "Generated License Key",
+      "copyKey": "Copy Key",
+      "keyCopied": "Key copied to clipboard",
+      "noLicense": "No active license found.",
+      "subscriptionType": "Subscription Type",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "maxDoctors": "Max Doctors",
+      "maxReceptionists": "Max Receptionists",
+      "maxAdmins": "Max Admins",
+      "maxSuperAdmins": "Max Super Admins",
+      "maxMonthlyNewPatients": "Max Monthly New Patients",
+      "aiAccess": "AI Access",
+      "notes": "Notes",
+      "generate": "Generate License",
+      "generating": "Generating..."
+    },
+    "enforcement": {
+      "limitReachedTitle": "License limit reached",
+      "doctorLimitReached": "Your subscription allows up to {max} {max, plural, one {doctor} other {doctors}}. Upgrade your license to add more.",
+      "userLimitReached": "Your subscription allows up to {max} {max, plural, one {system user} other {system users}} (receptionists and admins). Upgrade your license to add more.",
+      "patientMonthlyLimitReached": "Your subscription allows up to {max} new {max, plural, one {patient} other {patients}} per month. This month's limit has been reached."
+    }
+  },
+  "SubscriptionsPage": {
+    "title": "Subscriptions",
+    "description": "Subscription history for this clinic",
+    "columns": {
+      "licenseId": "License ID",
+      "type": "Type",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "maxDoctors": "Max Doctors",
+      "maxReceptionists": "Max Receptionists",
+      "maxAdmins": "Max Admins",
+      "maxMonthlyPatients": "Max Monthly Patients",
+      "aiAccess": "AI Access",
+      "issuedAt": "Issued At"
     }
   }
 }

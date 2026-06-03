@@ -1,5 +1,5 @@
 
-import { ALERT_CENTER_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS, CASHIER_PERMISSIONS, CLINIC_CATALOG_PERMISSIONS, DASHBOARD_PERMISSIONS, DICOM_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PURCHASES_PERMISSIONS, REPORTS_PERMISSIONS, SALES_PERMISSIONS, SYSTEM_PERMISSIONS, TV_DISPLAY_PERMISSIONS } from '@/constants/permissions';
+import { ALERT_CENTER_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS, CASHIER_PERMISSIONS, CLINIC_CATALOG_PERMISSIONS, DASHBOARD_PERMISSIONS, DICOM_PERMISSIONS, LICENSING_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PURCHASES_PERMISSIONS, REPORTS_PERMISSIONS, SALES_PERMISSIONS, SUBSCRIPTIONS_PERMISSIONS, SYSTEM_PERMISSIONS, TV_DISPLAY_PERMISSIONS } from '@/constants/permissions';
 import type { LucideIcon } from 'lucide-react';
 import {
   Activity,
@@ -215,6 +215,8 @@ export const navItems: NavItem[] = [
       BUSINESS_CONFIG_PERMISSIONS.CURRENCIES_VIEW_LIST,
       BUSINESS_CONFIG_PERMISSIONS.SEQUENCES_VIEW_LIST,
       BUSINESS_CONFIG_PERMISSIONS.MUTUAL_SOC_VIEW_LIST,
+      BUSINESS_CONFIG_PERMISSIONS.PRINT_TEMPLATES_VIEW,
+      SYSTEM_PERMISSIONS.STAFF_VIEW_MENU,
     ],
     items: [
       { title: 'ClinicDetails', href: '/config/clinics', icon: Building, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.CLINIC_DETAILS_VIEW },
@@ -222,11 +224,13 @@ export const navItems: NavItem[] = [
       { title: 'Holidays', href: '/config/holidays', icon: CalendarOff, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.HOLIDAYS_VIEW_LIST },
       { title: 'Calendars', href: '/config/calendars', icon: Calendar, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.CALENDARS_VIEW_LIST },
       { title: 'Doctors', href: '/config/doctors', icon: UserSquare, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.DOCTORS_VIEW_LIST },
+      { title: 'Staff', href: '/system/staff', icon: UserPlus, isChidren: true, requiredPermission: SYSTEM_PERMISSIONS.STAFF_VIEW_MENU },
       { title: 'DoctorAvailability', href: '/config/doctor-availability', icon: CalendarPlus, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.AVAILABILITY_RULES_VIEW },
       { title: 'DoctorAvailabilityExceptions', href: '/config/availability-exceptions', icon: UserX, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.AVAILABILITY_EXCEPTIONS_VIEW },
       { title: 'Currencies', href: '/config/currencies', icon: DollarSign, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.CURRENCIES_VIEW_LIST },
       { title: 'Sequences', href: '/config/sequences', icon: List, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.SEQUENCES_VIEW_LIST },
       { title: 'MutualSocieties', href: '/config/mutual-societies', icon: Handshake, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.MUTUAL_SOC_VIEW_MENU },
+      { title: 'PrintTemplates', href: '/config/print-templates', icon: FileText, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.PRINT_TEMPLATES_VIEW },
     ],
   },
   {
@@ -253,6 +257,9 @@ export const navItems: NavItem[] = [
       { title: 'ErrorLog', href: '/system/errors', icon: FileWarning, isChidren: true, requiredPermission: SYSTEM_PERMISSIONS.ERROR_LOG_VIEW_MENU },
       { title: '', href: '', icon: Shield, isChidren: false, isSeparator: true },
       { title: 'ImportData', href: '/system/import', icon: Upload, isChidren: true, requiredPermission: SYSTEM_PERMISSIONS.IMPORT_DATA_VIEW_MENU },
+      { title: '', href: '', icon: Shield, isChidren: false, isSeparator: true },
+      { title: 'Licenses', href: '/system/licenses', icon: KeyRound, isChidren: true, requiredPermission: LICENSING_PERMISSIONS.VIEW_MENU },
+      { title: 'Subscriptions', href: '/subscriptions', icon: CreditCard, isChidren: true, requiredPermission: SUBSCRIPTIONS_PERMISSIONS.VIEW_MENU },
     ],
   },
   {

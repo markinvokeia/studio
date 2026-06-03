@@ -49,15 +49,10 @@ export function formatHolidayDate(date: string | Date | null | undefined): strin
   if (!date) return 'N/A';
 
   try {
-    // Convert to string and extract date part without timezone conversion
     const dateStr = typeof date === 'string' ? date : format(date, 'yyyy-MM-dd');
-    
-    // If it's an ISO string with time component, extract just the date part
-    if (dateStr.includes('T')) {
-      return dateStr.split('T')[0];
-    }
-    
-    return dateStr;
+    const isoDate = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
+    const [year, month, day] = isoDate.split('-');
+    return `${day}/${month}/${year}`;
   } catch (error) {
     console.error('Error formatting holiday date:', error);
     return 'Invalid Date';

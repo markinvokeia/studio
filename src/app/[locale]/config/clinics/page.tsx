@@ -40,6 +40,7 @@ async function getClinic(fallbacks: ClinicFallbacks): Promise<Clinic | null> {
             contact_email: apiClinic.email || 'no-email@example.com',
             phone_number: apiClinic.phone || '000-000-0000',
             currency: apiClinic.currency || 'USD',
+            rut: apiClinic.rut || '',
         };
     } catch (error) {
         console.error("Failed to fetch clinics:", error);
@@ -136,6 +137,9 @@ export default function ClinicsPage() {
         formData.append('phone', clinic.phone_number);
         if (clinic.currency) {
             formData.append('currency', clinic.currency);
+        }
+        if (clinic.rut) {
+            formData.append('rut', clinic.rut);
         }
 
         if (logoFile) {
@@ -284,6 +288,10 @@ export default function ClinicsPage() {
                             <div className="space-y-2">
                                 <Label htmlFor="phone_number">{t('phoneLabel')}</Label>
                                 <Input id="phone_number" value={clinic.phone_number} onChange={handleInputChange} placeholder={t('phonePlaceholder')} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="rut">{t('rutLabel')}</Label>
+                                <Input id="rut" value={clinic.rut ?? ''} onChange={handleInputChange} placeholder={t('rutPlaceholder')} />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="currency">{t('currencyLabel')}</Label>

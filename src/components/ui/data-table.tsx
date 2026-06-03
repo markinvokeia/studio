@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/table';
 import { DataTablePagination } from './data-table-pagination';
 import { DataTableToolbar } from './data-table-toolbar';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useTranslations } from 'next-intl';
 
 import { cn } from '@/lib/utils';
@@ -63,7 +64,7 @@ interface DataTableProps<TData, TValue> {
   onFilterChange?: (value: string) => void;
   filterValue?: string;
   createButtonIconOnly?: boolean;
-  customToolbar?: React.ReactNode | ((table: any) => React.ReactNode);
+  customToolbar?: React.ReactNode | ((table: any, pagination: React.ReactNode) => React.ReactNode);
   getRowClassName?: (row: TData) => string;
   /** When true the search input filters across all columns instead of a single column */
   useGlobalFilter?: boolean;
@@ -75,6 +76,16 @@ interface DataTableProps<TData, TValue> {
   renderCard?: (row: TData, isSelected: boolean) => React.ReactNode;
   /** Called when a card is clicked in narrow mode */
   onRowClick?: (row: TData) => void;
+  /** Total row count for server-side pagination — enables an accurate "1–25 of N" range */
+  rowCount?: number;
+  /** When true, shows skeleton rows/cards instead of data or the "no results" message */
+  isLoading?: boolean;
+  /** Extra classes for the narrow-mode card list container (e.g. to remove the gap for a connected list) */
+  cardListClassName?: string;
+  /** Action buttons rendered on the toolbar's primary line (next to search) so they don't wrap */
+  primaryActions?: React.ReactNode;
+  /** View controls (e.g. a view-mode toggle) rendered after pagination in the toolbar */
+  viewControls?: React.ReactNode;
 }
 
 export function DataTable<TData, TValue>({
@@ -113,6 +124,11 @@ export function DataTable<TData, TValue>({
   isNarrow,
   renderCard,
   onRowClick,
+  rowCount,
+  isLoading = false,
+  cardListClassName,
+  primaryActions,
+  viewControls,
 }: DataTableProps<TData, TValue>) {
   const t = useTranslations('General');
   const showCardList = Boolean(isNarrow && renderCard);
@@ -137,6 +153,10 @@ export function DataTable<TData, TValue>({
     data,
     columns,
     pageCount: pageCount,
+    ...(rowCount !== undefined && { rowCount }),
+    initialState: {
+      pagination: { pageSize: 25 },
+    },
     state: {
       sorting,
       columnVisibility: columnVisibility ?? internalColumnVisibility,
@@ -211,7 +231,22 @@ export function DataTable<TData, TValue>({
   return (
     <div className="w-full flex-1 flex flex-col min-h-0 space-y-4 print:block print:h-auto">
       <div className="print:hidden">
-        {typeof customToolbar === 'function' ? customToolbar(table) : customToolbar ? customToolbar : (filterColumnId || filterPlaceholder || useGlobalFilter) && (
+        {customToolbar ? (
+          typeof customToolbar === 'function' ? (
+            // Function toolbars receive the pagination node to place in their own endSlot,
+            // so it wraps together with their secondary actions (refresh/columns).
+            customToolbar(table, <DataTablePagination table={table} />)
+          ) : (
+            // Static custom toolbars own their layout; pagination wraps below it when narrow.
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex-1 min-w-[10rem]">{customToolbar}</div>
+              <div className="shrink-0">
+                <DataTablePagination table={table} />
+              </div>
+            </div>
+          )
+        ) : (filterColumnId || filterPlaceholder || useGlobalFilter) ? (
+          // Standard toolbar: pagination lives in its secondary group so it wraps with refresh/columns.
           <DataTableToolbar
             table={table}
             filterColumnId={filterColumnId}
@@ -227,12 +262,23 @@ export function DataTable<TData, TValue>({
             onFilterChange={onFilterChange}
             filterValue={filterValue}
             createButtonIconOnly={createButtonIconOnly}
+            endSlot={<DataTablePagination table={table} />}
+            primaryActions={primaryActions}
+            viewControls={viewControls}
           />
+        ) : (
+          <div className="flex justify-end">
+            <DataTablePagination table={table} />
+          </div>
         )}
       </div>
       {showCardList ? (
-        <div data-testid="card-list" className="flex flex-col gap-2 overflow-auto flex-1 min-h-0 px-1 py-1">
-          {table.getRowModel().rows?.length ? (
+        <div data-testid="card-list" className={cn("flex flex-col gap-2 overflow-auto flex-1 min-h-0 px-1 py-1", cardListClassName)}>
+          {isLoading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-16 w-full rounded-md" />
+            ))
+          ) : table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => (
               <div key={row.id} data-testid="list-item" onClick={() => {
                 if (enableSingleRowSelection) {
@@ -251,7 +297,7 @@ export function DataTable<TData, TValue>({
       ) : null}
       {!showCardList ? (
       <div className="rounded-md border overflow-auto print:overflow-visible flex-1 min-h-0 print:h-auto relative print:max-h-none">
-        <table className={cn("w-full caption-bottom text-sm")}>
+        <table className={cn("w-full caption-bottom text-[length:var(--tbl-font)]")}>
           <TableHeader className="sticky print:static top-0 z-10 bg-card shadow-[0_1px_0_0_hsl(var(--border))]">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -280,7 +326,17 @@ export function DataTable<TData, TValue>({
             ))}
           </TableHeader>
           <TableBody className="[&_tr:last-child]:border-b">
-            {table.getRowModel().rows?.length ? (
+            {isLoading ? (
+              Array.from({ length: Math.min(table.getState().pagination.pageSize, 8) }).map((_, rowIdx) => (
+                <TableRow key={`skeleton-${rowIdx}`}>
+                  {columns.map((_, cellIdx) => (
+                    <TableCell key={cellIdx}>
+                      <Skeleton className="h-4" style={{ width: `${60 + ((rowIdx + cellIdx) % 4) * 10}%` }} />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
@@ -320,9 +376,6 @@ export function DataTable<TData, TValue>({
         </table>
       </div>
       ) : null}
-      <div className="print:hidden">
-        <DataTablePagination table={table} />
-      </div>
     </div>
   );
 }

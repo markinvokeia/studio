@@ -20,7 +20,7 @@ const BASE_WEBHOOK = process.env.NEXT_PUBLIC_API_URL
   ? `${process.env.NEXT_PUBLIC_API_URL}/webhook`
   : 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook';
 
-function fetchClinicInfo(): Promise<ClinicInfo | null> {
+export function fetchClinicInfo(): Promise<ClinicInfo | null> {
   if (_promise) return _promise;
   _promise = api
     .get(API_ROUTES.CLINIC)

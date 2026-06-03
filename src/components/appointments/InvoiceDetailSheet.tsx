@@ -26,6 +26,7 @@ import { cn, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { confirmInvoice, sendInvoiceEmail } from '@/services/invoices';
 import { useToast } from '@/hooks/use-toast';
+import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { SHEET_TAB_CLASS, hasValidPayments } from '@/components/appointments/sheet-utils';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -164,6 +165,7 @@ export function InvoiceDetailSheet({ open, onOpenChange, invoice, onDataChange }
   const t = useTranslations('InvoicesPage');
   const { toast } = useToast();
   const { validateActiveSession } = useCashSessionValidation();
+  const { printInvoice } = usePrintDocument();
   const [activeTab, setActiveTab] = React.useState('items');
   const [isLoading, setIsLoading] = React.useState(true);
   const [actionLoading, setActionLoading] = React.useState<string | null>(null);
@@ -340,25 +342,9 @@ export function InvoiceDetailSheet({ open, onOpenChange, invoice, onDataChange }
     }
   }, [currentInvoiceData?.id, invoice, toast, onDataChange, t]);
 
-  const handlePrint = React.useCallback(async () => {
-    setIsPrinting(true);
-    try {
-      const blob = await api.getBlob(API_ROUTES.SALES.API_INVOICE_PRINT, { id: invoice.id });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `factura-${invoice.doc_no || invoice.invoice_ref || invoice.id}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      a.remove();
-    } catch (error) {
-      console.error('Error downloading PDF:', error);
-      toast({ variant: 'destructive', title: t('actions.printError') || 'Error al descargar' });
-    } finally {
-      setIsPrinting(false);
-    }
-  }, [invoice.id, invoice.doc_no, invoice.invoice_ref, toast, t]);
+  const handlePrint = React.useCallback(() => {
+    printInvoice(invoice, true);
+  }, [invoice, printInvoice]);
 
   const handleSendEmail = React.useCallback(async () => {
     setActionLoading('email');

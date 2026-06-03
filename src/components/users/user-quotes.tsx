@@ -25,6 +25,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
+import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 import { Quote, QuoteItem, QuoteClinicSession, Service, UserDetailMode, Order, OrderItem, Invoice } from '@/lib/types';
@@ -35,9 +36,12 @@ import { api } from '@/services/api';
 import { getPurchaseServices, getSalesServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
-import { CheckCircle, ChevronDown, CreditCard, Eye, FileText, Loader2, Pencil, Printer, Receipt, Send, Stethoscope, Trash2, XCircle, Zap } from 'lucide-react';
+import { CheckCircle, ChevronDown, CreditCard, Eye, FileText, Loader2, Pencil, Printer, Receipt, RefreshCw, Send, Stethoscope, Trash2, XCircle, Zap } from 'lucide-react';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataCard } from '@/components/ui/data-card';
+import { DataListRow } from '@/components/ui/data-list-row';
+import { ViewModeToggle } from '@/components/ui/view-mode-toggle';
+import { useTableViewMode } from '@/hooks/use-table-view-mode';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -143,6 +147,143 @@ function getClinicSessionColumns(t: (key: string) => string): ColumnDef<QuoteCli
   ];
 }
 
+// ── Invoices / Payments tab types & columns ──────────────────────────────────
+interface QuotePaymentRow {
+  id: string;
+  doc_no?: string;
+  invoice_doc_no?: string;
+  amount: number;
+  currency: string;
+  method?: string;
+  payment_date?: string;
+  createdAt?: string;
+  transaction_id?: string;
+  transaction_type?: string;
+}
+
+const invoiceStatusVariant = (status?: string) =>
+  ({ booked: 'success', draft: 'outline', overdue: 'destructive' }[status?.toLowerCase() ?? ''] ?? 'default') as any;
+
+const paymentStatusLabel = (t: (key: string) => string, status?: string) =>
+  status === 'paid'
+    ? t('UserQuotes.columns.paid')
+    : status?.includes('partial')
+      ? t('UserQuotes.columns.partiallyPaid')
+      : t('UserQuotes.columns.unpaid');
+
+const transactionTypeLabel = (t: (key: string) => string, type?: string) =>
+  type === 'credit_note_allocation'
+    ? t('UserQuotes.columns.creditNote')
+    : type === 'payment_allocation'
+      ? t('UserQuotes.columns.allocation')
+      : type ?? '';
+
+function getInvoiceColumns(t: (key: string) => string): ColumnDef<Invoice>[] {
+  return [
+    {
+      accessorKey: 'doc_no',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserQuotes.columns.invoiceNo')} />,
+      cell: ({ row }) => <span className="font-semibold">#{row.original.doc_no || row.original.invoice_doc_no || row.original.id}</span>,
+    },
+    {
+      accessorKey: 'createdAt',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserQuotes.columns.date')} />,
+      cell: ({ row }) => <span>{formatDisplayDate(row.original.createdAt)}</span>,
+    },
+    {
+      accessorKey: 'status',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserQuotes.columns.status')} />,
+      cell: ({ row }) =>
+        row.original.status ? (
+          <Badge variant={invoiceStatusVariant(row.original.status)} className="text-[10px] font-normal capitalize">
+            {t(`InvoicesPage.status.${row.original.status.toLowerCase()}`)}
+          </Badge>
+        ) : <span className="text-muted-foreground">—</span>,
+    },
+    {
+      accessorKey: 'payment_status',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserQuotes.columns.paymentStatus')} />,
+      cell: ({ row }) => {
+        const ps = row.original.payment_status;
+        return (
+          <Badge variant={(ps === 'paid' ? 'success' : ps?.includes('partial') ? 'info' : 'outline') as any} className="text-[10px] font-normal">
+            {paymentStatusLabel(t, ps)}
+          </Badge>
+        );
+      },
+    },
+    {
+      accessorKey: 'paid_amount',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserQuotes.columns.paidAmount')} />,
+      cell: ({ row }) => <span className="tabular-nums text-emerald-600">{formatCurrency(row.original.paid_amount || 0, row.original.currency)}</span>,
+    },
+    {
+      accessorKey: 'due_date',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserQuotes.columns.dueDate')} />,
+      cell: ({ row }) => row.original.due_date ? <span>{formatDisplayDate(row.original.due_date)}</span> : <span className="text-muted-foreground">—</span>,
+    },
+    {
+      accessorKey: 'total',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserQuotes.columns.total')} />,
+      cell: ({ row }) => <span className="font-bold tabular-nums">{formatCurrency(row.original.total, row.original.currency)}</span>,
+    },
+  ];
+}
+
+function getPaymentColumns(
+  t: (key: string) => string,
+  onPrintReceipt: (pay: QuotePaymentRow) => void,
+): ColumnDef<QuotePaymentRow>[] {
+  return [
+    {
+      accessorKey: 'doc_no',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserQuotes.columns.paymentNo')} />,
+      cell: ({ row }) => <span className="font-semibold">#{row.original.doc_no || row.original.id}</span>,
+    },
+    {
+      accessorKey: 'payment_date',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserQuotes.columns.date')} />,
+      cell: ({ row }) => row.original.payment_date ? <span>{formatDisplayDate(row.original.payment_date)}</span> : <span className="text-muted-foreground">—</span>,
+    },
+    {
+      accessorKey: 'method',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserQuotes.columns.method')} />,
+      cell: ({ row }) => row.original.method ? <Badge variant="outline" className="text-[10px] font-normal capitalize">{row.original.method}</Badge> : <span className="text-muted-foreground">—</span>,
+    },
+    {
+      accessorKey: 'invoice_doc_no',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserQuotes.columns.invoice')} />,
+      cell: ({ row }) => row.original.invoice_doc_no ? <span>#{row.original.invoice_doc_no}</span> : <span className="text-muted-foreground">—</span>,
+    },
+    {
+      accessorKey: 'transaction_type',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserQuotes.columns.transactionType')} />,
+      cell: ({ row }) => {
+        const tt = row.original.transaction_type;
+        return tt && tt !== 'direct_payment'
+          ? <Badge variant="info" className="text-[10px] font-normal">{transactionTypeLabel(t, tt)}</Badge>
+          : <span className="text-muted-foreground">—</span>;
+      },
+    },
+    {
+      accessorKey: 'amount',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserQuotes.columns.amount')} />,
+      cell: ({ row }) => <span className="font-bold tabular-nums text-emerald-600">{formatCurrency(row.original.amount, row.original.currency)}</span>,
+    },
+    {
+      id: 'actions',
+      header: () => null,
+      enableSorting: false,
+      cell: ({ row }) =>
+        row.original.transaction_id ? (
+          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1" onClick={() => onPrintReceipt(row.original)}>
+            <Printer className="h-3 w-3" />{t('UserQuotes.columns.printReceipt')}
+          </Button>
+        ) : null,
+    },
+  ];
+}
+
 // ── Order helpers for confirmed quotes ───────────────────────────────────────
 async function getOrdersForQuote(quoteId: string, isSales: boolean): Promise<Order[]> {
   if (!quoteId) return [];
@@ -213,6 +354,15 @@ const getColumns = (t: (key: string) => string): ColumnDef<Quote>[] => [
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('QuoteColumns.quoteId')} />,
   },
   {
+    accessorKey: 'status',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserColumns.status')} />,
+    cell: ({ row }) => {
+      const status = row.getValue('status') as string;
+      const variant = ({ accepted: 'success', confirmed: 'success', sent: 'default', pending: 'info', draft: 'outline', rejected: 'destructive' }[status.toLowerCase()] ?? 'default') as any;
+      return <Badge variant={variant} className="capitalize">{t(`QuotesPage.quoteDialog.${status.toLowerCase()}`)}</Badge>;
+    },
+  },
+  {
     accessorKey: 'total',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('QuoteColumns.total')} />,
     cell: ({ row }) => {
@@ -239,15 +389,6 @@ const getColumns = (t: (key: string) => string): ColumnDef<Quote>[] => [
     accessorKey: 'amount_pending_payment',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('QuoteColumns.pendingPayment')} />,
     cell: ({ row }) => <div className="font-medium">{formatCurrency(Number(row.getValue('amount_pending_payment')), row.original.currency)}</div>,
-  },
-  {
-    accessorKey: 'status',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserColumns.status')} />,
-    cell: ({ row }) => {
-      const status = row.getValue('status') as string;
-      const variant = ({ accepted: 'success', confirmed: 'success', sent: 'default', pending: 'info', draft: 'outline', rejected: 'destructive' }[status.toLowerCase()] ?? 'default') as any;
-      return <Badge variant={variant} className="capitalize">{t(`QuotesPage.quoteDialog.${status.toLowerCase()}`)}</Badge>;
-    },
   },
   {
     accessorKey: 'payment_status',
@@ -298,7 +439,7 @@ async function getQuotesForUser(userId: string): Promise<Quote[]> {
   try {
     const data = await api.get(API_ROUTES.USER_QUOTES, { user_id: userId });
     const raw = Array.isArray(data) ? data : (data.user_quotes || data.data || data.result || []);
-    return raw.map((q: any) => ({
+    return raw.filter((q: any) => q && q.id != null).map((q: any) => ({
       id: q.id ? String(q.id) : `qt_${Math.random().toString(36).substr(2, 9)}`,
       doc_no: q.doc_no || 'N/A',
       user_id: q.user_id || 'N/A',
@@ -394,8 +535,12 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   const { activeCashSession } = useAuth();
   const { hasPermission } = usePermissions();
   const { open: openBillingWizard } = useBillingWizard();
+  const { printQuote, printPayment } = usePrintDocument();
   const isSales = mode === 'sales';
   const isViewportNarrow = useViewportNarrow();
+  const [viewMode, setViewMode] = useTableViewMode('quotes-list', 'table');
+  const showListToggle = !isViewportNarrow;
+  const useListView = !isViewportNarrow && viewMode === 'list';
   const [userQuotes, setUserQuotes] = React.useState<Quote[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -463,7 +608,6 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   // Quote Invoices / Payments tabs
   const [quoteDetailInvoices, setQuoteDetailInvoices] = React.useState<Invoice[]>([]);
   const [isLoadingQuoteDetailInvoices, setIsLoadingQuoteDetailInvoices] = React.useState(false);
-  interface QuotePaymentRow { id: string; doc_no?: string; invoice_doc_no?: string; amount: number; currency: string; method?: string; payment_date?: string; createdAt?: string; transaction_id?: string; transaction_type?: string; }
   const [quoteDetailPayments, setQuoteDetailPayments] = React.useState<QuotePaymentRow[]>([]);
   const [isLoadingQuoteDetailPayments, setIsLoadingQuoteDetailPayments] = React.useState(false);
 
@@ -696,22 +840,9 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   }, [loadItems, quoteItems.length, selectedQuote]);
 
   // ── Record actions ──────────────────────────────────────────────────────────
-  const handlePrint = async () => {
+  const handlePrint = () => {
     if (!selectedQuote || !canPrintQuote) return;
-    try {
-      const blob = await api.getBlob(API_ROUTES.PURCHASES.QUOTES_PRINT, { quote_id: selectedQuote.id.toString() });
-      const fileName = getDocumentFileName(selectedQuote, 'quote');
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${fileName}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      URL.revokeObjectURL(url);
-      a.remove();
-    } catch {
-      toast({ title: t('UserQuotes.toasts.errorPrinting'), variant: 'destructive' });
-    }
+    printQuote(selectedQuote, isSales);
   };
 
   const handleSend = async () => {
@@ -1134,6 +1265,39 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
     </div>
   ) : null;
 
+  const viewportNarrow = useViewportNarrow();
+  const [invoicesViewMode, setInvoicesViewMode] = useTableViewMode('quote-detail-invoices', 'table');
+  const [paymentsViewMode, setPaymentsViewMode] = useTableViewMode('quote-detail-payments', 'table');
+  const invoicesListView = !viewportNarrow && invoicesViewMode === 'list';
+  const paymentsListView = !viewportNarrow && paymentsViewMode === 'list';
+
+  // Builds a printable Payment from a quote-detail payment row and prints its receipt.
+  const handlePrintReceipt = React.useCallback((pay: QuotePaymentRow) => {
+    const p: import('@/lib/types').Payment = {
+      id: pay.id,
+      doc_no: pay.doc_no,
+      payment_doc_no: pay.doc_no,
+      order_id: '',
+      invoice_id: null,
+      quote_id: null,
+      user_name: selectedQuote?.user_name || '',
+      payment_date: pay.payment_date || pay.createdAt || '',
+      amount_applied: pay.amount,
+      source_amount: pay.amount,
+      source_currency: (pay.currency as 'UYU' | 'USD') || 'UYU',
+      payment_method: pay.method || '',
+      transaction_type: (pay.transaction_type as import('@/lib/types').Payment['transaction_type']) || 'direct_payment',
+      transaction_id: pay.transaction_id || null,
+      status: 'completed',
+      createdAt: pay.createdAt || '',
+      updatedAt: pay.createdAt || '',
+      amount: pay.amount,
+      method: pay.method || '',
+      type: null,
+    };
+    printPayment(p, isSales);
+  }, [printPayment, isSales, selectedQuote]);
+
   // ── Render ───────────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
@@ -1174,23 +1338,51 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
               currency: t('QuoteColumns.currency'),
               exchange_rate: t('QuoteColumns.exchangeRate'),
             }}
-            isNarrow={isViewportNarrow}
-            renderCard={(quote: Quote, _isSelected: boolean) => (
-              <DataCard isSelected={_isSelected}
-                title={quote.doc_no}
-                subtitle={formatDisplayDate(quote.createdAt)}
-                badge={<Badge variant={({ accepted: 'success', confirmed: 'success', sent: 'default', pending: 'info', draft: 'outline', rejected: 'destructive' }[(quote.status || '').toLowerCase()] ?? 'default') as any} className="capitalize text-[10px]">{quote.status}</Badge>}
-                fields={[
-                  { label: t('QuoteColumns.total'), value: formatCurrency(quote.total, quote.currency), primary: true },
-                  { label: t('QuoteColumns.amountInvoiced'), value: formatCurrency(quote.amount_invoiced, quote.currency) },
-                  { label: t('QuoteColumns.pendingInvoice'), value: formatCurrency(quote.amount_pending_invoice, quote.currency) },
-                  { label: t('QuoteColumns.amountPaid'), value: formatCurrency(quote.amount_paid, quote.currency) },
-                  { label: t('QuoteColumns.pendingPayment'), value: formatCurrency(quote.amount_pending_payment, quote.currency) },
-                  { label: t('Navigation.Payments'), value: quote.payment_status || '-' },
-                  { label: t('QuoteColumns.billingStatus'), value: quote.billing_status || '-' },
-                ]}
-              />
-            )}
+            isNarrow={isViewportNarrow || useListView}
+            viewControls={showListToggle ? <ViewModeToggle value={viewMode} onChange={setViewMode} /> : undefined}
+            cardListClassName={useListView ? 'gap-0 px-0 py-0 rounded-md border' : undefined}
+            renderCard={(quote: Quote, _isSelected: boolean) => {
+              const statusKey = (quote.status || '').toLowerCase();
+              const statusLabel = tQuotes(`quoteDialog.${statusKey}` as any) || quote.status;
+              const statusBadge = (
+                <Badge variant={({ accepted: 'success', confirmed: 'success', sent: 'default', pending: 'info', draft: 'outline', rejected: 'destructive' }[statusKey] ?? 'default') as any} className="text-[10px]">{statusLabel}</Badge>
+              );
+              if (useListView) {
+                return (
+                  <DataListRow
+                    isSelected={_isSelected}
+                    onClick={() => handleRowSelectionChange([quote])}
+                    title={quote.doc_no}
+                    badge={statusBadge}
+                    meta={(
+                      <>
+                        <span>{formatDisplayDate(quote.createdAt)}</span>
+                        <span className="font-medium text-foreground">{t('QuoteColumns.total')}: {formatCurrency(quote.total, quote.currency)}</span>
+                        <span>{t('QuoteColumns.amountInvoiced')}: {formatCurrency(quote.amount_invoiced, quote.currency)}</span>
+                        <span>{t('QuoteColumns.amountPaid')}: {formatCurrency(quote.amount_paid, quote.currency)}</span>
+                        <span>{t('QuoteColumns.pendingPayment')}: {formatCurrency(quote.amount_pending_payment, quote.currency)}</span>
+                      </>
+                    )}
+                  />
+                );
+              }
+              return (
+                <DataCard isSelected={_isSelected}
+                  title={quote.doc_no}
+                  subtitle={formatDisplayDate(quote.createdAt)}
+                  badge={statusBadge}
+                  fields={[
+                    { label: t('QuoteColumns.total'), value: formatCurrency(quote.total, quote.currency), primary: true },
+                    { label: t('QuoteColumns.amountInvoiced'), value: formatCurrency(quote.amount_invoiced, quote.currency) },
+                    { label: t('QuoteColumns.pendingInvoice'), value: formatCurrency(quote.amount_pending_invoice, quote.currency) },
+                    { label: t('QuoteColumns.amountPaid'), value: formatCurrency(quote.amount_paid, quote.currency) },
+                    { label: t('QuoteColumns.pendingPayment'), value: formatCurrency(quote.amount_pending_payment, quote.currency) },
+                    { label: t('Navigation.Payments'), value: quote.payment_status || '-' },
+                    { label: t('QuoteColumns.billingStatus'), value: quote.billing_status || '-' },
+                  ]}
+                />
+              );
+            }}
           />
         </CardContent>
       </Card>
@@ -1212,65 +1404,49 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
             {/* Header estilo ficha del paciente */}
             <div className="flex-none bg-card shadow-sm border-b border-border">
               {/* Título, Estado Facturación, Creado + badges de estado */}
-              <div className="px-6 py-4 border-b border-border/50">
-                <div className="flex items-start justify-between gap-4 pr-10 sm:pr-20">
-                  <div className="min-w-0">
-                    <SheetTitle className="text-2xl font-bold text-card-foreground">{selectedQuote.doc_no}</SheetTitle>
-                    <SheetDescription className="text-sm text-muted-foreground mt-0.5">
-                      {t('UserQuotes.budget.title')}
-                      <span className="ml-2 text-xs">{formatDisplayDate(selectedQuote.createdAt)}</span>
-                    </SheetDescription>
-                  </div>
-                  <div className="flex items-center gap-1.5 flex-wrap justify-end shrink-0">
-                    <Badge variant={(BILLING_BADGE[selectedQuote.billing_status.toLowerCase()] ?? 'outline') as any} className="text-xs capitalize">
-                      {(() => {
-                        const status = selectedQuote.billing_status.toLowerCase().trim();
-                        const keyMap: Record<string, string> = { invoiced: 'invoiced', 'partially invoiced': 'partiallyInvoiced', partially_invoiced: 'partiallyInvoiced', 'not invoiced': 'notInvoiced', not_invoiced: 'notInvoiced' };
-                        return t(`QuotesPage.quoteDialog.${keyMap[status] || 'notInvoiced'}`);
-                      })()}
-                    </Badge>
-                    <Badge variant={(STATUS_BADGE[selectedQuote.status.toLowerCase()] ?? 'default') as any} className="text-xs capitalize">
-                      {t(`QuotesPage.quoteDialog.${selectedQuote.status.toLowerCase()}`)}
-                    </Badge>
-                    <Badge variant={(PAYMENT_BADGE[selectedQuote.payment_status.toLowerCase()] ?? 'outline') as any} className="text-xs capitalize">
-                      {(() => {
-                        const status = selectedQuote.payment_status.toLowerCase().trim();
-                        const keyMap: Record<string, string> = { paid: 'paid', partial: 'partial', 'partially paid': 'partiallyPaid', partially_paid: 'partiallyPaid', unpaid: 'unpaid' };
-                        return t(`QuotesPage.quoteDialog.${keyMap[status] || 'unpaid'}`);
-                      })()}
-                    </Badge>
-                  </div>
+              <div className="px-6 py-4 border-b border-border/50 pr-12 sm:pr-20">
+                <SheetTitle className="text-2xl font-bold text-card-foreground">{selectedQuote.doc_no}</SheetTitle>
+                <SheetDescription className="text-sm text-muted-foreground mt-0.5">
+                  {t('UserQuotes.budget.title')}
+                  <span className="ml-2 text-xs">{formatDisplayDate(selectedQuote.createdAt)}</span>
+                </SheetDescription>
+                <div className="flex items-center gap-1.5 flex-wrap mt-2">
+                  <Badge variant={(BILLING_BADGE[selectedQuote.billing_status.toLowerCase()] ?? 'outline') as any} className="text-xs capitalize">
+                    {(() => {
+                      const status = selectedQuote.billing_status.toLowerCase().trim();
+                      const keyMap: Record<string, string> = { invoiced: 'invoiced', 'partially invoiced': 'partiallyInvoiced', partially_invoiced: 'partiallyInvoiced', 'not invoiced': 'notInvoiced', not_invoiced: 'notInvoiced' };
+                      return t(`QuotesPage.quoteDialog.${keyMap[status] || 'notInvoiced'}`);
+                    })()}
+                  </Badge>
+                  <Badge variant={(STATUS_BADGE[selectedQuote.status.toLowerCase()] ?? 'default') as any} className="text-xs capitalize">
+                    {t(`QuotesPage.quoteDialog.${selectedQuote.status.toLowerCase()}`)}
+                  </Badge>
+                  <Badge variant={(PAYMENT_BADGE[selectedQuote.payment_status.toLowerCase()] ?? 'outline') as any} className="text-xs capitalize">
+                    {(() => {
+                      const status = selectedQuote.payment_status.toLowerCase().trim();
+                      const keyMap: Record<string, string> = { paid: 'paid', partial: 'partial', 'partially paid': 'partiallyPaid', partially_paid: 'partiallyPaid', unpaid: 'unpaid' };
+                      return t(`QuotesPage.quoteDialog.${keyMap[status] || 'unpaid'}`);
+                    })()}
+                  </Badge>
                 </div>
               </div>
 
-              {/* Resumen financiero: Total + pendientes en una línea */}
-              <div className="px-6 py-3 space-y-1.5">
-                <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-muted-foreground">
-                  <span>
-                    <span className="font-medium text-foreground">{t('QuoteColumns.total')}:</span>{' '}
-                    <span className="font-semibold text-foreground">{formatCurrency(selectedQuote.total, selectedQuote.currency)}</span>
-                  </span>
-                  <span>
-                    {t('QuoteColumns.pendingInvoice')}:{' '}
-                    <span className={`font-semibold ${Number(selectedQuote.amount_pending_invoice) > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                      {formatCurrency(selectedQuote.amount_pending_invoice, selectedQuote.currency)}
-                    </span>
-                    {' '}<span className="font-normal">de</span>{' '}
-                    <span className="font-medium text-foreground">{formatCurrency(selectedQuote.total, selectedQuote.currency)}</span>
-                  </span>
-                  <span>
-                    {t('QuoteColumns.pendingPayment')}:{' '}
-                    <span className={`font-semibold ${Number(selectedQuote.amount_pending_payment) > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                      {formatCurrency(selectedQuote.amount_pending_payment, selectedQuote.currency)}
-                    </span>
-                    {' '}<span className="font-normal">de</span>{' '}
-                    <span className="font-medium text-foreground">{formatCurrency(selectedQuote.amount_invoiced, selectedQuote.currency)}</span>
-                  </span>
-                </div>
-                {selectedQuote.notes && (
-                  <p className="text-xs text-muted-foreground italic">{selectedQuote.notes}</p>
-                )}
-              </div>
+              {/* Notas / motivo de rechazo */}
+              {selectedQuote.notes && (
+                selectedQuote.status?.toLowerCase() === 'rejected' ? (
+                  <div className="mx-6 my-3 flex gap-2.5 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2.5">
+                    <XCircle className="h-4 w-4 shrink-0 text-destructive mt-0.5" />
+                    <div>
+                      <p className="text-xs font-medium text-destructive">{tQuotes('rejectedBanner.title')}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{selectedQuote.notes}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="px-6 py-3">
+                    <p className="text-xs text-muted-foreground italic">{selectedQuote.notes}</p>
+                  </div>
+                )
+              )}
             </div>
 
             {/* Actions */}
@@ -1329,17 +1505,17 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
             {/* Tabs: Ítems / Sesiones / Facturas / Pagos */}
             <div className="flex-1 flex flex-col overflow-hidden px-4 py-3">
               <Tabs defaultValue="items" className="flex-1 flex flex-col min-h-0">
-                <TabsList>
-                  <TabsTrigger value="items" className="text-xs">Ítems</TabsTrigger>
-                  <TabsTrigger value="facturas" className="text-xs gap-1.5" onClick={() => !quoteDetailInvoices.length && loadQuoteDetailInvoices(selectedQuote.id)}>
+                <TabsList className="gap-1 rounded-xl border border-border bg-muted/30 p-1 h-auto">
+                  <TabsTrigger value="items" className="rounded-lg border border-transparent px-3 py-2 text-xs font-medium whitespace-nowrap text-muted-foreground hover:bg-background/60 hover:text-foreground data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">Ítems</TabsTrigger>
+                  <TabsTrigger value="facturas" className="rounded-lg border border-transparent px-3 py-2 text-xs font-medium whitespace-nowrap text-muted-foreground hover:bg-background/60 hover:text-foreground data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm flex items-center gap-1.5" onClick={() => !quoteDetailInvoices.length && loadQuoteDetailInvoices(selectedQuote.id)}>
                     <FileText className="h-3.5 w-3.5" />
                     Facturas
                   </TabsTrigger>
-                  <TabsTrigger value="pagos" className="text-xs gap-1.5" onClick={() => !quoteDetailPayments.length && loadQuoteDetailPayments(selectedQuote.id)}>
+                  <TabsTrigger value="pagos" className="rounded-lg border border-transparent px-3 py-2 text-xs font-medium whitespace-nowrap text-muted-foreground hover:bg-background/60 hover:text-foreground data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm flex items-center gap-1.5" onClick={() => !quoteDetailPayments.length && loadQuoteDetailPayments(selectedQuote.id)}>
                     <CreditCard className="h-3.5 w-3.5" />
                     Pagos
                   </TabsTrigger>
-                  <TabsTrigger value="clinic-sessions" className="text-xs gap-1.5">
+                  <TabsTrigger value="clinic-sessions" className="rounded-lg border border-transparent px-3 py-2 text-xs font-medium whitespace-nowrap text-muted-foreground hover:bg-background/60 hover:text-foreground data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm flex items-center gap-1.5">
                     <Stethoscope className="h-3.5 w-3.5" />
                     {t('UserQuotes.clinicSessions')}
                   </TabsTrigger>
@@ -1362,167 +1538,231 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                     ) : (
                       <>
                         <p className="text-sm font-semibold mb-2">{t('UserQuotes.items.title')}</p>
-                        <div className="flex-1 overflow-hidden">
-                          <QuoteItemsTable
-                            items={quoteItems}
-                            isLoading={isLoadingItems}
-                            canEdit={canEditItems}
-                            onCreate={canAddItem ? () => { setEditingItem(null); setIsItemDialogOpen(true); loadServices(); } : () => { }}
-                            onEdit={canUpdateItem ? (item) => { setEditingItem(item); setIsItemDialogOpen(true); loadServices(); } : () => { }}
-                            onDelete={canDeleteItem ? setDeletingItem : () => { }}
-                            onRefresh={() => loadItems(selectedQuote.id)}
-                            showToothNumber={isSales}
-                            forceCardMode
-                          />
-                        </div>
+                        <QuoteItemsTable
+                          items={quoteItems}
+                          isLoading={isLoadingItems}
+                          canEdit={canEditItems}
+                          onCreate={canAddItem ? () => { setEditingItem(null); setIsItemDialogOpen(true); loadServices(); } : () => { }}
+                          onEdit={canUpdateItem ? (item) => { setEditingItem(item); setIsItemDialogOpen(true); loadServices(); } : () => { }}
+                          onDelete={canDeleteItem ? setDeletingItem : () => { }}
+                          onRefresh={() => loadItems(selectedQuote.id)}
+                          showToothNumber={isSales}
+                        />
                       </>
                     )}
                   </TabsContent>
 
                   <TabsContent value="clinic-sessions" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-sm font-semibold flex items-center gap-2">
-                        <Stethoscope className="h-4 w-4" />
-                        {t('UserQuotes.clinicSessions')}
-                      </h4>
-                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => loadQuoteClinicSessions(selectedQuote.id)} disabled={isLoadingClinicSessions}>
-                        <Loader2 className={`h-4 w-4 ${isLoadingClinicSessions ? 'animate-spin' : ''}`} />
-                      </Button>
-                    </div>
-                    <div className="flex-1 min-h-0">
-                      {clinicSessions.length === 0 && !isLoadingClinicSessions ? (
-                        <p className="text-muted-foreground text-sm text-center py-8">{t('UserQuotes.noSessionsFound')}</p>
-                      ) : (
-                        <DataTable
-                          columns={getClinicSessionColumns(t)}
-                          data={clinicSessions}
-                          isRefreshing={isLoadingClinicSessions}
-                          onRefresh={() => loadQuoteClinicSessions(selectedQuote.id)}
-                        />
-                      )}
-                    </div>
+                    <DataTable
+                      columns={getClinicSessionColumns(t)}
+                      data={clinicSessions}
+                      isLoading={isLoadingClinicSessions}
+                      isRefreshing={isLoadingClinicSessions}
+                      onRefresh={() => loadQuoteClinicSessions(selectedQuote.id)}
+                      useGlobalFilter
+                      filterPlaceholder={t('OrderItemsTable.filterPlaceholder')}
+                    />
                   </TabsContent>
 
                   {/* Facturas tab */}
-                  <TabsContent value="facturas" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-semibold flex items-center gap-2">
-                        <FileText className="h-4 w-4" />
-                        Facturas del presupuesto
-                      </h4>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => loadQuoteDetailInvoices(selectedQuote.id)} disabled={isLoadingQuoteDetailInvoices}>
-                        <Loader2 className={`h-3.5 w-3.5 ${isLoadingQuoteDetailInvoices ? 'animate-spin' : ''}`} />
-                      </Button>
-                    </div>
-                    {isLoadingQuoteDetailInvoices ? (
-                      <div className="flex items-center gap-2 py-6 justify-center text-sm text-muted-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin" />Cargando...
-                      </div>
-                    ) : quoteDetailInvoices.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-8">Sin facturas registradas.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {quoteDetailInvoices.map((inv) => (
-                          <div key={inv.id} className="rounded-lg border bg-card p-3 text-sm space-y-1.5">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="font-semibold">#{inv.doc_no || inv.invoice_doc_no || inv.id}</span>
-                              <span className="font-bold tabular-nums">{formatCurrency(inv.total, inv.currency)}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 flex-wrap text-xs text-muted-foreground">
-                              <span>{formatDisplayDate(inv.createdAt)}</span>
-                              {inv.status && (
-                                <Badge
-                                  variant={({ booked: 'success', draft: 'outline', overdue: 'destructive' }[inv.status.toLowerCase()] ?? 'default') as any}
-                                  className="text-[10px] font-normal capitalize"
-                                >
-                                  {inv.status}
-                                </Badge>
+                  <TabsContent value="facturas" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
+                    <Card className="h-full flex flex-col min-h-0">
+                      <CardContent className="flex flex-col p-4 flex-1 min-h-0">
+                        <DataTable
+                          columns={getInvoiceColumns(t)}
+                          data={quoteDetailInvoices}
+                          isLoading={isLoadingQuoteDetailInvoices}
+                          onRefresh={() => loadQuoteDetailInvoices(selectedQuote.id)}
+                          isRefreshing={isLoadingQuoteDetailInvoices}
+                          useGlobalFilter
+                          filterPlaceholder={t('OrderItemsTable.filterPlaceholder')}
+                          isNarrow={viewportNarrow || invoicesListView}
+                          viewControls={!viewportNarrow ? <ViewModeToggle value={invoicesViewMode} onChange={setInvoicesViewMode} /> : undefined}
+                          cardListClassName={invoicesListView ? 'gap-0 px-0 py-0 rounded-md border' : undefined}
+                          renderCard={(inv) => invoicesListView ? (
+                            <DataListRow
+                              title={`#${inv.doc_no || inv.invoice_doc_no || inv.id}`}
+                              badge={(
+                                <>
+                                  {inv.status && (
+                                    <Badge variant={invoiceStatusVariant(inv.status)} className="text-[10px] font-normal capitalize">
+                                      {t(`InvoicesPage.status.${inv.status.toLowerCase()}`)}
+                                    </Badge>
+                                  )}
+                                  <Badge variant={(inv.payment_status === 'paid' ? 'success' : inv.payment_status?.includes('partial') ? 'info' : 'outline') as any} className="text-[10px] font-normal">
+                                    {paymentStatusLabel(t, inv.payment_status)}
+                                  </Badge>
+                                </>
                               )}
-                              <Badge
-                                variant={(inv.payment_status === 'paid' ? 'success' : inv.payment_status?.includes('partial') ? 'info' : 'outline') as any}
-                                className="text-[10px] font-normal"
-                              >
-                                {inv.payment_status === 'paid' ? 'Pagada' : inv.payment_status?.includes('partial') ? 'Pago parcial' : 'Sin pagar'}
-                              </Badge>
-                            </div>
-                            <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs">
-                              {(inv.paid_amount || 0) > 0 && (
-                                <span>Pagado: <span className="font-medium text-emerald-600">{formatCurrency(inv.paid_amount || 0, inv.currency)}</span></span>
+                              meta={(
+                                <>
+                                  <span>{formatDisplayDate(inv.createdAt)}</span>
+                                  <span className="font-medium text-foreground">{t('UserQuotes.columns.total')}: {formatCurrency(inv.total, inv.currency)}</span>
+                                  {(inv.paid_amount || 0) > 0 ? <span>{t('UserQuotes.columns.paidAmount')}: {formatCurrency(inv.paid_amount || 0, inv.currency)}</span> : null}
+                                  {inv.due_date ? <span>{t('UserQuotes.columns.dueDate')}: {formatDisplayDate(inv.due_date)}</span> : null}
+                                </>
                               )}
-                              {inv.due_date && (
-                                <span className="text-muted-foreground">Vence: <span className="font-medium text-foreground">{formatDisplayDate(inv.due_date)}</span></span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                            />
+                          ) : (
+                            <DataCard
+                              title={`#${inv.doc_no || inv.invoice_doc_no || inv.id}`}
+                              subtitle={formatDisplayDate(inv.createdAt)}
+                              fields={[
+                                ...(inv.status ? [{
+                                  label: t('UserQuotes.columns.status'),
+                                  value: (
+                                    <Badge variant={invoiceStatusVariant(inv.status)} className="text-[10px] font-normal capitalize">
+                                      {t(`InvoicesPage.status.${inv.status.toLowerCase()}`)}
+                                    </Badge>
+                                  ),
+                                }] : []),
+                                {
+                                  label: t('UserQuotes.columns.paymentStatus'),
+                                  value: (
+                                    <Badge
+                                      variant={(inv.payment_status === 'paid' ? 'success' : inv.payment_status?.includes('partial') ? 'info' : 'outline') as any}
+                                      className="text-[10px] font-normal"
+                                    >
+                                      {paymentStatusLabel(t, inv.payment_status)}
+                                    </Badge>
+                                  ),
+                                },
+                                ...((inv.paid_amount || 0) > 0 ? [{
+                                  label: t('UserQuotes.columns.paidAmount'),
+                                  value: formatCurrency(inv.paid_amount || 0, inv.currency),
+                                }] : []),
+                                ...(inv.due_date ? [{
+                                  label: t('UserQuotes.columns.dueDate'),
+                                  value: formatDisplayDate(inv.due_date),
+                                }] : []),
+                                {
+                                  label: t('UserQuotes.columns.total'),
+                                  value: formatCurrency(inv.total, inv.currency),
+                                  primary: true,
+                                },
+                              ]}
+                            />
+                          )}
+                        />
+                      </CardContent>
+                    </Card>
                   </TabsContent>
 
                   {/* Pagos tab */}
-                  <TabsContent value="pagos" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-semibold flex items-center gap-2">
-                        <CreditCard className="h-4 w-4" />
-                        Pagos del presupuesto
-                      </h4>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => loadQuoteDetailPayments(selectedQuote.id)} disabled={isLoadingQuoteDetailPayments}>
-                        <Loader2 className={`h-3.5 w-3.5 ${isLoadingQuoteDetailPayments ? 'animate-spin' : ''}`} />
-                      </Button>
-                    </div>
-                    {isLoadingQuoteDetailPayments ? (
-                      <div className="flex items-center gap-2 py-6 justify-center text-sm text-muted-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin" />Cargando...
-                      </div>
-                    ) : quoteDetailPayments.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-8">Sin pagos registrados.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {quoteDetailPayments.map((pay) => (
-                          <div key={pay.id} className="rounded-lg border bg-card p-3 text-sm space-y-1.5">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="font-semibold">#{pay.doc_no || pay.id}</span>
-                              <span className="font-bold tabular-nums text-emerald-600">{formatCurrency(pay.amount, pay.currency)}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 flex-wrap text-xs text-muted-foreground">
-                              {pay.payment_date && <span>{formatDisplayDate(pay.payment_date)}</span>}
-                              {pay.method && <Badge variant="outline" className="text-[10px] font-normal capitalize">{pay.method}</Badge>}
-                              {pay.currency && <Badge variant="secondary" className="text-[10px] font-normal">{pay.currency}</Badge>}
-                              {pay.invoice_doc_no && <span>Factura #{pay.invoice_doc_no}</span>}
-                              {pay.transaction_type && pay.transaction_type !== 'direct_payment' && (
-                                <Badge variant="info" className="text-[10px] font-normal">
-                                  {pay.transaction_type === 'credit_note_allocation' ? 'Nota de crédito' : pay.transaction_type === 'payment_allocation' ? 'Asignación' : pay.transaction_type}
-                                </Badge>
+                  <TabsContent value="pagos" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
+                    <Card className="h-full flex flex-col min-h-0">
+                      <CardContent className="flex flex-col p-4 flex-1 min-h-0">
+                        <DataTable
+                          columns={getPaymentColumns(t, handlePrintReceipt)}
+                          data={quoteDetailPayments}
+                          isLoading={isLoadingQuoteDetailPayments}
+                          onRefresh={() => loadQuoteDetailPayments(selectedQuote.id)}
+                          isRefreshing={isLoadingQuoteDetailPayments}
+                          useGlobalFilter
+                          filterPlaceholder={t('OrderItemsTable.filterPlaceholder')}
+                          isNarrow={viewportNarrow || paymentsListView}
+                          viewControls={!viewportNarrow ? <ViewModeToggle value={paymentsViewMode} onChange={setPaymentsViewMode} /> : undefined}
+                          cardListClassName={paymentsListView ? 'gap-0 px-0 py-0 rounded-md border' : undefined}
+                          renderCard={(pay) => paymentsListView ? (
+                            <DataListRow
+                              title={`#${pay.doc_no || pay.id}`}
+                              badge={(
+                                <>
+                                  {pay.method && <Badge variant="outline" className="text-[10px] font-normal capitalize">{pay.method}</Badge>}
+                                  {pay.transaction_type && pay.transaction_type !== 'direct_payment' && (
+                                    <Badge variant="info" className="text-[10px] font-normal">{transactionTypeLabel(t, pay.transaction_type)}</Badge>
+                                  )}
+                                </>
                               )}
-                            </div>
-                            {pay.transaction_id && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 px-2 text-xs gap-1 -ml-1"
-                                onClick={async () => {
-                                  try {
-                                    const endpoint = isSales ? API_ROUTES.SALES.API_PAYMENT_PRINT : API_ROUTES.PURCHASES.API_PAYMENT_PRINT;
-                                    const blob = await api.getBlob(endpoint, { transaction_id: pay.transaction_id!, transaction_type: pay.transaction_type! });
-                                    const fileName = getDocumentFileName({ id: pay.transaction_id!, doc_no: pay.doc_no, payment_doc_no: pay.doc_no }, 'payment');
-                                    const url = URL.createObjectURL(blob);
-                                    const a = document.createElement('a');
-                                    a.href = url; a.download = `${fileName}.pdf`;
-                                    document.body.appendChild(a); a.click();
-                                    URL.revokeObjectURL(url); a.remove();
-                                  } catch { toast({ title: 'Error al imprimir el recibo', variant: 'destructive' }); }
-                                }}
-                              >
-                                <Printer className="h-3 w-3" />Imprimir recibo
-                              </Button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                              meta={(
+                                <>
+                                  {pay.payment_date ? <span>{formatDisplayDate(pay.payment_date)}</span> : null}
+                                  <span className="font-medium text-emerald-600">{t('UserQuotes.columns.amount')}: {formatCurrency(pay.amount, pay.currency)}</span>
+                                  {pay.invoice_doc_no ? <span>{t('UserQuotes.columns.invoice')}: #{pay.invoice_doc_no}</span> : null}
+                                </>
+                              )}
+                              actions={pay.transaction_id ? (
+                                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1 -ml-1"
+                                  onClick={(e) => { e.stopPropagation(); handlePrintReceipt(pay); }}>
+                                  <Printer className="h-3 w-3" />{t('UserQuotes.columns.printReceipt')}
+                                </Button>
+                              ) : undefined}
+                            />
+                          ) : (
+                            <DataCard
+                              title={`#${pay.doc_no || pay.id}`}
+                              subtitle={pay.payment_date ? formatDisplayDate(pay.payment_date) : undefined}
+                              fields={[
+                                ...(pay.method ? [{
+                                  label: t('UserQuotes.columns.method'),
+                                  value: <Badge variant="outline" className="text-[10px] font-normal capitalize">{pay.method}</Badge>,
+                                }] : []),
+                                ...(pay.invoice_doc_no ? [{
+                                  label: t('UserQuotes.columns.invoice'),
+                                  value: `#${pay.invoice_doc_no}`,
+                                }] : []),
+                                ...(pay.transaction_type && pay.transaction_type !== 'direct_payment' ? [{
+                                  label: t('UserQuotes.columns.transactionType'),
+                                  value: <Badge variant="info" className="text-[10px] font-normal">{transactionTypeLabel(t, pay.transaction_type)}</Badge>,
+                                }] : []),
+                                {
+                                  label: t('UserQuotes.columns.amount'),
+                                  value: <span className="text-emerald-600">{formatCurrency(pay.amount, pay.currency)}</span>,
+                                  primary: true,
+                                },
+                              ]}
+                              actions={pay.transaction_id ? (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 px-2 text-xs gap-1 -ml-1"
+                                  onClick={(e) => { e.stopPropagation(); handlePrintReceipt(pay); }}
+                                >
+                                  <Printer className="h-3 w-3" />{t('UserQuotes.columns.printReceipt')}
+                                </Button>
+                              ) : undefined}
+                            />
+                          )}
+                        />
+                      </CardContent>
+                    </Card>
                   </TabsContent>
                 </div>
               </Tabs>
+            </div>
+
+            {/* ── Financial Footer ── */}
+            <div className="flex-none border-t bg-muted/30 px-6 py-3">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-x-4 gap-y-3">
+                <div>
+                  <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-0.5">{t('QuoteColumns.total')}</p>
+                  <p className="text-sm font-semibold tabular-nums">{formatCurrency(selectedQuote.total, selectedQuote.currency)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-0.5">{t('QuoteColumns.amountInvoiced')}</p>
+                  <p className={`text-sm font-semibold tabular-nums ${Number(selectedQuote.amount_invoiced) > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
+                    {formatCurrency(selectedQuote.amount_invoiced, selectedQuote.currency)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-0.5">{t('QuoteColumns.pendingInvoice')}</p>
+                  <p className={`text-sm font-semibold tabular-nums ${Number(selectedQuote.amount_pending_invoice) > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                    {formatCurrency(selectedQuote.amount_pending_invoice, selectedQuote.currency)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-0.5">{t('QuoteColumns.amountPaid')}</p>
+                  <p className={`text-sm font-semibold tabular-nums ${Number(selectedQuote.amount_paid) > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
+                    {formatCurrency(selectedQuote.amount_paid, selectedQuote.currency)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-0.5">{t('QuoteColumns.pendingPayment')}</p>
+                  <p className={`text-sm font-semibold tabular-nums ${Number(selectedQuote.amount_pending_payment) > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                    {formatCurrency(selectedQuote.amount_pending_payment, selectedQuote.currency)}
+                  </p>
+                </div>
+              </div>
             </div>
           </>
         )}

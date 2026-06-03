@@ -39,11 +39,13 @@
     "Holidays": "Días Feriados",
     "Calendars": "Calendarios",
     "Doctors": "Doctores",
+    "Staff": "Secretarias y Administración",
     "DoctorAvailability": "Disponibilidad Médica",
     "DoctorAvailabilityExceptions": "Excepciones de Disponibilidad",
     "Currencies": "Monedas y Tipos de Cambio",
     "Sequences": "Secuencias",
     "MutualSocieties": "Sociedades Mutuales",
+    "PrintTemplates": "Plantillas de Documentos",
     "System": "Sistema",
     "SystemUsers": "Usuarios",
     "Roles": "Roles",
@@ -54,6 +56,8 @@
     "AccessLog": "Registro de Acceso",
     "ErrorLog": "Registro de Errores",
     "ImportData": "Importar Datos",
+    "Licenses": "Licencias",
+    "Subscriptions": "Suscripciones",
     "AlertsCenter": "Centro de Alertas",
     "AlertsConfig": "Configuración de Alertas",
     "AlertCategories": "Categorías de Alertas",
@@ -296,6 +300,10 @@
     "light": "Invoke",
     "dark": "Oscuro",
     "system": "Claro",
+    "density": "Densidad de tabla",
+    "densityComfortable": "Cómoda",
+    "densityNormal": "Normal",
+    "densityCompact": "Compacta",
     "logoutConfirmation": {
       "title": "Sesión de Caja Activa",
       "description": "Tiene una sesión de caja abierta. Por favor, ciérrela antes de cerrar sesión.",
@@ -356,6 +364,7 @@
     "selected": "{count, plural, one {# seleccionado} other {# seleccionados}} de {total} fila(s).",
     "rowsPerPage": "Filas por página",
     "all": "Todo",
+    "range": "{from}–{to}/{total}",
     "page": "Página {current} de {total}",
     "goToFirst": "Ir a la primera página",
     "goToPrevious": "Ir a la página anterior",
@@ -831,6 +840,7 @@
       "timelineEmptyDescription": "Todavía no hay sesiones clínicas registradas para este paciente.",
       "latestSessionBadge": "Última sesión",
       "currentAppointmentBadge": "Cita actual",
+      "viewPatientFile": "Ficha del paciente",
       "noClinicalSignals": "Sin alergias ni complicaciones registradas.",
       "moreAlertTags": "+{count} más",
       "sessionExistsToday": "Ya existe una sesión clínica registrada para hoy. Solo se permite una sesión por paciente por día.",
@@ -1138,7 +1148,10 @@
       "to": "Hasta",
       "selectDate": "Seleccionar fecha",
       "print": "Imprimir",
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "errorTitle": "Sin movimientos",
+      "errorNoData": "El paciente no tiene movimientos financieros en el período seleccionado.",
+      "errorGeneric": "No se pudo generar el resumen financiero."
     },
     "description": "Gestionar todos los pacientes en el sistema.",
     "filterPlaceholder": "Filtrar pacientes por correo...",
@@ -1170,7 +1183,15 @@
       "orders": "Órdenes",
       "invoices": "Facturas",
       "payments": "Pagos",
-      "notes": "Notas"
+      "notes": "Notas",
+      "details": "Detalles",
+      "clinical": "Historia clínica",
+      "financial": "Finanzas",
+      "management": "Gestión",
+      "info": "Información",
+      "anamnesis": "Anamnesis",
+      "summary": "Resumen",
+      "history": "Línea de tiempo"
     },
     "createDialog": {
       "title": "Crear Nuevo Paciente",
@@ -1301,7 +1322,13 @@
     "currentDebt": "Deuda Actual",
     "openMenu": "Abrir menú",
     "active": "Activo",
-    "inactive": "Inactivo"
+    "inactive": "Inactivo",
+    "activateSuccess": "Paciente activado",
+    "activateSuccessDescription": "{name} ha sido activado exitosamente.",
+    "deactivateSuccess": "Paciente desactivado",
+    "deactivateSuccessDescription": "{name} ha sido desactivado exitosamente.",
+    "toggleStatusError": "Error al actualizar estado",
+    "toggleStatusErrorDescription": "No se pudo actualizar el estado del paciente."
   },
   "UserRoles": {
     "addRoles": "Marcar/Desmarcar Roles",
@@ -1349,7 +1376,7 @@
   "UserServices": {
     "addServices": "Marcar/Desmarcar Servicios",
     "dialog": {
-      "title": "Agregar Servicios al Usuario",
+      "title": "Agregar Servicios al Doctor",
       "description": "Seleccione los servicios para asignar a este usuario.",
       "availableServices": "Servicios Disponibles",
       "cancel": "Cancelar",
@@ -1845,6 +1872,9 @@
     "defaults": {
       "noEmail": "sin-correo@ejemplo.com",
       "notAvailable": "N/D"
+    },
+    "rejectedBanner": {
+      "title": "Motivo de rechazo"
     }
   },
   "SalesQuotesPage": {
@@ -2540,9 +2570,11 @@
       "type": "Tipo",
       "paymentTypes": {
         "direct_payment": "Pago Directo",
+        "payment": "Pago",
         "prepaid": "Prepago",
         "payment_allocation": "Asignación de Pago",
-        "credit_note_allocation": "Asignación de Nota de Crédito"
+        "credit_note_allocation": "Asignación de Nota de Crédito",
+        "credit_note": "Nota de Crédito"
       },
       "credit_note": "Nota de Crédito",
       "invoice": "Factura",
@@ -2981,6 +3013,8 @@
     "locationPlaceholder": "ej. Calle Principal 123, Ciudad, País",
     "phoneLabel": "Teléfono",
     "phonePlaceholder": "ej. +1 234 567 890",
+    "rutLabel": "RUT",
+    "rutPlaceholder": "ej. 21234567-8",
     "emailLabel": "Correo Electrónico",
     "emailPlaceholder": "ej. juan.perez@ejemplo.com",
     "save": "Guardar",
@@ -3230,6 +3264,7 @@
       "ErrorDeactivate": "Error Desactivando Doctor",
       "ErrorDeactivateDescription": "No se pudo desactivar el doctor.",
       "validation": {
+        "errorTitle": "Error",
         "nameRequired": "Nombre es obligatorio.",
         "emailInvalid": "Correo electrónico inválido.",
         "phoneInvalid": "Número de teléfono inválido.",
@@ -3243,7 +3278,9 @@
       "showOnlyActive": "Mostrar solo activos"
     },
     "tabs": {
-      "details": "Detalles"
+      "details": "Detalles",
+      "availability": "Disponibilidad",
+      "exceptions": "Excepciones"
     }
   },
   "UserLogsPage": {
@@ -3268,6 +3305,7 @@
       "noDoctorFound": "No se encontró el doctor",
       "selectDay": "Seleccione día",
       "save": "Guardar",
+      "edit": "Editar",
       "createTitle": "Crear Disponibilidad",
       "createDescription": "Crear una nueva disponibilidad para el doctor",
       "editTitle": "Editar Disponibilidad",
@@ -3316,7 +3354,8 @@
       "description": "¿Está seguro que desea eliminar esta disponibilidad? Esta acción no se puede deshacer.",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
-    }
+    },
+    "empty": "No hay reglas de disponibilidad para este doctor."
   },
   "DoctorAvailabilityColumns": {
     "doctor": "Doctor",
@@ -3385,7 +3424,8 @@
     "validation": {
       "doctorRequired": "El doctor es obligatorio.",
       "dateRequired": "La fecha es obligatoria."
-    }
+    },
+    "empty": "No hay excepciones de disponibilidad para este doctor."
   },
   "CurrenciesPage": {
     "title": "Monedas",
@@ -3555,6 +3595,51 @@
       "showOnlyActive": "Mostrar solo activos"
     }
   },
+  "StaffPage": {
+    "title": "Secretarias y Administración",
+    "description": "Gestión de usuarios del sistema con roles de secretaria y administración",
+    "filterPlaceholder": "Buscar por nombre o email...",
+    "filters": {
+      "showOnlyActive": "Mostrar solo activos"
+    },
+    "createDialog": {
+      "createTitle": "Crear usuario de sistema",
+      "createDescription": "Crear una nueva secretaria o administrador",
+      "role": "Rol",
+      "rolePlaceholder": "Seleccionar rol...",
+      "name": "Nombre",
+      "namePlaceholder": "ej. María López",
+      "email": "Correo Electrónico",
+      "emailPlaceholder": "ej. maria@clinica.com",
+      "phone": "Teléfono",
+      "phonePlaceholder": "ej. 099 123 456",
+      "identity_document": "Documento de Identidad",
+      "identity_document_placeholder": "ej. 12345678",
+      "isActive": "¿Está Activo?",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "createSuccessTitle": "Usuario Creado",
+      "createSuccessDescription": "El usuario ha sido creado y el rol asignado exitosamente.",
+      "editSuccessTitle": "Usuario Actualizado",
+      "editSuccessDescription": "El usuario ha sido actualizado exitosamente.",
+      "validation": {
+        "roleRequired": "Debe seleccionar un rol."
+      }
+    },
+    "tabs": {
+      "details": "Detalles",
+      "roles": "Roles",
+      "logs": "Historial"
+    },
+    "noSelection": "Selecciona un usuario para ver sus detalles",
+    "columns": {
+      "name": "Nombre",
+      "email": "Correo",
+      "phone": "Teléfono",
+      "status": "Estado",
+      "role": "Rol"
+    }
+  },
   "RolesPage": {
     "title": "Roles",
     "description": "Gestionar roles para la clínica",
@@ -3664,6 +3749,7 @@
       "resource": "Recurso",
       "resourcePlaceholder": "ej. usuario",
       "create": "Crear",
+      "save": "Guardar",
       "cancel": "Cancelar",
       "editTitle": "Editar Permiso",
       "editDescription": "Editar el permiso para la clínica",
@@ -3699,6 +3785,7 @@
       "createSuccess": "Permiso creado exitosamente",
       "successDescription": "El permiso \"{name}\" se ha guardado exitosamente."
     },
+    "close": "Cerrar",
     "detailsFor": "Detalles para {name}",
     "tabs": {
       "users": "Usuarios",
@@ -4240,7 +4327,23 @@
       "procedure": "Procedimiento",
       "status": "Estado",
       "notes": "Notas Clínicas",
-      "clinicalNotes": "Notas Clínicas"
+      "clinicalNotes": "Notas Clínicas",
+      "invoiceNo": "N° Factura",
+      "paymentNo": "N° Pago",
+      "total": "Total",
+      "amount": "Monto",
+      "paidAmount": "Pagado",
+      "dueDate": "Vence",
+      "paymentStatus": "Estado de pago",
+      "method": "Método",
+      "invoice": "Factura",
+      "transactionType": "Tipo",
+      "printReceipt": "Imprimir recibo",
+      "paid": "Pagada",
+      "partiallyPaid": "Pago parcial",
+      "unpaid": "Sin pagar",
+      "creditNote": "Nota de crédito",
+      "allocation": "Asignación"
     },
     "actions": {
       "title": "Acciones",
@@ -4376,6 +4479,8 @@
     "title": "Calendario",
     "create": "Crear",
     "today": "Hoy",
+    "collapseMonth": "Colapsar mes",
+    "expandMonth": "Expandir mes",
     "timeZone": "GMT-03",
     "views": {
       "2day": "2 Días",
@@ -4548,7 +4653,8 @@
     "pagination": {
       "showing": "Mostrando",
       "of": "de",
-      "page": "Página {current} de {total}"
+      "page": "Página {current} de {total}",
+      "all": "Todas"
     },
     "filters": {
       "title": "Filtros",
@@ -4896,6 +5002,7 @@
     "columns": {
       "runDate": "Fecha de Ejecución",
       "status": "Estado",
+      "rulesProcessed": "Reglas Procesadas",
       "alertsCreated": "Alertas Creadas",
       "emailsSent": "Correos Enviados",
       "errorsCount": "Errores",
@@ -5280,6 +5387,34 @@
       "codeRequired": "El código es obligatorio."
     }
   },
+  "Config": {
+    "PrintTemplates": {
+      "title": "Plantillas de Documentos",
+      "description": "Personaliza el HTML de cada plantilla de impresión para tu clínica.",
+      "tabs": {
+        "invoice": "Factura",
+        "quote": "Presupuesto",
+        "payment": "Pago",
+        "credit_note": "Nota de Crédito",
+        "prepayment": "Prepago",
+        "financial_summary": "Resumen Financiero"
+      },
+      "editor": "Editor HTML",
+      "preview": "Vista previa",
+      "insertVariable": "Insertar variable",
+      "snippets": "Snippets",
+      "save": "Guardar plantilla",
+      "resetDefault": "Restaurar predeterminado",
+      "saveSuccess": "Plantilla guardada exitosamente",
+      "resetSuccess": "Plantilla restaurada al valor predeterminado",
+      "groups": {
+        "document": "Documento",
+        "patient": "Paciente",
+        "clinic": "Clínica",
+        "tables": "Tablas"
+      }
+    }
+  },
   "MutualSocietiesColumns": {
     "id": "ID",
     "name": "Nombre",
@@ -5331,7 +5466,8 @@
       "invoices": "Facturas",
       "payments": "Pagos",
       "appointments": "Citas",
-      "clinicalSessions": "Sesiones Clínicas"
+      "clinicalSessions": "Sesiones Clínicas",
+      "mutualSocieties": "Sociedades Mutuales"
     },
     "upload": {
       "exampleCsv": "Descargar CSV de ejemplo",
@@ -6435,6 +6571,147 @@
     "confirmation": {
       "paymentTitle": "¡Cobro registrado!",
       "invoiceTitle": "¡Factura creada!"
+    }
+  },
+  "PrintTemplates": {
+    "quote": "Presupuesto",
+    "invoice": "Factura",
+    "payment": "Recibo de Pago",
+    "credit_note": "Nota de Crédito",
+    "prepayment": "Pre-pago",
+    "patient": "Paciente",
+    "date": "Fecha",
+    "dueDate": "Vencimiento",
+    "status": "Estado",
+    "billingStatus": "Estado Facturación",
+    "paymentStatus": "Estado Pago",
+    "services": "Servicios",
+    "service": "Servicio",
+    "tooth": "Diente",
+    "qty": "Cant.",
+    "unitPrice": "P. Unit.",
+    "total": "Total",
+    "invoices": "Facturas",
+    "payments": "Pagos",
+    "paymentDate": "Fecha Pago",
+    "paymentMethod": "Método",
+    "amount": "Monto",
+    "subtotal": "Subtotal",
+    "amountInvoiced": "Facturado",
+    "pendingInvoice": "Pend. Factura",
+    "amountPaid": "Pagado",
+    "pendingPayment": "Pend. Pago",
+    "creditedAmount": "Monto Acreditado",
+    "originalInvoice": "Factura Original",
+    "availableCredit": "Disponible como crédito",
+    "exchangeRate": "Tipo de cambio",
+    "notes": "Notas",
+    "reference": "Referencia",
+    "docNo": "Nro. Documento",
+    "invoiceRef": "Ref. Factura",
+    "currency": "Moneda",
+    "noItems": "Sin ítems",
+    "noPayments": "Sin pagos registrados",
+    "noInvoices": "Sin facturas asociadas",
+    "summary": "Resumen",
+    "generatingPrint": "Preparando impresión…",
+    "quoteStatus": {
+      "draft": "Borrador",
+      "sent": "Enviado",
+      "accepted": "Aceptado",
+      "rejected": "Rechazado",
+      "pending": "Pendiente",
+      "confirmed": "Confirmado"
+    },
+    "invoiceStatus": {
+      "draft": "Borrador",
+      "sent": "Enviado",
+      "paid": "Pagado",
+      "overdue": "Vencido",
+      "booked": "Contabilizado"
+    },
+    "paymentStatusLabels": {
+      "unpaid": "No Pagado",
+      "paid": "Pagado",
+      "partial": "Parcial",
+      "partially_paid": "Pago Parcial"
+    },
+    "transactionType": {
+      "direct_payment": "Pago Directo",
+      "credit_note_allocation": "Aplicación Nota de Crédito",
+      "payment_allocation": "Aplicación de Pago"
+    },
+    "financialSummary": {
+      "title": "Resumen Financiero",
+      "to": "al",
+      "id": "Cédula / RUT",
+      "email": "Email",
+      "phone": "Teléfono",
+      "concept": "Concepto",
+      "balance": "Saldo",
+      "finalBalance": "Saldo Final"
+    }
+  },
+  "License": {
+    "expired": {
+      "title": "Licencia Expirada",
+      "description": "La licencia de InvokeIA ha expirado. Por favor contáctenos para renovarla.",
+      "contact": "Contacto:",
+      "banner": "⚠ LICENCIA EXPIRADA — El acceso de los usuarios está bloqueado. Renovar:"
+    },
+    "expiringSoon": {
+      "message": "Su licencia vence en {days} día(s). Por favor contacte a"
+    },
+    "masterKey": {
+      "prompt": "Ingresar Clave Maestra",
+      "promptDescription": "Ingrese la clave maestra para acceder a la gestión de licencias.",
+      "placeholder": "Clave maestra...",
+      "invalid": "Clave maestra inválida. No se pudo descifrar la licencia actual.",
+      "submit": "Verificar"
+    },
+    "management": {
+      "title": "Gestión de Licencia",
+      "description": "Ver y generar licencias de InvokeIA",
+      "currentLicense": "Licencia Actual",
+      "generateNew": "Generar Nueva Licencia",
+      "generatedKey": "Clave de Licencia Generada",
+      "copyKey": "Copiar Clave",
+      "keyCopied": "Clave copiada al portapapeles",
+      "noLicense": "No se encontró una licencia activa.",
+      "subscriptionType": "Tipo de Suscripción",
+      "startDate": "Fecha de Inicio",
+      "endDate": "Fecha de Fin",
+      "maxDoctors": "Máx. Doctores",
+      "maxReceptionists": "Máx. Recepcionistas",
+      "maxAdmins": "Máx. Administradores",
+      "maxSuperAdmins": "Máx. Super Administradores",
+      "maxMonthlyNewPatients": "Máx. Pacientes Nuevos por Mes",
+      "aiAccess": "Acceso IA",
+      "notes": "Notas",
+      "generate": "Generar Licencia",
+      "generating": "Generando..."
+    },
+    "enforcement": {
+      "limitReachedTitle": "Límite de licencia alcanzado",
+      "doctorLimitReached": "Tu suscripción permite hasta {max} {max, plural, one {doctor} other {doctores}}. Actualizá la licencia para agregar más.",
+      "userLimitReached": "Tu suscripción permite hasta {max} {max, plural, one {usuario} other {usuarios}} de sistema (secretarias y administración). Actualizá la licencia para agregar más.",
+      "patientMonthlyLimitReached": "Tu suscripción permite hasta {max} {max, plural, one {paciente nuevo} other {pacientes nuevos}} por mes. Se alcanzó el límite de este mes."
+    }
+  },
+  "SubscriptionsPage": {
+    "title": "Suscripciones",
+    "description": "Historial de suscripciones de la clínica",
+    "columns": {
+      "licenseId": "ID Licencia",
+      "type": "Tipo",
+      "startDate": "Fecha Inicio",
+      "endDate": "Fecha Fin",
+      "maxDoctors": "Máx. Doctores",
+      "maxReceptionists": "Máx. Recepcionistas",
+      "maxAdmins": "Máx. Admins",
+      "maxMonthlyPatients": "Máx. Pacientes/Mes",
+      "aiAccess": "Acceso IA",
+      "issuedAt": "Emitida El"
     }
   }
 }

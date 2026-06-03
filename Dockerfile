@@ -1,4 +1,5 @@
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
+RUN corepack enable
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -6,9 +7,9 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Install dependencies based on the preferred package manager
-COPY package.json ./
-RUN npm install
+# Install dependencies with pnpm using the committed lockfile for reproducible builds
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+RUN pnpm install --frozen-lockfile --prod=false
 
 
 # Rebuild the source code only when needed
@@ -25,7 +26,13 @@ COPY . .
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
-RUN npm run build
+ARG NEXT_PUBLIC_LICENSE_KEY
+ENV NEXT_PUBLIC_LICENSE_KEY=$NEXT_PUBLIC_LICENSE_KEY
+
+ARG NEXT_PUBLIC_MASTER_SEC
+ENV NEXT_PUBLIC_MASTER_SEC=$NEXT_PUBLIC_MASTER_SEC
+
+RUN pnpm run build
 
 # Production image, copy all the files and run next
 FROM base AS runner

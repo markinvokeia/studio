@@ -39,6 +39,7 @@ import { GLOBAL_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAlertNotifications } from '@/context/alert-notifications-context';
 import { useAuth } from '@/context/AuthContext';
+import { useTableDensity } from '@/hooks/use-table-density';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { filterNavByPermissions } from '@/lib/permissions';
@@ -88,6 +89,7 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
     const tHeader = useTranslations('Header');
     const locale = useLocale();
     const { theme, setTheme } = useTheme();
+    const [density, setDensity] = useTableDensity();
     const { logout, user } = useAuth();
     const { hasPermission, permissions, roles } = usePermissions();
     const { toast } = useToast();
@@ -272,6 +274,23 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                                                 >
                                                     {t === 'dark' ? <Moon className="h-3.5 w-3.5" /> : <Sun className="h-3.5 w-3.5" />}
                                                     {t === 'light' ? 'Invoke' : t === 'claro' ? 'Claro' : 'Oscuro'}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </>
+                                    <>
+                                        <DropdownMenuLabel className="px-2 pt-1 pb-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                            {tHeader('density')}
+                                        </DropdownMenuLabel>
+                                        <div className="flex items-center gap-1 px-2 pb-1">
+                                            {(['comfortable', 'normal', 'compact'] as const).map((d) => (
+                                                <button
+                                                    key={d}
+                                                    type="button"
+                                                    onClick={() => setDensity(d)}
+                                                    className={`flex-1 flex items-center justify-center py-1.5 rounded-lg text-xs font-medium transition-colors ${density === d ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
+                                                >
+                                                    {d === 'comfortable' ? tHeader('densityComfortable') : d === 'normal' ? tHeader('densityNormal') : tHeader('densityCompact')}
                                                 </button>
                                             ))}
                                         </div>

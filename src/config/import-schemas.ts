@@ -3,6 +3,7 @@ import {
   ClipboardList,
   CreditCard,
   FileText,
+  Handshake,
   Receipt,
   Stethoscope,
   Users,
@@ -28,7 +29,8 @@ export type ImportEntityType =
   | 'invoices'
   | 'payments'
   | 'appointments'
-  | 'clinical_sessions';
+  | 'clinical_sessions'
+  | 'mutual_societies';
 
 export interface ImportSchema {
   type: ImportEntityType;
@@ -138,6 +140,18 @@ export const IMPORT_SCHEMAS: Record<ImportEntityType, ImportSchema> = {
       { key: 'notes', label: 'Notas', required: false, type: 'text' },
     ],
   },
+  mutual_societies: {
+    type: 'mutual_societies',
+    labelKey: 'mutualSocieties',
+    icon: Handshake,
+    exampleCsvUrl: 'https://drive.google.com/file/d/1jkpt8KUMKIlmDNDZDor3DvTcKGq6Sxzb/view?usp=sharing',
+    fields: [
+      { key: 'name', label: 'Nombre', required: true, type: 'text' },
+      { key: 'code', label: 'Código', required: true, type: 'text' },
+      { key: 'description', label: 'Descripción', required: false, type: 'text' },
+      { key: 'is_active', label: 'Activo', required: false, type: 'boolean', hint: 'true/false (default: true)' },
+    ],
+  },
   clinical_sessions: {
     type: 'clinical_sessions',
     labelKey: 'clinicalSessions',
@@ -164,4 +178,5 @@ export const IMPORT_ENTITY_ORDER: ImportEntityType[] = [
   'payments',
   'appointments',
   'clinical_sessions',
+  'mutual_societies',
 ];

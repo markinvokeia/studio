@@ -47,6 +47,45 @@ export type UserFinancial = {
   financial_data: UserFinancialData;
 };
 
+export type FinancialSummaryMovementMetadata = {
+  label: string;
+  notes: string | null;
+  payment_type?: string;
+  target_invoices?: string[];
+  doc_no?: string;
+  services?: string[];
+  applied_to?: string[];
+};
+
+export type FinancialSummaryMovement = {
+  amount: number;
+  doc_no: string;
+  user_id: string;
+  currency: string;
+  metadata: FinancialSummaryMovementMetadata;
+  created_at: string;
+  internal_id: number;
+  document_type: 'invoice' | 'payment' | 'credit_note';
+  running_balance: number;
+};
+
+export type FinancialSummaryByCurrency = {
+  movements: FinancialSummaryMovement[];
+  final_balance: number;
+  initial_balance: number;
+};
+
+export type FinancialSummaryReport = {
+  user_id: string;
+  name: string;
+  email: string;
+  phone_number: string;
+  identity_document: string;
+  report_start_date: string | null;
+  report_end_date: string | null;
+  history_by_currency: Record<string, FinancialSummaryByCurrency>;
+};
+
 export type UserPermission = {
   permission: string;
   action: string;
@@ -236,6 +275,16 @@ export type CreditNote = Invoice & {
   parent_id?: string;
 };
 
+export interface DocPrintTemplate {
+  id: string;
+  clinic_id: string;
+  template_type: 'quote' | 'invoice' | 'payment' | 'credit_note' | 'prepayment' | 'financial_summary';
+  template_html: string;
+  is_active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type InvoiceItem = {
   id: string;
   service_id: string;
@@ -370,6 +419,7 @@ export type Clinic = {
   drive_file_id?: string;
   web_view_link?: string;
   thumbnail_link?: string;
+  rut?: string;
 };
 
 export type ClinicSchedule = {
@@ -2173,4 +2223,44 @@ export interface ReportKPIsResponse {
   tasa_ocupacion: number;
   ticket_promedio: number;
   total_gastos: number;
+}
+
+// ── Licensing ────────────────────────────────────────────────────────────────
+
+export type AiAccessLevel = 'full' | 'doctors_only' | 'none';
+export type SubscriptionType = 'monthly' | 'annual' | 'custom';
+
+export interface LicensePayload {
+  licenseId: string;
+  version: number;
+  subscriptionType: SubscriptionType;
+  startDate: string;
+  endDate: string;
+  maxDoctors: number;
+  maxReceptionists: number;
+  maxAdmins: number;
+  maxSuperAdmins: number;
+  maxMonthlyNewPatients: number;
+  aiAccess: AiAccessLevel;
+  issuedAt: string;
+  notes?: string;
+}
+
+export type CreateLicenseInput = Omit<LicensePayload, 'licenseId' | 'version' | 'issuedAt'>;
+
+export interface Subscription {
+  id: string;
+  licenseId: string;
+  subscriptionType: SubscriptionType;
+  startDate: string;
+  endDate: string;
+  maxDoctors: number;
+  maxReceptionists: number;
+  maxAdmins: number;
+  maxSuperAdmins: number;
+  maxMonthlyNewPatients: number;
+  aiAccess: AiAccessLevel;
+  issuedAt: string;
+  notes?: string;
+  createdAt: string;
 }

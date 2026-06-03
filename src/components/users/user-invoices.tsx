@@ -18,7 +18,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ServiceSelector } from '@/components/ui/service-selector';
 import { ResizableSheet, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -28,6 +27,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { useToast } from '@/hooks/use-toast';
+import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { Invoice, InvoiceItem, Service, UserDetailMode } from '@/lib/types';
 import { cn, formatDate, formatDisplayDate, getDocumentFileName, toLocalISOString } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
@@ -38,9 +38,12 @@ import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communi
 import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, CalendarIcon, CheckCircle, ChevronDown, CreditCard, Eye, Loader2, Pencil, Printer, Send, Trash2, Zap } from 'lucide-react';
+import { AlertTriangle, CalendarIcon, CheckCircle, ChevronDown, CreditCard, Eye, FileMinus2, Loader2, Pencil, Printer, Send, Trash2, Zap } from 'lucide-react';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataCard } from '@/components/ui/data-card';
+import { DataListRow } from '@/components/ui/data-list-row';
+import { ViewModeToggle } from '@/components/ui/view-mode-toggle';
+import { useTableViewMode } from '@/hooks/use-table-view-mode';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -165,6 +168,99 @@ const getColumns = (t: (key: string) => string, tStatus: (key: string) => string
   },
 ];
 
+// ── Invoice-detail inner table columns ────────────────────────────────────────
+const fmtCurrency = (v: number, currency?: string) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD' }).format(v || 0);
+
+function getInvoiceItemColumns(currency: string | undefined, opts: {
+  canUpdateItem: boolean;
+  canDeleteItem: boolean;
+  onEdit: (item: InvoiceItem) => void;
+  onDelete: (item: InvoiceItem) => void;
+}): ColumnDef<InvoiceItem>[] {
+  const cols: ColumnDef<InvoiceItem>[] = [
+    {
+      accessorKey: 'service_name',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Servicio" />,
+      cell: ({ row }) => <span className="font-medium">{row.original.service_name || '-'}</span>,
+    },
+    {
+      accessorKey: 'quantity',
+      size: 90,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Cantidad" />,
+    },
+    {
+      accessorKey: 'unit_price',
+      size: 120,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Precio unit." />,
+      cell: ({ row }) => fmtCurrency(row.original.unit_price, currency),
+    },
+    {
+      accessorKey: 'total',
+      size: 120,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Total" />,
+      cell: ({ row }) => <span className="font-medium tabular-nums">{fmtCurrency(row.original.total, currency)}</span>,
+    },
+  ];
+  if (opts.canUpdateItem || opts.canDeleteItem) {
+    cols.push({
+      id: 'actions',
+      size: 90,
+      header: () => null,
+      enableSorting: false,
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          {opts.canUpdateItem && (
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => opts.onEdit(row.original)}>
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+          )}
+          {opts.canDeleteItem && (
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => opts.onDelete(row.original)}>
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
+      ),
+    });
+  }
+  return cols;
+}
+
+function getInvoicePaymentColumns(): ColumnDef<any>[] {
+  return [
+    {
+      accessorKey: 'doc_no',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="N° Pago" />,
+      cell: ({ row }) => <span className="font-medium">{row.original.doc_no || `Pago #${row.original.id}`}</span>,
+    },
+    {
+      accessorKey: 'date',
+      size: 120,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Fecha" />,
+      cell: ({ row }) => row.original.date ? formatDisplayDate(row.original.date) : '-',
+    },
+    {
+      accessorKey: 'method',
+      size: 140,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Método" />,
+      cell: ({ row }) => row.original.method || '-',
+    },
+    {
+      accessorKey: 'currency',
+      size: 90,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Moneda" />,
+      cell: ({ row }) => row.original.currency || '-',
+    },
+    {
+      accessorKey: 'amount',
+      size: 120,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Monto" />,
+      cell: ({ row }) => <span className="font-medium tabular-nums">{fmtCurrency(row.original.amount, row.original.currency)}</span>,
+    },
+  ];
+}
+
 // ── Data fetching ─────────────────────────────────────────────────────────────
 async function getInvoicesForUser(userId: string): Promise<Invoice[]> {
   if (!userId) return [];
@@ -190,6 +286,7 @@ async function getInvoicesForUser(userId: string): Promise<Invoice[]> {
       user_id: d.user_id?.toString() ?? userId,
       user_name: d.user_name || '',
       type: d.type || 'invoice',
+      parent_id: d.parent_id ? String(d.parent_id) : undefined,
       total: parseFloat(d.total),
       status: d.status,
       payment_status: d.payment_state || d.payment_status,
@@ -199,6 +296,7 @@ async function getInvoicesForUser(userId: string): Promise<Invoice[]> {
       currency: d.currency || 'USD',
       is_historical: d.is_historical || false,
       due_date: d.due_date || null,
+      paid_amount: d.paid_amount != null ? parseFloat(d.paid_amount) : undefined,
     }));
 
     const needsQuoteFallback = invoices.some((invoice: Invoice) =>
@@ -252,7 +350,15 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
   const { hasPermission } = usePermissions();
   const { validateActiveSession, showCashSessionError } = useCashSessionValidation();
   const { open: openBillingWizard } = useBillingWizard();
+  const { printInvoice } = usePrintDocument();
   const isViewportNarrow = useViewportNarrow();
+  const [viewMode, setViewMode] = useTableViewMode('invoices-list', 'table');
+  const showToggle = !isViewportNarrow;
+  const useListView = !isViewportNarrow && viewMode === 'list';
+  const [detailItemsViewMode, setDetailItemsViewMode] = useTableViewMode('invoice-detail-items', 'table');
+  const [detailPaymentsViewMode, setDetailPaymentsViewMode] = useTableViewMode('invoice-detail-payments', 'table');
+  const detailItemsListView = !isViewportNarrow && detailItemsViewMode === 'list';
+  const detailPaymentsListView = !isViewportNarrow && detailPaymentsViewMode === 'list';
   const isSales = mode === 'sales';
   const [invoices, setInvoices] = React.useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -298,6 +404,8 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
   // Record-level dialogs
   const [isEditInvoiceOpen, setIsEditInvoiceOpen] = React.useState(false);
   const [isSubmittingInvoice, setIsSubmittingInvoice] = React.useState(false);
+  const [isCreditNoteOpen, setIsCreditNoteOpen] = React.useState(false);
+  const [isSubmittingCreditNote, setIsSubmittingCreditNote] = React.useState(false);
   // Email dialog states
   const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
   const [selectedInvoiceForEmail, setSelectedInvoiceForEmail] = React.useState<Invoice | null>(null);
@@ -316,7 +424,16 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
   const canUpdateItem = hasPermission(isSales ? SALES_PERMISSIONS.INVOICES_UPDATE_ITEM : PURCHASES_PERMISSIONS.INVOICES_UPDATE_ITEM);
   const canDeleteItem = hasPermission(isSales ? SALES_PERMISSIONS.INVOICES_DELETE_ITEM : PURCHASES_PERMISSIONS.INVOICES_DELETE_ITEM);
   const canCreatePayment = hasPermission(isSales ? SALES_PERMISSIONS.PAYMENTS_CREATE : PURCHASES_PERMISSIONS.PAYMENTS_CREATE);
+  const canCreateInvoice = hasPermission(isSales ? SALES_PERMISSIONS.INVOICES_CREATE : PURCHASES_PERMISSIONS.INVOICES_CREATE);
   const canEditItems = isDraft && (canAddItem || canUpdateItem || canDeleteItem);
+
+  const invoicePaymentColumns = React.useMemo<ColumnDef<any>[]>(() => [
+    { accessorKey: 'doc_no', header: 'N° Pago', size: 130, cell: ({ row }: any) => row.original.doc_no ? `#${row.original.doc_no}` : '-' },
+    { accessorKey: 'date', header: 'Fecha', size: 100, cell: ({ row }: any) => row.original.date ? formatDisplayDate(row.original.date) : '-' },
+    { accessorKey: 'method', header: 'Método', size: 130, cell: ({ row }: any) => row.original.method || '-' },
+    { accessorKey: 'currency', header: 'Moneda', size: 80 },
+    { accessorKey: 'amount', header: 'Monto', size: 130, cell: ({ row }: any) => new Intl.NumberFormat('en-US', { style: 'currency', currency: row.original.currency || 'USD' }).format(row.original.amount) },
+  ], []);
 
   // ── Data loading ────────────────────────────────────────────────────────────
   const loadInvoices = React.useCallback(async (silent = false) => {
@@ -334,7 +451,9 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
         isSales ? API_ROUTES.SALES.INVOICE_ITEMS : API_ROUTES.PURCHASES.INVOICE_ITEMS,
         { invoice_id: invoiceId, is_sales: isSales ? 'true' : 'false' }
       );
-      const raw = Array.isArray(data) ? data : (data.items || data.data || []);
+      const rawData = Array.isArray(data) ? data : (data.items || data.data || []);
+      // Empty responses come back as `[{ success: true }]`; skip those ack objects.
+      const raw = rawData.filter((i: any) => i && typeof i === 'object' && (i.id != null || i.service_id != null || i.service_name));
       setInvoiceItems(raw.map((i: any) => ({
         id: String(i.id),
         service_id: String(i.service_id),
@@ -359,9 +478,14 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
         isSales ? API_ROUTES.SALES.INVOICE_PAYMENTS : API_ROUTES.PURCHASES.INVOICE_PAYMENTS,
         { invoice_id: invoiceId }
       );
-      const raw = Array.isArray(data) ? data : (data.payments || data.data || []);
-      setInvoicePayments(raw.map((p: any) => ({
-        id: String(p.id),
+      const rawData = Array.isArray(data) ? data : (data.payments || data.data || []);
+      // Empty responses come back as `[{ success: true }]`; skip those ack objects.
+      const raw = rawData.filter((p: any) =>
+        p && typeof p === 'object' &&
+        (p.id != null || p.amount_applied != null || p.amount != null || p.doc_no || p.payment_doc_no)
+      );
+      setInvoicePayments(raw.map((p: any, idx: number) => ({
+        id: p.id != null ? String(p.id) : (p.doc_no || p.payment_doc_no || String(idx)),
         amount: Math.abs(Number(p.amount_applied ?? p.amount ?? 0)),
         currency: p.invoice_currency || p.source_currency || p.currency || 'UYU',
         method: p.payment_method_name || p.method || p.payment_method || '',
@@ -406,25 +530,9 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
   }, [loadItems, loadInvoicePayments]);
 
   // ── Record actions ──────────────────────────────────────────────────────────
-  const handlePrint = async () => {
+  const handlePrint = () => {
     if (!selectedInvoice) return;
-    try {
-      const blob = await api.getBlob(
-        isSales ? API_ROUTES.SALES.API_INVOICE_PRINT : API_ROUTES.PURCHASES.API_INVOICE_PRINT,
-        { id: selectedInvoice.id }
-      );
-      const fileName = getDocumentFileName(selectedInvoice, 'invoice');
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${fileName}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      URL.revokeObjectURL(url);
-      a.remove();
-    } catch {
-      toast({ title: 'Error al imprimir', variant: 'destructive' });
-    }
+    printInvoice(selectedInvoice, isSales);
   };
 
   const handleSendEmailClick = (invoice: Invoice) => {
@@ -594,6 +702,99 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
     }
   };
 
+  // ── Credit note form ─────────────────────────────────────────────────────────
+  const creditNoteForm = useForm<InvoiceEditFormValues>({ resolver: zodResolver(invoiceEditSchema) });
+  const { fields: creditNoteItemFields, append: appendCreditNoteItem, remove: removeCreditNoteItem } = useFieldArray({
+    control: creditNoteForm.control,
+    name: 'items',
+  });
+
+  React.useEffect(() => {
+    if (!isCreditNoteOpen || !selectedInvoice) return;
+    creditNoteForm.reset({
+      type: 'credit_note',
+      currency: (selectedInvoice.currency as 'USD' | 'UYU') ?? 'UYU',
+      created_at: new Date(),
+      due_date: undefined,
+      is_historical: false,
+      notes: '',
+      items: invoiceItems.map(i => ({
+        id: undefined,
+        service_id: i.service_id,
+        service_name: i.service_name || '',
+        quantity: i.quantity,
+        unit_price: i.unit_price,
+        total: i.total,
+      })),
+    });
+    if (invoiceItems.length === 0) loadItems(selectedInvoice.id);
+    loadServices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCreditNoteOpen, selectedInvoice]);
+
+  React.useEffect(() => {
+    if (!isCreditNoteOpen || invoiceItems.length === 0) return;
+    const current = creditNoteForm.getValues('items');
+    if (current.length === 0) {
+      creditNoteForm.setValue('items', invoiceItems.map(i => ({
+        id: undefined,
+        service_id: i.service_id,
+        service_name: i.service_name || '',
+        quantity: i.quantity,
+        unit_price: i.unit_price,
+        total: i.total,
+      })));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invoiceItems, isCreditNoteOpen]);
+
+  const watchedCreditNoteCurrency = creditNoteForm.watch('currency');
+
+  const handleSubmitCreditNote = async (values: InvoiceEditFormValues) => {
+    if (!selectedInvoice) return;
+    setIsSubmittingCreditNote(true);
+    try {
+      const calculatedTotal = (values.items || []).reduce((sum, i) => sum + (Number(i.total) || 0), 0);
+      const maxAllowed = Number(selectedInvoice.paid_amount) || 0;
+      if (maxAllowed <= 0) {
+        toast({ title: 'Esta factura no tiene pagos registrados', variant: 'destructive' });
+        return;
+      }
+      if (calculatedTotal > maxAllowed) {
+        toast({ title: `El total de la nota de crédito no puede superar el monto pagado (${new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || 'USD' }).format(maxAllowed)})`, variant: 'destructive' });
+        return;
+      }
+      await api.post(isSales ? API_ROUTES.SALES.INVOICES_UPSERT : API_ROUTES.PURCHASES.INVOICES_UPSERT, {
+        user_id: selectedInvoice.user_id,
+        type: 'credit_note',
+        invoice_id: selectedInvoice.id,
+        currency: values.currency,
+        total: calculatedTotal,
+        order_id: selectedInvoice.order_id !== 'N/A' ? selectedInvoice.order_id : undefined,
+        quote_id: selectedInvoice.quote_id !== 'N/A' ? selectedInvoice.quote_id : undefined,
+        created_at: values.created_at ? toLocalISOString(values.created_at) : undefined,
+        due_date: values.due_date ? toLocalISOString(values.due_date) : undefined,
+        notes: values.notes || '',
+        is_historical: values.is_historical ?? false,
+        is_sales: isSales,
+        items: (values.items || []).map(i => ({
+          service_id: i.service_id,
+          quantity: i.quantity,
+          unit_price: i.unit_price,
+          total: i.total,
+        })),
+      });
+      toast({ title: 'Nota de crédito creada' });
+      setIsCreditNoteOpen(false);
+      await loadInvoices(true);
+      onDataChange?.();
+    } catch (e: any) {
+      toast({ title: e?.message || 'Error al crear nota de crédito', variant: 'destructive' });
+    } finally {
+      setIsSubmittingCreditNote(false);
+    }
+  };
+
   // ── Item form ────────────────────────────────────────────────────────────────
   const itemForm = useForm<ItemFormValues>({ resolver: zodResolver(itemSchema) });
 
@@ -709,6 +910,15 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 </DropdownMenuItem>
               </>
             )}
+            {!isDraft && selectedInvoice?.type !== 'credit_note' && canCreateInvoice && ['paid', 'partial', 'partially_paid'].includes(selectedInvoice?.payment_status ?? '') && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => { loadItems(selectedInvoice.id); setIsCreditNoteOpen(true); }}>
+                  <FileMinus2 className="h-4 w-4 mr-2" />
+                  Nota de crédito
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       )}
@@ -746,30 +956,53 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
             onRefresh={() => loadInvoices(true)}
             isRefreshing={isRefreshing}
             extraButtons={toolbarActions}
-            isNarrow={isViewportNarrow}
-            renderCard={(invoice: Invoice, _isSelected: boolean) => (
-              <DataCard isSelected={_isSelected}
-                title={invoice.doc_no || `INV-${invoice.id}`}
-                subtitle={formatDisplayDate(invoice.createdAt)}
-                badge={
-                  <div className="flex gap-1 flex-wrap justify-end">
-                    <Badge variant={(STATUS_BADGE[invoice.status?.toLowerCase()] ?? 'default') as any} className="capitalize text-[10px]">
-                      {tStatus(invoice.status?.toLowerCase() || '')}
+            isNarrow={isViewportNarrow || useListView}
+            viewControls={showToggle ? <ViewModeToggle value={viewMode} onChange={setViewMode} /> : undefined}
+            cardListClassName={useListView ? 'gap-0 px-0 py-0 rounded-md border' : undefined}
+            renderCard={(invoice: Invoice, _isSelected: boolean) => {
+              const badgeGroup = (
+                <div className="flex gap-1 flex-wrap justify-end">
+                  <Badge variant={(STATUS_BADGE[invoice.status?.toLowerCase()] ?? 'default') as any} className="capitalize text-[10px]">
+                    {tStatus(invoice.status?.toLowerCase() || '')}
+                  </Badge>
+                  {invoice.payment_status && (
+                    <Badge variant={(PAYMENT_BADGE[invoice.payment_status?.toLowerCase()] ?? 'outline') as any} className="capitalize text-[10px]">
+                      {tStatus(invoice.payment_status?.toLowerCase() || '')}
                     </Badge>
-                    {invoice.payment_status && (
-                      <Badge variant={(PAYMENT_BADGE[invoice.payment_status?.toLowerCase()] ?? 'outline') as any} className="capitalize text-[10px]">
-                        {tStatus(invoice.payment_status?.toLowerCase() || '')}
-                      </Badge>
+                  )}
+                </div>
+              );
+              if (useListView) {
+                return (
+                  <DataListRow
+                    isSelected={_isSelected}
+                    onClick={() => handleRowSelectionChange([invoice])}
+                    title={invoice.doc_no || `INV-${invoice.id}`}
+                    badge={badgeGroup}
+                    meta={(
+                      <>
+                        <span>{formatDisplayDate(invoice.createdAt)}</span>
+                        <span className="font-medium text-foreground">{t('InvoicesPage.columns.total')}: {invoice.total != null ? `${invoice.currency || 'USD'} ${Number(invoice.total).toFixed(2)}` : '-'}</span>
+                        {invoice.quote_doc_no ? <span>{t('InvoicesPage.columns.quoteDocNo')}: {invoice.quote_doc_no}</span> : null}
+                        {invoice.due_date ? <span>{t('InvoicesPage.columns.dueDate')}: {formatDisplayDate(invoice.due_date)}</span> : null}
+                      </>
                     )}
-                  </div>
-                }
-                fields={[
-                  { label: t('InvoicesPage.columns.total'), value: invoice.total != null ? `${invoice.currency || 'USD'} ${Number(invoice.total).toFixed(2)}` : '-', primary: true },
-                  { label: t('InvoicesPage.columns.quoteDocNo'), value: invoice.quote_doc_no || '-' },
-                  { label: t('InvoicesPage.columns.dueDate'), value: invoice.due_date ? formatDisplayDate(invoice.due_date) : '-' },
-                ]}
-              />
-            )}
+                  />
+                );
+              }
+              return (
+                <DataCard isSelected={_isSelected}
+                  title={invoice.doc_no || `INV-${invoice.id}`}
+                  subtitle={formatDisplayDate(invoice.createdAt)}
+                  badge={badgeGroup}
+                  fields={[
+                    { label: t('InvoicesPage.columns.total'), value: invoice.total != null ? `${invoice.currency || 'USD'} ${Number(invoice.total).toFixed(2)}` : '-', primary: true },
+                    { label: t('InvoicesPage.columns.quoteDocNo'), value: invoice.quote_doc_no || '-' },
+                    { label: t('InvoicesPage.columns.dueDate'), value: invoice.due_date ? formatDisplayDate(invoice.due_date) : '-' },
+                  ]}
+                />
+              );
+            }}
             columnTranslations={{
               doc_no: t('InvoicesPage.columns.docNo'),
               quote_doc_no: t('InvoicesPage.columns.quoteDocNo'),
@@ -805,7 +1038,26 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                   <div className="flex items-center gap-3">
                     <div>
                       <SheetTitle className="text-2xl font-bold text-card-foreground">{selectedInvoice.doc_no || `INV-${selectedInvoice.id}`}</SheetTitle>
-                      <SheetDescription className="text-sm text-muted-foreground mt-0.5">Factura</SheetDescription>
+                      {selectedInvoice.type === 'credit_note' ? (
+                        <SheetDescription className="text-sm text-muted-foreground mt-0.5">
+                          Nota de crédito
+                          {selectedInvoice.parent_id && (() => {
+                            const parent = invoices.find(inv => inv.id === selectedInvoice.parent_id);
+                            const parentLabel = parent?.doc_no || `#${selectedInvoice.parent_id}`;
+                            return <> · Relacionada a: <span className="font-medium text-foreground">{parentLabel}</span></>;
+                          })()}
+                        </SheetDescription>
+                      ) : (() => {
+                        const creditNote = invoices.find(inv => inv.type === 'credit_note' && inv.parent_id === selectedInvoice.id);
+                        return (
+                          <SheetDescription className="text-sm text-muted-foreground mt-0.5">
+                            Factura
+                            {creditNote && (
+                              <> · Relacionada a: <span className="font-medium text-foreground">Nota de crédito {creditNote.doc_no || `#${creditNote.id}`}</span></>
+                            )}
+                          </SheetDescription>
+                        );
+                      })()}
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap justify-end">
@@ -824,10 +1076,6 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
               {/* Información del documento integrada en el header */}
               <div className="px-6 py-3">
                 <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Total:</span>
-                    <span className="font-semibold text-sm">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || 'USD' }).format(selectedInvoice.total)}</span>
-                  </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">{t('InvoicesPage.columns.quoteDocNo')}:</span>
                     <span className="text-sm">{selectedInvoice.quote_doc_no || '-'}</span>
@@ -902,101 +1150,146 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
             {/* Tabs: Items + Payments */}
             <div className="flex-1 flex flex-col overflow-hidden">
               <Tabs defaultValue="items" className="flex-1 flex flex-col min-h-0">
-                <div className="px-6 border-b bg-background">
-                  <TabsList className="h-10 bg-transparent gap-1 p-0">
-                    <TabsTrigger value="items" className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none h-full px-3 text-xs font-medium">
+                <div className="px-6 py-2">
+                  <TabsList className="gap-1 rounded-xl border border-border bg-muted/30 p-1 h-auto">
+                    <TabsTrigger value="items" className="rounded-lg border border-transparent px-3 py-2 text-xs font-medium whitespace-nowrap text-muted-foreground hover:bg-background/60 hover:text-foreground data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">
                       Ítems
                     </TabsTrigger>
-                    <TabsTrigger value="payments" className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none h-full px-3 text-xs font-medium flex items-center gap-1.5">
+                    <TabsTrigger value="payments" className="rounded-lg border border-transparent px-3 py-2 text-xs font-medium whitespace-nowrap text-muted-foreground hover:bg-background/60 hover:text-foreground data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm flex items-center gap-1.5">
                       <CreditCard className="h-3.5 w-3.5" />
                       Pagos
                     </TabsTrigger>
                   </TabsList>
                 </div>
 
-                <TabsContent value="items" className="flex-1 overflow-hidden mt-0 data-[state=inactive]:hidden">
-                  <ScrollArea className="h-full">
-                    <div className="px-4 py-3 space-y-2">
-                      {isLoadingItems ? (
+                <TabsContent value="items" className="flex-1 overflow-hidden mt-0 px-4 py-3 data-[state=active]:flex data-[state=active]:flex-col data-[state=inactive]:hidden">
+                  <DataTable
+                    columns={getInvoiceItemColumns(selectedInvoice.currency, {
+                      canUpdateItem,
+                      canDeleteItem,
+                      onEdit: (item) => { setEditingItem(item); setIsItemDialogOpen(true); loadServices(); },
+                      onDelete: (item) => setDeletingItem(item),
+                    })}
+                    data={invoiceItems}
+                    isLoading={isLoadingItems}
+                    useGlobalFilter
+                    filterPlaceholder={t('OrderItemsTable.filterPlaceholder')}
+                    isNarrow={isViewportNarrow || detailItemsListView}
+                    viewControls={showToggle ? <ViewModeToggle value={detailItemsViewMode} onChange={setDetailItemsViewMode} /> : undefined}
+                    cardListClassName={detailItemsListView ? 'gap-0 px-0 py-0 rounded-md border' : undefined}
+                    renderCard={(item: InvoiceItem) => {
+                      const actionsEl = canEditItems ? (
                         <>
-                          <Skeleton className="h-16 w-full" />
-                          <Skeleton className="h-16 w-full" />
-                          <Skeleton className="h-16 w-full" />
+                          {canUpdateItem && (
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingItem(item); setIsItemDialogOpen(true); loadServices(); }}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          {canDeleteItem && (
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeletingItem(item)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
                         </>
-                      ) : invoiceItems.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-8">Sin ítems registrados.</p>
-                      ) : (
-                        invoiceItems.map((item) => (
-                          <DataCard
-                            key={item.id}
+                      ) : undefined;
+                      if (detailItemsListView) {
+                        return (
+                          <DataListRow
                             title={item.service_name || '-'}
-                            subtitle={item.steps || item.step_id || undefined}
-                            fields={[
-                              { label: 'Cantidad', value: String(item.quantity) },
-                              {
-                                label: 'Precio unit.',
-                                value: new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || 'USD' }).format(item.unit_price),
-                              },
-                              {
-                                label: 'Total',
-                                value: new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || 'USD' }).format(item.total),
-                                primary: true,
-                              },
-                            ]}
-                            actions={canEditItems ? (
-                              <div className="flex items-center gap-1">
-                                {canUpdateItem && (
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingItem(item); setIsItemDialogOpen(true); loadServices(); }}>
-                                    <Pencil className="h-3.5 w-3.5" />
-                                  </Button>
-                                )}
-                                {canDeleteItem && (
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeletingItem(item)}>
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </Button>
-                                )}
-                              </div>
-                            ) : undefined}
+                            meta={(
+                              <>
+                                <span>Cantidad: {item.quantity}</span>
+                                <span>Precio unit.: {fmtCurrency(item.unit_price, selectedInvoice.currency)}</span>
+                                <span className="font-medium text-foreground">Total: {fmtCurrency(item.total, selectedInvoice.currency)}</span>
+                              </>
+                            )}
+                            actions={actionsEl}
                           />
-                        ))
-                      )}
-                    </div>
-                  </ScrollArea>
+                        );
+                      }
+                      return (
+                        <DataCard
+                          title={item.service_name || '-'}
+                          subtitle={item.steps || item.step_id || undefined}
+                          fields={[
+                            { label: 'Cantidad', value: String(item.quantity) },
+                            { label: 'Precio unit.', value: fmtCurrency(item.unit_price, selectedInvoice.currency) },
+                            { label: 'Total', value: fmtCurrency(item.total, selectedInvoice.currency), primary: true },
+                          ]}
+                          actions={actionsEl}
+                        />
+                      );
+                    }}
+                  />
                 </TabsContent>
 
-                <TabsContent value="payments" className="flex-1 overflow-hidden mt-0 data-[state=inactive]:hidden">
-                  <ScrollArea className="h-full">
-                    <div className="px-4 py-3 space-y-2">
-                      {isLoadingPayments ? (
-                        <>
-                          <Skeleton className="h-16 w-full" />
-                          <Skeleton className="h-16 w-full" />
-                        </>
-                      ) : invoicePayments.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-8">Sin pagos registrados.</p>
-                      ) : (
-                        invoicePayments.map((payment) => (
-                          <DataCard
-                            key={payment.id}
-                            title={payment.doc_no || `Pago #${payment.id}`}
-                            subtitle={payment.date ? formatDisplayDate(payment.date) : undefined}
-                            fields={[
-                              { label: 'Método', value: payment.method || '-' },
-                              { label: 'Moneda', value: payment.currency || '-' },
-                              {
-                                label: 'Monto',
-                                value: new Intl.NumberFormat('en-US', { style: 'currency', currency: payment.currency || 'USD' }).format(payment.amount),
-                                primary: true,
-                              },
-                            ]}
-                          />
-                        ))
-                      )}
-                    </div>
-                  </ScrollArea>
+                <TabsContent value="payments" className="flex-1 overflow-hidden mt-0 px-4 py-3 data-[state=active]:flex data-[state=active]:flex-col data-[state=inactive]:hidden">
+                  <DataTable
+                    columns={getInvoicePaymentColumns()}
+                    data={invoicePayments}
+                    isLoading={isLoadingPayments}
+                    useGlobalFilter
+                    filterPlaceholder={t('OrderItemsTable.filterPlaceholder')}
+                    isNarrow={isViewportNarrow || detailPaymentsListView}
+                    viewControls={showToggle ? <ViewModeToggle value={detailPaymentsViewMode} onChange={setDetailPaymentsViewMode} /> : undefined}
+                    cardListClassName={detailPaymentsListView ? 'gap-0 px-0 py-0 rounded-md border' : undefined}
+                    renderCard={(payment: any) => detailPaymentsListView ? (
+                      <DataListRow
+                        title={payment.doc_no || `Pago #${payment.id}`}
+                        meta={(
+                          <>
+                            {payment.date ? <span>{formatDisplayDate(payment.date)}</span> : null}
+                            <span>Método: {payment.method || '-'}</span>
+                            {payment.currency ? <span>Moneda: {payment.currency}</span> : null}
+                            <span className="font-medium text-foreground">Monto: {fmtCurrency(payment.amount, payment.currency)}</span>
+                          </>
+                        )}
+                      />
+                    ) : (
+                      <DataCard
+                        title={payment.doc_no || `Pago #${payment.id}`}
+                        subtitle={payment.date ? formatDisplayDate(payment.date) : undefined}
+                        fields={[
+                          { label: 'Método', value: payment.method || '-' },
+                          { label: 'Moneda', value: payment.currency || '-' },
+                          { label: 'Monto', value: fmtCurrency(payment.amount, payment.currency), primary: true },
+                        ]}
+                      />
+                    )}
+                  />
                 </TabsContent>
               </Tabs>
             </div>
+
+            {/* ── Financial Footer ── */}
+            {(() => {
+              const paidAmt = Number(selectedInvoice.paid_amount) || 0;
+              const pendingAmt = Math.max(0, selectedInvoice.total - paidAmt);
+              const cur = selectedInvoice.currency || 'USD';
+              const fmt = (v: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: cur }).format(v);
+              return (
+                <div className="flex-none border-t bg-muted/30 px-6 py-3">
+                  <div className="grid grid-cols-3 gap-x-4 gap-y-3">
+                    <div>
+                      <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-0.5">Total</p>
+                      <p className="text-sm font-semibold tabular-nums">{fmt(selectedInvoice.total)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-0.5">Pagado</p>
+                      <p className={`text-sm font-semibold tabular-nums ${paidAmt > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
+                        {fmt(paidAmt)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-0.5">Saldo pendiente</p>
+                      <p className={`text-sm font-semibold tabular-nums ${pendingAmt > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                        {fmt(pendingAmt)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </>
         )}
       </ResizableSheet>
@@ -1316,6 +1609,219 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
               Eliminar
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Credit note dialog ── */}
+      <Dialog open={isCreditNoteOpen} onOpenChange={setIsCreditNoteOpen}>
+        <DialogContent maxWidth="4xl">
+          <Form {...creditNoteForm}>
+            <form onSubmit={creditNoteForm.handleSubmit(handleSubmitCreditNote)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) { loadServices(); appendCreditNoteItem({ service_id: '', quantity: 1, unit_price: 0, total: 0 }); } } }}>
+              <DialogHeader>
+                <div className="flex items-start gap-3">
+                  <div className="header-icon-circle mt-0.5">
+                    <FileMinus2 className="h-5 w-5" />
+                  </div>
+                  <div className="flex flex-col text-left">
+                    <DialogTitle>Nueva nota de crédito</DialogTitle>
+                    <DialogDescription>
+                      Factura referenciada: {selectedInvoice?.doc_no}. Monto pagado disponible:{' '}
+                      <span className="font-medium text-foreground">
+                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice?.currency || 'USD' }).format(Number(selectedInvoice?.paid_amount) || 0)}
+                      </span>
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+              <DialogBody className="space-y-4 py-4 px-6">
+                {/* Currency + Date */}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField control={creditNoteForm.control} name="currency" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Moneda</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          <SelectItem value="USD">USD</SelectItem>
+                          <SelectItem value="UYU">UYU</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={creditNoteForm.control} name="created_at" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Fecha</FormLabel>
+                      <FormControl>
+                        <DatePickerInput
+                          value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
+                          onChange={(iso) => field.onChange(iso ? parseISO(iso) : undefined)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+
+                {/* Items */}
+                <Card>
+                  <CardContent className="p-0">
+                    <div className="flex items-center justify-between px-4 pt-4 pb-2">
+                      <p className="text-sm font-semibold">Ítems</p>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => { loadServices(); appendCreditNoteItem({ service_id: '', quantity: 1, unit_price: 0, total: 0 }); }}
+                      >
+                        Agregar Artículo
+                      </Button>
+                    </div>
+                    <div className="overflow-x-auto px-4 pb-4">
+                      {isLoadingItems ? (
+                        <div className="space-y-2 py-2">
+                          <Skeleton className="h-8 w-full" />
+                          <Skeleton className="h-8 w-full" />
+                        </div>
+                      ) : (
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="text-muted-foreground text-center border-b">
+                              <th className="text-left font-semibold p-2">Servicio</th>
+                              <th className="font-semibold p-2 w-24">Cantidad</th>
+                              <th className="font-semibold p-2 w-28">Precio unit.</th>
+                              <th className="font-semibold p-2 w-28">Total</th>
+                              <th className="p-2 w-10"></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {creditNoteItemFields.map((fieldItem, index) => (
+                              <tr key={fieldItem.id} className="align-top border-b last:border-0">
+                                <td className="p-1">
+                                  <FormField control={creditNoteForm.control} name={`items.${index}.service_id`} render={({ field }) => (
+                                    <FormItem>
+                                      <ServiceSelector
+                                        isSales={isSales}
+                                        value={field.value}
+                                        selectedServiceName={creditNoteForm.getValues(`items.${index}.service_name`) || undefined}
+                                        onValueChange={(serviceId, service) => {
+                                          field.onChange(serviceId);
+                                          if (service) {
+                                            const qty = creditNoteForm.getValues(`items.${index}.quantity`) || 1;
+                                            creditNoteForm.setValue(`items.${index}.service_name`, service.name);
+                                            creditNoteForm.setValue(`items.${index}.unit_price`, Number(service.price));
+                                            creditNoteForm.setValue(`items.${index}.total`, Number(service.price) * qty);
+                                          }
+                                        }}
+                                        placeholder="Buscar servicio..."
+                                        noResultsText="Sin resultados"
+                                        triggerText="Seleccionar servicio"
+                                      />
+                                      <FormMessage />
+                                    </FormItem>
+                                  )} />
+                                </td>
+                                <td className="p-1">
+                                  <FormField control={creditNoteForm.control} name={`items.${index}.quantity`} render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <Input type="number" step="1" min="1" {...field}
+                                          onChange={e => {
+                                            field.onChange(e);
+                                            const qty = parseInt(e.target.value) || 0;
+                                            const price = creditNoteForm.getValues(`items.${index}.unit_price`) || 0;
+                                            creditNoteForm.setValue(`items.${index}.total`, qty * price);
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )} />
+                                </td>
+                                <td className="p-1">
+                                  <FormField control={creditNoteForm.control} name={`items.${index}.unit_price`} render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <Input type="number" step="0.01" min="0" {...field}
+                                          onChange={e => {
+                                            field.onChange(e);
+                                            const price = parseFloat(e.target.value) || 0;
+                                            const qty = creditNoteForm.getValues(`items.${index}.quantity`) || 0;
+                                            creditNoteForm.setValue(`items.${index}.total`, qty * price);
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )} />
+                                </td>
+                                <td className="p-1">
+                                  <FormField control={creditNoteForm.control} name={`items.${index}.total`} render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <Input
+                                          readOnly
+                                          disabled
+                                          value={new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedCreditNoteCurrency || 'USD' }).format(Number(field.value) || 0)}
+                                          className="bg-muted text-muted-foreground cursor-not-allowed"
+                                        />
+                                      </FormControl>
+                                    </FormItem>
+                                  )} />
+                                </td>
+                                <td className="p-1 text-center">
+                                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => removeCreditNoteItem(index)}>
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))}
+                            {creditNoteItemFields.length === 0 && (
+                              <tr><td colSpan={5} className="text-center text-muted-foreground text-xs py-4">Sin ítems. Agrega uno con el botón superior.</td></tr>
+                            )}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                    {creditNoteItemFields.length > 0 && (
+                      <div className="mt-4 flex justify-between items-end border-t border-dashed px-4 pb-4 pt-4">
+                        <p className="text-xs text-muted-foreground">
+                          Máximo permitido:{' '}
+                          <span className="font-medium text-foreground">
+                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice?.currency || 'USD' }).format(Number(selectedInvoice?.paid_amount) || 0)}
+                          </span>
+                        </p>
+                        <div className="text-right">
+                          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Total</p>
+                          <p className={`text-2xl font-semibold ${creditNoteItemFields.reduce((sum, _, i) => sum + (Number(creditNoteForm.getValues(`items.${i}.total`)) || 0), 0) > (Number(selectedInvoice?.paid_amount) || 0) ? 'text-destructive' : ''}`}>
+                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedCreditNoteCurrency || 'USD' }).format(
+                              creditNoteItemFields.reduce((sum, _, i) => sum + (Number(creditNoteForm.getValues(`items.${i}.total`)) || 0), 0)
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Notes */}
+                <FormField control={creditNoteForm.control} name="notes" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notas <span className="text-muted-foreground">(opcional)</span></FormLabel>
+                    <FormControl><Textarea rows={2} placeholder="Motivo de la nota de crédito..." {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </DialogBody>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsCreditNoteOpen(false)}>Cancelar</Button>
+                <Button type="submit" disabled={isSubmittingCreditNote}>
+                  {isSubmittingCreditNote && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Crear nota de crédito
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
 

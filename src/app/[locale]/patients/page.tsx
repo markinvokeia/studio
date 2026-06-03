@@ -39,8 +39,11 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import { VerticalTabStrip } from '@/components/ui/vertical-tab-strip';
-import type { VerticalTab } from '@/components/ui/vertical-tab-strip';
+import {
+  PatientDetailMainContent,
+  type PatientMacroTab,
+} from '@/components/patients/patient-detail-main-content';
+import { PatientDetailHeader } from '@/components/patients/patient-detail-header';
 import { ToothIcon } from '@/components/users/dental-record/tooth-icon';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
@@ -49,32 +52,28 @@ import { InvoiceFormDialog } from '@/components/tables/invoices-table';
 import { PrepaidFormDialog } from '@/components/sales/payments/PrepaidFormDialog';
 import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
 import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/components/users/clinic-history-viewer';
-import { UserAppointments } from '@/components/users/user-appointments';
 import { UserCommunicationPreferences } from '@/components/users/user-communication-preferences';
 import { UserFinancialSummaryStats } from '@/components/users/user-financial-summary-stats';
-import { UserSummaryPanel } from '@/components/users/user-summary-panel';
 import { UserInvoices } from '@/components/users/user-invoices';
-import { UserLogs } from '@/components/users/user-logs';
-import { UserMessages } from '@/components/users/user-messages';
 import { UserTreatmentPlans } from '@/components/users/user-treatment-plans';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import { UserOrders } from '@/components/users/user-orders';
 import { UserPayments } from '@/components/users/user-payments';
 import { UserQuotes } from '@/components/users/user-quotes';
-import { UserServices } from '@/components/users/user-services';
 import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
+import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { Appointment, Calendar as CalendarType, PatientDischarge, Quote, Service, SessionPrefillData, User, UserFinancial, UserRole, MutualSociety } from '@/lib/types';
 import { getSalesServices, getUsersServicesBatch } from '@/services/services';
 import { cn, formatDisplayDate } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
-import { addMonths, differenceInYears, endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
+import { addMonths, endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, Cake, CalendarIcon, Check, CheckCircle, ChevronDown, ChevronsUpDown, ClipboardList, CreditCard, FileText, FolderArchive, Heart, History, Loader2, Mail, Maximize2, MessageSquare, Minimize2, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, Smile, Stethoscope, StickyNote, ToggleLeft, Upload, Users, Wrench, X, XCircle, Zap } from 'lucide-react';
+import { AlertTriangle, CalendarIcon, Check, CheckCircle, ChevronDown, ChevronsUpDown, ClipboardList, CreditCard, FileText, Loader2, Mail, Maximize2, Minimize2, MoreHorizontal, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, Smile, Stethoscope, ToggleLeft, Upload, Users, X, XCircle, Zap } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import { EmailComposerDialog } from '@/components/email-composer-dialog';
 import { WhatsAppComposerDialog } from '@/components/whatsapp-composer-dialog';
@@ -88,6 +87,8 @@ import { UserColumnsWrapper } from './columns';
 import { useDeepLink } from '@/hooks/use-deep-link';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
+import { useLicenseStore } from '@/stores/license-store';
+import { usePatientDetailNavigation } from '@/hooks/patients/use-patient-detail-navigation';
 
 const userFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
@@ -392,119 +393,6 @@ async function getMutualSocietiesList(): Promise<MutualSociety[]> {
   }
 }
 
-const NotesTab = ({ user, onUpdate }: { user: User, onUpdate: (notes: string) => void }) => {
-  const t = useTranslations();
-  const [isEditing, setIsEditing] = React.useState(false);
-  const [notes, setNotes] = React.useState(user.notes || '');
-  const [isSaving, setIsSaving] = React.useState(false);
-  const { toast } = useToast();
-
-  React.useEffect(() => {
-    setNotes(user.notes || '');
-  }, [user.notes]);
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      await onUpdate(notes);
-      setIsEditing(false);
-      toast({
-        title: t('UsersPage.notes.saveSuccess'),
-        description: t('UsersPage.notes.saveSuccessDescription'),
-      });
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: t('UsersPage.notes.saveError'),
-        description: t('UsersPage.notes.saveErrorDescription'),
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleCancel = () => {
-    setNotes(user.notes || '');
-    setIsEditing(false);
-  };
-
-  return (
-    <Card className="h-full flex flex-col shadow-none border-0">
-      <CardHeader className="flex flex-row items-center justify-between flex-none p-4 pb-2">
-        <div className="min-w-0 flex-1">
-          <CardTitle className="text-lg text-foreground font-bold">{t('UsersPage.notes.title')}</CardTitle>
-          <CardDescription className="text-sm text-muted-foreground">
-            {t('UsersPage.notes.description')}
-          </CardDescription>
-        </div>
-        <div className="flex items-center gap-2 ml-2">
-          {!isEditing && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsEditing(true)}
-            >
-              {t('UsersPage.notes.edit')}
-            </Button>
-          )}
-          {isEditing && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCancel}
-                disabled={isSaving}
-              >
-                {t('UsersPage.notes.cancel')}
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleSave}
-                disabled={isSaving}
-              >
-                {isSaving ? t('UsersPage.notes.saving') : t('UsersPage.notes.save')}
-              </Button>
-            </>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="flex-1 overflow-auto p-4 pt-2 bg-card">
-        {isEditing ? (
-          <div className="h-full flex flex-col">
-            <Textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder={t('UsersPage.notes.placeholder')}
-              className="flex-1 min-h-[200px] resize-none"
-            />
-          </div>
-        ) : (
-          <div className="h-full">
-            {notes ? (
-              <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                {notes}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                <p className="text-center mb-4">
-                  {t('UsersPage.notes.noNotes')}
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsEditing(true)}
-                >
-                  {t('UsersPage.notes.addFirstNote')}
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-};
-
 const ResponsibleContactField = ({
   form,
   currentUserId,
@@ -638,6 +526,83 @@ const ResponsibleContactField = ({
         </FormItem>
       )}
     />
+  );
+};
+
+const NotesTab = ({ user, onUpdate }: { user: User; onUpdate: (notes: string) => void }) => {
+  const t = useTranslations();
+  const { toast } = useToast();
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [notes, setNotes] = React.useState(user.notes || '');
+  const [isSaving, setIsSaving] = React.useState(false);
+
+  React.useEffect(() => {
+    setNotes(user.notes || '');
+  }, [user.notes]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await onUpdate(notes);
+      setIsEditing(false);
+      toast({ title: t('UsersPage.notes.saveSuccess'), description: t('UsersPage.notes.saveSuccessDescription') });
+    } catch {
+      toast({ variant: 'destructive', title: t('UsersPage.notes.saveError'), description: t('UsersPage.notes.saveErrorDescription') });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setNotes(user.notes || '');
+    setIsEditing(false);
+  };
+
+  return (
+    <Card className="h-full flex flex-col shadow-none border-0">
+      <CardHeader className="flex flex-row items-center justify-between flex-none p-4 pb-2">
+        <div className="min-w-0 flex-1">
+          <CardTitle className="text-lg text-foreground font-bold">{t('UsersPage.notes.title')}</CardTitle>
+          <CardDescription className="text-sm text-muted-foreground">{t('UsersPage.notes.description')}</CardDescription>
+        </div>
+        <div className="flex items-center gap-2 ml-2">
+          {!isEditing && (
+            <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+              {t('UsersPage.notes.edit')}
+            </Button>
+          )}
+          {isEditing && (
+            <>
+              <Button variant="outline" size="sm" onClick={handleCancel} disabled={isSaving}>
+                {t('UsersPage.notes.cancel')}
+              </Button>
+              <Button size="sm" onClick={handleSave} disabled={isSaving}>
+                {isSaving ? t('UsersPage.notes.saving') : t('UsersPage.notes.save')}
+              </Button>
+            </>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="flex-1 overflow-auto p-4 pt-2">
+        {isEditing ? (
+          <Textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder={t('UsersPage.notes.placeholder')}
+            className="min-h-[200px] resize-none w-full"
+          />
+        ) : notes ? (
+          <div className="whitespace-pre-wrap text-sm leading-relaxed">{notes}</div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-4">
+            <p className="text-center">{t('UsersPage.notes.noNotes')}</p>
+            <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+              {t('UsersPage.notes.addFirstNote')}
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
@@ -884,6 +849,7 @@ function UsersTableWithCards({
       rowSelection={rowSelection}
       setRowSelection={setRowSelection}
       pageCount={Math.ceil(userCount / pagination.pageSize)}
+      rowCount={userCount}
       pagination={pagination}
       onPaginationChange={setPagination}
       manualPagination={true}
@@ -903,10 +869,11 @@ function UsersTableWithCards({
           }
         />
       )}
-      customToolbar={(table: any) => (
+      customToolbar={(table: any, pagination: React.ReactNode) => (
         <DataTableAdvancedToolbar
           table={table}
           isCompact={!!selectedUser}
+          endSlot={pagination}
           filterPlaceholder={t('UsersPage.filterPlaceholder')}
           searchQuery={(columnFilters.find((f: any) => f.id === 'email')?.value as string) || ''}
           onSearchChange={(value: string) => {
@@ -952,6 +919,7 @@ export default function UsersPage() {
   const { hasPermission } = usePermissions();
   const { toast } = useToast();
   const { open: openBillingWizard } = useBillingWizard();
+  const { printFinancialSummary } = usePrintDocument();
   const searchParams = useSearchParams();
   const initialQ = searchParams.get('q') ?? '';
   const [users, setUsers] = React.useState<any[]>([]);
@@ -965,6 +933,7 @@ export default function UsersPage() {
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
   const [isDischargeDialogOpen, setIsDischargeDialogOpen] = React.useState(false);
   const [dischargeDate, setDischargeDate] = React.useState<string>('');
+  const [dischargePreset, setDischargePreset] = React.useState<number | null>(null);
   const [currentDischarge, setCurrentDischarge] = React.useState<PatientDischarge | null>(null);
   const [isSubmittingDischarge, setIsSubmittingDischarge] = React.useState(false);
   const [isFinancialSummaryDialogOpen, setIsFinancialSummaryDialogOpen] = React.useState(false);
@@ -981,7 +950,7 @@ export default function UsersPage() {
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
-    pageSize: 10,
+    pageSize: 25,
   });
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     initialQ ? [{ id: 'email', value: initialQ }] : []
@@ -1012,9 +981,26 @@ export default function UsersPage() {
 
   const [mutualSocieties, setMutualSocieties] = React.useState<MutualSociety[]>([]);
   const [isLoadingMutualSocieties, setIsLoadingMutualSocieties] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState('clinical-history');
-  const [activeInfoSubTab, setActiveInfoSubTab] = React.useState<'personal' | 'anamnesis'>('personal');
   const [deepLinkView, setDeepLinkView] = React.useState<string | undefined>(undefined);
+  const {
+    activeTab,
+    setActiveTab,
+    activeInfoSubTab,
+    setActiveInfoSubTab,
+    activeClinicalSubTab,
+    setActiveClinicalSubTab,
+    activeFinancialSubTab,
+    setActiveFinancialSubTab,
+    openClinicalAnamnesis,
+    openClinicalHistory,
+    openClinicalDocuments,
+    openFinancialQuotes,
+    openFinancialInvoices,
+    openFinancialPayments,
+  } = usePatientDetailNavigation({
+    deepLinkView,
+    selectedUserId: selectedUser?.id,
+  });
   const [patientAllergies, setPatientAllergies] = React.useState<Array<{ id?: number; alergeno: string; reaccion_descrita: string }>>([]);
   const [patientConditions, setPatientConditions] = React.useState<Array<{ id?: number; nombre: string; nivel_alerta?: number }>>([]);
   const [isPreferencesOpen, setIsPreferencesOpen] = React.useState(false);
@@ -1026,7 +1012,6 @@ export default function UsersPage() {
   const [refreshQuotesTrigger, setRefreshQuotesTrigger] = React.useState(0);
   const [refreshOrdersTrigger, setRefreshOrdersTrigger] = React.useState(0);
   const [refreshPaymentsTrigger, setRefreshPaymentsTrigger] = React.useState(0);
-  const [refreshAppointmentsTrigger, setRefreshAppointmentsTrigger] = React.useState(0);
   const [isAppointmentDialogOpen, setIsAppointmentDialogOpen] = React.useState(false);
   const [editingAppointmentForPlan, setEditingAppointmentForPlan] = React.useState<Appointment | null>(null);
   const [editSessionId, setEditSessionId] = React.useState<number | null>(null);
@@ -1250,6 +1235,7 @@ export default function UsersPage() {
 
   const loadUserRoles = React.useCallback(async (userId: string) => {
     setIsRolesLoading(true);
+    setSelectedUserRoles([]);
     const roles = await getRolesForUser(userId);
     setSelectedUserRoles(roles);
     setIsRolesLoading(false);
@@ -1308,6 +1294,7 @@ export default function UsersPage() {
 
       setIsDischargeDialogOpen(false);
       setDischargeDate('');
+      setDischargePreset(null);
       fetchPatientDischarge(selectedUser.id);
     } catch (error: any) {
       console.error("Error saving discharge:", error);
@@ -1384,20 +1371,44 @@ export default function UsersPage() {
         is_active: !user.is_active,
       });
 
+      const isNowActive = !user.is_active;
       toast({
-        title: 'Success',
-        description: `Patient ${user.name} has been ${user.is_active ? 'deactivated' : 'activated'}.`,
+        title: t(isNowActive ? 'UserColumns.activateSuccess' : 'UserColumns.deactivateSuccess'),
+        description: t(isNowActive ? 'UserColumns.activateSuccessDescription' : 'UserColumns.deactivateSuccessDescription', { name: user.name }),
       });
 
+      if (selectedUser?.id === user.id) {
+        setSelectedUser({ ...selectedUser, is_active: isNowActive });
+      }
       loadUsers();
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'Could not update patient status.',
+        title: t('UserColumns.toggleStatusError'),
+        description: t('UserColumns.toggleStatusErrorDescription'),
       });
       console.error(error);
     }
+  };
+
+  const handleUpdateNotes = async (notes: string) => {
+    if (!selectedUser) return;
+    const updatedUser = { ...selectedUser, notes };
+    await upsertUser({
+      id: selectedUser.id,
+      name: selectedUser.name,
+      email: selectedUser.email || '',
+      phone: selectedUser.phone_number || '',
+      identity_document: selectedUser.identity_document || '',
+      birth_date: selectedUser.birth_date || '',
+      notes,
+      is_active: selectedUser.is_active,
+      mutual_society_id: selectedUser.mutual_society_id ? String(selectedUser.mutual_society_id) : '',
+      is_dependent: selectedUser.is_dependent ?? false,
+      responsible_contact_id: selectedUser.responsible_contact_id || null,
+    });
+    setSelectedUser(updatedUser);
+    setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, notes } : u));
   };
 
   const handlePrintFinancialSummary = () => {
@@ -1410,43 +1421,43 @@ export default function UsersPage() {
     if (!selectedUser) return;
     setIsPrintingFinancialSummary(true);
     try {
-      const params: Record<string, string> = { user_id: selectedUser.id };
-
-      if (financialSummaryDateRange.from) {
-        const dateFrom = parseISO(financialSummaryDateRange.from);
-        dateFrom.setHours(0, 0, 0, 0);
-        params.from = dateFrom.toISOString();
-      }
-
-      if (financialSummaryDateRange.to) {
-        const dateTo = parseISO(financialSummaryDateRange.to);
-        dateTo.setHours(23, 59, 59, 999);
-        params.to = dateTo.toISOString();
-      }
-
-      const blob = await api.getBlob(API_ROUTES.USER_FINANCIAL_SUMMARY_PRINT, params);
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `resumen_financiero_${selectedUser.name.replace(/\s+/g, '_')}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      await printFinancialSummary(selectedUser.id, financialSummaryDateRange);
       setIsFinancialSummaryDialogOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'Could not print the financial summary.',
+        title: t('UsersPage.financialSummaryDialog.errorTitle'),
+        description: error?.message === 'no_data'
+          ? t('UsersPage.financialSummaryDialog.errorNoData')
+          : t('UsersPage.financialSummaryDialog.errorGeneric'),
       });
-      console.error(error);
     } finally {
       setIsPrintingFinancialSummary(false);
     }
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
+    const { license, canAddMonthlyPatient } = useLicenseStore.getState();
+    if (license) {
+      try {
+        const now = new Date();
+        const dateFrom = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+        const dateTo = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+        const data = await api.get(API_ROUTES.REPORTS.NUEVOS_PACIENTES, { date_from: dateFrom, date_to: dateTo });
+        const count: number = data?.data?.summary?.num_nuevos ?? data?.summary?.num_nuevos ?? 0;
+        if (!canAddMonthlyPatient(count)) {
+          toast({
+            variant: 'destructive',
+            title: t('License.enforcement.limitReachedTitle'),
+            description: t('License.enforcement.patientMonthlyLimitReached', { max: license.maxMonthlyNewPatients }),
+          });
+          return;
+        }
+      } catch {
+        // non-critical: allow creating if check fails
+      }
+    }
+
     setEditingUser(null);
     loadMutualSocieties();
     form.reset({
@@ -1546,7 +1557,6 @@ export default function UsersPage() {
   const handleRowSelectionChange = (selectedRows: User[]) => {
     const user = selectedRows.length > 0 ? selectedRows[0] : null;
     setSelectedUser(user);
-    setActiveInfoSubTab('personal');
   };
 
   React.useEffect(() => {
@@ -1574,44 +1584,6 @@ export default function UsersPage() {
     setSelectedUser(null);
     setSelectedQuote(null);
     setRowSelection({});
-  };
-
-  const handleUpdateNotes = async (notes: string) => {
-    if (!selectedUser) return;
-
-    try {
-      const updatedUserData = {
-        ...selectedUser,
-        notes,
-      };
-
-      await upsertUser({
-        id: selectedUser.id,
-        name: selectedUser.name,
-        email: selectedUser.email,
-        phone: selectedUser.phone_number,
-        identity_document: selectedUser.identity_document || '',
-        birth_date: selectedUser.birth_date || '',
-        notes,
-        is_active: selectedUser.is_active,
-        mutual_society_id: selectedUser.mutual_society_id ? String(selectedUser.mutual_society_id) : '',
-        is_dependent: selectedUser.is_dependent ?? false,
-        responsible_contact_id: selectedUser.responsible_contact_id || null,
-      });
-
-      setSelectedUser(updatedUserData);
-
-      // Update the user in the users list
-      setUsers(prevUsers =>
-        prevUsers.map(user =>
-          user.id === selectedUser.id ? { ...user, notes } : user
-        )
-      );
-
-    } catch (error) {
-      console.error('Failed to update notes:', error);
-      throw error;
-    }
   };
 
   const onSubmit = async (data: UserFormValues) => {
@@ -1657,7 +1629,12 @@ export default function UsersPage() {
         });
       }
       setIsDialogOpen(false);
-      loadUsers();
+      if (!isEditing) {
+        setPagination(prev => ({ ...prev, pageIndex: 0 }));
+        if (pagination.pageIndex === 0) loadUsers();
+      } else {
+        loadUsers();
+      }
 
     } catch (error: any) {
       const errorData = error.data?.error || (Array.isArray(error.data) && error.data[0]?.error);
@@ -1711,22 +1688,27 @@ export default function UsersPage() {
   // ── Deep-link URL navigation (?f=&t=&st=&act=) ──────────────────────────────
   useDeepLink<User>({
     tabMap: {
-      'Historia-Clinica': 'clinical-history',
-      'Historia_Clinica': 'clinical-history',
-      'Servicios': 'services',
-      'Presupuestos': 'quotes',
-      'Ordenes': 'orders',
-      'Facturas': 'invoices',
-      'Pagos': 'payments',
-      'Mensajes': 'messages',
-      'Historial': 'logs',
-      'Notas': 'notes',
+      'Información': 'info',
+      'Informacion': 'info',
+      'Historia-Clinica': 'clinical',
+      'Historia_Clinica': 'clinical',
+      'Servicios': 'clinical',
+      'Documentos': 'clinical',
+      'Presupuestos': 'financial',
+      'Ordenes': 'financial',
+      'Facturas': 'financial',
+      'Pagos': 'financial',
+      'Mensajes': 'clinical',
+      'Historial': 'clinical',
+      'Notas': 'info',
+      'Citas': 'clinical',
     },
     subtabMap: {
       'Anamnesis': 'anamnesis',
       'Timeline': 'timeline',
       'Linea-de-Tiempo': 'timeline',
       'Documentos': 'documents',
+      'Tratamientos': 'treatments',
     },
     onFilter: (value) => {
       setPagination((prev) => ({ ...prev, pageIndex: 0 }));
@@ -1736,7 +1718,7 @@ export default function UsersPage() {
     isLoading: isRefreshing,
     onAutoSelect: (user) => handleRowSelectionChange([user]),
     setRowSelection,
-    onTabChange: (tabId) => setActiveTab(tabId),
+    onTabChange: (tabId) => setActiveTab(tabId as PatientMacroTab),
     onSubtabChange: (subtabId) => setDeepLinkView(subtabId),
     actionMap: {
       'Cita': () => { loadApptData(); setIsAppointmentDialogOpen(true); },
@@ -1867,458 +1849,261 @@ export default function UsersPage() {
           rightPanel={
             selectedUser && (
               <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-                <CardHeader className="flex-none p-4 pb-2 space-y-0">
-                  {/* Row 1: Icon + Name + Action buttons */}
-                  <div className="flex items-center justify-between">
-                    <div className="min-w-0 flex-1 flex items-center gap-2">
-                      <TooltipProvider>
+                <PatientDetailHeader
+                  user={selectedUser}
+                  allergies={patientAllergies}
+                  conditions={patientConditions}
+                  dependantContactInfo={dependantContactInfo}
+                  effectivePatientEmail={effectivePatientEmail}
+                  effectivePatientPhone={effectivePatientPhone}
+                  currentDischarge={currentDischarge}
+                  onOpenAnamnesis={openClinicalAnamnesis}
+                  actions={(
+                    <TooltipProvider>
+                      {/* Create dropdown — always visible */}
+                      <DropdownMenu>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <div
-                              className="header-icon-circle flex-none cursor-default"
-                              style={
-                                patientAllergies.length > 0
-                                  ? { backgroundColor: 'rgb(254 226 226)', color: 'rgb(220 38 38)' }
-                                  : patientConditions.length > 0
-                                    ? { backgroundColor: 'rgb(254 243 199)', color: 'rgb(217 119 6)' }
-                                    : undefined
-                              }
-                            >
-                              {(patientAllergies.length > 0 || patientConditions.length > 0)
-                                ? <AlertTriangle className="h-5 w-5" />
-                                : <Users className="h-5 w-5" />
-                              }
-                            </div>
+                            <DropdownMenuTrigger asChild>
+                              <button type="button" className="flex items-center justify-center gap-1.5 h-8 px-2 sm:px-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors text-xs font-medium">
+                                <Plus className="sm:hidden h-4 w-4 flex-none" />
+                                <span className="hidden sm:inline">Crear</span>
+                                <ChevronDown className="hidden sm:block h-3 w-3 flex-none" />
+                              </button>
+                            </DropdownMenuTrigger>
                           </TooltipTrigger>
-                          {(patientAllergies.length > 0 || patientConditions.length > 0) && (
-                            <TooltipContent>
-                              {[
-                                patientAllergies.length > 0 ? `${patientAllergies.length} alergia(s)` : '',
-                                patientConditions.length > 0 ? `${patientConditions.length} padecimiento(s)` : '',
-                              ].filter(Boolean).join(' · ')}
-                            </TooltipContent>
-                          )}
+                          <TooltipContent>Crear</TooltipContent>
                         </Tooltip>
-                      </TooltipProvider>
-                      <CardTitle className="text-lg lg:text-xl truncate text-foreground font-bold">
-                        {selectedUser.name}
-                      </CardTitle>
-                    </div>
-                    {/* Icon action buttons — reference style */}
-                    <div className="flex items-center gap-0.5 ml-2 flex-none">
-                      <TooltipProvider>
-                        {/* + Crear (quick create) — first position */}
-                        <DropdownMenu>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <DropdownMenuTrigger asChild>
-                                <button type="button" className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-                                  <Plus className="h-4 w-4" />
-                                </button>
-                              </DropdownMenuTrigger>
-                            </TooltipTrigger>
-                            <TooltipContent>Crear</TooltipContent>
-                          </Tooltip>
-                          <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuLabel className="text-xs text-muted-foreground">Clínico</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => { setActiveTab('clinical-history'); setCreateSessionTrigger(t => t + 1); }}>
-                              <Stethoscope className="h-4 w-4 mr-2 text-primary" />Sesión clínica
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => { setActiveTab('clinical-history'); setCreateOdontogramTrigger(t => t + 1); }}>
-                              <Smile className="h-4 w-4 mr-2 text-purple-600" />Sesión de odontograma
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => { setActiveTab('documents'); setCreateDocumentTrigger(t => t + 1); }}>
-                              <Upload className="h-4 w-4 mr-2 text-primary" />Documento
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuLabel className="text-xs text-muted-foreground">Financiero</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => selectedUser && openBillingWizard({ patientId: selectedUser.id, patientName: selectedUser.name })}>
-                              <Zap className="h-4 w-4 mr-2 text-emerald-600" />Cobro rápido
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => setIsQuoteDialogOpen(true)}>
-                              <FileText className="h-4 w-4 mr-2 text-emerald-600" />Presupuesto
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setIsInvoiceDialogOpen(true)}>
-                              <Receipt className="h-4 w-4 mr-2 text-emerald-600" />Factura
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setIsPrepaidDialogOpen(true)}>
-                              <CreditCard className="h-4 w-4 mr-2 text-emerald-600" />Prepago
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuLabel className="text-xs text-muted-foreground">Agenda</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => { loadApptData(); setIsAppointmentDialogOpen(true); }}>
-                              <CalendarIcon className="h-4 w-4 mr-2 text-blue-600" />Cita
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <DropdownMenuContent align="end" className="w-48" style={{ maxHeight: 'none' }}>
+                          <DropdownMenuLabel className="text-xs text-muted-foreground">Clínico</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => { openClinicalHistory(); setCreateSessionTrigger(t => t + 1); }}>
+                            <Stethoscope className="h-4 w-4 mr-2 text-primary" />Sesión clínica
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => { openClinicalHistory(); setCreateOdontogramTrigger(t => t + 1); }}>
+                            <Smile className="h-4 w-4 mr-2 text-purple-600" />Sesión de odontograma
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => { openClinicalDocuments(); setCreateDocumentTrigger(t => t + 1); }}>
+                            <Upload className="h-4 w-4 mr-2 text-primary" />Documento
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuLabel className="text-xs text-muted-foreground">Financiero</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => selectedUser && openBillingWizard({ patientId: selectedUser.id, patientName: selectedUser.name })}>
+                            <Zap className="h-4 w-4 mr-2 text-emerald-600" />Cobro rápido
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => setIsQuoteDialogOpen(true)}>
+                            <FileText className="h-4 w-4 mr-2 text-emerald-600" />Presupuesto
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setIsInvoiceDialogOpen(true)}>
+                            <Receipt className="h-4 w-4 mr-2 text-emerald-600" />Factura
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setIsPrepaidDialogOpen(true)}>
+                            <CreditCard className="h-4 w-4 mr-2 text-emerald-600" />Prepago
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuLabel className="text-xs text-muted-foreground">Agenda</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => { loadApptData(); setIsAppointmentDialogOpen(true); }}>
+                            <CalendarIcon className="h-4 w-4 mr-2 text-blue-600" />Cita
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
 
-                        {/* Email */}
-                        {effectivePatientEmail && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <button type="button" onClick={() => setIsEmailDialogOpen(true)} className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-                                <Mail className="h-4 w-4" />
-                              </button>
-                            </TooltipTrigger>
-                            <TooltipContent>{effectivePatientEmail}</TooltipContent>
-                          </Tooltip>
-                        )}
-
-                        {/* WhatsApp */}
-                        {effectivePatientPhone && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <button
-                                type="button"
-                                onClick={() => setIsWhatsAppDialogOpen(true)}
-                                className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                              >
-                                <WhatsAppIcon className="h-4 w-4" />
-                              </button>
-                            </TooltipTrigger>
-                            <TooltipContent>{effectivePatientPhone}</TooltipContent>
-                          </Tooltip>
-                        )}
-
-                        {/* Discharge */}
+                      {/* More actions dropdown — always visible */}
+                      <DropdownMenu>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              className={cn(
-                                "flex items-center justify-center h-8 w-8 rounded-lg transition-colors",
-                                currentDischarge
-                                  ? "text-green-600 hover:bg-green-50"
-                                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                            <DropdownMenuTrigger asChild>
+                              <button type="button" className="flex items-center justify-center gap-1.5 h-8 px-2 sm:px-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors text-xs font-medium">
+                                <MoreHorizontal className="sm:hidden h-4 w-4 flex-none" />
+                                <span className="hidden sm:inline">Más acciones</span>
+                                <ChevronDown className="hidden sm:block h-3 w-3 flex-none" />
+                              </button>
+                            </DropdownMenuTrigger>
+                          </TooltipTrigger>
+                          <TooltipContent>Más acciones</TooltipContent>
+                        </Tooltip>
+                        <DropdownMenuContent align="end" className="w-52">
+                          {(effectivePatientEmail || effectivePatientPhone) && (
+                            <>
+                              <DropdownMenuLabel className="text-xs text-muted-foreground">Comunicación</DropdownMenuLabel>
+                              {effectivePatientEmail && (
+                                <DropdownMenuItem onClick={() => setIsEmailDialogOpen(true)}>
+                                  <Mail className="h-4 w-4 mr-2" />Enviar email
+                                </DropdownMenuItem>
                               )}
-                              onClick={currentDischarge ? handleCancelDischarge : () => setIsDischargeDialogOpen(true)}
-                              disabled={isSubmittingDischarge}
-                            >
-                              {currentDischarge ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent>{currentDischarge ? t('UsersPage.readmitButton') : t('UsersPage.dischargeButton')}</TooltipContent>
-                        </Tooltip>
+                              {effectivePatientPhone && (
+                                <DropdownMenuItem onClick={() => setIsWhatsAppDialogOpen(true)}>
+                                  <WhatsAppIcon className="h-4 w-4 mr-2" />WhatsApp
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
+                            </>
+                          )}
+                          <DropdownMenuLabel className="text-xs text-muted-foreground">Estado</DropdownMenuLabel>
+                          <DropdownMenuItem
+                            onClick={currentDischarge ? handleCancelDischarge : () => setIsDischargeDialogOpen(true)}
+                            disabled={isSubmittingDischarge}
+                          >
+                            {currentDischarge
+                              ? <XCircle className="h-4 w-4 mr-2 text-green-600" />
+                              : <CheckCircle className="h-4 w-4 mr-2" />}
+                            {currentDischarge ? t('UsersPage.readmitButton') : t('UsersPage.dischargeButton')}
+                          </DropdownMenuItem>
+                          {canToggleStatus && (
+                            <DropdownMenuItem onClick={() => handleToggleActivate(selectedUser)}>
+                              <ToggleLeft className={cn("h-4 w-4 mr-2", selectedUser.is_active ? "text-destructive" : "text-green-600")} />
+                              {selectedUser.is_active ? t('UserColumns.deactivate') : t('UserColumns.activate')}
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuLabel className="text-xs text-muted-foreground">Configuración</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => setIsPreferencesOpen(true)}>
+                            <SlidersHorizontal className="h-4 w-4 mr-2" />{t('UsersPage.preferencesButton')}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
 
-                        {/* Preferences */}
-                        <Popover open={isPreferencesOpen} onOpenChange={setIsPreferencesOpen}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <PopoverTrigger asChild>
-                                <button type="button" className={cn("flex items-center justify-center h-8 w-8 rounded-lg transition-colors", isPreferencesOpen ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted")}>
-                                  <SlidersHorizontal className="h-4 w-4" />
-                                </button>
-                              </PopoverTrigger>
-                            </TooltipTrigger>
-                            <TooltipContent>{t('UsersPage.preferencesButton')}</TooltipContent>
-                          </Tooltip>
-                          <PopoverContent align="end" className="w-auto p-3 space-y-2">
-                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">{t('UsersPage.preferencesButton')}</p>
-                            <UserCommunicationPreferences user={selectedUser} autoSave compact />
-                          </PopoverContent>
-                        </Popover>
+                      {/* Expand/collapse button — always visible */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                            onClick={() => setIsRightExpanded(v => !v)}
+                          >
+                            {isRightExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>{isRightExpanded ? 'Restaurar' : 'Expandir'}</TooltipContent>
+                      </Tooltip>
 
-                        {/* Toggle activate / deactivate */}
-                        {canToggleStatus && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <button
-                                type="button"
-                                className={cn(
-                                  "flex items-center justify-center h-8 w-8 rounded-lg transition-colors",
-                                  selectedUser.is_active
-                                    ? "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                    : "text-green-600 hover:bg-green-50"
-                                )}
-                                onClick={() => handleToggleActivate(selectedUser)}
-                              >
-                                <ToggleLeft className="h-4 w-4" />
-                              </button>
-                            </TooltipTrigger>
-                            <TooltipContent>{selectedUser.is_active ? t('UserColumns.deactivate') : t('UserColumns.activate')}</TooltipContent>
-                          </Tooltip>
-                        )}
-
-                        {/* Expand / Restore */}
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button type="button" className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" onClick={() => setIsRightExpanded(v => !v)}>
-                              {isRightExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent>{isRightExpanded ? 'Restaurar' : 'Expandir'}</TooltipContent>
-                        </Tooltip>
-
-                        {/* Close */}
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button type="button" className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors" onClick={handleCloseDetails}>
-                              <X className="h-4 w-4" />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent>{t('UsersPage.close')}</TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                  </div>
-
-                  {/* Row 2: Demographics + discharge badge */}
-                  <div className="flex items-center gap-x-3 gap-y-1 mt-1 ml-10 flex-wrap text-xs text-muted-foreground">
-                    {selectedUser.birth_date && (
-                      <span className="flex items-center gap-1">
-                        <Cake className="h-3 w-3" />
-                        {differenceInYears(new Date(), parseISO(selectedUser.birth_date))} años
-                      </span>
-                    )}
-                    {selectedUser.identity_document && (
-                      <span className="flex items-center gap-1">
-                        <CreditCard className="h-3 w-3" />
-                        {selectedUser.identity_document}
-                      </span>
-                    )}
-                    {selectedUser.is_dependent && (
-                      <Badge variant="secondary" className="gap-1 text-xs font-normal">
-                        <Users className="h-3 w-3" />
-                        {selectedUser.responsible_contact_name || dependantContactInfo?.name
-                          ? t('UsersPage.dependentOf', { name: selectedUser.responsible_contact_name || dependantContactInfo?.name })
-                          : t('UsersPage.dependentPatient')}
-                      </Badge>
-                    )}
-                    {selectedUser.is_dependent && effectivePatientEmail ? (
-                      <span className="flex items-center gap-1">
-                        <Mail className="h-3 w-3" />
-                        {effectivePatientEmail}
-                      </span>
-                    ) : null}
-                    {selectedUser.is_dependent && effectivePatientPhone ? (
-                      <span className="flex items-center gap-1">
-                        <WhatsAppIcon className="h-3 w-3" />
-                        {effectivePatientPhone}
-                      </span>
-                    ) : null}
-                    {currentDischarge && (
-                      <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-100 gap-1 text-xs font-normal">
-                        <CheckCircle className="h-3 w-3" />
-                        {t('ClinicHistoryPage.discharge.dischargedBadge', { date: formatDisplayDate(currentDischarge.appointment_date) })}
-                      </Badge>
-                    )}
-                  </div>
-
-                  {/* Row 3: Allergies + conditions */}
-                  {(patientAllergies.length > 0 || patientConditions.length > 0) && (
-                    <div className="flex items-center gap-1.5 mt-1 ml-10 flex-wrap">
-                      {[
-                        ...patientAllergies.map(a => ({ label: a.alergeno, type: 'allergy' as const })),
-                        ...patientConditions.map(c => ({ label: c.nombre, type: 'condition' as const })),
-                      ].slice(0, 3).map((item, i) => (
-                        item.type === 'allergy' ? (
-                          <Badge key={`a-${i}`} variant="destructive" className="gap-1 text-xs font-normal">
-                            <AlertTriangle className="h-3 w-3" />
-                            {item.label}
-                          </Badge>
-                        ) : (
-                          <Badge key={`c-${i}`} variant="secondary" className="gap-1 text-xs font-normal bg-amber-100 text-amber-800 hover:bg-amber-100">
-                            <Heart className="h-3 w-3" />
-                            {item.label}
-                          </Badge>
-                        )
-                      ))}
-                      {(patientAllergies.length + patientConditions.length) > 3 && (
-                        <button
-                          className="text-xs text-primary hover:underline"
-                          onClick={() => setActiveTab('clinical-history')}
-                        >
-                          +{patientAllergies.length + patientConditions.length - 3} más → Anamnesis
-                        </button>
-                      )}
-                    </div>
+                      {/* Close button — always visible */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button type="button" className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors" onClick={handleCloseDetails}>
+                            <X className="h-4 w-4" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>{t('UsersPage.close')}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   )}
-
-                </CardHeader>
+                />
                 <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-4 pt-0">
                   {canViewDetail && selectedUser ? (
                     <>
-                      <UserSummaryPanel
-                        financialData={userFinancialData}
-                        userId={selectedUser.id}
-                        isOpen={isStatsOpen}
-                        onToggle={() => setIsStatsOpen(v => !v)}
-                        onPrint={handlePrintFinancialSummary}
-                        onCreateAppointment={() => { loadApptData(); setIsAppointmentDialogOpen(true); }}
-                        onViewAllTreatments={() => setActiveTab('treatment-plans')}
-                      />
-                      <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-                        {/* Horizontal tab strip */}
-                        {(() => {
-                          const isMedico = selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active);
-                          const userTabs: VerticalTab[] = [
-                            { id: 'info', icon: Users, label: 'Información' },
-                            ...(canViewHistory ? [{ id: 'clinical-history', icon: Stethoscope, label: t('UsersPage.tabs.clinicalHistory') }] : []),
-                            { id: 'treatment-plans', icon: ClipboardList, label: t('UsersPage.tabs.treatmentPlans') },
-                            ...(isMedico ? [{ id: 'services', icon: Wrench, label: t('UsersPage.tabs.services') }] : []),
-                            { id: 'quotes', icon: FileText, label: t('UsersPage.tabs.quotes') },
-                            // hidden: orders tab { id: 'orders', icon: ShoppingCart, label: t('UsersPage.tabs.orders') },
-                            { id: 'invoices', icon: Receipt, label: t('UsersPage.tabs.invoices') },
-                            { id: 'payments', icon: CreditCard, label: t('UsersPage.tabs.payments') },
-                            { id: 'messages', icon: MessageSquare, label: t('UsersPage.tabs.messages') },
-                            { id: 'logs', icon: History, label: t('UsersPage.tabs.logs') },
-                            { id: 'notes', icon: StickyNote, label: t('UsersPage.tabs.notes') },
-                            ...(canViewHistory ? [{ id: 'documents', icon: FolderArchive, label: t('UsersPage.tabs.documents') }] : []),
-                          ];
-                          return (
-                            <VerticalTabStrip
-                              tabs={userTabs}
-                              activeTabId={activeTab}
-                              onTabClick={(tab) => setActiveTab(tab.id)}
-                            />
-                          );
-                        })()}
-                        {/* Tab content */}
-                        <div className="flex-1 overflow-y-auto flex flex-col min-h-0 px-0 pt-4 pb-8 sm:py-3 sm:px-3">
-                          {activeTab === 'info' && (
-                            <>
-                              <div className="mb-4">
-                                <div className="flex rounded-md border overflow-hidden text-xs">
-                                  <button
-                                    onClick={() => setActiveInfoSubTab('personal')}
-                                    className={cn(
-                                      'flex-1 py-1.5 px-3 font-medium transition-colors whitespace-nowrap text-center',
-                                      activeInfoSubTab === 'personal'
-                                        ? 'bg-primary text-primary-foreground'
-                                        : 'bg-background text-muted-foreground hover:bg-muted'
-                                    )}
-                                  >
-                                    Información Personal
-                                  </button>
-                                  <button
-                                    onClick={() => setActiveInfoSubTab('anamnesis')}
-                                    className={cn(
-                                      'flex-1 py-1.5 px-3 font-medium transition-colors whitespace-nowrap text-center',
-                                      activeInfoSubTab === 'anamnesis'
-                                        ? 'bg-primary text-primary-foreground'
-                                        : 'bg-background text-muted-foreground hover:bg-muted'
-                                    )}
-                                  >
-                                    Anamnesis
-                                  </button>
-                                </div>
-                              </div>
-                              {activeInfoSubTab === 'personal' && (
-                                <UserInfoTab
-                                  user={selectedUser}
-                                  mutualSocieties={mutualSocieties}
-                                  onSaved={(updated) => {
-                                    setSelectedUser(updated);
-                                    loadUsers();
-                                  }}
-                                />
-                              )}
-                              {activeInfoSubTab === 'anamnesis' && (
-                                <AnamnesisViewer
-                                  userId={selectedUser.id}
-                                  onClinicalDataChange={() => {
-                                    fetchPatientAllergies(selectedUser.id);
-                                    fetchPatientConditions(selectedUser.id);
-                                  }}
-                                />
-                              )}
-                            </>
-                          )}
-                          {activeTab === 'clinical-history' && (
-                            <ClinicHistoryViewer
-                              userId={selectedUser.id}
-                              userName={selectedUser.name}
-                              createSessionTrigger={createSessionTrigger}
-                              createOdontogramTrigger={createOdontogramTrigger}
-                              sessionPrefill={sessionPrefill}
-                              editSessionId={editSessionId}
-                              onSessionCreated={async (sesionId, stepId) => {
-                                if (stepId) {
-                                  try {
-                                    await api.post(API_ROUTES.TREATMENT_PLANS.SEQUENCE_ADD_SESSION, { id: stepId, sesion_id: sesionId });
-                                  } catch (e) {
-                                    console.error('Failed to link session to step', e);
-                                  }
+                      <PatientDetailMainContent
+                        activeTab={activeTab}
+                        onActiveTabChange={setActiveTab}
+                        activeClinicalSubTab={activeClinicalSubTab}
+                        onClinicalSubTabChange={setActiveClinicalSubTab}
+                        activeFinancialSubTab={activeFinancialSubTab}
+                        onFinancialSubTabChange={setActiveFinancialSubTab}
+                        showDocuments={canViewHistory}
+                        showNotes={canViewNotes}
+                        activeInfoSubTab={activeInfoSubTab}
+                        onInfoSubTabChange={setActiveInfoSubTab}
+                        infoContent={
+                          <UserInfoTab
+                            user={selectedUser}
+                            mutualSocieties={mutualSocieties}
+                            onSaved={(updated) => {
+                              setSelectedUser(updated)
+                              loadUsers()
+                            }}
+                          />
+                        }
+                        notesContent={
+                          <NotesTab
+                            user={selectedUser}
+                            onUpdate={handleUpdateNotes}
+                          />
+                        }
+                        anamnesisContent={
+                          <AnamnesisViewer
+                            userId={selectedUser.id}
+                            onClinicalDataChange={() => {
+                              fetchPatientAllergies(selectedUser.id)
+                              fetchPatientConditions(selectedUser.id)
+                            }}
+                          />
+                        }
+                        clinicalHistoryContent={
+                          <ClinicHistoryViewer
+                            userId={selectedUser.id}
+                            userName={selectedUser.name}
+                            createSessionTrigger={createSessionTrigger}
+                            createOdontogramTrigger={createOdontogramTrigger}
+                            sessionPrefill={sessionPrefill}
+                            editSessionId={editSessionId}
+                            onEditAppointment={(appt) => {
+                              setEditingAppointmentForPlan(appt);
+                              loadApptData();
+                              setIsAppointmentDialogOpen(true);
+                            }}
+                            onSessionCreated={async (sesionId, stepId) => {
+                              if (stepId) {
+                                try {
+                                  await api.post(API_ROUTES.TREATMENT_PLANS.SEQUENCE_ADD_SESSION, { id: stepId, sesion_id: sesionId })
+                                } catch (e) {
+                                  console.error('Failed to link session to step', e)
                                 }
-                                setEditSessionId(null);
-                              }}
-                              onClinicalDataChange={() => {
-                                fetchPatientAllergies(selectedUser.id);
-                                fetchPatientConditions(selectedUser.id);
-                                setSessionPrefill(null);
-                              }}
-                            />
-                          )}
-                          {activeTab === 'documents' && (
-                            <DocumentsViewer
-                              userId={selectedUser.id}
-                              createTrigger={createDocumentTrigger}
-                            />
-                          )}
-                          {activeTab === 'services' && selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
-                            <UserServices userId={selectedUser.id} isSalesUser={true} />
-                          )}
-                          {activeTab === 'quotes' && (
-                            <UserQuotes
-                              userId={selectedUser.id}
-                              onQuoteSelect={setSelectedQuote}
-                              refreshTrigger={refreshQuotesTrigger}
-                              onDataChange={() => {
-                                fetchUserFinancialData(selectedUser.id);
-                                loadUsers();
-                              }}
-                            />
-                          )}
-                          {/* hidden: orders tab
-                          {activeTab === 'orders' && (
-                            <UserOrders
-                              userId={selectedUser.id}
-                              patient={selectedUser}
-                              refreshTrigger={refreshOrdersTrigger}
-                              onDataChange={() => {
-                                fetchUserFinancialData(selectedUser.id);
-                                loadUsers();
-                                setRefreshQuotesTrigger(prev => prev + 1);
-                              }}
-                            />
-                          )}
-                          */}
-                          {activeTab === 'invoices' && (
-                            <UserInvoices
-                              userId={selectedUser.id}
-                              refreshTrigger={refreshInvoicesTrigger}
-                              onDataChange={() => {
-                                fetchUserFinancialData(selectedUser.id);
-                                loadUsers();
-                              }}
-                            />
-                          )}
-                          {activeTab === 'payments' && (
-                            <UserPayments
-                              userId={selectedUser.id}
-                              refreshTrigger={refreshPaymentsTrigger}
-                            />
-                          )}
-
-                          {activeTab === 'treatment-plans' && (
-                            <UserTreatmentPlans
-                              userId={selectedUser.id}
-                              userName={selectedUser.name}
-                              onCreateAppointment={() => { loadApptData(); setIsAppointmentDialogOpen(true); }}
-                              onViewAppointment={(appointmentId, scheduledDate, serviceId, serviceName) => handleViewApptFromPlan(appointmentId, scheduledDate, serviceId, serviceName)}
-                              onViewSession={(sesionId) => {
-                                setEditSessionId(sesionId);
-                                setActiveTab('clinical-history');
-                              }}
-                            />
-                          )}
-
-                          {activeTab === 'messages' && <UserMessages userId={selectedUser.id} />}
-                          {activeTab === 'logs' && <UserLogs userId={selectedUser.id} />}
-                          {activeTab === 'notes' && <NotesTab user={selectedUser} onUpdate={handleUpdateNotes} />}
-                        </div>
-                      </div>
+                              }
+                              setEditSessionId(null)
+                            }}
+                            onClinicalDataChange={() => {
+                              fetchPatientAllergies(selectedUser.id)
+                              fetchPatientConditions(selectedUser.id)
+                              setSessionPrefill(null)
+                            }}
+                          />
+                        }
+                        treatmentPlansContent={
+                          <UserTreatmentPlans
+                            userId={selectedUser.id}
+                            userName={selectedUser.name}
+                            onCreateAppointment={() => { loadApptData(); setIsAppointmentDialogOpen(true) }}
+                            onViewAppointment={(appointmentId, scheduledDate, serviceId, serviceName) => handleViewApptFromPlan(appointmentId, scheduledDate, serviceId, serviceName)}
+                            onViewSession={(sesionId) => {
+                              setEditSessionId(sesionId)
+                              setActiveTab('clinical')
+                              setActiveClinicalSubTab('clinical-history')
+                            }}
+                            onContact={() => setIsWhatsAppDialogOpen(true)}
+                          />
+                        }
+                        documentsContent={<DocumentsViewer userId={selectedUser.id} createTrigger={createDocumentTrigger} />}
+                        financialSummaryContent={
+                          <UserFinancialSummaryStats
+                            financialData={userFinancialData}
+                            isOpen={isStatsOpen}
+                            onToggle={() => setIsStatsOpen(v => !v)}
+                            onPrint={handlePrintFinancialSummary}
+                          />
+                        }
+                        quotesContent={
+                          <UserQuotes
+                            userId={selectedUser.id}
+                            onQuoteSelect={setSelectedQuote}
+                            refreshTrigger={refreshQuotesTrigger}
+                            onDataChange={() => {
+                              fetchUserFinancialData(selectedUser.id)
+                              loadUsers()
+                            }}
+                          />
+                        }
+                        invoicesContent={
+                          <UserInvoices
+                            userId={selectedUser.id}
+                            refreshTrigger={refreshInvoicesTrigger}
+                            onDataChange={() => {
+                              fetchUserFinancialData(selectedUser.id)
+                              loadUsers()
+                            }}
+                          />
+                        }
+                        paymentsContent={<UserPayments userId={selectedUser.id} selectedQuote={selectedQuote} refreshTrigger={refreshPaymentsTrigger} />}
+                      />
                     </>
                   ) : (<></>)}
                 </CardContent>
@@ -2519,38 +2304,26 @@ export default function UsersPage() {
                 {t('ClinicHistoryPage.discharge.optionsLabel')}
               </Label>
               <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="rounded-full"
-                  onClick={() => setDischargeDate(format(addMonths(new Date(), 1), 'yyyy-MM-dd'))}
-                >
-                  {t('ClinicHistoryPage.discharge.option1Month')}
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="rounded-full"
-                  onClick={() => setDischargeDate(format(addMonths(new Date(), 3), 'yyyy-MM-dd'))}
-                >
-                  {t('ClinicHistoryPage.discharge.option3Months')}
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="rounded-full"
-                  onClick={() => setDischargeDate(format(addMonths(new Date(), 6), 'yyyy-MM-dd'))}
-                >
-                  {t('ClinicHistoryPage.discharge.option6Months')}
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="rounded-full"
-                  onClick={() => setDischargeDate(format(addMonths(new Date(), 12), 'yyyy-MM-dd'))}
-                >
-                  {t('ClinicHistoryPage.discharge.option1Year')}
-                </Button>
+                {([1, 3, 6, 12] as const).map((months) => (
+                  <Button
+                    key={months}
+                    variant={dischargePreset === months ? 'default' : 'secondary'}
+                    size="sm"
+                    className="rounded-full"
+                    onClick={() => {
+                      setDischargeDate(format(addMonths(new Date(), months), 'yyyy-MM-dd'));
+                      setDischargePreset(months);
+                    }}
+                  >
+                    {months === 1
+                      ? t('ClinicHistoryPage.discharge.option1Month')
+                      : months === 3
+                      ? t('ClinicHistoryPage.discharge.option3Months')
+                      : months === 6
+                      ? t('ClinicHistoryPage.discharge.option6Months')
+                      : t('ClinicHistoryPage.discharge.option1Year')}
+                  </Button>
+                ))}
               </div>
             </div>
 
@@ -2560,7 +2333,7 @@ export default function UsersPage() {
               </Label>
               <DatePickerInput
                 value={dischargeDate}
-                onChange={(value) => setDischargeDate(value)}
+                onChange={(value) => { setDischargeDate(value); setDischargePreset(null); }}
                 placeholder={t('ClinicHistoryPage.discharge.datePlaceholder')}
                 disabledDays={(date: Date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
               />
@@ -2580,6 +2353,7 @@ export default function UsersPage() {
               onClick={() => {
                 setIsDischargeDialogOpen(false);
                 setDischargeDate('');
+                setDischargePreset(null);
               }}
             >
               {t('ClinicHistoryPage.discharge.cancelButton')}
@@ -2597,7 +2371,7 @@ export default function UsersPage() {
             </DialogDescription>
           </DialogHeader>
           <DialogBody>
-            <div className="grid grid-cols-2 gap-4 px-4 pt-4">
+            <div className="grid grid-cols-2 gap-4 px-4 pt-4 pb-4">
               <div className="space-y-2">
                 <Label>{t('UsersPage.financialSummaryDialog.from')}</Label>
                 <DatePickerInput
@@ -2631,6 +2405,18 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={isPreferencesOpen} onOpenChange={setIsPreferencesOpen}>
+        <DialogContent className="sm:max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle>{t('UserCommunicationPreferences.title')}</DialogTitle>
+            <DialogDescription>{t('UserCommunicationPreferences.description')}</DialogDescription>
+          </DialogHeader>
+          <DialogBody className="px-6 py-4">
+            {selectedUser && <UserCommunicationPreferences user={selectedUser} autoSave compact />}
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
+
       {selectedUser && (
         <PrepaidFormDialog
           open={isPrepaidDialogOpen}
@@ -2638,7 +2424,8 @@ export default function UsersPage() {
           initialUser={selectedUser}
           onSaveSuccess={() => {
             setIsPrepaidDialogOpen(false);
-            setActiveTab('payments');
+            setActiveTab('financial');
+            setActiveFinancialSubTab('payments');
             setRefreshPaymentsTrigger(t => t + 1);
             fetchUserFinancialData(selectedUser.id);
             loadUsers();
@@ -2654,7 +2441,8 @@ export default function UsersPage() {
           initialUser={selectedUser}
           onInvoiceCreated={() => {
             setIsInvoiceDialogOpen(false);
-            setActiveTab('invoices');
+            setActiveTab('financial');
+            setActiveFinancialSubTab('invoices');
             setRefreshInvoicesTrigger(t => t + 1);
             fetchUserFinancialData(selectedUser.id);
             loadUsers();
@@ -2669,7 +2457,8 @@ export default function UsersPage() {
           initialData={{ user: selectedUser }}
           onSaveSuccess={() => {
             setIsQuoteDialogOpen(false);
-            setActiveTab('quotes');
+            setActiveTab('financial');
+            setActiveFinancialSubTab('quotes');
             setRefreshQuotesTrigger(t => t + 1);
             fetchUserFinancialData(selectedUser.id);
             loadUsers();
@@ -2695,7 +2484,6 @@ export default function UsersPage() {
           onSaveSuccess={() => {
             setIsAppointmentDialogOpen(false);
             setEditingAppointmentForPlan(null);
-            setRefreshAppointmentsTrigger(t => t + 1);
             fetchUserFinancialData(selectedUser.id);
             loadUsers();
           }}

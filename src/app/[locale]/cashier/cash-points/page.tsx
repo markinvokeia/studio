@@ -108,7 +108,7 @@ export default function CashPointsPage() {
     const [deletingCashPoint, setDeletingCashPoint] = React.useState<CashPoint | null>(null);
 
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
+    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 
     const form = useForm<CashPointFormValues>({
@@ -208,6 +208,7 @@ export default function CashPointsPage() {
                         columns={columns}
                         data={cashPoints}
                         pageCount={Math.ceil(cashPointCount / pagination.pageSize)}
+                        rowCount={cashPointCount}
                         pagination={pagination}
                         onPaginationChange={setPagination}
                         columnFilters={columnFilters}

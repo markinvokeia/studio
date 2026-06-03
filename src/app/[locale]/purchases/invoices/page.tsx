@@ -26,6 +26,7 @@ import { PURCHASES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { useToast } from '@/hooks/use-toast';
+import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { usePermissions } from '@/hooks/usePermissions';
 import { getCreditNotesForInvoice } from '@/lib/credit-notes';
 import { CreditNote, Invoice, InvoiceAllocation, InvoiceItem, Payment, Service } from '@/lib/types';
@@ -184,6 +185,7 @@ function InvoicesPageContent() {
     const tPaymentTransactionType = useTranslations('PaymentsPage.transactionType');
     const { toast } = useToast();
     const { hasPermission } = usePermissions();
+    const { printInvoice } = usePrintDocument();
 
     // Permission checks for UI elements
     const canViewList = hasPermission(PURCHASES_PERMISSIONS.INVOICES_VIEW_LIST);
@@ -352,36 +354,8 @@ function InvoicesPageContent() {
     const canAddPaymentAction = canCreatePayment && selectedInvoiceStatus === 'booked' && selectedPaymentStatus !== 'paid';
     const canConfirmAction = canConfirmInvoice && selectedInvoiceStatus === 'draft';
 
-    const handlePrintInvoice = async (invoice: Invoice) => {
-        const fileName = getDocumentFileName(invoice, 'invoice');
-        toast({
-            title: "Generating PDF",
-            description: `Preparing PDF for Invoice #${fileName}...`,
-        });
-
-        try {
-            const blob = await api.getBlob(API_ROUTES.PURCHASES.API_INVOICE_PRINT, { id: invoice.id });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${fileName}.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            a.remove();
-
-            toast({
-                title: "Download Started",
-                description: `Your PDF for Invoice #${fileName} is downloading.`,
-            });
-
-        } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: 'Print Error',
-                description: error instanceof Error ? error.message : 'Could not print the invoice.',
-            });
-        }
+    const handlePrintInvoice = (invoice: Invoice) => {
+        printInvoice(invoice, false);
     };
 
     const handleSendEmailClick = (invoice: Invoice) => {

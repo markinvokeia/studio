@@ -105,9 +105,10 @@ interface ClinicHistoryViewerProps {
     editSessionId?: number | null;
     onClinicalDataChange?: () => void;
     deepLinkView?: string;
+    onEditAppointment?: (appointment: Appointment) => void;
 }
 
-export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, createOdontogramTrigger = 0, sessionPrefill, onSessionCreated, editSessionId, onClinicalDataChange }: ClinicHistoryViewerProps) {
+export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, createOdontogramTrigger = 0, sessionPrefill, onSessionCreated, editSessionId, onClinicalDataChange, onEditAppointment }: ClinicHistoryViewerProps) {
     const {
         patientSessions,
         isLoadingPatientSessions,
@@ -124,7 +125,7 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
 
     const [patientAppointments, setPatientAppointments] = React.useState<Appointment[]>([]);
     const [isLoadingPatientAppointments, setIsLoadingPatientAppointments] = React.useState(false);
-    const [calendars, setCalendars] = React.useState<Calendar[]>([]);
+    const calendarsRef = React.useRef<Calendar[]>([]);
 
     React.useEffect(() => {
         let cancelled = false;
@@ -133,10 +134,10 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
                 const data = await api.get(API_ROUTES.CALENDARS);
                 const list = Array.isArray(data) ? data : (data?.calendars || data?.data || data?.result || []);
                 if (!cancelled) {
-                    setCalendars(list.map((c: any) => ({ id: String(c.id), name: c.name } as Calendar)));
+                    calendarsRef.current = list.map((c: any) => ({ id: String(c.id), name: c.name } as Calendar));
                 }
             } catch {
-                if (!cancelled) setCalendars([]);
+                if (!cancelled) calendarsRef.current = [];
             }
         })();
         return () => { cancelled = true; };
@@ -167,7 +168,7 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
                 if (isNaN(dt.getTime())) return null;
                 const endNode = apiAppt.end_time || apiAppt.end;
                 const calendarSourceId = apiAppt.calendar_source_id != null ? String(apiAppt.calendar_source_id) : '';
-                const calendar = calendars.find(c => String(c.id) === calendarSourceId);
+                const calendar = calendarsRef.current.find(c => String(c.id) === calendarSourceId);
                 return {
                     id: String(apiAppt.appointment_id || apiAppt.appointmentId || apiAppt.appointmentid || apiAppt.id),
                     patientId: currentUserId,
@@ -214,7 +215,7 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
         } finally {
             setIsLoadingPatientAppointments(false);
         }
-    }, [userName, calendars]);
+    }, [userName]);
 
     React.useEffect(() => {
         if (userId) {
@@ -267,6 +268,7 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
                             onSessionCreated={onSessionCreated}
                             editSessionId={editSessionId}
                             onRefreshAppointments={() => fetchPatientAppointments(userId)}
+                            onEditAppointment={onEditAppointment}
                         />
                     </div>
                 </ScrollArea>
@@ -868,7 +870,7 @@ function AnamnesisSection({
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">
                         <User className="w-5 h-5 text-primary mr-2" />
-                        <h3 className="text-lg font-bold text-card-foreground">{t('personalTitle')}</h3>
+                        <h3 className="text-base font-semibold text-card-foreground">{t('personalTitle')}</h3>
                     </div>
                     <Button variant="default" size="icon" onClick={() => handleOpenPersonalDialog()}>
                         <Plus className="h-4 w-4" />
@@ -879,7 +881,7 @@ function AnamnesisSection({
                         personalHistory.map((item, idx) => (
                             <div key={idx} className="border-l-4 border-blue-300 dark:border-blue-700 pl-4 py-2 flex justify-between items-center">
                                 <div>
-                                    <div className="font-semibold text-foreground">{item.nombre}</div>
+                                    <div className="text-sm font-semibold text-foreground">{item.nombre}</div>
                                     {item.comentarios && <div className="text-sm text-muted-foreground">{item.comentarios}</div>}
                                 </div>
                                 <div className="flex items-center space-x-1">
@@ -893,7 +895,7 @@ function AnamnesisSection({
                             </div>
                         ))
                     ) : (
-                        <p className="text-muted-foreground">{t('noData.personal')}</p>
+                        <p className="text-sm text-muted-foreground">{t('noData.personal')}</p>
                     )}
                 </div>
             </div>
@@ -903,7 +905,7 @@ function AnamnesisSection({
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">
                         <Pill className="w-5 h-5 text-green-500 mr-2" />
-                        <h3 className="text-lg font-bold text-card-foreground">{t('medicationsTitle')}</h3>
+                        <h3 className="text-base font-semibold text-card-foreground">{t('medicationsTitle')}</h3>
                     </div>
                     <Button variant="default" size="icon" onClick={() => handleOpenMedicationDialog()}>
                         <Plus className="h-4 w-4" />
@@ -914,7 +916,7 @@ function AnamnesisSection({
                         medications.map((item, idx) => (
                             <div key={idx} className="border-l-4 border-green-300 dark:border-green-700 pl-4 py-2 flex justify-between items-center">
                                 <div className="flex-1">
-                                    <div className="font-semibold text-foreground">{item.nombre_medicamento}</div>
+                                    <div className="text-sm font-semibold text-foreground">{item.nombre_medicamento}</div>
                                     <div className="text-sm text-muted-foreground">
                                         {item.dosis} - {item.frecuencia}
                                     </div>
@@ -938,7 +940,7 @@ function AnamnesisSection({
                             </div>
                         ))
                     ) : (
-                        <p className="text-muted-foreground">{t('noData.medications')}</p>
+                        <p className="text-sm text-muted-foreground">{t('noData.medications')}</p>
                     )}
                 </div>
             </div>
@@ -948,7 +950,7 @@ function AnamnesisSection({
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">
                         <Heart className="w-5 h-5 text-red-500 mr-2" />
-                        <h3 className="text-lg font-bold text-card-foreground">{t('familyTitle')}</h3>
+                        <h3 className="text-base font-semibold text-card-foreground">{t('familyTitle')}</h3>
                     </div>
                     <Button variant="default" size="icon" onClick={() => handleOpenFamilyDialog()}>
                         <Plus className="h-4 w-4" />
@@ -959,7 +961,7 @@ function AnamnesisSection({
                         familyHistory.map((item, idx) => (
                             <div key={idx} className="border-l-4 border-red-300 dark:border-red-700 pl-4 py-2 flex justify-between items-center">
                                 <div>
-                                    <div className="font-semibold text-foreground">{item.nombre}</div>
+                                    <div className="text-sm font-semibold text-foreground">{item.nombre}</div>
                                     <div className="text-sm text-muted-foreground">{t('relative')}: {getRelationshipLabel(item.parentesco)}</div>
                                     {item.comentarios && <div className="text-sm text-muted-foreground">{item.comentarios}</div>}
                                 </div>
@@ -974,7 +976,7 @@ function AnamnesisSection({
                             </div>
                         ))
                     ) : (
-                        <p className="text-muted-foreground">{t('noData.family')}</p>
+                        <p className="text-sm text-muted-foreground">{t('noData.family')}</p>
                     )}
                 </div>
             </div>
@@ -984,7 +986,7 @@ function AnamnesisSection({
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">
                         <AlertTriangle className="w-5 h-5 text-yellow-500 mr-2" />
-                        <h3 className="text-lg font-bold text-card-foreground">{t('allergiesTitle')}</h3>
+                        <h3 className="text-base font-semibold text-card-foreground">{t('allergiesTitle')}</h3>
                     </div>
                     <Button variant="default" size="icon" onClick={() => handleOpenAllergyDialog()}>
                         <Plus className="h-4 w-4" />
@@ -995,7 +997,7 @@ function AnamnesisSection({
                         allergies.map((item, idx) => (
                             <div key={idx} className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex justify-between items-center">
                                 <div>
-                                    <div className="font-semibold text-destructive">{item.alergeno}</div>
+                                    <div className="text-sm font-semibold text-destructive">{item.alergeno}</div>
                                     {item.reaccion_descrita && <div className="text-sm text-destructive/80">{item.reaccion_descrita}</div>}
                                 </div>
                                 <div className="flex items-center space-x-1">
@@ -1009,7 +1011,7 @@ function AnamnesisSection({
                             </div>
                         ))
                     ) : (
-                        <p className="text-muted-foreground">{t('noData.allergies')}</p>
+                        <p className="text-sm text-muted-foreground">{t('noData.allergies')}</p>
                     )}
                 </div>
             </div>
@@ -1020,7 +1022,7 @@ function AnamnesisSection({
                     <div className="flex items-center justify-between">
                         <div className="flex items-center">
                             <Wind className="w-5 h-5 text-purple-500 mr-2" />
-                            <CardTitle className="text-lg font-bold">{tHabits('title')}</CardTitle>
+                            <CardTitle className="text-base font-semibold">{tHabits('title')}</CardTitle>
                         </div>
                         <Button variant="ghost" size="icon" onClick={() => setIsHabitsEditing(!isHabitsEditing)}>
                             <Edit3 className="h-4 w-4" />
@@ -1029,7 +1031,7 @@ function AnamnesisSection({
                 </CardHeader>
                 <CardContent>
                     {isLoadingPatientHabits ? (
-                        <p>Loading...</p>
+                        <p className="text-sm text-muted-foreground">Loading...</p>
                     ) : isHabitsEditing ? (
                         <div className="space-y-4">
                             <div>
@@ -1075,21 +1077,21 @@ function AnamnesisSection({
                             <div className="flex items-start gap-4">
                                 <Wind className="w-5 h-5 text-muted-foreground mt-1" />
                                 <div>
-                                    <h4 className="font-semibold">{tHabits('smoking')}</h4>
+                                    <h4 className="text-sm font-semibold">{tHabits('smoking')}</h4>
                                     <p className="text-sm text-foreground/80">{habitsFormData.tabaquismo || tHabits('noData')}</p>
                                 </div>
                             </div>
                             <div className="flex items-start gap-4">
                                 <GlassWater className="w-5 h-5 text-muted-foreground mt-1" />
                                 <div>
-                                    <h4 className="font-semibold">{tHabits('alcohol')}</h4>
+                                    <h4 className="text-sm font-semibold">{tHabits('alcohol')}</h4>
                                     <p className="text-sm text-foreground/80">{habitsFormData.alcoholismo || tHabits('noData')}</p>
                                 </div>
                             </div>
                             <div className="flex items-start gap-4">
                                 <Smile className="w-5 h-5 text-muted-foreground mt-1" />
                                 <div>
-                                    <h4 className="font-semibold">{tHabits('bruxism')}</h4>
+                                    <h4 className="text-sm font-semibold">{tHabits('bruxism')}</h4>
                                     <p className="text-sm text-foreground/80">{habitsFormData.bruxismo || tHabits('noData')}</p>
                                 </div>
                             </div>
@@ -1609,9 +1611,10 @@ interface TreatmentTimelineProps {
     onOdontogramTriggerConsumed?: () => void;
     sessionPrefill?: SessionPrefillData | null;
     onRefreshAppointments?: () => void;
+    onEditAppointment?: (appointment: Appointment) => void;
 }
 
-function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAppointments = false, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, createOdontogramTrigger = 0, onOdontogramTriggerConsumed, sessionPrefill, onSessionCreated, editSessionId, onRefreshAppointments }: TreatmentTimelineProps) {
+function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAppointments = false, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, createOdontogramTrigger = 0, onOdontogramTriggerConsumed, sessionPrefill, onSessionCreated, editSessionId, onRefreshAppointments, onEditAppointment }: TreatmentTimelineProps) {
     const t = useTranslations('ClinicHistoryPage.timeline');
     const tDialog = useTranslations('ClinicHistoryPage.sessionDialog');
     const tPage = useTranslations('ClinicHistoryPage');
@@ -2295,6 +2298,7 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                 onStatusChange={handleApptStatusChange}
                 onRequestCustomCancellation={(appt) => setPendingCancellation(appt)}
                 onBillingSuccess={handleBillingSuccess}
+                onEdit={onEditAppointment ? (appt) => { setIsApptPanelOpen(false); onEditAppointment(appt); } : undefined}
             />
             <CancellationNoteDialog
                 open={!!pendingCancellation}

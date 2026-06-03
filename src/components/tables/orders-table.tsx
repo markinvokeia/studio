@@ -4,6 +4,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataCard } from '@/components/ui/data-card';
+import { DataListRow } from '@/components/ui/data-list-row';
+import { ViewModeToggle } from '@/components/ui/view-mode-toggle';
+import { useTableViewMode } from '@/hooks/use-table-view-mode';
 import { DataTable } from '@/components/ui/data-table';
 import { useNarrowMode } from '@/components/layout/two-panel-layout';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
@@ -71,7 +74,11 @@ interface OrdersTableProps {
 export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, onRefresh, isRefreshing, onCreate, rowSelection, setRowSelection, columnTranslations, columnsToHide = [], isSales = true, className, isCompact = false, title, description, standalone = false }: OrdersTableProps) {
   const { isNarrow: panelNarrow } = useNarrowMode();
   const viewportNarrow = useViewportNarrow();
-  const isNarrow = isCompact || panelNarrow || viewportNarrow;
+  const [viewMode, setViewMode] = useTableViewMode('orders', 'table');
+  const showToggle = !viewportNarrow;
+  const useListView = showToggle && viewMode === 'list';
+  const isNarrow = panelNarrow || viewportNarrow || useListView;
+  const viewToggleEl = showToggle ? <ViewModeToggle value={viewMode} onChange={setViewMode} /> : undefined;
   const t = useTranslations();
   const tOrderColumns = useTranslations('OrderColumns');
   const tUserColumns = useTranslations('UserColumns');
@@ -304,9 +311,10 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
             onCreate={onCreate}
             rowSelection={rowSelection}
             setRowSelection={setRowSelection}
-            customToolbar={standalone ? (table) => (
+            customToolbar={standalone ? (table, pagination) => (
               <DataTableAdvancedToolbar
                 table={table}
+                endSlot={pagination}
                 isCompact={isCompact}
                 filterPlaceholder={tOrdersPage('filterPlaceholder')}
                 searchQuery={(table.getState().columnFilters.find((f: any) => f.id === filterColumnId)?.value as string) || ''}
@@ -330,6 +338,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
                   status: tUserColumns('status'),
                   createdAt: tOrderColumns('createdAt'),
                 }}
+                viewControls={viewToggleEl}
               />
             ) : undefined}
             columnTranslations={{
@@ -341,7 +350,23 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
               createdAt: tOrderColumns('createdAt'),
             }}
           isNarrow={isNarrow}
-          renderCard={(row: Order, _isSelected: boolean) => (
+          viewControls={viewToggleEl}
+          cardListClassName={useListView ? 'gap-0 px-0 py-0 rounded-md border' : undefined}
+          renderCard={(row: Order, _isSelected: boolean) => useListView ? (
+            <DataListRow
+              isSelected={_isSelected}
+              onClick={() => { if (onRowSelectionChange) onRowSelectionChange([row]); }}
+              title={row.doc_no || `ORD-${row.id}`}
+              badge={row.status ? <Badge variant="outline" className="capitalize text-[10px] font-normal">{row.status}</Badge> : undefined}
+              meta={(
+                <>
+                  {row.user_name ? <span>{row.user_name}</span> : null}
+                  {row.quote_doc_no ? <span>{tQuoteColumns('quoteId')}: {row.quote_doc_no}</span> : null}
+                  {row.createdAt ? <span>{formatDateTime(row.createdAt)}</span> : null}
+                </>
+              )}
+            />
+          ) : (
             <DataCard isSelected={_isSelected}
               title={row.doc_no || `ORD-${row.id}`}
               subtitle={[row.user_name, row.status].filter(Boolean).join(' · ')}

@@ -153,7 +153,7 @@ export default function CommunicationTemplatesPage() {
     const [templates, setTemplates] = React.useState<CommunicationTemplate[]>([]);
     const [categories, setCategories] = React.useState<AlertCategory[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
+    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [templatesPagination, setTemplatesPagination] = React.useState({ total: 0, page: 1, limit: 10 });
 
@@ -416,6 +416,7 @@ export default function CommunicationTemplatesPage() {
                             />
                         )}
                         pageCount={Math.ceil(templatesPagination.total / pagination.pageSize)}
+                        rowCount={templatesPagination.total}
                         pagination={pagination}
                         onPaginationChange={setPagination}
                         columnFilters={columnFilters}

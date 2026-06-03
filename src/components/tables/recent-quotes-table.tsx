@@ -26,7 +26,11 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { API_ROUTES } from '@/constants/routes';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { useToast } from '@/hooks/use-toast';
+import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { DataCard } from '@/components/ui/data-card';
+import { DataListRow } from '@/components/ui/data-list-row';
+import { ViewModeToggle } from '@/components/ui/view-mode-toggle';
+import { useTableViewMode } from '@/hooks/use-table-view-mode';
 import { useNarrowMode } from '@/components/layout/two-panel-layout';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { Quote } from '@/lib/types';
@@ -427,9 +431,14 @@ export function RecentQuotesTable({
 }: RecentQuotesTableProps) {
   const { isNarrow: panelNarrow } = useNarrowMode();
   const viewportNarrow = useViewportNarrow();
-  const isNarrow = isCompact || panelNarrow || viewportNarrow;
+  const [viewMode, setViewMode] = useTableViewMode('quotes', 'table');
+  const showToggle = !isCompact && !panelNarrow && !viewportNarrow;
+  const useListView = showToggle && viewMode === 'list';
+  const isNarrow = isCompact || panelNarrow || viewportNarrow || useListView;
+  const viewToggleEl = showToggle ? <ViewModeToggle value={viewMode} onChange={setViewMode} /> : undefined;
   const t = useTranslations();
   const { toast } = useToast();
+  const { printQuote } = usePrintDocument();
   const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
   const [selectedQuoteForEmail, setSelectedQuoteForEmail] = React.useState<Quote | null>(null);
   const [emailRecipients, setEmailRecipients] = React.useState('');
@@ -439,37 +448,9 @@ export function RecentQuotesTable({
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 
-  const handlePrintQuote = React.useCallback(async (quote: Quote) => {
-    const fileName = getDocumentFileName(quote, 'quote');
-    toast({
-      title: t('QuotesPage.generatingPdf'),
-      description: t('QuotesPage.pleaseWait', { id: fileName }),
-    });
-
-    try {
-      const blob = await api.getBlob(API_ROUTES.PURCHASES.QUOTES_PRINT, { quote_id: quote.id.toString() });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${fileName}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      a.remove();
-
-      toast({
-        title: t('QuotesPage.downloadStarted'),
-        description: t('QuotesPage.pdfDownloading', { id: fileName }),
-      });
-
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: t('QuotesPage.printError'),
-        description: error instanceof Error ? error.message : t('QuotesPage.couldNotPrint'),
-      });
-    }
-  }, [t, toast]);
+  const handlePrintQuote = React.useCallback((quote: Quote) => {
+    printQuote(quote, isSales);
+  }, [printQuote, isSales]);
 
   const handleSendEmailClick = (quote: Quote) => {
     setSelectedQuoteForEmail(quote);
@@ -669,6 +650,8 @@ export function RecentQuotesTable({
                 onRefresh={onRefresh}
                 isRefreshing={isRefreshing}
                 columnTranslations={columnTranslations}
+                endSlot={<DataTablePagination table={table} />}
+                viewControls={viewToggleEl}
               />
             ) : (
               <DataTableToolbar
@@ -679,61 +662,86 @@ export function RecentQuotesTable({
                 isRefreshing={isRefreshing}
                 onCreate={onCreate}
                 columnTranslations={columnTranslations}
+                endSlot={<DataTablePagination table={table} />}
+                viewControls={viewToggleEl}
               />
             )}
             {isNarrow ? (
               <div className="flex flex-1 min-h-0 flex-col">
                 <div
                   data-testid="card-list"
-                  className="flex flex-col gap-2 overflow-auto flex-1 min-h-0 px-0.5 py-0.5"
+                  className={cn(
+                    "flex flex-col overflow-auto flex-1 min-h-0",
+                    useListView ? "rounded-md border" : "gap-2 px-0.5 py-0.5",
+                  )}
                 >
                   {table.getRowModel().rows.length > 0
-                    ? table.getRowModel().rows.map((row) => (
-                      <div key={row.id} data-testid="list-item">
-                        <DataCard
-                          key={row.id}
-                          title={row.original.doc_no || String(row.original.id)}
-                          subtitle={[row.original.user_name, formatDisplayDate(row.original.createdAt), row.original.status].filter(Boolean).join(' · ')}
-                          isSelected={row.getIsSelected()}
-                          showArrow={!!(onRowClick || onRowSelectionChange)}
-                          fields={[
-                            { label: t('QuoteColumns.total'), value: formatCurrency(row.original.total, row.original.currency), primary: true },
-                            { label: t('QuoteColumns.amountInvoiced'), value: formatCurrency(row.original.amount_invoiced, row.original.currency) },
-                            { label: t('QuoteColumns.pendingInvoice'), value: formatCurrency(row.original.amount_pending_invoice, row.original.currency) },
-                            { label: t('QuoteColumns.amountPaid'), value: formatCurrency(row.original.amount_paid, row.original.currency) },
-                            { label: t('QuoteColumns.pendingPayment'), value: formatCurrency(row.original.amount_pending_payment, row.original.currency) },
-                          ]}
-                          actions={!isCompact && !viewportNarrow ? (
-                            <QuoteActions
-                              quote={row.original}
-                              onEdit={onEdit}
-                              onDelete={onDelete}
-                              onQuoteActionRequest={onQuoteActionRequest}
-                              onPrint={handlePrintQuote}
-                              onSendEmail={handleSendEmailClick}
-                              {...actionPermissions}
-                            />
-                          ) : undefined}
-                          onClick={() => {
-                            table.toggleAllPageRowsSelected(false);
-                            row.toggleSelected(true);
-                            onRowSelectionChange?.([row.original]);
-                            onRowClick?.(row.original);
-                          }}
+                    ? table.getRowModel().rows.map((row) => {
+                      const onRowActivate = () => {
+                        table.toggleAllPageRowsSelected(false);
+                        row.toggleSelected(true);
+                        onRowSelectionChange?.([row.original]);
+                        onRowClick?.(row.original);
+                      };
+                      const quoteActions = !isCompact && !viewportNarrow ? (
+                        <QuoteActions
+                          quote={row.original}
+                          onEdit={onEdit}
+                          onDelete={onDelete}
+                          onQuoteActionRequest={onQuoteActionRequest}
+                          onPrint={handlePrintQuote}
+                          onSendEmail={handleSendEmailClick}
+                          {...actionPermissions}
                         />
+                      ) : undefined;
+                      return (
+                      <div key={row.id} data-testid="list-item">
+                        {useListView ? (
+                          <DataListRow
+                            isSelected={row.getIsSelected()}
+                            onClick={onRowActivate}
+                            title={row.original.doc_no || String(row.original.id)}
+                            badge={row.original.status ? <Badge variant="outline" className="capitalize text-[10px] font-normal">{row.original.status}</Badge> : undefined}
+                            meta={(
+                              <>
+                                {row.original.user_name ? <span>{row.original.user_name}</span> : null}
+                                <span>{formatDisplayDate(row.original.createdAt)}</span>
+                                <span className="font-medium text-foreground">{t('QuoteColumns.total')}: {formatCurrency(row.original.total, row.original.currency)}</span>
+                                <span>{t('QuoteColumns.amountInvoiced')}: {formatCurrency(row.original.amount_invoiced, row.original.currency)}</span>
+                                <span>{t('QuoteColumns.amountPaid')}: {formatCurrency(row.original.amount_paid, row.original.currency)}</span>
+                                <span>{t('QuoteColumns.pendingPayment')}: {formatCurrency(row.original.amount_pending_payment, row.original.currency)}</span>
+                              </>
+                            )}
+                            actions={quoteActions}
+                          />
+                        ) : (
+                          <DataCard
+                            title={row.original.doc_no || String(row.original.id)}
+                            subtitle={[row.original.user_name, formatDisplayDate(row.original.createdAt), row.original.status].filter(Boolean).join(' · ')}
+                            isSelected={row.getIsSelected()}
+                            showArrow={!!(onRowClick || onRowSelectionChange)}
+                            fields={[
+                              { label: t('QuoteColumns.total'), value: formatCurrency(row.original.total, row.original.currency), primary: true },
+                              { label: t('QuoteColumns.amountInvoiced'), value: formatCurrency(row.original.amount_invoiced, row.original.currency) },
+                              { label: t('QuoteColumns.pendingInvoice'), value: formatCurrency(row.original.amount_pending_invoice, row.original.currency) },
+                              { label: t('QuoteColumns.amountPaid'), value: formatCurrency(row.original.amount_paid, row.original.currency) },
+                              { label: t('QuoteColumns.pendingPayment'), value: formatCurrency(row.original.amount_pending_payment, row.original.currency) },
+                            ]}
+                            actions={quoteActions}
+                            onClick={onRowActivate}
+                          />
+                        )}
                       </div>
-                      ))
+                      );
+                      })
                     : <div className="py-8 text-center text-sm text-muted-foreground">{t('General.noResults')}</div>
                   }
-                </div>
-                <div className="flex-none px-0.5 pb-0.5 pt-2">
-                  <DataTablePagination table={table} />
                 </div>
               </div>
             ) : (
               <>
                 <div className="rounded-md border overflow-auto flex-1 min-h-0 relative">
-                  <table className={cn("w-full caption-bottom text-sm")}>
+                  <table className={cn("w-full caption-bottom text-[length:var(--tbl-font)]")}>
                     <TableHeader className="sticky top-0 z-10 bg-card shadow-[0_1px_0_0_hsl(var(--border))]">
                       {table.getHeaderGroups().map((headerGroup) => (
                         <TableRow key={headerGroup.id}>
@@ -789,9 +797,6 @@ export function RecentQuotesTable({
                       )}
                     </TableBody>
                   </table>
-                </div>
-                <div className="flex-none">
-                  <DataTablePagination table={table} />
                 </div>
               </>
             )}

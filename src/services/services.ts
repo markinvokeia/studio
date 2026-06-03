@@ -80,6 +80,17 @@ export async function getSalesServices(params: Omit<GetServicesParams, 'is_sales
 }
 
 /**
+ * Obtiene los servicios de venta que corresponden a los IDs indicados.
+ * Útil para resolver IDs detectados por la IA sin depender del catálogo en memoria.
+ */
+export async function fetchServicesByIds(ids: string[]): Promise<Service[]> {
+    if (ids.length === 0) return [];
+    const { items } = await getSalesServices({ limit: 500 });
+    const idSet = new Set(ids.map(String));
+    return items.filter((s) => idSet.has(String(s.id)));
+}
+
+/**
  * Obtiene servicios de compra (proveedores)
  */
 export async function getPurchaseServices(params: Omit<GetServicesParams, 'is_sales'> = {}): Promise<ServicesResponse> {

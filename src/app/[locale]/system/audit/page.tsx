@@ -65,7 +65,7 @@ export default function AuditLogPage() {
     const [data, setData] = React.useState<AuditLog[]>([]);
     const [logCount, setLogCount] = React.useState(0);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
+    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({ id: false });
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedLog, setSelectedLog] = React.useState<AuditLog | null>(null);
@@ -127,6 +127,7 @@ export default function AuditLogPage() {
                             />
                         )}
                         pageCount={Math.ceil(logCount / pagination.pageSize)}
+                        rowCount={logCount}
                         pagination={pagination}
                         onPaginationChange={setPagination}
                         manualPagination={true}

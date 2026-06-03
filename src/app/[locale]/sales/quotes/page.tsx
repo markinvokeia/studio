@@ -50,6 +50,7 @@ import { SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { usePermissions } from '@/hooks/usePermissions';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
@@ -605,6 +606,7 @@ export default function QuotesPage() {
     const viewportNarrow = useViewportNarrow();
     const { hasPermission } = usePermissions();
     const { open: openBillingWizard } = useBillingWizard();
+    const { printQuote } = usePrintDocument();
 
     // Permission checks for UI elements (used in this page and child components)
     const canViewList = hasPermission(SALES_PERMISSIONS.QUOTES_VIEW_LIST);
@@ -1199,37 +1201,9 @@ export default function QuotesPage() {
         setIsRightExpanded(false);
     };
 
-    const handlePrintQuote = React.useCallback(async (quote: Quote) => {
-        const fileName = getDocumentFileName(quote, 'quote');
-
-        toast({
-            title: t('generatingPdf'),
-            description: t('pleaseWait', { id: fileName }),
-        });
-
-        try {
-            const blob = await api.getBlob(API_ROUTES.PURCHASES.QUOTES_PRINT, { quote_id: quote.id.toString() });
-            const url = window.URL.createObjectURL(blob);
-            const anchor = document.createElement('a');
-            anchor.href = url;
-            anchor.download = `${fileName}.pdf`;
-            document.body.appendChild(anchor);
-            anchor.click();
-            window.URL.revokeObjectURL(url);
-            anchor.remove();
-
-            toast({
-                title: t('downloadStarted'),
-                description: t('pdfDownloading', { id: fileName }),
-            });
-        } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: t('printError'),
-                description: error instanceof Error ? error.message : t('couldNotPrint'),
-            });
-        }
-    }, [t, toast]);
+    const handlePrintQuote = React.useCallback((quote: Quote) => {
+        printQuote(quote, true);
+    }, [printQuote]);
 
     const handleSendEmailClick = React.useCallback((quote: Quote) => {
         setSelectedQuoteForEmail(quote);
@@ -1585,6 +1559,15 @@ export default function QuotesPage() {
                                         </Button>
                                     )}
                                 </div>
+                                {selectedQuote.status?.toLowerCase() === 'rejected' && selectedQuote.notes && (
+                                    <div className="mx-4 mt-3 flex gap-2.5 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2.5">
+                                        <XCircle className="h-4 w-4 shrink-0 text-destructive mt-0.5" />
+                                        <div>
+                                            <p className="text-xs font-medium text-destructive">{t('rejectedBanner.title')}</p>
+                                            <p className="text-xs text-muted-foreground mt-0.5">{selectedQuote.notes}</p>
+                                        </div>
+                                    </div>
+                                )}
                                 <CardContent className="flex-1 flex flex-col overflow-hidden p-0 min-h-0 bg-card">
                                     <VerticalTabStrip
                                         tabs={quoteTabs}

@@ -26,6 +26,7 @@ import { UserLogs } from '@/components/users/user-logs';
 import { UserRoles } from '@/components/users/user-roles';
 import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
+import { useLicenseStore } from '@/stores/license-store';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -196,6 +197,7 @@ function SystemUsersTableNarrow({ columns, users, selectedUser, onRowSelectionCh
       rowSelection={rowSelection}
       setRowSelection={setRowSelection}
       pageCount={Math.ceil(userCount / pagination.pageSize)}
+      rowCount={userCount}
       pagination={pagination}
       onPaginationChange={setPagination}
       manualPagination={true}
@@ -211,9 +213,10 @@ function SystemUsersTableNarrow({ columns, users, selectedUser, onRowSelectionCh
           onClick={() => onRowSelectionChange([row])}
         />
       )}
-      customToolbar={(table: any) => (
+      customToolbar={(table: any, pagination: React.ReactNode) => (
         <DataTableAdvancedToolbar
           table={table}
+          endSlot={pagination}
           filterPlaceholder={t('SystemUsersPage.filterPlaceholder')}
           searchQuery={(columnFilters.find((f: any) => f.id === 'email')?.value as string) || ''}
           onSearchChange={(value: string) => {
@@ -266,7 +269,7 @@ export default function SystemUsersPage() {
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
-    pageSize: 10,
+    pageSize: 25,
   });
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [showOnlyActive, setShowOnlyActive] = React.useState(true);
@@ -479,6 +482,17 @@ export default function SystemUsersPage() {
   const onSubmit = async (data: UserFormValues) => {
     setSubmissionError(null);
     form.clearErrors();
+
+    if (!data.id) {
+      const { license } = useLicenseStore.getState();
+      if (license) {
+        const maxSystemUsers = license.maxReceptionists + license.maxAdmins + license.maxSuperAdmins;
+        if (userCount >= maxSystemUsers) {
+          setSubmissionError(t('License.enforcement.userLimitReached', { max: maxSystemUsers }));
+          return;
+        }
+      }
+    }
 
     try {
       const response = await upsertUser(data);

@@ -6,19 +6,19 @@ This file contains guidelines and conventions for agentic coding agents working 
 
 ### Development
 
-- `npm run dev` - Start development server on 0.0.0.0:3000
-- `npm run genkit:dev` - Start Genkit AI development server
-- `npm run genkit:watch` - Start Genkit with file watching
+- `pnpm dev` - Start development server on 0.0.0.0:3000
+- `pnpm genkit:dev` - Start Genkit AI development server
+- `pnpm genkit:watch` - Start Genkit with file watching
 
 ### Production
 
-- `npm run build` - Build for production
-- `npm run start` - Start production server
+- `pnpm build` - Build for production
+- `pnpm start` - Start production server
 
 ### Code Quality
 
-- `npm run lint` - Run ESLint for code linting (Next.js built-in)
-- `npm run typecheck` - Run TypeScript type checking without emitting files
+- `pnpm lint` - Run ESLint for code linting (Next.js built-in)
+- `pnpm typecheck` - Run TypeScript type checking without emitting files
 
 ## Tech Stack & Architecture
 
@@ -124,14 +124,14 @@ Always use React Hook Form with Zod validation. Define schemas and use `z.infer<
 
 ### Before Making Changes
 
-1. Run `npm run typecheck` to ensure type safety
-2. Run `npm run lint` to check code style
+1. Run `pnpm typecheck` to ensure type safety
+2. Run `pnpm lint` to check code style
 3. Review existing components in similar feature directories
 4. Check `@/lib/types.ts` for relevant type definitions
 
 ### After Making Changes
 
-1. **CRITICAL:** Run `npm run typecheck && npm run lint` to verify code quality - never commit without this
+1. **CRITICAL:** Run `pnpm typecheck && pnpm lint` to verify code quality - never commit without this
 2. Test functionality manually in development server
 3. **MANDATORY:** Add i18n keys and translations for all supported languages for any new user-facing text
 4. Verify responsive design across different screen sizes

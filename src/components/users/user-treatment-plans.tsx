@@ -94,6 +94,7 @@ interface UserTreatmentPlansProps {
     onViewAppointment?: (appointmentId: string, scheduledDate?: string, serviceId?: string, serviceName?: string) => void;
     onViewSession?: (sesionId: number) => void;
     onStepCompleted?: (data: SessionPrefillData) => void;
+    onContact?: () => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -1816,6 +1817,7 @@ function ActivePlanCard({
     onViewAppointment,
     onViewSession,
     onStepCompleted,
+    onContact,
     t,
 }: {
     sequence: TreatmentSequence;
@@ -1825,6 +1827,7 @@ function ActivePlanCard({
     onViewAppointment?: (appointmentId: string, scheduledDate?: string, serviceId?: string, serviceName?: string) => void;
     onViewSession?: (sesionId: number) => void;
     onStepCompleted?: (data: SessionPrefillData) => void;
+    onContact?: () => void;
     t: ReturnType<typeof useTranslations>;
 }) {
     const [expanded, setExpanded] = React.useState(false);
@@ -1897,7 +1900,7 @@ function ActivePlanCard({
                             {missedDaysAgo != null && <> — {t('missedDaysAgo', { days: missedDaysAgo })}</>}
                         </p>
                     </div>
-                    <Button size="sm" variant="destructive" className="shrink-0 h-7 text-xs gap-1.5">
+                    <Button size="sm" variant="destructive" className="shrink-0 h-7 text-xs gap-1.5" onClick={onContact}>
                         <Phone className="h-3 w-3" />
                         {t('contact')}
                     </Button>
@@ -1991,7 +1994,7 @@ function CompactSequenceCard({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function UserTreatmentPlans({ userId, onCreateAppointment, onViewAppointment, onViewSession, onStepCompleted }: UserTreatmentPlansProps) {
+export function UserTreatmentPlans({ userId, onCreateAppointment, onViewAppointment, onViewSession, onStepCompleted, onContact }: UserTreatmentPlansProps) {
     const t = useTranslations('TreatmentPlans');
     const [sequences, setSequences] = React.useState<TreatmentSequence[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
@@ -2056,6 +2059,7 @@ export function UserTreatmentPlans({ userId, onCreateAppointment, onViewAppointm
                     onViewAppointment={onViewAppointment}
                     onViewSession={onViewSession}
                     onStepCompleted={onStepCompleted}
+                    onContact={onContact}
                     t={t}
                 />
             ))}

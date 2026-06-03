@@ -112,7 +112,7 @@ export default function MedicationsPage() {
     const [medications, setMedications] = React.useState<Medication[]>([]);
     const [totalItems, setTotalItems] = React.useState(0);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
+    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedMedication, setSelectedMedication] = React.useState<Medication | null>(null);
@@ -246,6 +246,7 @@ export default function MedicationsPage() {
                     onRowSelectionChange={handleRowSelection}
                     isNarrow={isNarrow || !!selectedMedication}
                     pageCount={totalItems > 0 ? Math.ceil(totalItems / pagination.pageSize) : 0}
+                    rowCount={totalItems}
                     pagination={pagination}
                     onPaginationChange={setPagination}
                     manualPagination={true}

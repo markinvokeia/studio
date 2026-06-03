@@ -468,6 +468,18 @@ export function AppointmentPanel({
 
           <div className="flex min-h-0 flex-1 overflow-hidden">
             <div className="min-w-0 flex-1 overflow-auto px-5 py-4">
+              <div className="mb-4 sm:hidden">
+                <AppointmentStatusRail
+                  variant="dropdown"
+                  appointment={appointment}
+                  onChange={(status, extra) => onStatusChange(appointment, status, extra)}
+                  onRequestCustomCancellation={
+                    onRequestCustomCancellation
+                      ? () => onRequestCustomCancellation(appointment)
+                      : undefined
+                  }
+                />
+              </div>
               {isCancelled && (
                 <section className="mb-4 rounded-xl border border-destructive/20 bg-destructive/5 p-4">
                   <div className="flex items-start gap-3">
@@ -779,11 +791,11 @@ export function AppointmentPanel({
           </div>
 
           <div className="flex-none border-t border-border bg-muted/30 px-5 py-4">
-            <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
               {appointment.patientId && (
                 <Button
                   variant="default"
-                  className="gap-2"
+                  className="w-full gap-2 sm:w-auto"
                   onClick={handleOpenBillingWizard}
                   disabled={isBillingLoading}
                 >
@@ -793,12 +805,12 @@ export function AppointmentPanel({
                   Cobro Rápido
                 </Button>
               )}
-              <div className="flex items-center gap-3 ml-auto">
+              <div className="flex items-center gap-2 sm:ml-auto sm:gap-3">
                 {onReschedule && (
                   <Button
                     size="lg"
                     variant="outline"
-                    className="gap-2"
+                    className="flex-1 gap-2 sm:flex-none"
                     disabled={!canReschedule(appointment.status)}
                     title={!canReschedule(appointment.status)
                       ? tReschedule('blockedTooltip', { status: tStatus(appointment.status) })
@@ -812,7 +824,7 @@ export function AppointmentPanel({
                 {onEdit && (
                   <Button
                     size="lg"
-                    className="gap-2"
+                    className="flex-1 gap-2 sm:flex-none"
                     onClick={() => { onEdit(appointment); onOpenChange(false); }}
                   >
                     <Edit className="h-4 w-4" />

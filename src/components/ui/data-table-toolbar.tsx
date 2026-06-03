@@ -35,6 +35,12 @@ interface DataTableToolbarProps<TData> {
   onFilterChange?: (value: string) => void;
   filterValue?: string;
   createButtonIconOnly?: boolean;
+  /** Rendered at the end of the secondary action group (e.g. pagination); wraps with it when narrow */
+  endSlot?: React.ReactNode;
+  /** Action buttons rendered on the primary line (next to search) so they don't wrap */
+  primaryActions?: React.ReactNode;
+  /** View controls (e.g. a view-mode toggle) rendered after pagination, alongside refresh/columns */
+  viewControls?: React.ReactNode;
 }
 
 export function DataTableToolbar<TData>({
@@ -52,14 +58,19 @@ export function DataTableToolbar<TData>({
   onFilterChange,
   filterValue,
   createButtonIconOnly,
+  endSlot,
+  primaryActions,
+  viewControls,
 }: DataTableToolbarProps<TData>) {
   const t = useTranslations('DataTableToolbar');
   return (
     <div className="flex flex-col gap-2">
-      {/* Row 1: Search + Create + Refresh */}
-      <div className="flex items-center gap-2">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <div className="relative flex items-center flex-1 min-w-0">
+      {/* Row 1: when narrow, the secondary group (filter/refresh/columns + endSlot) wraps below,
+          keeping search + create on the first line. */}
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Primary group: search + create — grows; the search keeps a usable min width */}
+        <div className="flex items-center gap-2 flex-1">
+          <div className="relative flex items-center flex-1 min-w-[12rem]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder={filterPlaceholder}
@@ -99,29 +110,6 @@ export function DataTableToolbar<TData>({
               </Button>
             )}
           </div>
-          {/* Filter select — hidden on mobile */}
-          {filterOptions && onFilterChange && (
-            <div className="hidden sm:flex">
-              <Select value={filterValue || 'all'} onValueChange={onFilterChange}>
-                <SelectTrigger className="h-9 w-[150px]">
-                  <div className="flex items-center">
-                    <Filter className="mr-2 h-4 w-4" />
-                    <SelectValue placeholder={t('filter')} />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t('all')}</SelectItem>
-                  {filterOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
           {onCreate && (
             <div className="shrink-0">
               <TooltipProvider>
@@ -152,8 +140,36 @@ export function DataTableToolbar<TData>({
               </TooltipProvider>
             </div>
           )}
-          {/* Extra buttons — desktop only (inline) */}
+          {/* Primary action buttons — stay on the first line next to search */}
+          {primaryActions && <div className="shrink-0 flex items-center gap-2">{primaryActions}</div>}
+        </div>
+        {/* Secondary group: filter + endSlot + extra + refresh + columns — wraps below when narrow */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Filter select — hidden on mobile */}
+          {filterOptions && onFilterChange && (
+            <div className="hidden sm:flex">
+              <Select value={filterValue || 'all'} onValueChange={onFilterChange}>
+                <SelectTrigger className="h-9 w-[150px]">
+                  <div className="flex items-center">
+                    <Filter className="mr-2 h-4 w-4" />
+                    <SelectValue placeholder={t('filter')} />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('all')}</SelectItem>
+                  {filterOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {/* Action buttons — desktop only (inline); before pagination */}
           {extraButtons && <div className="hidden sm:flex items-center gap-2">{extraButtons}</div>}
+          {/* Pagination — after the action buttons, before the control buttons */}
+          {endSlot}
           {onRefresh && (
             <Button
               variant="outline"
@@ -166,6 +182,8 @@ export function DataTableToolbar<TData>({
               <span className="sr-only">{t('refresh')}</span>
             </Button>
           )}
+          {/* View controls (e.g. view-mode toggle) — desktop only */}
+          {viewControls && <div className="hidden sm:flex items-center gap-2">{viewControls}</div>}
           {/* Column toggle — desktop only */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
