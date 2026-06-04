@@ -1969,7 +1969,9 @@
       "notesPlaceholder": "Agregue notas adicionales aquí...",
       "isHistorical": "Histórico",
       "isHistoricalWarning": "Este pago no se incluirá en el cierre de caja",
-      "isHistoricalDescription": "Se registrará como un pago del pasado y no afectará los cálculos de caja."
+      "isHistoricalDescription": "Se registrará como un pago del pasado y no afectará los cálculos de caja.",
+      "isRefund": "Devolución directa al cliente",
+      "isRefundDescription": "Marque esta opción si el pago de la nota de crédito corresponde a una devolución de dinero directa al cliente."
     },
     "status": {
       "paid": "Pagado",

@@ -394,6 +394,7 @@ export const API_ROUTES = {
         KPIS:                 '/reports/kpis',
         USERS_BY_ROLE:        '/reports/users-by-role',
     },
+    SERVICE: '/service',
     LICENSE: {
         GET:  '/license',
         SAVE: '/license',

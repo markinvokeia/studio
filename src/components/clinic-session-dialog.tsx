@@ -312,7 +312,13 @@ export function ClinicSessionDialog({
             setDoctorError(false);
             setShouldDischargePatient(false);
             setDischargeDate('');
-            setAiTreatments(existingSession?.tratamientos ?? []);
+            const rawTreatments = existingSession?.tratamientos ?? [];
+            setAiTreatments(rawTreatments);
+            if (rawTreatments.length > 0) {
+                enrichTreatmentsWithServiceNames(rawTreatments).then(enriched => {
+                    setAiTreatments(enriched);
+                });
+            }
             setIsFetchingProcedure(false);
             setIsFetchingPlan(false);
             setIsProcedureDebouncing(false);
@@ -429,6 +435,28 @@ export function ClinicSessionDialog({
         } finally {
             setIsLoadingServices(false);
         }
+    };
+
+    const enrichTreatmentsWithServiceNames = async (
+        inputTreatments: TreatmentDetail[]
+    ): Promise<TreatmentDetail[]> => {
+        return Promise.all(
+            inputTreatments.map(async (treatment) => {
+                if (treatment.service_name) return treatment;
+                const id = treatment.service_id
+                    ?? (treatment.service_catalog_id != null ? String(treatment.service_catalog_id) : null);
+                if (!id) return treatment;
+                try {
+                    const data = await api.get(API_ROUTES.SERVICE, { id });
+                    const item = Array.isArray(data) ? data[0] : data;
+                    const name = item?.name || item?.nombre || item?.service_name;
+                    if (name) return { ...treatment, service_name: name };
+                } catch {
+                    // fall back to descripcion silently
+                }
+                return treatment;
+            })
+        );
     };
 
     const handleSubmit = async (e: React.FormEvent) => {

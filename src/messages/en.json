@@ -1969,7 +1969,9 @@
       "notesPlaceholder": "Add any additional notes here...",
       "isHistorical": "Historical",
       "isHistoricalWarning": "This payment will not be included in the cash closing",
-      "isHistoricalDescription": "It will be recorded as a past payment and will not affect cash calculations."
+      "isHistoricalDescription": "It will be recorded as a past payment and will not affect cash calculations.",
+      "isRefund": "Direct refund to client",
+      "isRefundDescription": "Check this option if the credit note payment corresponds to a direct money refund to the client."
     },
     "status": {
       "paid": "Paid",
