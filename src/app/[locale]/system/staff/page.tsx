@@ -42,7 +42,7 @@ import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, UserPlus, Users, X } from 'lucide-react';
+import { AlertTriangle, KeyRound, UserPlus, Users, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -411,6 +411,7 @@ export default function StaffPage() {
   // Detail panel state
   const [detailError, setDetailError] = React.useState<string | null>(null);
   const [isSavingDetail, setIsSavingDetail] = React.useState(false);
+  const [hasPasswordPermission, setHasPasswordPermission] = React.useState(false);
 
   // Table state
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -461,6 +462,7 @@ export default function StaffPage() {
   const canCreate = hasPermission(SYSTEM_PERMISSIONS.USERS_CREATE);
   const canUpdate = hasPermission(SYSTEM_PERMISSIONS.USERS_UPDATE);
   const canToggleStatus = hasPermission(SYSTEM_PERMISSIONS.USERS_TOGGLE_STATUS);
+  const canSetInitialPassword = hasPermission(SYSTEM_PERMISSIONS.USERS_SET_INITIAL_PASSWORD);
   const canViewRoles = hasPermission(SYSTEM_PERMISSIONS.USERS_VIEW_ROLES);
   const canAssignRole = hasPermission(SYSTEM_PERMISSIONS.USERS_ASSIGN_ROLE);
   const canRemoveRole = hasPermission(SYSTEM_PERMISSIONS.USERS_REMOVE_ROLE);
@@ -541,6 +543,42 @@ export default function StaffPage() {
       setSelectedUserRoles([]);
     }
   }, [selectedUser, loadUserRoles]);
+
+  React.useEffect(() => {
+    const checkFirstPasswordRequirements = async () => {
+      if (!selectedUser || !canSetInitialPassword) {
+        setHasPasswordPermission(false);
+        return;
+      }
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setHasPasswordPermission(false);
+        return;
+      }
+      try {
+        await api.get(API_ROUTES.SYSTEM.API_AUTH_CHECK_FIRST_PASSWORD, { user_id: selectedUser.id });
+        setHasPasswordPermission(true);
+      } catch {
+        setHasPasswordPermission(false);
+      }
+    };
+
+    if (selectedUser) {
+      checkFirstPasswordRequirements();
+    } else {
+      setHasPasswordPermission(false);
+    }
+  }, [selectedUser, canSetInitialPassword]);
+
+  const handleSendInitialPassword = async () => {
+    if (!selectedUser || !canSetInitialPassword) return;
+    try {
+      await api.post(API_ROUTES.SYSTEM.API_AUTH_FIRST_TIME_PASSWORD_TOKEN, { user_id: selectedUser.id });
+      toast({ title: t('SystemUsersPage.initialPasswordSentTitle'), description: t('SystemUsersPage.initialPasswordSentDescription') });
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : t('SystemUsersPage.initialPasswordError') });
+    }
+  };
 
   // ---------------------------------------------------------------------------
   // Handlers
@@ -886,14 +924,22 @@ export default function StaffPage() {
                       </CardTitle>
                     </div>
                   </div>
-                  <Button
-                    variant="destructive-ghost"
-                    size="icon"
-                    onClick={handleCloseDetails}
-                  >
-                    <X className="h-5 w-5" />
-                    <span className="sr-only">{t('SystemUsersPage.close')}</span>
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {hasPasswordPermission && (
+                      <Button variant="outline" size="sm" onClick={handleSendInitialPassword}>
+                        <KeyRound className="mr-2 h-4 w-4" />
+                        {t('SystemUsersPage.setInitialPassword')}
+                      </Button>
+                    )}
+                    <Button
+                      variant="destructive-ghost"
+                      size="icon"
+                      onClick={handleCloseDetails}
+                    >
+                      <X className="h-5 w-5" />
+                      <span className="sr-only">{t('SystemUsersPage.close')}</span>
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-4 pt-0">
                   <Tabs

@@ -3581,6 +3581,9 @@
       "editSuccessDescription": "El usuario se ha actualizado exitosamente"
     },
     "setInitialPassword": "Establecer Contraseña Inicial",
+    "initialPasswordSentTitle": "Correo enviado",
+    "initialPasswordSentDescription": "Se ha enviado un correo con el enlace para establecer la contraseña.",
+    "initialPasswordError": "Ocurrió un error inesperado. Intente de nuevo.",
     "tabs": {
       "roles": "Roles",
       "quotes": "Presupuestos",

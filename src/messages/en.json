@@ -3604,6 +3604,9 @@
       "editSuccessDescription": "The user has been updated successfully"
     },
     "setInitialPassword": "Set Initial Password",
+    "initialPasswordSentTitle": "Email sent",
+    "initialPasswordSentDescription": "An email with the password setup link has been sent.",
+    "initialPasswordError": "An unexpected error occurred. Please try again.",
     "tabs": {
       "roles": "Roles",
       "quotes": "Quotes",

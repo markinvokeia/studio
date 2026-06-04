@@ -29,6 +29,7 @@ import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { usePaymentsPagination } from '@/hooks/use-payments-pagination';
 import { useToast } from '@/hooks/use-toast';
+import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Payment, PaymentAllocation, PaymentMethod, User } from '@/lib/types';
@@ -78,6 +79,7 @@ export default function PaymentsPage() {
     const { printPayment } = usePrintDocument();
     const { user, checkActiveSession } = useAuth();
     const { validateActiveSession, showCashSessionError } = useCashSessionValidation();
+    const clinicInfo = useClinicInfo();
     const { hasPermission } = usePermissions();
 
     // Permission checks
@@ -138,7 +140,7 @@ export default function PaymentsPage() {
             payment_amount: 0,
             payment_method_id: '',
             created_at: new Date(),
-            currency: 'UYU',
+            currency: clinicInfo?.currency ?? 'UYU',
             notes: '',
             is_historical: false
         }

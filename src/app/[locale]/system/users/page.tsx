@@ -550,10 +550,10 @@ export default function SystemUsersPage() {
   const handleSendInitialPassword = async () => {
     if (!selectedUser || !canSetInitialPassword) return;
     try {
-      const responseData = await api.post(API_ROUTES.SYSTEM.API_AUTH_FIRST_TIME_PASSWORD_TOKEN, { user_id: selectedUser.id });
-      toast({ title: 'Email Sent', description: responseData.message });
+      await api.post(API_ROUTES.SYSTEM.API_AUTH_FIRST_TIME_PASSWORD_TOKEN, { user_id: selectedUser.id });
+      toast({ title: t('SystemUsersPage.initialPasswordSentTitle'), description: t('SystemUsersPage.initialPasswordSentDescription') });
     } catch (error) {
-      toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'An unexpected error occurred.' });
+      toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : t('SystemUsersPage.initialPasswordError') });
     }
   };
 

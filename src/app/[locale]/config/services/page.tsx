@@ -23,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { MiscellaneousCategory, Service } from '@/lib/types';
 import api from '@/services/api';
@@ -158,6 +159,7 @@ export default function ServicesPage() {
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
 
   const { toast } = useToast();
+  const clinicInfo = useClinicInfo();
 
   const form = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceFormSchema(tValidation)),
@@ -190,7 +192,7 @@ export default function ServicesPage() {
       name: '',
       category: '',
       price: 0,
-      currency: 'USD',
+      currency: clinicInfo?.currency ?? 'UYU',
       duration_minutes: 60,
       description: '',
       indications: '',

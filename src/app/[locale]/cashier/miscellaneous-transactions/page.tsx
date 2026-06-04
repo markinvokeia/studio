@@ -34,6 +34,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { useToast } from '@/hooks/use-toast';
+import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { MiscellaneousCategory, MiscellaneousTransaction, PaymentMethod, User } from '@/lib/types';
@@ -228,6 +229,7 @@ export default function MiscellaneousTransactionsPage() {
     const isNarrow = useViewportNarrow();
     const { user, activeCashSession, checkActiveSession } = useAuth();
     const { validateActiveSession, showCashSessionError } = useCashSessionValidation();
+    const clinicInfo = useClinicInfo();
     const [transactions, setTransactions] = React.useState<MiscellaneousTransaction[]>([]);
     const [transactionCount, setTransactionCount] = React.useState(0);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -297,7 +299,7 @@ export default function MiscellaneousTransactionsPage() {
             } else {
                 form.reset({
                     transaction_date: format(new Date(), 'yyyy-MM-dd'),
-                    currency: 'UYU',
+                    currency: clinicInfo?.currency ?? 'UYU',
                     exchange_rate: 1,
                     description: '',
                     beneficiary_name: '',

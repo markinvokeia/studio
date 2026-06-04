@@ -26,15 +26,17 @@ import { VerticalTabStrip, VerticalTab } from '@/components/ui/vertical-tab-stri
 import { DoctorAvailability } from '@/components/users/doctor-availability';
 import { DoctorAvailabilityExceptions } from '@/components/users/doctor-availability-exceptions';
 import { UserServices } from '@/components/users/user-services';
+import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { User, UserRole } from '@/lib/types';
 import api from '@/services/api';
 import { useLicenseStore } from '@/stores/license-store';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, CalendarClock, CalendarX, ClipboardList, Stethoscope, UserSquare, X } from 'lucide-react';
+import { AlertTriangle, CalendarClock, CalendarX, ClipboardList, KeyRound, Stethoscope, UserSquare, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -239,13 +241,17 @@ export default function DoctorsPage() {
   const t = useTranslations();
 
   const { toast } = useToast();
+  const { hasPermission } = usePermissions();
   const [users, setUsers] = React.useState<User[]>([]);
   const [userCount, setUserCount] = React.useState(0);
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
+  const [hasPasswordPermission, setHasPasswordPermission] = React.useState(false);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
   const [detailError, setDetailError] = React.useState<string | null>(null);
   const [isSavingDetail, setIsSavingDetail] = React.useState(false);
+
+  const canSetInitialPassword = hasPermission(SYSTEM_PERMISSIONS.USERS_SET_INITIAL_PASSWORD);
 
 
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -362,6 +368,42 @@ export default function DoctorsPage() {
         color: user.color || '',
       });
       setDetailError(null);
+    }
+  };
+
+  React.useEffect(() => {
+    const checkFirstPasswordRequirements = async () => {
+      if (!selectedUser || !canSetInitialPassword) {
+        setHasPasswordPermission(false);
+        return;
+      }
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setHasPasswordPermission(false);
+        return;
+      }
+      try {
+        await api.get(API_ROUTES.SYSTEM.API_AUTH_CHECK_FIRST_PASSWORD, { user_id: selectedUser.id });
+        setHasPasswordPermission(true);
+      } catch {
+        setHasPasswordPermission(false);
+      }
+    };
+
+    if (selectedUser) {
+      checkFirstPasswordRequirements();
+    } else {
+      setHasPasswordPermission(false);
+    }
+  }, [selectedUser, canSetInitialPassword]);
+
+  const handleSendInitialPassword = async () => {
+    if (!selectedUser || !canSetInitialPassword) return;
+    try {
+      await api.post(API_ROUTES.SYSTEM.API_AUTH_FIRST_TIME_PASSWORD_TOKEN, { user_id: selectedUser.id });
+      toast({ title: t('SystemUsersPage.initialPasswordSentTitle'), description: t('SystemUsersPage.initialPasswordSentDescription') });
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : t('SystemUsersPage.initialPasswordError') });
     }
   };
 
@@ -525,6 +567,12 @@ export default function DoctorsPage() {
                   <CardTitle>{t('UsersPage.detailsFor', { name: selectedUser.name })}</CardTitle>
                 </div>
                 <div className="flex items-center gap-2">
+                  {hasPasswordPermission && (
+                    <Button variant="outline" size="sm" onClick={handleSendInitialPassword}>
+                      <KeyRound className="mr-2 h-4 w-4" />
+                      {t('SystemUsersPage.setInitialPassword')}
+                    </Button>
+                  )}
                   <Button variant="destructive-ghost" size="icon" onClick={handleCloseDetails}>
                     <X className="h-5 w-5" />
                     <span className="sr-only">{t('UsersPage.close')}</span>

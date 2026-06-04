@@ -20,6 +20,7 @@ import { ServiceSelector } from '@/components/ui/service-selector';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { Quote, Service, User } from '@/lib/types';
 import { formatDate, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -48,9 +49,10 @@ interface QuickQuoteDialogProps {
 export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: QuickQuoteDialogProps) {
   const t = useTranslations();
   const { toast } = useToast();
+  const clinicInfo = useClinicInfo();
 
   const [items, setItems] = React.useState<QuoteItem[]>([]);
-  const [currency, setCurrency] = React.useState<'USD' | 'UYU'>('UYU');
+  const [currency, setCurrency] = React.useState<'USD' | 'UYU'>(clinicInfo?.currency ?? 'UYU');
   const [exchangeRate, setExchangeRate] = React.useState<number>(1);
   const [createdAt, setCreatedAt] = React.useState<string>(formatDate(new Date()));
   const [notes, setNotes] = React.useState('');
@@ -61,7 +63,7 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
   React.useEffect(() => {
     if (open) {
       setItems([]);
-      setCurrency('UYU');
+      setCurrency(clinicInfo?.currency ?? 'UYU');
       setExchangeRate(1);
       setCreatedAt(formatDate(new Date()));
       setNotes('');
