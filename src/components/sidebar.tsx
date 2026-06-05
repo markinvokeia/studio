@@ -150,12 +150,12 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
         if (!token) return;
 
         try {
-            const responseData = await api.post(API_ROUTES.SYSTEM.API_AUTH_PASSWORD_CHANGE, {
+            await api.post(API_ROUTES.SYSTEM.API_AUTH_PASSWORD_CHANGE, {
                 old_password: data.old_password,
                 new_password: data.new_password,
             }, undefined, { token });
 
-            toast({ title: tHeader('success.title'), description: responseData.message || tHeader('success.description') });
+            toast({ title: tHeader('success.title'), description: tHeader('success.description') });
             setIsChangePasswordOpen(false);
         } catch (error: any) {
             setPasswordChangeError(error.message || tHeader('errors.generic'));
@@ -455,6 +455,7 @@ const SecondarySidebar = ({ item, onLeave }: { item: any; onLeave: () => void })
                             <Link
                                 key={index}
                                 href={subLinkHref}
+                                onClick={onLeave}
                                 className={cn(
                                     "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all active:scale-95 relative",
                                     "hover:bg-muted",
@@ -525,10 +526,10 @@ function MobileNav() {
         const token = localStorage.getItem('token');
         if (!token) return;
         try {
-            const responseData = await api.post(API_ROUTES.SYSTEM.API_AUTH_PASSWORD_CHANGE, {
+            await api.post(API_ROUTES.SYSTEM.API_AUTH_PASSWORD_CHANGE, {
                 old_password: data.old_password, new_password: data.new_password,
             }, undefined, { token });
-            toast({ title: tHeader('success.title'), description: responseData.message || tHeader('success.description') });
+            toast({ title: tHeader('success.title'), description: tHeader('success.description') });
             setIsChangePasswordOpen(false);
         } catch (error: any) {
             setPasswordChangeError(error.message || tHeader('errors.generic'));
@@ -653,6 +654,7 @@ function MobileNav() {
                                         ) : (
                                             <Link
                                                 href={linkHref}
+                                                onClick={() => setIsOpen(false)}
                                                 className={cn(
                                                     "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors",
                                                     isActive ? 'text-[var(--nav-foreground)] bg-[var(--nav-active-bg)]' : 'text-[var(--nav-text-muted)] hover:text-[var(--nav-foreground)] hover:bg-[var(--nav-hover-bg)]'
@@ -683,6 +685,7 @@ function MobileNav() {
                                                         <Link
                                                             key={idx}
                                                             href={subHref}
+                                                            onClick={() => setIsOpen(false)}
                                                             className={cn(
                                                                 "flex items-center gap-3 px-8 py-2.5 text-sm transition-colors relative",
                                                                 isSubActive ? 'text-[var(--nav-foreground)] font-semibold' : 'text-[var(--nav-text-muted)] hover:text-[var(--nav-foreground)] hover:bg-[var(--nav-hover-bg)]'

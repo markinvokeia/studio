@@ -57,9 +57,10 @@ const doctorFormSchema = (t: (key: string) => string) => z.object({
     return isValidPhoneNumber(val);
   }, { message: t('DoctorsPage.createDialog.validation.phoneInvalid') }),
   identity_document: z.string()
-    .min(1, { message: t('DoctorsPage.createDialog.validation.identityRequired') })
     .regex(/^\d*$/, { message: t('DoctorsPage.createDialog.validation.identityInvalid') })
-    .max(10, { message: t('DoctorsPage.createDialog.validation.identityMaxLength') }),
+    .max(10, { message: t('DoctorsPage.createDialog.validation.identityMaxLength') })
+    .optional()
+    .or(z.literal('')),
   is_active: z.boolean().default(false),
   color: z.string().optional(),
 }).refine((data) => {

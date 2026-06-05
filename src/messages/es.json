@@ -3048,7 +3048,10 @@
       "errorUnknown": "Ocurrió un error inesperado al actualizar los detalles de la clínica."
     },
     "saving": "Guardando",
-    "noClinic": "No hay clínicas registradas."
+    "noClinic": "No hay clínicas registradas.",
+    "validation": {
+      "phoneInvalid": "Número de teléfono inválido"
+    }
   },
   "SchedulesPage": {
     "title": "Horarios",

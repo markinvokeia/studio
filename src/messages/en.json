@@ -3071,7 +3071,10 @@
       "errorUnknown": "An unexpected error occurred while updating the clinic details."
     },
     "saving": "Saving",
-    "noClinic": "There are no registered clinics."
+    "noClinic": "There are no registered clinics.",
+    "validation": {
+      "phoneInvalid": "Invalid phone number"
+    }
   },
   "SchedulesPage": {
     "title": "Schedules",

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
@@ -13,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Clinic } from '@/lib/types';
 import { api } from '@/services/api';
+import { isValidPhoneNumber } from 'libphonenumber-js';
 import { Building, RefreshCw, UploadCloud } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -72,6 +74,7 @@ export default function ClinicsPage() {
     const [isSaving, setIsSaving] = React.useState(false);
     const [logoPreview, setLogoPreview] = React.useState<string | null>(null);
     const [logoFile, setLogoFile] = React.useState<File | null>(null);
+    const [phoneError, setPhoneError] = React.useState<string | null>(null);
     const { toast } = useToast();
 
     const loadClinic = React.useCallback(async () => {
@@ -98,6 +101,12 @@ export default function ClinicsPage() {
         if (!clinic) return;
         const { id, value } = e.target;
         setClinic({ ...clinic, [id]: value });
+    };
+
+    const handlePhoneChange = (value: string) => {
+        if (!clinic) return;
+        setClinic({ ...clinic, phone_number: value });
+        if (phoneError) setPhoneError(null);
     };
 
     const handleSelectChange = (id: keyof Clinic, value: string) => {
@@ -127,6 +136,13 @@ export default function ClinicsPage() {
 
     const handleSaveChanges = async () => {
         if (!clinic) return;
+
+        const phone = clinic.phone_number?.trim();
+        if (phone && !isValidPhoneNumber(phone)) {
+            setPhoneError(t('validation.phoneInvalid'));
+            return;
+        }
+        setPhoneError(null);
         setIsSaving(true);
 
         const formData = new FormData();
@@ -287,7 +303,15 @@ export default function ClinicsPage() {
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="phone_number">{t('phoneLabel')}</Label>
-                                <Input id="phone_number" value={clinic.phone_number} onChange={handleInputChange} placeholder={t('phonePlaceholder')} />
+                                <PhoneInput
+                                    defaultCountry="UY"
+                                    value={clinic.phone_number}
+                                    onChange={handlePhoneChange}
+                                    placeholder={t('phonePlaceholder')}
+                                />
+                                {phoneError && (
+                                    <p className="text-sm font-medium text-destructive">{phoneError}</p>
+                                )}
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="rut">{t('rutLabel')}</Label>
