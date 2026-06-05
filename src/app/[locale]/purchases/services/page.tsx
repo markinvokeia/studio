@@ -264,27 +264,33 @@ export default function ServicesPage() {
 
   React.useEffect(() => { loadServices(); }, [loadServices]);
 
-  // Load categories and populate detail form when selection changes
+  // Load categories once on mount — they don't change so we never need to reload
   React.useEffect(() => {
-    if (selectedService) {
-      getMiscellaneousCategories().then(setCategories);
-      detailForm.reset({
-        id: selectedService.id,
-        name: selectedService.name,
-        category_id: selectedService.category_id || '',
-        price: selectedService.price,
-        currency: (selectedService.currency as 'USD' | 'UYU') || 'USD',
-        description: selectedService.description || '',
-        color: selectedService.color || '',
-        is_active: selectedService.is_active ?? true,
-      });
-      setDetailError(null);
-    }
-  }, [selectedService, detailForm]);
+    getMiscellaneousCategories().then(setCategories);
+  }, []);
+
+  // Populate detail form when selection changes (categories already loaded from mount)
+  React.useEffect(() => {
+    if (!selectedService) return;
+    // Prefer category_id from API; fall back to matching by name in case the API omits the id field
+    const categoryId = selectedService.category_id
+      || categories.find(c => c.name === selectedService.category)?.id
+      || '';
+    detailForm.reset({
+      id: selectedService.id,
+      name: selectedService.name,
+      category_id: categoryId,
+      price: selectedService.price,
+      currency: (selectedService.currency as 'USD' | 'UYU') || 'USD',
+      description: selectedService.description || '',
+      color: selectedService.color || '',
+      is_active: selectedService.is_active ?? true,
+    });
+    setDetailError(null);
+  }, [selectedService, categories]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCreate = () => {
     if (!canCreateProduct) return;
-    getMiscellaneousCategories().then(setCategories);
     createForm.reset(DEFAULT_SERVICE_FORM_VALUES);
     setCreateError(null);
     setIsCreateDialogOpen(true);

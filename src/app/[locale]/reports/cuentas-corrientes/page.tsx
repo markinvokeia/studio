@@ -9,6 +9,7 @@ import { ReportKPICard } from '@/components/reports/report-kpi-card';
 import { ReportShell } from '@/components/reports/report-shell';
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
+import { useReportExport } from '@/hooks/use-report-export';
 import type { ReportCuentasCorrientesResponse, ReportCuentasCorrientesRow } from '@/lib/types';
 import { cn, fmtMoney } from '@/lib/utils';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -84,6 +85,8 @@ export default function CuentasCorrientesPage() {
     },
   ];
 
+  const { exportCSV, exportExcel, exportPDF } = useReportExport(columns, data?.rows ?? null, 'cuentas-corrientes');
+
   const filters = (
     <div className="flex flex-wrap items-center gap-3">
       <div className="flex items-center gap-2">
@@ -123,6 +126,9 @@ export default function CuentasCorrientesPage() {
       onGenerate={handleGenerate}
       isLoading={isLoading}
       hasData={!!data}
+      onExportCSV={exportCSV}
+      onExportExcel={exportExcel}
+      onExportPDF={exportPDF}
     >
       {data && s && (
         <>

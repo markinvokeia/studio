@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
+import { useReportExport } from '@/hooks/use-report-export';
 import type {
   ReportGastosInvoiceRow,
   ReportGastosMiscRow,
@@ -218,6 +219,8 @@ export default function GastosOperativosPage() {
     },
   ];
 
+  const { exportCSV, exportExcel, exportPDF } = useReportExport(invoiceColumns, data?.invoice_rows ?? null, 'gastos-operativos');
+
   // ── Chart data ──────────────────────────────────────────────────────────────
   const periodData = (data?.by_period ?? []).map(p => ({
     ...p,
@@ -265,6 +268,9 @@ export default function GastosOperativosPage() {
       onGenerate={handleGenerate}
       isLoading={isLoading}
       hasData={!!data}
+      onExportCSV={exportCSV}
+      onExportExcel={exportExcel}
+      onExportPDF={exportPDF}
     >
       {data && (
         <>

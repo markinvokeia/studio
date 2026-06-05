@@ -8,7 +8,9 @@ import { ReportKPICard } from '@/components/reports/report-kpi-card';
 import { ReportShell } from '@/components/reports/report-shell';
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
+import { useReportExport } from '@/hooks/use-report-export';
 import type { ReportEstadoResultadoResponse } from '@/lib/types';
+import type { ColumnDef } from '@tanstack/react-table';
 import { fmtMoney, cn } from '@/lib/utils';
 import { endOfMonth, format, startOfMonth } from 'date-fns';
 import { useTranslations } from 'next-intl';
@@ -67,6 +69,22 @@ export default function EstadoResultadosPage() {
     { name: t('chart_resultado'), value: data.resultado.neto, fill: data.resultado.neto >= 0 ? 'hsl(var(--chart-2))' : 'hsl(var(--chart-5))' },
   ] : [];
 
+  type EstadoResultadosExportRow = { seccion: string; concepto: string; total: number; pct_total: number };
+  const exportData: EstadoResultadosExportRow[] | null = data ? [
+    ...data.ingresos.lineas.map((l) => ({ seccion: 'Ingresos', concepto: l.concepto, total: Number(l.total), pct_total: Number(l.pct_total) })),
+    { seccion: '', concepto: 'TOTAL INGRESOS', total: data.ingresos.total, pct_total: 100 },
+    ...data.gastos.lineas.map((l) => ({ seccion: 'Gastos', concepto: l.concepto, total: Number(l.total), pct_total: Number(l.pct_total) })),
+    { seccion: '', concepto: 'TOTAL GASTOS', total: data.gastos.total, pct_total: 100 },
+    { seccion: '', concepto: 'RESULTADO NETO', total: data.resultado.neto, pct_total: Number((data.resultado.margen * 100).toFixed(1)) },
+  ] : null;
+  const exportColumns: ColumnDef<EstadoResultadosExportRow>[] = [
+    { accessorKey: 'seccion', header: 'Sección' },
+    { accessorKey: 'concepto', header: 'Concepto' },
+    { accessorKey: 'total', header: `Total (${currency})` },
+    { accessorKey: 'pct_total', header: '% Total' },
+  ];
+  const { exportCSV, exportExcel, exportPDF } = useReportExport(exportColumns, exportData, 'estado-resultados');
+
   const filters = (
     <div className="flex flex-wrap items-center gap-3">
       <DateRangePresets value={dateRange} onChange={setDateRange} />
@@ -108,6 +126,9 @@ export default function EstadoResultadosPage() {
       onGenerate={handleGenerate}
       isLoading={isLoading}
       hasData={!!data}
+      onExportCSV={exportCSV}
+      onExportExcel={exportExcel}
+      onExportPDF={exportPDF}
     >
       {data && (
         <>

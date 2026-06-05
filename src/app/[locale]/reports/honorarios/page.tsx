@@ -11,6 +11,7 @@ import { ReportKPICard } from '@/components/reports/report-kpi-card';
 import { ReportShell } from '@/components/reports/report-shell';
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
+import { useReportExport } from '@/hooks/use-report-export';
 import type { ReportHonorariosResponse, ReportHonorariosRow } from '@/lib/types';
 import { fmtMoney, fmtMultiCurrency } from '@/lib/utils';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -87,6 +88,8 @@ export default function HonorariosPage() {
       ),
     },
   ];
+
+  const { exportCSV, exportExcel, exportPDF } = useReportExport(columns, data?.rows ?? null, 'honorarios');
 
   const baseByCurrency = (data?.rows ?? []).reduce<Record<string, number>>((acc, r) => {
     acc[r.currency] = (acc[r.currency] || 0) + Number(r.base_calculo || 0);
@@ -166,6 +169,9 @@ export default function HonorariosPage() {
       onGenerate={handleGenerate}
       isLoading={isLoading}
       hasData={!!data}
+      onExportCSV={exportCSV}
+      onExportExcel={exportExcel}
+      onExportPDF={exportPDF}
     >
       {data && (
         <>

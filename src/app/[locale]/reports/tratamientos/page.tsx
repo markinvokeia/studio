@@ -8,6 +8,7 @@ import { ReportKPICard } from '@/components/reports/report-kpi-card';
 import { ReportShell } from '@/components/reports/report-shell';
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
+import { useReportExport } from '@/hooks/use-report-export';
 import type { ReportTratamientosResponse, ReportTratamientosRow } from '@/lib/types';
 import type { ColumnDef } from '@tanstack/react-table';
 import { endOfMonth, format, startOfMonth } from 'date-fns';
@@ -90,6 +91,8 @@ export default function TratamientosPage() {
     },
   ];
 
+  const { exportCSV, exportExcel, exportPDF } = useReportExport(columns, data?.rows ?? null, 'tratamientos');
+
   // Aggregate by category for pie chart
   const byCat: Record<string, number> = {};
   for (const r of data?.rows ?? []) {
@@ -133,6 +136,9 @@ export default function TratamientosPage() {
       onGenerate={handleGenerate}
       isLoading={isLoading}
       hasData={!!data}
+      onExportCSV={exportCSV}
+      onExportExcel={exportExcel}
+      onExportPDF={exportPDF}
     >
       {data && (
         <>

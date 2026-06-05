@@ -6113,6 +6113,7 @@
     "export": "Exportar",
     "exportPDF": "Exportar PDF",
     "exportExcel": "Exportar Excel",
+    "exportCSV": "Exportar CSV",
     "comingSoon": "Próximamente"
   },
   "ReportCierreCajaPage": {

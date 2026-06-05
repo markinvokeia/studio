@@ -10,6 +10,7 @@ import { ReportKPICard } from '@/components/reports/report-kpi-card';
 import { ReportShell } from '@/components/reports/report-shell';
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
+import { useReportExport } from '@/hooks/use-report-export';
 import type { ReportCobrosResponse, ReportCobrosRow } from '@/lib/types';
 import { formatDateTime, fmtMoney, fmtMultiCurrency, cn } from '@/lib/utils';
 import type { ColumnDef, VisibilityState } from '@tanstack/react-table';
@@ -172,6 +173,8 @@ export default function CobrosDiaPage() {
     },
   ];
 
+  const { exportCSV, exportExcel, exportPDF } = useReportExport(columns, data?.rows ?? null, 'cobros-dia');
+
   const filters = (
     <div className="flex flex-wrap items-center gap-3">
       <DateRangePresets value={dateRange} onChange={setDateRange} />
@@ -237,6 +240,9 @@ export default function CobrosDiaPage() {
       onPrint={handlePrint}
       isLoading={isLoading}
       hasData={!!data}
+      onExportCSV={exportCSV}
+      onExportExcel={exportExcel}
+      onExportPDF={exportPDF}
     >
       {data && (
         <>
