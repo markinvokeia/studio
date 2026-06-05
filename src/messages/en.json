@@ -6115,6 +6115,7 @@
     "export": "Export",
     "exportPDF": "Export PDF",
     "exportExcel": "Export Excel",
+    "exportCSV": "Export CSV",
     "comingSoon": "Coming soon"
   },
   "ReportCierreCajaPage": {

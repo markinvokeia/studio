@@ -8,6 +8,7 @@ import { ReportKPICard } from '@/components/reports/report-kpi-card';
 import { ReportShell } from '@/components/reports/report-shell';
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
+import { useReportExport } from '@/hooks/use-report-export';
 import type { ReportNuevosPxResponse, ReportNuevosPxRow } from '@/lib/types';
 import { formatDate } from '@/lib/utils';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -75,6 +76,8 @@ export default function NuevosPacientesPage() {
     },
   ];
 
+  const { exportCSV, exportExcel, exportPDF } = useReportExport(columns, data?.rows ?? null, 'nuevos-pacientes');
+
   // Group by week — label shows "S1 Ene", "S2 Feb", etc.
   const MONTHS_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   const byWeek: Record<string, { key: string; semana: string; nuevos: number }> = {};
@@ -125,6 +128,9 @@ export default function NuevosPacientesPage() {
       onGenerate={handleGenerate}
       isLoading={isLoading}
       hasData={!!data}
+      onExportCSV={exportCSV}
+      onExportExcel={exportExcel}
+      onExportPDF={exportPDF}
     >
       {data && (
         <>

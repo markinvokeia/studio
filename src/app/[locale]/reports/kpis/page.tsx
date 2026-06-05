@@ -8,7 +8,9 @@ import { ReportKPICard } from '@/components/reports/report-kpi-card';
 import { ReportShell } from '@/components/reports/report-shell';
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
+import { useReportExport } from '@/hooks/use-report-export';
 import type { ReportKPIsResponse } from '@/lib/types';
+import type { ColumnDef } from '@tanstack/react-table';
 import { endOfMonth, format, startOfMonth } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
@@ -44,6 +46,21 @@ export default function KPIsPage() {
       setIsLoading(false);
     }
   }, [dateRange, currency]);
+
+  type KPIExportRow = { kpi: string; valor: number };
+  const kpiExportData: KPIExportRow[] | null = data ? [
+    { kpi: `${t('kpi_cobrado')} (${currency})`, valor: Number(data.total_cobrado) },
+    { kpi: t('kpi_nuevos_px'), valor: Number(data.nuevos_pacientes) },
+    { kpi: t('kpi_retencion'), valor: Number(data.tasa_retencion) },
+    { kpi: t('kpi_ocupacion'), valor: Number(data.tasa_ocupacion) },
+    { kpi: `${t('kpi_ticket')} (${currency})`, valor: Number(data.ticket_promedio) },
+    { kpi: `${t('kpi_gastos')} (${currency})`, valor: Number(data.total_gastos) },
+  ] : null;
+  const kpiColumns: ColumnDef<KPIExportRow>[] = [
+    { accessorKey: 'kpi', header: 'KPI' },
+    { accessorKey: 'valor', header: 'Valor' },
+  ];
+  const { exportCSV, exportExcel, exportPDF } = useReportExport(kpiColumns, kpiExportData, 'kpis');
 
   const filters = (
     <div className="flex flex-wrap items-center gap-3">
@@ -86,6 +103,9 @@ export default function KPIsPage() {
       onGenerate={handleGenerate}
       isLoading={isLoading}
       hasData={!!data}
+      onExportCSV={exportCSV}
+      onExportExcel={exportExcel}
+      onExportPDF={exportPDF}
     >
       {data && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

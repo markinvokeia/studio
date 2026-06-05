@@ -11,6 +11,7 @@ import { ReportKPICard } from '@/components/reports/report-kpi-card';
 import { ReportShell } from '@/components/reports/report-shell';
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
+import { useReportExport } from '@/hooks/use-report-export';
 import type { ReportIngresosResponse, ReportIngresosRow } from '@/lib/types';
 import { fmtMoney, fmtMultiCurrency } from '@/lib/utils';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -87,6 +88,8 @@ export default function IngresosPeriodoPage() {
       cell: ({ row }) => fmt(Number(row.original.promedio)),
     },
   ];
+
+  const { exportCSV, exportExcel, exportPDF } = useReportExport(columns, data?.rows ?? null, 'ingresos-periodo');
 
   const activeCurrency = (currency !== 'all' ? currency : chartCurrency) as 'UYU' | 'USD';
 
@@ -168,6 +171,9 @@ export default function IngresosPeriodoPage() {
       onGenerate={handleGenerate}
       isLoading={isLoading}
       hasData={!!data}
+      onExportCSV={exportCSV}
+      onExportExcel={exportExcel}
+      onExportPDF={exportPDF}
     >
       {data && (
         <>
