@@ -361,6 +361,21 @@
     "create": "Create",
     "advancedFilters": "Advanced Filters"
   },
+  "GridExportDialog": {
+    "title": "Export records",
+    "format": "Format",
+    "csv": "CSV",
+    "excel": "Excel",
+    "dateFrom": "From date",
+    "dateTo": "To date",
+    "export": "Export",
+    "cancel": "Cancel",
+    "periodTooLong": "The period cannot be longer than 3 months",
+    "dateFromRequired": "Start date is required",
+    "dateToRequired": "End date is required",
+    "dateToBeforeFrom": "End date must be after start date",
+    "exportError": "Error exporting data"
+  },
   "DataTablePagination": {
     "selected": "{count, plural, one {# selected} other {# selected}} of {total} row(s).",
     "rowsPerPage": "Rows per page",
@@ -487,7 +502,8 @@
   "RecentQuotesTable": {
     "title": "Recent Quotes",
     "description": "An overview of the latest quotes.",
-    "filterPlaceholder": "Filter quotes by user name..."
+    "filterPlaceholder": "Filter quotes by user name...",
+    "export": "Export"
   },
   "RecentOrdersTable": {
     "title": "Recent Orders",
@@ -1878,6 +1894,26 @@
     },
     "rejectedBanner": {
       "title": "Rejection reason"
+    },
+    "export": "Export",
+    "exportError": "Error exporting data",
+    "exportCols": {
+      "id": "ID",
+      "docNo": "Doc No.",
+      "date": "Date",
+      "client": "Client",
+      "provider": "Provider",
+      "total": "Total",
+      "currency": "Currency",
+      "exchangeRate": "Exchange Rate",
+      "status": "Status",
+      "billingStatus": "Billing Status",
+      "paymentStatus": "Payment Status",
+      "montoFacturado": "Invoiced Amount",
+      "montoPagado": "Paid Amount",
+      "pendienteFacturar": "Pending Invoice",
+      "pendientePagoFacturado": "Pending Payment",
+      "notes": "Notes"
     }
   },
   "SalesQuotesPage": {
@@ -2087,6 +2123,26 @@
       "successDescription": "The invoice has been created from the imported file."
     },
     "import": "Import",
+    "export": "Export",
+    "exportError": "Error exporting data",
+    "exportCols": {
+      "docNo": "Doc No.",
+      "date": "Date",
+      "dueDate": "Due Date",
+      "client": "Client",
+      "provider": "Provider",
+      "total": "Total",
+      "currency": "Currency",
+      "status": "Status",
+      "paymentState": "Payment Status",
+      "paidAmount": "Paid Amount",
+      "type": "Type",
+      "invoiceRef": "Reference",
+      "orderDocNo": "Order Doc No.",
+      "quoteDocNo": "Quote Doc No.",
+      "isHistorical": "Historical",
+      "notes": "Notes"
+    },
     "filterPlaceholder": "Filter here...",
     "editDialog": {
       "title": "Edit Invoice",
@@ -2574,6 +2630,23 @@
     "title": "Payments",
     "description": "An overview of payments.",
     "filterPlaceholder": "Filter here...",
+    "export": "Export",
+    "exportError": "Error exporting data",
+    "exportCols": {
+      "docNo": "Doc No.",
+      "date": "Date",
+      "client": "Client",
+      "provider": "Provider",
+      "amountApplied": "Amount Applied",
+      "sourceAmount": "Source Amount",
+      "sourceCurrency": "Currency",
+      "exchangeRate": "Exchange Rate",
+      "transactionType": "Transaction Type",
+      "paymentMethodName": "Payment Method",
+      "invoiceDocNo": "Invoice Doc No.",
+      "isHistorical": "Historical",
+      "notes": "Notes"
+    },
     "columns": {
       "doc_no": "Document No.",
       "id": "ID",

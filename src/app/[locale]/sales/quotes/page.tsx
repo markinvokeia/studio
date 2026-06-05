@@ -47,6 +47,8 @@ import { UserSelector } from '@/components/ui/user-selector';
 import { Textarea } from '@/components/ui/textarea';
 import { VerticalTabStrip, type VerticalTab } from '@/components/ui/vertical-tab-strip';
 import { SALES_PERMISSIONS } from '@/constants/permissions';
+import { GridExportDialog, type GridExportFormat } from '@/components/ui/grid-export-dialog';
+import { downloadCSV, downloadExcel, type ExportColumn } from '@/lib/export-utils';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -691,6 +693,9 @@ export default function QuotesPage() {
     const [activeTab, setActiveTab] = React.useState('items');
     const [isRightExpanded, setIsRightExpanded] = React.useState(false);
 
+    const [exportOpen, setExportOpen] = React.useState(false);
+    const [isExporting, setIsExporting] = React.useState(false);
+
     const [isConfirmQuoteDialogOpen, setIsConfirmQuoteDialogOpen] = React.useState(false);
     const [confirmingQuote, setConfirmingQuote] = React.useState<Quote | null>(null);
     const [confirmingAction, setConfirmingAction] = React.useState<'confirm' | 'reject'>('confirm');
@@ -718,6 +723,46 @@ export default function QuotesPage() {
         }
     }, [isStatusDraft, quoteForm]);
 
+
+    const handleExport = React.useCallback(async (fmt: GridExportFormat, dateFrom: Date, dateTo: Date) => {
+        setIsExporting(true);
+        try {
+            const data = await api.get(API_ROUTES.PURCHASES.QUOTES_ALL, {
+                is_sales: 'true',
+                date_from: format(dateFrom, 'yyyy-MM-dd'),
+                date_to: format(dateTo, 'yyyy-MM-dd'),
+            });
+            const normalized = normalizeApiResponse(data);
+            const rows = normalized.items;
+            const exportCols: ExportColumn[] = [
+                { header: t('exportCols.id'), key: 'id' },
+                { header: t('exportCols.docNo'), key: 'doc_no' },
+                { header: t('exportCols.date'), key: 'created_at' },
+                { header: t('exportCols.client'), key: 'user_name' },
+                { header: t('exportCols.total'), key: 'total_presupuesto' },
+                { header: t('exportCols.currency'), key: 'currency' },
+                { header: t('exportCols.exchangeRate'), key: 'exchange_rate' },
+                { header: t('exportCols.status'), key: 'status' },
+                { header: t('exportCols.billingStatus'), key: 'billing_status' },
+                { header: t('exportCols.paymentStatus'), key: 'payment_status' },
+                { header: t('exportCols.montoFacturado'), key: 'monto_facturado' },
+                { header: t('exportCols.montoPagado'), key: 'monto_pagado' },
+                { header: t('exportCols.pendienteFacturar'), key: 'pendiente_facturar' },
+                { header: t('exportCols.pendientePagoFacturado'), key: 'pendiente_pago_facturado' },
+                { header: t('exportCols.notes'), key: 'notes' },
+            ];
+            if (fmt === 'csv') {
+                downloadCSV(exportCols, rows, `presupuestos-ventas-${format(dateFrom, 'yyyyMMdd')}-${format(dateTo, 'yyyyMMdd')}`);
+            } else {
+                await downloadExcel(exportCols, rows, `presupuestos-ventas-${format(dateFrom, 'yyyyMMdd')}-${format(dateTo, 'yyyyMMdd')}`);
+            }
+            setExportOpen(false);
+        } catch {
+            toast({ title: t('exportError'), variant: 'destructive' });
+        } finally {
+            setIsExporting(false);
+        }
+    }, [t, toast]);
 
     const loadQuotes = React.useCallback(async () => {
         setIsRefreshing(true);
@@ -1375,6 +1420,7 @@ export default function QuotesPage() {
                             canRejectQuote={canRejectQuote}
                             canPrintQuote={canPrint}
                             canSendQuoteEmail={canSendEmail}
+                            onExport={() => setExportOpen(true)}
                         />
                     }
                     rightPanel={
@@ -2511,6 +2557,12 @@ export default function QuotesPage() {
                         await loadOrderItems();
                     }
                 }}
+            />
+            <GridExportDialog
+                open={exportOpen}
+                onOpenChange={setExportOpen}
+                onExport={handleExport}
+                isExporting={isExporting}
             />
         </>
     );

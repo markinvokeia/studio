@@ -14,6 +14,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { VerticalTabStrip, type VerticalTab } from '@/components/ui/vertical-tab-strip';
 import { PURCHASES_PERMISSIONS } from '@/constants/permissions';
+import { GridExportDialog, type GridExportFormat } from '@/components/ui/grid-export-dialog';
+import { downloadCSV, downloadExcel, type ExportColumn } from '@/lib/export-utils';
+import { format } from 'date-fns';
 import { API_ROUTES } from '@/constants/routes';
 import { PurchasePrepaidFormDialog } from '@/components/purchases/payments/PurchasePrepaidFormDialog';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
@@ -74,6 +77,46 @@ function PaymentsPageContent() {
     const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
     const [activeTab, setActiveTab] = React.useState('allocations');
     const [isRightExpanded, setIsRightExpanded] = React.useState(false);
+    const [exportOpen, setExportOpen] = React.useState(false);
+    const [isExporting, setIsExporting] = React.useState(false);
+
+    const handleExport = React.useCallback(async (fmt: GridExportFormat, dateFrom: Date, dateTo: Date) => {
+        setIsExporting(true);
+        try {
+            const data = await api.get(API_ROUTES.PURCHASES.PAYMENTS_ALL, {
+                is_sales: 'false',
+                date_from: format(dateFrom, 'yyyy-MM-dd'),
+                date_to: format(dateTo, 'yyyy-MM-dd'),
+            });
+            // Same unwrap pattern as getPurchasePayments in payments-service.ts
+            const paginationData = Array.isArray(data) && data.length > 0 ? data[0] : data;
+            const rows: unknown[] = paginationData?.data || [];
+            const exportCols: ExportColumn[] = [
+                { header: t('exportCols.docNo'), key: 'transaction_doc_no' },
+                { header: t('exportCols.date'), key: 'created_at' },
+                { header: t('exportCols.provider'), key: 'user_name' },
+                { header: t('exportCols.amountApplied'), key: 'amount_applied' },
+                { header: t('exportCols.sourceAmount'), key: 'source_amount' },
+                { header: t('exportCols.sourceCurrency'), key: 'source_currency' },
+                { header: t('exportCols.exchangeRate'), key: 'exchange_rate' },
+                { header: t('exportCols.transactionType'), key: 'transaction_type' },
+                { header: t('exportCols.paymentMethodName'), key: 'payment_method_name' },
+                { header: t('exportCols.invoiceDocNo'), key: 'invoice_doc_no' },
+                { header: t('exportCols.isHistorical'), key: 'is_historical' },
+                { header: t('exportCols.notes'), key: 'notes' },
+            ];
+            if (fmt === 'csv') {
+                downloadCSV(exportCols, rows, `pagos-compras-${format(dateFrom, 'yyyyMMdd')}-${format(dateTo, 'yyyyMMdd')}`);
+            } else {
+                await downloadExcel(exportCols, rows, `pagos-compras-${format(dateFrom, 'yyyyMMdd')}-${format(dateTo, 'yyyyMMdd')}`);
+            }
+            setExportOpen(false);
+        } catch {
+            toast({ title: t('exportError'), variant: 'destructive' });
+        } finally {
+            setIsExporting(false);
+        }
+    }, [t, toast]);
 
     // Prepaid credit balance (only relevant when selectedPayment.invoice_id is null)
     const prepaidCurrency = selectedPayment?.currency || selectedPayment?.source_currency || 'USD';
@@ -247,6 +290,8 @@ function PaymentsPageContent() {
                         description={t('description')}
                         className="h-full"
                         isCompact={!!selectedPayment}
+                        onExport={() => setExportOpen(true)}
+                        isSales={false}
                     />
                 }
                 rightPanel={
@@ -448,6 +493,12 @@ function PaymentsPageContent() {
                 open={isPrepaidDialogOpen}
                 onOpenChange={setIsPrepaidDialogOpen}
                 onSaveSuccess={refreshPayments}
+            />
+            <GridExportDialog
+                open={exportOpen}
+                onOpenChange={setExportOpen}
+                onExport={handleExport}
+                isExporting={isExporting}
             />
         </div>
     );

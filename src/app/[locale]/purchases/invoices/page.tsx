@@ -23,6 +23,9 @@ import { Separator } from '@/components/ui/separator';
 import { ServiceSelector } from '@/components/ui/service-selector';
 import { VerticalTabStrip, type VerticalTab } from '@/components/ui/vertical-tab-strip';
 import { PURCHASES_PERMISSIONS } from '@/constants/permissions';
+import { GridExportDialog, type GridExportFormat } from '@/components/ui/grid-export-dialog';
+import { downloadCSV, downloadExcel, type ExportColumn } from '@/lib/export-utils';
+import { format } from 'date-fns';
 import { API_ROUTES } from '@/constants/routes';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { useToast } from '@/hooks/use-toast';
@@ -241,6 +244,8 @@ function InvoicesPageContent() {
     const { open: openBillingWizard } = useBillingWizard();
     const [isPaymentDialogOpen, setIsPaymentDialogOpen] = React.useState(false);
     const [invoiceForPayment, setInvoiceForPayment] = React.useState<Invoice | null>(null);
+    const [exportOpen, setExportOpen] = React.useState(false);
+    const [isExporting, setIsExporting] = React.useState(false);
 
     const itemForm = useForm<InvoiceItemFormValues>({
         resolver: zodResolver(invoiceItemSchema),
@@ -251,6 +256,45 @@ function InvoicesPageContent() {
             unit_price: 0,
         },
     });
+
+    const handleExport = React.useCallback(async (fmt: GridExportFormat, dateFrom: Date, dateTo: Date) => {
+        setIsExporting(true);
+        try {
+            const data = await api.get(API_ROUTES.PURCHASES.INVOICES_ALL, {
+                is_sales: 'false',
+                date_from: format(dateFrom, 'yyyy-MM-dd'),
+                date_to: format(dateTo, 'yyyy-MM-dd'),
+            });
+            const rows = Array.isArray(data) ? data : (data.invoices || data.data || []);
+            const exportCols: ExportColumn[] = [
+                { header: t('exportCols.docNo'), key: 'doc_no' },
+                { header: t('exportCols.date'), key: 'created_at' },
+                { header: t('exportCols.dueDate'), key: 'due_date' },
+                { header: t('exportCols.provider'), key: 'user_name' },
+                { header: t('exportCols.total'), key: 'total' },
+                { header: t('exportCols.currency'), key: 'currency' },
+                { header: t('exportCols.status'), key: 'status' },
+                { header: t('exportCols.paymentState'), key: 'payment_state' },
+                { header: t('exportCols.paidAmount'), key: 'paid_amount' },
+                { header: t('exportCols.type'), key: 'type' },
+                { header: t('exportCols.invoiceRef'), key: 'invoice_ref' },
+                { header: t('exportCols.orderDocNo'), key: 'order_doc_no' },
+                { header: t('exportCols.quoteDocNo'), key: 'quote_doc_no' },
+                { header: t('exportCols.isHistorical'), key: 'is_historical' },
+                { header: t('exportCols.notes'), key: 'notes' },
+            ];
+            if (fmt === 'csv') {
+                downloadCSV(exportCols, rows, `facturas-compras-${format(dateFrom, 'yyyyMMdd')}-${format(dateTo, 'yyyyMMdd')}`);
+            } else {
+                await downloadExcel(exportCols, rows, `facturas-compras-${format(dateFrom, 'yyyyMMdd')}-${format(dateTo, 'yyyyMMdd')}`);
+            }
+            setExportOpen(false);
+        } catch {
+            toast({ title: t('exportError'), variant: 'destructive' });
+        } finally {
+            setIsExporting(false);
+        }
+    }, [t, toast]);
 
     const loadInvoices = React.useCallback(async () => {
         setIsLoadingInvoices(true);
@@ -621,6 +665,7 @@ function InvoicesPageContent() {
                             isSales={false}
                             isCompact={!!selectedInvoice}
                             standalone={true}
+                            onExport={() => setExportOpen(true)}
                             title={t('title')}
                             description={t('description')}
                             className="h-full"
@@ -984,6 +1029,12 @@ function InvoicesPageContent() {
                 invoice={invoiceForPayment}
                 isSales={false}
                 onSuccess={() => { loadInvoices(); loadPayments(); }}
+            />
+            <GridExportDialog
+                open={exportOpen}
+                onOpenChange={setExportOpen}
+                onExport={handleExport}
+                isExporting={isExporting}
             />
         </>
     );

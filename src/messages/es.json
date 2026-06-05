@@ -361,6 +361,21 @@
     "create": "Crear",
     "advancedFilters": "Filtros Avanzados"
   },
+  "GridExportDialog": {
+    "title": "Exportar registros",
+    "format": "Formato",
+    "csv": "CSV",
+    "excel": "Excel",
+    "dateFrom": "Fecha desde",
+    "dateTo": "Fecha hasta",
+    "export": "Exportar",
+    "cancel": "Cancelar",
+    "periodTooLong": "El período no puede ser mayor a 3 meses",
+    "dateFromRequired": "La fecha de inicio es requerida",
+    "dateToRequired": "La fecha de fin es requerida",
+    "dateToBeforeFrom": "La fecha de fin debe ser posterior a la de inicio",
+    "exportError": "Error al exportar los datos"
+  },
   "DataTablePagination": {
     "selected": "{count, plural, one {# seleccionado} other {# seleccionados}} de {total} fila(s).",
     "rowsPerPage": "Filas por página",
@@ -487,7 +502,8 @@
   "RecentQuotesTable": {
     "title": "Presupuestos Recientes",
     "description": "Una visión general de los últimos presupuestos.",
-    "filterPlaceholder": "Filtrar presupuestos por nombre de usuario..."
+    "filterPlaceholder": "Filtrar presupuestos por nombre de usuario...",
+    "export": "Exportar"
   },
   "RecentOrdersTable": {
     "title": "Órdenes Recientes",
@@ -1878,6 +1894,26 @@
     },
     "rejectedBanner": {
       "title": "Motivo de rechazo"
+    },
+    "export": "Exportar",
+    "exportError": "Error al exportar los datos",
+    "exportCols": {
+      "id": "ID",
+      "docNo": "Nro. Doc.",
+      "date": "Fecha",
+      "client": "Cliente",
+      "provider": "Proveedor",
+      "total": "Total",
+      "currency": "Moneda",
+      "exchangeRate": "Tipo de Cambio",
+      "status": "Estado",
+      "billingStatus": "Estado Facturación",
+      "paymentStatus": "Estado Pago",
+      "montoFacturado": "Monto Facturado",
+      "montoPagado": "Monto Pagado",
+      "pendienteFacturar": "Pendiente Facturar",
+      "pendientePagoFacturado": "Pendiente Pago Facturado",
+      "notes": "Notas"
     }
   },
   "SalesQuotesPage": {
@@ -2087,6 +2123,26 @@
       "successDescription": "La factura ha sido creada a partir del archivo importado."
     },
     "import": "Importar",
+    "export": "Exportar",
+    "exportError": "Error al exportar los datos",
+    "exportCols": {
+      "docNo": "Nro. Doc.",
+      "date": "Fecha",
+      "dueDate": "Vencimiento",
+      "client": "Cliente",
+      "provider": "Proveedor",
+      "total": "Total",
+      "currency": "Moneda",
+      "status": "Estado",
+      "paymentState": "Estado de Pago",
+      "paidAmount": "Monto Pagado",
+      "type": "Tipo",
+      "invoiceRef": "Referencia",
+      "orderDocNo": "Doc. Orden",
+      "quoteDocNo": "Doc. Presupuesto",
+      "isHistorical": "Histórico",
+      "notes": "Notas"
+    },
     "filterPlaceholder": "Filtrar aquí...",
     "editDialog": {
       "title": "Editar Factura",
@@ -2551,6 +2607,23 @@
     "title": "Pagos",
     "description": "Una visión general de los pagos.",
     "filterPlaceholder": "Filtrar aquí...",
+    "export": "Exportar",
+    "exportError": "Error al exportar los datos",
+    "exportCols": {
+      "docNo": "Nro. Doc.",
+      "date": "Fecha",
+      "client": "Cliente",
+      "provider": "Proveedor",
+      "amountApplied": "Monto Aplicado",
+      "sourceAmount": "Monto Origen",
+      "sourceCurrency": "Moneda",
+      "exchangeRate": "Tipo de Cambio",
+      "transactionType": "Tipo Transacción",
+      "paymentMethodName": "Método de Pago",
+      "invoiceDocNo": "Doc. Factura",
+      "isHistorical": "Histórico",
+      "notes": "Notas"
+    },
     "columns": {
       "doc_no": "No. Documento",
       "id": "ID",
