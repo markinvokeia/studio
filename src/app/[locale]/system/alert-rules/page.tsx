@@ -49,7 +49,6 @@ const ruleFormSchema = (t: (key: string) => string) => z.object({
     description: z.string().optional(),
     priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
     source_table: z.string().min(1, t('sourceTableRequired')),
-    query_template: z.string().min(1, t('queryTemplateRequired')),
     table_id_field: z.string().min(1, t('tableIdFieldRequired')),
     user_id_field: z.string().optional(),
     days_before: z.coerce.number().int().default(0),
@@ -239,12 +238,15 @@ export default function AlertRulesPage() {
         if (!type) return ['=', '!=', 'IS NULL', 'IS NOT NULL'];
         const lowerType = type.toLowerCase();
         const baseOperators = ['=', '!=', 'IS NULL', 'IS NOT NULL'];
-        if (lowerType.includes('varchar') || lowerType.includes('text')) {
-            return [...baseOperators, 'contains', 'LIKE', 'NOT LIKE', 'IN', 'NOT IN'];
-        } else if (lowerType.includes('int') || lowerType.includes('decimal') || lowerType.includes('numeric')) {
-            return [...baseOperators, '>', '<', '>=', '<=', 'IN', 'NOT IN', 'BETWEEN'];
+        if (lowerType.includes('varchar') || lowerType.includes('text') || lowerType.includes('char')) {
+            return [...baseOperators, 'LIKE', 'NOT LIKE'];
+        } else if (
+            lowerType.includes('int') || lowerType.includes('decimal') ||
+            lowerType.includes('numeric') || lowerType.includes('float') || lowerType.includes('double')
+        ) {
+            return [...baseOperators, '>', '<', '>=', '<='];
         } else if (lowerType.includes('date') || lowerType.includes('time')) {
-            return [...baseOperators, '>', '<', '>=', '<=', 'IN', 'NOT IN', 'BETWEEN'];
+            return [...baseOperators, '>', '<', '>=', '<=', 'BETWEEN'];
         }
         return baseOperators;
     };
@@ -298,7 +300,7 @@ export default function AlertRulesPage() {
         setSelectedTable('');
         setConditions([]);
         setDisplayFields([]);
-        form.reset({ code: '', name: '', description: '', is_active: true, priority: 'MEDIUM', source_table: '', query_template: '', table_id_field: '', user_id_field: '', recurrence_type: undefined, email_template_id: undefined, sms_template_id: undefined, days_before: 0, days_after: 0 });
+        form.reset({ code: '', name: '', description: '', is_active: true, priority: 'MEDIUM', source_table: '', table_id_field: '', user_id_field: '', recurrence_type: undefined, email_template_id: undefined, sms_template_id: undefined, days_before: 0, days_after: 0 });
         setSubmissionError(null);
         setIsDialogOpen(true);
     };
@@ -322,7 +324,6 @@ export default function AlertRulesPage() {
         form.reset({
             ...rule,
             category_id: String(rule.category_id || ''),
-            query_template: rule.query_template || '',
             table_id_field: (rule as any).table_id_field || '',
             days_before: rule.days_before ?? 0,
             days_after: rule.days_after ?? 0,
@@ -353,7 +354,6 @@ export default function AlertRulesPage() {
             name: `${rule.name} (Copy)`,
             code: `${rule.code}_COPY`,
             category_id: String(rule.category_id || ''),
-            query_template: rule.query_template || '',
             table_id_field: (rule as any).table_id_field || '',
             days_before: rule.days_before ?? 0,
             days_after: rule.days_after ?? 0,
@@ -865,20 +865,6 @@ export default function AlertRulesPage() {
                                     </FormItem>
                                 )} />
                             </div>
-
-                            <FormField
-                                control={form.control}
-                                name="query_template"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('dialog.queryTemplate')}</FormLabel>
-                                        <FormControl>
-                                            <Textarea {...field} className="min-h-28 font-mono text-sm" />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
 
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between gap-3">
