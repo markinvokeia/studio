@@ -107,7 +107,8 @@
     "ReportServicios": "Service Performance",
     "ReportGastos": "Operating Expenses",
     "ReportEstadoRes": "Income Statement",
-    "ReportKPIs": "Clinic KPIs"
+    "ReportKPIs": "Clinic KPIs",
+    "Sedes": "Branches"
   },
   "TVDisplayPage": {
     "title": "TV Display",
@@ -523,7 +524,8 @@
         "agenda": "Agenda",
         "doctor": "Doctors",
         "calendar": "Consulting rooms",
-        "none": "No grouping"
+        "none": "No grouping",
+        "sede": "Branches"
       }
     },
     "newAppointment": "New Appointment",
@@ -609,7 +611,8 @@
       "options": {
         "none": "No grouping",
         "doctor": "Doctors",
-        "calendar": "Consulting rooms"
+        "calendar": "Consulting rooms",
+        "sede": "Branches"
       }
     },
     "noSuggestions": "No suggestions",
@@ -3133,7 +3136,14 @@
       "deleteSuccessDescription": "Details have been deleted successfully",
       "deleteSuccessTitle": "Successfully Deleted",
       "errorDesc": "An error occurs and details have been updated successfully",
-      "errorTitle": "Error Updating"
+      "errorTitle": "Error Updating",
+      "createSuccessTitle": "Successfully Updated",
+      "genericError": "An error occurs and details have been updated successfully",
+      "deleteErrorDescription": "Details have been deleted successfully"
+    },
+    "sede": {
+      "general": "General",
+      "noSedesConfigured": "Please configure at least one branch in Settings > Branches first."
     }
   },
   "HolidaysPage": {
@@ -3217,7 +3227,11 @@
       "edit": "Edit",
       "editTitle": "Edit calendar",
       "editDescription": "Edit the calendar for the clinic",
-      "save": "Save Changes"
+      "save": "Save Changes",
+      "sede": "Branch",
+      "selectSede": "Select branch...",
+      "searchSede": "Search branch...",
+      "noSede": "No branch"
     },
     "toast": {
       "createSuccessTitle": "Calendar Created",
@@ -3300,7 +3314,11 @@
         "emailOrPhoneRequired": "You must provide at least an email address or a phone number."
       },
       "SuccessActivateDescription": "The doctor has been activated sucessfully",
-      "SuccessDeactivateDescription": "The doctor has been deactivated sucessfully"
+      "SuccessDeactivateDescription": "The doctor has been deactivated sucessfully",
+      "defaultCalendar": "Default Consultorio",
+      "selectCalendar": "Select consultorio...",
+      "searchCalendarPlaceholder": "Search consultorio...",
+      "noCalendar": "No default consultorio"
     },
     "filters": {
       "showOnlyActive": "Show only active"
@@ -6740,6 +6758,53 @@
       "maxMonthlyPatients": "Max Monthly Patients",
       "aiAccess": "AI Access",
       "issuedAt": "Issued At"
+    }
+  },
+  "SedesPage": {
+    "description": "Manage clinic branches and locations",
+    "filterPlaceholder": "Search branch...",
+    "active": "Active",
+    "inactive": "Inactive",
+    "columns": {
+      "name": "Name",
+      "address": "Address",
+      "phone": "Phone",
+      "email": "Email",
+      "status": "Status"
+    },
+    "form": {
+      "createTitle": "New Branch",
+      "edit": "Edit",
+      "save": "Save Changes",
+      "create": "Create",
+      "cancel": "Cancel",
+      "name": "Name",
+      "namePlaceholder": "e.g. Main Branch",
+      "address": "Address",
+      "addressPlaceholder": "e.g. 123 Main St",
+      "phone": "Phone",
+      "phonePlaceholder": "e.g. 099 123 456",
+      "email": "Email",
+      "emailPlaceholder": "e.g. branch@clinic.com",
+      "isActive": "Is Active?"
+    },
+    "validation": {
+      "nameRequired": "Name is required.",
+      "emailInvalid": "Invalid email address."
+    },
+    "toast": {
+      "createSuccess": "Branch created successfully.",
+      "editSuccess": "Branch updated successfully.",
+      "deleteSuccess": "Branch deleted successfully.",
+      "errorTitle": "Error",
+      "deleteError": "Could not delete the branch.",
+      "genericError": "An unexpected error occurred."
+    },
+    "deleteDialog": {
+      "title": "Delete Branch",
+      "description": "Are you sure you want to delete \"{name}\"? This action is irreversible.",
+      "cancel": "Cancel",
+      "delete": "Delete"
     }
   }
 }

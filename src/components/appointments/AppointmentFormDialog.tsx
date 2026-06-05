@@ -1278,7 +1278,18 @@ export function AppointmentFormDialog({
                                                             {t('createDialog.none')}
                                                         </CommandItem>
                                                         {filteredDoctors.map(doctor => (
-                                                            <CommandItem key={doctor.id} value={doctor.name} onSelect={() => { setAppointment(prev => ({ ...prev, doctor })); setDoctorSearchOpen(false); }}>
+                                                            <CommandItem key={doctor.id} value={doctor.name} onSelect={() => {
+                                                                const defaultCalendar = doctor.calendar_source_id
+                                                                    ? calendars.find(c => String(c.id) === String(doctor.calendar_source_id)) ?? null
+                                                                    : null;
+                                                                setAppointment(prev => ({
+                                                                    ...prev,
+                                                                    doctor,
+                                                                    ...(defaultCalendar ? { calendar: defaultCalendar } : {}),
+                                                                }));
+                                                                if (defaultCalendar) setErrors(prev => prev.filter(err => err !== 'calendar'));
+                                                                setDoctorSearchOpen(false);
+                                                            }}>
                                                                 <Check className={cn("mr-2 h-4 w-4", appointment.doctor?.id === doctor.id ? "opacity-100" : "opacity-0")} />
                                                                 {doctor.name}
                                                             </CommandItem>

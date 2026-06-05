@@ -107,7 +107,8 @@
     "ReportServicios": "Rendimiento de Servicios",
     "ReportGastos": "Gastos Operativos",
     "ReportEstadoRes": "Estado de Resultados",
-    "ReportKPIs": "KPIs Clínica"
+    "ReportKPIs": "KPIs Clínica",
+    "Sedes": "Sedes"
   },
   "TVDisplayPage": {
     "title": "Pantalla TV",
@@ -523,7 +524,8 @@
         "agenda": "Agenda",
         "doctor": "Doctores",
         "calendar": "Consultorios",
-        "none": "Sin agrupar"
+        "none": "Sin agrupar",
+        "sede": "Sedes"
       }
     },
     "newAppointment": "Nueva Cita",
@@ -609,7 +611,8 @@
       "options": {
         "none": "Sin agrupar",
         "doctor": "Doctores",
-        "calendar": "Consultorios"
+        "calendar": "Consultorios",
+        "sede": "Sedes"
       }
     },
     "noSuggestions": "Sin sugerencias",
@@ -3110,7 +3113,14 @@
       "deleteSuccessDescription": "Registro eliminado satisfactoriamente",
       "deleteSuccessTitle": "Eliminado Satisfactoriamente",
       "errorDesc": "Hubo un error y los detalles no han sido actualizados satisfactoriamente",
-      "errorTitle": "Error Actualizando"
+      "errorTitle": "Error Actualizando",
+      "createSuccessTitle": "Operación exitosa",
+      "genericError": "Hubo un error y los detalles no han sido actualizados satisfactoriamente",
+      "deleteErrorDescription": "Registro eliminado satisfactoriamente"
+    },
+    "sede": {
+      "general": "General",
+      "noSedesConfigured": "Primero configura al menos una sede en Configuración > Sedes."
     }
   },
   "HolidaysPage": {
@@ -3194,7 +3204,11 @@
       "edit": "Editar",
       "editTitle": "Editar calendario",
       "editDescription": "Editar el calendario para la clínica",
-      "save": "Guardar Cambios"
+      "save": "Guardar Cambios",
+      "sede": "Sede",
+      "selectSede": "Seleccionar sede...",
+      "searchSede": "Buscar sede...",
+      "noSede": "Sin sede"
     },
     "toast": {
       "createSuccessTitle": "Calendario Creado",
@@ -3277,7 +3291,11 @@
         "identityRequired": "La cedula de identidad es requerida.",
         "identityMaxLength": "Documento de identidad debe tener como máximo 10 caracteres.",
         "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono."
-      }
+      },
+      "defaultCalendar": "Consultorio por defecto",
+      "selectCalendar": "Seleccionar consultorio...",
+      "searchCalendarPlaceholder": "Buscar consultorio...",
+      "noCalendar": "Sin consultorio por defecto"
     },
     "filters": {
       "showOnlyActive": "Mostrar solo activos"
@@ -6720,6 +6738,53 @@
       "maxMonthlyPatients": "Máx. Pacientes/Mes",
       "aiAccess": "Acceso IA",
       "issuedAt": "Emitida El"
+    }
+  },
+  "SedesPage": {
+    "description": "Gestión de sucursales y sedes de la clínica",
+    "filterPlaceholder": "Buscar sede...",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "columns": {
+      "name": "Nombre",
+      "address": "Dirección",
+      "phone": "Teléfono",
+      "email": "Correo Electrónico",
+      "status": "Estado"
+    },
+    "form": {
+      "createTitle": "Nueva Sede",
+      "edit": "Editar",
+      "save": "Guardar Cambios",
+      "create": "Crear",
+      "cancel": "Cancelar",
+      "name": "Nombre",
+      "namePlaceholder": "ej. Sede Centro",
+      "address": "Dirección",
+      "addressPlaceholder": "ej. Av. Principal 123",
+      "phone": "Teléfono",
+      "phonePlaceholder": "ej. 099 123 456",
+      "email": "Correo Electrónico",
+      "emailPlaceholder": "ej. sede@clinica.com",
+      "isActive": "¿Está Activa?"
+    },
+    "validation": {
+      "nameRequired": "El nombre es obligatorio.",
+      "emailInvalid": "Correo electrónico inválido."
+    },
+    "toast": {
+      "createSuccess": "Sede creada exitosamente.",
+      "editSuccess": "Sede actualizada exitosamente.",
+      "deleteSuccess": "Sede eliminada exitosamente.",
+      "errorTitle": "Error",
+      "deleteError": "No se pudo eliminar la sede.",
+      "genericError": "Ocurrió un error inesperado."
+    },
+    "deleteDialog": {
+      "title": "Eliminar Sede",
+      "description": "¿Estás seguro de que deseas eliminar \"{name}\"? Esta acción es irreversible.",
+      "cancel": "Cancelar",
+      "delete": "Eliminar"
     }
   }
 }

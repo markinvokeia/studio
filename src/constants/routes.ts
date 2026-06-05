@@ -140,6 +140,7 @@ export const API_ROUTES = {
     CONFIG: {
         AVAILABILITY_EXCEPTIONS: '/config/availability-exceptions',
         CALENDARS: '/config/calendars',
+        SEDES: '/config/sedes',
         CLINICS: '/config/clinics',
         CURRENCIES: '/config/currencies',
         DOCTOR_AVAILABILITY: '/config/doctor-availability',
@@ -347,6 +348,10 @@ export const API_ROUTES = {
     CLINIC_SCHEDULES: '/schedules',
     CLINIC_SCHEDULES_UPSERT: '/clinicschedules/upsert',
     CLINIC_SCHEDULES_DELETE: '/clinicschedules/delete',
+    SEDES: '/sedes',
+    SEDE: '/sede',
+    SEDE_UPSERT: '/sede',
+    SEDE_DELETE: '/sede',
     SERVICES_UPSERT: '/catalogoservicios/upsert',
     SERVICES_DELETE: '/catalogoservicios/delete',
     TREATMENT_PLANS: {

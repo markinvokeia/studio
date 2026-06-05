@@ -18,11 +18,11 @@ import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
-import { ClinicSchedule } from '@/lib/types';
+import { ClinicSchedule, Sede } from '@/lib/types';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, CalendarClock, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { AlertTriangle, Building2, CalendarClock, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -33,19 +33,38 @@ const scheduleFormSchema = (t: (key: string) => string) => z.object({
     day_of_week: z.string().min(1, t('dayRequired')),
     start_time: z.string().min(1, t('startRequired')),
     end_time: z.string().min(1, t('endRequired')),
+    sede_id: z.string().optional(),
 });
 
 type ScheduleFormValues = z.infer<ReturnType<typeof scheduleFormSchema>>;
 
-async function getSchedules(): Promise<ClinicSchedule[]> {
+async function getSedes(): Promise<Sede[]> {
     try {
-        const data = await api.get(API_ROUTES.CLINIC_SCHEDULES);
+        const data = await api.get(API_ROUTES.SEDES, { page: '1', limit: '200' });
+        const raw = Array.isArray(data) ? data : (data.sedes || data.data || []);
+        return raw.map((s: any) => ({
+            id: String(s.id),
+            clinic_id: String(s.clinic_id),
+            name: s.name || '',
+            is_active: s.is_active !== undefined ? s.is_active : true,
+        }));
+    } catch {
+        return [];
+    }
+}
+
+async function getSchedules(sedeId?: string): Promise<ClinicSchedule[]> {
+    try {
+        const params: Record<string, string> = {};
+        if (sedeId) params.sede_id = sedeId;
+        const data = await api.get(API_ROUTES.CLINIC_SCHEDULES, params);
         const schedulesData = Array.isArray(data) ? data : (data.schedules || data.data || data.result || []);
         return schedulesData.map((apiSchedule: any) => ({
             id: String(apiSchedule.id),
             day_of_week: apiSchedule.day_of_week,
             start_time: apiSchedule.start_time,
             end_time: apiSchedule.end_time,
+            sede_id: apiSchedule.sede_id ? String(apiSchedule.sede_id) : undefined,
         }));
     } catch (error) {
         console.error("Failed to fetch schedules:", error);
@@ -54,7 +73,12 @@ async function getSchedules(): Promise<ClinicSchedule[]> {
 }
 
 async function upsertSchedule(scheduleData: ScheduleFormValues) {
-    const responseData = await api.post(API_ROUTES.CLINIC_SCHEDULES_UPSERT, { ...scheduleData, day_of_week: Number(scheduleData.day_of_week) });
+    const payload: any = {
+        ...scheduleData,
+        day_of_week: Number(scheduleData.day_of_week),
+        sede_id: Number(scheduleData.sede_id),
+    };
+    const responseData = await api.post(API_ROUTES.CLINIC_SCHEDULES_UPSERT, payload);
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         throw new Error(responseData[0]?.message || 'Failed to save schedule');
     }
@@ -80,6 +104,8 @@ export default function SchedulesPage() {
     const canUpdate = hasPermission(BUSINESS_CONFIG_PERMISSIONS.SCHEDULES_UPDATE);
     const canDelete = hasPermission(BUSINESS_CONFIG_PERMISSIONS.SCHEDULES_DELETE);
 
+    const [sedes, setSedes] = React.useState<Sede[]>([]);
+    const [activeSede, setActiveSede] = React.useState<string>('');
     const [schedules, setSchedules] = React.useState<ClinicSchedule[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
@@ -93,17 +119,28 @@ export default function SchedulesPage() {
 
     const form = useForm<ScheduleFormValues>({
         resolver: zodResolver(scheduleFormSchema(tValidation)),
-        defaultValues: { day_of_week: '', start_time: '', end_time: '' },
+        defaultValues: { day_of_week: '', start_time: '', end_time: '', sede_id: '' },
     });
 
-    const loadSchedules = React.useCallback(async () => {
-        setIsRefreshing(true);
-        const fetched = await getSchedules();
-        setSchedules(fetched);
-        setIsRefreshing(false);
+    React.useEffect(() => {
+        getSedes().then(fetched => {
+            setSedes(fetched);
+            if (fetched.length > 0) setActiveSede(fetched[0].id);
+        });
     }, []);
 
-    React.useEffect(() => { loadSchedules(); }, [loadSchedules]);
+    const loadSchedules = React.useCallback(async () => {
+        if (!activeSede) return;
+        setIsRefreshing(true);
+        const fetched = await getSchedules(activeSede);
+        setSchedules(fetched);
+        setIsRefreshing(false);
+    }, [activeSede]);
+
+    React.useEffect(() => {
+        handleClose();
+        loadSchedules();
+    }, [loadSchedules]);
 
     const getDayLabel = (day: number | string) => {
         const dayMap: Record<string, string> = {
@@ -119,7 +156,7 @@ export default function SchedulesPage() {
         setSubmissionError(null);
         if (schedule) {
             setIsEditing(false);
-            form.reset({ ...schedule, day_of_week: String(schedule.day_of_week) });
+            form.reset({ ...schedule, day_of_week: String(schedule.day_of_week), sede_id: schedule.sede_id || '' });
         }
     };
 
@@ -128,7 +165,7 @@ export default function SchedulesPage() {
         setRowSelection({});
         setIsEditing(true);
         setSubmissionError(null);
-        form.reset({ day_of_week: '', start_time: '', end_time: '' });
+        form.reset({ day_of_week: '', start_time: '', end_time: '', sede_id: activeSede });
         setIsCreateDialogOpen(true);
     };
 
@@ -141,10 +178,14 @@ export default function SchedulesPage() {
     const handleBack = () => {
         if (isEditing && selectedSchedule) {
             setIsEditing(false);
-            form.reset({ ...selectedSchedule, day_of_week: String(selectedSchedule.day_of_week) });
+            form.reset({ ...selectedSchedule, day_of_week: String(selectedSchedule.day_of_week), sede_id: selectedSchedule.sede_id || '' });
         } else {
             handleClose();
         }
+    };
+
+    const handleSedeChange = (sedeId: string) => {
+        setActiveSede(sedeId);
     };
 
     const onSubmit = async (values: ScheduleFormValues) => {
@@ -190,6 +231,50 @@ export default function SchedulesPage() {
         { accessorKey: 'end_time', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.endTime')} /> },
     ];
 
+    const sedeTabLabel = sedes.find(s => s.id === activeSede)?.name ?? activeSede;
+
+    // Render the day-of-week + times form fields (shared by panel and dialog)
+    const scheduleFields = (disabled: boolean) => (
+        <>
+            <FormField control={form.control} name="day_of_week" render={({ field }) => (
+                <FormItem>
+                    <FormLabel>{t('createDialog.dayOfWeek')}</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={disabled}>
+                        <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder={t('createDialog.selectDay')} />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            <SelectItem value="1">{t('days.monday')}</SelectItem>
+                            <SelectItem value="2">{t('days.tuesday')}</SelectItem>
+                            <SelectItem value="3">{t('days.wednesday')}</SelectItem>
+                            <SelectItem value="4">{t('days.thursday')}</SelectItem>
+                            <SelectItem value="5">{t('days.friday')}</SelectItem>
+                            <SelectItem value="6">{t('days.saturday')}</SelectItem>
+                            <SelectItem value="0">{t('days.sunday')}</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                </FormItem>
+            )} />
+            <FormField control={form.control} name="start_time" render={({ field }) => (
+                <FormItem>
+                    <FormLabel>{t('createDialog.startTime')}</FormLabel>
+                    <FormControl><Input type="time" {...field} disabled={disabled} /></FormControl>
+                    <FormMessage />
+                </FormItem>
+            )} />
+            <FormField control={form.control} name="end_time" render={({ field }) => (
+                <FormItem>
+                    <FormLabel>{t('createDialog.endTime')}</FormLabel>
+                    <FormControl><Input type="time" {...field} disabled={disabled} /></FormControl>
+                    <FormMessage />
+                </FormItem>
+            )} />
+        </>
+    );
+
     const isRightOpen = !!selectedSchedule;
 
     const leftPanel = (
@@ -203,13 +288,36 @@ export default function SchedulesPage() {
                     </div>
                 </div>
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 bg-card">
+            {sedes.length > 0 && (
+                <div className="flex-none px-4 pb-3">
+                    <div className="flex gap-1.5 flex-wrap">
+                        {sedes.map(sede => (
+                            <Button
+                                key={sede.id}
+                                variant={activeSede === sede.id ? 'default' : 'outline'}
+                                size="sm"
+                                className="h-7 text-xs gap-1.5"
+                                onClick={() => handleSedeChange(sede.id)}
+                            >
+                                <Building2 className="h-3 w-3" />
+                                {sede.name}
+                            </Button>
+                        ))}
+                    </div>
+                </div>
+            )}
+            {sedes.length === 0 && !isRefreshing && (
+                <div className="flex-none px-4 pb-3">
+                    <p className="text-sm text-muted-foreground">{t('sede.noSedesConfigured')}</p>
+                </div>
+            )}
+            <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 pt-0 bg-card">
                 <DataTable
                     columns={columns}
                     data={schedules}
                     filterColumnId="day_of_week"
                     filterPlaceholder={t('filterPlaceholder')}
-                    onCreate={canCreate ? handleCreate : undefined}
+                    onCreate={canCreate && activeSede ? handleCreate : undefined}
                     onRefresh={loadSchedules}
                     isRefreshing={isRefreshing}
                     enableSingleRowSelection
@@ -235,13 +343,19 @@ export default function SchedulesPage() {
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 min-w-0">
                         <div className="header-icon-circle flex-none"><CalendarClock className="h-5 w-5" /></div>
-                        <CardTitle className="text-base lg:text-lg truncate">
-                            {isEditing && !selectedSchedule
-                                ? t('createDialog.title')
-                                : selectedSchedule
+                        <div className="min-w-0">
+                            <CardTitle className="text-base lg:text-lg truncate">
+                                {selectedSchedule
                                     ? `${getDayLabel(selectedSchedule.day_of_week)} · ${selectedSchedule.start_time}–${selectedSchedule.end_time}`
                                     : ''}
-                        </CardTitle>
+                            </CardTitle>
+                            {sedes.length > 0 && sedeTabLabel && (
+                                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                    <Building2 className="h-3 w-3" />
+                                    {sedeTabLabel}
+                                </p>
+                            )}
+                        </div>
                     </div>
                     <div className="flex items-center gap-1 ml-2 flex-none">
                         {selectedSchedule && !isEditing && canUpdate && (
@@ -269,45 +383,10 @@ export default function SchedulesPage() {
                                 <AlertDescription>{submissionError}</AlertDescription>
                             </Alert>
                         )}
-                        <FormField control={form.control} name="day_of_week" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>{t('createDialog.dayOfWeek')}</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value} disabled={!isEditing}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder={t('createDialog.selectDay')} />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="1">{t('days.monday')}</SelectItem>
-                                        <SelectItem value="2">{t('days.tuesday')}</SelectItem>
-                                        <SelectItem value="3">{t('days.wednesday')}</SelectItem>
-                                        <SelectItem value="4">{t('days.thursday')}</SelectItem>
-                                        <SelectItem value="5">{t('days.friday')}</SelectItem>
-                                        <SelectItem value="6">{t('days.saturday')}</SelectItem>
-                                        <SelectItem value="0">{t('days.sunday')}</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )} />
-                        <FormField control={form.control} name="start_time" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>{t('createDialog.startTime')}</FormLabel>
-                                <FormControl><Input type="time" {...field} disabled={!isEditing} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )} />
-                        <FormField control={form.control} name="end_time" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>{t('createDialog.endTime')}</FormLabel>
-                                <FormControl><Input type="time" {...field} disabled={!isEditing} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )} />
+                        {scheduleFields(!isEditing)}
                         {isEditing && (
                             <div className="flex gap-2 pt-2">
-                                <Button type="button" variant="outline" onClick={() => { setIsEditing(false); if (selectedSchedule) form.reset({ ...selectedSchedule, day_of_week: String(selectedSchedule.day_of_week) }); else handleClose(); }} disabled={isSaving}>
+                                <Button type="button" variant="outline" onClick={() => { setIsEditing(false); if (selectedSchedule) form.reset({ ...selectedSchedule, day_of_week: String(selectedSchedule.day_of_week), sede_id: selectedSchedule.sede_id || '' }); else handleClose(); }} disabled={isSaving}>
                                     {t('createDialog.cancel')}
                                 </Button>
                                 <Button type="submit" disabled={isSaving}>
@@ -351,13 +430,20 @@ export default function SchedulesPage() {
                     if (!open) {
                         setIsEditing(false);
                         setSubmissionError(null);
-                        form.reset({ day_of_week: '', start_time: '', end_time: '' });
+                        form.reset({ day_of_week: '', start_time: '', end_time: '', sede_id: '' });
                     }
                 }}
             >
                 <DialogContent maxWidth="lg">
                     <DialogHeader>
-                        <DialogTitle>{t('createDialog.title')}</DialogTitle>
+                        <DialogTitle>
+                            {t('createDialog.title')}
+                            {sedes.length > 0 && (
+                                <span className="text-sm font-normal text-muted-foreground ml-2">
+                                    — {sedeTabLabel}
+                                </span>
+                            )}
+                        </DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col min-h-0">
@@ -369,42 +455,7 @@ export default function SchedulesPage() {
                                         <AlertDescription>{submissionError}</AlertDescription>
                                     </Alert>
                                 )}
-                                <FormField control={form.control} name="day_of_week" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('createDialog.dayOfWeek')}</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder={t('createDialog.selectDay')} />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="1">{t('days.monday')}</SelectItem>
-                                                <SelectItem value="2">{t('days.tuesday')}</SelectItem>
-                                                <SelectItem value="3">{t('days.wednesday')}</SelectItem>
-                                                <SelectItem value="4">{t('days.thursday')}</SelectItem>
-                                                <SelectItem value="5">{t('days.friday')}</SelectItem>
-                                                <SelectItem value="6">{t('days.saturday')}</SelectItem>
-                                                <SelectItem value="0">{t('days.sunday')}</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                                <FormField control={form.control} name="start_time" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('createDialog.startTime')}</FormLabel>
-                                        <FormControl><Input type="time" {...field} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                                <FormField control={form.control} name="end_time" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('createDialog.endTime')}</FormLabel>
-                                        <FormControl><Input type="time" {...field} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
+                                {scheduleFields(false)}
                             </DialogBody>
                             <DialogFooter>
                                 <Button type="button" variant="outline" disabled={isSaving} onClick={() => setIsCreateDialogOpen(false)}>
