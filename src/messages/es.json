@@ -3121,10 +3121,29 @@
       "errorTitle": "Error Actualizando Detalles",
       "fileTooLargeTitle": "Archivo demasiado grande",
       "fileTooLargeDesc": "El logo no puede superar 1 MB.",
-      "errorUnknown": "Ocurrió un error inesperado al actualizar los detalles de la clínica."
+      "errorUnknown": "Ocurrió un error inesperado al actualizar los detalles de la clínica.",
+      "sedeCreateSuccess": "Sede creada exitosamente",
+      "sedeEditSuccess": "Sede actualizada exitosamente",
+      "sedeDeleteSuccess": "Sede eliminada exitosamente",
+      "sedeDeleteError": "Error al eliminar la sede",
+      "sedeGenericError": "Ocurrió un error inesperado"
     },
     "saving": "Guardando",
     "noClinic": "No hay clínicas registradas.",
+    "locationManagedBySedes": "La dirección es gestionada por las sedes",
+    "sedesSection": "Sedes",
+    "sedesSectionDesc": "Sucursales de esta clínica",
+    "noSedes": "Sin sedes configuradas",
+    "noSedesHint": "Agrega una sede para gestionar sus direcciones en el mapa",
+    "addSede": "Nueva sede",
+    "sedeActiveStatus": "Activa",
+    "sedeInactiveStatus": "Inactiva",
+    "sedeCreateTitle": "Nueva sede",
+    "sedeEditTitle": "Editar sede",
+    "sedeDeleteConfirmTitle": "Eliminar sede",
+    "sedeDeleteConfirmDesc": "¿Estás seguro que deseas eliminar \"{name}\"? Esta acción no se puede deshacer.",
+    "sedeDeleteConfirmCancel": "Cancelar",
+    "sedeDeleteConfirmDelete": "Eliminar",
     "validation": {
       "phoneInvalid": "Número de teléfono inválido"
     }

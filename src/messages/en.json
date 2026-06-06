@@ -3144,10 +3144,29 @@
       "errorTitle": "Error Updating Details",
       "fileTooLargeTitle": "File too large",
       "fileTooLargeDesc": "The logo must be 1 MB or smaller.",
-      "errorUnknown": "An unexpected error occurred while updating the clinic details."
+      "errorUnknown": "An unexpected error occurred while updating the clinic details.",
+      "sedeCreateSuccess": "Branch created successfully",
+      "sedeEditSuccess": "Branch updated successfully",
+      "sedeDeleteSuccess": "Branch deleted successfully",
+      "sedeDeleteError": "Error deleting the branch",
+      "sedeGenericError": "An unexpected error occurred"
     },
     "saving": "Saving",
     "noClinic": "There are no registered clinics.",
+    "locationManagedBySedes": "The address is managed by the branches",
+    "sedesSection": "Branches",
+    "sedesSectionDesc": "Branches of this clinic",
+    "noSedes": "No branches configured",
+    "noSedesHint": "Add a branch to manage their addresses on the map",
+    "addSede": "New branch",
+    "sedeActiveStatus": "Active",
+    "sedeInactiveStatus": "Inactive",
+    "sedeCreateTitle": "New branch",
+    "sedeEditTitle": "Edit branch",
+    "sedeDeleteConfirmTitle": "Delete branch",
+    "sedeDeleteConfirmDesc": "Are you sure you want to delete \"{name}\"? This action cannot be undone.",
+    "sedeDeleteConfirmCancel": "Cancel",
+    "sedeDeleteConfirmDelete": "Delete",
     "validation": {
       "phoneInvalid": "Invalid phone number"
     }
