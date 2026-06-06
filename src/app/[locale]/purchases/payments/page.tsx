@@ -90,7 +90,21 @@ function PaymentsPageContent() {
             });
             // Same unwrap pattern as getPurchasePayments in payments-service.ts
             const paginationData = Array.isArray(data) && data.length > 0 ? data[0] : data;
-            const rows: unknown[] = paginationData?.data || [];
+            const rawRows: any[] = paginationData?.data || [];
+            const txTypeMap: Record<string, string> = {
+                direct_payment: t('transactionType.direct_payment' as any),
+                payment_allocation: t('transactionType.payment_allocation' as any),
+                credit_note_allocation: t('transactionType.credit_note_allocation' as any),
+                payment: t('transactionType.payment' as any),
+                credit_note: t('transactionType.credit_note' as any),
+                deposit_at_bank: t('transactionType.deposit_at_bank' as any),
+                cash_deposit: t('transactionType.cash_deposit' as any),
+            };
+            const rows = rawRows.map((r: any) => ({
+                ...r,
+                transaction_type: txTypeMap[r.transaction_type] ?? r.transaction_type,
+                is_historical: r.is_historical ? 'Sí' : 'No',
+            }));
             const exportCols: ExportColumn[] = [
                 { header: t('exportCols.docNo'), key: 'transaction_doc_no' },
                 { header: t('exportCols.date'), key: 'created_at' },

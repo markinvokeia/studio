@@ -733,7 +733,34 @@ export default function QuotesPage() {
                 date_to: format(dateTo, 'yyyy-MM-dd'),
             });
             const normalized = normalizeApiResponse(data);
-            const rows = normalized.items;
+            const rawRows = normalized.items;
+            const statusMap: Record<string, string> = {
+                draft: t('quoteDialog.draft' as any), pending: t('quoteDialog.pending' as any),
+                confirmed: t('quoteDialog.confirmed' as any), rejected: t('quoteDialog.rejected' as any),
+                accepted: t('quoteDialog.accepted' as any),
+            };
+            const billingMap: Record<string, string> = {
+                invoiced: t('quoteDialog.invoiced' as any),
+                'partially invoiced': t('quoteDialog.partiallyInvoiced' as any),
+                'not invoiced': t('quoteDialog.notInvoiced' as any),
+                partially_invoiced: t('quoteDialog.partially_invoiced' as any),
+                not_invoiced: t('quoteDialog.not_invoiced' as any),
+                fully_invoiced: t('quoteDialog.fully_invoiced' as any),
+            };
+            const paymentMap: Record<string, string> = {
+                paid: t('quoteDialog.paid' as any), unpaid: t('quoteDialog.unpaid' as any),
+                not_paid: t('quoteDialog.not_paid' as any),
+                partial: t('quoteDialog.partial' as any),
+                partially_paid: t('quoteDialog.partiallyPaid' as any),
+                'not invoiced': t('quoteDialog.notInvoiced' as any),
+                not_invoiced: t('quoteDialog.not_invoiced' as any),
+            };
+            const rows = rawRows.map((r: any) => ({
+                ...r,
+                status: statusMap[(r.status || '').toLowerCase()] ?? r.status,
+                billing_status: billingMap[(r.billing_status || '').toLowerCase()] ?? r.billing_status,
+                payment_status: paymentMap[(r.payment_status || '').toLowerCase()] ?? r.payment_status,
+            }));
             const exportCols: ExportColumn[] = [
                 { header: t('exportCols.id'), key: 'id' },
                 { header: t('exportCols.docNo'), key: 'doc_no' },

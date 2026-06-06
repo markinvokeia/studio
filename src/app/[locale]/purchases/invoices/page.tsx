@@ -265,7 +265,25 @@ function InvoicesPageContent() {
                 date_from: format(dateFrom, 'yyyy-MM-dd'),
                 date_to: format(dateTo, 'yyyy-MM-dd'),
             });
-            const rows = Array.isArray(data) ? data : (data.invoices || data.data || []);
+            const rawRows = Array.isArray(data) ? data : (data.invoices || data.data || []);
+            const invoiceStatusMap: Record<string, string> = {
+                paid: t('status.paid' as any), sent: t('status.sent' as any),
+                draft: t('status.draft' as any), overdue: t('status.overdue' as any),
+                unpaid: t('status.unpaid' as any), partial: t('status.partial' as any),
+                partially_paid: t('status.partially_paid' as any),
+                completed: t('status.completed' as any), pending: t('status.pending' as any),
+                failed: t('status.failed' as any), booked: t('status.booked' as any),
+            };
+            const invoiceTypeMap: Record<string, string> = {
+                invoice: t('invoice' as any), credit_note: t('creditNote' as any),
+            };
+            const rows = rawRows.map((r: any) => ({
+                ...r,
+                status: invoiceStatusMap[(r.status || '').toLowerCase()] ?? r.status,
+                payment_state: invoiceStatusMap[(r.payment_state || '').toLowerCase()] ?? r.payment_state,
+                type: invoiceTypeMap[(r.type || '').toLowerCase()] ?? r.type,
+                is_historical: r.is_historical ? t('columns.historical' as any) || 'Sí' : 'No',
+            }));
             const exportCols: ExportColumn[] = [
                 { header: t('exportCols.docNo'), key: 'doc_no' },
                 { header: t('exportCols.date'), key: 'created_at' },
