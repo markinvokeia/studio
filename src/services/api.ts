@@ -1,4 +1,4 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/webhook` : 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook';
+import { getWebhookBaseUrl } from '@/lib/runtime-config';
 
 const getToken = (): string | null => {
     if (typeof window !== 'undefined') {
@@ -14,7 +14,7 @@ const buildUrl = (endpoint: string, params?: Record<string, string>, query?: Rec
             url = url.replace(`:${key}`, params[key]);
         });
     }
-    url = BASE_URL + url;
+    url = getWebhookBaseUrl() + url;
     if (query) {
         const searchParams = new URLSearchParams(query);
         url += '?' + searchParams.toString();

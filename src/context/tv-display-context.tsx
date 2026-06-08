@@ -4,6 +4,7 @@ import * as React from 'react';
 import { format, parseISO } from 'date-fns';
 import api from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
+import { getWebhookBaseUrl } from '@/lib/runtime-config';
 import type { Appointment, Calendar, TVDisplaySettings, TVRoomState } from '@/lib/types';
 
 function mapRawAppointment(raw: any): Appointment {
@@ -274,7 +275,7 @@ export function TVDisplayProvider({ children }: { children: React.ReactNode }) {
         if (data) {
           setClinicInfo({
             name: data.name ?? data.clinic_name ?? data.nombre ?? '',
-            logoUrl: `${process.env.NEXT_PUBLIC_API_URL ?? 'https://n8n-project-n8n.7ig1i3.easypanel.host'}/webhook/clinic/logo`,
+            logoUrl: `${getWebhookBaseUrl()}/clinic/logo`,
             phone: data.phone ?? data.telefono ?? data.phone_number ?? data.tel ?? '',
             address: data.address ?? data.direccion ?? data.domicilio ?? '',
             email: data.email ?? data.correo ?? '',

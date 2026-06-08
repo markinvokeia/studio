@@ -5,6 +5,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { API_ROUTES } from '@/constants/routes';
+import { getApiUrl } from '@/lib/runtime-config';
 import type { PatientSession, User as UserType } from '@/lib/types';
 import { api } from '@/services/api';
 import { format, parseISO } from 'date-fns';
@@ -1188,7 +1189,7 @@ const DentalClinicalSystem = () => {
                           {session.archivos_adjuntos.map((file, i) => (
                             <li key={i}>
                               <a
-                                href={`${process.env.NEXT_PUBLIC_API_URL}${file.ruta}`}
+                                href={`${getApiUrl()}${file.ruta}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-blue-600 hover:underline flex items-center gap-1"

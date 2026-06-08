@@ -18,6 +18,7 @@ import { LICENSING_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
+import { getLicenseKey, getMasterSec } from '@/lib/runtime-config';
 import type { AiAccessLevel, CreateLicenseInput, LicensePayload, SubscriptionType } from '@/lib/types';
 import { api } from '@/services/api';
 import { useLicenseStore } from '@/stores/license-store';
@@ -33,11 +34,6 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
-
-// Access password — must match NEXT_PUBLIC_MASTER_SEC in .env.local
-const MASTER_SEC = process.env.NEXT_PUBLIC_MASTER_SEC ?? '';
-// AES-256-GCM key used to encrypt/decrypt license blobs
-const LICENSE_KEY = process.env.NEXT_PUBLIC_LICENSE_KEY ?? '';
 
 const licenseFormSchema = z.object({
   subscriptionType: z.enum(['monthly', 'annual', 'custom'] as const),
@@ -135,6 +131,8 @@ export default function LicensesPage() {
   const { hasPermission } = usePermissions();
   const { toast } = useToast();
   const { license, licenseKey, daysLeft, loadLicense, generateLicense } = useLicenseStore();
+  const masterSec = getMasterSec();
+  const licenseSecret = getLicenseKey();
 
   // Step 1: password gate
   const [isUnlocked, setIsUnlocked] = React.useState(false);
@@ -153,13 +151,13 @@ export default function LicensesPage() {
 
   // Once unlocked, fetch the license from backend and load it into the store
   React.useEffect(() => {
-    if (!isUnlocked || !LICENSE_KEY) return;
+    if (!isUnlocked || !licenseSecret) return;
     async function fetchLicense() {
       setIsFetchingLicense(true);
       try {
         const data = await api.get(API_ROUTES.LICENSE.GET);
         const blob: string | null = data?.license_key ?? null;
-        if (blob) await loadLicense(blob, LICENSE_KEY);
+        if (blob) await loadLicense(blob, licenseSecret);
       } catch {
         // No license stored yet — not an error
       } finally {
@@ -167,7 +165,7 @@ export default function LicensesPage() {
       }
     }
     fetchLicense();
-  }, [isUnlocked, loadLicense]);
+  }, [isUnlocked, licenseSecret, loadLicense]);
 
   const form = useForm<LicenseFormValues>({
     resolver: zodResolver(licenseFormSchema),
@@ -205,11 +203,11 @@ export default function LicensesPage() {
   function handleUnlock(e: React.FormEvent) {
     e.preventDefault();
     if (!secInput.trim()) return;
-    if (!MASTER_SEC) {
+    if (!masterSec) {
       setSecError('NEXT_PUBLIC_MASTER_SEC no está configurado en el servidor.');
       return;
     }
-    if (secInput.trim() !== MASTER_SEC) {
+    if (secInput.trim() !== masterSec) {
       setSecError('Clave incorrecta. Intente nuevamente.');
       return;
     }
@@ -220,11 +218,11 @@ export default function LicensesPage() {
     setIsGenerating(true);
     try {
       const input: CreateLicenseInput = data;
-      const newKey = await generateLicense(input, LICENSE_KEY);
+      const newKey = await generateLicense(input, licenseSecret);
 
       let newPayload: LicensePayload | null = null;
       try {
-        newPayload = await decryptLicense(newKey, LICENSE_KEY);
+        newPayload = await decryptLicense(newKey, licenseSecret);
       } catch { /* ignore */ }
 
       await api.post(API_ROUTES.LICENSE.SAVE, { license_key: newKey });
@@ -246,7 +244,7 @@ export default function LicensesPage() {
         });
       }
 
-      await loadLicense(newKey, LICENSE_KEY);
+      await loadLicense(newKey, licenseSecret);
       setGeneratedKey(newKey);
       toast({ title: '¡Licencia generada exitosamente!' });
     } catch (err) {

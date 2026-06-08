@@ -12,6 +12,7 @@ import { useNotifications } from '@/context/notifications-context';
 import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
+import { getApiUrl } from '@/lib/runtime-config';
 import { cn } from '@/lib/utils';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
 import {
@@ -42,7 +43,7 @@ import { VoiceChat, type ChatMessage } from './voice-chat';
 // ── Webhook URL ───────────────────────────────────────────────────────────────
 
 const CHAT_WEBHOOK_URL =
-    (process.env.NEXT_PUBLIC_API_URL ?? 'https://n8n-project-n8n.7ig1i3.easypanel.host') +
+    getApiUrl() +
     '/webhook/a8ad846b-de6a-4d89-8e02-01072101cfe6/chat';
 
 // ── TTS ───────────────────────────────────────────────────────────────────────
