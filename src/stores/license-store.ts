@@ -1,10 +1,10 @@
 import { create } from 'zustand';
 import type { CreateLicenseInput, LicensePayload } from '@/lib/types';
 import { decryptLicense, encryptLicense } from '@/lib/license-crypto';
+import { getLicenseKey } from '@/lib/runtime-config';
 import api from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 
-const RUNTIME_KEY = process.env.NEXT_PUBLIC_LICENSE_KEY ?? '';
 const WARN_DAYS = 5;
 const LS_KEY = 'license_key';
 
@@ -45,7 +45,7 @@ export const useLicenseStore = create<LicenseStore>((set, get) => ({
   isLoading: false,
 
   loadLicense: async (key: string, decryptionKeyOverride?: string): Promise<boolean> => {
-    const keyToUse = decryptionKeyOverride ?? RUNTIME_KEY;
+    const keyToUse = decryptionKeyOverride ?? getLicenseKey();
     if (!key || !keyToUse) return false;
     try {
       const payload = await decryptLicense(key, keyToUse);

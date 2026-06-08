@@ -46,7 +46,7 @@ src/
 
 ### API layer
 
-`src/services/api.ts` wraps all HTTP calls with Bearer token auth (from localStorage). Base URL from `NEXT_PUBLIC_API_URL`. Route constants live in `src/constants/routes.ts` — never hardcode API routes inline.
+`src/services/api.ts` wraps all HTTP calls with Bearer token auth (from localStorage). Base URL comes from `src/lib/runtime-config.ts`, which reads `window.__INVOKEIA_RUNTIME_CONFIG__` in the browser and falls back to `NEXT_PUBLIC_API_URL` for local development/tests. Route constants live in `src/constants/routes.ts` — never hardcode API routes inline.
 
 ### Auth & permissions
 
@@ -109,5 +109,7 @@ React Hook Form + Zod only. Define the schema first, then derive the TypeScript 
 ## Environment variables
 
 ```
-NEXT_PUBLIC_API_URL            # Backend base URL (n8n webhooks)
+NEXT_PUBLIC_API_URL            # Runtime backend base URL (n8n webhooks)
+NEXT_PUBLIC_LICENSE_KEY        # Runtime public license encryption key
+NEXT_PUBLIC_MASTER_SEC         # Runtime public license admin gate
 ```

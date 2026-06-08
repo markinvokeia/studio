@@ -10,6 +10,7 @@ import { ReportKPICard } from '@/components/reports/report-kpi-card';
 import { ReportShell } from '@/components/reports/report-shell';
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
+import { useReportExport } from '@/hooks/use-report-export';
 import type { ReportPacientesInactivosResponse, ReportPacientesInactivosRow } from '@/lib/types';
 import { formatDate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
@@ -146,6 +147,8 @@ export default function PacientesInactivosPage() {
     },
   ];
 
+  const { exportCSV, exportExcel, exportPDF } = useReportExport(columns, data?.rows ?? null, 'pacientes-inactivos');
+
   const ranges = [
     { label: '<90d',     min: 0,   max: 90   },
     { label: '90-180d',  min: 90,  max: 180  },
@@ -226,6 +229,9 @@ export default function PacientesInactivosPage() {
       onPrint={handlePrint}
       isLoading={isLoading}
       hasData={!!data}
+      onExportCSV={exportCSV}
+      onExportExcel={exportExcel}
+      onExportPDF={exportPDF}
     >
       {data && (
         <>

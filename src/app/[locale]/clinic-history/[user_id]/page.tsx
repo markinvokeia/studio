@@ -40,6 +40,7 @@ import { DentalRecordViewer } from '@/components/users/dental-record/dental-reco
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { getApiUrl } from '@/lib/runtime-config';
 import type { Ailment, AttachedFile, Document, Medication, PatientSession, User as UserType } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import api from '@/services/api';
@@ -94,7 +95,7 @@ const getAttachmentUrl = (path: string | null | undefined) => {
         }
         return path;
     } catch (_) {
-        return `${process.env.NEXT_PUBLIC_API_URL}${path}`;
+        return `${getApiUrl()}${path}`;
     }
 };
 

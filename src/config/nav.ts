@@ -16,6 +16,7 @@ import {
   Box,
   Briefcase,
   Building,
+  Building2,
   Calendar,
   CalendarClock,
   CalendarDays,
@@ -206,6 +207,7 @@ export const navItems: NavItem[] = [
     requiredAnyPermission: [
       BUSINESS_CONFIG_PERMISSIONS.VIEW_MENU,
       BUSINESS_CONFIG_PERMISSIONS.CLINIC_DETAILS_VIEW,
+      BUSINESS_CONFIG_PERMISSIONS.SEDES_VIEW_LIST,
       BUSINESS_CONFIG_PERMISSIONS.SCHEDULES_VIEW_LIST,
       BUSINESS_CONFIG_PERMISSIONS.HOLIDAYS_VIEW_LIST,
       BUSINESS_CONFIG_PERMISSIONS.CALENDARS_VIEW_LIST,
@@ -220,6 +222,7 @@ export const navItems: NavItem[] = [
     ],
     items: [
       { title: 'ClinicDetails', href: '/config/clinics', icon: Building, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.CLINIC_DETAILS_VIEW },
+      { title: 'Sedes', href: '/config/sedes', icon: Building2, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.SEDES_VIEW_LIST },
       { title: 'Schedules', href: '/config/schedules', icon: CalendarClock, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.SCHEDULES_VIEW_LIST },
       { title: 'Holidays', href: '/config/holidays', icon: CalendarOff, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.HOLIDAYS_VIEW_LIST },
       { title: 'Calendars', href: '/config/calendars', icon: Calendar, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.CALENDARS_VIEW_LIST },

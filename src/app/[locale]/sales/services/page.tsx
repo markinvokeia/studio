@@ -461,16 +461,18 @@ function TreatmentStepsTab({ serviceId, t }: { serviceId: string; t: (key: strin
       const res = await api.get(API_ROUTES.SERVICES_STEPS, { service_id: serviceId });
       const normalized = normalizeApiResponse<any>(res);
       setSteps(
-        normalized.items.map((s: any) => ({
-          id: s.id,
-          service_id: s.service_id,
-          position: s.position ?? 1,
-          step_name: s.step_name ?? '',
-          offset_min_days: s.offset_min_days ?? 0,
-          offset_max_days: s.offset_max_days ?? 0,
-          is_lab_dependent: s.is_lab_dependent ?? false,
-          notes: s.notes ?? '',
-        }))
+        normalized.items
+          .filter((s: any) => s.id != null) // discard empty placeholder rows some backends return
+          .map((s: any) => ({
+            id: s.id,
+            service_id: s.service_id,
+            position: s.position ?? 1,
+            step_name: s.step_name ?? '',
+            offset_min_days: s.offset_min_days ?? 0,
+            offset_max_days: s.offset_max_days ?? 0,
+            is_lab_dependent: s.is_lab_dependent ?? false,
+            notes: s.notes ?? '',
+          }))
       );
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : t('serviceType.stepLoadError'));
@@ -753,31 +755,41 @@ export default function ServicesPage() {
     setPagination(p => ({ ...p, pageIndex: 0 }));
   }, []);
 
-  // Load categories and populate detail form when selection changes
+  // Load categories once on mount — they don't change so we never need to reload
   React.useEffect(() => {
-    if (selectedService) {
-      getMiscellaneousCategories().then(setCategories);
-      detailForm.reset({
-        id: selectedService.id,
-        name: selectedService.name,
-        category_id: selectedService.category_id || '',
-        price: selectedService.price,
-        currency: (selectedService.currency as 'USD' | 'UYU') || 'USD',
-        duration_minutes: selectedService.duration_minutes,
-        description: selectedService.description || '',
-        indications: selectedService.indications || '',
-        color: selectedService.color || '',
-        is_active: selectedService.is_active ?? true,
-        service_type: selectedService.service_type || 'single',
-        treatment_steps: selectedService.treatment_steps || [],
-      });
-      setDetailError(null);
+    getMiscellaneousCategories().then(setCategories);
+  }, []);
+
+  // Populate detail form when selection changes (categories already loaded from mount)
+  React.useEffect(() => {
+    if (!selectedService) return;
+    // Reset tab immediately for non-workflow services
+    if ((selectedService.service_type || 'single') !== 'workflow') {
+      setActiveTab('details');
     }
-  }, [selectedService, detailForm]);
+    // Prefer category_id from API; fall back to matching by name in case the API omits the id field
+    const categoryId = selectedService.category_id
+      || categories.find(c => c.name === selectedService.category)?.id
+      || '';
+    detailForm.reset({
+      id: selectedService.id,
+      name: selectedService.name,
+      category_id: categoryId,
+      price: selectedService.price,
+      currency: (selectedService.currency as 'USD' | 'UYU') || 'USD',
+      duration_minutes: selectedService.duration_minutes,
+      description: selectedService.description || '',
+      indications: selectedService.indications || '',
+      color: selectedService.color || '',
+      is_active: selectedService.is_active ?? true,
+      service_type: selectedService.service_type || 'single',
+      treatment_steps: selectedService.treatment_steps || [],
+    });
+    setDetailError(null);
+  }, [selectedService, categories]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCreate = () => {
     if (!canCreate) return;
-    getMiscellaneousCategories().then(setCategories);
     createForm.reset(DEFAULT_SERVICE_FORM_VALUES);
     setCreateError(null);
     setIsCreateDialogOpen(true);
@@ -857,6 +869,14 @@ export default function ServicesPage() {
   });
 
   const [activeTab, setActiveTab] = React.useState('details');
+
+  // When the workflow toggle is turned off in the detail form, switch back to the Details tab
+  const watchedServiceType = detailForm.watch('service_type');
+  React.useEffect(() => {
+    if (watchedServiceType !== 'workflow') {
+      setActiveTab('details');
+    }
+  }, [watchedServiceType]);
 
   useDeepLink<Service>({
     tabMap: { 'Detalles': 'details' },
@@ -968,7 +988,7 @@ export default function ServicesPage() {
                           )}
                         </TabsContent>
                         <TabsContent value="steps" className="m-0 space-y-3">
-                          <TreatmentStepsTab serviceId={selectedService.id} t={t} />
+                          <TreatmentStepsTab key={selectedService.id} serviceId={selectedService.id} t={t} />
                         </TabsContent>
                       </div>
                     </Tabs>

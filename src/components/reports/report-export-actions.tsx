@@ -13,6 +13,7 @@ import { useTranslations } from 'next-intl';
 interface ReportExportActionsProps {
   onExportPDF?: () => void;
   onExportExcel?: () => void;
+  onExportCSV?: () => void;
   onPrint?: () => void;
   isLoading?: boolean;
   disabled?: boolean;
@@ -21,6 +22,7 @@ interface ReportExportActionsProps {
 export function ReportExportActions({
   onExportPDF,
   onExportExcel,
+  onExportCSV,
   onPrint,
   isLoading = false,
   disabled = false,
@@ -59,17 +61,22 @@ export function ReportExportActions({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          {onExportPDF && (
-            <DropdownMenuItem onClick={onExportPDF}>
-              {t('exportPDF')}
-            </DropdownMenuItem>
-          )}
           {onExportExcel && (
             <DropdownMenuItem onClick={onExportExcel}>
               {t('exportExcel')}
             </DropdownMenuItem>
           )}
-          {!onExportPDF && !onExportExcel && (
+          {onExportCSV && (
+            <DropdownMenuItem onClick={onExportCSV}>
+              {t('exportCSV')}
+            </DropdownMenuItem>
+          )}
+          {onExportPDF && (
+            <DropdownMenuItem onClick={onExportPDF}>
+              {t('exportPDF')}
+            </DropdownMenuItem>
+          )}
+          {!onExportPDF && !onExportExcel && !onExportCSV && (
             <DropdownMenuItem disabled>{t('comingSoon')}</DropdownMenuItem>
           )}
         </DropdownMenuContent>

@@ -9,6 +9,7 @@ import { ReportKPICard } from '@/components/reports/report-kpi-card';
 import { ReportShell } from '@/components/reports/report-shell';
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
+import { useReportExport } from '@/hooks/use-report-export';
 import type { ReportPresupuestosResponse, ReportPresupuestosRow } from '@/lib/types';
 import { formatDate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
@@ -115,6 +116,8 @@ export default function PresupuestosPendientesPage() {
     },
   ];
 
+  const { exportCSV, exportExcel, exportPDF } = useReportExport(columns, data?.rows ?? null, 'estado-presupuestos');
+
   // Group by week for chart
   const byWeek: Record<string, { semana: string; borrador: number; confirmado: number; rechazado: number }> = {};
   for (const r of data?.rows ?? []) {
@@ -191,6 +194,9 @@ export default function PresupuestosPendientesPage() {
       onGenerate={handleGenerate}
       isLoading={isLoading}
       hasData={!!data}
+      onExportCSV={exportCSV}
+      onExportExcel={exportExcel}
+      onExportPDF={exportPDF}
     >
       {data && (
         <>

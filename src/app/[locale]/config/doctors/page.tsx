@@ -26,21 +26,27 @@ import { VerticalTabStrip, VerticalTab } from '@/components/ui/vertical-tab-stri
 import { DoctorAvailability } from '@/components/users/doctor-availability';
 import { DoctorAvailabilityExceptions } from '@/components/users/doctor-availability-exceptions';
 import { UserServices } from '@/components/users/user-services';
+import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
-import { User, UserRole } from '@/lib/types';
+import { usePermissions } from '@/hooks/usePermissions';
+import { Calendar, User, UserRole } from '@/lib/types';
 import api from '@/services/api';
 import { useLicenseStore } from '@/stores/license-store';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, CalendarClock, CalendarX, ClipboardList, Stethoscope, UserSquare, X } from 'lucide-react';
+import { AlertTriangle, CalendarClock, CalendarX, Check, ChevronsUpDown, ClipboardList, KeyRound, Stethoscope, UserSquare, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 import { DoctorsColumnsWrapper } from './columns';
 import { useDeepLink } from '@/hooks/use-deep-link';
+import { extractCreatedUserId, sendFirstTimePasswordToken } from '@/services/users';
 
 
 const doctorFormSchema = (t: (key: string) => string) => z.object({
@@ -55,11 +61,13 @@ const doctorFormSchema = (t: (key: string) => string) => z.object({
     return isValidPhoneNumber(val);
   }, { message: t('DoctorsPage.createDialog.validation.phoneInvalid') }),
   identity_document: z.string()
-    .min(1, { message: t('DoctorsPage.createDialog.validation.identityRequired') })
     .regex(/^\d*$/, { message: t('DoctorsPage.createDialog.validation.identityInvalid') })
-    .max(10, { message: t('DoctorsPage.createDialog.validation.identityMaxLength') }),
+    .max(10, { message: t('DoctorsPage.createDialog.validation.identityMaxLength') })
+    .optional()
+    .or(z.literal('')),
   is_active: z.boolean().default(false),
   color: z.string().optional(),
+  calendar_source_id: z.string().optional(),
 }).refine((data) => {
   const hasEmail = data.email && data.email.trim() !== '';
   const hasPhone = data.phone && data.phone.trim() !== '';
@@ -114,6 +122,7 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyAc
       avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
       color: apiUser.color,
       is_sales: apiUser.is_sales,
+      calendar_source_id: apiUser.calendar_source_id ? String(apiUser.calendar_source_id) : undefined,
     }));
 
     return { users: mappedUsers, total: total };
@@ -239,13 +248,17 @@ export default function DoctorsPage() {
   const t = useTranslations();
 
   const { toast } = useToast();
+  const { hasPermission } = usePermissions();
   const [users, setUsers] = React.useState<User[]>([]);
   const [userCount, setUserCount] = React.useState(0);
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
+  const [hasPasswordPermission, setHasPasswordPermission] = React.useState(false);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
   const [detailError, setDetailError] = React.useState<string | null>(null);
   const [isSavingDetail, setIsSavingDetail] = React.useState(false);
+
+  const canSetInitialPassword = hasPermission(SYSTEM_PERMISSIONS.USERS_SET_INITIAL_PASSWORD);
 
 
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -256,6 +269,22 @@ export default function DoctorsPage() {
   });
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [showOnlyActive, setShowOnlyActive] = React.useState(true);
+  const [calendars, setCalendars] = React.useState<Calendar[]>([]);
+  const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
+  const [isDetailCalendarOpen, setIsDetailCalendarOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    api.get(API_ROUTES.CALENDARS).then((data: any) => {
+      const raw = Array.isArray(data) ? data : (data.calendars || data.data || []);
+      setCalendars(raw.filter((c: any) => c.is_active !== false).map((c: any) => ({
+        id: String(c.id),
+        name: c.name || '',
+        google_calendar_id: c.google_calendar_id,
+        is_active: c.is_active !== undefined ? c.is_active : true,
+        color: c.color,
+      })));
+    }).catch(() => setCalendars([]));
+  }, []);
 
   const form = useForm<DoctorFormValues>({
     resolver: zodResolver(doctorFormSchema(t)),
@@ -266,6 +295,7 @@ export default function DoctorsPage() {
       identity_document: '',
       is_active: true,
       color: '',
+      calendar_source_id: '',
     },
   });
 
@@ -278,6 +308,7 @@ export default function DoctorsPage() {
       identity_document: '',
       is_active: true,
       color: '',
+      calendar_source_id: '',
     },
   });
 
@@ -338,6 +369,7 @@ export default function DoctorsPage() {
       identity_document: '',
       is_active: true,
       color: '',
+      calendar_source_id: '',
     });
     setSubmissionError(null);
     setIsDialogOpen(true);
@@ -360,8 +392,45 @@ export default function DoctorsPage() {
         identity_document: user.identity_document || '',
         is_active: user.is_active,
         color: user.color || '',
+        calendar_source_id: user.calendar_source_id || '',
       });
       setDetailError(null);
+    }
+  };
+
+  React.useEffect(() => {
+    const checkFirstPasswordRequirements = async () => {
+      if (!selectedUser || !canSetInitialPassword) {
+        setHasPasswordPermission(false);
+        return;
+      }
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setHasPasswordPermission(false);
+        return;
+      }
+      try {
+        await api.get(API_ROUTES.SYSTEM.API_AUTH_CHECK_FIRST_PASSWORD, { user_id: selectedUser.id });
+        setHasPasswordPermission(true);
+      } catch {
+        setHasPasswordPermission(false);
+      }
+    };
+
+    if (selectedUser) {
+      checkFirstPasswordRequirements();
+    } else {
+      setHasPasswordPermission(false);
+    }
+  }, [selectedUser, canSetInitialPassword]);
+
+  const handleSendInitialPassword = async () => {
+    if (!selectedUser || !canSetInitialPassword) return;
+    try {
+      await sendFirstTimePasswordToken(selectedUser.id);
+      toast({ title: t('SystemUsersPage.initialPasswordSentTitle'), description: t('SystemUsersPage.initialPasswordSentDescription') });
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : t('SystemUsersPage.initialPasswordError') });
     }
   };
 
@@ -403,6 +472,7 @@ export default function DoctorsPage() {
         identity_document: data.identity_document || '',
         is_active: data.is_active,
         color: data.color || '',
+        calendar_source_id: data.calendar_source_id || undefined,
       };
       setSelectedUser(updated);
       setUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
@@ -419,7 +489,15 @@ export default function DoctorsPage() {
     form.clearErrors();
 
     try {
-      await upsertUser(data);
+      const response = await upsertUser(data);
+      const newUserId = extractCreatedUserId(response);
+      if (newUserId && canSetInitialPassword) {
+        try {
+          await sendFirstTimePasswordToken(newUserId);
+        } catch {
+          // User was created successfully; the initial password email can be retried from the detail panel.
+        }
+      }
       toast({
         title: t('DoctorsPage.createDialog.createSuccessTitle'),
         description: t('DoctorsPage.createDialog.createSuccessDescription'),
@@ -525,6 +603,12 @@ export default function DoctorsPage() {
                   <CardTitle>{t('UsersPage.detailsFor', { name: selectedUser.name })}</CardTitle>
                 </div>
                 <div className="flex items-center gap-2">
+                  {hasPasswordPermission && (
+                    <Button variant="outline" size="sm" onClick={handleSendInitialPassword}>
+                      <KeyRound className="mr-2 h-4 w-4" />
+                      {t('SystemUsersPage.setInitialPassword')}
+                    </Button>
+                  )}
                   <Button variant="destructive-ghost" size="icon" onClick={handleCloseDetails}>
                     <X className="h-5 w-5" />
                     <span className="sr-only">{t('UsersPage.close')}</span>
@@ -574,6 +658,42 @@ export default function DoctorsPage() {
                               <Input placeholder="#FFFFFF" {...field} />
                             </div>
                           </FormControl><FormMessage /></FormItem>
+                        )} />
+                        <FormField control={detailForm.control} name="calendar_source_id" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t('DoctorsPage.createDialog.defaultCalendar')}</FormLabel>
+                            <Popover open={isDetailCalendarOpen} onOpenChange={setIsDetailCalendarOpen}>
+                              <PopoverTrigger asChild>
+                                <FormControl>
+                                  <Button variant="outline" role="combobox" className={cn('w-full justify-between font-normal', !field.value && 'text-muted-foreground')}>
+                                    {field.value ? (calendars.find(c => c.id === field.value)?.name ?? t('DoctorsPage.createDialog.selectCalendar')) : t('DoctorsPage.createDialog.selectCalendar')}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                  </Button>
+                                </FormControl>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                <Command>
+                                  <CommandInput placeholder={t('DoctorsPage.createDialog.searchCalendarPlaceholder')} />
+                                  <CommandList>
+                                    <CommandEmpty>{t('General.noResults')}</CommandEmpty>
+                                    <CommandGroup>
+                                      <CommandItem value="" onSelect={() => { field.onChange(''); setIsDetailCalendarOpen(false); }}>
+                                        <Check className={cn('mr-2 h-4 w-4', !field.value ? 'opacity-100' : 'opacity-0')} />
+                                        {t('DoctorsPage.createDialog.noCalendar')}
+                                      </CommandItem>
+                                      {calendars.map(cal => (
+                                        <CommandItem key={cal.id} value={cal.name} onSelect={() => { field.onChange(cal.id); setIsDetailCalendarOpen(false); }}>
+                                          <Check className={cn('mr-2 h-4 w-4', field.value === cal.id ? 'opacity-100' : 'opacity-0')} />
+                                          {cal.name}
+                                        </CommandItem>
+                                      ))}
+                                    </CommandGroup>
+                                  </CommandList>
+                                </Command>
+                              </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                          </FormItem>
                         )} />
                         <FormField control={detailForm.control} name="is_active" render={({ field }) => (
                           <FormItem className="flex flex-row items-center space-x-3 space-y-0">
@@ -691,6 +811,46 @@ export default function DoctorsPage() {
                           <Input placeholder="#FFFFFF" {...field} />
                         </div>
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="calendar_source_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('DoctorsPage.createDialog.defaultCalendar')}</FormLabel>
+                      <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button variant="outline" role="combobox" className={cn('w-full justify-between font-normal', !field.value && 'text-muted-foreground')}>
+                              {field.value ? (calendars.find(c => c.id === field.value)?.name ?? t('DoctorsPage.createDialog.selectCalendar')) : t('DoctorsPage.createDialog.selectCalendar')}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder={t('DoctorsPage.createDialog.searchCalendarPlaceholder')} />
+                            <CommandList>
+                              <CommandEmpty>{t('General.noResults')}</CommandEmpty>
+                              <CommandGroup>
+                                <CommandItem value="" onSelect={() => { field.onChange(''); setIsCalendarOpen(false); }}>
+                                  <Check className={cn('mr-2 h-4 w-4', !field.value ? 'opacity-100' : 'opacity-0')} />
+                                  {t('DoctorsPage.createDialog.noCalendar')}
+                                </CommandItem>
+                                {calendars.map(cal => (
+                                  <CommandItem key={cal.id} value={cal.name} onSelect={() => { field.onChange(cal.id); setIsCalendarOpen(false); }}>
+                                    <Check className={cn('mr-2 h-4 w-4', field.value === cal.id ? 'opacity-100' : 'opacity-0')} />
+                                    {cal.name}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
                   )}

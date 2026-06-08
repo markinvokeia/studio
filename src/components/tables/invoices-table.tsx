@@ -28,6 +28,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ServiceSelector } from '@/components/ui/service-selector';
 import { API_ROUTES } from '@/constants/routes';
+import { PURCHASES_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -39,7 +40,7 @@ import { getPurchaseServices, getSalesServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { addDays, format, parseISO } from 'date-fns';
-import { AlertTriangle, ArrowRight, Box, CalendarIcon, Check, ChevronsUpDown, FileUp, Loader2, MoreHorizontal, Printer, Receipt, Send, Trash2 } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Box, CalendarIcon, Check, ChevronsUpDown, Download, FileUp, Loader2, MoreHorizontal, Printer, Receipt, Send, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import * as React from 'react';
@@ -272,7 +273,7 @@ const getColumns = (
 };
 
 
-export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, onCreate, onImport, onConfirm, isRefreshing, rowSelection, setRowSelection, columnTranslations = {}, filterOptions, onFilterChange, filterValue, onEdit, isSales = true, isCompact = false, className, title, description, standalone = false, canCreate = true }: InvoicesTableProps) {
+export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, onCreate, onImport, onConfirm, isRefreshing, rowSelection, setRowSelection, columnTranslations = {}, filterOptions, onFilterChange, filterValue, onEdit, isSales = true, isCompact = false, className, title, description, standalone = false, canCreate = true, onExport }: InvoicesTableProps) {
   const t = useTranslations('InvoicesPage');
   const tStatus = useTranslations('InvoicesPage.status');
   const tMethods = useTranslations('InvoicesPage.methods');
@@ -447,6 +448,11 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                     {onImport && (
                       <Button variant="outline" size="sm" className="h-9" onClick={onImport}>
                         <FileUp className="mr-2 h-4 w-4" /> {t('import')}
+                      </Button>
+                    )}
+                    {onExport && hasPermission(isSales ? SALES_PERMISSIONS.INVOICES_EXPORT : PURCHASES_PERMISSIONS.INVOICES_EXPORT) && (
+                      <Button variant="outline" size="sm" className="h-9" onClick={onExport}>
+                        <Download className="mr-2 h-4 w-4" /> {t('export')}
                       </Button>
                     )}
                   </>
@@ -1338,4 +1344,5 @@ interface InvoicesTableProps {
   description?: string;
   standalone?: boolean;
   canCreate?: boolean;
+  onExport?: () => void;
 }

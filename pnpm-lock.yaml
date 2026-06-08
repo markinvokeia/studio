@@ -95,6 +95,9 @@ importers:
       '@tanstack/react-table':
         specifier: ^8.19.2
         version: 8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@types/leaflet':
+        specifier: ^1.9.21
+        version: 1.9.21
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -119,6 +122,9 @@ importers:
       genkit:
         specifier: ^1.14.1
         version: 1.35.0(@google-cloud/firestore@7.11.6)(firebase-admin@13.10.0)(firebase@11.10.0)
+      leaflet:
+        specifier: ^1.9.4
+        version: 1.9.4
       libphonenumber-js:
         specifier: ^1.11.4
         version: 1.13.3
@@ -149,6 +155,9 @@ importers:
       react-hook-form:
         specifier: ^7.54.2
         version: 7.76.1(react@18.3.1)
+      react-leaflet:
+        specifier: ^5.0.0
+        version: 5.0.0(leaflet@1.9.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-odontogram:
         specifier: ^0.5.5
         version: 0.5.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -167,6 +176,9 @@ importers:
       tailwindcss-animate:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@3.4.19(yaml@2.9.0))
+      xlsx:
+        specifier: ^0.18.5
+        version: 0.18.5
       zod:
         specifier: ^3.24.2
         version: 3.25.76
@@ -2108,6 +2120,13 @@ packages:
   '@radix-ui/rect@1.1.1':
     resolution: {integrity: sha512-HPwpGIzkl28mWyZqG52jiqDJ12waP11Pa1lGoiyUkIEuMLBP0oeK/C89esbXrxsky5we7dfd8U58nm0SgAWpVw==}
 
+  '@react-leaflet/core@3.0.0':
+    resolution: {integrity: sha512-3EWmekh4Nz+pGcr+xjf0KNyYfC3U2JjnkWsh0zcqaexYqmmB5ZhH37kz41JXGmKzpaMZCnPofBBm64i+YrEvGQ==}
+    peerDependencies:
+      leaflet: ^1.9.0
+      react: ^19.0.0
+      react-dom: ^19.0.0
+
   '@rtsao/scc@1.1.0':
     resolution: {integrity: sha512-zt6OdqaDoOnJ1ZYsCYGt9YmWzDXl4vQdKTyJev62gFhRGKdx7mcT54V9KIjg+d2wi9EXsPvAPKe7i7WjfVWB8g==}
 
@@ -2180,6 +2199,9 @@ packages:
   '@types/estree@1.0.9':
     resolution: {integrity: sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg==}
 
+  '@types/geojson@7946.0.16':
+    resolution: {integrity: sha512-6C8nqWur3j98U6+lXDfTUWIfgvZU+EumvpHKcYjujKH7woYyLj2sUmff0tRhrqM7BohUw7Pz3ZB1jj2gW9Fvmg==}
+
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
 
@@ -2188,6 +2210,9 @@ packages:
 
   '@types/jsonwebtoken@9.0.10':
     resolution: {integrity: sha512-asx5hIG9Qmf/1oStypjanR7iKTv0gXQ1Ov/jfrX6kS/EO0OFni8orbmGCn0672NHR3kXHwpAwR+B368ZGN/2rA==}
+
+  '@types/leaflet@1.9.21':
+    resolution: {integrity: sha512-TbAd9DaPGSnzp6QvtYngntMZgcRk+igFELwR2N99XZn7RXUdKgsXMR+28bUO0rPsWp8MIu/f47luLIQuSLYv/w==}
 
   '@types/long@4.0.2':
     resolution: {integrity: sha512-MqTGEo5bj5t157U6fA/BiDynNkn0YknVdh48CMPkTSpFTVmvao5UQmm7uEF6xBEo7qIMAlY/JSleYaE6VOdpaA==}
@@ -2444,6 +2469,10 @@ packages:
     engines: {node: '>=0.4.0'}
     hasBin: true
 
+  adler-32@1.3.1:
+    resolution: {integrity: sha512-ynZ4w/nUUv5rrsR8UUGoe1VC9hZj6V5hU9Qw1HlMDJGEJw5S7TfTErWTjMys6M7vr0YWcPqs3qAr4ss0nDfP+A==}
+    engines: {node: '>=0.8'}
+
   agent-base@6.0.2:
     resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
     engines: {node: '>= 6.0.0'}
@@ -2648,6 +2677,10 @@ packages:
   caniuse-lite@1.0.30001793:
     resolution: {integrity: sha512-iwSsYWaCOoh26cV8NwNRViHlrfUvYsHDfRVcbtmw0Kg6PJIZZXwMkj1442FYLBGkeUf1juAsU3DTfxW579mrPA==}
 
+  cfb@1.2.2:
+    resolution: {integrity: sha512-KfdUZsSOw19/ObEWasvBP/Ac4reZvAGauZhs6S/gqNhXhI7cKwvlH7ulj+dOEYnca4bm4SGo8C1bTAQvnTjgQA==}
+    engines: {node: '>=0.8'}
+
   chalk@4.1.2:
     resolution: {integrity: sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA==}
     engines: {node: '>=10'}
@@ -2685,6 +2718,10 @@ packages:
     peerDependencies:
       react: ^18 || ^19 || ^19.0.0-rc
       react-dom: ^18 || ^19 || ^19.0.0-rc
+
+  codepage@1.15.0:
+    resolution: {integrity: sha512-3g6NUTPd/YtuuGrhMnOMRjFc+LJw/bnMp3+0r/Wcz3IXUuCosKRJvMphm5+Q+bvTVGcJJuRvVLuYba+WojaFaA==}
+    engines: {node: '>=0.8'}
 
   color-convert@2.0.1:
     resolution: {integrity: sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ==}
@@ -2747,6 +2784,11 @@ packages:
 
   country-flag-icons@1.6.17:
     resolution: {integrity: sha512-Nmik0289ZVZSI3c7mJR/amg6DyY7Z59b0sTFSKayeX72mHfPzCPJygwJs2pYgQULzuAyWeCUgwAJ+Dq8OR+JFw==}
+
+  crc-32@1.2.2:
+    resolution: {integrity: sha512-ROmzCKrTnOwybPcJApAA6WBWij23HVfGVNKqqrZpuyZOHqK2CwHSvpGuyt/UNNvaIjEd8X5IFGp4Mh+Ie1IHJQ==}
+    engines: {node: '>=0.8'}
+    hasBin: true
 
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
@@ -3261,6 +3303,10 @@ packages:
     resolution: {integrity: sha512-buRG0fpBtRHSTCOASe6hD258tEubFoRLb4ZNA6NxMVHNw2gOcwHo9wyablzMzOA5z9xA9L1KNjk/Nt6MT9aYow==}
     engines: {node: '>= 0.6'}
 
+  frac@1.1.2:
+    resolution: {integrity: sha512-w/XBfkibaTl3YDqASwfDUqkna4Z2p9cFSr1aHDt0WoMTECnRfBOv2WArlZILlqgWlmdIlALXGpM2AOhEk5W3IA==}
+    engines: {node: '>=0.8'}
+
   fresh@0.5.2:
     resolution: {integrity: sha512-zJ2mQYM18rEFOudeV4GShTGIQ7RbzA7ozbU9I/XBpm7kqgMywgmylMwXHxZJmkVoYkna9d2pVXVXPdYTP9ej8Q==}
     engines: {node: '>= 0.6'}
@@ -3766,6 +3812,9 @@ packages:
   language-tags@1.0.9:
     resolution: {integrity: sha512-MbjN408fEndfiQXbFQ1vnd+1NoLDsnQW41410oQBXiyXDMYH5z505juWa4KUE1LqxRC7DgOgZDbKLxHIwm27hA==}
     engines: {node: '>=0.10'}
+
+  leaflet@1.9.4:
+    resolution: {integrity: sha512-nxS1ynzJOmOlHp+iL3FyWqK89GtNL8U8rvlMOsQdTTssxZwCXh8N2NB3GDQOL+YR3XnWyZAxwQixURb+FA74PA==}
 
   levn@0.4.1:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
@@ -4308,6 +4357,13 @@ packages:
   react-is@18.3.1:
     resolution: {integrity: sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==}
 
+  react-leaflet@5.0.0:
+    resolution: {integrity: sha512-CWbTpr5vcHw5bt9i4zSlPEVQdTVcML390TjeDG0cK59z1ylexpqC6M1PJFjV8jD7CF+ACBFsLIDs6DRMoLEofw==}
+    peerDependencies:
+      leaflet: ^1.9.0
+      react: ^19.0.0
+      react-dom: ^19.0.0
+
   react-odontogram@0.5.6:
     resolution: {integrity: sha512-dEjxMcCdW3ZgqEFC3tc8xtx+4BRJ7EoV1ZNMEgoWvj7cFlId7+QR2jdSaLG7Y1a/DUPnVGR+Ybou6fe9hxAXfw==}
     engines: {node: '>=18.0.0'}
@@ -4558,6 +4614,10 @@ packages:
   source-map@0.6.1:
     resolution: {integrity: sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g==}
     engines: {node: '>=0.10.0'}
+
+  ssf@0.11.2:
+    resolution: {integrity: sha512-+idbmIXoYET47hH+d7dfm2epdOMUDjqcB4648sTZ+t2JwoyBFL/insLfB/racrDmsKB3diwsDA696pZMieAC5g==}
+    engines: {node: '>=0.8'}
 
   stable-hash@0.0.5:
     resolution: {integrity: sha512-+L3ccpzibovGXFK+Ap/f8LOS0ahMrHTf3xu7mMLSpEGU0EO9ucaysSylKo9eRDFNhWve/y275iPmIZ4z39a9iA==}
@@ -4919,9 +4979,17 @@ packages:
     resolution: {integrity: sha512-LZNJgPzfKR+/J3cHkxcpHKpKKvGfDZVPS4hfJCc4cCG0CgYzvlD6yE/S3CIL/Yt91ak327YCpiF/0MyeZHEHKA==}
     engines: {node: '>= 12.0.0'}
 
+  wmf@1.0.2:
+    resolution: {integrity: sha512-/p9K7bEh0Dj6WbXg4JG0xvLQmIadrner1bi45VMJTfnbVHsc7yIajZyoSoK60/dtVBs12Fm6WkUI5/3WAVsNMw==}
+    engines: {node: '>=0.8'}
+
   word-wrap@1.2.5:
     resolution: {integrity: sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA==}
     engines: {node: '>=0.10.0'}
+
+  word@0.3.0:
+    resolution: {integrity: sha512-OELeY0Q61OXpdUfTp+oweA/vtLVg5VDOXh+3he3PNzLGG/y0oylSOC1xRVj0+l4vQ3tj/bB1HVHv1ocXkQceFA==}
+    engines: {node: '>=0.8'}
 
   wordwrap@1.0.0:
     resolution: {integrity: sha512-gvVzJFlPycKc5dZN4yPkP8w7Dc37BtP1yczEneOb4uq34pXZcvrtRTmWV8W+Ume+XCxKgbjM+nevkyFPMybd4Q==}
@@ -4948,6 +5016,11 @@ packages:
         optional: true
       utf-8-validate:
         optional: true
+
+  xlsx@0.18.5:
+    resolution: {integrity: sha512-dmg3LCjBPHZnQp5/F/+nnTa+miPJxUXB6vtk42YjBBKayDNagxGEeIdWApkYPOf3Z3pm3k62Knjzp7lMeTEtFQ==}
+    engines: {node: '>=0.8'}
+    hasBin: true
 
   xml-naming@0.1.0:
     resolution: {integrity: sha512-k8KO9hrMyNk6tUWqUfkTEZbezRRpONVOzUTnc97VnCvyj6Tf9lyUR9EDAIeiVLv56jsMcoXEwjW8Kv5yPY52lw==}
@@ -7457,6 +7530,12 @@ snapshots:
 
   '@radix-ui/rect@1.1.1': {}
 
+  '@react-leaflet/core@3.0.0(leaflet@1.9.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      leaflet: 1.9.4
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
   '@rtsao/scc@1.1.0': {}
 
   '@so-ric/colorspace@1.1.6':
@@ -7529,6 +7608,8 @@ snapshots:
 
   '@types/estree@1.0.9': {}
 
+  '@types/geojson@7946.0.16': {}
+
   '@types/json-schema@7.0.15': {}
 
   '@types/json5@0.0.29': {}
@@ -7538,6 +7619,10 @@ snapshots:
       '@types/ms': 2.1.0
       '@types/node': 20.19.41
     optional: true
+
+  '@types/leaflet@1.9.21':
+    dependencies:
+      '@types/geojson': 7946.0.16
 
   '@types/long@4.0.2':
     optional: true
@@ -7789,6 +7874,8 @@ snapshots:
 
   acorn@8.16.0: {}
 
+  adler-32@1.3.1: {}
+
   agent-base@6.0.2:
     dependencies:
       debug: 4.4.3
@@ -8026,6 +8113,11 @@ snapshots:
 
   caniuse-lite@1.0.30001793: {}
 
+  cfb@1.2.2:
+    dependencies:
+      adler-32: 1.3.1
+      crc-32: 1.2.2
+
   chalk@4.1.2:
     dependencies:
       ansi-styles: 4.3.0
@@ -8074,6 +8166,8 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
       - '@types/react-dom'
+
+  codepage@1.15.0: {}
 
   color-convert@2.0.1:
     dependencies:
@@ -8129,6 +8223,8 @@ snapshots:
       vary: 1.1.2
 
   country-flag-icons@1.6.17: {}
+
+  crc-32@1.2.2: {}
 
   cross-spawn@7.0.6:
     dependencies:
@@ -8866,6 +8962,8 @@ snapshots:
 
   forwarded@0.2.0: {}
 
+  frac@1.1.2: {}
+
   fresh@0.5.2: {}
 
   fs-extra@10.1.0:
@@ -9504,6 +9602,8 @@ snapshots:
     dependencies:
       language-subtag-registry: 0.3.23
 
+  leaflet@1.9.4: {}
+
   levn@0.4.1:
     dependencies:
       prelude-ls: 1.2.1
@@ -10040,6 +10140,13 @@ snapshots:
 
   react-is@18.3.1: {}
 
+  react-leaflet@5.0.0(leaflet@1.9.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+    dependencies:
+      '@react-leaflet/core': 3.0.0(leaflet@1.9.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      leaflet: 1.9.4
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
   react-odontogram@0.5.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       react: 18.3.1
@@ -10385,6 +10492,10 @@ snapshots:
   source-map-js@1.2.1: {}
 
   source-map@0.6.1: {}
+
+  ssf@0.11.2:
+    dependencies:
+      frac: 1.1.2
 
   stable-hash@0.0.5: {}
 
@@ -10874,7 +10985,11 @@ snapshots:
       winston-transport: 4.9.0
     optional: true
 
+  wmf@1.0.2: {}
+
   word-wrap@1.2.5: {}
+
+  word@0.3.0: {}
 
   wordwrap@1.0.0: {}
 
@@ -10895,6 +11010,16 @@ snapshots:
     optional: true
 
   ws@8.21.0: {}
+
+  xlsx@0.18.5:
+    dependencies:
+      adler-32: 1.3.1
+      cfb: 1.2.2
+      codepage: 1.15.0
+      crc-32: 1.2.2
+      ssf: 0.11.2
+      wmf: 1.0.2
+      word: 0.3.0
 
   xml-naming@0.1.0:
     optional: true

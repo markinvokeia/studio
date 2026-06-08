@@ -12,16 +12,15 @@ El proyecto **studio** (clínica dental SaaS, Next.js 15.5.9 + React 18.3 + TS e
 La migración también es buena ocasión para corregir un **bug del Dockerfile**: actualmente hace `COPY package.json` y `RUN npm install` sin el lockfile — los builds no son reproducibles.
 
 > **Nota sobre "reproducible" en un contexto multi-tenant.**
-> Este proyecto compila **una imagen por cliente** porque cada uno tiene su propio `NEXT_PUBLIC_API_URL`, backend y base de datos, y Next.js inlina las vars `NEXT_PUBLIC_*` en el bundle en build-time. Eso **no cambia** con esta migración.
+> Este proyecto usa **una imagen única por rama/commit** y recibe `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_LICENSE_KEY` y `NEXT_PUBLIC_MASTER_SEC` como configuración runtime desde el despliegue. Estas variables se inyectan en `window.__INVOKEIA_RUNTIME_CONFIG__`, por lo que ya no obligan a crear un build distinto por cliente.
 >
-> "Reproducible" aquí significa **determinismo de dependencias**: para el **mismo cliente**, dos builds con los mismos inputs (lockfile + código + `--build-arg`) producen los mismos artefactos. Hoy, sin lockfile en la imagen, `npm install` puede resolver versiones distintas entre builds y nadie lo nota. Con `pnpm install --frozen-lockfile` + el lockfile copiado, eso se elimina.
+> "Reproducible" aquí significa **determinismo de dependencias**: dos builds con los mismos inputs (lockfile + código) producen los mismos artefactos. Hoy, sin lockfile en la imagen, `npm install` puede resolver versiones distintas entre builds y nadie lo nota. Con `pnpm install --frozen-lockfile` + el lockfile copiado, eso se elimina.
 >
-> El patrón per-client se conserva intacto:
+> El patrón esperado para Docker es:
 > ```bash
-> docker build --build-arg NEXT_PUBLIC_API_URL=https://api.clienteA.com -t studio:clienteA .
-> docker build --build-arg NEXT_PUBLIC_API_URL=https://api.clienteB.com -t studio:clienteB .
+> docker build -t studio:runtime-test-<sha> .
 > ```
-> Una eventual migración a "imagen única + config en runtime" sería un refactor aparte (sacar la URL de `NEXT_PUBLIC_*` y leerla server-side), no relacionado con pnpm.
+> La URL de API y las claves públicas de licencia se pasan al contenedor en runtime, no como `--build-arg`.
 
 ### Hallazgos clave del diagnóstico
 
@@ -120,8 +119,6 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-ARG NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN pnpm run build
 
 # Stage `runner` queda igual (solo copia .next/standalone, no necesita pnpm).

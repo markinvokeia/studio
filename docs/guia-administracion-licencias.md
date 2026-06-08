@@ -10,11 +10,11 @@
 | Concepto | Descripción |
 |----------|-------------|
 | **Licencia** | Blob cifrado (AES-256-GCM) que contiene los límites y fechas de la suscripción de una clínica. Se guarda en la base de datos del backend. |
-| **Clave maestra (`NEXT_PUBLIC_MASTER_SEC`)** | Contraseña de acceso a la página de gestión de licencias. Es independiente del cifrado. Solo sirve para que personas no autorizadas no puedan entrar a crear o ver licencias. |
-| **Clave de cifrado (`NEXT_PUBLIC_LICENSE_KEY`)** | Clave AES-256-GCM con la que se cifra y descifra el blob de la licencia. Debe mantenerse en secreto y configurarse en el servidor de cada clínica. |
+| **Clave maestra (`NEXT_PUBLIC_MASTER_SEC`)** | Contraseña de acceso a la página de gestión de licencias. Es independiente del cifrado. En la variante runtime actual se entrega al navegador, por lo que funciona como barrera operativa básica, no como secreto fuerte. |
+| **Clave de cifrado (`NEXT_PUBLIC_LICENSE_KEY`)** | Clave AES-256-GCM con la que se cifra y descifra el blob de la licencia. En la variante runtime actual se entrega al navegador y debe tratarse como configuración pública temporal. |
 | **Suscripción** | Registro histórico de cada licencia generada. Se guarda por separado en la tabla `subscriptions`. |
 
-> **Importante:** La clave maestra y la clave de cifrado son dos valores distintos y con roles distintos.  
+> **Importante:** La clave maestra y la clave de cifrado son dos valores distintos y con roles distintos. En la variante rápida de imagen única ambas siguen siendo públicas en el navegador; moverlas a API routes server-side queda para una fase posterior.  
 > — `NEXT_PUBLIC_MASTER_SEC` → autenticación en la UI.  
 > — `NEXT_PUBLIC_LICENSE_KEY` → cifrado/descifrado del blob de licencia.
 
@@ -22,17 +22,17 @@
 
 ## 2. Variables de entorno requeridas
 
-Configurar en el archivo `.env.local` del servidor donde corre InvokeIA:
+Configurar en `.env.local` para desarrollo local o en el `.env` generado por el despliegue para producción:
 
 ```env
-# Contraseña de acceso a la gestión de licencias (solo equipo InvokeIA)
+# Contraseña de acceso a la gestión de licencias
 NEXT_PUBLIC_MASTER_SEC=tu-contraseña-de-acceso
 
 # Clave AES-256-GCM para cifrar y descifrar el blob de licencia
-NEXT_PUBLIC_LICENSE_KEY=tu-clave-de-cifrado-secreta
+NEXT_PUBLIC_LICENSE_KEY=tu-clave-de-cifrado
 ```
 
-> Ambas variables empiezan con `NEXT_PUBLIC_` porque se usan en el browser (Next.js). Esto significa que quedan expuestas en el bundle de cliente, por lo que el nivel de seguridad real proviene de la combinación con los **permisos de roles** del sistema.
+> Ambas variables empiezan con `NEXT_PUBLIC_` porque se usan en el browser (Next.js). En producción se inyectan en runtime mediante `window.__INVOKEIA_RUNTIME_CONFIG__`. Esto significa que quedan expuestas en el cliente, por lo que el nivel de seguridad real proviene de la combinación con los **permisos de roles** del sistema y controles del backend.
 
 ---
 
@@ -73,12 +73,12 @@ Los roles **Administrador** (id=4) y **Gerente** (id=37) tienen todos estos perm
 1. Usuario navega a /system/licenses
 2. El sistema muestra un campo "Clave maestra"
 3. El usuario ingresa la contraseña
-4. El sistema compara contra NEXT_PUBLIC_MASTER_SEC
+4. El sistema compara contra NEXT_PUBLIC_MASTER_SEC obtenido desde la configuración runtime
    ├── No coincide → mensaje "Clave incorrecta. Intente nuevamente."
    └── Coincide → continúa al paso 5
 5. El sistema hace GET /license al backend
    ├── Sin licencia → muestra "Sin licencia activa" + formulario vacío
-   └── Con licencia → descifra el blob con NEXT_PUBLIC_LICENSE_KEY
+   └── Con licencia → descifra el blob con NEXT_PUBLIC_LICENSE_KEY obtenido desde la configuración runtime
        ├── Descifrado ok → muestra datos de la licencia actual
        └── Descifrado falla → la clave de cifrado no coincide (ver §8)
 6. Se muestra el formulario de generación precargado con los datos de la licencia actual
@@ -105,7 +105,7 @@ Los roles **Administrador** (id=4) y **Gerente** (id=37) tienen todos estos perm
 
 ### 5.2 Qué ocurre al presionar "Generar Licencia"
 
-1. Se cifra el payload con `NEXT_PUBLIC_LICENSE_KEY` (AES-256-GCM) → se obtiene el blob
+1. Se cifra el payload con `NEXT_PUBLIC_LICENSE_KEY` desde la configuración runtime (AES-256-GCM) → se obtiene el blob
 2. Se hace `POST /license` con `{ license_key: "<blob>" }` → se guarda en la BD
 3. Se hace `POST /subscriptions` con todos los campos del payload → queda en el historial
 4. El store Zustand se actualiza con la nueva licencia (activa de inmediato, sin recarga)
@@ -172,9 +172,9 @@ La tabla de suscripciones muestra la licencia activa con un badge verde **"Activ
 
 | Síntoma | Causa probable | Solución |
 |---------|---------------|----------|
-| "NEXT_PUBLIC_MASTER_SEC no está configurado" | Falta la variable en `.env.local` | Agregarla y reiniciar el servidor |
-| "Clave incorrecta" al ingresar | El valor ingresado no coincide con `NEXT_PUBLIC_MASTER_SEC` | Verificar el valor exacto en el archivo `.env.local` |
-| Descifrado falla al cargar la licencia | `NEXT_PUBLIC_LICENSE_KEY` en el servidor no coincide con la usada al generar | Restaurar la clave original o generar una nueva licencia con la clave actual |
+| "NEXT_PUBLIC_MASTER_SEC no está configurado" | Falta la variable en `.env.local` o en el `.env` generado por despliegue | Agregarla y reiniciar el servidor |
+| "Clave incorrecta" al ingresar | El valor ingresado no coincide con `NEXT_PUBLIC_MASTER_SEC` | Verificar el valor exacto en la configuración runtime |
+| Descifrado falla al cargar la licencia | `NEXT_PUBLIC_LICENSE_KEY` runtime no coincide con la usada al generar | Restaurar la clave original o generar una nueva licencia con la clave actual |
 | Página muestra "Sin licencia activa" después de verificar | Backend no respondió o la clave de cifrado es incorrecta | Verificar `NEXT_PUBLIC_LICENSE_KEY` y el estado del backend n8n |
 | La licencia no aparece en `/subscriptions` | El `POST /subscriptions` falló durante la generación | Verificar los logs del webhook n8n de subscriptions |
 

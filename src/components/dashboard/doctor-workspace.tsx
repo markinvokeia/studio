@@ -11,7 +11,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { normalizeAppointmentStatus, STATUS_ACCENT_COLOR, STATUS_BADGE_VARIANT } from '@/constants/appointment-status';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
@@ -834,7 +836,7 @@ function DoctorPatientTimeline({ linkedAppointmentId, sessions, isLoading }: Doc
               <Card className={cn(
                 'min-w-0 flex-1 transition-all duration-200',
                 isLinkedToCurrentAppointment
-                  ? 'border border-primary/20 bg-primary/5 shadow-sm'
+                  ? 'border border-primary/30 border-l-[3px] border-l-primary bg-primary/8 shadow-md ring-1 ring-primary/10'
                   : 'border border-border/50 bg-card shadow-sm',
               )}>
                 <CardHeader className="px-4 pt-3.5 pb-1">
@@ -1013,6 +1015,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [clinicSessionOpen, setClinicSessionOpen] = React.useState(false);
   const [patientFichaOpen, setPatientFichaOpen] = React.useState(false);
+  const [patientFichaDefaultView, setPatientFichaDefaultView] = React.useState<'anamnesis' | 'timeline' | undefined>(undefined);
   const [mobileDetailsOpen, setMobileDetailsOpen] = React.useState(false);
   const [agentSessionPrefill, setAgentSessionPrefill] = React.useState<{
     doctor_id?: string;
@@ -1311,8 +1314,9 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   const isOdontogramSession = linkedSession?.tipo_sesion === 'odontograma';
 
   const nextActionLabel = linkedSession ? t('focus.editSession') : t('focus.completeSession');
-  const visibleAlertTags = patientAlertTags.slice(0, isMobile ? 2 : 4);
-  const hiddenAlertCount = Math.max(patientAlertTags.length - visibleAlertTags.length, 0);
+  const alertAllergies = patientAlertTags.filter(tag => tag.type === 'allergy');
+  const alertConditions = patientAlertTags.filter(tag => tag.type === 'condition');
+  const hasAlerts = patientAlertTags.length > 0;
   const clearAgentSessionDraft = React.useCallback(() => {
     setAgentSessionPrefill(null);
     setAgentSessionTreatments([]);
@@ -1419,51 +1423,107 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
 
         <div className="flex shrink-0 flex-row items-start justify-between gap-3 border-b pb-3 sm:pb-4">
             <div className="flex min-w-0 items-start gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/8 sm:h-11 sm:w-11">
-                {patientAlertTags.length > 0 ? (
-                  <AlertTriangle className="h-5 w-5 text-destructive sm:h-7 sm:w-7" />
+              <TooltipProvider>
+                {hasAlerts ? (
+                  <Popover>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <PopoverTrigger asChild>
+                          <button type="button" className="flex-none cursor-pointer">
+                            <div className="relative flex-none">
+                              <span
+                                className="absolute inset-0 rounded-full animate-ping"
+                                style={
+                                  alertAllergies.length > 0
+                                    ? { backgroundColor: 'rgb(220 38 38)', opacity: 0.35 }
+                                    : { backgroundColor: 'rgb(217 119 6)', opacity: 0.35 }
+                                }
+                              />
+                              <div
+                                className="header-icon-circle relative"
+                                style={
+                                  alertAllergies.length > 0
+                                    ? { backgroundColor: 'rgb(254 226 226)', color: 'rgb(220 38 38)' }
+                                    : { backgroundColor: 'rgb(254 243 199)', color: 'rgb(217 119 6)' }
+                                }
+                              >
+                                <AlertTriangle className="h-5 w-5" />
+                              </div>
+                            </div>
+                          </button>
+                        </PopoverTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {[
+                          alertAllergies.length > 0 ? `${alertAllergies.length} alergia(s)` : '',
+                          alertConditions.length > 0 ? `${alertConditions.length} padecimiento(s)` : '',
+                        ].filter(Boolean).join(' · ')}
+                      </TooltipContent>
+                    </Tooltip>
+                    <PopoverContent align="start" className="w-64 p-3 space-y-3">
+                      {alertAllergies.length > 0 && (
+                        <div className="space-y-1.5">
+                          <p className="text-xs font-semibold text-destructive uppercase tracking-wide flex items-center gap-1">
+                            <AlertTriangle className="h-3 w-3" />
+                            Alergias
+                          </p>
+                          <div className="flex flex-wrap gap-1">
+                            {alertAllergies.map((a, i) => (
+                              <Badge key={i} variant="destructive" className="gap-1 text-xs font-normal">
+                                {a.label}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {alertConditions.length > 0 && (
+                        <div className="space-y-1.5">
+                          <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide flex items-center gap-1">
+                            <Heart className="h-3 w-3" />
+                            Padecimientos
+                          </p>
+                          <div className="flex flex-wrap gap-1">
+                            {alertConditions.map((c, i) => (
+                              <Badge key={i} variant="secondary" className="gap-1 text-xs font-normal bg-amber-100 text-amber-800 hover:bg-amber-100">
+                                {c.label}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <button
+                        className="text-xs text-primary hover:underline w-full text-left pt-1 border-t border-border"
+                        onClick={() => { setPatientFichaDefaultView('anamnesis'); setPatientFichaOpen(true); }}
+                      >
+                        Ver Anamnesis completa →
+                      </button>
+                    </PopoverContent>
+                  </Popover>
                 ) : (
-                  <UserRound className="h-4 w-4 text-primary" />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex-none cursor-default">
+                        <div className="header-icon-circle">
+                          <UserRound className="h-5 w-5" />
+                        </div>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>Sin alertas</TooltipContent>
+                  </Tooltip>
                 )}
-              </div>
+              </TooltipProvider>
               <div className="min-w-0">
                 <p className="text-xl font-semibold leading-tight text-foreground sm:text-2xl">
                   {selectedAppointment.patientName || t('agenda.unknownPatient')}
                 </p>
-                <div className="mt-1 flex flex-wrap items-center gap-1 sm:mt-2 sm:gap-1.5">
-                  {visibleAlertTags.length > 0 ? (
-                    <>
-                      {visibleAlertTags.map((item, index) => (
-                        item.type === 'allergy' ? (
-                          <Badge
-                            key={`${item.label}-${index}`}
-                            variant="destructive"
-                            className="gap-1 text-xs font-normal"
-                          >
-                            <AlertTriangle className="h-3 w-3" />
-                            {item.label}
-                          </Badge>
-                        ) : (
-                          <Badge
-                            key={`${item.label}-${index}`}
-                            variant="secondary"
-                            className="gap-1 bg-amber-100 text-xs font-normal text-amber-800 hover:bg-amber-100"
-                          >
-                            <Heart className="h-3 w-3" />
-                            {item.label}
-                          </Badge>
-                        )
-                      ))}
-                      {hiddenAlertCount > 0 && (
-                        <span className="text-xs text-primary">
-                          {t('focus.moreAlertTags', { count: hiddenAlertCount })}
-                        </span>
-                      )}
-                    </>
-                  ) : (
-                    <span className="text-sm text-muted-foreground">{t('focus.noClinicalSignals')}</span>
-                  )}
-                </div>
+                <p className="text-sm text-muted-foreground">
+                  {hasAlerts
+                    ? [
+                        alertAllergies.length > 0 ? `${alertAllergies.length} alergia(s)` : '',
+                        alertConditions.length > 0 ? `${alertConditions.length} padecimiento(s)` : '',
+                      ].filter(Boolean).join(' · ')
+                    : t('focus.noClinicalSignals')}
+                </p>
               </div>
             </div>
 
@@ -1621,10 +1681,11 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
       {selectedAppointment && (
         <PatientDetailSheet
           open={patientFichaOpen}
-          onOpenChange={setPatientFichaOpen}
+          onOpenChange={(v) => { setPatientFichaOpen(v); if (!v) setPatientFichaDefaultView(undefined); }}
           userId={selectedAppointment.patientId}
           userName={selectedAppointment.patientName || ''}
           mode="doctor"
+          clinicalHistoryDefaultView={patientFichaDefaultView}
         />
       )}
 

@@ -28,7 +28,7 @@ Canal (WhatsApp / Web Chat / Voz)
 
 **Autenticación:** El agente opera con un token de servicio (usuario "Agente IA") con permisos específicos configurados en Invoke IA.
 
-**APIs disponibles:** `${NEXT_PUBLIC_API_URL}/webhook/*` — las mismas que usa el frontend.
+**APIs disponibles:** `${apiUrl}/webhook/*`, donde `apiUrl` se obtiene desde la configuración runtime del frontend (`window.__INVOKEIA_RUNTIME_CONFIG__`).
 
 **Flows Genkit reutilizables** (ya implementados en `src/ai/flows/`):
 - `interpretUserCommandFlow` — extrae intención + parámetros del mensaje
@@ -350,4 +350,4 @@ Agente: → ejecuta POST → "✓ Pago registrado. Saldo pendiente: $2500 UYU"
 
 5. **Modo Guía:** El agente puede consultar el contenido de la guía de usuario (docs/guia-uso-invoke-ia.docx procesado como RAG) para responder "¿Cómo hago X?" en lenguaje natural paso a paso.
 
-6. **APIs de n8n ya existentes:** El agente llama exactamente las mismas URLs que el frontend (`${NEXT_PUBLIC_API_URL}/webhook/*`) con el mismo `Authorization: Bearer` header.
+6. **APIs de n8n ya existentes:** El agente llama exactamente las mismas URLs que el frontend (`${apiUrl}/webhook/*`, con `apiUrl` tomado de la configuración runtime) con el mismo `Authorization: Bearer` header.

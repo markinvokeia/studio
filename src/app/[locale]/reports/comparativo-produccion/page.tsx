@@ -10,6 +10,7 @@ import { ReportKPICard } from '@/components/reports/report-kpi-card';
 import { ReportShell } from '@/components/reports/report-shell';
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
+import { useReportExport } from '@/hooks/use-report-export';
 import type { ReportComparativoResponse, ReportComparativoRow } from '@/lib/types';
 import { fmtMoney } from '@/lib/utils';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -112,6 +113,8 @@ export default function ComparativoProduccionPage() {
     },
   ];
 
+  const { exportCSV, exportExcel, exportPDF } = useReportExport(columns, data?.rows ?? null, 'comparativo-produccion');
+
   const yearOptions = Array.from({ length: 5 }, (_, i) => String(currentYear - i));
 
   const filters = (
@@ -154,6 +157,9 @@ export default function ComparativoProduccionPage() {
       onGenerate={handleGenerate}
       isLoading={isLoading}
       hasData={!!data}
+      onExportCSV={exportCSV}
+      onExportExcel={exportExcel}
+      onExportPDF={exportPDF}
     >
       {data && (
         <>

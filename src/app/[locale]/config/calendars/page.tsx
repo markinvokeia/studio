@@ -17,15 +17,18 @@ import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
-import { Calendar as CalendarType } from '@/lib/types';
+import { Calendar as CalendarType, Sede } from '@/lib/types';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, Calendar, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { AlertTriangle, Calendar, Check, ChevronsUpDown, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 const calendarFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
@@ -33,6 +36,7 @@ const calendarFormSchema = (t: (key: string) => string) => z.object({
     google_calendar_id: z.union([z.literal(''), z.string().email(t('emailInvalid'))]).optional(),
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/, t('colorInvalid')).optional(),
     is_active: z.boolean().default(true),
+    sede_id: z.string().optional(),
 });
 
 type CalendarFormValues = z.infer<ReturnType<typeof calendarFormSchema>>;
@@ -47,6 +51,8 @@ async function getCalendars(): Promise<CalendarType[]> {
             google_calendar_id: apiCalendar.google_calendar_id,
             is_active: apiCalendar.is_active,
             color: apiCalendar.color,
+            sede_id: apiCalendar.sede_id ? String(apiCalendar.sede_id) : undefined,
+            sede_name: apiCalendar.sede_name || undefined,
         }));
     } catch (error) {
         console.error("Failed to fetch calendars:", error);
@@ -55,7 +61,15 @@ async function getCalendars(): Promise<CalendarType[]> {
 }
 
 async function upsertCalendar(calendarData: CalendarFormValues) {
-    const responseData = await api.post(API_ROUTES.CALENDARS_UPSERT, calendarData);
+    const payload: any = {
+        name: calendarData.name,
+        google_calendar_id: calendarData.google_calendar_id || null,
+        color: calendarData.color || null,
+        is_active: calendarData.is_active,
+        sede_id: calendarData.sede_id ? Number(calendarData.sede_id) : null,
+    };
+    if (calendarData.id) payload.id = Number(calendarData.id);
+    const responseData = await api.post(API_ROUTES.CALENDARS_UPSERT, payload);
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         throw new Error(responseData[0]?.message || 'Failed to save calendar');
     }
@@ -88,9 +102,22 @@ export default function CalendarsPage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [deletingCalendar, setDeletingCalendar] = React.useState<CalendarType | null>(null);
 
+    const [sedes, setSedes] = React.useState<Sede[]>([]);
+    const [isSedeOpen, setIsSedeOpen] = React.useState(false);
+
+    React.useEffect(() => {
+        api.get(API_ROUTES.SEDES, { page: '1', limit: '200' }).then((data: any) => {
+            const raw = Array.isArray(data) ? data : (data.sedes || data.data || []);
+            setSedes(raw.filter((s: any) => s.is_active !== false).map((s: any) => ({
+                id: String(s.id), clinic_id: String(s.clinic_id), name: s.name || '',
+                is_active: s.is_active !== undefined ? s.is_active : true,
+            })));
+        }).catch(() => setSedes([]));
+    }, []);
+
     const form = useForm<CalendarFormValues>({
         resolver: zodResolver(calendarFormSchema(tValidation)),
-        defaultValues: { name: '', google_calendar_id: '', color: '#ffffff', is_active: true },
+        defaultValues: { name: '', google_calendar_id: '', color: '#ffffff', is_active: true, sede_id: '' },
     });
 
     const loadCalendars = React.useCallback(async () => {
@@ -108,7 +135,7 @@ export default function CalendarsPage() {
         setSubmissionError(null);
         if (calendar) {
             setIsEditing(false);
-            form.reset({ ...calendar, google_calendar_id: calendar.google_calendar_id || '', color: calendar.color || '#ffffff' });
+            form.reset({ ...calendar, google_calendar_id: calendar.google_calendar_id || '', color: calendar.color || '#ffffff', sede_id: calendar.sede_id || '' });
         }
     };
 
@@ -117,7 +144,7 @@ export default function CalendarsPage() {
         setRowSelection({});
         setIsEditing(true);
         setSubmissionError(null);
-        form.reset({ name: '', google_calendar_id: '', color: '#ffffff', is_active: true });
+        form.reset({ name: '', google_calendar_id: '', color: '#ffffff', is_active: true, sede_id: '' });
         setIsCreateDialogOpen(true);
     };
 
@@ -130,7 +157,7 @@ export default function CalendarsPage() {
     const handleBack = () => {
         if (isEditing && selectedCalendar) {
             setIsEditing(false);
-            form.reset({ ...selectedCalendar, color: selectedCalendar.color || '#ffffff' });
+            form.reset({ ...selectedCalendar, color: selectedCalendar.color || '#ffffff', sede_id: selectedCalendar.sede_id || '' });
         } else {
             handleClose();
         }
@@ -303,6 +330,42 @@ export default function CalendarsPage() {
                                 <FormMessage />
                             </FormItem>
                         )} />
+                        <FormField control={form.control} name="sede_id" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>{t('dialog.sede')}</FormLabel>
+                                <Popover open={isSedeOpen} onOpenChange={setIsSedeOpen}>
+                                    <PopoverTrigger asChild>
+                                        <FormControl>
+                                            <Button variant="outline" role="combobox" disabled={!isEditing} className={cn('w-full justify-between font-normal', !field.value && 'text-muted-foreground')}>
+                                                {field.value ? (sedes.find(s => s.id === field.value)?.name ?? t('dialog.selectSede')) : t('dialog.selectSede')}
+                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                        <Command>
+                                            <CommandInput placeholder={t('dialog.searchSede')} />
+                                            <CommandList>
+                                                <CommandEmpty>{t('General.noResults')}</CommandEmpty>
+                                                <CommandGroup>
+                                                    <CommandItem value="" onSelect={() => { field.onChange(''); setIsSedeOpen(false); }}>
+                                                        <Check className={cn('mr-2 h-4 w-4', !field.value ? 'opacity-100' : 'opacity-0')} />
+                                                        {t('dialog.noSede')}
+                                                    </CommandItem>
+                                                    {sedes.map(sede => (
+                                                        <CommandItem key={sede.id} value={sede.name} onSelect={() => { field.onChange(sede.id); setIsSedeOpen(false); }}>
+                                                            <Check className={cn('mr-2 h-4 w-4', field.value === sede.id ? 'opacity-100' : 'opacity-0')} />
+                                                            {sede.name}
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
                         <FormField control={form.control} name="is_active" render={({ field }) => (
                             <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-lg border p-3">
                                 <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!isEditing} /></FormControl>
@@ -311,7 +374,7 @@ export default function CalendarsPage() {
                         )} />
                         {isEditing && (
                             <div className="flex gap-2 pt-2">
-                                <Button type="button" variant="outline" onClick={() => { setIsEditing(false); if (selectedCalendar) form.reset({ ...selectedCalendar, color: selectedCalendar.color || '#ffffff' }); else handleClose(); }} disabled={isSaving}>
+                                <Button type="button" variant="outline" onClick={() => { setIsEditing(false); if (selectedCalendar) form.reset({ ...selectedCalendar, color: selectedCalendar.color || '#ffffff', sede_id: selectedCalendar.sede_id || '' }); else handleClose(); }} disabled={isSaving}>
                                     {t('dialog.cancel')}
                                 </Button>
                                 <Button type="submit" disabled={isSaving}>
@@ -355,7 +418,7 @@ export default function CalendarsPage() {
                     if (!open) {
                         setIsEditing(false);
                         setSubmissionError(null);
-                        form.reset({ name: '', google_calendar_id: '', color: '#ffffff', is_active: true });
+                        form.reset({ name: '', google_calendar_id: '', color: '#ffffff', is_active: true, sede_id: '' });
                     }
                 }}
             >
@@ -396,6 +459,42 @@ export default function CalendarsPage() {
                                                 <Input placeholder="#FFFFFF" {...field} />
                                             </div>
                                         </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="sede_id" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('dialog.sede')}</FormLabel>
+                                        <Popover open={isSedeOpen} onOpenChange={setIsSedeOpen}>
+                                            <PopoverTrigger asChild>
+                                                <FormControl>
+                                                    <Button variant="outline" role="combobox" className={cn('w-full justify-between font-normal', !field.value && 'text-muted-foreground')}>
+                                                        {field.value ? (sedes.find(s => s.id === field.value)?.name ?? t('dialog.selectSede')) : t('dialog.selectSede')}
+                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                    </Button>
+                                                </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                                <Command>
+                                                    <CommandInput placeholder={t('dialog.searchSede')} />
+                                                    <CommandList>
+                                                        <CommandEmpty>{t('General.noResults')}</CommandEmpty>
+                                                        <CommandGroup>
+                                                            <CommandItem value="" onSelect={() => { field.onChange(''); setIsSedeOpen(false); }}>
+                                                                <Check className={cn('mr-2 h-4 w-4', !field.value ? 'opacity-100' : 'opacity-0')} />
+                                                                {t('dialog.noSede')}
+                                                            </CommandItem>
+                                                            {sedes.map(sede => (
+                                                                <CommandItem key={sede.id} value={sede.name} onSelect={() => { field.onChange(sede.id); setIsSedeOpen(false); }}>
+                                                                    <Check className={cn('mr-2 h-4 w-4', field.value === sede.id ? 'opacity-100' : 'opacity-0')} />
+                                                                    {sede.name}
+                                                                </CommandItem>
+                                                            ))}
+                                                        </CommandGroup>
+                                                    </CommandList>
+                                                </Command>
+                                            </PopoverContent>
+                                        </Popover>
                                         <FormMessage />
                                     </FormItem>
                                 )} />

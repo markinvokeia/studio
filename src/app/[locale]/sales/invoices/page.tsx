@@ -23,6 +23,8 @@ import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { VerticalTabStrip, type VerticalTab } from '@/components/ui/vertical-tab-strip';
 import { SALES_PERMISSIONS } from '@/constants/permissions';
+import { GridExportDialog, type GridExportFormat } from '@/components/ui/grid-export-dialog';
+import { downloadCSV, downloadExcel, type ExportColumn } from '@/lib/export-utils';
 import { API_ROUTES } from '@/constants/routes';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { useToast } from '@/hooks/use-toast';
@@ -35,6 +37,7 @@ import { api } from '@/services/api';
 import { getSalesServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
+import { format } from 'date-fns';
 import { Check, CheckCircle, CreditCard, File, FileMinus, FileText, FileUp, Link2, Loader2, Maximize2, Minimize2, PlusCircle, Printer, Receipt, RefreshCw, Send, StickyNote, Trash2, X, Zap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -255,8 +258,68 @@ export default function InvoicesPage() {
     const { open: openBillingWizard } = useBillingWizard();
     const [isPaymentDialogOpen, setIsPaymentDialogOpen] = React.useState(false);
     const [invoiceForPayment, setInvoiceForPayment] = React.useState<Invoice | null>(null);
+    const [exportOpen, setExportOpen] = React.useState(false);
+    const [isExporting, setIsExporting] = React.useState(false);
 
 
+
+    const handleExport = React.useCallback(async (fmt: GridExportFormat, dateFrom: Date, dateTo: Date) => {
+        setIsExporting(true);
+        try {
+            const query: Record<string, string> = {
+                is_sales: 'true',
+                date_from: format(dateFrom, 'yyyy-MM-dd'),
+                date_to: format(dateTo, 'yyyy-MM-dd'),
+            };
+            const data = await api.get(API_ROUTES.SALES.INVOICES_ALL, query);
+            const rawRows = Array.isArray(data) ? data : (data.invoices || data.data || []);
+            const invoiceStatusMap: Record<string, string> = {
+                paid: t('status.paid' as any), sent: t('status.sent' as any),
+                draft: t('status.draft' as any), overdue: t('status.overdue' as any),
+                unpaid: t('status.unpaid' as any), partial: t('status.partial' as any),
+                partially_paid: t('status.partially_paid' as any),
+                completed: t('status.completed' as any), pending: t('status.pending' as any),
+                failed: t('status.failed' as any), booked: t('status.booked' as any),
+            };
+            const invoiceTypeMap: Record<string, string> = {
+                invoice: t('invoice' as any), credit_note: t('creditNote' as any),
+            };
+            const rows = rawRows.map((r: any) => ({
+                ...r,
+                status: invoiceStatusMap[(r.status || '').toLowerCase()] ?? r.status,
+                payment_state: invoiceStatusMap[(r.payment_state || '').toLowerCase()] ?? r.payment_state,
+                type: invoiceTypeMap[(r.type || '').toLowerCase()] ?? r.type,
+                is_historical: r.is_historical ? t('columns.historical' as any) || 'Sí' : 'No',
+            }));
+            const exportCols: ExportColumn[] = [
+                { header: t('exportCols.docNo'), key: 'doc_no' },
+                { header: t('exportCols.date'), key: 'created_at' },
+                { header: t('exportCols.dueDate'), key: 'due_date' },
+                { header: t('exportCols.client'), key: 'user_name' },
+                { header: t('exportCols.total'), key: 'total' },
+                { header: t('exportCols.currency'), key: 'currency' },
+                { header: t('exportCols.status'), key: 'status' },
+                { header: t('exportCols.paymentState'), key: 'payment_state' },
+                { header: t('exportCols.paidAmount'), key: 'paid_amount' },
+                { header: t('exportCols.type'), key: 'type' },
+                { header: t('exportCols.invoiceRef'), key: 'invoice_ref' },
+                { header: t('exportCols.orderDocNo'), key: 'order_doc_no' },
+                { header: t('exportCols.quoteDocNo'), key: 'quote_doc_no' },
+                { header: t('exportCols.isHistorical'), key: 'is_historical' },
+                { header: t('exportCols.notes'), key: 'notes' },
+            ];
+            if (fmt === 'csv') {
+                downloadCSV(exportCols, rows, `facturas-ventas-${format(dateFrom, 'yyyyMMdd')}-${format(dateTo, 'yyyyMMdd')}`);
+            } else {
+                await downloadExcel(exportCols, rows, `facturas-ventas-${format(dateFrom, 'yyyyMMdd')}-${format(dateTo, 'yyyyMMdd')}`);
+            }
+            setExportOpen(false);
+        } catch {
+            toast({ title: t('exportError'), variant: 'destructive' });
+        } finally {
+            setIsExporting(false);
+        }
+    }, [t, toast]);
 
     const loadInvoices = React.useCallback(async () => {
         setIsLoadingInvoices(true);
@@ -596,6 +659,7 @@ export default function InvoicesPage() {
                             isSales={true}
                             isCompact={!!selectedInvoice}
                             standalone={true}
+                            onExport={() => setExportOpen(true)}
                             title={t('title')}
                             description={t('description')}
                             className="h-full"
@@ -956,6 +1020,12 @@ export default function InvoicesPage() {
                 invoice={invoiceForPayment}
                 isSales={true}
                 onSuccess={() => { loadInvoices(); loadPayments(); }}
+            />
+            <GridExportDialog
+                open={exportOpen}
+                onOpenChange={setExportOpen}
+                onExport={handleExport}
+                isExporting={isExporting}
             />
         </>
     );

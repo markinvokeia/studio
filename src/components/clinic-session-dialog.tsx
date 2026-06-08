@@ -312,7 +312,13 @@ export function ClinicSessionDialog({
             setDoctorError(false);
             setShouldDischargePatient(false);
             setDischargeDate('');
-            setAiTreatments(existingSession?.tratamientos ?? []);
+            const rawTreatments = existingSession?.tratamientos ?? [];
+            setAiTreatments(rawTreatments);
+            if (rawTreatments.length > 0) {
+                enrichTreatmentsWithServiceNames(rawTreatments).then(enriched => {
+                    setAiTreatments(enriched);
+                });
+            }
             setIsFetchingProcedure(false);
             setIsFetchingPlan(false);
             setIsProcedureDebouncing(false);
@@ -431,6 +437,28 @@ export function ClinicSessionDialog({
         }
     };
 
+    const enrichTreatmentsWithServiceNames = async (
+        inputTreatments: TreatmentDetail[]
+    ): Promise<TreatmentDetail[]> => {
+        return Promise.all(
+            inputTreatments.map(async (treatment) => {
+                if (treatment.service_name) return treatment;
+                const id = treatment.service_id
+                    ?? (treatment.service_catalog_id != null ? String(treatment.service_catalog_id) : null);
+                if (!id) return treatment;
+                try {
+                    const data = await api.get(API_ROUTES.SERVICE, { id });
+                    const item = Array.isArray(data) ? data[0] : data;
+                    const name = item?.name || item?.nombre || item?.service_name;
+                    if (name) return { ...treatment, service_name: name };
+                } catch {
+                    // fall back to descripcion silently
+                }
+                return treatment;
+            })
+        );
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -503,21 +531,26 @@ export function ClinicSessionDialog({
         setAiTreatments(prev => prev.filter((_, i) => i !== index));
     };
 
-    const handleAddServiceTreatment = () => {
-        const svc = services.find(s => s.id === selectedServiceId);
-        if (!svc || !addingManualFor) return;
+    const handleAddServiceTreatment = (serviceId: string, forSession: 'current' | 'next') => {
+        const svc = services.find(s => s.id === serviceId);
+        if (!svc) return;
         setAiTreatments(prev => [...prev, {
             service_id: svc.id,
             service_name: svc.name,
             descripcion: svc.name,
             quantity: 1,
             numero_diente: null,
-            is_for_next_session: addingManualFor === 'next',
+            is_for_next_session: forSession === 'next',
             is_manual: true,
         }]);
         setSelectedServiceId('');
         setAddingManualFor(null);
+        setServicePopoverOpen(false);
     };
+
+    React.useEffect(() => {
+        if (addingManualFor !== null) setServicePopoverOpen(true);
+    }, [addingManualFor]);
 
     const parseAiResponse = (aiResponse: any): TreatmentDetail[] => {
         const responseData = Array.isArray(aiResponse) ? aiResponse[0] : aiResponse;
@@ -949,7 +982,7 @@ export function ClinicSessionDialog({
                                     </div>
                                     {/* Manual add panel for current-session treatments */}
                                     {addingManualFor === 'current' && (
-                                        <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/20 p-2">
+                                        <div className="flex items-center gap-2 rounded-md border bg-muted/20 p-2">
                                             <Popover open={servicePopoverOpen} onOpenChange={setServicePopoverOpen}>
                                                 <PopoverTrigger asChild>
                                                     <Button
@@ -959,11 +992,7 @@ export function ClinicSessionDialog({
                                                         aria-expanded={servicePopoverOpen}
                                                         className="h-7 text-xs flex-1 min-w-[180px] justify-between font-normal"
                                                     >
-                                                        <span className="truncate">
-                                                            {selectedServiceId
-                                                                ? services.find(s => s.id === selectedServiceId)?.name
-                                                                : t('aiTreatments.selectService')}
-                                                        </span>
+                                                        <span className="truncate">{t('aiTreatments.selectService')}</span>
                                                         <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
                                                     </Button>
                                                 </PopoverTrigger>
@@ -985,10 +1014,9 @@ export function ClinicSessionDialog({
                                                                             <CommandItem
                                                                                 key={svc.id}
                                                                                 value={svc.name}
-                                                                                onSelect={() => { setSelectedServiceId(svc.id); setServicePopoverOpen(false); }}
+                                                                                onSelect={() => handleAddServiceTreatment(svc.id, 'current')}
                                                                                 className="text-xs"
                                                                             >
-                                                                                <Check className={cn("mr-2 h-3 w-3 shrink-0", selectedServiceId === svc.id ? "opacity-100" : "opacity-0")} />
                                                                                 {svc.name}
                                                                             </CommandItem>
                                                                         ))}
@@ -999,14 +1027,6 @@ export function ClinicSessionDialog({
                                                     </Command>
                                                 </PopoverContent>
                                             </Popover>
-                                            <button
-                                                type="button"
-                                                onClick={handleAddServiceTreatment}
-                                                disabled={!selectedServiceId}
-                                                className="inline-flex h-7 items-center justify-center rounded-md bg-foreground/10 hover:bg-foreground/20 transition-colors px-2 disabled:opacity-40"
-                                            >
-                                                <Check className="h-3 w-3" />
-                                            </button>
                                             <button
                                                 type="button"
                                                 onClick={() => { setAddingManualFor(null); setSelectedServiceId(''); setServicePopoverOpen(false); }}
@@ -1102,7 +1122,7 @@ export function ClinicSessionDialog({
                                     </div>
                                     {/* Manual add panel for next-session treatments */}
                                     {addingManualFor === 'next' && (
-                                        <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/20 p-2">
+                                        <div className="flex items-center gap-2 rounded-md border bg-muted/20 p-2">
                                             <Popover open={servicePopoverOpen} onOpenChange={setServicePopoverOpen}>
                                                 <PopoverTrigger asChild>
                                                     <Button
@@ -1112,11 +1132,7 @@ export function ClinicSessionDialog({
                                                         aria-expanded={servicePopoverOpen}
                                                         className="h-7 text-xs flex-1 min-w-[180px] justify-between font-normal"
                                                     >
-                                                        <span className="truncate">
-                                                            {selectedServiceId
-                                                                ? services.find(s => s.id === selectedServiceId)?.name
-                                                                : t('aiTreatments.selectService')}
-                                                        </span>
+                                                        <span className="truncate">{t('aiTreatments.selectService')}</span>
                                                         <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
                                                     </Button>
                                                 </PopoverTrigger>
@@ -1138,10 +1154,9 @@ export function ClinicSessionDialog({
                                                                             <CommandItem
                                                                                 key={svc.id}
                                                                                 value={svc.name}
-                                                                                onSelect={() => { setSelectedServiceId(svc.id); setServicePopoverOpen(false); }}
+                                                                                onSelect={() => handleAddServiceTreatment(svc.id, 'next')}
                                                                                 className="text-xs"
                                                                             >
-                                                                                <Check className={cn("mr-2 h-3 w-3 shrink-0", selectedServiceId === svc.id ? "opacity-100" : "opacity-0")} />
                                                                                 {svc.name}
                                                                             </CommandItem>
                                                                         ))}
@@ -1152,14 +1167,6 @@ export function ClinicSessionDialog({
                                                     </Command>
                                                 </PopoverContent>
                                             </Popover>
-                                            <button
-                                                type="button"
-                                                onClick={handleAddServiceTreatment}
-                                                disabled={!selectedServiceId}
-                                                className="inline-flex h-7 items-center justify-center rounded-md bg-foreground/10 hover:bg-foreground/20 transition-colors px-2 disabled:opacity-40"
-                                            >
-                                                <Check className="h-3 w-3" />
-                                            </button>
                                             <button
                                                 type="button"
                                                 onClick={() => { setAddingManualFor(null); setSelectedServiceId(''); setServicePopoverOpen(false); }}

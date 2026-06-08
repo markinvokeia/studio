@@ -52,7 +52,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
-import { Appointment, AppointmentStatus, Calendar as CalendarType, CalendarReminder, CalendarSettings, Invoice, Order, PatientSession, Quote, QuoteItem, Service, SessionPreloadedService, User as UserType } from '@/lib/types';
+import { Appointment, AppointmentStatus, Calendar as CalendarType, CalendarReminder, CalendarSettings, Invoice, Order, PatientSession, Quote, QuoteItem, Sede, Service, SessionPreloadedService, User as UserType } from '@/lib/types';
 import { toLocalISOString } from '@/lib/utils';
 import api from '@/services/api';
 import { getQuoteItems } from '@/services/quotes';
@@ -391,9 +391,26 @@ async function getCalendars(): Promise<CalendarType[]> {
             google_calendar_id: apiCalendar.google_calendar_id,
             is_active: apiCalendar.is_active,
             color: apiCalendar.color || CALENDAR_COLORS[index % CALENDAR_COLORS.length],
+            sede_id: apiCalendar.sede_id ? String(apiCalendar.sede_id) : undefined,
+            sede_name: apiCalendar.sede_name || undefined,
         }));
     } catch (error) {
         console.error("Failed to fetch calendars:", error);
+        return [];
+    }
+}
+
+async function getSedes(): Promise<Sede[]> {
+    try {
+        const data = await api.get(API_ROUTES.SEDES, { page: '1', limit: '200' });
+        const raw = Array.isArray(data) ? data : (data.sedes || data.data || []);
+        return raw.map((s: any) => ({
+            id: String(s.id),
+            clinic_id: String(s.clinic_id),
+            name: s.name || '',
+            is_active: s.is_active !== undefined ? s.is_active : true,
+        }));
+    } catch {
         return [];
     }
 }
@@ -455,6 +472,7 @@ export default function AppointmentsPage() {
     const [appointments, setAppointments] = React.useState<Appointment[]>([]);
     const [reminders, setReminders] = React.useState<CalendarReminder[]>([]);
     const [calendars, setCalendars] = React.useState<CalendarType[]>([]);
+    const [sedes, setSedes] = React.useState<Sede[]>([]);
     const [services, setServices] = React.useState<Service[]>([]);
     const [doctors, setDoctors] = React.useState<UserType[]>([]);
     const [doctorServiceMap, setDoctorServiceMap] = React.useState<Map<string, Service[]>>(new Map());
@@ -562,7 +580,7 @@ export default function AppointmentsPage() {
         calendarId?: string;
     } | null>(null);
 
-    const handleSlotClick = React.useCallback((date: Date, context?: { groupBy: 'doctor' | 'calendar'; value: string }) => {
+    const handleSlotClick = React.useCallback((date: Date, context?: { groupBy: 'doctor' | 'calendar' | 'sede'; value: string }) => {
         setEditingAppointment(null);
         const base: {
             date: string;
@@ -1147,13 +1165,15 @@ export default function AppointmentsPage() {
 
     const loadInitialData = React.useCallback(async () => {
         setIsDataLoading(true);
-        const [fetchedCalendars, fetchedServices, fetchedDoctors, fetchedSettings] = await Promise.all([
+        const [fetchedCalendars, fetchedServices, fetchedDoctors, fetchedSettings, fetchedSedes] = await Promise.all([
             getCalendars(),
             getServices(),
             getDoctors(),
             getCalendarSettings(),
+            getSedes(),
         ]);
         setCalendars(fetchedCalendars);
+        setSedes(fetchedSedes);
         setServices(fetchedServices);
         setDoctors(fetchedDoctors);
 
@@ -1343,13 +1363,15 @@ export default function AppointmentsPage() {
                     return null;
                 }
 
+                const matchedCalendar = calendars.find((calendar) => String(calendar.id) === String(appt.calendar_source_id));
                 return {
                     id: String(appt.id),
                     title: appt.summary || appt.service_name || 'Cita',
                     start,
                     end,
                     doctorGroupId: appt.doctorId || undefined,
-                    calendarGroupId: calendars.find((calendar) => String(calendar.id) === String(appt.calendar_source_id))?.id || appt.calendar_source_id || undefined,
+                    calendarGroupId: matchedCalendar?.id || appt.calendar_source_id || undefined,
+                    sedeGroupId: matchedCalendar?.sede_id || undefined,
                     data: { ...appt, kind: 'appointment' as const },
                     color: appt.color,
                     colorId: appt.colorId,
@@ -1426,15 +1448,35 @@ export default function AppointmentsPage() {
             }));
     }, [calendars, selectedCalendarIds]);
 
+    const sedeGroupingColumns = React.useMemo<CalendarGroupingColumn[]>(() => {
+        const seenIds = new Set<string>();
+        return calendars
+            .filter((cal) => selectedCalendarIds.includes(cal.id) && !!cal.sede_id)
+            .reduce<CalendarGroupingColumn[]>((acc, cal) => {
+                if (!seenIds.has(cal.sede_id!)) {
+                    seenIds.add(cal.sede_id!);
+                    const sedeName = sedes.find(s => s.id === cal.sede_id)?.name || cal.sede_name || cal.sede_id!;
+                    acc.push({
+                        id: cal.sede_id!,
+                        label: sedeName,
+                        value: cal.sede_id!,
+                    });
+                }
+                return acc;
+            }, []);
+    }, [calendars, selectedCalendarIds, sedes]);
+
     const groupingColumns = React.useMemo<CalendarGroupingColumn[]>(() => {
         if (groupBy === 'doctor') return doctorGroupingColumns;
         if (groupBy === 'calendar') return calendarGroupingColumns;
+        if (groupBy === 'sede') return sedeGroupingColumns;
         return [];
-    }, [calendarGroupingColumns, doctorGroupingColumns, groupBy]);
+    }, [calendarGroupingColumns, doctorGroupingColumns, sedeGroupingColumns, groupBy]);
 
     const groupByLabel = React.useMemo(() => {
         if (groupBy === 'doctor') return t('grouping.options.doctor');
         if (groupBy === 'calendar') return t('grouping.options.calendar');
+        if (groupBy === 'sede') return t('grouping.options.sede');
         return t('grouping.options.none');
     }, [groupBy, t]);
 
@@ -1833,6 +1875,19 @@ export default function AppointmentsPage() {
                                                                 <div className="flex items-center justify-between w-full">
                                                                     <span>{t('grouping.options.calendar')}</span>
                                                                     {groupBy === 'calendar' && <Check className="h-4 w-4" />}
+                                                                </div>
+                                                            </CommandItem>
+                                                            <CommandItem
+                                                                onSelect={() => {
+                                                                    if (sedeGroupingColumns.length > 0) {
+                                                                        setGroupBy('sede');
+                                                                    }
+                                                                }}
+                                                                disabled={sedeGroupingColumns.length === 0}
+                                                            >
+                                                                <div className="flex items-center justify-between w-full">
+                                                                    <span>{t('grouping.options.sede')}</span>
+                                                                    {groupBy === 'sede' && <Check className="h-4 w-4" />}
                                                                 </div>
                                                             </CommandItem>
                                                         </CommandGroup>

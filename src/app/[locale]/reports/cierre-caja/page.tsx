@@ -9,6 +9,7 @@ import { ReportShell } from '@/components/reports/report-shell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
+import { useReportExport } from '@/hooks/use-report-export';
 import type { CashPoint, PaymentMethod, ReportCierreCajaResponse, ReportCierreCajaRow } from '@/lib/types';
 import { formatDateTime, cn } from '@/lib/utils';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -123,6 +124,8 @@ export default function CierreCajaPage() {
     },
   ];
 
+  const { exportCSV, exportExcel, exportPDF } = useReportExport(columns, data?.rows ?? null, 'cierre-caja');
+
   const selectedCashPoint = cashPoints.find((c) => String(c.id) === cashPointId);
   const selectedPaymentMethod = paymentMethods.find((p) => String(p.id) === paymentMethodId);
 
@@ -216,6 +219,9 @@ export default function CierreCajaPage() {
       onGenerate={handleGenerate}
       isLoading={isLoading}
       hasData={!!data}
+      onExportCSV={exportCSV}
+      onExportExcel={exportExcel}
+      onExportPDF={exportPDF}
     >
       {data && (
         <>

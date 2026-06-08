@@ -1,6 +1,7 @@
 'use client';
 
 import { API_ROUTES } from '@/constants/routes';
+import { getWebhookBaseUrl } from '@/lib/runtime-config';
 import { api } from '@/services/api';
 import { useEffect, useState } from 'react';
 
@@ -10,15 +11,12 @@ export interface ClinicInfo {
   phone?: string;
   address?: string;
   email?: string;
+  currency?: 'UYU' | 'USD';
 }
 
 // Module-level cache — fetched at most once per session across all components
 let _cache: ClinicInfo | null = null;
 let _promise: Promise<ClinicInfo | null> | null = null;
-
-const BASE_WEBHOOK = process.env.NEXT_PUBLIC_API_URL
-  ? `${process.env.NEXT_PUBLIC_API_URL}/webhook`
-  : 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook';
 
 export function fetchClinicInfo(): Promise<ClinicInfo | null> {
   if (_promise) return _promise;
@@ -28,13 +26,15 @@ export function fetchClinicInfo(): Promise<ClinicInfo | null> {
       const data = Array.isArray(raw) ? (raw as Record<string, unknown>[])[0] : (raw as Record<string, unknown>);
       if (!data) return null;
       const get = (...keys: string[]) => keys.map((k) => data[k]).find((v) => v != null && v !== '') as string | undefined;
+      const rawCurrency = get('currency', 'moneda');
       const info: ClinicInfo = {
         name: get('name', 'clinic_name', 'nombre') ?? '',
         // Always use the n8n webhook endpoint — it handles Drive auth transparently.
-        logoUrl: `${BASE_WEBHOOK}/clinic/logo`,
+        logoUrl: `${getWebhookBaseUrl()}/clinic/logo`,
         phone: get('phone', 'telefono', 'phone_number', 'tel'),
         address: get('address', 'direccion', 'domicilio'),
         email: get('email', 'correo'),
+        currency: rawCurrency === 'USD' || rawCurrency === 'UYU' ? rawCurrency : undefined,
       };
       _cache = info;
       return info;

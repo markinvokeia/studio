@@ -22,6 +22,7 @@ interface ReportShellProps {
   hasData?: boolean;
   onExportPDF?: () => void;
   onExportExcel?: () => void;
+  onExportCSV?: () => void;
   onPrint?: () => void;
   children?: ReactNode;
   className?: string;
@@ -37,6 +38,7 @@ export function ReportShell({
   hasData = false,
   onExportPDF,
   onExportExcel,
+  onExportCSV,
   onPrint,
   children,
   className,
@@ -74,6 +76,7 @@ export function ReportShell({
           <ReportExportActions
             onExportPDF={onExportPDF}
             onExportExcel={onExportExcel}
+            onExportCSV={onExportCSV}
             onPrint={onPrint}
             disabled={!hasData}
             isLoading={isLoading}

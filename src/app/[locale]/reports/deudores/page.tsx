@@ -10,6 +10,7 @@ import { ReportKPICard } from '@/components/reports/report-kpi-card';
 import { ReportShell } from '@/components/reports/report-shell';
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
+import { useReportExport } from '@/hooks/use-report-export';
 import type { ReportAgingResponse, ReportAgingRow } from '@/lib/types';
 import { cn, fmtMoney } from '@/lib/utils';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -94,6 +95,8 @@ export default function DeudoresPage() {
     },
   ];
 
+  const { exportCSV, exportExcel, exportPDF } = useReportExport(columns, data?.rows ?? null, 'deudores');
+
   const s = data?.summary;
 
   const filters = (
@@ -141,6 +144,9 @@ export default function DeudoresPage() {
       onGenerate={handleGenerate}
       isLoading={isLoading}
       hasData={!!data}
+      onExportCSV={exportCSV}
+      onExportExcel={exportExcel}
+      onExportPDF={exportPDF}
     >
       {data && s && (
         <>
