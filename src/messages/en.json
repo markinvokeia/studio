@@ -3343,6 +3343,7 @@
     },
     "validation": {
       "nameRequired": "Name is required.",
+      "sedeRequired": "Branch is required.",
       "emailInvalid": "Invalid Google Calendar email.",
       "colorInvalid": "Invalid hex color (e.g. #FFFFFF)."
     }

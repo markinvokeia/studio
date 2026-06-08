@@ -3320,6 +3320,7 @@
     },
     "validation": {
       "nameRequired": "El nombre es obligatorio.",
+      "sedeRequired": "La sede es obligatoria.",
       "emailInvalid": "Correo electrónico de Google Calendar inválido.",
       "colorInvalid": "Color hexadecimal inválido (ej. #FFFFFF)."
     }

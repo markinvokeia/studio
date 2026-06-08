@@ -36,7 +36,7 @@ const calendarFormSchema = (t: (key: string) => string) => z.object({
     google_calendar_id: z.union([z.literal(''), z.string().email(t('emailInvalid'))]).optional(),
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/, t('colorInvalid')).optional(),
     is_active: z.boolean().default(true),
-    sede_id: z.string().optional(),
+    sede_id: z.string().min(1, t('sedeRequired')),
 });
 
 type CalendarFormValues = z.infer<ReturnType<typeof calendarFormSchema>>;
@@ -70,18 +70,52 @@ async function upsertCalendar(calendarData: CalendarFormValues) {
     };
     if (calendarData.id) payload.id = Number(calendarData.id);
     const responseData = await api.post(API_ROUTES.CALENDARS_UPSERT, payload);
-    if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
-        throw new Error(responseData[0]?.message || 'Failed to save calendar');
+    const backendError = getBackendErrorMessage(responseData, 'Failed to save calendar');
+    if (backendError) {
+        throw new Error(backendError);
     }
     return responseData;
 }
 
 async function deleteCalendar(id: string) {
     const responseData = await api.delete(API_ROUTES.CALENDARS_DELETE, { id });
-    if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
-        throw new Error(responseData[0]?.message || 'Failed to delete calendar');
+    const backendError = getBackendErrorMessage(responseData, 'Failed to delete calendar');
+    if (backendError) {
+        throw new Error(backendError);
     }
     return responseData;
+}
+
+function getStringValue(value: unknown): string | null {
+    return typeof value === 'string' && value.trim() ? value : null;
+}
+
+function getBackendErrorMessage(responseData: unknown, fallbackMessage: string): string | null {
+    if (!responseData) return null;
+
+    if (Array.isArray(responseData)) {
+        for (const item of responseData) {
+            const message = getBackendErrorMessage(item, fallbackMessage);
+            if (message) return message;
+        }
+        return null;
+    }
+
+    if (typeof responseData !== 'object') return null;
+
+    const data = responseData as Record<string, unknown>;
+    const code = typeof data.code === 'number' ? data.code : Number(data.code);
+    const hasErrorStatus = Number.isFinite(code) && code >= 400;
+    const hasErrorField = data.error !== undefined && data.error !== null && data.error !== false;
+    const nestedErrorMessage = hasErrorField ? getBackendErrorMessage(data.error, fallbackMessage) : null;
+    const message = getStringValue(data.message) ?? getStringValue(data.error) ?? nestedErrorMessage;
+    const status = getStringValue(data.status)?.toLowerCase();
+
+    if (hasErrorStatus || status === 'error' || hasErrorField) {
+        return message ?? fallbackMessage;
+    }
+
+    return null;
 }
 
 export default function CalendarsPage() {
@@ -330,13 +364,26 @@ export default function CalendarsPage() {
                                 <FormMessage />
                             </FormItem>
                         )} />
-                        <FormField control={form.control} name="sede_id" render={({ field }) => (
+                        <FormField control={form.control} name="sede_id" render={({ field, fieldState }) => (
                             <FormItem>
-                                <FormLabel>{t('dialog.sede')}</FormLabel>
+                                <FormLabel>
+                                    {t('dialog.sede')} <span className="text-destructive">*</span>
+                                </FormLabel>
                                 <Popover open={isSedeOpen} onOpenChange={setIsSedeOpen}>
                                     <PopoverTrigger asChild>
                                         <FormControl>
-                                            <Button variant="outline" role="combobox" disabled={!isEditing} className={cn('w-full justify-between font-normal', !field.value && 'text-muted-foreground')}>
+                                            <Button
+                                                variant="outline"
+                                                role="combobox"
+                                                aria-required="true"
+                                                aria-invalid={!!fieldState.error}
+                                                disabled={!isEditing}
+                                                className={cn(
+                                                    'w-full justify-between font-normal',
+                                                    !field.value && 'text-muted-foreground',
+                                                    fieldState.error && 'border-destructive focus-visible:ring-destructive'
+                                                )}
+                                            >
                                                 {field.value ? (sedes.find(s => s.id === field.value)?.name ?? t('dialog.selectSede')) : t('dialog.selectSede')}
                                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                             </Button>
@@ -348,10 +395,6 @@ export default function CalendarsPage() {
                                             <CommandList>
                                                 <CommandEmpty>{t('General.noResults')}</CommandEmpty>
                                                 <CommandGroup>
-                                                    <CommandItem value="" onSelect={() => { field.onChange(''); setIsSedeOpen(false); }}>
-                                                        <Check className={cn('mr-2 h-4 w-4', !field.value ? 'opacity-100' : 'opacity-0')} />
-                                                        {t('dialog.noSede')}
-                                                    </CommandItem>
                                                     {sedes.map(sede => (
                                                         <CommandItem key={sede.id} value={sede.name} onSelect={() => { field.onChange(sede.id); setIsSedeOpen(false); }}>
                                                             <Check className={cn('mr-2 h-4 w-4', field.value === sede.id ? 'opacity-100' : 'opacity-0')} />
@@ -462,13 +505,25 @@ export default function CalendarsPage() {
                                         <FormMessage />
                                     </FormItem>
                                 )} />
-                                <FormField control={form.control} name="sede_id" render={({ field }) => (
+                                <FormField control={form.control} name="sede_id" render={({ field, fieldState }) => (
                                     <FormItem>
-                                        <FormLabel>{t('dialog.sede')}</FormLabel>
+                                        <FormLabel>
+                                            {t('dialog.sede')} <span className="text-destructive">*</span>
+                                        </FormLabel>
                                         <Popover open={isSedeOpen} onOpenChange={setIsSedeOpen}>
                                             <PopoverTrigger asChild>
                                                 <FormControl>
-                                                    <Button variant="outline" role="combobox" className={cn('w-full justify-between font-normal', !field.value && 'text-muted-foreground')}>
+                                                    <Button
+                                                        variant="outline"
+                                                        role="combobox"
+                                                        aria-required="true"
+                                                        aria-invalid={!!fieldState.error}
+                                                        className={cn(
+                                                            'w-full justify-between font-normal',
+                                                            !field.value && 'text-muted-foreground',
+                                                            fieldState.error && 'border-destructive focus-visible:ring-destructive'
+                                                        )}
+                                                    >
                                                         {field.value ? (sedes.find(s => s.id === field.value)?.name ?? t('dialog.selectSede')) : t('dialog.selectSede')}
                                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                                     </Button>
@@ -480,10 +535,6 @@ export default function CalendarsPage() {
                                                     <CommandList>
                                                         <CommandEmpty>{t('General.noResults')}</CommandEmpty>
                                                         <CommandGroup>
-                                                            <CommandItem value="" onSelect={() => { field.onChange(''); setIsSedeOpen(false); }}>
-                                                                <Check className={cn('mr-2 h-4 w-4', !field.value ? 'opacity-100' : 'opacity-0')} />
-                                                                {t('dialog.noSede')}
-                                                            </CommandItem>
                                                             {sedes.map(sede => (
                                                                 <CommandItem key={sede.id} value={sede.name} onSelect={() => { field.onChange(sede.id); setIsSedeOpen(false); }}>
                                                                     <Check className={cn('mr-2 h-4 w-4', field.value === sede.id ? 'opacity-100' : 'opacity-0')} />
