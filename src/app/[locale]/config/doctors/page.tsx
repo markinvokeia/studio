@@ -491,7 +491,7 @@ export default function DoctorsPage() {
     try {
       const response = await upsertUser(data);
       const newUserId = extractCreatedUserId(response);
-      if (newUserId && canSetInitialPassword) {
+      if (newUserId) {
         try {
           await sendFirstTimePasswordToken(newUserId);
         } catch {

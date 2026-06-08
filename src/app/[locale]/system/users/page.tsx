@@ -519,7 +519,7 @@ export default function SystemUsersPage() {
         }
       }
 
-      if (newUserId && canSetInitialPassword) {
+      if (newUserId) {
         try {
           await sendFirstTimePasswordToken(newUserId);
         } catch {

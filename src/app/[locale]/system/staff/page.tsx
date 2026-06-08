@@ -717,7 +717,7 @@ export default function StaffPage() {
         }
       }
 
-      if (newUserId && canSetInitialPassword) {
+      if (newUserId) {
         try {
           await sendFirstTimePasswordToken(newUserId);
         } catch {
