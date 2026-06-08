@@ -196,6 +196,7 @@ export function AppointmentFormDialog({
                         : [];
             setWorkflowSteps(
                 raw
+                    .filter((s: any) => s.id != null) // discard empty placeholder rows some backends return
                     .map((s: any) => ({
                         id: s.id,
                         position: s.position ?? 1,
@@ -1226,7 +1227,7 @@ export function AppointmentFormDialog({
                                             </div>
                                         </div>
                                     )}
-                                    {appointment.services.some(s => s.service_type === 'workflow') && (
+                                    {appointment.services.some(s => s.service_type === 'workflow') && (isLoadingWorkflowSteps || workflowSteps.length > 0) && (
                                         <Alert className="mt-2 border-primary/30 bg-primary/5">
                                             <ClipboardList className="h-4 w-4 text-primary shrink-0" />
                                             <AlertTitle className="text-sm">{t('createDialog.workflowServiceTitle')}</AlertTitle>
@@ -1278,7 +1279,18 @@ export function AppointmentFormDialog({
                                                             {t('createDialog.none')}
                                                         </CommandItem>
                                                         {filteredDoctors.map(doctor => (
-                                                            <CommandItem key={doctor.id} value={doctor.name} onSelect={() => { setAppointment(prev => ({ ...prev, doctor })); setDoctorSearchOpen(false); }}>
+                                                            <CommandItem key={doctor.id} value={doctor.name} onSelect={() => {
+                                                                const defaultCalendar = doctor.calendar_source_id
+                                                                    ? calendars.find(c => String(c.id) === String(doctor.calendar_source_id)) ?? null
+                                                                    : null;
+                                                                setAppointment(prev => ({
+                                                                    ...prev,
+                                                                    doctor,
+                                                                    ...(defaultCalendar ? { calendar: defaultCalendar } : {}),
+                                                                }));
+                                                                if (defaultCalendar) setErrors(prev => prev.filter(err => err !== 'calendar'));
+                                                                setDoctorSearchOpen(false);
+                                                            }}>
                                                                 <Check className={cn("mr-2 h-4 w-4", appointment.doctor?.id === doctor.id ? "opacity-100" : "opacity-0")} />
                                                                 {doctor.name}
                                                             </CommandItem>

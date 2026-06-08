@@ -15,6 +15,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { useToast } from '@/hooks/use-toast';
+import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { PaymentMethod, User } from '@/lib/types';
 import { cn, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -61,6 +62,7 @@ export function PrepaidFormDialog({ open, onOpenChange, initialUser, onSaveSucce
     const { toast } = useToast();
     const { user, checkActiveSession } = useAuth();
     const { validateActiveSession, showCashSessionError } = useCashSessionValidation();
+    const clinicInfo = useClinicInfo();
 
     const [paymentMethods, setPaymentMethods] = React.useState<PaymentMethod[]>([]);
     const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
@@ -75,7 +77,7 @@ export function PrepaidFormDialog({ open, onOpenChange, initialUser, onSaveSucce
             payment_amount: 0,
             payment_method_id: '',
             created_at: new Date(),
-            currency: 'UYU',
+            currency: clinicInfo?.currency ?? 'UYU',
             notes: '',
             is_historical: false,
         },
@@ -91,7 +93,7 @@ export function PrepaidFormDialog({ open, onOpenChange, initialUser, onSaveSucce
             payment_amount: 0,
             payment_method_id: '',
             created_at: new Date(),
-            currency: 'UYU',
+            currency: clinicInfo?.currency ?? 'UYU',
             notes: '',
             is_historical: false,
         });

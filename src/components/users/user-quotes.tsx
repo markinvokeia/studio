@@ -1342,8 +1342,10 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
             viewControls={showListToggle ? <ViewModeToggle value={viewMode} onChange={setViewMode} /> : undefined}
             cardListClassName={useListView ? 'gap-0 px-0 py-0 rounded-md border' : undefined}
             renderCard={(quote: Quote, _isSelected: boolean) => {
+              const statusKey = (quote.status || '').toLowerCase();
+              const statusLabel = tQuotes(`quoteDialog.${statusKey}` as any) || quote.status;
               const statusBadge = (
-                <Badge variant={({ accepted: 'success', confirmed: 'success', sent: 'default', pending: 'info', draft: 'outline', rejected: 'destructive' }[(quote.status || '').toLowerCase()] ?? 'default') as any} className="capitalize text-[10px]">{quote.status}</Badge>
+                <Badge variant={({ accepted: 'success', confirmed: 'success', sent: 'default', pending: 'info', draft: 'outline', rejected: 'destructive' }[statusKey] ?? 'default') as any} className="text-[10px]">{statusLabel}</Badge>
               );
               if (useListView) {
                 return (
@@ -1429,11 +1431,21 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                 </div>
               </div>
 
-              {/* Notas del presupuesto (los totales se muestran en el footer) */}
+              {/* Notas / motivo de rechazo */}
               {selectedQuote.notes && (
-                <div className="px-6 py-3">
-                  <p className="text-xs text-muted-foreground italic">{selectedQuote.notes}</p>
-                </div>
+                selectedQuote.status?.toLowerCase() === 'rejected' ? (
+                  <div className="mx-6 my-3 flex gap-2.5 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2.5">
+                    <XCircle className="h-4 w-4 shrink-0 text-destructive mt-0.5" />
+                    <div>
+                      <p className="text-xs font-medium text-destructive">{tQuotes('rejectedBanner.title')}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{selectedQuote.notes}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="px-6 py-3">
+                    <p className="text-xs text-muted-foreground italic">{selectedQuote.notes}</p>
+                  </div>
+                )
               )}
             </div>
 

@@ -36,6 +36,7 @@ import { api } from '@/services/api';
 import { getPurchaseServices, getSalesServices } from '@/services/services';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
+import { InvoicePaymentDialog } from '@/components/invoices/invoice-payment-dialog';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { AlertTriangle, CalendarIcon, CheckCircle, ChevronDown, CreditCard, Eye, FileMinus2, Loader2, Pencil, Printer, Send, Trash2, Zap } from 'lucide-react';
@@ -65,6 +66,7 @@ const invoiceEditSchema = z.object({
   created_at: z.date({ required_error: 'La fecha de factura es obligatoria' }),
   due_date: z.date().optional(),
   is_historical: z.boolean().optional(),
+  is_refund: z.boolean().optional(),
   notes: z.string().optional(),
   items: z.array(z.object({
     id: z.string().optional(),
@@ -286,6 +288,7 @@ async function getInvoicesForUser(userId: string): Promise<Invoice[]> {
       user_id: d.user_id?.toString() ?? userId,
       user_name: d.user_name || '',
       type: d.type || 'invoice',
+      parent_id: d.parent_id ? String(d.parent_id) : undefined,
       total: parseFloat(d.total),
       status: d.status,
       payment_status: d.payment_state || d.payment_status,
@@ -365,6 +368,8 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = React.useState(false);
+  const [invoiceForPayment, setInvoiceForPayment] = React.useState<Invoice | null>(null);
 
   // Sync selectedInvoice when invoices array changes
   React.useEffect(() => {
@@ -716,6 +721,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
       created_at: new Date(),
       due_date: undefined,
       is_historical: false,
+      is_refund: false,
       notes: '',
       items: invoiceItems.map(i => ({
         id: undefined,
@@ -754,16 +760,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
     setIsSubmittingCreditNote(true);
     try {
       const calculatedTotal = (values.items || []).reduce((sum, i) => sum + (Number(i.total) || 0), 0);
-      const maxAllowed = Number(selectedInvoice.paid_amount) || 0;
-      if (maxAllowed <= 0) {
-        toast({ title: 'Esta factura no tiene pagos registrados', variant: 'destructive' });
-        return;
-      }
-      if (calculatedTotal > maxAllowed) {
-        toast({ title: `El total de la nota de crédito no puede superar el monto pagado (${new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || 'USD' }).format(maxAllowed)})`, variant: 'destructive' });
-        return;
-      }
-      await api.post(isSales ? API_ROUTES.SALES.INVOICES_UPSERT : API_ROUTES.PURCHASES.INVOICES_UPSERT, {
+      const response = await api.post(isSales ? API_ROUTES.SALES.INVOICES_UPSERT : API_ROUTES.PURCHASES.INVOICES_UPSERT, {
         user_id: selectedInvoice.user_id,
         type: 'credit_note',
         invoice_id: selectedInvoice.id,
@@ -787,6 +784,32 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
       setIsCreditNoteOpen(false);
       await loadInvoices(true);
       onDataChange?.();
+
+      if (values.is_refund) {
+        const raw = Array.isArray(response) ? response[0] : (response?.data ?? response);
+        const now = new Date().toISOString();
+        const creditNoteInvoice: Invoice = {
+          id: String(raw?.invoice_id || raw?.id || raw?.credit_note_id || ''),
+          invoice_ref: String(raw?.invoice_ref || raw?.doc_no || ''),
+          doc_no: raw?.doc_no || raw?.invoice_doc_no || undefined,
+          order_id: selectedInvoice.order_id,
+          quote_id: selectedInvoice.quote_id,
+          user_name: selectedInvoice.user_name,
+          userEmail: selectedInvoice.userEmail,
+          user_id: selectedInvoice.user_id,
+          total: calculatedTotal,
+          currency: values.currency,
+          status: 'booked',
+          payment_status: 'unpaid',
+          paid_amount: 0,
+          type: 'credit_note',
+          is_historical: values.is_historical ?? false,
+          createdAt: now,
+          updatedAt: now,
+        };
+        setInvoiceForPayment(creditNoteInvoice);
+        setIsPaymentDialogOpen(true);
+      }
     } catch (e: any) {
       toast({ title: e?.message || 'Error al crear nota de crédito', variant: 'destructive' });
     } finally {
@@ -864,19 +887,24 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
           variant="default"
           size="sm"
           className="h-8 gap-1.5 text-xs"
-          onClick={() =>
-            selectedInvoice &&
-            openBillingWizard(
-              {
-                invoiceId: selectedInvoice.id,
-                invoice: selectedInvoice,
-                patientId: selectedInvoice.user_id,
-                patientName: selectedInvoice.user_name,
-                isSales,
-              },
-              () => { loadInvoices(true); onDataChange?.(); },
-            )
-          }
+          onClick={() => {
+            if (!selectedInvoice) return;
+            if (selectedInvoice.type === 'credit_note') {
+              setInvoiceForPayment(selectedInvoice);
+              setIsPaymentDialogOpen(true);
+            } else {
+              openBillingWizard(
+                {
+                  invoiceId: selectedInvoice.id,
+                  invoice: selectedInvoice,
+                  patientId: selectedInvoice.user_id,
+                  patientName: selectedInvoice.user_name,
+                  isSales,
+                },
+                () => { loadInvoices(true); onDataChange?.(); },
+              );
+            }
+          }}
         >
           <Zap className="h-3.5 w-3.5" />
           Cobrar
@@ -909,7 +937,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 </DropdownMenuItem>
               </>
             )}
-            {!isDraft && selectedInvoice?.type !== 'credit_note' && canCreateInvoice && ['paid', 'partial', 'partially_paid'].includes(selectedInvoice?.payment_status ?? '') && (
+            {!isDraft && selectedInvoice?.type !== 'credit_note' && canCreateInvoice && (
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => { loadItems(selectedInvoice.id); setIsCreditNoteOpen(true); }}>
@@ -1037,7 +1065,26 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                   <div className="flex items-center gap-3">
                     <div>
                       <SheetTitle className="text-2xl font-bold text-card-foreground">{selectedInvoice.doc_no || `INV-${selectedInvoice.id}`}</SheetTitle>
-                      <SheetDescription className="text-sm text-muted-foreground mt-0.5">Factura</SheetDescription>
+                      {selectedInvoice.type === 'credit_note' ? (
+                        <SheetDescription className="text-sm text-muted-foreground mt-0.5">
+                          Nota de crédito
+                          {selectedInvoice.parent_id && (() => {
+                            const parent = invoices.find(inv => inv.id === selectedInvoice.parent_id);
+                            const parentLabel = parent?.doc_no || `#${selectedInvoice.parent_id}`;
+                            return <> · Relacionada a: <span className="font-medium text-foreground">{parentLabel}</span></>;
+                          })()}
+                        </SheetDescription>
+                      ) : (() => {
+                        const creditNote = invoices.find(inv => inv.type === 'credit_note' && inv.parent_id === selectedInvoice.id);
+                        return (
+                          <SheetDescription className="text-sm text-muted-foreground mt-0.5">
+                            Factura
+                            {creditNote && (
+                              <> · Relacionada a: <span className="font-medium text-foreground">Nota de crédito {creditNote.doc_no || `#${creditNote.id}`}</span></>
+                            )}
+                          </SheetDescription>
+                        );
+                      })()}
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap justify-end">
@@ -1792,6 +1839,21 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                     <FormMessage />
                   </FormItem>
                 )} />
+
+                {/* Refund */}
+                <FormField control={creditNoteForm.control} name="is_refund" render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <Checkbox checked={field.value ?? false} onCheckedChange={field.onChange} />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Devolución directa al cliente</FormLabel>
+                      <p className="text-xs text-muted-foreground">
+                        Al crear la nota de crédito se abrirá el formulario de pago para registrar la devolución.
+                      </p>
+                    </div>
+                  </FormItem>
+                )} />
               </DialogBody>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsCreditNoteOpen(false)}>Cancelar</Button>
@@ -1843,6 +1905,15 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
         onOpenChange={setIsWarningDialogOpen}
         disabledItems={disabledEmails}
         onConfirm={handleWarningConfirm}
+      />
+
+      {/* ── Credit note payment dialog ── */}
+      <InvoicePaymentDialog
+        isOpen={isPaymentDialogOpen}
+        onClose={() => { setIsPaymentDialogOpen(false); setInvoiceForPayment(null); }}
+        invoice={invoiceForPayment}
+        isSales={isSales}
+        onSuccess={() => { loadInvoices(true); onDataChange?.(); }}
       />
     </>
   );

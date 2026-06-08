@@ -12,11 +12,13 @@ import { DataTable } from '@/components/ui/data-table';
 import { useNarrowMode } from '@/components/layout/two-panel-layout';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { PURCHASES_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Payment } from '@/lib/types';
 import { cn, formatDisplayDate } from '@/lib/utils';
 import { isPaymentEditable } from '@/services/payments-service';
 import { ColumnDef, PaginationState, RowSelectionState } from '@tanstack/react-table';
-import { CreditCard, MoreHorizontal, Pencil, Printer, Send } from 'lucide-react';
+import { CreditCard, Download, MoreHorizontal, Pencil, Printer, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import React from 'react';
 import { Button } from '../ui/button';
@@ -277,11 +279,14 @@ interface PaymentsTableProps {
   description?: string;
   canCreate?: boolean;
   isCompact?: boolean;
+  onExport?: () => void;
+  isSales?: boolean;
 }
 
-export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [], onPrint, onSendEmail, onEdit, onCreate, className, pagination, onPaginationChange, pageCount, manualPagination = false, onRowSelectionChange, rowSelection, setRowSelection, title, description, canCreate, isCompact = false }: PaymentsTableProps) {
+export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [], onPrint, onSendEmail, onEdit, onCreate, className, pagination, onPaginationChange, pageCount, manualPagination = false, onRowSelectionChange, rowSelection, setRowSelection, title, description, canCreate, isCompact = false, onExport, isSales = true }: PaymentsTableProps) {
   const t = useTranslations('PaymentsPage.columns');
   const tPage = useTranslations('PaymentsPage');
+  const { hasPermission } = usePermissions();
   const tTransactionType = useTranslations('PaymentsPage.transactionType');
   const tActions = useTranslations('PaymentsPage.actions');
   const tPaymentMethods = useTranslations('PaymentsPage.columns.paymentMethods');
@@ -355,6 +360,13 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
           getRowClassName={(row: Payment) => row.is_historical ? 'border-l-4 border-l-amber-400 bg-amber-50/70 dark:border-l-amber-700 dark:bg-amber-950/30' : ''}
           isNarrow={isNarrow}
           viewControls={showToggle ? <ViewModeToggle value={viewMode} onChange={setViewMode} /> : undefined}
+          extraButtons={
+            onExport && hasPermission(isSales ? SALES_PERMISSIONS.PAYMENTS_EXPORT : PURCHASES_PERMISSIONS.PAYMENTS_EXPORT) ? (
+              <Button variant="outline" size="sm" className="h-9" onClick={onExport}>
+                <Download className="mr-2 h-4 w-4" /> {tPage('export')}
+              </Button>
+            ) : undefined
+          }
           cardListClassName={useListView ? 'gap-0 px-0 py-0 rounded-md border' : undefined}
           renderCard={(row: Payment, _isSelected: boolean) => {
             const amount = row.amount_applied != null

@@ -26,6 +26,7 @@ export type User = {
   is_dependent?: boolean;
   responsible_contact_id?: string;
   responsible_contact_name?: string;
+  calendar_source_id?: string;
 };
 
 export type CurrencyFinancialData = {
@@ -427,6 +428,7 @@ export type ClinicSchedule = {
   day_of_week: number;
   start_time: string;
   end_time: string;
+  sede_id?: string;
 };
 
 export type ClinicException = {
@@ -707,12 +709,26 @@ export type CalendarSettings = {
   filter_doctors_by_service: boolean;
 };
 
+export type Sede = {
+  id: string;
+  clinic_id: string;
+  name: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+};
+
 export type Calendar = {
   id: string;
   name: string;
   google_calendar_id?: string;
   is_active: boolean;
   color?: string;
+  sede_id?: string;
+  sede_name?: string;
 };
 
 export type Ailment = {

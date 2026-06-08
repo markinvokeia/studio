@@ -64,7 +64,7 @@ export const OpenCashSessionWidget = () => {
                             <span className="font-semibold">{usdAmount.toFixed(2)}</span>
                         </div>
                     </div>
-                    <Link href={`/${locale}/cashier`} passHref>
+                    <Link href={`/${locale}/cashier?view=active`} passHref>
                         <Button variant="outline" size="sm" className="w-full mt-3 h-7 text-xs rounded-lg">
                             {t('activeSession.tooltip')} <ArrowRight className="h-3 w-3 ml-1" />
                         </Button>

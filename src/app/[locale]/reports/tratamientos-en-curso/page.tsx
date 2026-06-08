@@ -9,6 +9,7 @@ import { ReportKPICard } from '@/components/reports/report-kpi-card';
 import { ReportShell } from '@/components/reports/report-shell';
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
+import { useReportExport } from '@/hooks/use-report-export';
 import type { ReportTratamientosCursoResponse, ReportTratamientosCursoRow } from '@/lib/types';
 import { formatDate, cn } from '@/lib/utils';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -277,6 +278,8 @@ export default function TratamientosEnCursoPage() {
     },
   ];
 
+  const { exportCSV, exportExcel, exportPDF } = useReportExport(columns, data?.rows ?? null, 'tratamientos-en-curso');
+
   const filters = (
     <div className="flex flex-wrap items-center gap-3">
       <DateRangePresets value={dateRange} onChange={setDateRange} />
@@ -332,6 +335,9 @@ export default function TratamientosEnCursoPage() {
       onGenerate={handleGenerate}
       isLoading={isLoading}
       hasData={!!data}
+      onExportCSV={exportCSV}
+      onExportExcel={exportExcel}
+      onExportPDF={exportPDF}
     >
       {data && s && (
         <>

@@ -28,9 +28,9 @@ import { AlertTriangle, ArrowRight, Banknote, BookOpenCheck, Box, CheckCircle2, 
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataCard } from '@/components/ui/data-card';
 import { Badge } from '@/components/ui/badge';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { useCallback, useMemo } from 'react';
 
@@ -70,9 +70,20 @@ interface CashPointStatus extends CashPoint {
 }
 
 export default function CashierPage() {
+    return (
+        <React.Suspense fallback={null}>
+            <CashierPageInner />
+        </React.Suspense>
+    );
+}
+
+function CashierPageInner() {
     const t = useTranslations('CashierPage');
     const { user, checkActiveSession } = useAuth();
     const { toast } = useToast();
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const locale = useLocale();
 
     const [activeSession, setActiveSession] = React.useState<CajaSesion | null>(null);
     const [cashPoints, setCashPoints] = React.useState<CashPointStatus[]>([]);
@@ -90,6 +101,8 @@ export default function CashierPage() {
     const [uyuDenominations, setUyuDenominations] = React.useState<Record<string, number>>({});
     const [usdDenominations, setUsdDenominations] = React.useState<Record<string, number>>({});
 
+    // Tracks whether the user explicitly navigated to the cash points dashboard
+    const viewingAllCashPointsRef = React.useRef(false);
 
     const fetchCashPointStatus = React.useCallback(async () => {
         setIsLoading(true);
@@ -180,6 +193,18 @@ export default function CashierPage() {
         fetchCashPointStatus();
     }, [fetchCashPointStatus]);
 
+    // Auto-navigate to the user's active session only when coming from the header widget
+    React.useEffect(() => {
+        if (searchParams.get('view') !== 'active') return;
+        if (viewingAllCashPointsRef.current || activeSession || !user) return;
+        const myPoint = cashPoints.find(cp => String(cp.session?.usuarioId) === String(user.id));
+        if (myPoint?.session) {
+            setActiveSession(myPoint.session);
+            router.replace(`/${locale}/cashier`);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [cashPoints]);
+
     React.useEffect(() => {
         if (activeSession) {
             fetchSessionMovements(activeSession.id);
@@ -218,10 +243,13 @@ export default function CashierPage() {
                         currentStep={closeWizardStep}
                         setCurrentStep={setCloseWizardStep}
                         onExitWizard={() => {
+                            viewingAllCashPointsRef.current = true;
                             setShowClosingWizard(false);
                             setCloseWizardStep('REVIEW');
                             setClosedSessionReport(null);
                             setActiveSession(null);
+                            setUyuDenominations({});
+                            setUsdDenominations({});
                             checkActiveSession();
                             fetchCashPointStatus();
                         }}
@@ -245,6 +273,7 @@ export default function CashierPage() {
                     movements={sessionMovements}
                     onCloseSession={() => setShowClosingWizard(true)}
                     onViewAllCashPoints={() => {
+                        viewingAllCashPointsRef.current = true;
                         setActiveSession(null);
                         fetchCashPointStatus();
                     }}
@@ -262,6 +291,8 @@ export default function CashierPage() {
                     onExitWizard={(newSession) => {
                         setShowOpeningWizard(false);
                         setOpenWizardStep('CONFIG');
+                        setUyuDenominations({});
+                        setUsdDenominations({});
                         if (newSession) {
                             setActiveSession(newSession);
                             checkActiveSession();
@@ -929,7 +960,7 @@ const DenominationCounter = ({ title, denominations, coins, currency, quantities
     }, [quantities, denominations, coins]);
 
     const handleQuantityChange = (denomination: number, quantity: string) => {
-        let qty = parseInt(quantity, 10) || 0;
+        let qty = Math.max(0, parseInt(quantity, 10) || 0);
         if (availableDenominations) {
             const maxQty = availableDenominations[denomination] || 0;
             qty = Math.min(qty, maxQty);
@@ -1352,7 +1383,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
 
             const avg = (compra + venta) / 2;
             setAvgRate(avg);
-            setSessionData(prev => ({ ...prev, date_rate: avg }));
+            setSessionData(prev => ({ ...prev, date_rate: Math.round(avg * 100) / 100 }));
             setExchangeRatesHtml(data.html);
             setExchangeRateStatus('loaded');
 
@@ -1365,7 +1396,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
 
     const fetchLastClosing = async () => {
         try {
-            const data = await api.get(API_ROUTES.CASHIER.SESSIONS_PREFILL);
+            const data = await api.get(API_ROUTES.CASHIER.SESSIONS_PREFILL, { cash_point_id: sessionData.puntoDeCajaId ?? '' });
             const closingData = Array.isArray(data) ? data[0] : data;
             if (closingData && closingData.difference_details) {
                 setLastClosingDetails(closingData.difference_details);
@@ -1528,7 +1559,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                     </div>
                     <div className="space-y-1">
                         <Label htmlFor="date_rate">{t('openSession.exchangeRate')}</Label>
-                        <Input id="date_rate" type="number" step="1" value={sessionData.date_rate || ''} onChange={(e) => setSessionData(prev => ({ ...prev, date_rate: parseFloat(e.target.value) || 0 }))} disabled={disabled} />
+                        <Input id="date_rate" type="number" step="0.01" value={sessionData.date_rate || ''} onChange={(e) => setSessionData(prev => ({ ...prev, date_rate: Math.round((parseFloat(e.target.value) || 0) * 100) / 100 }))} disabled={disabled} />
                     </div>
                     <div className="space-y-1">
                         <Label>{t('openSession.currency')}</Label>
@@ -1592,7 +1623,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                         <p><strong>{t('openSession.user')}:</strong> {user?.name}</p>
                         <p><strong>{t('openSession.openingDate')}:</strong> {format(new Date(), 'dd/MM/yyyy HH:mm')}</p>
                         <p><strong>{t('openSession.currency')}:</strong> {sessionData.currency}</p>
-                        <p><strong>{t('openSession.exchangeRate')}:</strong> {sessionData.date_rate?.toFixed(5)}</p>
+                        <p><strong>{t('openSession.exchangeRate')}:</strong> {sessionData.date_rate?.toFixed(2)}</p>
                     </CardContent>
                 </Card>
                 <Card>

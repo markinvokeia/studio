@@ -17,7 +17,7 @@ import { sortQuoteItems } from '@/lib/utils';
 import { api } from '@/services/api';
 import { calculateQuoteFinancialSummary } from '@/services/quote-financials';
 import { hasValidPayments } from '@/components/appointments/sheet-utils';
-import { FileText, ListChecks, Receipt, CreditCard } from 'lucide-react';
+import { FileText, ListChecks, Receipt, CreditCard, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -105,6 +105,15 @@ async function fetchQuotePayments(quoteId: string): Promise<Payment[]> {
   } catch { return []; }
 }
 
+async function fetchQuoteMeta(quoteId: string): Promise<{ status?: string; notes?: string }> {
+  try {
+    const data = await api.get(API_ROUTES.SALES.QUOTES, { quote_id: quoteId });
+    const raw = Array.isArray(data) ? data[0] : (data.quotes?.[0] ?? data.data?.[0] ?? data);
+    if (!raw) return {};
+    return { status: raw.status || undefined, notes: raw.notes || undefined };
+  } catch { return {}; }
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 
 interface QuoteDetailSheetProps {
@@ -114,6 +123,7 @@ interface QuoteDetailSheetProps {
   quoteDocNo?: string;
   patientName?: string;
   quoteStatus?: string;
+  quoteNotes?: string;
   onDataChange?: () => void;
 }
 
@@ -124,6 +134,7 @@ export function QuoteDetailSheet({
   quoteDocNo,
   patientName,
   quoteStatus,
+  quoteNotes,
   onDataChange,
 }: QuoteDetailSheetProps) {
   const t = useTranslations('QuotesPage');
@@ -137,6 +148,8 @@ export function QuoteDetailSheet({
 
   // Local status override — updated after confirm/reject actions without an extra fetch
   const [localStatus, setLocalStatus] = React.useState<string | undefined>(undefined);
+  const [fetchedStatus, setFetchedStatus] = React.useState<string | undefined>(undefined);
+  const [fetchedNotes, setFetchedNotes] = React.useState<string | undefined>(undefined);
 
   // Reset local status when the quote changes
   React.useEffect(() => { setLocalStatus(undefined); }, [quoteId]);
@@ -159,11 +172,14 @@ export function QuoteDetailSheet({
       fetchQuoteItems(quoteId),
       fetchQuoteInvoices(quoteId),
       fetchQuotePayments(quoteId),
-    ]).then(([i, inv, p]) => {
+      fetchQuoteMeta(quoteId),
+    ]).then(([i, inv, p, meta]) => {
       if (!active) return;
       setItems(i);
       setInvoices(inv);
       setPayments(p);
+      setFetchedStatus(meta.status);
+      setFetchedNotes(meta.notes);
       setIsLoading(false);
     });
     return () => { active = false; };
@@ -226,6 +242,17 @@ export function QuoteDetailSheet({
             </div>
           </div>
         </div>
+
+        {/* Rejection banner */}
+        {(localStatus || quoteStatus || fetchedStatus)?.toLowerCase() === 'rejected' && (quoteNotes || fetchedNotes) && (
+          <div className="flex-none mx-4 mt-3 flex gap-2.5 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2.5">
+            <XCircle className="h-4 w-4 shrink-0 text-destructive mt-0.5" />
+            <div>
+              <p className="text-xs font-medium text-destructive">{t('rejectedBanner.title')}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{quoteNotes || fetchedNotes}</p>
+            </div>
+          </div>
+        )}
 
         {/* Body */}
         {isLoading ? (

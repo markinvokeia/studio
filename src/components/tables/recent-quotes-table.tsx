@@ -24,6 +24,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { API_ROUTES } from '@/constants/routes';
+import { PURCHASES_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
+import { usePermissions } from '@/hooks/usePermissions';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { useToast } from '@/hooks/use-toast';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
@@ -37,7 +39,7 @@ import { Quote } from '@/lib/types';
 import { cn, formatDisplayDate, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { ColumnDef, ColumnFiltersState, flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, RowSelectionState, SortingState, useReactTable } from '@tanstack/react-table';
-import { CheckCircle, Loader2, MoreHorizontal, Pencil, Printer, Send, Trash2, XCircle } from 'lucide-react';
+import { CheckCircle, Download, Loader2, MoreHorizontal, Pencil, Printer, Send, Trash2, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { DocumentTextIcon } from '../icons/document-text-icon';
@@ -391,6 +393,7 @@ interface RecentQuotesTableProps {
   canRejectQuote?: boolean;
   canPrintQuote?: boolean;
   canSendQuoteEmail?: boolean;
+  onExport?: () => void;
 }
 
 interface QuoteActionPermissions {
@@ -428,6 +431,7 @@ export function RecentQuotesTable({
   canRejectQuote = false,
   canPrintQuote = true,
   canSendQuoteEmail = true,
+  onExport,
 }: RecentQuotesTableProps) {
   const { isNarrow: panelNarrow } = useNarrowMode();
   const viewportNarrow = useViewportNarrow();
@@ -438,6 +442,7 @@ export function RecentQuotesTable({
   const viewToggleEl = showToggle ? <ViewModeToggle value={viewMode} onChange={setViewMode} /> : undefined;
   const t = useTranslations();
   const { toast } = useToast();
+  const { hasPermission } = usePermissions();
   const { printQuote } = usePrintDocument();
   const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
   const [selectedQuoteForEmail, setSelectedQuoteForEmail] = React.useState<Quote | null>(null);
@@ -652,6 +657,13 @@ export function RecentQuotesTable({
                 columnTranslations={columnTranslations}
                 endSlot={<DataTablePagination table={table} />}
                 viewControls={viewToggleEl}
+                extraButtons={
+                  onExport && hasPermission(isSales ? SALES_PERMISSIONS.QUOTES_EXPORT : PURCHASES_PERMISSIONS.QUOTES_EXPORT) ? (
+                    <Button variant="outline" size="sm" className="h-9" onClick={onExport}>
+                      <Download className="mr-2 h-4 w-4" /> {t('RecentQuotesTable.export')}
+                    </Button>
+                  ) : undefined
+                }
               />
             ) : (
               <DataTableToolbar

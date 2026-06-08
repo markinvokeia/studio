@@ -41,6 +41,8 @@ import { UserSelector } from '@/components/ui/user-selector';
 import { Textarea } from '@/components/ui/textarea';
 import { VerticalTabStrip, type VerticalTab } from '@/components/ui/vertical-tab-strip';
 import { PURCHASES_PERMISSIONS } from '@/constants/permissions';
+import { GridExportDialog, type GridExportFormat } from '@/components/ui/grid-export-dialog';
+import { downloadCSV, downloadExcel, type ExportColumn } from '@/lib/export-utils';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
@@ -113,7 +115,7 @@ async function getQuotes(t: (key: string) => string): Promise<Quote[]> {
             id: apiQuote.id ? String(apiQuote.id) : `qt_${Math.random().toString(36).substr(2, 9)}`,
             doc_no: apiQuote.doc_no || t('defaults.notAvailable'),
             user_id: apiQuote.user_id || t('defaults.notAvailable'),
-            total: apiQuote.total || 0,
+            total: Number(apiQuote.total_presupuesto ?? apiQuote.total ?? 0),
             status: apiQuote.status || 'draft',
             payment_status: apiQuote.payment_status || 'unpaid',
             billing_status: apiQuote.billing_status || 'not invoiced',
@@ -466,6 +468,9 @@ function QuotesPageContent() {
     const [activeTab, setActiveTab] = React.useState('items');
     const [isRightExpanded, setIsRightExpanded] = React.useState(false);
 
+    const [exportOpen, setExportOpen] = React.useState(false);
+    const [isExporting, setIsExporting] = React.useState(false);
+
     const [isConfirmQuoteDialogOpen, setIsConfirmQuoteDialogOpen] = React.useState(false);
     const [confirmingQuote, setConfirmingQuote] = React.useState<Quote | null>(null);
     const [confirmingAction, setConfirmingAction] = React.useState<'confirm' | 'reject'>('confirm');
@@ -494,6 +499,73 @@ function QuotesPageContent() {
         }
     }, [isStatusDraft, quoteForm]);
 
+
+    const handleExport = React.useCallback(async (fmt: GridExportFormat, dateFrom: Date, dateTo: Date) => {
+        setIsExporting(true);
+        try {
+            const data = await api.get(API_ROUTES.PURCHASES.QUOTES_ALL, {
+                is_sales: 'false',
+                date_from: format(dateFrom, 'yyyy-MM-dd'),
+                date_to: format(dateTo, 'yyyy-MM-dd'),
+            });
+            const normalized = normalizeApiResponse(data);
+            const rawRows = normalized.items;
+            const statusMap: Record<string, string> = {
+                draft: t('quoteDialog.draft' as any), pending: t('quoteDialog.pending' as any),
+                confirmed: t('quoteDialog.confirmed' as any), rejected: t('quoteDialog.rejected' as any),
+                accepted: t('quoteDialog.accepted' as any),
+            };
+            const billingMap: Record<string, string> = {
+                invoiced: t('quoteDialog.invoiced' as any),
+                'partially invoiced': t('quoteDialog.partiallyInvoiced' as any),
+                'not invoiced': t('quoteDialog.notInvoiced' as any),
+                partially_invoiced: t('quoteDialog.partially_invoiced' as any),
+                not_invoiced: t('quoteDialog.not_invoiced' as any),
+                fully_invoiced: t('quoteDialog.fully_invoiced' as any),
+            };
+            const paymentMap: Record<string, string> = {
+                paid: t('quoteDialog.paid' as any), unpaid: t('quoteDialog.unpaid' as any),
+                not_paid: t('quoteDialog.not_paid' as any),
+                partial: t('quoteDialog.partial' as any),
+                partially_paid: t('quoteDialog.partiallyPaid' as any),
+                'not invoiced': t('quoteDialog.notInvoiced' as any),
+                not_invoiced: t('quoteDialog.not_invoiced' as any),
+            };
+            const rows = rawRows.map((r: any) => ({
+                ...r,
+                status: statusMap[(r.status || '').toLowerCase()] ?? r.status,
+                billing_status: billingMap[(r.billing_status || '').toLowerCase()] ?? r.billing_status,
+                payment_status: paymentMap[(r.payment_status || '').toLowerCase()] ?? r.payment_status,
+            }));
+            const exportCols: ExportColumn[] = [
+                { header: t('exportCols.id'), key: 'id' },
+                { header: t('exportCols.docNo'), key: 'doc_no' },
+                { header: t('exportCols.date'), key: 'created_at' },
+                { header: t('exportCols.provider'), key: 'user_name' },
+                { header: t('exportCols.total'), key: 'total_presupuesto' },
+                { header: t('exportCols.currency'), key: 'currency' },
+                { header: t('exportCols.exchangeRate'), key: 'exchange_rate' },
+                { header: t('exportCols.status'), key: 'status' },
+                { header: t('exportCols.billingStatus'), key: 'billing_status' },
+                { header: t('exportCols.paymentStatus'), key: 'payment_status' },
+                { header: t('exportCols.montoFacturado'), key: 'monto_facturado' },
+                { header: t('exportCols.montoPagado'), key: 'monto_pagado' },
+                { header: t('exportCols.pendienteFacturar'), key: 'pendiente_facturar' },
+                { header: t('exportCols.pendientePagoFacturado'), key: 'pendiente_pago_facturado' },
+                { header: t('exportCols.notes'), key: 'notes' },
+            ];
+            if (fmt === 'csv') {
+                downloadCSV(exportCols, rows, `presupuestos-compras-${format(dateFrom, 'yyyyMMdd')}-${format(dateTo, 'yyyyMMdd')}`);
+            } else {
+                await downloadExcel(exportCols, rows, `presupuestos-compras-${format(dateFrom, 'yyyyMMdd')}-${format(dateTo, 'yyyyMMdd')}`);
+            }
+            setExportOpen(false);
+        } catch {
+            toast({ title: t('exportError'), variant: 'destructive' });
+        } finally {
+            setIsExporting(false);
+        }
+    }, [t, toast]);
 
     const loadQuotes = React.useCallback(async () => {
         setIsRefreshing(true);
@@ -1211,6 +1283,7 @@ function QuotesPageContent() {
                             canRejectQuote={canConfirmQuote}
                             canPrintQuote={canPrint}
                             canSendQuoteEmail={canSendEmail}
+                            onExport={() => setExportOpen(true)}
                         />
                     }
                     rightPanel={
@@ -1359,6 +1432,15 @@ function QuotesPageContent() {
                                         </Button>
                                     )}
                                 </div>
+                                {selectedQuote.status?.toLowerCase() === 'rejected' && selectedQuote.notes && (
+                                    <div className="mx-4 mt-3 flex gap-2.5 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2.5">
+                                        <XCircle className="h-4 w-4 shrink-0 text-destructive mt-0.5" />
+                                        <div>
+                                            <p className="text-xs font-medium text-destructive">{t('rejectedBanner.title')}</p>
+                                            <p className="text-xs text-muted-foreground mt-0.5">{selectedQuote.notes}</p>
+                                        </div>
+                                    </div>
+                                )}
                                 <CardContent className="flex-1 flex flex-col overflow-hidden p-0 min-h-0 bg-card">
                                     <VerticalTabStrip
                                         tabs={quoteTabs}
@@ -2156,6 +2238,12 @@ function QuotesPageContent() {
                 onOpenChange={setIsWarningDialogOpen}
                 disabledItems={disabledEmails}
                 onConfirm={handleWarningConfirm}
+            />
+            <GridExportDialog
+                open={exportOpen}
+                onOpenChange={setExportOpen}
+                onExport={handleExport}
+                isExporting={isExporting}
             />
         </>
     );

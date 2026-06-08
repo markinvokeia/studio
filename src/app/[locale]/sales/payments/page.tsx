@@ -23,12 +23,15 @@ import { UserSelector } from '@/components/ui/user-selector';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { VerticalTabStrip, type VerticalTab } from '@/components/ui/vertical-tab-strip';
 import { SALES_PERMISSIONS } from '@/constants/permissions';
+import { GridExportDialog, type GridExportFormat } from '@/components/ui/grid-export-dialog';
+import { downloadCSV, downloadExcel, type ExportColumn } from '@/lib/export-utils';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { usePaymentsPagination } from '@/hooks/use-payments-pagination';
 import { useToast } from '@/hooks/use-toast';
+import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Payment, PaymentAllocation, PaymentMethod, User } from '@/lib/types';
@@ -78,6 +81,7 @@ export default function PaymentsPage() {
     const { printPayment } = usePrintDocument();
     const { user, checkActiveSession } = useAuth();
     const { validateActiveSession, showCashSessionError } = useCashSessionValidation();
+    const clinicInfo = useClinicInfo();
     const { hasPermission } = usePermissions();
 
     // Permission checks
@@ -121,6 +125,60 @@ export default function PaymentsPage() {
     const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
     const [activeTab, setActiveTab] = React.useState('allocations');
     const [isRightExpanded, setIsRightExpanded] = React.useState(false);
+    const [exportOpen, setExportOpen] = React.useState(false);
+    const [isExporting, setIsExporting] = React.useState(false);
+
+    const handleExport = React.useCallback(async (fmt: GridExportFormat, dateFrom: Date, dateTo: Date) => {
+        setIsExporting(true);
+        try {
+            const data = await api.get(API_ROUTES.SALES.PAYMENTS_ALL, {
+                is_sales: 'true',
+                date_from: format(dateFrom, 'yyyy-MM-dd'),
+                date_to: format(dateTo, 'yyyy-MM-dd'),
+            });
+            // Same unwrap pattern as getSalesPayments in payments-service.ts
+            const paginationData = Array.isArray(data) && data.length > 0 ? data[0] : data;
+            const rawRows: any[] = paginationData?.data || [];
+            const txTypeMap: Record<string, string> = {
+                direct_payment: t('transactionType.direct_payment' as any),
+                payment_allocation: t('transactionType.payment_allocation' as any),
+                credit_note_allocation: t('transactionType.credit_note_allocation' as any),
+                payment: t('transactionType.payment' as any),
+                credit_note: t('transactionType.credit_note' as any),
+                deposit_at_bank: t('transactionType.deposit_at_bank' as any),
+                cash_deposit: t('transactionType.cash_deposit' as any),
+            };
+            const rows = rawRows.map((r: any) => ({
+                ...r,
+                transaction_type: txTypeMap[r.transaction_type] ?? r.transaction_type,
+                is_historical: r.is_historical ? 'Sí' : 'No',
+            }));
+            const exportCols: ExportColumn[] = [
+                { header: t('exportCols.docNo'), key: 'transaction_doc_no' },
+                { header: t('exportCols.date'), key: 'created_at' },
+                { header: t('exportCols.client'), key: 'user_name' },
+                { header: t('exportCols.amountApplied'), key: 'amount_applied' },
+                { header: t('exportCols.sourceAmount'), key: 'source_amount' },
+                { header: t('exportCols.sourceCurrency'), key: 'source_currency' },
+                { header: t('exportCols.exchangeRate'), key: 'exchange_rate' },
+                { header: t('exportCols.transactionType'), key: 'transaction_type' },
+                { header: t('exportCols.paymentMethodName'), key: 'payment_method_name' },
+                { header: t('exportCols.invoiceDocNo'), key: 'invoice_doc_no' },
+                { header: t('exportCols.isHistorical'), key: 'is_historical' },
+                { header: t('exportCols.notes'), key: 'notes' },
+            ];
+            if (fmt === 'csv') {
+                downloadCSV(exportCols, rows, `pagos-ventas-${format(dateFrom, 'yyyyMMdd')}-${format(dateTo, 'yyyyMMdd')}`);
+            } else {
+                await downloadExcel(exportCols, rows, `pagos-ventas-${format(dateFrom, 'yyyyMMdd')}-${format(dateTo, 'yyyyMMdd')}`);
+            }
+            setExportOpen(false);
+        } catch {
+            toast({ title: t('exportError'), variant: 'destructive' });
+        } finally {
+            setIsExporting(false);
+        }
+    }, [t, toast]);
 
     // Prepaid credit balance (only relevant when selectedPayment.invoice_id is null)
     const prepaidCurrency = selectedPayment?.currency || selectedPayment?.source_currency || 'USD';
@@ -138,7 +196,7 @@ export default function PaymentsPage() {
             payment_amount: 0,
             payment_method_id: '',
             created_at: new Date(),
-            currency: 'UYU',
+            currency: clinicInfo?.currency ?? 'UYU',
             notes: '',
             is_historical: false
         }
@@ -375,6 +433,8 @@ export default function PaymentsPage() {
                         description={t('description')}
                         className="h-full"
                         isCompact={!!selectedPayment}
+                        onExport={() => setExportOpen(true)}
+                        isSales={true}
                     />
                 }
                 rightPanel={
@@ -727,6 +787,12 @@ export default function PaymentsPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            <GridExportDialog
+                open={exportOpen}
+                onOpenChange={setExportOpen}
+                onExport={handleExport}
+                isExporting={isExporting}
+            />
         </div>
     );
 }

@@ -11,6 +11,7 @@ export interface ClinicInfo {
   phone?: string;
   address?: string;
   email?: string;
+  currency?: 'UYU' | 'USD';
 }
 
 // Module-level cache — fetched at most once per session across all components
@@ -25,6 +26,7 @@ export function fetchClinicInfo(): Promise<ClinicInfo | null> {
       const data = Array.isArray(raw) ? (raw as Record<string, unknown>[])[0] : (raw as Record<string, unknown>);
       if (!data) return null;
       const get = (...keys: string[]) => keys.map((k) => data[k]).find((v) => v != null && v !== '') as string | undefined;
+      const rawCurrency = get('currency', 'moneda');
       const info: ClinicInfo = {
         name: get('name', 'clinic_name', 'nombre') ?? '',
         // Always use the n8n webhook endpoint — it handles Drive auth transparently.
@@ -32,6 +34,7 @@ export function fetchClinicInfo(): Promise<ClinicInfo | null> {
         phone: get('phone', 'telefono', 'phone_number', 'tel'),
         address: get('address', 'direccion', 'domicilio'),
         email: get('email', 'correo'),
+        currency: rawCurrency === 'USD' || rawCurrency === 'UYU' ? rawCurrency : undefined,
       };
       _cache = info;
       return info;

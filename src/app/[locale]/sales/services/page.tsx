@@ -2,7 +2,6 @@
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataCard } from '@/components/ui/data-card';
@@ -462,16 +461,18 @@ function TreatmentStepsTab({ serviceId, t }: { serviceId: string; t: (key: strin
       const res = await api.get(API_ROUTES.SERVICES_STEPS, { service_id: serviceId });
       const normalized = normalizeApiResponse<any>(res);
       setSteps(
-        normalized.items.map((s: any) => ({
-          id: s.id,
-          service_id: s.service_id,
-          position: s.position ?? 1,
-          step_name: s.step_name ?? '',
-          offset_min_days: s.offset_min_days ?? 0,
-          offset_max_days: s.offset_max_days ?? 0,
-          is_lab_dependent: s.is_lab_dependent ?? false,
-          notes: s.notes ?? '',
-        }))
+        normalized.items
+          .filter((s: any) => s.id != null) // discard empty placeholder rows some backends return
+          .map((s: any) => ({
+            id: s.id,
+            service_id: s.service_id,
+            position: s.position ?? 1,
+            step_name: s.step_name ?? '',
+            offset_min_days: s.offset_min_days ?? 0,
+            offset_max_days: s.offset_max_days ?? 0,
+            is_lab_dependent: s.is_lab_dependent ?? false,
+            notes: s.notes ?? '',
+          }))
       );
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : t('serviceType.stepLoadError'));
@@ -693,7 +694,6 @@ export default function ServicesPage() {
   const t = useTranslations('ServicesPage');
   const tValidation = useTranslations('ServicesPage.validation');
   const tColumns = useTranslations('ServicesColumns');
-  const tGeneral = useTranslations('General');
   const { hasPermission } = usePermissions();
   const [services, setServices] = React.useState<Service[]>([]);
   const [totalCount, setTotalCount] = React.useState(0);
@@ -755,31 +755,41 @@ export default function ServicesPage() {
     setPagination(p => ({ ...p, pageIndex: 0 }));
   }, []);
 
-  // Load categories and populate detail form when selection changes
+  // Load categories once on mount — they don't change so we never need to reload
   React.useEffect(() => {
-    if (selectedService) {
-      getMiscellaneousCategories().then(setCategories);
-      detailForm.reset({
-        id: selectedService.id,
-        name: selectedService.name,
-        category_id: selectedService.category_id || '',
-        price: selectedService.price,
-        currency: (selectedService.currency as 'USD' | 'UYU') || 'USD',
-        duration_minutes: selectedService.duration_minutes,
-        description: selectedService.description || '',
-        indications: selectedService.indications || '',
-        color: selectedService.color || '',
-        is_active: selectedService.is_active ?? true,
-        service_type: selectedService.service_type || 'single',
-        treatment_steps: selectedService.treatment_steps || [],
-      });
-      setDetailError(null);
+    getMiscellaneousCategories().then(setCategories);
+  }, []);
+
+  // Populate detail form when selection changes (categories already loaded from mount)
+  React.useEffect(() => {
+    if (!selectedService) return;
+    // Reset tab immediately for non-workflow services
+    if ((selectedService.service_type || 'single') !== 'workflow') {
+      setActiveTab('details');
     }
-  }, [selectedService, detailForm]);
+    // Prefer category_id from API; fall back to matching by name in case the API omits the id field
+    const categoryId = selectedService.category_id
+      || categories.find(c => c.name === selectedService.category)?.id
+      || '';
+    detailForm.reset({
+      id: selectedService.id,
+      name: selectedService.name,
+      category_id: categoryId,
+      price: selectedService.price,
+      currency: (selectedService.currency as 'USD' | 'UYU') || 'USD',
+      duration_minutes: selectedService.duration_minutes,
+      description: selectedService.description || '',
+      indications: selectedService.indications || '',
+      color: selectedService.color || '',
+      is_active: selectedService.is_active ?? true,
+      service_type: selectedService.service_type || 'single',
+      treatment_steps: selectedService.treatment_steps || [],
+    });
+    setDetailError(null);
+  }, [selectedService, categories]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCreate = () => {
     if (!canCreate) return;
-    getMiscellaneousCategories().then(setCategories);
     createForm.reset(DEFAULT_SERVICE_FORM_VALUES);
     setCreateError(null);
     setIsCreateDialogOpen(true);
@@ -860,8 +870,16 @@ export default function ServicesPage() {
 
   const [activeTab, setActiveTab] = React.useState('details');
 
+  // When the workflow toggle is turned off in the detail form, switch back to the Details tab
+  const watchedServiceType = detailForm.watch('service_type');
+  React.useEffect(() => {
+    if (watchedServiceType !== 'workflow') {
+      setActiveTab('details');
+    }
+  }, [watchedServiceType]);
+
   useDeepLink<Service>({
-    tabMap: { 'Detalles': 'details', 'Info': 'info' },
+    tabMap: { 'Detalles': 'details' },
     onFilter: (value) => {
       setPagination((prev) => ({ ...prev, pageIndex: 0 }));
       setColumnFilters([{ id: 'name', value }]);
@@ -947,7 +965,6 @@ export default function ServicesPage() {
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
                       <TabsList>
                         <TabsTrigger value="details">{t('tabs.details')}</TabsTrigger>
-                        <TabsTrigger value="info">{t('tabs.info')}</TabsTrigger>
                         {detailForm.watch('service_type') === 'workflow' && (
                           <TabsTrigger value="steps">{t('tabs.steps')}</TabsTrigger>
                         )}
@@ -970,44 +987,8 @@ export default function ServicesPage() {
                             </div>
                           )}
                         </TabsContent>
-                        <TabsContent value="info" className="m-0 space-y-4">
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="rounded-lg border border-border bg-muted/30 p-3">
-                              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">{tColumns('price')}</p>
-                              <p className="text-xl font-bold text-foreground">{formatServicePrice(selectedService.price, selectedService.currency, tGeneral('free'))}</p>
-                            </div>
-                            <div className="rounded-lg border border-border bg-muted/30 p-3">
-                              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">{tColumns('duration')}</p>
-                              <p className="text-xl font-bold text-foreground">{selectedService.duration_minutes} min</p>
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between py-2 border-b border-border/50">
-                              <span className="text-xs text-muted-foreground">{tColumns('category')}</span>
-                              <span className="text-xs font-medium">{selectedService.category}</span>
-                            </div>
-                            <div className="flex items-center justify-between py-2 border-b border-border/50">
-                              <span className="text-xs text-muted-foreground">{tColumns('isActive')}</span>
-                              <Badge variant={selectedService.is_active ? 'success' : 'outline'}>
-                                {selectedService.is_active ? tColumns('active') : tColumns('inactive')}
-                              </Badge>
-                            </div>
-                          </div>
-                          {selectedService.description && (
-                            <div>
-                              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">{t('createDialog.descriptionLabel')}</p>
-                              <p className="text-sm text-foreground whitespace-pre-wrap">{selectedService.description}</p>
-                            </div>
-                          )}
-                          {selectedService.indications && (
-                            <div>
-                              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">{t('createDialog.indicationsLabel')}</p>
-                              <p className="text-sm text-foreground whitespace-pre-wrap">{selectedService.indications}</p>
-                            </div>
-                          )}
-                        </TabsContent>
                         <TabsContent value="steps" className="m-0 space-y-3">
-                          <TreatmentStepsTab serviceId={selectedService.id} t={t} />
+                          <TreatmentStepsTab key={selectedService.id} serviceId={selectedService.id} t={t} />
                         </TabsContent>
                       </div>
                     </Tabs>

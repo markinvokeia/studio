@@ -107,7 +107,8 @@
     "ReportServicios": "Service Performance",
     "ReportGastos": "Operating Expenses",
     "ReportEstadoRes": "Income Statement",
-    "ReportKPIs": "Clinic KPIs"
+    "ReportKPIs": "Clinic KPIs",
+    "Sedes": "Branches"
   },
   "TVDisplayPage": {
     "title": "TV Display",
@@ -360,6 +361,21 @@
     "create": "Create",
     "advancedFilters": "Advanced Filters"
   },
+  "GridExportDialog": {
+    "title": "Export records",
+    "format": "Format",
+    "csv": "CSV",
+    "excel": "Excel",
+    "dateFrom": "From date",
+    "dateTo": "To date",
+    "export": "Export",
+    "cancel": "Cancel",
+    "periodTooLong": "The period cannot be longer than 3 months",
+    "dateFromRequired": "Start date is required",
+    "dateToRequired": "End date is required",
+    "dateToBeforeFrom": "End date must be after start date",
+    "exportError": "Error exporting data"
+  },
   "DataTablePagination": {
     "selected": "{count, plural, one {# selected} other {# selected}} of {total} row(s).",
     "rowsPerPage": "Rows per page",
@@ -486,7 +502,8 @@
   "RecentQuotesTable": {
     "title": "Recent Quotes",
     "description": "An overview of the latest quotes.",
-    "filterPlaceholder": "Filter quotes by user name..."
+    "filterPlaceholder": "Filter quotes by user name...",
+    "export": "Export"
   },
   "RecentOrdersTable": {
     "title": "Recent Orders",
@@ -523,7 +540,8 @@
         "agenda": "Agenda",
         "doctor": "Doctors",
         "calendar": "Consulting rooms",
-        "none": "No grouping"
+        "none": "No grouping",
+        "sede": "Branches"
       }
     },
     "newAppointment": "New Appointment",
@@ -609,7 +627,8 @@
       "options": {
         "none": "No grouping",
         "doctor": "Doctors",
-        "calendar": "Consulting rooms"
+        "calendar": "Consulting rooms",
+        "sede": "Branches"
       }
     },
     "noSuggestions": "No suggestions",
@@ -1872,6 +1891,29 @@
     "defaults": {
       "noEmail": "no-email@example.com",
       "notAvailable": "N/A"
+    },
+    "rejectedBanner": {
+      "title": "Rejection reason"
+    },
+    "export": "Export",
+    "exportError": "Error exporting data",
+    "exportCols": {
+      "id": "ID",
+      "docNo": "Doc No.",
+      "date": "Date",
+      "client": "Client",
+      "provider": "Provider",
+      "total": "Total",
+      "currency": "Currency",
+      "exchangeRate": "Exchange Rate",
+      "status": "Status",
+      "billingStatus": "Billing Status",
+      "paymentStatus": "Payment Status",
+      "montoFacturado": "Invoiced Amount",
+      "montoPagado": "Paid Amount",
+      "pendienteFacturar": "Pending Invoice",
+      "pendientePagoFacturado": "Pending Payment",
+      "notes": "Notes"
     }
   },
   "SalesQuotesPage": {
@@ -1966,7 +2008,9 @@
       "notesPlaceholder": "Add any additional notes here...",
       "isHistorical": "Historical",
       "isHistoricalWarning": "This payment will not be included in the cash closing",
-      "isHistoricalDescription": "It will be recorded as a past payment and will not affect cash calculations."
+      "isHistoricalDescription": "It will be recorded as a past payment and will not affect cash calculations.",
+      "isRefund": "Direct refund to client",
+      "isRefundDescription": "Check this option if the credit note payment corresponds to a direct money refund to the client."
     },
     "status": {
       "paid": "Paid",
@@ -2079,6 +2123,26 @@
       "successDescription": "The invoice has been created from the imported file."
     },
     "import": "Import",
+    "export": "Export",
+    "exportError": "Error exporting data",
+    "exportCols": {
+      "docNo": "Doc No.",
+      "date": "Date",
+      "dueDate": "Due Date",
+      "client": "Client",
+      "provider": "Provider",
+      "total": "Total",
+      "currency": "Currency",
+      "status": "Status",
+      "paymentState": "Payment Status",
+      "paidAmount": "Paid Amount",
+      "type": "Type",
+      "invoiceRef": "Reference",
+      "orderDocNo": "Order Doc No.",
+      "quoteDocNo": "Quote Doc No.",
+      "isHistorical": "Historical",
+      "notes": "Notes"
+    },
     "filterPlaceholder": "Filter here...",
     "editDialog": {
       "title": "Edit Invoice",
@@ -2566,6 +2630,23 @@
     "title": "Payments",
     "description": "An overview of payments.",
     "filterPlaceholder": "Filter here...",
+    "export": "Export",
+    "exportError": "Error exporting data",
+    "exportCols": {
+      "docNo": "Doc No.",
+      "date": "Date",
+      "client": "Client",
+      "provider": "Provider",
+      "amountApplied": "Amount Applied",
+      "sourceAmount": "Source Amount",
+      "sourceCurrency": "Currency",
+      "exchangeRate": "Exchange Rate",
+      "transactionType": "Transaction Type",
+      "paymentMethodName": "Payment Method",
+      "invoiceDocNo": "Invoice Doc No.",
+      "isHistorical": "Historical",
+      "notes": "Notes"
+    },
     "columns": {
       "doc_no": "Document No.",
       "id": "ID",
@@ -3063,10 +3144,32 @@
       "errorTitle": "Error Updating Details",
       "fileTooLargeTitle": "File too large",
       "fileTooLargeDesc": "The logo must be 1 MB or smaller.",
-      "errorUnknown": "An unexpected error occurred while updating the clinic details."
+      "errorUnknown": "An unexpected error occurred while updating the clinic details.",
+      "sedeCreateSuccess": "Branch created successfully",
+      "sedeEditSuccess": "Branch updated successfully",
+      "sedeDeleteSuccess": "Branch deleted successfully",
+      "sedeDeleteError": "Error deleting the branch",
+      "sedeGenericError": "An unexpected error occurred"
     },
     "saving": "Saving",
-    "noClinic": "There are no registered clinics."
+    "noClinic": "There are no registered clinics.",
+    "locationManagedBySedes": "The address is managed by the branches",
+    "sedesSection": "Branches",
+    "sedesSectionDesc": "Branches of this clinic",
+    "noSedes": "No branches configured",
+    "noSedesHint": "Add a branch to manage their addresses on the map",
+    "addSede": "New branch",
+    "sedeActiveStatus": "Active",
+    "sedeInactiveStatus": "Inactive",
+    "sedeCreateTitle": "New branch",
+    "sedeEditTitle": "Edit branch",
+    "sedeDeleteConfirmTitle": "Delete branch",
+    "sedeDeleteConfirmDesc": "Are you sure you want to delete \"{name}\"? This action cannot be undone.",
+    "sedeDeleteConfirmCancel": "Cancel",
+    "sedeDeleteConfirmDelete": "Delete",
+    "validation": {
+      "phoneInvalid": "Invalid phone number"
+    }
   },
   "SchedulesPage": {
     "title": "Schedules",
@@ -3125,7 +3228,14 @@
       "deleteSuccessDescription": "Details have been deleted successfully",
       "deleteSuccessTitle": "Successfully Deleted",
       "errorDesc": "An error occurs and details have been updated successfully",
-      "errorTitle": "Error Updating"
+      "errorTitle": "Error Updating",
+      "createSuccessTitle": "Successfully Updated",
+      "genericError": "An error occurs and details have been updated successfully",
+      "deleteErrorDescription": "Details have been deleted successfully"
+    },
+    "sede": {
+      "general": "General",
+      "noSedesConfigured": "Please configure at least one branch in Settings > Branches first."
     }
   },
   "HolidaysPage": {
@@ -3209,7 +3319,11 @@
       "edit": "Edit",
       "editTitle": "Edit calendar",
       "editDescription": "Edit the calendar for the clinic",
-      "save": "Save Changes"
+      "save": "Save Changes",
+      "sede": "Branch",
+      "selectSede": "Select branch...",
+      "searchSede": "Search branch...",
+      "noSede": "No branch"
     },
     "toast": {
       "createSuccessTitle": "Calendar Created",
@@ -3292,7 +3406,11 @@
         "emailOrPhoneRequired": "You must provide at least an email address or a phone number."
       },
       "SuccessActivateDescription": "The doctor has been activated sucessfully",
-      "SuccessDeactivateDescription": "The doctor has been deactivated sucessfully"
+      "SuccessDeactivateDescription": "The doctor has been deactivated sucessfully",
+      "defaultCalendar": "Default Consultorio",
+      "selectCalendar": "Select consultorio...",
+      "searchCalendarPlaceholder": "Search consultorio...",
+      "noCalendar": "No default consultorio"
     },
     "filters": {
       "showOnlyActive": "Show only active"
@@ -3599,6 +3717,9 @@
       "editSuccessDescription": "The user has been updated successfully"
     },
     "setInitialPassword": "Set Initial Password",
+    "initialPasswordSentTitle": "Email sent",
+    "initialPasswordSentDescription": "An email with the password setup link has been sent.",
+    "initialPasswordError": "An unexpected error occurred. Please try again.",
     "tabs": {
       "roles": "Roles",
       "quotes": "Quotes",
@@ -6104,6 +6225,7 @@
     "export": "Export",
     "exportPDF": "Export PDF",
     "exportExcel": "Export Excel",
+    "exportCSV": "Export CSV",
     "comingSoon": "Coming soon"
   },
   "ReportCierreCajaPage": {
@@ -6729,6 +6851,53 @@
       "maxMonthlyPatients": "Max Monthly Patients",
       "aiAccess": "AI Access",
       "issuedAt": "Issued At"
+    }
+  },
+  "SedesPage": {
+    "description": "Manage clinic branches and locations",
+    "filterPlaceholder": "Search branch...",
+    "active": "Active",
+    "inactive": "Inactive",
+    "columns": {
+      "name": "Name",
+      "address": "Address",
+      "phone": "Phone",
+      "email": "Email",
+      "status": "Status"
+    },
+    "form": {
+      "createTitle": "New Branch",
+      "edit": "Edit",
+      "save": "Save Changes",
+      "create": "Create",
+      "cancel": "Cancel",
+      "name": "Name",
+      "namePlaceholder": "e.g. Main Branch",
+      "address": "Address",
+      "addressPlaceholder": "e.g. 123 Main St",
+      "phone": "Phone",
+      "phonePlaceholder": "e.g. 099 123 456",
+      "email": "Email",
+      "emailPlaceholder": "e.g. branch@clinic.com",
+      "isActive": "Is Active?"
+    },
+    "validation": {
+      "nameRequired": "Name is required.",
+      "emailInvalid": "Invalid email address."
+    },
+    "toast": {
+      "createSuccess": "Branch created successfully.",
+      "editSuccess": "Branch updated successfully.",
+      "deleteSuccess": "Branch deleted successfully.",
+      "errorTitle": "Error",
+      "deleteError": "Could not delete the branch.",
+      "genericError": "An unexpected error occurred."
+    },
+    "deleteDialog": {
+      "title": "Delete Branch",
+      "description": "Are you sure you want to delete \"{name}\"? This action is irreversible.",
+      "cancel": "Cancel",
+      "delete": "Delete"
     }
   }
 }

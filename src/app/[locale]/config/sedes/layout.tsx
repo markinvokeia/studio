@@ -1,0 +1,47 @@
+'use client';
+
+import { BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
+import { useAuth } from '@/context/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
+import { useLocale, useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
+import * as React from 'react';
+
+export default function SedesLayout({ children }: { children: React.ReactNode }) {
+    const { user, isLoading } = useAuth();
+    const { hasPermission } = usePermissions();
+    const router = useRouter();
+    const locale = useLocale();
+    const t = useTranslations('Common');
+
+    React.useEffect(() => {
+        if (!isLoading && user) {
+            if (!hasPermission(BUSINESS_CONFIG_PERMISSIONS.SEDES_VIEW_LIST)) {
+                router.replace(`/${locale}/`);
+            }
+        }
+    }, [user, isLoading, hasPermission, router, locale]);
+
+    if (isLoading) {
+        return (
+            <div className="flex h-screen w-screen items-center justify-center">
+                <p>{t('loading')}</p>
+            </div>
+        );
+    }
+
+    if (!user) return null;
+
+    if (!hasPermission(BUSINESS_CONFIG_PERMISSIONS.SEDES_VIEW_LIST)) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                    <h2 className="text-2xl font-bold">{t('accessDenied')}</h2>
+                    <p className="text-muted-foreground mt-2">{t('noPermission')}</p>
+                </div>
+            </div>
+        );
+    }
+
+    return <>{children}</>;
+}
