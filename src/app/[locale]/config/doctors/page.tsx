@@ -46,6 +46,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { DoctorsColumnsWrapper } from './columns';
 import { useDeepLink } from '@/hooks/use-deep-link';
+import { extractCreatedUserId, sendFirstTimePasswordToken } from '@/services/users';
 
 
 const doctorFormSchema = (t: (key: string) => string) => z.object({
@@ -426,7 +427,7 @@ export default function DoctorsPage() {
   const handleSendInitialPassword = async () => {
     if (!selectedUser || !canSetInitialPassword) return;
     try {
-      await api.post(API_ROUTES.SYSTEM.API_AUTH_FIRST_TIME_PASSWORD_TOKEN, { user_id: selectedUser.id });
+      await sendFirstTimePasswordToken(selectedUser.id);
       toast({ title: t('SystemUsersPage.initialPasswordSentTitle'), description: t('SystemUsersPage.initialPasswordSentDescription') });
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : t('SystemUsersPage.initialPasswordError') });
@@ -488,7 +489,15 @@ export default function DoctorsPage() {
     form.clearErrors();
 
     try {
-      await upsertUser(data);
+      const response = await upsertUser(data);
+      const newUserId = extractCreatedUserId(response);
+      if (newUserId && canSetInitialPassword) {
+        try {
+          await sendFirstTimePasswordToken(newUserId);
+        } catch {
+          // User was created successfully; the initial password email can be retried from the detail panel.
+        }
+      }
       toast({
         title: t('DoctorsPage.createDialog.createSuccessTitle'),
         description: t('DoctorsPage.createDialog.createSuccessDescription'),

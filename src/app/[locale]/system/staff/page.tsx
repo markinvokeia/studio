@@ -39,6 +39,7 @@ import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Role, User, UserRole, UserRoleAssignment } from '@/lib/types';
 import { api } from '@/services/api';
+import { extractCreatedUserId, sendFirstTimePasswordToken } from '@/services/users';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { isValidPhoneNumber } from 'libphonenumber-js';
@@ -573,7 +574,7 @@ export default function StaffPage() {
   const handleSendInitialPassword = async () => {
     if (!selectedUser || !canSetInitialPassword) return;
     try {
-      await api.post(API_ROUTES.SYSTEM.API_AUTH_FIRST_TIME_PASSWORD_TOKEN, { user_id: selectedUser.id });
+      await sendFirstTimePasswordToken(selectedUser.id);
       toast({ title: t('SystemUsersPage.initialPasswordSentTitle'), description: t('SystemUsersPage.initialPasswordSentDescription') });
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : t('SystemUsersPage.initialPasswordError') });
@@ -703,11 +704,7 @@ export default function StaffPage() {
         throw apiError;
       }
 
-      const newUserId =
-        (Array.isArray(response) ? response[0]?.data?.id : null) ??
-        response?.data?.id ??
-        response?.id ??
-        response?.user_id;
+      const newUserId = extractCreatedUserId(response);
 
       if (newUserId && role_id) {
         try {
@@ -717,6 +714,14 @@ export default function StaffPage() {
           });
         } catch {
           // non-blocking — user was created successfully
+        }
+      }
+
+      if (newUserId && canSetInitialPassword) {
+        try {
+          await sendFirstTimePasswordToken(newUserId);
+        } catch {
+          // User was created successfully; the initial password email can be retried from the detail panel.
         }
       }
 
