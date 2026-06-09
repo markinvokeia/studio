@@ -69,7 +69,7 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
   };
 
   const viewOptions = ['day', '2_days', '3_days', 'week', 'month', 'agenda'];
-  const groupOptions = ['none', 'doctor', 'calendar', 'sede'];
+  const groupOptions = ['none', 'doctor', 'calendar'];
 
   return (
     <div className={className}>

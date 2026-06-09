@@ -154,7 +154,6 @@ export function getEventGroupValue(
 ): string | undefined {
   if (groupBy === 'doctor') return event.doctorGroupId;
   if (groupBy === 'calendar') return event.calendarGroupId;
-  if (groupBy === 'sede') return event.sedeGroupId;
   return undefined;
 }
 
