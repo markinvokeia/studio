@@ -21,6 +21,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { PurchasePrepaidFormDialog } from '@/components/purchases/payments/PurchasePrepaidFormDialog';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { usePaymentsPagination } from '@/hooks/use-payments-pagination';
+import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -28,7 +29,7 @@ import { Payment, PaymentAllocation } from '@/lib/types';
 import { cn, formatDisplayDate, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { getPurchasePayments } from '@/services/payments-service';
-import { RowSelectionState } from '@tanstack/react-table';
+import { ColumnFiltersState, RowSelectionState } from '@tanstack/react-table';
 import { CreditCard, Loader2, Maximize2, Minimize2, Printer, RefreshCw, Send, StickyNote } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -56,11 +57,26 @@ function PaymentsPageContent() {
         pagination,
         totalPages,
         handlePaginationChange,
+        handleSearchChange,
         refreshPayments
     } = usePaymentsPagination({
         fetchFunction: getPurchasePayments,
-        initialPageSize: 50
+        initialPageSize: 25
     });
+
+    // Server-side search: lift the table's doc_no filter to drive the backend query
+    const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+    const searchTerm = (columnFilters.find(f => f.id === 'doc_no')?.value as string) ?? '';
+    const debouncedSearch = useDebounce(searchTerm, 300);
+    const didMountSearch = React.useRef(false);
+    React.useEffect(() => {
+        // Skip the first run — the hook already performs the initial load
+        if (!didMountSearch.current) {
+            didMountSearch.current = true;
+            return;
+        }
+        handleSearchChange(debouncedSearch);
+    }, [debouncedSearch, handleSearchChange]);
     const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
     const [selectedPaymentForEmail, setSelectedPaymentForEmail] = React.useState<Payment | null>(null);
     const [emailRecipients, setEmailRecipients] = React.useState('');
@@ -297,6 +313,8 @@ function PaymentsPageContent() {
                         onPaginationChange={handlePaginationChange}
                         pageCount={totalPages}
                         manualPagination={true}
+                        columnFilters={columnFilters}
+                        onColumnFiltersChange={setColumnFilters}
                         onRowSelectionChange={handleRowSelectionChange}
                         rowSelection={rowSelection}
                         setRowSelection={setRowSelection}

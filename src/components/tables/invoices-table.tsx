@@ -38,7 +38,7 @@ import { cn, formatDate, formatDisplayDate, toLocalISOString } from '@/lib/utils
 import { api } from '@/services/api';
 import { getPurchaseServices, getSalesServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
+import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { addDays, format, parseISO } from 'date-fns';
 import { AlertTriangle, ArrowRight, Box, CalendarIcon, Check, ChevronsUpDown, Download, FileUp, Loader2, MoreHorizontal, Printer, Receipt, Send, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -57,7 +57,6 @@ import { DialogDescription } from '../ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { ScrollArea } from '../ui/scroll-area';
-import { Skeleton } from '../ui/skeleton';
 
 
 const getCreateInvoiceFormSchema = (t: (key: string) => string) => z.object({
@@ -273,7 +272,7 @@ const getColumns = (
 };
 
 
-export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, onCreate, onImport, onConfirm, isRefreshing, rowSelection, setRowSelection, columnTranslations = {}, filterOptions, onFilterChange, filterValue, onEdit, isSales = true, isCompact = false, className, title, description, standalone = false, canCreate = true, onExport }: InvoicesTableProps) {
+export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, onCreate, onImport, onConfirm, isRefreshing, rowSelection, setRowSelection, columnTranslations = {}, filterOptions, onFilterChange, filterValue, onEdit, isSales = true, isCompact = false, className, title, description, standalone = false, canCreate = true, onExport, manualPagination, pagination, onPaginationChange, pageCount, rowCount, columnFilters, onColumnFiltersChange }: InvoicesTableProps) {
   const t = useTranslations('InvoicesPage');
   const tStatus = useTranslations('InvoicesPage.status');
   const tMethods = useTranslations('InvoicesPage.methods');
@@ -356,17 +355,6 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     }
   ), [t, tStatus, tMethods, mergedColumnTranslations, onPrint, onSendEmail, handleAddPaymentClick]);
 
-  if (isLoading) {
-    return (
-      <div className="space-y-4 pt-4">
-        <Skeleton className="h-8 w-full" />
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-12 w-full" />
-      </div>
-    );
-  }
-
   return (
     <>
       <InvoiceFormDialog
@@ -397,7 +385,15 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
           <DataTable
             columns={columns}
             data={invoices}
+            isLoading={isLoading}
             filterColumnId="doc_no"
+            manualPagination={manualPagination}
+            pagination={pagination}
+            onPaginationChange={onPaginationChange}
+            pageCount={pageCount}
+            rowCount={rowCount}
+            columnFilters={columnFilters}
+            onColumnFiltersChange={onColumnFiltersChange}
             onRowSelectionChange={onRowSelectionChange}
             enableSingleRowSelection={true}
             onRefresh={onRefresh}
@@ -1345,4 +1341,13 @@ interface InvoicesTableProps {
   standalone?: boolean;
   canCreate?: boolean;
   onExport?: () => void;
+  /** Enables server-side pagination — the table no longer paginates/filters in the client */
+  manualPagination?: boolean;
+  pagination?: PaginationState;
+  onPaginationChange?: React.Dispatch<React.SetStateAction<PaginationState>>;
+  pageCount?: number;
+  rowCount?: number;
+  /** Controlled column filters (server-side search); enables manual filtering in DataTable */
+  columnFilters?: ColumnFiltersState;
+  onColumnFiltersChange?: React.Dispatch<React.SetStateAction<ColumnFiltersState>>;
 }

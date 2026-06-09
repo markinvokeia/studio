@@ -17,13 +17,12 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { Payment } from '@/lib/types';
 import { cn, formatDisplayDate } from '@/lib/utils';
 import { isPaymentEditable } from '@/services/payments-service';
-import { ColumnDef, PaginationState, RowSelectionState } from '@tanstack/react-table';
+import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { CreditCard, Download, MoreHorizontal, Pencil, Printer, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import React from 'react';
 import { Button } from '../ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '../ui/dropdown-menu';
-import { Skeleton } from '../ui/skeleton';
 
 function HistoricalBadge({ label }: { label: string }) {
   return (
@@ -272,6 +271,9 @@ interface PaymentsTableProps {
   onPaginationChange?: React.Dispatch<React.SetStateAction<PaginationState>>;
   pageCount?: number;
   manualPagination?: boolean;
+  /** Controlled column filters (server-side search); enables manual filtering in DataTable */
+  columnFilters?: ColumnFiltersState;
+  onColumnFiltersChange?: React.Dispatch<React.SetStateAction<ColumnFiltersState>>;
   onRowSelectionChange?: (selectedRows: Payment[]) => void;
   rowSelection?: RowSelectionState;
   setRowSelection?: React.Dispatch<React.SetStateAction<RowSelectionState>>;
@@ -283,7 +285,7 @@ interface PaymentsTableProps {
   isSales?: boolean;
 }
 
-export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [], onPrint, onSendEmail, onEdit, onCreate, className, pagination, onPaginationChange, pageCount, manualPagination = false, onRowSelectionChange, rowSelection, setRowSelection, title, description, canCreate, isCompact = false, onExport, isSales = true }: PaymentsTableProps) {
+export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [], onPrint, onSendEmail, onEdit, onCreate, className, pagination, onPaginationChange, pageCount, manualPagination = false, columnFilters, onColumnFiltersChange, onRowSelectionChange, rowSelection, setRowSelection, title, description, canCreate, isCompact = false, onExport, isSales = true }: PaymentsTableProps) {
   const t = useTranslations('PaymentsPage.columns');
   const tPage = useTranslations('PaymentsPage');
   const { hasPermission } = usePermissions();
@@ -298,16 +300,6 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
   const isNarrow = panelNarrow || viewportNarrow || useListView;
   const columns = React.useMemo(() => getColumns(t, tTransactionType, tActions, tPaymentMethods, onPrint, onSendEmail, onEdit), [t, tTransactionType, tActions, tPaymentMethods, onPrint, onSendEmail, onEdit]);
 
-  if (isLoading) {
-    return (
-      <div className="space-y-4 pt-4">
-        <Skeleton className="h-8 w-full" />
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-12 w-full" />
-      </div>
-    );
-  }
   const filteredColumns = columns.filter(col => !columnsToHide.includes((col as any).accessorKey));
 
   return (
@@ -329,6 +321,7 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
         <DataTable
           columns={filteredColumns}
           data={payments}
+          isLoading={isLoading}
           filterColumnId="doc_no"
           filterPlaceholder={tPage('filterPlaceholder')}
           onRefresh={onRefresh}
@@ -353,6 +346,8 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
           onPaginationChange={onPaginationChange}
           pageCount={pageCount}
           manualPagination={manualPagination}
+          columnFilters={columnFilters}
+          onColumnFiltersChange={onColumnFiltersChange}
           enableSingleRowSelection={!!onRowSelectionChange}
           rowSelection={rowSelection}
           setRowSelection={setRowSelection}

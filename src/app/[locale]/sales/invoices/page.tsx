@@ -31,12 +31,14 @@ import { useToast } from '@/hooks/use-toast';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { usePermissions } from '@/hooks/usePermissions';
 import { getCreditNotesForInvoice } from '@/lib/credit-notes';
+import { normalizeApiResponse } from '@/lib/api-utils';
 import { CreditNote, Invoice, InvoiceAllocation, InvoiceItem, Payment, Service } from '@/lib/types';
 import { formatDisplayDate, getDocumentFileName } from '@/lib/utils';
+import { useDebounce } from '@/hooks/use-debounce';
 import { api } from '@/services/api';
 import { getSalesServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { RowSelectionState } from '@tanstack/react-table';
+import { ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import { Check, CheckCircle, CreditCard, File, FileMinus, FileText, FileUp, Link2, Loader2, Maximize2, Minimize2, PlusCircle, Printer, Receipt, RefreshCw, Send, StickyNote, Trash2, X, Zap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -69,15 +71,17 @@ async function getServices(): Promise<Service[]> {
     }
 }
 
-async function getInvoices(type: string = 'all'): Promise<Invoice[]> {
+async function getInvoices(params: { page: number; limit: number; search: string; type: string }): Promise<{ items: Invoice[]; total: number }> {
     try {
-        const query: Record<string, string> = { is_sales: 'true' };
-        if (type !== 'all') {
-            query.type = type;
+        const query: Record<string, string> = { is_sales: 'true', page: String(params.page), limit: String(params.limit) };
+        if (params.type && params.type !== 'all') {
+            query.type = params.type;
         }
+        if (params.search) query.search = params.search;
         const data = await api.get(API_ROUTES.SALES.INVOICES_ALL, query);
-        const invoicesData = Array.isArray(data) ? data : (data.invoices || data.data || []);
-        return invoicesData.map((apiInvoice: any) => ({
+        const normalized = normalizeApiResponse(data);
+        const invoicesData = normalized.items;
+        const items = invoicesData.map((apiInvoice: any) => ({
             id: apiInvoice.id ? String(apiInvoice.id) : 'N/A',
             doc_no: apiInvoice.doc_no || 'N/A',
             invoice_ref: apiInvoice.invoice_ref || 'N/A',
@@ -100,9 +104,10 @@ async function getInvoices(type: string = 'all'): Promise<Invoice[]> {
             notes: apiInvoice.notes || '',
             is_historical: apiInvoice.is_historical || false,
         }));
+        return { items, total: normalized.total };
     } catch (error) {
         console.error("Failed to fetch invoices:", error);
-        return [];
+        return { items: [], total: 0 };
     }
 }
 
@@ -220,6 +225,9 @@ export default function InvoicesPage() {
     const canCreatePayment = hasPermission(SALES_PERMISSIONS.PAYMENTS_CREATE);
 
     const [invoices, setInvoices] = React.useState<Invoice[]>([]);
+    const [totalInvoices, setTotalInvoices] = React.useState(0);
+    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
+    const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedPayment, setSelectedPayment] = React.useState<Payment | null>(null);
@@ -321,17 +329,37 @@ export default function InvoicesPage() {
         }
     }, [t, toast]);
 
+    const searchTerm = (columnFilters.find(f => f.id === 'doc_no')?.value as string) ?? '';
+    const debouncedSearch = useDebounce(searchTerm, 300);
+    const invoicesPageCount = totalInvoices > 0 ? Math.ceil(totalInvoices / pagination.pageSize) : 1;
+
     const loadInvoices = React.useCallback(async () => {
         setIsLoadingInvoices(true);
-        const fetchedInvoices = await getInvoices(invoiceType);
-        setInvoices(fetchedInvoices);
+        const result = await getInvoices({ page: pagination.pageIndex + 1, limit: pagination.pageSize, search: debouncedSearch, type: invoiceType });
+        setInvoices(result.items);
+        setTotalInvoices(result.total);
         setIsLoadingInvoices(false);
-    }, [invoiceType]);
+    }, [pagination.pageIndex, pagination.pageSize, debouncedSearch, invoiceType]);
 
     React.useEffect(() => {
         loadInvoices();
-        getServices().then(setServices);
     }, [loadInvoices]);
+
+    React.useEffect(() => {
+        getServices().then(setServices);
+    }, []);
+
+    // Reset to the first page when the search filter changes
+    const handleColumnFiltersChange = React.useCallback<React.Dispatch<React.SetStateAction<ColumnFiltersState>>>((updater) => {
+        setColumnFilters(updater);
+        setPagination((p) => ({ ...p, pageIndex: 0 }));
+    }, []);
+
+    // Reset to the first page when the invoice type filter changes
+    const handleFilterChange = React.useCallback((value: string) => {
+        setInvoiceType(value || 'all');
+        setPagination((p) => ({ ...p, pageIndex: 0 }));
+    }, []);
 
     const loadInvoiceItems = React.useCallback(async () => {
         if (!selectedInvoice) return;
@@ -650,12 +678,19 @@ export default function InvoicesPage() {
                             setRowSelection={setRowSelection}
                             columnTranslations={columnTranslations}
                             filterValue={invoiceType}
-                            onFilterChange={setInvoiceType}
+                            onFilterChange={handleFilterChange}
                             filterOptions={[
                                 { label: t('filterAll'), value: '' },
                                 { label: t('invoice'), value: 'Factura' },
                                 { label: t('creditNote'), value: 'Nota de Crédito' },
                             ]}
+                            manualPagination
+                            pagination={pagination}
+                            onPaginationChange={setPagination}
+                            pageCount={invoicesPageCount}
+                            rowCount={totalInvoices}
+                            columnFilters={columnFilters}
+                            onColumnFiltersChange={handleColumnFiltersChange}
                             isSales={true}
                             isCompact={!!selectedInvoice}
                             standalone={true}

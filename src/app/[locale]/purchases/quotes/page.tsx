@@ -49,6 +49,7 @@ import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communi
 import { useToast } from '@/hooks/use-toast';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useDebounce } from '@/hooks/use-debounce';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { invoiceOrder } from '@/lib/invoice-actions';
 import { Clinic, Invoice, InvoiceItem, Order, OrderItem, Payment, Quote, QuoteItem, Service, User } from '@/lib/types';
@@ -56,7 +57,7 @@ import { cn, formatDate, formatDateTime, formatDisplayDate, getDocumentFileName,
 import { api } from '@/services/api';
 import { getPurchaseServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { RowSelectionState } from '@tanstack/react-table';
+import { PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
 import { AlertTriangle, CheckCircle, CreditCard, FileText, Loader2, Maximize2, Minimize2, Pencil, Printer, Receipt, RefreshCw, Send, ShoppingCart, StickyNote, Trash2, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -105,13 +106,15 @@ const quoteItemFormSchema = (t: (key: string) => string) => z.object({
 type QuoteItemFormValues = z.infer<ReturnType<typeof quoteItemFormSchema>>;
 
 
-async function getQuotes(t: (key: string) => string): Promise<Quote[]> {
+async function getQuotes(params: { page: number; limit: number; search: string }, t: (key: string) => string): Promise<{ items: Quote[]; total: number }> {
     try {
-        const data = await api.get(API_ROUTES.PURCHASES.QUOTES_ALL, { is_sales: 'false' });
+        const query: Record<string, string> = { is_sales: 'false', page: String(params.page), limit: String(params.limit) };
+        if (params.search) query.search = params.search;
+        const data = await api.get(API_ROUTES.PURCHASES.QUOTES_ALL, query);
         const normalized = normalizeApiResponse(data);
         const quotesData = normalized.items;
 
-        return quotesData.map((apiQuote: any) => ({
+        const items = quotesData.map((apiQuote: any) => ({
             id: apiQuote.id ? String(apiQuote.id) : `qt_${Math.random().toString(36).substr(2, 9)}`,
             doc_no: apiQuote.doc_no || t('defaults.notAvailable'),
             user_id: apiQuote.user_id || t('defaults.notAvailable'),
@@ -126,9 +129,10 @@ async function getQuotes(t: (key: string) => string): Promise<Quote[]> {
             createdAt: apiQuote.created_at || new Date().toISOString().split('T')[0],
             exchange_rate: parseFloat(apiQuote.exchange_rate) || 1,
         }));
+        return { items, total: normalized.total };
     } catch (error) {
         console.error("Failed to fetch quotes:", error);
-        return [];
+        return { items: [], total: 0 };
     }
 }
 
@@ -409,6 +413,11 @@ function QuotesPageContent() {
     const canInvoice = hasPermission(PURCHASES_PERMISSIONS.ORDERS_CONVERT_INVOICE);
 
     const [quotes, setQuotes] = React.useState<Quote[]>([]);
+    const [totalQuotes, setTotalQuotes] = React.useState(0);
+    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
+    const [searchTerm, setSearchTerm] = React.useState('');
+    const debouncedSearch = useDebounce(searchTerm, 300);
+    const quotesPageCount = totalQuotes > 0 ? Math.ceil(totalQuotes / pagination.pageSize) : 1;
     const [selectedQuote, setSelectedQuote] = React.useState<Quote | null>(null);
     const [quoteItems, setQuoteItems] = React.useState<QuoteItem[]>([]);
 
@@ -569,14 +578,21 @@ function QuotesPageContent() {
 
     const loadQuotes = React.useCallback(async () => {
         setIsRefreshing(true);
-        const fetchedQuotes = await getQuotes(t);
-        setQuotes(fetchedQuotes);
+        const result = await getQuotes({ page: pagination.pageIndex + 1, limit: pagination.pageSize, search: debouncedSearch }, t);
+        setQuotes(result.items);
+        setTotalQuotes(result.total);
         setIsRefreshing(false);
-    }, [t]);
+    }, [pagination.pageIndex, pagination.pageSize, debouncedSearch, t]);
 
     React.useEffect(() => {
         loadQuotes();
     }, [loadQuotes]);
+
+    // Reset to the first page whenever the search term changes
+    const handleSearchChange = React.useCallback((value: string) => {
+        setSearchTerm(value);
+        setPagination((p) => ({ ...p, pageIndex: 0 }));
+    }, []);
 
     React.useEffect(() => {
         if (!selectedQuote) return;
@@ -1284,6 +1300,13 @@ function QuotesPageContent() {
                             canPrintQuote={canPrint}
                             canSendQuoteEmail={canSendEmail}
                             onExport={() => setExportOpen(true)}
+                            manualPagination
+                            pagination={pagination}
+                            onPaginationChange={setPagination}
+                            pageCount={quotesPageCount}
+                            rowCount={totalQuotes}
+                            searchValue={searchTerm}
+                            onSearchChange={handleSearchChange}
                         />
                     }
                     rightPanel={

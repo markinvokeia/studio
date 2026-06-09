@@ -30,6 +30,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { usePaymentsPagination } from '@/hooks/use-payments-pagination';
+import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
@@ -39,7 +40,7 @@ import { cn, formatDisplayDate, getDocumentFileName, toLocalISOString } from '@/
 import api from '@/services/api';
 import { getSalesPayments } from '@/services/payments-service';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { RowSelectionState } from '@tanstack/react-table';
+import { ColumnFiltersState, RowSelectionState } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
 import { AlertTriangle, CreditCard, Loader2, Maximize2, Minimize2, Printer, RefreshCw, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -98,11 +99,26 @@ export default function PaymentsPage() {
         pagination,
         totalPages,
         handlePaginationChange,
+        handleSearchChange,
         refreshPayments
     } = usePaymentsPagination({
         fetchFunction: getSalesPayments,
-        initialPageSize: 50
+        initialPageSize: 25
     });
+
+    // Server-side search: lift the table's doc_no filter to drive the backend query
+    const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+    const searchTerm = (columnFilters.find(f => f.id === 'doc_no')?.value as string) ?? '';
+    const debouncedSearch = useDebounce(searchTerm, 300);
+    const didMountSearch = React.useRef(false);
+    React.useEffect(() => {
+        // Skip the first run — the hook already performs the initial load
+        if (!didMountSearch.current) {
+            didMountSearch.current = true;
+            return;
+        }
+        handleSearchChange(debouncedSearch);
+    }, [debouncedSearch, handleSearchChange]);
 
     const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
     const [selectedPaymentForEmail, setSelectedPaymentForEmail] = React.useState<Payment | null>(null);
@@ -426,6 +442,8 @@ export default function PaymentsPage() {
                         onPaginationChange={handlePaginationChange}
                         pageCount={totalPages}
                         manualPagination={true}
+                        columnFilters={columnFilters}
+                        onColumnFiltersChange={setColumnFilters}
                         onRowSelectionChange={handleRowSelectionChange}
                         rowSelection={rowSelection}
                         setRowSelection={setRowSelection}

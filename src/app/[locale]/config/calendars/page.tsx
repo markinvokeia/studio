@@ -122,6 +122,7 @@ export default function CalendarsPage() {
     const t = useTranslations('CalendarsPage');
     const tNav = useTranslations('Navigation');
     const tValidation = useTranslations('CalendarsPage.validation');
+    const tGeneral = useTranslations('General');
     const { toast } = useToast();
     const isNarrow = useViewportNarrow();
 
@@ -393,7 +394,7 @@ export default function CalendarsPage() {
                                         <Command>
                                             <CommandInput placeholder={t('dialog.searchSede')} />
                                             <CommandList>
-                                                <CommandEmpty>{t('General.noResults')}</CommandEmpty>
+                                                <CommandEmpty>{tGeneral('noResults')}</CommandEmpty>
                                                 <CommandGroup>
                                                     {sedes.map(sede => (
                                                         <CommandItem key={sede.id} value={sede.name} onSelect={() => { field.onChange(sede.id); setIsSedeOpen(false); }}>
@@ -533,7 +534,7 @@ export default function CalendarsPage() {
                                                 <Command>
                                                     <CommandInput placeholder={t('dialog.searchSede')} />
                                                     <CommandList>
-                                                        <CommandEmpty>{t('General.noResults')}</CommandEmpty>
+                                                        <CommandEmpty>{tGeneral('noResults')}</CommandEmpty>
                                                         <CommandGroup>
                                                             {sedes.map(sede => (
                                                                 <CommandItem key={sede.id} value={sede.name} onSelect={() => { field.onChange(sede.id); setIsSedeOpen(false); }}>
