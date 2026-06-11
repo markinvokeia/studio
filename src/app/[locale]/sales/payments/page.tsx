@@ -237,7 +237,7 @@ export default function PaymentsPage() {
 
         if (payment) {
             if (payment.id !== selectedPayment?.id) {
-                setActiveTab('allocations');
+                setActiveTab(!payment.invoice_id ? 'allocations' : 'notes');
             }
             setSelectedPayment(payment);
             if (!payment.invoice_id) {
@@ -364,10 +364,14 @@ export default function PaymentsPage() {
         setIsConfirmPrepaidOpen(true);
     };
 
-    const paymentTabs = React.useMemo<VerticalTab[]>(() => [
-        { id: 'allocations', icon: CreditCard, label: t('tabs.allocations') },
-        { id: 'notes', icon: AlertTriangle, label: t('tabs.notes') },
-    ], [t]);
+    const paymentTabs = React.useMemo<VerticalTab[]>(() => {
+        const tabs: VerticalTab[] = [];
+        if (selectedPayment && !selectedPayment.invoice_id) {
+            tabs.push({ id: 'allocations', icon: CreditCard, label: t('tabs.allocations') });
+        }
+        tabs.push({ id: 'notes', icon: AlertTriangle, label: t('tabs.notes') });
+        return tabs;
+    }, [t, selectedPayment]);
 
     const handleConfirmPrepaid = async () => {
         if (!prepaidData || !user) return;
@@ -556,6 +560,47 @@ export default function PaymentsPage() {
                                             </div>
                                         </div>
                                     )}
+                                </div>
+                            )}
+
+                            {/* Invoice details — for non-prepaid payments */}
+                            {selectedPayment.invoice_id && (
+                                <div className="px-6 py-3 border-b">
+                                    <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
+                                        {selectedPayment.invoice_doc_no && (
+                                            <div className="flex flex-col gap-0.5">
+                                                <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t('columns.invoice_doc_no')}</span>
+                                                <span className="text-sm font-semibold">{selectedPayment.invoice_doc_no}</span>
+                                            </div>
+                                        )}
+                                        {selectedPayment.type && (
+                                            <>
+                                                <div className="w-px h-8 bg-border" />
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t('columns.type')}</span>
+                                                    <span className="text-sm">{t(`columns.paymentTypes.${selectedPayment.type === 'credit_note' ? 'credit_note' : 'payment'}`)}</span>
+                                                </div>
+                                            </>
+                                        )}
+                                        {selectedPayment.order_doc_no && (
+                                            <>
+                                                <div className="w-px h-8 bg-border" />
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t('columns.order_doc_no')}</span>
+                                                    <span className="text-sm">{selectedPayment.order_doc_no}</span>
+                                                </div>
+                                            </>
+                                        )}
+                                        {selectedPayment.payment_doc_no && (
+                                            <>
+                                                <div className="w-px h-8 bg-border" />
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t('columns.doc_no')}</span>
+                                                    <span className="text-sm">{selectedPayment.payment_doc_no}</span>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
                             )}
 

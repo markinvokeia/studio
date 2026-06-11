@@ -2714,7 +2714,8 @@
       "print": "Print",
       "sendEmail": "Send Email",
       "openMenu": "Open Menu",
-      "edit": "Edit"
+      "edit": "Edit",
+      "viewAllocations": "View Allocations"
     },
     "createPrepaid": "Create Prepaid",
     "detailsFor": "Payment Details - {name}",

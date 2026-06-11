@@ -2648,6 +2648,7 @@
       "type": "Tipo",
       "paymentTypes": {
         "direct_payment": "Pago Directo",
+        "direct_payment": "Pago Directo",
         "payment": "Pago",
         "prepaid": "Prepago",
         "payment_allocation": "Asignación de Pago",
@@ -2691,7 +2692,8 @@
       "print": "Imprimir",
       "sendEmail": "Enviar Correo",
       "openMenu": "Abrir Menú",
-      "edit": "Editar"
+      "edit": "Editar",
+      "viewAllocations": "Ver Asignaciones"
     },
     "createPrepaid": "Crear Prepago",
     "detailsFor": "Detalles del Pago - {name}",
