@@ -8,7 +8,7 @@ import {
   usePrintDocumentStore,
   type PrintInvoiceRow,
 } from '@/stores/print-document-store';
-import type { Quote, Invoice, Payment, CreditNote, QuoteItem, InvoiceItem, DocPrintTemplate, FinancialSummaryReport } from '@/lib/types';
+import type { Quote, Invoice, Payment, CreditNote, QuoteItem, InvoiceItem, DocPrintTemplate, FinancialSummaryReport, CajaSessionDetails } from '@/lib/types';
 import { fetchClinicInfo } from '@/hooks/useClinicInfo';
 
 // ── Data mappers (match patterns in user-quotes.tsx / user-invoices.tsx) ───────
@@ -246,5 +246,33 @@ export function usePrintDocument() {
     triggerPrint(deactivate);
   }
 
-  return { printQuote, printInvoice, printPayment, printCreditNote, printPrepayment, printFinancialSummary };
+  async function printCajaApertura(sessionId: number | string): Promise<void> {
+    const raw = await api.get(API_ROUTES.CASHIER.SESSIONS_DETAILS, { cash_session_id: String(sessionId) });
+    const details = (Array.isArray(raw) ? raw[0] : raw) as CajaSessionDetails;
+    activate('caja_apertura', { details });
+    await waitForFrame();
+    await waitForImages();
+    triggerPrint(deactivate);
+  }
+
+  async function printCajaCierre(sessionId: number | string): Promise<void> {
+    const raw = await api.get(API_ROUTES.CASHIER.SESSIONS_DETAILS, { cash_session_id: String(sessionId) });
+    const details = (Array.isArray(raw) ? raw[0] : raw) as CajaSessionDetails;
+    activate('caja_cierre', { details });
+    await waitForFrame();
+    await waitForImages();
+    triggerPrint(deactivate);
+  }
+
+  async function printCajaSesion(sessionId: number | string): Promise<void> {
+    const raw = await api.get(API_ROUTES.CASHIER.SESSIONS_DETAILS, { cash_session_id: String(sessionId) });
+    const details = (Array.isArray(raw) ? raw[0] : raw) as CajaSessionDetails;
+    activate('caja_sesion', { details });
+    await waitForFrame();
+    await waitForImages();
+    triggerPrint(deactivate);
+  }
+
+  return { printQuote, printInvoice, printPayment, printCreditNote, printPrepayment, printFinancialSummary, printCajaApertura, printCajaCierre, printCajaSesion };
+
 }

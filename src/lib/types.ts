@@ -279,7 +279,7 @@ export type CreditNote = Invoice & {
 export interface DocPrintTemplate {
   id: string;
   clinic_id: string;
-  template_type: 'quote' | 'invoice' | 'payment' | 'credit_note' | 'prepayment' | 'financial_summary';
+  template_type: 'quote' | 'invoice' | 'payment' | 'credit_note' | 'prepayment' | 'financial_summary' | 'caja_apertura' | 'caja_cierre' | 'caja_sesion';
   template_html: string;
   is_active: boolean;
   createdAt: string;
@@ -1140,6 +1140,42 @@ export type CajaMovimiento = {
   isSales?: boolean;
   documentNumber?: string;
   registeredUserName?: string;
+};
+
+export type CajaSessionMovement = {
+  movement_id: number;
+  type: 'INFLOW' | 'OUTFLOW';
+  amount: number;
+  currency: string;
+  description: string;
+  created_at: string;
+  payment_method_name: string;
+  registered_by_user: string;
+};
+
+export type CajaSessionDetails = {
+  id: number;
+  status: 'OPEN' | 'CLOSE';
+  opened_at: string;
+  closed_at?: string | null;
+  opening_details?: Record<string, any>;
+  closing_details?: Record<string, any>;
+  bank_deposit_details?: Record<string, any>;
+  cash_point_id?: number;
+  user_id?: string;
+  cash_point_name?: string;
+  user_name?: string;
+  currencies_data?: Array<{
+    currency: string;
+    opening_amount: number;
+    declared_cash: number;
+    calculated_cash: number;
+    cash_variance: number;
+    calculated_card: number;
+    calculated_transfer: number;
+    calculated_other: number;
+  }>;
+  movements_data?: CajaSessionMovement[];
 };
 
 export type CashPoint = {

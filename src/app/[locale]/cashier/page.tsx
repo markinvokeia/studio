@@ -18,6 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { normalizePaymentMethodCode } from '@/lib/payment-methods';
 import { CajaMovimiento, CajaSesion, CashPoint } from '@/lib/types';
 import { cn, formatDateTime } from '@/lib/utils';
@@ -421,6 +422,7 @@ function OpenSessionDashboard({ cashPoints, onStartOpening, onViewSession }: { c
 function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOpen = false, onViewAllCashPoints }: { session: CajaSesion, movements: CajaMovimiento[], onCloseSession: () => void, isWizardOpen?: boolean, onViewAllCashPoints: () => void; }) {
     const t = useTranslations('CashierPage');
     const { toast } = useToast();
+    const { printCajaApertura } = usePrintDocument();
     const sessionCurrency = session.currency || 'UYU';
     const [isPrinting, setIsPrinting] = React.useState(false);
     const isViewportNarrow = useViewportNarrow();
@@ -486,16 +488,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
     const handlePrintOpening = async () => {
         setIsPrinting(true);
         try {
-            const blob = await api.getBlob(API_ROUTES.CASHIER.SESSIONS_OPEN_PRINT, { cash_session_id: session.id });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `opening-${session.id}.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-            toast({ title: 'PDF Downloaded', description: 'The opening PDF has been downloaded.' });
+            await printCajaApertura(session.id);
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to download PDF.' });
         } finally {
@@ -1246,6 +1239,7 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
 const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: () => void }) => {
     const t = useTranslations('CashierPage.report');
     const { toast } = useToast();
+    const { printCajaCierre } = usePrintDocument();
     const [isPrinting, setIsPrinting] = React.useState(false);
     const reportDetails = Array.isArray(reportData) && reportData.length > 0 ? reportData[0] : reportData;
     const { session, movements } = reportDetails?.details || { session: {}, movements: [] };
@@ -1253,18 +1247,9 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
     const handlePrintClose = async () => {
         setIsPrinting(true);
         try {
-            const blob = await api.getBlob(API_ROUTES.CASHIER.SESSIONS_CLOSE_PRINT, { cash_session_id: session.id });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `closing-${session.id}.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-            toast({ title: 'PDF Downloaded', description: 'The closing PDF has been downloaded.' });
+            await printCajaCierre(session.id);
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to download PDF.' });
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo imprimir el cierre.' });
         } finally {
             setIsPrinting(false);
         }

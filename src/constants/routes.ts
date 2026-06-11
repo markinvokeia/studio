@@ -61,6 +61,7 @@ export const API_ROUTES = {
         PAYMENT_METHODS: '/metodospago/all',
         COTIZACIONES_HISTORY: '/cotizaciones-history',
         SESSIONS: '/cashier/sessions',
+        SESSIONS_DETAILS: '/cash-session/details',
         SESSIONS_SEARCH: '/cash-session/search',
         SESSIONS_PRINT: '/cash-session/print',
         SESSIONS_ACTIVE: '/cash-session/active',
