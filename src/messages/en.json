@@ -2992,7 +2992,7 @@
       "phonePlaceholder": "123-456-7890",
       "alternative_phone": "Alternative Phone",
       "alternative_phonePlaceholder": "123-456-7890",
-      "identity_document": "Identity Document",
+      "identity_document": "RUT",
       "identity_document_placeholder": "e.g. 1234567890",
       "address": "Address",
       "addressPlaceholder": "e.g. Main Street 123",
@@ -3014,7 +3014,7 @@
         "identityMaxLength": "Identity document must be 10 characters or less.",
         "emailOrPhoneRequired": "You must provide at least an email address or a phone number.",
         "fields": {
-          "identity_document": "Identity Document"
+          "identity_document": "RUT"
         },
         "uniqueConflict": "The following fields are already registered: {fields}",
         "errorTitle": "Error Updating Details",

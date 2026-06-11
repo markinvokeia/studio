@@ -2969,7 +2969,7 @@
       "phonePlaceholder": "123-456-7890",
       "alternative_phone": "Teléfono Alternativo",
       "alternative_phonePlaceholder": "123-456-7890",
-      "identity_document": "Documento de Identidad",
+      "identity_document": "RUT",
       "identity_document_placeholder": "ej. 1234567890",
       "address": "Dirección",
       "addressPlaceholder": "ej. Calle Principal 123",
@@ -2991,7 +2991,7 @@
         "identityMaxLength": "El documento de identidad debe tener 10 caracteres o menos.",
         "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono.",
         "fields": {
-          "identity_document": "Documento de Identidad"
+          "identity_document": "RUT"
         },
         "uniqueConflict": "Los siguientes campos ya están registrados: {fields}",
         "errorTitle": "Error Actualizando Detalles",
