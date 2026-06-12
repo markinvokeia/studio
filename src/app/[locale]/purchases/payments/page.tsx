@@ -21,14 +21,16 @@ import { API_ROUTES } from '@/constants/routes';
 import { PurchasePrepaidFormDialog } from '@/components/purchases/payments/PurchasePrepaidFormDialog';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { usePaymentsPagination } from '@/hooks/use-payments-pagination';
+import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { usePermissions } from '@/hooks/usePermissions';
+import { normalizeApiResponse } from '@/lib/api-utils';
 import { Payment, PaymentAllocation } from '@/lib/types';
 import { cn, formatDisplayDate, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { getPurchasePayments } from '@/services/payments-service';
-import { RowSelectionState } from '@tanstack/react-table';
+import { ColumnFiltersState, RowSelectionState } from '@tanstack/react-table';
 import { CreditCard, Loader2, Maximize2, Minimize2, Printer, RefreshCw, Send, StickyNote } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -55,12 +57,28 @@ function PaymentsPageContent() {
         isLoading,
         pagination,
         totalPages,
+        totalItems,
         handlePaginationChange,
+        handleSearchChange,
         refreshPayments
     } = usePaymentsPagination({
         fetchFunction: getPurchasePayments,
-        initialPageSize: 50
+        initialPageSize: 25
     });
+
+    // Server-side search: lift the table's doc_no filter to drive the backend query
+    const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+    const searchTerm = (columnFilters.find(f => f.id === 'doc_no')?.value as string) ?? '';
+    const debouncedSearch = useDebounce(searchTerm, 300);
+    const didMountSearch = React.useRef(false);
+    React.useEffect(() => {
+        // Skip the first run — the hook already performs the initial load
+        if (!didMountSearch.current) {
+            didMountSearch.current = true;
+            return;
+        }
+        handleSearchChange(debouncedSearch);
+    }, [debouncedSearch, handleSearchChange]);
     const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
     const [selectedPaymentForEmail, setSelectedPaymentForEmail] = React.useState<Payment | null>(null);
     const [emailRecipients, setEmailRecipients] = React.useState('');
@@ -89,8 +107,7 @@ function PaymentsPageContent() {
                 date_to: format(dateTo, 'yyyy-MM-dd'),
             });
             // Same unwrap pattern as getPurchasePayments in payments-service.ts
-            const paginationData = Array.isArray(data) && data.length > 0 ? data[0] : data;
-            const rawRows: any[] = paginationData?.data || [];
+            const rawRows = normalizeApiResponse<any>(data).items;
             const txTypeMap: Record<string, string> = {
                 direct_payment: t('transactionType.direct_payment' as any),
                 payment_allocation: t('transactionType.payment_allocation' as any),
@@ -168,7 +185,7 @@ function PaymentsPageContent() {
 
         if (payment) {
             if (payment.id !== selectedPayment?.id) {
-                setActiveTab('allocations');
+                setActiveTab(!payment.invoice_id ? 'allocations' : 'notes');
             }
             setSelectedPayment(payment);
             if (!payment.invoice_id) {
@@ -271,10 +288,14 @@ function PaymentsPageContent() {
         setIsWarningDialogOpen(false);
     };
 
-    const paymentTabs = React.useMemo<VerticalTab[]>(() => [
-        { id: 'allocations', icon: CreditCard, label: t('tabs.allocations') },
-        { id: 'notes', icon: StickyNote, label: t('tabs.notes') },
-    ], [t]);
+    const paymentTabs = React.useMemo<VerticalTab[]>(() => {
+        const tabs: VerticalTab[] = [];
+        if (selectedPayment && !selectedPayment.invoice_id) {
+            tabs.push({ id: 'allocations', icon: CreditCard, label: t('tabs.allocations') });
+        }
+        tabs.push({ id: 'notes', icon: StickyNote, label: t('tabs.notes') });
+        return tabs;
+    }, [t, selectedPayment]);
 
     return (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
@@ -296,7 +317,10 @@ function PaymentsPageContent() {
                         pagination={pagination}
                         onPaginationChange={handlePaginationChange}
                         pageCount={totalPages}
+                        rowCount={totalItems}
                         manualPagination={true}
+                        columnFilters={columnFilters}
+                        onColumnFiltersChange={setColumnFilters}
                         onRowSelectionChange={handleRowSelectionChange}
                         rowSelection={rowSelection}
                         setRowSelection={setRowSelection}
@@ -409,6 +433,47 @@ function PaymentsPageContent() {
                                             </div>
                                         </div>
                                     )}
+                                </div>
+                            )}
+
+                            {/* Invoice details — for non-prepaid payments */}
+                            {selectedPayment.invoice_id && (
+                                <div className="px-6 py-3 border-b">
+                                    <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
+                                        {selectedPayment.invoice_doc_no && (
+                                            <div className="flex flex-col gap-0.5">
+                                                <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t('columns.invoice_doc_no')}</span>
+                                                <span className="text-sm font-semibold">{selectedPayment.invoice_doc_no}</span>
+                                            </div>
+                                        )}
+                                        {selectedPayment.type && (
+                                            <>
+                                                <div className="w-px h-8 bg-border" />
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t('columns.type')}</span>
+                                                    <span className="text-sm">{t(`columns.paymentTypes.${selectedPayment.type === 'credit_note' ? 'credit_note' : 'payment'}`)}</span>
+                                                </div>
+                                            </>
+                                        )}
+                                        {selectedPayment.order_doc_no && (
+                                            <>
+                                                <div className="w-px h-8 bg-border" />
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t('columns.order_doc_no')}</span>
+                                                    <span className="text-sm">{selectedPayment.order_doc_no}</span>
+                                                </div>
+                                            </>
+                                        )}
+                                        {selectedPayment.payment_doc_no && (
+                                            <>
+                                                <div className="w-px h-8 bg-border" />
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t('columns.doc_no')}</span>
+                                                    <span className="text-sm">{selectedPayment.payment_doc_no}</span>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
                             )}
 

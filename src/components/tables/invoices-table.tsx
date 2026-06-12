@@ -26,6 +26,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ParentInvoiceSelector } from '@/components/ui/parent-invoice-selector';
 import { ServiceSelector } from '@/components/ui/service-selector';
 import { API_ROUTES } from '@/constants/routes';
 import { PURCHASES_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
@@ -38,7 +39,7 @@ import { cn, formatDate, formatDisplayDate, toLocalISOString } from '@/lib/utils
 import { api } from '@/services/api';
 import { getPurchaseServices, getSalesServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
+import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { addDays, format, parseISO } from 'date-fns';
 import { AlertTriangle, ArrowRight, Box, CalendarIcon, Check, ChevronsUpDown, Download, FileUp, Loader2, MoreHorizontal, Printer, Receipt, Send, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -57,7 +58,6 @@ import { DialogDescription } from '../ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { ScrollArea } from '../ui/scroll-area';
-import { Skeleton } from '../ui/skeleton';
 
 
 const getCreateInvoiceFormSchema = (t: (key: string) => string) => z.object({
@@ -273,7 +273,7 @@ const getColumns = (
 };
 
 
-export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, onCreate, onImport, onConfirm, isRefreshing, rowSelection, setRowSelection, columnTranslations = {}, filterOptions, onFilterChange, filterValue, onEdit, isSales = true, isCompact = false, className, title, description, standalone = false, canCreate = true, onExport }: InvoicesTableProps) {
+export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, onCreate, onImport, onConfirm, isRefreshing, rowSelection, setRowSelection, columnTranslations = {}, filterOptions, onFilterChange, filterValue, onEdit, isSales = true, isCompact = false, className, title, description, standalone = false, canCreate = true, onExport, manualPagination, pagination, onPaginationChange, pageCount, rowCount, columnFilters, onColumnFiltersChange }: InvoicesTableProps) {
   const t = useTranslations('InvoicesPage');
   const tStatus = useTranslations('InvoicesPage.status');
   const tMethods = useTranslations('InvoicesPage.methods');
@@ -356,17 +356,6 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     }
   ), [t, tStatus, tMethods, mergedColumnTranslations, onPrint, onSendEmail, handleAddPaymentClick]);
 
-  if (isLoading) {
-    return (
-      <div className="space-y-4 pt-4">
-        <Skeleton className="h-8 w-full" />
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-12 w-full" />
-      </div>
-    );
-  }
-
   return (
     <>
       <InvoiceFormDialog
@@ -397,7 +386,15 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
           <DataTable
             columns={columns}
             data={invoices}
+            isLoading={isLoading}
             filterColumnId="doc_no"
+            manualPagination={manualPagination}
+            pagination={pagination}
+            onPaginationChange={onPaginationChange}
+            pageCount={pageCount}
+            rowCount={rowCount}
+            columnFilters={columnFilters}
+            onColumnFiltersChange={onColumnFiltersChange}
             onRowSelectionChange={onRowSelectionChange}
             enableSingleRowSelection={true}
             onRefresh={onRefresh}
@@ -550,7 +547,6 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
   const tRoot = useTranslations('InvoicesPage');
   const [users, setUsers] = React.useState<User[]>([]);
   const [services, setServices] = React.useState<Service[]>([]);
-  const [bookedInvoices, setBookedInvoices] = React.useState<Invoice[]>([]);
   const [userSearchTerm, setUserSearchTerm] = React.useState('');
   const debouncedUserSearch = useDebounce(userSearchTerm, 300);
   const [isLoadingUsers, setIsLoadingUsers] = React.useState(false);
@@ -708,17 +704,12 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
       const fetchData = async () => {
         try {
           const filterType = isSales ? 'PACIENTE' : 'PROVEEDOR';
-          // Fetch services and booked invoices (not users - they are fetched on demand with search)
-          const [servicesResult, invoicesData] = await Promise.all([
-            isSales ? getSalesServices({ limit: 100 }) : getPurchaseServices({ limit: 100 }),
-            api.get(isSales ? API_ROUTES.SALES.INVOICES_ALL : API_ROUTES.PURCHASES.INVOICES_ALL, { is_sales: isSales ? 'true' : 'false', status: 'booked', type: 'invoice' })
-          ]);
+          // Fetch services (users are fetched on demand with search; parent invoices are
+          // fetched on demand by the ParentInvoiceSelector once a patient is selected)
+          const servicesResult = isSales ? await getSalesServices({ limit: 100 }) : await getPurchaseServices({ limit: 100 });
 
           const servicesDataNormalized = servicesResult.items || [];
           setServices(servicesDataNormalized.map((s: any) => ({ ...s, id: String(s.id) })));
-
-          const invoicesDataNormalized = Array.isArray(invoicesData) ? invoicesData : (invoicesData.invoices || invoicesData.data || []);
-          setBookedInvoices(invoicesDataNormalized);
 
           if (invoice) {
             // When editing, fetch the user associated with this invoice
@@ -795,13 +786,6 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
 
   const parentId = form.watch('parent_id');
 
-  const filteredBookedInvoices = React.useMemo(() => {
-    if (invoiceType !== 'credit_note') return bookedInvoices;
-    if (!selectedUserId) return [];
-
-    return bookedInvoices.filter((inv) => String(inv.user_id) === String(selectedUserId));
-  }, [bookedInvoices, invoiceType, selectedUserId]);
-
   // Fetch users when search term changes (debounced)
   React.useEffect(() => {
     const fetchUsers = async () => {
@@ -833,46 +817,48 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
     fetchUsers();
   }, [debouncedUserSearch, userSearchOpen]);
 
+  // Reset the selected parent invoice (and its items) when the patient changes,
+  // since parent invoices are scoped to the selected patient. Skip the first run
+  // so editing/preloading an invoice doesn't wipe its data.
+  const prevUserIdRef = React.useRef<string | undefined>(selectedUserId);
   React.useEffect(() => {
-    if (invoiceType !== 'credit_note') return;
+    if (prevUserIdRef.current === selectedUserId) return;
+    prevUserIdRef.current = selectedUserId;
 
-    if (parentId && !filteredBookedInvoices.some((inv) => String(inv.id) === parentId)) {
+    if (invoiceType === 'credit_note' && parentId) {
       form.setValue('parent_id', '');
       form.setValue('items', []);
     }
-  }, [filteredBookedInvoices, form, invoiceType, parentId]);
+  }, [selectedUserId, invoiceType, parentId, form]);
 
+  // Load the parent invoice items into the form when a parent invoice is selected.
   React.useEffect(() => {
-    if (invoiceType === 'credit_note' && parentId && filteredBookedInvoices.length > 0) {
-      const parentInvoice = filteredBookedInvoices.find(inv => String(inv.id) === parentId);
-      if (parentInvoice) {
-        form.setValue('user_id', String(parentInvoice.user_id));
-        const fetchParentItems = async () => {
-          try {
-            const itemsEndpoint = isSales ? API_ROUTES.SALES.INVOICE_ITEMS : API_ROUTES.PURCHASES.INVOICE_ITEMS;
-            const itemsData = await api.get(itemsEndpoint, { invoice_id: parentId, is_sales: isSales ? 'true' : 'false' });
-            const itemsNormalized = Array.isArray(itemsData) ? itemsData : (itemsData.invoice_items || itemsData.data || itemsData.result || []);
-            const mappedItems = itemsNormalized.map((item: any) => {
-              const rawServiceId = item.service_id || item.product_id;
-              const serviceId = Array.isArray(rawServiceId) ? String(rawServiceId[0]) : String(rawServiceId || '');
-                return {
-                  id: item.id ? String(item.id) : undefined,
-                  service_id: serviceId,
-                  service_name: item.service_name || item.product_name || item.name || item.display_name || (Array.isArray(rawServiceId) ? rawServiceId[1] : ''),
-                  quantity: Number(item.quantity || item.product_uom_qty || 1),
-                  unit_price: Number(item.unit_price || item.price_unit || 0),
-                  total: Number(item.total || item.price_total || 0),
-              };
-            });
-            form.setValue('items', mappedItems);
-          } catch (error) {
-            console.error('Failed to fetch parent invoice items', error);
-          }
-        };
-        fetchParentItems();
+    if (invoiceType !== 'credit_note' || !parentId) return;
+
+    const fetchParentItems = async () => {
+      try {
+        const itemsEndpoint = isSales ? API_ROUTES.SALES.INVOICE_ITEMS : API_ROUTES.PURCHASES.INVOICE_ITEMS;
+        const itemsData = await api.get(itemsEndpoint, { invoice_id: parentId, is_sales: isSales ? 'true' : 'false' });
+        const itemsNormalized = Array.isArray(itemsData) ? itemsData : (itemsData.invoice_items || itemsData.data || itemsData.result || []);
+        const mappedItems = itemsNormalized.map((item: any) => {
+          const rawServiceId = item.service_id || item.product_id;
+          const serviceId = Array.isArray(rawServiceId) ? String(rawServiceId[0]) : String(rawServiceId || '');
+          return {
+            id: item.id ? String(item.id) : undefined,
+            service_id: serviceId,
+            service_name: item.service_name || item.product_name || item.name || item.display_name || (Array.isArray(rawServiceId) ? rawServiceId[1] : ''),
+            quantity: Number(item.quantity || item.product_uom_qty || 1),
+            unit_price: Number(item.unit_price || item.price_unit || 0),
+            total: Number(item.total || item.price_total || 0),
+          };
+        });
+        form.setValue('items', mappedItems);
+      } catch (error) {
+        console.error('Failed to fetch parent invoice items', error);
       }
-    }
-  }, [parentId, invoiceType, filteredBookedInvoices, isSales, form]);
+    };
+    fetchParentItems();
+  }, [parentId, invoiceType, isSales, form]);
 
   const onSubmit = async (values: CreateInvoiceFormValues) => {
     setSubmissionError(null);
@@ -1074,20 +1060,19 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t('parentInvoice')}</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value} disabled={!selectedUserId}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={selectedUserId ? t('selectParentInvoice') : (isSales ? t('selectPatient') : t('selectProvider'))} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {filteredBookedInvoices.map(inv => (
-                            <SelectItem key={inv.id} value={String(inv.id)}>
-                              {inv.doc_no} - {inv.user_name} - ${inv.total}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <ParentInvoiceSelector
+                          isSales={isSales}
+                          userId={selectedUserId}
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          disabled={!selectedUserId}
+                          triggerText={selectedUserId ? t('selectParentInvoice') : (isSales ? t('selectPatient') : t('selectProvider'))}
+                          placeholder={t('searchParentInvoice')}
+                          noResultsText={t('noInvoicesFound')}
+                          loadMoreText={t('loadMoreInvoices')}
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -1345,4 +1330,13 @@ interface InvoicesTableProps {
   standalone?: boolean;
   canCreate?: boolean;
   onExport?: () => void;
+  /** Enables server-side pagination — the table no longer paginates/filters in the client */
+  manualPagination?: boolean;
+  pagination?: PaginationState;
+  onPaginationChange?: React.Dispatch<React.SetStateAction<PaginationState>>;
+  pageCount?: number;
+  rowCount?: number;
+  /** Controlled column filters (server-side search); enables manual filtering in DataTable */
+  columnFilters?: ColumnFiltersState;
+  onColumnFiltersChange?: React.Dispatch<React.SetStateAction<ColumnFiltersState>>;
 }

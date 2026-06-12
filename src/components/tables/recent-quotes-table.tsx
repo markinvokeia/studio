@@ -38,7 +38,7 @@ import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { Quote } from '@/lib/types';
 import { cn, formatDisplayDate, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
-import { ColumnDef, ColumnFiltersState, flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, RowSelectionState, SortingState, useReactTable } from '@tanstack/react-table';
+import { ColumnDef, ColumnFiltersState, flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, PaginationState, RowSelectionState, SortingState, useReactTable } from '@tanstack/react-table';
 import { CheckCircle, Download, Loader2, MoreHorizontal, Pencil, Printer, Send, Trash2, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -394,6 +394,15 @@ interface RecentQuotesTableProps {
   canPrintQuote?: boolean;
   canSendQuoteEmail?: boolean;
   onExport?: () => void;
+  /** Enables server-side pagination — the table no longer paginates/filters in the client */
+  manualPagination?: boolean;
+  pagination?: PaginationState;
+  onPaginationChange?: React.Dispatch<React.SetStateAction<PaginationState>>;
+  pageCount?: number;
+  rowCount?: number;
+  /** Controlled search value (server-side); used instead of the client column filter when in server mode */
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
 }
 
 interface QuoteActionPermissions {
@@ -432,6 +441,13 @@ export function RecentQuotesTable({
   canPrintQuote = true,
   canSendQuoteEmail = true,
   onExport,
+  manualPagination = false,
+  pagination,
+  onPaginationChange,
+  pageCount,
+  rowCount,
+  searchValue,
+  onSearchChange,
 }: RecentQuotesTableProps) {
   const { isNarrow: panelNarrow } = useNarrowMode();
   const viewportNarrow = useViewportNarrow();
@@ -552,13 +568,18 @@ export function RecentQuotesTable({
     [t, onEdit, onDelete, onQuoteActionRequest, handlePrintQuote, isCompact, actionPermissions],
   );
 
+  const isServerPagination = manualPagination && pagination !== undefined && onPaginationChange !== undefined;
+
   const table = useReactTable({
     data: quotes,
     columns,
+    pageCount: isServerPagination ? pageCount : undefined,
+    ...(isServerPagination && rowCount !== undefined && { rowCount }),
     state: {
       sorting,
       columnFilters,
       rowSelection: rowSelection ?? {},
+      ...(isServerPagination && { pagination }),
     },
     enableRowSelection: true,
     enableMultiRowSelection: !true,
@@ -569,6 +590,9 @@ export function RecentQuotesTable({
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    manualPagination: isServerPagination,
+    manualFiltering: isServerPagination,
+    ...(isServerPagination && { onPaginationChange }),
   });
 
   // Hide columns when isCompact is true
@@ -641,16 +665,20 @@ export function RecentQuotesTable({
                 table={table}
                 isCompact={isCompact}
                 filterPlaceholder={t('RecentQuotesTable.filterPlaceholder')}
-                searchQuery={(columnFilters.find(f => f.id === 'user_name')?.value as string) || ''}
-                onSearchChange={(value) => {
-                  setColumnFilters((prev) => {
-                    const newFilters = prev.filter((f) => f.id !== 'user_name');
-                    if (value) {
-                      newFilters.push({ id: 'user_name', value });
-                    }
-                    return newFilters;
-                  });
-                }}
+                searchQuery={isServerPagination
+                  ? (searchValue ?? '')
+                  : ((columnFilters.find(f => f.id === 'user_name')?.value as string) || '')}
+                onSearchChange={isServerPagination
+                  ? (value) => onSearchChange?.(value)
+                  : (value) => {
+                    setColumnFilters((prev) => {
+                      const newFilters = prev.filter((f) => f.id !== 'user_name');
+                      if (value) {
+                        newFilters.push({ id: 'user_name', value });
+                      }
+                      return newFilters;
+                    });
+                  }}
                 onCreate={onCreate}
                 onRefresh={onRefresh}
                 isRefreshing={isRefreshing}

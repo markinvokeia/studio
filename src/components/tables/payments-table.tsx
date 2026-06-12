@@ -17,13 +17,12 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { Payment } from '@/lib/types';
 import { cn, formatDisplayDate } from '@/lib/utils';
 import { isPaymentEditable } from '@/services/payments-service';
-import { ColumnDef, PaginationState, RowSelectionState } from '@tanstack/react-table';
+import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { CreditCard, Download, MoreHorizontal, Pencil, Printer, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import React from 'react';
 import { Button } from '../ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '../ui/dropdown-menu';
-import { Skeleton } from '../ui/skeleton';
 
 function HistoricalBadge({ label }: { label: string }) {
   return (
@@ -33,14 +32,21 @@ function HistoricalBadge({ label }: { label: string }) {
   );
 }
 
+const getPaymentType = (payment: Payment): { type: 'direct_payment' | 'prepaid' | 'payment_allocation' | 'credit_note_allocation'; variant: 'default' | 'secondary' | 'outline' } => {
+  if (payment.transaction_type === 'credit_note_allocation') return { type: 'credit_note_allocation', variant: 'secondary' };
+  if (payment.transaction_type === 'payment_allocation') return { type: 'payment_allocation', variant: 'secondary' };
+  if (payment.transaction_type === 'direct_payment' && !payment.invoice_id) return { type: 'prepaid', variant: 'outline' };
+  return { type: 'direct_payment', variant: 'default' };
+};
+
 const getColumns = (
   t: (key: string) => string,
-  tTransactionType: (key: string) => string,
   tActions: (key: string) => string,
   tPaymentMethods: (key: string) => string,
   onPrint?: (payment: Payment) => void,
   onSendEmail?: (payment: Payment) => void,
-  onEdit?: (payment: Payment) => void
+  onEdit?: (payment: Payment) => void,
+  onAllocate?: (payment: Payment) => void
 ): ColumnDef<Payment>[] => {
 
 
@@ -97,24 +103,10 @@ const getColumns = (
         <DataTableColumnHeader column={column} title={t('type')} />
       ),
       cell: ({ row }) => {
-        const payment = row.original;
-        let paymentType: 'payment' | 'prepaid' | 'credit_note';
-        let variant: 'default' | 'secondary' | 'outline';
-
-        if (payment.invoice_id && payment.type === 'credit_note') {
-          paymentType = 'credit_note';
-          variant = 'secondary';
-        } else if (!payment.invoice_id) {
-          paymentType = 'prepaid';
-          variant = 'outline';
-        } else {
-          paymentType = 'payment';
-          variant = 'default';
-        }
-
+        const { type, variant } = getPaymentType(row.original);
         return (
           <Badge variant={variant}>
-            {t(`paymentTypes.${paymentType}`)}
+            {t(`paymentTypes.${type}`)}
           </Badge>
         );
       },
@@ -187,16 +179,6 @@ const getColumns = (
       },
     },
     {
-      accessorKey: 'transaction_type',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('transaction_type')} />
-      ),
-      cell: ({ row }) => {
-        const type = row.original.transaction_type;
-        return <Badge variant="secondary" className="capitalize">{tTransactionType(type || 'direct_payment')}</Badge>;
-      }
-    },
-    {
       accessorKey: 'is_historical',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('isHistorical')} />
@@ -212,11 +194,12 @@ const getColumns = (
 
   ];
 
-  if (onPrint || onSendEmail || onEdit) {
+  if (onPrint || onSendEmail || onEdit || onAllocate) {
     columns.push({
       id: 'actions',
       cell: ({ row }) => {
         const payment = row.original;
+        const isPrepaid = getPaymentType(payment).type === 'prepaid';
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -231,6 +214,12 @@ const getColumns = (
                 <DropdownMenuItem onClick={() => onPrint(payment)}>
                   <Printer className="mr-2 h-4 w-4" />
                   {tActions('print')}
+                </DropdownMenuItem>
+              )}
+              {onAllocate && isPrepaid && (
+                <DropdownMenuItem onClick={() => onAllocate(payment)}>
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  <span>{tActions('viewAllocations')}</span>
                 </DropdownMenuItem>
               )}
               {onEdit && (
@@ -266,12 +255,18 @@ interface PaymentsTableProps {
   onPrint?: (payment: Payment) => void;
   onSendEmail?: (payment: Payment) => void;
   onEdit?: (payment: Payment) => void;
+  onAllocate?: (payment: Payment) => void;
   onCreate?: () => void;
   className?: string;
   pagination?: PaginationState;
   onPaginationChange?: React.Dispatch<React.SetStateAction<PaginationState>>;
   pageCount?: number;
+  /** Total de registros en el servidor; necesario para mostrar el total correcto con paginación manual */
+  rowCount?: number;
   manualPagination?: boolean;
+  /** Controlled column filters (server-side search); enables manual filtering in DataTable */
+  columnFilters?: ColumnFiltersState;
+  onColumnFiltersChange?: React.Dispatch<React.SetStateAction<ColumnFiltersState>>;
   onRowSelectionChange?: (selectedRows: Payment[]) => void;
   rowSelection?: RowSelectionState;
   setRowSelection?: React.Dispatch<React.SetStateAction<RowSelectionState>>;
@@ -283,11 +278,10 @@ interface PaymentsTableProps {
   isSales?: boolean;
 }
 
-export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [], onPrint, onSendEmail, onEdit, onCreate, className, pagination, onPaginationChange, pageCount, manualPagination = false, onRowSelectionChange, rowSelection, setRowSelection, title, description, canCreate, isCompact = false, onExport, isSales = true }: PaymentsTableProps) {
+export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [], onPrint, onSendEmail, onEdit, onAllocate, onCreate, className, pagination, onPaginationChange, pageCount, rowCount, manualPagination = false, columnFilters, onColumnFiltersChange, onRowSelectionChange, rowSelection, setRowSelection, title, description, canCreate, isCompact = false, onExport, isSales = true }: PaymentsTableProps) {
   const t = useTranslations('PaymentsPage.columns');
   const tPage = useTranslations('PaymentsPage');
   const { hasPermission } = usePermissions();
-  const tTransactionType = useTranslations('PaymentsPage.transactionType');
   const tActions = useTranslations('PaymentsPage.actions');
   const tPaymentMethods = useTranslations('PaymentsPage.columns.paymentMethods');
   const { isNarrow: panelNarrow } = useNarrowMode();
@@ -296,18 +290,8 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
   const showToggle = !viewportNarrow;
   const useListView = showToggle && viewMode === 'list';
   const isNarrow = panelNarrow || viewportNarrow || useListView;
-  const columns = React.useMemo(() => getColumns(t, tTransactionType, tActions, tPaymentMethods, onPrint, onSendEmail, onEdit), [t, tTransactionType, tActions, tPaymentMethods, onPrint, onSendEmail, onEdit]);
+  const columns = React.useMemo(() => getColumns(t, tActions, tPaymentMethods, onPrint, onSendEmail, onEdit, onAllocate), [t, tActions, tPaymentMethods, onPrint, onSendEmail, onEdit, onAllocate]);
 
-  if (isLoading) {
-    return (
-      <div className="space-y-4 pt-4">
-        <Skeleton className="h-8 w-full" />
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-12 w-full" />
-      </div>
-    );
-  }
   const filteredColumns = columns.filter(col => !columnsToHide.includes((col as any).accessorKey));
 
   return (
@@ -329,6 +313,7 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
         <DataTable
           columns={filteredColumns}
           data={payments}
+          isLoading={isLoading}
           filterColumnId="doc_no"
           filterPlaceholder={tPage('filterPlaceholder')}
           onRefresh={onRefresh}
@@ -347,12 +332,14 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
             exchange_rate: t('exchange_rate'),
             payment_method_code: t('method'),
             method: t('method'),
-            transaction_type: t('transaction_type'),
           }}
           pagination={pagination}
           onPaginationChange={onPaginationChange}
           pageCount={pageCount}
+          rowCount={rowCount}
           manualPagination={manualPagination}
+          columnFilters={columnFilters}
+          onColumnFiltersChange={onColumnFiltersChange}
           enableSingleRowSelection={!!onRowSelectionChange}
           rowSelection={rowSelection}
           setRowSelection={setRowSelection}

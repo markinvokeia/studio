@@ -16,8 +16,10 @@ interface UsePaymentsPaginationReturn {
   isLoading: boolean;
   pagination: PaginationState;
   totalPages: number;
+  totalItems: number;
   loadPayments: (pageIndex?: number, pageSize?: number, search?: string) => Promise<void>;
   handlePaginationChange: (updater: any) => void;
+  handleSearchChange: (search: string) => void;
   refreshPayments: () => Promise<void>;
 }
 
@@ -35,12 +37,17 @@ export function usePaymentsPagination({
     pageSize: initialPageSize
   });
   const [totalPages, setTotalPages] = useState(0);
+  const [totalItems, setTotalItems] = useState(0);
 
   // Keep a ref in sync with the latest pagination so loadPayments never needs
   // pagination in its own deps (avoiding cascading function recreations on every
   // page-state change).
   const paginationRef = useRef(pagination);
   paginationRef.current = pagination;
+
+  // Keep the active search term in a ref so page changes and refreshes always
+  // re-send it to the backend instead of dropping it.
+  const searchRef = useRef('');
 
   const loadPayments = useCallback(async (
     pageIndex?: number,
@@ -51,7 +58,8 @@ export function usePaymentsPagination({
     try {
       const currentPage = (pageIndex !== undefined ? pageIndex : paginationRef.current.pageIndex) + 1;
       const currentPageSize = pageSize !== undefined ? pageSize : paginationRef.current.pageSize;
-      const currentSearch = search || '';
+      const currentSearch = search !== undefined ? search : searchRef.current;
+      searchRef.current = currentSearch;
 
       const result = await fetchFunction({
         page: currentPage,
@@ -61,6 +69,7 @@ export function usePaymentsPagination({
 
       setPayments(result.payments);
       setTotalPages(result.totalPages);
+      setTotalItems(result.totalItems);
     } catch (error) {
       console.error("Failed to fetch payments:", error);
 
@@ -76,6 +85,7 @@ export function usePaymentsPagination({
 
       setPayments([]);
       setTotalPages(0);
+      setTotalItems(0);
     } finally {
       setIsLoading(false);
     }
@@ -84,11 +94,18 @@ export function usePaymentsPagination({
   const handlePaginationChange = useCallback((updater: any) => {
     const newPagination = typeof updater === 'function' ? updater(paginationRef.current) : updater;
     setPagination(newPagination);
-    loadPayments(newPagination.pageIndex, newPagination.pageSize);
+    loadPayments(newPagination.pageIndex, newPagination.pageSize, searchRef.current);
+  }, [loadPayments]);
+
+  // Apply a new search term: reset to the first page and re-query the backend.
+  const handleSearchChange = useCallback((search: string) => {
+    searchRef.current = search;
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+    loadPayments(0, paginationRef.current.pageSize, search);
   }, [loadPayments]);
 
   const refreshPayments = useCallback(async () => {
-    await loadPayments();
+    await loadPayments(paginationRef.current.pageIndex, paginationRef.current.pageSize, searchRef.current);
   }, [loadPayments]);
 
   useEffect(() => {
@@ -101,8 +118,10 @@ export function usePaymentsPagination({
     isLoading,
     pagination,
     totalPages,
+    totalItems,
     loadPayments,
     handlePaginationChange,
+    handleSearchChange,
     refreshPayments
   };
 }

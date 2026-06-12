@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { normalizePaymentMethodCode } from '@/lib/payment-methods';
 import { CajaMovimiento, CajaSesion } from '@/lib/types';
 import { cn, formatDateTime } from '@/lib/utils';
@@ -295,6 +296,7 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
 export default function CashSessionsPage() {
     const t = useTranslations('CashSessionsPage');
     const { toast } = useToast();
+    const { printCajaSesion, printCajaCierre } = usePrintDocument();
     const isNarrow = useViewportNarrow();
     const [sessions, setSessions] = React.useState<CajaSesion[]>([]);
     const [movements, setMovements] = React.useState<CajaMovimiento[]>([]);
@@ -341,18 +343,8 @@ export default function CashSessionsPage() {
 
     const handlePrint = async (session: CajaSesion) => {
         setIsPrinting(true);
-        toast({ title: t('toasts.generatingReportTitle'), description: t('toasts.generatingReportDesc') });
         try {
-            const blob = await api.getBlob(API_ROUTES.CASHIER.SESSIONS_PRINT, { cash_session_id: session.id });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `cash-session-report-${session.id}.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url);
-            toast({ title: t('toasts.reportDownloadedTitle'), description: t('toasts.reportDownloadedDesc') });
+            await printCajaSesion(session.id);
         } catch (error) {
             console.error("Failed to print session:", error);
             toast({ variant: 'destructive', title: t('toasts.errorTitle'), description: error instanceof Error ? error.message : t('toasts.reportErrorDesc') });
@@ -363,18 +355,8 @@ export default function CashSessionsPage() {
 
     const handlePrintClose = async (session: CajaSesion) => {
         setIsPrintingClose(true);
-        toast({ title: t('toasts.generatingClosingReportTitle'), description: t('toasts.generatingClosingReportDesc') });
         try {
-            const blob = await api.getBlob(API_ROUTES.CASHIER.SESSIONS_CLOSE_PRINT, { cash_session_id: session.id });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `closing-${session.id}.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url);
-            toast({ title: t('toasts.closingReportDownloadedTitle'), description: t('toasts.closingReportDownloadedDesc') });
+            await printCajaCierre(session.id);
         } catch (error) {
             console.error("Failed to print closing session:", error);
             toast({ variant: 'destructive', title: t('toasts.errorTitle'), description: error instanceof Error ? error.message : t('toasts.closingReportErrorDesc') });

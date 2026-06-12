@@ -21,11 +21,11 @@ export function normalizeApiResponse<T>(data: any): NormalizedResponse<T> {
     return { items: [], total: 0 };
   }
 
-  // If it's the format: [{ items: [...], total: X, total_pages: Y }]
+  // If it's the format: [{ items: [...], total: X | total_items: "X", total_pages: Y }]
   if (Array.isArray(data) && data.length > 0 && data[0] && Array.isArray(data[0].items)) {
     return {
       items: data[0].items,
-      total: Number(data[0].total) || data[0].items.length
+      total: Number(data[0].total ?? data[0].total_items) || data[0].items.length
     };
   }
 
@@ -33,7 +33,7 @@ export function normalizeApiResponse<T>(data: any): NormalizedResponse<T> {
   if (Array.isArray(data) && data.length > 0 && data[0] && Array.isArray(data[0].data)) {
     return {
       items: data[0].data,
-      total: Number(data[0].total) || data[0].data.length
+      total: Number(data[0].total ?? data[0].total_items) || data[0].data.length
     };
   }
 
@@ -48,7 +48,7 @@ export function normalizeApiResponse<T>(data: any): NormalizedResponse<T> {
   // Object with data/items property
   if (data && typeof data === 'object') {
     const items = data.items || data.data || data.result || [];
-    const total = Number(data.total) || (Array.isArray(items) ? items.length : 0);
+    const total = Number(data.total ?? data.total_items) || (Array.isArray(items) ? items.length : 0);
     return {
       items: Array.isArray(items) ? items : [],
       total

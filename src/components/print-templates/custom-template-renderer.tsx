@@ -6,8 +6,9 @@ import { formatDisplayDate } from '@/lib/utils';
 import { computeInvoiceTotals } from '@/components/print-templates/invoice-totals';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import type { ClinicInfo } from '@/hooks/useClinicInfo';
-import type { PrintData, PrintDocumentType, QuotePrintData, InvoicePrintData, PaymentPrintData, CreditNotePrintData, PrepaymentPrintData, FinancialSummaryPrintData } from '@/stores/print-document-store';
-import type { FinancialSummaryMovement } from '@/lib/types';
+import type { PrintData, PrintDocumentType, QuotePrintData, InvoicePrintData, PaymentPrintData, CreditNotePrintData, PrepaymentPrintData, FinancialSummaryPrintData, CajaAperturaPrintData, CajaCierrePrintData, CajaSesionPrintData } from '@/stores/print-document-store';
+import type { FinancialSummaryMovement, CajaSessionMovement, CajaSessionDetails } from '@/lib/types';
+import { normalizePaymentMethodCode } from '@/lib/payment-methods';
 
 interface CustomTemplateRendererProps {
   html: string;
@@ -189,6 +190,113 @@ function buildMovementsTable(currency: string, movements: FinancialSummaryMoveme
   </div>`;
 }
 
+const CAJA_METHOD_LABELS: Record<string, string> = {
+  CASH: 'Efectivo',
+  BANK_TRANSFER: 'Transferencia',
+  CREDIT_CARD: 'Tarjeta crédito',
+  DEBIT_CARD: 'Tarjeta débito',
+  MOBILE_PAYMENT: 'Pago móvil',
+  MERCADO_PAGO: 'Mercado Pago',
+  PE: 'PE',
+};
+
+function buildOpeningAmountsTable(amounts: Array<{ currency: string; opening_amount: number }>): string {
+  if (!amounts.length) return '<p style="color:#9ca3af;">Sin datos de apertura.</p>';
+  const rows = amounts.map((a) => {
+    const n = Number(a.opening_amount ?? 0);
+    const val = n.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return `<tr><td style="font-weight:500;">${a.currency}</td><td style="text-align:right;font-weight:600;">${a.currency} ${val}</td></tr>`;
+  }).join('');
+  return `<table class="print-template-table" style="width:100%;">
+    <thead><tr><th style="text-align:left;">Moneda</th><th style="text-align:right;">Monto apertura</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+type CurrencyData = NonNullable<CajaSessionDetails['currencies_data']>[number];
+
+function buildCajaClosingSummaryTable(
+  closingMovements: CurrencyData[],
+  openingDetails: Record<string, Record<string, number>>,
+): string {
+  if (!closingMovements.length) return '<p style="color:#9ca3af;">Sin datos de cierre.</p>';
+  const sections = closingMovements.map((mov) => {
+    const openingAmount = openingDetails[mov.currency.toLowerCase()]?.total ?? 0;
+    const variance = Number(mov.declared_cash) - Number(mov.calculated_cash);
+    const fmtVal = (v: number) => v.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const varianceColor = variance < 0 ? '#dc2626' : '#16a34a';
+    return `<div style="margin-bottom:1.25rem;">
+      <p style="font-size:0.75rem;font-weight:600;text-transform:uppercase;color:#6b7280;margin-bottom:0.25rem;">${mov.currency}</p>
+      <table class="print-template-table" style="width:100%;">
+        <tbody>
+          <tr><td style="color:#6b7280;">Monto apertura</td><td style="text-align:right;">${mov.currency} ${fmtVal(openingAmount)}</td></tr>
+          <tr><td style="color:#6b7280;">Efectivo declarado</td><td style="text-align:right;">${mov.currency} ${fmtVal(Number(mov.declared_cash))}</td></tr>
+          <tr><td style="color:#6b7280;">Efectivo sistema</td><td style="text-align:right;">${mov.currency} ${fmtVal(Number(mov.calculated_cash))}</td></tr>
+          <tr><td style="color:#6b7280;">Diferencia</td><td style="text-align:right;font-weight:600;color:${varianceColor};">${mov.currency} ${fmtVal(variance)}</td></tr>
+          <tr><td style="color:#6b7280;">Tarjeta (sistema)</td><td style="text-align:right;">${mov.currency} ${fmtVal(Number(mov.calculated_card))}</td></tr>
+          <tr><td style="color:#6b7280;">Transferencia (sistema)</td><td style="text-align:right;">${mov.currency} ${fmtVal(Number(mov.calculated_transfer))}</td></tr>
+          <tr><td style="color:#6b7280;">Otros (sistema)</td><td style="text-align:right;">${mov.currency} ${fmtVal(Number(mov.calculated_other))}</td></tr>
+        </tbody>
+      </table>
+    </div>`;
+  }).join('');
+  return sections;
+}
+
+function buildCajaMovementsTable(movements: CajaSessionMovement[]): string {
+  const currencies = [...new Set(movements.map((m) => m.currency))].sort((a, b) =>
+    a === 'UYU' ? -1 : b === 'UYU' ? 1 : a.localeCompare(b)
+  );
+  if (!currencies.length) return '<p style="color:#9ca3af;text-align:center;padding:0.5rem;">Sin movimientos registrados.</p>';
+
+  return currencies.map((currency) => {
+    const mMovs = movements.filter((m) => m.currency === currency);
+    const totalIngresos = mMovs.filter((m) => m.amount > 0).reduce((s, m) => s + m.amount, 0);
+    const totalEgresos = mMovs.filter((m) => m.amount < 0).reduce((s, m) => s + Math.abs(m.amount), 0);
+    const fmtVal = (v: number) => v.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const rows = mMovs.map((mov) => {
+      const isEgreso = mov.amount < 0;
+      const color = isEgreso ? 'color:#dc2626;' : '';
+      return `<tr>
+        <td style="font-size:0.75rem;white-space:nowrap;">${formatDisplayDate(mov.created_at)}</td>
+        <td style="font-size:0.75rem;">${mov.payment_method_name || '—'}</td>
+        <td style="font-size:0.75rem;">${mov.description || '—'}</td>
+        <td style="font-size:0.75rem;color:#6b7280;">${mov.registered_by_user || '—'}</td>
+        <td style="text-align:right;font-size:0.75rem;font-weight:500;${color}">${isEgreso ? '−' : ''}${currency} ${fmtVal(Math.abs(mov.amount))}</td>
+      </tr>`;
+    }).join('');
+
+    return `<div style="margin-bottom:1.5rem;">
+      <p style="font-size:0.75rem;font-weight:600;text-transform:uppercase;color:#6b7280;margin-bottom:0.25rem;">${currency}</p>
+      <table class="print-template-table" style="width:100%;">
+        <thead><tr>
+          <th style="text-align:left;width:6rem;">Fecha</th>
+          <th style="text-align:left;">Método</th>
+          <th style="text-align:left;">Descripción</th>
+          <th style="text-align:left;">Registrado por</th>
+          <th style="text-align:right;width:8rem;">Monto</th>
+        </tr></thead>
+        <tbody>${rows || `<tr><td colspan="5" style="text-align:center;color:#9ca3af;padding:0.5rem;">Sin movimientos</td></tr>`}</tbody>
+        <tfoot>
+          <tr style="border-top:1px solid #d1d5db;">
+            <td colspan="4" style="text-align:right;font-size:0.75rem;color:#6b7280;">Total ingresos</td>
+            <td style="text-align:right;font-size:0.75rem;font-weight:600;color:#16a34a;">${currency} ${fmtVal(totalIngresos)}</td>
+          </tr>
+          <tr>
+            <td colspan="4" style="text-align:right;font-size:0.75rem;color:#6b7280;">Total egresos</td>
+            <td style="text-align:right;font-size:0.75rem;font-weight:600;color:#dc2626;">−${currency} ${fmtVal(totalEgresos)}</td>
+          </tr>
+          <tr style="border-top:2px solid #d1d5db;">
+            <td colspan="4" style="text-align:right;font-size:0.75rem;font-weight:700;">Neto</td>
+            <td style="text-align:right;font-size:0.75rem;font-weight:700;">${currency} ${fmtVal(totalIngresos - totalEgresos)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>`;
+  }).join('');
+}
+
 function buildClinicValues(clinic: ClinicInfo | null): Record<string, string> {
   const phone = clinic?.phone || '';
   const email = clinic?.email || '';
@@ -312,6 +420,42 @@ function substituteVariables(html: string, data: PrintData, type: PrintDocumentT
       exchange_rate: prepayment.exchange_rate && prepayment.exchange_rate !== 1 ? String(prepayment.exchange_rate) : '—',
       amount: fmt(amount, currency),
       notes: prepayment.notes ? `<p style="color:#6b7280;font-weight:500;margin-bottom:0.25rem;">${t('notes')}</p><p>${prepayment.notes}</p>` : '',
+    });
+  } else if (type === 'caja_apertura') {
+    const d = data as CajaAperturaPrintData;
+    const { details } = d;
+    const openingDetails = details.opening_details ?? {};
+    const amounts = (details.currencies_data ?? []).map((cd) => ({ currency: cd.currency, opening_amount: cd.opening_amount }));
+    Object.assign(values, {
+      session_id:            String(details.id),
+      cashier_name:          details.user_name || (openingDetails as any).opened_by || '—',
+      opening_date:          details.opened_at ? format(new Date(details.opened_at), 'dd/MM/yyyy HH:mm') : '—',
+      cash_point_name:       details.cash_point_name || '—',
+      opening_amounts_table: buildOpeningAmountsTable(amounts),
+    });
+  } else if (type === 'caja_cierre') {
+    const d = data as CajaCierrePrintData;
+    const { details } = d;
+    const openingDetails = details.opening_details ?? {};
+    Object.assign(values, {
+      session_id:            String(details.id),
+      cashier_name:          details.user_name || (openingDetails as any).opened_by || '—',
+      opening_date:          details.opened_at ? format(new Date(details.opened_at), 'dd/MM/yyyy HH:mm') : '—',
+      closing_date:          details.closed_at ? format(new Date(details.closed_at), 'dd/MM/yyyy HH:mm') : '—',
+      cash_point_name:       details.cash_point_name || '—',
+      closing_notes:         (details as any).closing_notes || '',
+      closing_summary_table: buildCajaClosingSummaryTable(details.currencies_data ?? [], openingDetails as Record<string, Record<string, number>>),
+    });
+  } else if (type === 'caja_sesion') {
+    const d = data as CajaSesionPrintData;
+    const { details } = d;
+    Object.assign(values, {
+      session_id:      String(details.id),
+      cashier_name:    details.user_name || '—',
+      opening_date:    details.opened_at ? format(new Date(details.opened_at), 'dd/MM/yyyy HH:mm') : '—',
+      closing_date:    details.closed_at ? format(new Date(details.closed_at), 'dd/MM/yyyy HH:mm') : '—',
+      cash_point_name: details.cash_point_name || '—',
+      movements_table: buildCajaMovementsTable(details.movements_data ?? []),
     });
   } else if (type === 'financial_summary') {
     const d = data as FinancialSummaryPrintData;

@@ -1371,7 +1371,6 @@ export default function AppointmentsPage() {
                     end,
                     doctorGroupId: appt.doctorId || undefined,
                     calendarGroupId: matchedCalendar?.id || appt.calendar_source_id || undefined,
-                    sedeGroupId: matchedCalendar?.sede_id || undefined,
                     data: { ...appt, kind: 'appointment' as const },
                     color: appt.color,
                     colorId: appt.colorId,
@@ -1448,35 +1447,44 @@ export default function AppointmentsPage() {
             }));
     }, [calendars, selectedCalendarIds]);
 
-    const sedeGroupingColumns = React.useMemo<CalendarGroupingColumn[]>(() => {
-        const seenIds = new Set<string>();
-        return calendars
-            .filter((cal) => selectedCalendarIds.includes(cal.id) && !!cal.sede_id)
-            .reduce<CalendarGroupingColumn[]>((acc, cal) => {
-                if (!seenIds.has(cal.sede_id!)) {
-                    seenIds.add(cal.sede_id!);
-                    const sedeName = sedes.find(s => s.id === cal.sede_id)?.name || cal.sede_name || cal.sede_id!;
-                    acc.push({
-                        id: cal.sede_id!,
-                        label: sedeName,
-                        value: cal.sede_id!,
-                    });
+    // Calendars grouped by sede, used by the calendar selector to offer a
+    // per-sede "select all" toggle. Calendars without a sede fall into a
+    // dedicated bucket rendered separately.
+    const calendarSedeGroups = React.useMemo(() => {
+        const groups = new Map<string, { id: string; name: string; calendars: CalendarType[] }>();
+        const noSede: CalendarType[] = [];
+        calendars.forEach((cal) => {
+            if (cal.sede_id) {
+                if (!groups.has(cal.sede_id)) {
+                    const sedeName = sedes.find(s => s.id === cal.sede_id)?.name || cal.sede_name || cal.sede_id;
+                    groups.set(cal.sede_id, { id: cal.sede_id, name: sedeName, calendars: [] });
                 }
-                return acc;
-            }, []);
-    }, [calendars, selectedCalendarIds, sedes]);
+                groups.get(cal.sede_id)!.calendars.push(cal);
+            } else {
+                noSede.push(cal);
+            }
+        });
+        return { sedeGroups: Array.from(groups.values()), noSede };
+    }, [calendars, sedes]);
+
+    const handleSelectSede = React.useCallback((calendarIds: string[], checked: boolean) => {
+        setSelectedCalendarIds(prev => {
+            if (checked) {
+                return Array.from(new Set([...prev, ...calendarIds]));
+            }
+            return prev.filter(id => !calendarIds.includes(id));
+        });
+    }, []);
 
     const groupingColumns = React.useMemo<CalendarGroupingColumn[]>(() => {
         if (groupBy === 'doctor') return doctorGroupingColumns;
         if (groupBy === 'calendar') return calendarGroupingColumns;
-        if (groupBy === 'sede') return sedeGroupingColumns;
         return [];
-    }, [calendarGroupingColumns, doctorGroupingColumns, sedeGroupingColumns, groupBy]);
+    }, [calendarGroupingColumns, doctorGroupingColumns, groupBy]);
 
     const groupByLabel = React.useMemo(() => {
         if (groupBy === 'doctor') return t('grouping.options.doctor');
         if (groupBy === 'calendar') return t('grouping.options.calendar');
-        if (groupBy === 'sede') return t('grouping.options.sede');
         return t('grouping.options.none');
     }, [groupBy, t]);
 
@@ -1618,7 +1626,32 @@ export default function AppointmentsPage() {
                                     <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setSelectedCalendarIds([])}>{t('deselectAll')}</Button>
                                 </div>
                                 <div className="space-y-1">
-                                    {calendars.map((calendar) => (
+                                    {calendarSedeGroups.sedeGroups.map((group) => {
+                                        const groupCalendarIds = group.calendars.map(c => c.id);
+                                        const selectedCount = groupCalendarIds.filter(id => selectedCalendarIds.includes(id)).length;
+                                        const allSelected = selectedCount === groupCalendarIds.length;
+                                        const someSelected = selectedCount > 0 && !allSelected;
+                                        return (
+                                            <div key={group.id}>
+                                                <label className="flex items-center gap-2 py-2 px-1 rounded-md hover:bg-muted/50 cursor-pointer">
+                                                    <Checkbox checked={someSelected ? 'indeterminate' : allSelected} onCheckedChange={(checked) => handleSelectSede(groupCalendarIds, !!checked)} />
+                                                    <span className="text-sm font-medium">{group.name}</span>
+                                                </label>
+                                                <div className="pl-6">
+                                                    {group.calendars.map((calendar) => (
+                                                        <label key={calendar.id} className="flex items-center justify-between py-2 px-1 rounded-md hover:bg-muted/50 cursor-pointer">
+                                                            <div className="flex items-center gap-2">
+                                                                <Checkbox checked={selectedCalendarIds.includes(calendar.id)} onCheckedChange={(checked) => handleSelectCalendar(calendar.id, !!checked)} />
+                                                                <span className="text-sm">{calendar.name}</span>
+                                                            </div>
+                                                            <div className="h-3 w-3 rounded-full" style={{ backgroundColor: calendar.color }} />
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    {calendarSedeGroups.noSede.map((calendar) => (
                                         <label key={calendar.id} className="flex items-center justify-between py-2 px-1 rounded-md hover:bg-muted/50 cursor-pointer">
                                             <div className="flex items-center gap-2">
                                                 <Checkbox checked={selectedCalendarIds.includes(calendar.id)} onCheckedChange={(checked) => handleSelectCalendar(calendar.id, !!checked)} />
@@ -1773,27 +1806,62 @@ export default function AppointmentsPage() {
                                             <ChevronDown className="h-4 w-4 text-muted-foreground" />
                                         </Button>
                                     </PopoverTrigger>
-                                    <PopoverContent className="w-56 p-2">
+                                    <PopoverContent className="w-64 p-2">
                                         <Command>
                                             <CommandList>
                                                 <CommandGroup>
                                                     <CommandItem onSelect={() => setSelectedCalendarIds(calendars.map(c => c.id))}>{t('selectAll')}</CommandItem>
                                                     <CommandItem onSelect={() => setSelectedCalendarIds([])}>{t('deselectAll')}</CommandItem>
                                                     <hr className="my-2" />
-                                                    {calendars.map((calendar) => {
-                                                        const isSelected = selectedCalendarIds.includes(calendar.id);
+                                                    {calendarSedeGroups.sedeGroups.map((group) => {
+                                                        const groupCalendarIds = group.calendars.map(c => c.id);
+                                                        const selectedCount = groupCalendarIds.filter(id => selectedCalendarIds.includes(id)).length;
+                                                        const allSelected = selectedCount === groupCalendarIds.length;
+                                                        const someSelected = selectedCount > 0 && !allSelected;
                                                         return (
-                                                        <CommandItem key={calendar.id} onSelect={() => handleSelectCalendar(calendar.id, !isSelected)}>
-                                                            <div className="flex items-center justify-between w-full">
-                                                                <div className='flex items-center'>
-                                                                    <Checkbox checked={isSelected} className="pointer-events-none" />
-                                                                    <span className="ml-2">{calendar.name}</span>
-                                                                </div>
-                                                                <div className="h-4 w-4 rounded-full" style={{ backgroundColor: calendar.color }} />
-                                                            </div>
-                                                        </CommandItem>
-                                                    );
+                                                            <React.Fragment key={group.id}>
+                                                                <CommandItem onSelect={() => handleSelectSede(groupCalendarIds, !allSelected)} className="font-medium">
+                                                                    <div className="flex items-center">
+                                                                        <Checkbox checked={someSelected ? 'indeterminate' : allSelected} className="pointer-events-none" />
+                                                                        <span className="ml-2">{group.name}</span>
+                                                                    </div>
+                                                                </CommandItem>
+                                                                {group.calendars.map((calendar) => {
+                                                                    const isSelected = selectedCalendarIds.includes(calendar.id);
+                                                                    return (
+                                                                        <CommandItem key={calendar.id} onSelect={() => handleSelectCalendar(calendar.id, !isSelected)} className="pl-6">
+                                                                            <div className="flex items-center justify-between w-full">
+                                                                                <div className='flex items-center'>
+                                                                                    <Checkbox checked={isSelected} className="pointer-events-none" />
+                                                                                    <span className="ml-2">{calendar.name}</span>
+                                                                                </div>
+                                                                                <div className="h-4 w-4 rounded-full" style={{ backgroundColor: calendar.color }} />
+                                                                            </div>
+                                                                        </CommandItem>
+                                                                    );
+                                                                })}
+                                                            </React.Fragment>
+                                                        );
                                                     })}
+                                                    {calendarSedeGroups.noSede.length > 0 && (
+                                                        <>
+                                                            {calendarSedeGroups.sedeGroups.length > 0 && <hr className="my-2" />}
+                                                            {calendarSedeGroups.noSede.map((calendar) => {
+                                                                const isSelected = selectedCalendarIds.includes(calendar.id);
+                                                                return (
+                                                                    <CommandItem key={calendar.id} onSelect={() => handleSelectCalendar(calendar.id, !isSelected)}>
+                                                                        <div className="flex items-center justify-between w-full">
+                                                                            <div className='flex items-center'>
+                                                                                <Checkbox checked={isSelected} className="pointer-events-none" />
+                                                                                <span className="ml-2">{calendar.name}</span>
+                                                                            </div>
+                                                                            <div className="h-4 w-4 rounded-full" style={{ backgroundColor: calendar.color }} />
+                                                                        </div>
+                                                                    </CommandItem>
+                                                                );
+                                                            })}
+                                                        </>
+                                                    )}
                                                 </CommandGroup>
                                             </CommandList>
                                         </Command>
@@ -1875,19 +1943,6 @@ export default function AppointmentsPage() {
                                                                 <div className="flex items-center justify-between w-full">
                                                                     <span>{t('grouping.options.calendar')}</span>
                                                                     {groupBy === 'calendar' && <Check className="h-4 w-4" />}
-                                                                </div>
-                                                            </CommandItem>
-                                                            <CommandItem
-                                                                onSelect={() => {
-                                                                    if (sedeGroupingColumns.length > 0) {
-                                                                        setGroupBy('sede');
-                                                                    }
-                                                                }}
-                                                                disabled={sedeGroupingColumns.length === 0}
-                                                            >
-                                                                <div className="flex items-center justify-between w-full">
-                                                                    <span>{t('grouping.options.sede')}</span>
-                                                                    {groupBy === 'sede' && <Check className="h-4 w-4" />}
                                                                 </div>
                                                             </CommandItem>
                                                         </CommandGroup>

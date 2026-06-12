@@ -225,6 +225,12 @@ export function PaymentEditDialog({ open, onOpenChange, payment, onSuccess }: Pa
                                         {method.name}
                                     </SelectItem>
                                 ))}
+                                {/* Método actual del pago cuando ya no figura en el catálogo (p. ej. desactivado) */}
+                                {paymentMethodId && !paymentMethods.some((method) => method.id === paymentMethodId) && (
+                                    <SelectItem value={paymentMethodId}>
+                                        {payment?.payment_method || payment?.method || paymentMethodId}
+                                    </SelectItem>
+                                )}
                             </SelectContent>
                         </Select>
                     </div>

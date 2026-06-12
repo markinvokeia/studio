@@ -199,6 +199,63 @@ const FINANCIAL_SUMMARY_DEFAULT = `<div style="font-family:sans-serif;font-size:
   ${FOOTER}
 </div>`;
 
+const CAJA_APERTURA_DEFAULT = `<div style="font-family:sans-serif;font-size:0.85rem;color:#111827;">
+  ${HEADER}
+  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1.5rem;padding-bottom:0.75rem;border-bottom:1px solid #e5e7eb;">
+    <h1 style="font-size:1.4rem;font-weight:700;text-transform:uppercase;margin:0;">Apertura de Caja</h1>
+    <span style="font-size:0.85rem;color:#4b5563;font-family:monospace;">#{{session_id}}</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.25rem 2rem;margin-bottom:1.5rem;font-size:0.85rem;">
+    <div><span style="color:#6b7280;">Cajero: </span><strong>{{cashier_name}}</strong></div>
+    <div><span style="color:#6b7280;">Apertura: </span><strong>{{opening_date}}</strong></div>
+    <div><span style="color:#6b7280;">Punto de caja: </span><strong>{{cash_point_name}}</strong></div>
+  </div>
+  <div style="margin-bottom:1.5rem;">
+    <h2 style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#6b7280;margin-bottom:0.5rem;">Saldo inicial</h2>
+    {{opening_amounts_table}}
+  </div>
+  ${FOOTER}
+</div>`;
+
+const CAJA_CIERRE_DEFAULT = `<div style="font-family:sans-serif;font-size:0.85rem;color:#111827;">
+  ${HEADER}
+  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1.5rem;padding-bottom:0.75rem;border-bottom:1px solid #e5e7eb;">
+    <h1 style="font-size:1.4rem;font-weight:700;text-transform:uppercase;margin:0;">Cierre de Caja</h1>
+    <span style="font-size:0.85rem;color:#4b5563;font-family:monospace;">#{{session_id}}</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.25rem 2rem;margin-bottom:1.5rem;font-size:0.85rem;">
+    <div><span style="color:#6b7280;">Cajero: </span><strong>{{cashier_name}}</strong></div>
+    <div><span style="color:#6b7280;">Apertura: </span><strong>{{opening_date}}</strong></div>
+    <div><span style="color:#6b7280;">Cierre: </span><strong>{{closing_date}}</strong></div>
+    <div><span style="color:#6b7280;">Punto de caja: </span><strong>{{cash_point_name}}</strong></div>
+  </div>
+  <div style="margin-bottom:1.5rem;">
+    <h2 style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#6b7280;margin-bottom:0.5rem;">Resumen de cierre</h2>
+    {{closing_summary_table}}
+  </div>
+  <div style="font-size:0.85rem;">{{closing_notes}}</div>
+  ${FOOTER}
+</div>`;
+
+const CAJA_SESION_DEFAULT = `<div style="font-family:sans-serif;font-size:0.85rem;color:#111827;">
+  ${HEADER}
+  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1.5rem;padding-bottom:0.75rem;border-bottom:1px solid #e5e7eb;">
+    <h1 style="font-size:1.4rem;font-weight:700;text-transform:uppercase;margin:0;">Reporte de Sesión</h1>
+    <span style="font-size:0.85rem;color:#4b5563;font-family:monospace;">#{{session_id}}</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.25rem 2rem;margin-bottom:1.5rem;font-size:0.85rem;">
+    <div><span style="color:#6b7280;">Cajero: </span><strong>{{cashier_name}}</strong></div>
+    <div><span style="color:#6b7280;">Apertura: </span><strong>{{opening_date}}</strong></div>
+    <div><span style="color:#6b7280;">Cierre: </span><strong>{{closing_date}}</strong></div>
+    <div><span style="color:#6b7280;">Punto de caja: </span><strong>{{cash_point_name}}</strong></div>
+  </div>
+  <div style="margin-bottom:1.5rem;">
+    <h2 style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#6b7280;margin-bottom:0.5rem;">Movimientos</h2>
+    {{movements_table}}
+  </div>
+  ${FOOTER}
+</div>`;
+
 export const PRINT_TEMPLATE_DEFAULTS: Record<PrintDocumentType, string> = {
   invoice:           INVOICE_DEFAULT,
   quote:             QUOTE_DEFAULT,
@@ -206,4 +263,7 @@ export const PRINT_TEMPLATE_DEFAULTS: Record<PrintDocumentType, string> = {
   credit_note:       CREDIT_NOTE_DEFAULT,
   prepayment:        PREPAYMENT_DEFAULT,
   financial_summary: FINANCIAL_SUMMARY_DEFAULT,
+  caja_apertura:     CAJA_APERTURA_DEFAULT,
+  caja_cierre:       CAJA_CIERRE_DEFAULT,
+  caja_sesion:       CAJA_SESION_DEFAULT,
 };

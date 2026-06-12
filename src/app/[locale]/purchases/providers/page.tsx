@@ -85,7 +85,8 @@ const providerFormSchema = (t: (key: string) => string) => z.object({
     return isValidPhoneNumber(val);
   }, { message: t('ProvidersPage.createDialog.validation.alternativePhoneInvalid') }),
   identity_document: z.string()
-    .regex(/^\d*$/, { message: t('ProvidersPage.createDialog.validation.identityInvalid') })
+    .min(1, { message: t('ProvidersPage.createDialog.validation.identityRequired') })
+    .regex(/^\d+$/, { message: t('ProvidersPage.createDialog.validation.identityInvalid') })
     .max(10, { message: t('ProvidersPage.createDialog.validation.identityMaxLength') }),
   address: z.string().optional(),
   notes: z.string().optional(),

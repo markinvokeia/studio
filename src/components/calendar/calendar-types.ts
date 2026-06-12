@@ -1,6 +1,6 @@
 export type CalendarView = 'day' | 'week' | 'month' | 'year' | '2-day' | '3-day' | 'schedule';
 
-export type CalendarGroupBy = 'none' | 'doctor' | 'calendar' | 'sede';
+export type CalendarGroupBy = 'none' | 'doctor' | 'calendar';
 
 export type CalendarBreakpoint = 'mobile' | 'tablet' | 'desktop';
 
@@ -13,7 +13,6 @@ export interface CalendarEvent {
   colorId?: string;
   doctorGroupId?: string;
   calendarGroupId?: string;
-  sedeGroupId?: string;
   totalColumns?: number;
   column?: number;
   data?: any;
