@@ -343,6 +343,18 @@ const getColumns = (
       enableHiding: !isCompact,
     },
     {
+      accessorKey: 'external_id',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('QuoteColumns.externalId')} />
+      ),
+      cell: ({ row }) => (
+        <span className="font-mono text-xs text-muted-foreground">
+          {row.original.external_id ?? '—'}
+        </span>
+      ),
+      enableHiding: !isCompact,
+    },
+    {
       id: 'actions',
       cell: ({ row }) => {
         const quote = row.original;
@@ -640,6 +652,7 @@ export function RecentQuotesTable({
     status: t('UserColumns.status'),
     billing_status: t('QuoteColumns.billingStatus'),
     payment_status: t('Navigation.Payments'),
+    external_id: t('QuoteColumns.externalId'),
   };
 
   return (

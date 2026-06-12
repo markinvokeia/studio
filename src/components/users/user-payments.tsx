@@ -134,6 +134,15 @@ const getColumns = (t: (key: string) => string): ColumnDef<Payment>[] => [
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('PaymentsPage.columns.date')} />,
     cell: ({ row }) => formatDisplayDate(row.original.payment_date || row.original.createdAt),
   },
+  {
+    accessorKey: 'external_id',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('PaymentsPage.columns.external_id')} />,
+    cell: ({ row }) => (
+      <span className="font-mono text-xs text-muted-foreground">
+        {row.original.external_id ?? '—'}
+      </span>
+    ),
+  },
 ];
 
 // ── Data fetching ─────────────────────────────────────────────────────────────
@@ -487,6 +496,7 @@ export function UserPayments({ userId, mode = 'sales', refreshTrigger }: UserPay
               method: t('PaymentsPage.columns.method'),
               type: t('PaymentsPage.columns.type'),
               payment_date: t('PaymentsPage.columns.date'),
+              external_id: t('PaymentsPage.columns.external_id'),
             }}
           />
         </CardContent>

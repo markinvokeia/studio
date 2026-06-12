@@ -222,6 +222,17 @@ const getColumns = (
       cell: ({ row }) => formatDisplayDate(row.original.createdAt),
     },
     {
+      accessorKey: 'external_id',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={columnTranslations.external_id || "External ID"} />
+      ),
+      cell: ({ row }) => (
+        <span className="font-mono text-xs text-muted-foreground">
+          {row.original.external_id ?? '—'}
+        </span>
+      ),
+    },
+    {
       id: 'actions',
       cell: ({ row }) => {
         const invoice = row.original;
@@ -338,6 +349,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     paid_amount: t('columns.paidAmount'),
     due_date: t('columns.dueDate'),
     createdAt: t('columns.createdAt'),
+    external_id: t('columns.externalId'),
     ...columnTranslations,
   }), [t, isSales, columnTranslations]);
 

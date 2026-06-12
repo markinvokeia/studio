@@ -170,6 +170,7 @@ function mapApiUser(apiUser: any): User {
     email: apiUser.email || '',
     phone_number: apiUser.phone_number || '',
     is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
+    internal_id: apiUser.internal_id ?? null,
     identity_document: apiUser.identity_document,
     birth_date: formatBirthDate(apiUser.birth_date || apiUser.birthday),
     avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
@@ -891,6 +892,7 @@ function UsersTableWithCards({
           isRefreshing={isRefreshing}
           extraButtons={null}
           columnTranslations={{
+            internal_id: t('UserColumns.internal_id'),
             name: t('UserColumns.name'),
             email: t('UserColumns.email'),
             identity_document: t('UserColumns.identity_document'),
@@ -902,6 +904,7 @@ function UsersTableWithCards({
         />
       )}
       columnTranslations={{
+        internal_id: t('UserColumns.internal_id'),
         name: t('UserColumns.name'),
         email: t('UserColumns.email'),
         identity_document: t('UserColumns.identity_document'),

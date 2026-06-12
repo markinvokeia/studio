@@ -1338,6 +1338,7 @@
     "activate": "Activate",
     "deactivate": "Deactivate",
     "identity_document": "Identity Document",
+    "internal_id": "Internal ID",
     "currentDebt": "Current Debt",
     "openMenu": "Open menu",
     "active": "Active",
@@ -1423,7 +1424,8 @@
     "createdAt": "Created At",
     "currency": "Currency",
     "exchangeRate": "Exchange Rate",
-    "quoteDocNo": "Quote Doc No."
+    "quoteDocNo": "Quote Doc No.",
+    "externalId": "External ID"
   },
   "QuoteBillingDialog": {
     "title": "Invoice quote",
@@ -1962,7 +1964,8 @@
       "isCreditNote": "Credit Note",
       "creditNote": "Credit Note",
       "invoice": "Invoice",
-      "isHistorical": "Historical"
+      "isHistorical": "Historical",
+      "externalId": "External ID"
     },
     "invoiceDialog": {
       "isHistorical": "Historical",
@@ -2683,6 +2686,7 @@
       "credit_note": "Credit Note",
       "invoice": "Invoice",
       "isHistorical": "Historical",
+      "external_id": "External ID",
       "paymentMethods": {
         "efectivo": "Cash",
         "tarjeta_de_debito": "Debit Card",

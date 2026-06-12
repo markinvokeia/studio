@@ -168,6 +168,15 @@ const getColumns = (t: (key: string) => string, tStatus: (key: string) => string
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('InvoicesPage.columns.createdAt')} />,
     cell: ({ row }) => formatDisplayDate(row.original.createdAt),
   },
+  {
+    accessorKey: 'external_id',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('InvoicesPage.columns.externalId')} />,
+    cell: ({ row }) => (
+      <span className="font-mono text-xs text-muted-foreground">
+        {row.original.external_id ?? '—'}
+      </span>
+    ),
+  },
 ];
 
 // ── Invoice-detail inner table columns ────────────────────────────────────────
@@ -299,6 +308,7 @@ async function getInvoicesForUser(userId: string): Promise<Invoice[]> {
       is_historical: d.is_historical || false,
       due_date: d.due_date || null,
       paid_amount: d.paid_amount != null ? parseFloat(d.paid_amount) : undefined,
+      external_id: d.external_id ?? null,
     }));
 
     const needsQuoteFallback = invoices.some((invoice: Invoice) =>
@@ -1038,6 +1048,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
               payment_status: t('InvoicesPage.columns.payment'),
               due_date: t('InvoicesPage.columns.dueDate'),
               createdAt: t('InvoicesPage.columns.createdAt'),
+              external_id: t('InvoicesPage.columns.externalId'),
             }}
           />
         </CardContent>

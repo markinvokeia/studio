@@ -191,6 +191,17 @@ const getColumns = (
         );
       },
     },
+    {
+      accessorKey: 'external_id',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('external_id')} />
+      ),
+      cell: ({ row }) => (
+        <span className="font-mono text-xs text-muted-foreground">
+          {row.getValue('external_id') ?? '—'}
+        </span>
+      ),
+    },
 
   ];
 
@@ -332,6 +343,7 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
             exchange_rate: t('exchange_rate'),
             payment_method_code: t('method'),
             method: t('method'),
+            external_id: t('external_id'),
           }}
           pagination={pagination}
           onPaginationChange={onPaginationChange}

@@ -1338,6 +1338,7 @@
     "activate": "Activar",
     "deactivate": "Desactivar",
     "identity_document": "Documento de Identidad",
+    "internal_id": "ID Interno",
     "currentDebt": "Deuda Actual",
     "openMenu": "Abrir menú",
     "active": "Activo",
@@ -1423,7 +1424,8 @@
     "createdAt": "Creado En",
     "currency": "Moneda",
     "exchangeRate": "Tasa de Cambio",
-    "quoteDocNo": "Presupuesto Doc No."
+    "quoteDocNo": "Presupuesto Doc No.",
+    "externalId": "ID Externo"
   },
   "QuoteBillingDialog": {
     "title": "Facturar presupuesto",
@@ -1962,7 +1964,8 @@
       "isCreditNote": "Nota de Crédito",
       "creditNote": "Nota de Crédito",
       "invoice": "Factura",
-      "isHistorical": "Histórico"
+      "isHistorical": "Histórico",
+      "externalId": "ID Externo"
     },
     "invoiceDialog": {
       "isHistorical": "Histórico",
@@ -2661,6 +2664,7 @@
       "credit_note": "Nota de Crédito",
       "invoice": "Factura",
       "isHistorical": "Histórico",
+      "external_id": "ID Externo",
       "paymentMethods": {
         "efectivo": "Efectivo",
         "tarjeta_de_debito": "Tarjeta de Débito",

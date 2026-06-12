@@ -9,6 +9,7 @@ export type User = {
   phone_number: string;
   is_active: boolean;
   avatar: string;
+  internal_id?: string | number | null;
   identity_document?: string;
   birth_date?: string;
   color?: string;
@@ -198,6 +199,7 @@ export type Quote = {
   amount_pending_invoice?: number;
   amount_paid?: number;
   amount_pending_payment?: number;
+  external_id?: string | number | null;
 };
 
 export type QuoteItem = {
@@ -267,6 +269,7 @@ export type Invoice = {
   invoice_id?: string | null;
   is_historical?: boolean;
   due_date?: string;
+  external_id?: string | number | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -323,6 +326,7 @@ export type Payment = {
   notes?: string;
   status: 'pending' | 'completed' | 'failed';
   is_historical?: boolean;
+  external_id?: string | number | null;
   createdAt: string;
   updatedAt: string;
   amount: number;

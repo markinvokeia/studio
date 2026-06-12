@@ -111,6 +111,7 @@ export function mapApiPaymentToPayment(apiPayment: any): Payment {
     type: paymentType,
     notes: apiPayment.notes || '',
     is_historical: apiPayment.is_historical || false,
+    external_id: apiPayment.external_id ?? null,
   };
 }
 

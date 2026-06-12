@@ -86,6 +86,7 @@ async function getInvoices(params: { page: number; limit: number; search: string
             currency: apiInvoice.currency || 'USD',
             notes: apiInvoice.notes || '',
             is_historical: apiInvoice.is_historical || false,
+            external_id: apiInvoice.external_id ?? null,
         }));
         return { items, total: normalized.total };
     } catch (error) {
@@ -175,6 +176,7 @@ async function getPaymentsForInvoice(invoiceId: string): Promise<Payment[]> {
             reference_doc_id: apiPayment.reference_doc_id,
             notes: apiPayment.notes || '',
             is_historical: apiPayment.is_historical || false,
+            external_id: apiPayment.external_id ?? null,
         }));
     } catch (error) {
         console.error("Failed to fetch payments for invoice:", error);

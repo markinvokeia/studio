@@ -431,6 +431,15 @@ const getColumns = (t: (key: string) => string): ColumnDef<Quote>[] => [
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('QuoteColumns.createdAt')} />,
     cell: ({ row }) => formatDisplayDate(row.original.createdAt),
   },
+  {
+    accessorKey: 'external_id',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('QuoteColumns.externalId')} />,
+    cell: ({ row }) => (
+      <span className="font-mono text-xs text-muted-foreground">
+        {row.original.external_id ?? '—'}
+      </span>
+    ),
+  },
 ];
 
 // ── Data fetching ─────────────────────────────────────────────────────────────
@@ -457,6 +466,7 @@ async function getQuotesForUser(userId: string): Promise<Quote[]> {
       amount_paid: Number(q.monto_pagado ?? q.amount_paid ?? 0),
       amount_pending_invoice: Number(q.pendiente_facturar ?? q.amount_pending_invoice ?? 0),
       amount_pending_payment: Number(q.pendiente_pago_facturado ?? q.amount_pending_payment ?? 0),
+      external_id: q.external_id ?? null,
     }));
   } catch {
     return [];
@@ -1337,6 +1347,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
               billing_status: t('QuoteColumns.billingStatus'),
               currency: t('QuoteColumns.currency'),
               exchange_rate: t('QuoteColumns.exchangeRate'),
+              external_id: t('QuoteColumns.externalId'),
             }}
             isNarrow={isViewportNarrow || useListView}
             viewControls={showListToggle ? <ViewModeToggle value={viewMode} onChange={setViewMode} /> : undefined}
