@@ -653,11 +653,17 @@ export function UserPayments({ userId, mode = 'sales', refreshTrigger }: UserPay
             {selectedPayment.invoice_id && (
               <div className="flex-1 flex flex-col overflow-hidden px-4 py-4">
                 <p className="text-sm font-semibold mb-2">Documentos relacionados</p>
-                {(selectedPayment.invoice_doc_no || selectedPayment.payment_doc_no) ? (
+                {(selectedPayment.invoice_doc_no || (isAllocationPayment(selectedPayment) && selectedPayment.payment_doc_no)) ? (
                   <DataCard
                     fields={[
                       ...(selectedPayment.invoice_doc_no ? [{ label: 'Factura', value: `#${selectedPayment.invoice_doc_no}` }] : []),
-                      ...(selectedPayment.payment_doc_no ? [{ label: 'Pago origen', value: `#${selectedPayment.payment_doc_no}` }] : []),
+                      // Source document only makes sense for allocation rows
+                      ...(isAllocationPayment(selectedPayment) && selectedPayment.payment_doc_no
+                        ? [{
+                            label: selectedPayment.transaction_type === 'credit_note_allocation' ? 'Nota de crédito origen' : 'Pago origen',
+                            value: `#${selectedPayment.payment_doc_no}`,
+                          }]
+                        : []),
                     ]}
                   />
                 ) : (

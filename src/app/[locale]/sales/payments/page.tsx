@@ -39,11 +39,11 @@ import { normalizeApiResponse } from '@/lib/api-utils';
 import { Payment, PaymentAllocation, PaymentMethod, User } from '@/lib/types';
 import { cn, formatDisplayDate, getDocumentFileName, toLocalISOString } from '@/lib/utils';
 import api from '@/services/api';
-import { getSalesPayments } from '@/services/payments-service';
+import { getSalesPayments, type PaymentTypeFilter } from '@/services/payments-service';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, RowSelectionState } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
-import { AlertTriangle, CreditCard, Loader2, Maximize2, Minimize2, Printer, RefreshCw, Send } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CreditCard, Loader2, Maximize2, Minimize2, Printer, RefreshCw, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -102,11 +102,19 @@ export default function PaymentsPage() {
         totalItems,
         handlePaginationChange,
         handleSearchChange,
+        handleTypeFilterChange,
         refreshPayments
     } = usePaymentsPagination({
         fetchFunction: getSalesPayments,
         initialPageSize: 25
     });
+
+    // Server-side transaction-type filter (prepaid / allocations / ...)
+    const [typeFilter, setTypeFilter] = React.useState<PaymentTypeFilter>('all');
+    const onTypeFilterChange = React.useCallback((type: PaymentTypeFilter) => {
+        setTypeFilter(type);
+        handleTypeFilterChange(type);
+    }, [handleTypeFilterChange]);
 
     // Server-side search: lift the table's doc_no filter to drive the backend query
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -459,6 +467,8 @@ export default function PaymentsPage() {
                         isCompact={!!selectedPayment}
                         onExport={() => setExportOpen(true)}
                         isSales={true}
+                        typeFilter={typeFilter}
+                        onTypeFilterChange={onTypeFilterChange}
                     />
                 }
                 rightPanel={
@@ -565,8 +575,29 @@ export default function PaymentsPage() {
                                 </div>
                             )}
 
-                            {/* Invoice details — for non-prepaid payments */}
-                            {selectedPayment.invoice_id && (
+                            {/* Allocation flow — source document → target invoice */}
+                            {(selectedPayment.transaction_type === 'payment_allocation' || selectedPayment.transaction_type === 'credit_note_allocation') && (
+                                <div className="px-6 py-3 border-b">
+                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                                        <div className="flex flex-col gap-0.5">
+                                            <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                                                {selectedPayment.transaction_type === 'credit_note_allocation'
+                                                    ? t('allocationFlow.sourceCreditNote')
+                                                    : t('allocationFlow.sourcePayment')}
+                                            </span>
+                                            <span className="text-sm font-semibold font-mono">{selectedPayment.payment_doc_no || selectedPayment.doc_no || 'N/A'}</span>
+                                        </div>
+                                        <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                                        <div className="flex flex-col gap-0.5">
+                                            <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t('allocationFlow.targetInvoice')}</span>
+                                            <span className="text-sm font-semibold font-mono">{selectedPayment.invoice_doc_no || 'N/A'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Invoice details — for non-prepaid, non-allocation payments */}
+                            {selectedPayment.transaction_type === 'direct_payment' && selectedPayment.invoice_id && (
                                 <div className="px-6 py-3 border-b">
                                     <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
                                         {selectedPayment.invoice_doc_no && (
@@ -590,15 +621,6 @@ export default function PaymentsPage() {
                                                 <div className="flex flex-col gap-0.5">
                                                     <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t('columns.order_doc_no')}</span>
                                                     <span className="text-sm">{selectedPayment.order_doc_no}</span>
-                                                </div>
-                                            </>
-                                        )}
-                                        {selectedPayment.payment_doc_no && (
-                                            <>
-                                                <div className="w-px h-8 bg-border" />
-                                                <div className="flex flex-col gap-0.5">
-                                                    <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t('columns.doc_no')}</span>
-                                                    <span className="text-sm">{selectedPayment.payment_doc_no}</span>
                                                 </div>
                                             </>
                                         )}

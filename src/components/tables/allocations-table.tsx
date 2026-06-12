@@ -22,6 +22,16 @@ interface AllocationsTableProps {
 const getColumns = (t: (key: string) => string): ColumnDef<InvoiceAllocation>[] => {
   const columns: ColumnDef<InvoiceAllocation>[] = [
     {
+      accessorKey: 'doc_no',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('doc_no')} />
+      ),
+      cell: ({ row }) => {
+        const docNo = row.getValue('doc_no') as string;
+        return docNo || 'N/A';
+      },
+    },
+    {
       accessorKey: 'destino_doc_no',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('destino_doc_no')} />
@@ -134,10 +144,11 @@ export function AllocationsTable({ allocations, isLoading }: AllocationsTablePro
         if (useListView) {
           return (
             <DataListRow
-              title={`#${alloc.destino_doc_no || 'N/A'}`}
+              title={`#${alloc.doc_no || alloc.destino_doc_no || 'N/A'}`}
               badge={badge}
               meta={(
                 <>
+                  {alloc.doc_no && <span>{tMain('destino_doc_no')}: #{alloc.destino_doc_no || 'N/A'}</span>}
                   <span>{formatDateTime(alloc.fecha_asignacion)}</span>
                   <span className="font-medium text-foreground">{tMain('monto_asignado')}: {monto}</span>
                 </>
@@ -147,9 +158,10 @@ export function AllocationsTable({ allocations, isLoading }: AllocationsTablePro
         }
         return (
           <DataCard
-            title={`#${alloc.destino_doc_no || 'N/A'}`}
+            title={`#${alloc.doc_no || alloc.destino_doc_no || 'N/A'}`}
             badge={badge}
             fields={[
+              ...(alloc.doc_no ? [{ label: tMain('destino_doc_no'), value: `#${alloc.destino_doc_no || 'N/A'}` }] : []),
               { label: tMain('monto_asignado'), value: monto, primary: true },
               { label: tMain('fecha_asignacion'), value: formatDateTime(alloc.fecha_asignacion) },
             ]}

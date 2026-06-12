@@ -2090,6 +2090,7 @@
     "AllocationsTable": {
       "title": "Movimientos de Nota de Crédito",
       "empty": "No hay movimientos asociados a esta nota de crédito",
+      "doc_no": "Nro. Doc.",
       "destino_doc_no": "Documento Destino",
       "destino_tipo": "Tipo",
       "monto_asignado": "Monto Asignado",
@@ -2613,6 +2614,14 @@
     "title": "Pagos",
     "description": "Una visión general de los pagos.",
     "filterPlaceholder": "Filtrar aquí...",
+    "typeFilter": {
+      "label": "Tipo de transacción"
+    },
+    "allocationFlow": {
+      "sourcePayment": "Pago origen",
+      "sourceCreditNote": "Nota de crédito origen",
+      "targetInvoice": "Factura destino"
+    },
     "export": "Exportar",
     "exportError": "Error al exportar los datos",
     "exportCols": {
@@ -2742,6 +2751,7 @@
     "PaymentAllocationsTable": {
       "title": "Asignaciones de Pago",
       "empty": "No se encontraron asignaciones de pago.",
+      "doc_no": "Nro. Doc.",
       "factura_doc_no": "No. Factura",
       "factura_tipo": "Tipo",
       "moneda_factura": "Moneda Factura",

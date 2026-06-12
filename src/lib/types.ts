@@ -337,6 +337,7 @@ export type Payment = {
 
 export type InvoiceAllocation = {
   allocation_id: number;
+  doc_no?: string;
   origen_doc_no: string;
   origen_tipo: 'credit_note';
   destino_doc_no: string;
@@ -350,6 +351,7 @@ export type InvoiceAllocation = {
 
 export type PaymentAllocation = {
   allocation_id: number;
+  doc_no?: string;
   pago_doc_no: string;
   medio_pago: string;
   moneda_pago: string;
