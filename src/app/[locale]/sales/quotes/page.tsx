@@ -689,7 +689,6 @@ export default function QuotesPage() {
     const [quoteItemRowSelection, setQuoteItemRowSelection] = React.useState<RowSelectionState>({});
 
     const [selectedQuoteUser, setSelectedQuoteUser] = React.useState<User | null>(null);
-    const [allServices, setAllServices] = React.useState<Service[]>([]);
 
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [isSendingEmail, setIsSendingEmail] = React.useState(false);

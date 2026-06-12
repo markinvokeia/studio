@@ -261,6 +261,8 @@ interface PaymentsTableProps {
   pagination?: PaginationState;
   onPaginationChange?: React.Dispatch<React.SetStateAction<PaginationState>>;
   pageCount?: number;
+  /** Total de registros en el servidor; necesario para mostrar el total correcto con paginación manual */
+  rowCount?: number;
   manualPagination?: boolean;
   /** Controlled column filters (server-side search); enables manual filtering in DataTable */
   columnFilters?: ColumnFiltersState;
@@ -276,7 +278,7 @@ interface PaymentsTableProps {
   isSales?: boolean;
 }
 
-export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [], onPrint, onSendEmail, onEdit, onAllocate, onCreate, className, pagination, onPaginationChange, pageCount, manualPagination = false, columnFilters, onColumnFiltersChange, onRowSelectionChange, rowSelection, setRowSelection, title, description, canCreate, isCompact = false, onExport, isSales = true }: PaymentsTableProps) {
+export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [], onPrint, onSendEmail, onEdit, onAllocate, onCreate, className, pagination, onPaginationChange, pageCount, rowCount, manualPagination = false, columnFilters, onColumnFiltersChange, onRowSelectionChange, rowSelection, setRowSelection, title, description, canCreate, isCompact = false, onExport, isSales = true }: PaymentsTableProps) {
   const t = useTranslations('PaymentsPage.columns');
   const tPage = useTranslations('PaymentsPage');
   const { hasPermission } = usePermissions();
@@ -334,6 +336,7 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
           pagination={pagination}
           onPaginationChange={onPaginationChange}
           pageCount={pageCount}
+          rowCount={rowCount}
           manualPagination={manualPagination}
           columnFilters={columnFilters}
           onColumnFiltersChange={onColumnFiltersChange}

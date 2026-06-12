@@ -16,6 +16,7 @@ interface UsePaymentsPaginationReturn {
   isLoading: boolean;
   pagination: PaginationState;
   totalPages: number;
+  totalItems: number;
   loadPayments: (pageIndex?: number, pageSize?: number, search?: string) => Promise<void>;
   handlePaginationChange: (updater: any) => void;
   handleSearchChange: (search: string) => void;
@@ -36,6 +37,7 @@ export function usePaymentsPagination({
     pageSize: initialPageSize
   });
   const [totalPages, setTotalPages] = useState(0);
+  const [totalItems, setTotalItems] = useState(0);
 
   // Keep a ref in sync with the latest pagination so loadPayments never needs
   // pagination in its own deps (avoiding cascading function recreations on every
@@ -67,6 +69,7 @@ export function usePaymentsPagination({
 
       setPayments(result.payments);
       setTotalPages(result.totalPages);
+      setTotalItems(result.totalItems);
     } catch (error) {
       console.error("Failed to fetch payments:", error);
 
@@ -82,6 +85,7 @@ export function usePaymentsPagination({
 
       setPayments([]);
       setTotalPages(0);
+      setTotalItems(0);
     } finally {
       setIsLoading(false);
     }
@@ -114,6 +118,7 @@ export function usePaymentsPagination({
     isLoading,
     pagination,
     totalPages,
+    totalItems,
     loadPayments,
     handlePaginationChange,
     handleSearchChange,

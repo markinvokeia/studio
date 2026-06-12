@@ -1,4 +1,5 @@
 import { API_ROUTES } from '@/constants/routes';
+import { normalizeApiResponse } from '@/lib/api-utils';
 import { Payment } from '@/lib/types';
 import api from '@/services/api';
 
@@ -7,6 +8,7 @@ export type { Payment };
 export interface PaymentListResponse {
   payments: Payment[];
   totalPages: number;
+  totalItems: number;
 }
 
 export interface PaymentSearchParams {
@@ -129,21 +131,22 @@ export async function getSalesPayments(params: PaymentSearchParams = {}): Promis
 
     const data = await api.get(API_ROUTES.SALES.PAYMENTS_ALL, requestParams);
 
-    const paginationData = Array.isArray(data) && data.length > 0 ? data[0] : data;
-    const paymentsData = paginationData.data || [];
-    const totalPages = paginationData.pages || Math.ceil((paginationData.total || paymentsData.length) / limit);
+    const normalized = normalizeApiResponse<any>(data);
+    const paymentsData = normalized.items;
+    const totalPages = Math.ceil(normalized.total / limit);
 
     if (!hasValidPayments(paymentsData)) {
-      return { payments: [], totalPages: 0 };
+      return { payments: [], totalPages: 0, totalItems: 0 };
     }
 
     return {
       payments: paymentsData.map(mapApiPaymentToPayment),
-      totalPages
+      totalPages,
+      totalItems: normalized.total
     };
   } catch (error) {
     console.error("Failed to fetch sales payments:", error);
-    return { payments: [], totalPages: 0 };
+    return { payments: [], totalPages: 0, totalItems: 0 };
   }
 }
 
@@ -160,20 +163,21 @@ export async function getPurchasePayments(params: PaymentSearchParams = {}): Pro
 
     const data = await api.get(API_ROUTES.PURCHASES.PAYMENTS_ALL, requestParams);
 
-    const paginationData = Array.isArray(data) && data.length > 0 ? data[0] : data;
-    const paymentsData = paginationData.data || [];
-    const totalPages = paginationData.pages || Math.ceil((paginationData.total || paymentsData.length) / limit);
+    const normalized = normalizeApiResponse<any>(data);
+    const paymentsData = normalized.items;
+    const totalPages = Math.ceil(normalized.total / limit);
 
     if (!hasValidPayments(paymentsData)) {
-      return { payments: [], totalPages: 0 };
+      return { payments: [], totalPages: 0, totalItems: 0 };
     }
 
     return {
       payments: paymentsData.map(mapApiPaymentToPayment),
-      totalPages
+      totalPages,
+      totalItems: normalized.total
     };
   } catch (error) {
     console.error("Failed to fetch purchase payments:", error);
-    return { payments: [], totalPages: 0 };
+    return { payments: [], totalPages: 0, totalItems: 0 };
   }
 }

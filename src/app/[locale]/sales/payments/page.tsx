@@ -35,6 +35,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { usePermissions } from '@/hooks/usePermissions';
+import { normalizeApiResponse } from '@/lib/api-utils';
 import { Payment, PaymentAllocation, PaymentMethod, User } from '@/lib/types';
 import { cn, formatDisplayDate, getDocumentFileName, toLocalISOString } from '@/lib/utils';
 import api from '@/services/api';
@@ -98,6 +99,7 @@ export default function PaymentsPage() {
         isLoading,
         pagination,
         totalPages,
+        totalItems,
         handlePaginationChange,
         handleSearchChange,
         refreshPayments
@@ -153,8 +155,7 @@ export default function PaymentsPage() {
                 date_to: format(dateTo, 'yyyy-MM-dd'),
             });
             // Same unwrap pattern as getSalesPayments in payments-service.ts
-            const paginationData = Array.isArray(data) && data.length > 0 ? data[0] : data;
-            const rawRows: any[] = paginationData?.data || [];
+            const rawRows = normalizeApiResponse<any>(data).items;
             const txTypeMap: Record<string, string> = {
                 direct_payment: t('transactionType.direct_payment' as any),
                 payment_allocation: t('transactionType.payment_allocation' as any),
@@ -445,6 +446,7 @@ export default function PaymentsPage() {
                         pagination={pagination}
                         onPaginationChange={handlePaginationChange}
                         pageCount={totalPages}
+                        rowCount={totalItems}
                         manualPagination={true}
                         columnFilters={columnFilters}
                         onColumnFiltersChange={setColumnFilters}

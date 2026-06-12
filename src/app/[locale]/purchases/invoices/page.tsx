@@ -273,7 +273,7 @@ function InvoicesPageContent() {
                 date_from: format(dateFrom, 'yyyy-MM-dd'),
                 date_to: format(dateTo, 'yyyy-MM-dd'),
             });
-            const rawRows = Array.isArray(data) ? data : (data.invoices || data.data || []);
+            const rawRows = normalizeApiResponse(data).items as any[];
             const invoiceStatusMap: Record<string, string> = {
                 paid: t('status.paid' as any), sent: t('status.sent' as any),
                 draft: t('status.draft' as any), overdue: t('status.overdue' as any),

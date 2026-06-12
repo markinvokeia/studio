@@ -160,13 +160,15 @@ async function getQuoteItems(quoteId: string, t: (key: string) => string): Promi
     }
 }
 
-async function getServices(): Promise<Service[]> {
+/** Resuelve un servicio puntual del catálogo buscándolo por nombre y matcheando por id. */
+async function findServiceById(serviceId: string, serviceName?: string): Promise<Service | null> {
     try {
-        const result = await getPurchaseServices({ limit: 100 });
-        return result.items.map((s: any) => ({ ...s, id: String(s.id), currency: s.currency || 'USD' }));
+        const result = await getPurchaseServices({ search: serviceName || '', limit: 50 });
+        const match = result.items.find((s: any) => String(s.id) === String(serviceId));
+        return match ? { ...match, id: String(match.id), currency: match.currency || 'USD' } : null;
     } catch (error) {
-        console.error("Failed to fetch services:", error);
-        return [];
+        console.error("Failed to resolve service:", error);
+        return null;
     }
 }
 
@@ -463,7 +465,8 @@ function QuotesPageContent() {
     const [quoteItemRowSelection, setQuoteItemRowSelection] = React.useState<RowSelectionState>({});
 
     const [selectedQuoteUser, setSelectedQuoteUser] = React.useState<User | null>(null);
-    const [allServices, setAllServices] = React.useState<Service[]>([]);
+    /** Servicio resuelto para el item en creación/edición; alimenta el recálculo de precios */
+    const [selectedItemService, setSelectedItemService] = React.useState<Service | null>(null);
     const [isServiceSearchOpen, setServiceSearchOpen] = React.useState(false);
 
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -726,15 +729,6 @@ function QuotesPageContent() {
         }
     };
 
-    const loadServicesForQuoteDialog = React.useCallback(async () => {
-        try {
-            const fetchedServices = await getServices();
-            setAllServices(fetchedServices);
-        } catch (error) {
-            toast({ variant: 'destructive', title: t('errors.errorTitle'), description: t('errors.failedToLoadServices') });
-        }
-    }, [t, toast]);
-
     const handleCreateQuote = async () => {
         setEditingQuote(null);
         setSelectedQuoteUser(null);
@@ -744,9 +738,6 @@ function QuotesPageContent() {
         quoteForm.reset({ user_id: '', total: 0, currency: defaultCurrency, status: 'draft', payment_status: 'unpaid', billing_status: 'not invoiced', exchange_rate: exchangeRate, created_at: new Date(), notes: '', items: [] });
         setQuoteSubmissionError(null);
         setIsQuoteDialogOpen(true);
-        if (allServices.length === 0) {
-            void loadServicesForQuoteDialog();
-        }
     };
 
     const normalizeQuoteFields = (quote: Quote) => {
@@ -814,10 +805,6 @@ function QuotesPageContent() {
         );
         setSelectedQuoteUser(quote.user_id ? { id: quote.user_id, name: quote.user_name || '', email: '', phone_number: '', is_active: true, avatar: '' } : null);
         setQuoteSubmissionError(null);
-
-        if (allServices.length === 0) {
-            void loadServicesForQuoteDialog();
-        }
 
         setIsQuoteDialogOpen(true);
     };
@@ -914,33 +901,24 @@ function QuotesPageContent() {
         setShowConversion(false);
         setOriginalServicePrice(null);
         setOriginalServiceCurrency('');
+        setSelectedItemService(null);
 
         const sessionRate = getSessionExchangeRate();
         setExchangeRate(sessionRate);
 
         quoteItemForm.reset({ quote_id: selectedQuote.id, service_id: '', service_name: '', quantity: 1, unit_price: 0, total: 0 });
         setIsQuoteItemDialogOpen(true);
-
-        if (allServices.length === 0) {
-            try {
-                const fetchedServices = await getServices();
-                setAllServices(fetchedServices);
-            } catch (error) {
-                toast({ variant: 'destructive', title: t('errors.errorTitle'), description: t('errors.failedToLoadServices') });
-            }
-        }
     };
 
     const handleEditQuoteItem = async (item: QuoteItem) => {
         if (!selectedQuote) return;
         try {
-            const fetchedServices = allServices.length > 0 ? allServices : await getServices();
-            setAllServices(fetchedServices);
+            // Petición puntual para resolver el servicio del item (precio/moneda de catálogo)
+            const service = await findServiceById(String(item.service_id), item.service_name);
+            setSelectedItemService(service);
             setEditingQuoteItem(item);
             setQuoteItemSubmissionError(null);
             setShowConversion(false);
-
-            const service = fetchedServices.find(s => String(s.id) === String(item.service_id));
 
             if (service) {
                 const servicePrice = Number(service.price);
@@ -1209,7 +1187,9 @@ function QuotesPageContent() {
     }, [isClinicCurrency, watchedQuoteExchangeRate, quoteForm, getSessionExchangeRate]);
 
     React.useEffect(() => {
-        const service = allServices.find(s => String(s.id) === watchedServiceId);
+        const service = selectedItemService && String(selectedItemService.id) === String(watchedServiceId)
+            ? selectedItemService
+            : undefined;
         if (service && selectedQuote) {
             const servicePrice = Number(service.price);
 
@@ -1243,7 +1223,7 @@ function QuotesPageContent() {
             quoteItemForm.setValue('unit_price', roundedUnitPrice);
             quoteItemForm.setValue('total', roundedTotal);
         }
-    }, [watchedServiceId, watchedQuantity, watchedQuoteExchangeRate, allServices, selectedQuote, quoteItemForm, getSessionExchangeRate]);
+    }, [watchedServiceId, watchedQuantity, watchedQuoteExchangeRate, selectedItemService, selectedQuote, quoteItemForm, getSessionExchangeRate]);
 
     const quoteTabs = React.useMemo<VerticalTab[]>(() => [
         { id: 'items', icon: FileText, label: t('tabs.items') },
@@ -2032,6 +2012,7 @@ function QuotesPageContent() {
                                                 selectedServiceName={quoteItemForm.getValues('service_name') || undefined}
                                                 onValueChange={(serviceId, service) => {
                                                     quoteItemForm.setValue('service_id', serviceId);
+                                                    setSelectedItemService(service || null);
                                                     if (service && selectedQuote) {
                                                         const servicePrice = Number(service.price);
                                                         quoteItemForm.setValue('service_name', service.name);
@@ -2060,7 +2041,7 @@ function QuotesPageContent() {
                                                     }
                                                 }}
                                                 placeholder={t('itemDialog.searchService') || 'Buscar servicio...'}
-                                                triggerText={field.value ? allServices.find(s => s.id === field.value)?.name || t('itemDialog.selectService') : t('itemDialog.selectService') || 'Seleccionar servicio'}
+                                                triggerText={t('itemDialog.selectService') || 'Seleccionar servicio'}
                                             />
                                             <FormMessage />
                                         </FormItem>
