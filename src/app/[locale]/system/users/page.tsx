@@ -12,6 +12,7 @@ import { DataTableAdvancedToolbar, FilterOption } from '@/components/ui/data-tab
 import {
   Dialog,
   DialogBody,
+  DialogCancelButton,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -739,7 +740,7 @@ export default function SystemUsersPage() {
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent confirmOnClose isDirty={form.formState.isDirty}>
           <DialogHeader>
             <DialogTitle>{t('SystemUsersPage.createDialog.title')}</DialogTitle>
             <DialogDescription>{t('SystemUsersPage.createDialog.description')}</DialogDescription>
@@ -827,7 +828,7 @@ export default function SystemUsersPage() {
               </DialogBody>
               <DialogFooter>
                 <Button type="submit">{t('SystemUsersPage.createDialog.save')}</Button>
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('SystemUsersPage.createDialog.cancel')}</Button>
+                <DialogCancelButton>{t('SystemUsersPage.createDialog.cancel')}</DialogCancelButton>
               </DialogFooter>
             </form>
           </Form>

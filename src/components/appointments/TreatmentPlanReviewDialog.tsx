@@ -20,6 +20,7 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
+    useDialogClose,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -497,6 +498,7 @@ export function TreatmentPlanReviewDialog({
 }: TreatmentPlanReviewDialogProps) {
     const t = useTranslations('TreatmentPlans');
     const { toast } = useToast();
+    const handleClose = useDialogClose();
 
     const [wizardStep, setWizardStep] = React.useState(0);
     const [steps, setSteps] = React.useState<EditableStep[]>([]);
@@ -695,7 +697,7 @@ export function TreatmentPlanReviewDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent maxWidth="xl">
+            <DialogContent maxWidth="xl" confirmOnClose isDirty={wizardStep > 0 || steps.some(s => s.scheduled_date !== undefined)}>
                 <DialogHeader>
                     <div className="flex items-center justify-between gap-3">
                         <DialogTitle className="flex items-center gap-2">
@@ -745,7 +747,7 @@ export function TreatmentPlanReviewDialog({
 
                     <Button
                         variant="outline"
-                        onClick={wizardStep === 0 ? () => onOpenChange(false) : handleBack}
+                        onClick={wizardStep === 0 ? handleClose : handleBack}
                         disabled={isCreating || isChecking}
                     >
                         {wizardStep === 0 ? t('wizard.cancel') : t('wizard.back')}

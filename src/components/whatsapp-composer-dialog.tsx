@@ -10,6 +10,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  useDialogClose,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +33,7 @@ export function WhatsAppComposerDialog({
 }: WhatsAppComposerDialogProps) {
   const t = useTranslations('WhatsAppComposerDialog');
   const { toast } = useToast();
+  const handleClose = useDialogClose();
   const [message, setMessage] = React.useState('');
   const [isOpening, setIsOpening] = React.useState(false);
   const normalizedPhone = React.useMemo(
@@ -68,7 +70,7 @@ export function WhatsAppComposerDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg" confirmOnClose isDirty={message.trim() !== ''}>
         <DialogHeader>
           <DialogTitle className="text-base flex items-center gap-2">
             <MessageCircle className="h-4 w-4 text-primary" />
@@ -97,7 +99,7 @@ export function WhatsAppComposerDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isOpening}>
+          <Button variant="outline" onClick={handleClose} disabled={isOpening}>
             <X className="h-4 w-4 mr-1" />
             {t('cancel')}
           </Button>

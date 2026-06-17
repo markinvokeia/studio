@@ -11,6 +11,7 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
+    useDialogClose,
 } from '@/components/ui/dialog';
 import { DatePickerInput } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
@@ -50,6 +51,7 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
   const t = useTranslations();
   const { toast } = useToast();
   const clinicInfo = useClinicInfo();
+  const handleClose = useDialogClose();
 
   const [items, setItems] = React.useState<QuoteItem[]>([]);
   const [currency, setCurrency] = React.useState<'USD' | 'UYU'>(clinicInfo?.currency ?? 'UYU');
@@ -211,7 +213,7 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent maxWidth="5xl">
+      <DialogContent maxWidth="5xl" confirmOnClose isDirty={items.length > 0 || notes.trim() !== ''}>
         <DialogHeader>
           <DialogTitle>{t('QuotesPage.quickQuote.title')}</DialogTitle>
           <DialogDescription>
@@ -389,7 +391,7 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
           </div>
         </DialogBody>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={handleClose}>
             {t('General.cancel')}
           </Button>
           <Button

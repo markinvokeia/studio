@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogBody, DialogCancelButton, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -592,7 +592,7 @@ export default function ClinicsPage() {
                 setIsCreateSedeOpen(open);
                 if (!open) { setSedeError(null); sedeForm.reset(); }
             }}>
-                <DialogContent maxWidth="lg">
+                <DialogContent maxWidth="lg" confirmOnClose isDirty={sedeForm.formState.isDirty}>
                     <DialogHeader>
                         <DialogTitle>{tc('sedeCreateTitle')}</DialogTitle>
                     </DialogHeader>
@@ -602,9 +602,9 @@ export default function ClinicsPage() {
                                 {sedeFormFields(false)}
                             </DialogBody>
                             <DialogFooter>
-                                <Button type="button" variant="outline" disabled={isSavingSede} onClick={() => setIsCreateSedeOpen(false)}>
+                                <DialogCancelButton disabled={isSavingSede}>
                                     {t('SedesPage.form.cancel')}
-                                </Button>
+                                </DialogCancelButton>
                                 <Button type="submit" disabled={isSavingSede}>
                                     {isSavingSede && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     {t('SedesPage.form.create')}
@@ -619,7 +619,7 @@ export default function ClinicsPage() {
             <Dialog open={!!editingSede} onOpenChange={(open) => {
                 if (!open) { setEditingSede(null); setSedeError(null); sedeForm.reset(); }
             }}>
-                <DialogContent maxWidth="lg">
+                <DialogContent maxWidth="lg" confirmOnClose isDirty={sedeForm.formState.isDirty}>
                     <DialogHeader>
                         <DialogTitle>{tc('sedeEditTitle')}</DialogTitle>
                     </DialogHeader>
@@ -629,9 +629,9 @@ export default function ClinicsPage() {
                                 {sedeFormFields(false)}
                             </DialogBody>
                             <DialogFooter>
-                                <Button type="button" variant="outline" disabled={isSavingSede} onClick={() => setEditingSede(null)}>
+                                <DialogCancelButton disabled={isSavingSede}>
                                     {t('SedesPage.form.cancel')}
-                                </Button>
+                                </DialogCancelButton>
                                 <Button type="submit" disabled={isSavingSede}>
                                     {isSavingSede && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     {t('SedesPage.form.save')}

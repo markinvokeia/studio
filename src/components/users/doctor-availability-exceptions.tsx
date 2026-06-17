@@ -11,7 +11,8 @@ import {
     DialogContent,
     DialogFooter,
     DialogHeader,
-    DialogTitle
+    DialogTitle,
+    useDialogClose,
 } from "@/components/ui/dialog";
 import { DatePickerInput } from '@/components/ui/date-picker';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -95,6 +96,7 @@ export function DoctorAvailabilityExceptions({ userId }: { userId: string }) {
     const form = useForm<ExceptionFormValues>({
         resolver: zodResolver(exceptionFormSchema(tValidation)),
     });
+    const handleClose = useDialogClose();
 
     const loadExceptions = React.useCallback(async () => {
         setIsLoading(true);
@@ -218,7 +220,7 @@ export function DoctorAvailabilityExceptions({ userId }: { userId: string }) {
             )}
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent>
+                <DialogContent confirmOnClose isDirty={form.formState.isDirty}>
                     <DialogHeader>
                         <DialogTitle>{editingException ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                     </DialogHeader>
@@ -254,7 +256,7 @@ export function DoctorAvailabilityExceptions({ userId }: { userId: string }) {
                             </DialogBody>
                             <DialogFooter>
                                 <Button type="submit">{editingException ? t('dialog.save') : t('dialog.create')}</Button>
-                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
+                                <Button type="button" variant="outline" onClick={handleClose}>{t('dialog.cancel')}</Button>
                             </DialogFooter>
                         </form>
                     </Form>

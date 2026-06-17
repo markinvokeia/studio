@@ -11,10 +11,11 @@ import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
     Dialog,
+    DialogCancelButton,
     DialogContent,
     DialogFooter,
     DialogHeader,
-    DialogTitle
+    DialogTitle,
 } from "@/components/ui/dialog";
 import {
     DropdownMenu,
@@ -508,7 +509,7 @@ export default function MiscellaneousTransactionsPage() {
                 </CardContent>
             </Card>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="sm:max-w-xl">
+                <DialogContent className="sm:max-w-xl" confirmOnClose isDirty={form.formState.isDirty}>
                     <DialogHeader>
                         <div className="flex items-start gap-3">
                             <div className="header-icon-circle mt-0.5">
@@ -588,7 +589,7 @@ export default function MiscellaneousTransactionsPage() {
                             </div>
                             <DialogFooter>
                                 <Button type="submit">{editingTransaction ? t('dialog.save') : t('dialog.create')}</Button>
-                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
+                                <DialogCancelButton>{t('dialog.cancel')}</DialogCancelButton>
                             </DialogFooter>
                         </form>
                     </Form>

@@ -1,4 +1,11 @@
 {
+  "ConfirmCloseDialog": {
+    "title": "¿Descartar cambios?",
+    "description": "Tiene cambios sin guardar. Si cierra ahora, se perderán.",
+    "confirm": "Descartar cambios",
+    "cancel": "Seguir editando",
+    "closeLabel": "Cerrar"
+  },
   "Navigation": {
     "Dashboard": "Panel de Control",
     "Appointments": "Citas",

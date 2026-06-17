@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogBody, DialogCancelButton, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -434,7 +434,7 @@ export default function SchedulesPage() {
                     }
                 }}
             >
-                <DialogContent maxWidth="lg">
+                <DialogContent maxWidth="lg" confirmOnClose isDirty={form.formState.isDirty}>
                     <DialogHeader>
                         <DialogTitle>
                             {t('createDialog.title')}
@@ -458,9 +458,9 @@ export default function SchedulesPage() {
                                 {scheduleFields(false)}
                             </DialogBody>
                             <DialogFooter>
-                                <Button type="button" variant="outline" disabled={isSaving} onClick={() => setIsCreateDialogOpen(false)}>
+                                <DialogCancelButton disabled={isSaving}>
                                     {t('createDialog.cancel')}
-                                </Button>
+                                </DialogCancelButton>
                                 <Button type="submit" disabled={isSaving}>
                                     {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     {t('createDialog.save')}

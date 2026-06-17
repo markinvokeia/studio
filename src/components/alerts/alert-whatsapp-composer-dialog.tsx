@@ -10,6 +10,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  useDialogClose,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -64,8 +65,10 @@ function buildInitialMessage(alert: AlertInstance | null, t: (key: string, value
 export function AlertWhatsAppComposerDialog({ open, onOpenChange, alert }: AlertWhatsAppComposerDialogProps) {
   const t = useTranslations('AlertWhatsAppComposerDialog');
   const { toast } = useToast();
+  const handleClose = useDialogClose();
   const [message, setMessage] = React.useState('');
   const [isOpening, setIsOpening] = React.useState(false);
+  const [hasEdited, setHasEdited] = React.useState(false);
 
   const phone = React.useMemo(() => getPatientPhone(alert), [alert]);
   const recipientName = React.useMemo(() => getRecipientName(alert), [alert]);
@@ -75,10 +78,12 @@ export function AlertWhatsAppComposerDialog({ open, onOpenChange, alert }: Alert
     if (!open) {
       setMessage('');
       setIsOpening(false);
+      setHasEdited(false);
       return;
     }
 
     setMessage(buildInitialMessage(alert, t));
+    setHasEdited(false);
   }, [open, alert, t]);
 
   const handleOpenWhatsApp = async () => {
@@ -103,7 +108,7 @@ export function AlertWhatsAppComposerDialog({ open, onOpenChange, alert }: Alert
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg" confirmOnClose isDirty={hasEdited}>
         <DialogHeader>
           <DialogTitle className="text-base flex items-center gap-2">
             <MessageCircle className="h-4 w-4 text-primary" />
@@ -125,7 +130,7 @@ export function AlertWhatsAppComposerDialog({ open, onOpenChange, alert }: Alert
             <Textarea
               id="alert-whatsapp-message"
               value={message}
-              onChange={(event) => setMessage(event.target.value)}
+              onChange={(event) => { setMessage(event.target.value); setHasEdited(true); }}
               placeholder={t('messagePlaceholder')}
               rows={7}
             />
@@ -133,7 +138,7 @@ export function AlertWhatsAppComposerDialog({ open, onOpenChange, alert }: Alert
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isOpening}>
+          <Button variant="outline" onClick={handleClose} disabled={isOpening}>
             <X className="h-4 w-4 mr-1" />
             {t('cancel')}
           </Button>

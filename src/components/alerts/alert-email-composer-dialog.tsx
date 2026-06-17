@@ -10,6 +10,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  useDialogClose,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -92,9 +93,11 @@ function buildInitialBody(alert: AlertInstance | null, t: (key: string, values?:
 export function AlertEmailComposerDialog({ open, onOpenChange, alert }: AlertEmailComposerDialogProps) {
   const t = useTranslations('AlertEmailComposerDialog');
   const { toast } = useToast();
+  const handleClose = useDialogClose();
   const [subject, setSubject] = React.useState('');
   const [body, setBody] = React.useState('');
   const [isSending, setIsSending] = React.useState(false);
+  const [hasEdited, setHasEdited] = React.useState(false);
 
   const recipientEmail = React.useMemo(() => getPatientEmail(alert), [alert]);
   const recipientName = React.useMemo(() => getRecipientName(alert), [alert]);
@@ -105,11 +108,13 @@ export function AlertEmailComposerDialog({ open, onOpenChange, alert }: AlertEma
       setSubject('');
       setBody('');
       setIsSending(false);
+      setHasEdited(false);
       return;
     }
 
     setSubject(buildInitialSubject(alert, t));
     setBody(buildInitialBody(alert, t));
+    setHasEdited(false);
   }, [open, alert, t]);
 
   const handleSend = async () => {
@@ -144,7 +149,7 @@ export function AlertEmailComposerDialog({ open, onOpenChange, alert }: AlertEma
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-2xl" confirmOnClose isDirty={hasEdited}>
         <DialogHeader>
           <DialogTitle className="text-base flex items-center gap-2">
             <Mail className="h-4 w-4 text-primary" />
@@ -166,7 +171,7 @@ export function AlertEmailComposerDialog({ open, onOpenChange, alert }: AlertEma
             <Input
               id="alert-email-subject"
               value={subject}
-              onChange={(event) => setSubject(event.target.value)}
+              onChange={(event) => { setSubject(event.target.value); setHasEdited(true); }}
               placeholder={t('subjectPlaceholder')}
             />
           </div>
@@ -176,7 +181,7 @@ export function AlertEmailComposerDialog({ open, onOpenChange, alert }: AlertEma
             <Textarea
               id="alert-email-body"
               value={body}
-              onChange={(event) => setBody(event.target.value)}
+              onChange={(event) => { setBody(event.target.value); setHasEdited(true); }}
               rows={10}
               placeholder={t('bodyPlaceholder')}
             />
@@ -186,7 +191,7 @@ export function AlertEmailComposerDialog({ open, onOpenChange, alert }: AlertEma
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSending}>
+          <Button variant="outline" onClick={handleClose} disabled={isSending}>
             <X className="h-4 w-4 mr-1" />
             {t('cancel')}
           </Button>

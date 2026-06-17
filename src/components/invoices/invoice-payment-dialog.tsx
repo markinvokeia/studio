@@ -20,6 +20,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  useDialogClose,
 } from '@/components/ui/dialog';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -107,6 +108,7 @@ export function InvoicePaymentDialog({
   const t = useTranslations('InvoicesPage');
   const locale = useLocale();
   const { user, checkActiveSession, activeCashSession } = useAuth();
+  const handleClose = useDialogClose();
   const { validateActiveSession } = useCashSessionValidation();
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
@@ -418,7 +420,7 @@ export function InvoicePaymentDialog({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent maxWidth="2xl">
+        <DialogContent maxWidth="2xl" confirmOnClose isDirty={form.formState.isDirty}>
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit(handleSubmit)}
@@ -832,7 +834,7 @@ export function InvoicePaymentDialog({
               </DialogBody>
 
               <DialogFooter>
-                <Button variant="outline" type="button" onClick={onClose}>
+                <Button variant="outline" type="button" onClick={handleClose}>
                   {t('paymentDialog.cancel')}
                 </Button>
                 <Button type="submit" disabled={isSubmitting}>

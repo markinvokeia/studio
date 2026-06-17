@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { DatePicker, DatePickerInput } from '@/components/ui/date-picker';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, useDialogClose } from '@/components/ui/dialog';
 import { ResizableSheet, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
@@ -142,6 +142,7 @@ export function UserOrders({ userId, selectedQuote, patient, mode = 'sales', onD
   const t = useTranslations();
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
+  const handleInvoiceDialogClose = useDialogClose();
   const isViewportNarrow = useViewportNarrow();
   const isSales = mode === 'sales';
   const canInvoiceFromOrder = hasPermission(
@@ -484,7 +485,7 @@ export function UserOrders({ userId, selectedQuote, patient, mode = 'sales', onD
 
       {/* ── Invoice Dialog ── */}
       <Dialog open={isInvoiceDialogOpen} onOpenChange={setIsInvoiceDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px]" confirmOnClose isDirty={invoiceNotes.trim() !== ''}>
           <DialogHeader>
             <DialogTitle>{t('OrdersPage.invoiceDialog.title')}</DialogTitle>
             <DialogDescription>
@@ -527,7 +528,7 @@ export function UserOrders({ userId, selectedQuote, patient, mode = 'sales', onD
           </div>
           <DialogFooter>
             <Button onClick={handleConfirmInvoice}>{t('OrdersPage.invoiceDialog.confirm')}</Button>
-            <Button variant="outline" onClick={() => setIsInvoiceDialogOpen(false)}>{t('OrdersPage.cancel')}</Button>
+            <Button variant="outline" onClick={handleInvoiceDialogClose}>{t('OrdersPage.cancel')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

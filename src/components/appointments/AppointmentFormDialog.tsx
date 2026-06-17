@@ -18,6 +18,7 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
+    useDialogClose,
 } from '@/components/ui/dialog';
 import { DatePickerInput } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
@@ -113,6 +114,8 @@ export function AppointmentFormDialog({
     const { toast } = useToast();
     const { reschedule } = useAppointmentReschedule();
     const isReschedule = mode === 'reschedule';
+    const handleClose = useDialogClose();
+    const [hasBeenEdited, setHasBeenEdited] = React.useState(false);
 
     // Form State
     const [appointment, setAppointment] = React.useState({
@@ -306,6 +309,7 @@ export function AppointmentFormDialog({
     React.useEffect(() => {
         if (open) {
             setErrors([]);
+            setHasBeenEdited(false);
             setCreateSessionOnSave(false);
             setPendingSaveResult(null);
             setHasPendingSession(false);
@@ -1000,7 +1004,7 @@ export function AppointmentFormDialog({
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent maxWidth="4xl">
+                <DialogContent maxWidth="4xl" confirmOnClose isDirty={hasBeenEdited}>
                     <DialogHeader>
                         <DialogTitle>
                             {isReschedule ? tReschedule('dialogTitle')
@@ -1023,6 +1027,7 @@ export function AppointmentFormDialog({
                                         selectedUserName={appointment.user?.name}
                                         onValueChange={(_, user) => {
                                             if (user) {
+                                                setHasBeenEdited(true);
                                                 setAppointment(prev => ({ ...prev, user }));
                                                 setErrors(prev => prev.filter(err => err !== 'user'));
                                             }
@@ -1334,11 +1339,11 @@ export function AppointmentFormDialog({
                             <div className="space-y-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="date" className={errors.includes('date') ? "text-destructive" : ""}>{t('createDialog.date')}</Label>
-                                    <DatePickerInput value={appointment.date} onChange={value => { setAppointment(prev => ({ ...prev, date: value })); setErrors(prev => prev.filter(err => err !== 'date')); }} className={errors.includes('date') ? "border-destructive" : ""} />
+                                    <DatePickerInput value={appointment.date} onChange={value => { setHasBeenEdited(true); setAppointment(prev => ({ ...prev, date: value })); setErrors(prev => prev.filter(err => err !== 'date')); }} className={errors.includes('date') ? "border-destructive" : ""} />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="time" className={errors.includes('time') ? "text-destructive" : ""}>{t('createDialog.time')}</Label>
-                                    <Input id="time" type="time" value={appointment.time} onChange={e => { setAppointment(prev => ({ ...prev, time: e.target.value })); setErrors(prev => prev.filter(err => err !== 'time')); }} className={errors.includes('time') ? "border-destructive" : ""} />
+                                    <Input id="time" type="time" value={appointment.time} onChange={e => { setHasBeenEdited(true); setAppointment(prev => ({ ...prev, time: e.target.value })); setErrors(prev => prev.filter(err => err !== 'time')); }} className={errors.includes('time') ? "border-destructive" : ""} />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="endTime">{t('createDialog.endTime')}</Label>
@@ -1346,7 +1351,7 @@ export function AppointmentFormDialog({
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="notes">{t('createDialog.notes')}</Label>
-                                    <Textarea id="notes" value={appointment.notes} onChange={e => setAppointment(prev => ({ ...prev, notes: e.target.value }))} />
+                                    <Textarea id="notes" value={appointment.notes} onChange={e => { setHasBeenEdited(true); setAppointment(prev => ({ ...prev, notes: e.target.value })); }} />
                                 </div>
                             </div>
                         </div>
@@ -1468,7 +1473,7 @@ export function AppointmentFormDialog({
                         )}
                     </DialogBody>
                     <DialogFooter className="flex-row justify-end gap-2 space-x-0">
-                        <Button variant="outline" onClick={() => onOpenChange(false)}>{t('createDialog.cancel')}</Button>
+                        <Button variant="outline" onClick={handleClose}>{t('createDialog.cancel')}</Button>
                         <Button onClick={handleSave} disabled={isSessionDialogOpen}>
                             {isReschedule ? tReschedule('submit') : t('createDialog.save')}
                         </Button>

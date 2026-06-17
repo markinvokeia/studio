@@ -8,7 +8,8 @@ import {
     DialogContent,
     DialogFooter,
     DialogHeader,
-    DialogTitle
+    DialogTitle,
+    useDialogClose,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -137,6 +138,8 @@ export function ClinicSessionDialog({
     const tCommon = useTranslations('ClinicHistoryPage');
     const locale = useLocale();
     const { toast } = useToast();
+    const handleClose = useDialogClose();
+    const [isDirty, setIsDirty] = React.useState(false);
 
     const [isLoadingDoctors, setIsLoadingDoctors] = React.useState(false);
     const [doctors, setDoctors] = React.useState<Doctor[]>([]);
@@ -309,6 +312,7 @@ export function ClinicSessionDialog({
             }
             setAttachedFiles([]);
             setDeletedAttachmentIds([]);
+            setIsDirty(false);
             setDoctorError(false);
             setShouldDischargePatient(false);
             setDischargeDate('');
@@ -630,6 +634,7 @@ export function ClinicSessionDialog({
     const DEBOUNCE_MS = 1500;
 
     const handleProcedureChange = (value: string) => {
+        setIsDirty(true);
         setForm(prev => ({ ...prev, procedimiento_realizado: value }));
         if (procedureTimerRef.current) clearTimeout(procedureTimerRef.current);
         if (value.trim()) {
@@ -644,6 +649,7 @@ export function ClinicSessionDialog({
     };
 
     const handlePlanChange = (value: string) => {
+        setIsDirty(true);
         setForm(prev => ({ ...prev, plan_proxima_cita: value }));
         if (planTimerRef.current) clearTimeout(planTimerRef.current);
         if (value.trim()) {
@@ -749,6 +755,8 @@ export function ClinicSessionDialog({
                 maximizeLabel={tCommon('viewer.maximize')}
                 restoreLabel={tCommon('viewer.restore')}
                 className="h-full max-h-[90vh] max-w-2xl p-0"
+                confirmOnClose
+                isDirty={isDirty}
             >
                 <DialogHeader className="border-b px-6 py-4">
                     <DialogTitle>
@@ -808,6 +816,7 @@ export function ClinicSessionDialog({
                                         onValueChange={(value) => {
                                             if (lockDoctor) return;
                                             const selectedDoc = doctorOptions.find(d => d.id === value);
+                                            setIsDirty(true);
                                             setForm({
                                                 ...form,
                                                 doctor_id: value,
@@ -1442,7 +1451,7 @@ export function ClinicSessionDialog({
                         <Button
                             type="button"
                             variant="outline"
-                            onClick={() => onOpenChange(false)}
+                            onClick={handleClose}
                         >
                             {t('cancel')}
                         </Button>

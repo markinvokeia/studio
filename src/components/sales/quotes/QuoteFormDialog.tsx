@@ -12,6 +12,7 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
+    useDialogClose,
 } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -114,6 +115,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
     const t = useTranslations('QuotesPage');
     const { toast } = useToast();
     const { activeCashSession } = useAuth();
+    const handleClose = useDialogClose();
 
     const [clinic, setClinic] = React.useState<Clinic | null>(null);
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
@@ -283,7 +285,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
 
     return (
         <Dialog open={open} onOpenChange={(o) => { if (!isSubmitting) onOpenChange(o); }}>
-            <DialogContent showMaximize={true} maxWidth="6xl">
+            <DialogContent showMaximize={true} maxWidth="6xl" confirmOnClose isDirty={form.formState.isDirty}>
                 <DialogHeader>
                     <DialogTitle>{t('quoteDialog.createTitle')}</DialogTitle>
                     <DialogDescription>{t('quoteDialog.description')}</DialogDescription>
@@ -700,7 +702,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                             />
                         </DialogBody>
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+                            <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
                                 {t('quoteDialog.cancel')}
                             </Button>
                             <Button type="submit" disabled={isSubmitting}>

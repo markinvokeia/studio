@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  useDialogClose,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -58,6 +59,7 @@ export function EmailComposerDialog({
 }: EmailComposerDialogProps) {
   const t = useTranslations('EmailComposerDialog');
   const { toast } = useToast();
+  const handleClose = useDialogClose();
   const [subject, setSubject] = React.useState('');
   const [clinic, setClinic] = React.useState<ClinicInfo | null>(null);
   const [isSending, setIsSending] = React.useState(false);
@@ -146,6 +148,8 @@ export function EmailComposerDialog({
       <DialogContent
         className="w-full sm:max-w-2xl flex flex-col max-h-[90vh] sm:max-h-[85vh] p-0 gap-0"
         showMaximize
+        confirmOnClose
+        isDirty={subject.trim() !== ''}
       >
         <DialogHeader className="px-4 pt-4 pb-2 shrink-0">
           <DialogTitle className="text-base flex items-center gap-2">
@@ -222,7 +226,7 @@ export function EmailComposerDialog({
 
         <DialogFooter className="px-4 py-3 shrink-0 flex-row items-center justify-between sm:justify-between gap-2">
           <div className="flex gap-2 ml-auto">
-            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+            <Button variant="outline" size="sm" onClick={handleClose}>
               <X className="h-4 w-4 mr-1" />
               {t('cancel')}
             </Button>

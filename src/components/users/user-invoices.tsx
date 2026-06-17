@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogBody, DialogCancelButton, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -1334,7 +1334,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
 
       {/* ── Edit invoice dialog ── */}
       <Dialog open={isEditInvoiceOpen} onOpenChange={setIsEditInvoiceOpen}>
-        <DialogContent maxWidth="4xl">
+        <DialogContent maxWidth="4xl" confirmOnClose isDirty={invoiceEditForm.formState.isDirty}>
           <Form {...invoiceEditForm}>
             <form onSubmit={invoiceEditForm.handleSubmit(handleSubmitInvoiceEdit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) { loadServices(); appendEditInvoiceItem({ service_id: '', quantity: 1, unit_price: 0, total: 0 }); } } }}>
               <DialogHeader>
@@ -1562,7 +1562,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
 
               </DialogBody>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsEditInvoiceOpen(false)}>Cancelar</Button>
+                <DialogCancelButton disabled={isSubmittingInvoice}>Cancelar</DialogCancelButton>
                 <Button type="submit" disabled={isSubmittingInvoice}>
                   {isSubmittingInvoice && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   Guardar
@@ -1575,7 +1575,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
 
       {/* ── Item create/edit dialog ── */}
       <Dialog open={isItemDialogOpen} onOpenChange={setIsItemDialogOpen}>
-        <DialogContent className="sm:max-w-[480px]">
+        <DialogContent className="sm:max-w-[480px]" confirmOnClose isDirty={itemForm.formState.isDirty}>
           <DialogHeader>
             <DialogTitle>{editingItem ? 'Editar ítem' : 'Agregar ítem'}</DialogTitle>
             <DialogDescription>Completa los datos del ítem de la factura.</DialogDescription>
@@ -1622,7 +1622,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 <ItemTotalField form={itemForm} />
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsItemDialogOpen(false)}>Cancelar</Button>
+                <DialogCancelButton>Cancelar</DialogCancelButton>
                 <Button type="submit" disabled={isSubmittingItem}>
                   {isSubmittingItem && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   {editingItem ? 'Guardar cambios' : 'Agregar'}
@@ -1652,7 +1652,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
 
       {/* ── Credit note dialog ── */}
       <Dialog open={isCreditNoteOpen} onOpenChange={setIsCreditNoteOpen}>
-        <DialogContent maxWidth="4xl">
+        <DialogContent maxWidth="4xl" confirmOnClose isDirty={creditNoteForm.formState.isDirty}>
           <Form {...creditNoteForm}>
             <form onSubmit={creditNoteForm.handleSubmit(handleSubmitCreditNote)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) { loadServices(); appendCreditNoteItem({ service_id: '', quantity: 1, unit_price: 0, total: 0 }); } } }}>
               <DialogHeader>
@@ -1867,7 +1867,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 )} />
               </DialogBody>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsCreditNoteOpen(false)}>Cancelar</Button>
+                <DialogCancelButton disabled={isSubmittingCreditNote}>Cancelar</DialogCancelButton>
                 <Button type="submit" disabled={isSubmittingCreditNote}>
                   {isSubmittingCreditNote && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   Crear nota de crédito
@@ -1880,7 +1880,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
 
       {/* ── Email Dialog ── */}
       <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
-        <DialogContent>
+        <DialogContent confirmOnClose isDirty={emailRecipients.trim() !== ''}>
           <DialogHeader>
             <DialogTitle>{tInvoices('sendEmailDialog.title')}</DialogTitle>
             <DialogDescription>
@@ -1900,9 +1900,9 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
             </p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)}>
+            <DialogCancelButton>
               {tInvoices('sendEmailDialog.cancel')}
-            </Button>
+            </DialogCancelButton>
             <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
               {isSendingEmail ? tInvoices('sendEmailDialog.sending') : tInvoices('sendEmailDialog.send')}
             </Button>

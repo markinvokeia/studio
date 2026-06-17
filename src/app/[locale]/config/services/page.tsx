@@ -9,6 +9,7 @@ import { DataTable } from '@/components/ui/data-table';
 import {
   Dialog,
   DialogBody,
+  DialogCancelButton,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -298,7 +299,7 @@ export default function ServicesPage() {
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent confirmOnClose isDirty={form.formState.isDirty}>
           <DialogHeader>
             <DialogTitle>{editingService ? t('createDialog.editTitle') : t('createDialog.title')}</DialogTitle>
             <DialogDescription>
@@ -565,7 +566,7 @@ export default function ServicesPage() {
               </DialogBody>
               <DialogFooter>
                 <Button type="submit">{editingService ? t('createDialog.editSave') : t('createDialog.save')}</Button>
-                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>{t('createDialog.cancel')}</Button>
+                <DialogCancelButton>{t('createDialog.cancel')}</DialogCancelButton>
               </DialogFooter>
             </form>
           </Form>

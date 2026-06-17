@@ -10,10 +10,11 @@ import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
     Dialog,
+    DialogCancelButton,
     DialogContent,
     DialogFooter,
     DialogHeader,
-    DialogTitle
+    DialogTitle,
 } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { DynamicFieldInput } from '@/components/ui/dynamic-field-input';
@@ -643,7 +644,7 @@ export default function AlertRulesPage() {
             </div>
 
             <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) setSubmissionError(null); }}>
-                <DialogContent maxWidth="6xl" className="flex max-h-[90vh] w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] flex-col p-0">
+                <DialogContent maxWidth="6xl" className="flex max-h-[90vh] w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] flex-col p-0" confirmOnClose isDirty={form.formState.isDirty}>
                     <DialogHeader>
                         <DialogTitle>{editingRule ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                     </DialogHeader>
@@ -1084,7 +1085,7 @@ export default function AlertRulesPage() {
                     </Form>
                     <DialogFooter className="border-t px-4 py-3 sm:px-6">
                         <Button className="w-full sm:w-auto" disabled={isSubmitting} onClick={form.handleSubmit(onSubmit)}>{isSubmitting ? t('dialog.saving') : (editingRule ? t('dialog.save') : t('dialog.create'))}</Button>
-                        <Button className="w-full sm:w-auto" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>{t('dialog.cancel')}</Button>
+                        <DialogCancelButton className="w-full sm:w-auto" disabled={isSubmitting}>{t('dialog.cancel')}</DialogCancelButton>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

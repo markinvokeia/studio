@@ -13,6 +13,7 @@ import { DataTableAdvancedToolbar, FilterOption } from '@/components/ui/data-tab
 import {
   Dialog,
   DialogBody,
+  DialogCancelButton,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -726,7 +727,7 @@ export default function DoctorsPage() {
       />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent confirmOnClose isDirty={form.formState.isDirty}>
           <DialogHeader>
             <DialogTitle>{t('DoctorsPage.createDialog.createTitle')}</DialogTitle>
             <DialogDescription>{t('DoctorsPage.createDialog.createDescription')}</DialogDescription>
@@ -870,7 +871,7 @@ export default function DoctorsPage() {
               </DialogBody>
               <DialogFooter>
                 <Button type="submit">{t('DoctorsPage.createDialog.save')}</Button>
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('DoctorsPage.createDialog.cancel')}</Button>
+                <DialogCancelButton>{t('DoctorsPage.createDialog.cancel')}</DialogCancelButton>
               </DialogFooter>
             </form>
           </Form>

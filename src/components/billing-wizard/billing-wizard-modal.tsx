@@ -11,6 +11,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  useDialogClose,
 } from '@/components/ui/dialog';
 import { API_ROUTES } from '@/constants/routes';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
@@ -538,6 +539,8 @@ export function BillingWizardModal() {
     }
   }, [close, confirmationData, onSuccess]);
 
+  const handleCancelClose = useDialogClose();
+
   // Invoice toggle for selection step
   const handleToggleInvoice = React.useCallback((id: string) => {
     setSelectedInvoiceIds((prev) => {
@@ -949,7 +952,7 @@ export function BillingWizardModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent maxWidth="xl">
+      <DialogContent maxWidth="xl" confirmOnClose isDirty={!isConfirmationStep && (editableItems.length > 0 || selectedPatient !== null || currentStep > 0)}>
         <DialogHeader>
           <div className="flex items-start gap-3">
             <div className="header-icon-circle mt-0.5">
@@ -992,7 +995,7 @@ export function BillingWizardModal() {
             {!isConfirmationStep && (
               <button
                 type="button"
-                onClick={handleClose}
+                onClick={handleCancelClose}
                 disabled={isProcessing || isPaymentSubmitting}
                 className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >

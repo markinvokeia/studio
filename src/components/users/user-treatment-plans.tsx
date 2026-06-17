@@ -17,11 +17,13 @@ import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 import { DatePickerInput } from '@/components/ui/date-picker';
 import {
     Dialog,
+    DialogCancelButton,
     DialogContent,
     DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle,
+    useDialogClose,
 } from '@/components/ui/dialog';
 import {
     DropdownMenu,
@@ -576,6 +578,7 @@ function ScheduleStepDialog({
     const [googleCalendarId, setGoogleCalendarId] = React.useState<string | null>(state.defaultGoogleCalendarId);
     const [notes, setNotes] = React.useState(state.defaultNotes);
     const [notify, setNotify] = React.useState(true);
+    const handleClose = useDialogClose();
     const [isSaving, setIsSaving] = React.useState(false);
     const [availability, setAvailability] = React.useState<AvailabilityResult | null>(null);
     const [isChecking, setIsChecking] = React.useState(false);
@@ -646,7 +649,7 @@ function ScheduleStepDialog({
 
     return (
         <Dialog open={state.open} onOpenChange={(open) => { if (!open) onClose(); }}>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md" confirmOnClose isDirty={!!(doctorId || date || notes.trim())}>
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <CalendarPlus className="h-4 w-4 text-primary shrink-0" />
@@ -826,9 +829,9 @@ function ScheduleStepDialog({
                 </div>
 
                 <DialogFooter>
-                    <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={onClose}>
+                    <DialogCancelButton variant="ghost" size="sm" className="h-8 text-xs">
                         {t('edit.cancel')}
-                    </Button>
+                    </DialogCancelButton>
                     <Button
                         size="sm"
                         className="h-8 text-xs gap-1.5"
@@ -880,6 +883,7 @@ function CreateSessionFromStepDialog({
     onClose: () => void;
     t: ReturnType<typeof useTranslations>;
 }) {
+    const handleClose = useDialogClose();
     const [date, setDate] = React.useState(state.prefill.date);
     const [doctorId, setDoctorId] = React.useState(state.prefill.doctorId);
     const [notes, setNotes] = React.useState(state.prefill.notes);
@@ -974,7 +978,7 @@ function CreateSessionFromStepDialog({
 
     return (
         <Dialog open={state.open} onOpenChange={(open) => { if (!open) onClose(); }}>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md" confirmOnClose isDirty={!!(doctorId || date || procedimiento.trim())}>
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Stethoscope className="h-4 w-4 text-primary shrink-0" />
@@ -1054,9 +1058,9 @@ function CreateSessionFromStepDialog({
                 )}
 
                 <DialogFooter>
-                    <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={onClose} disabled={isSaving}>
+                    <DialogCancelButton variant="ghost" size="sm" className="h-8 text-xs" disabled={isSaving}>
                         {t('edit.cancel')}
-                    </Button>
+                    </DialogCancelButton>
                     <Button
                         size="sm"
                         className="h-8 text-xs gap-1.5"

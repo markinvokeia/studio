@@ -1,4 +1,11 @@
 {
+  "ConfirmCloseDialog": {
+    "title": "Discard changes?",
+    "description": "You have unsaved changes. If you close now, they will be lost.",
+    "confirm": "Discard changes",
+    "cancel": "Keep editing",
+    "closeLabel": "Close"
+  },
   "Navigation": {
     "Dashboard": "Dashboard",
     "Appointments": "Appointments",

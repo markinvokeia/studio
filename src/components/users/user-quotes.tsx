@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogBody, DialogCancelButton, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -1800,7 +1800,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
 
       {/* ── Edit quote dialog ── */}
       <Dialog open={isEditQuoteOpen} onOpenChange={setIsEditQuoteOpen}>
-        <DialogContent maxWidth="4xl">
+        <DialogContent maxWidth="4xl" confirmOnClose isDirty={quoteEditForm.formState.isDirty}>
           <Form {...quoteEditForm}>
             <form onSubmit={quoteEditForm.handleSubmit(handleSubmitQuoteEdit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) { loadServices(); appendEditItem({ service_id: '', quantity: 1, unit_price: 0, total: 0, tooth_number: '' as any }); } } }}>
               <DialogHeader>
@@ -2006,7 +2006,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                 </Card>
               </DialogBody>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsEditQuoteOpen(false)}>{t('UserQuotes.dialogs.editQuote.cancel')}</Button>
+                <DialogCancelButton>{t('UserQuotes.dialogs.editQuote.cancel')}</DialogCancelButton>
                 <Button type="submit" disabled={isSubmittingQuote}>
                   {isSubmittingQuote && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   {t('UserQuotes.dialogs.editQuote.save')}
@@ -2019,7 +2019,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
 
       {/* ── Reject dialog (notes required for rejection only) ── */}
       <Dialog open={confirmAction === 'reject'} onOpenChange={(open) => !open && setConfirmAction(null)}>
-        <DialogContent className="sm:max-w-[440px]">
+        <DialogContent className="sm:max-w-[440px]" confirmOnClose isDirty={actionNotes.trim() !== ''}>
           <DialogHeader>
             <DialogTitle>{t('UserQuotes.dialogs.confirmAction.rejectTitle')}</DialogTitle>
             <DialogDescription>
@@ -2031,7 +2031,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
             <Textarea rows={3} placeholder={t('UserQuotes.dialogs.confirmAction.notesPlaceholder')} value={actionNotes} onChange={e => setActionNotes(e.target.value)} />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmAction(null)}>{t('UserQuotes.dialogs.confirmAction.cancel')}</Button>
+            <DialogCancelButton>{t('UserQuotes.dialogs.confirmAction.cancel')}</DialogCancelButton>
             <Button
               variant="destructive"
               onClick={handleConfirmAction}
@@ -2065,7 +2065,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
 
       {/* ── Item create/edit dialog ── */}
       <Dialog open={isItemDialogOpen} onOpenChange={setIsItemDialogOpen}>
-        <DialogContent className="sm:max-w-[480px]">
+        <DialogContent className="sm:max-w-[480px]" confirmOnClose isDirty={itemForm.formState.isDirty}>
           <DialogHeader>
             <DialogTitle>{editingItem ? t('UserQuotes.dialogs.itemDialog.editTitle') : t('UserQuotes.dialogs.itemDialog.title')}</DialogTitle>
             <DialogDescription>{t('UserQuotes.dialogs.itemDialog.description')}</DialogDescription>
@@ -2119,7 +2119,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                 )}
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsItemDialogOpen(false)}>{t('UserQuotes.dialogs.itemDialog.cancel')}</Button>
+                <DialogCancelButton>{t('UserQuotes.dialogs.itemDialog.cancel')}</DialogCancelButton>
                 <Button type="submit" disabled={isSubmittingItem}>
                   {isSubmittingItem && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   {editingItem ? t('UserQuotes.dialogs.itemDialog.save') : t('UserQuotes.dialogs.itemDialog.add')}

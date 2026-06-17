@@ -3,11 +3,49 @@
 
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
+import { useTranslations } from "next-intl"
 import * as React from "react"
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-const Dialog = DialogPrimitive.Root
+// Threads onOpenChange down to DialogContent so it can close the dialog programmatically.
+const DialogOnOpenChangeContext = React.createContext<((open: boolean) => void) | undefined>(undefined)
+
+// Exposes attemptClose so child Cancel buttons can trigger the confirmation guard.
+const DialogAttemptCloseContext = React.createContext<(() => void) | undefined>(undefined)
+
+/** Returns a close handler that respects the dialog's confirmOnClose guard. */
+export function useDialogClose(): () => void {
+  const attemptClose = React.useContext(DialogAttemptCloseContext)
+  const onOpenChange = React.useContext(DialogOnOpenChangeContext)
+  return attemptClose ?? (() => onOpenChange?.(false))
+}
+
+function Dialog({
+  onOpenChange,
+  children,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Root>) {
+  return (
+    <DialogOnOpenChangeContext.Provider value={onOpenChange}>
+      <DialogPrimitive.Root onOpenChange={onOpenChange} {...props}>
+        {children}
+      </DialogPrimitive.Root>
+    </DialogOnOpenChangeContext.Provider>
+  )
+}
+Dialog.displayName = "Dialog"
 
 const DialogTrigger = DialogPrimitive.Trigger
 
@@ -73,9 +111,47 @@ const DialogContent = React.forwardRef<
     showMaximize?: boolean;
     maximizeLabel?: string;
     restoreLabel?: string;
+    /** Show a confirmation dialog when the user tries to close. */
+    confirmOnClose?: boolean;
+    /**
+     * Controls whether the confirmation actually appears.
+     * Pass `form.formState.isDirty` to only prompt when there are unsaved changes.
+     * Defaults to `true` (always prompt when confirmOnClose is set).
+     */
+    isDirty?: boolean;
   }
->(({ className, children, maxWidth = "lg", showMaximize = false, maximizeLabel = "Maximize", restoreLabel = "Restore", ...props }, ref) => {
+>(({
+  className,
+  children,
+  maxWidth = "lg",
+  showMaximize = false,
+  maximizeLabel = "Maximize",
+  restoreLabel = "Restore",
+  confirmOnClose = false,
+  isDirty,
+  onEscapeKeyDown,
+  ...props
+}, ref) => {
   const [isMaximized, setIsMaximized] = React.useState(false)
+  const [showConfirm, setShowConfirm] = React.useState(false)
+  const onOpenChange = React.useContext(DialogOnOpenChangeContext)
+  const t = useTranslations("ConfirmCloseDialog")
+
+  // When isDirty is not provided, treat as dirty (conservative default).
+  const shouldConfirm = confirmOnClose && isDirty !== false
+
+  const attemptClose = React.useCallback(() => {
+    if (shouldConfirm) {
+      setShowConfirm(true)
+    } else {
+      onOpenChange?.(false)
+    }
+  }, [shouldConfirm, onOpenChange])
+
+  const handleConfirmed = () => {
+    setShowConfirm(false)
+    onOpenChange?.(false)
+  }
 
   const maxWidthClasses = {
     sm: "sm:max-w-sm",
@@ -89,62 +165,108 @@ const DialogContent = React.forwardRef<
     "6xl": "sm:max-w-6xl",
     "7xl": "sm:max-w-7xl",
     full: "max-w-full",
-  };
+  }
 
   const sizeToggleLabel = isMaximized ? restoreLabel : maximizeLabel
 
   return (
-    <DialogPortal>
-      <DialogOverlay />
-      <DialogPrimitive.Content
-        ref={ref}
-        data-maximized={isMaximized ? "true" : "false"}
-        className={cn(
-          "group/dialog fixed z-50 flex flex-col gap-0 border bg-background shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 overflow-hidden transition-all",
-          "left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%]",
-          className,
-          isMaximized
-            ? "h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] rounded-xl"
-            : cn("w-full max-h-[92vh] sm:rounded-md", maxWidthClasses[maxWidth] || "sm:max-w-lg")
-        )}
-        onPointerDownOutside={(event) => {
-          event.preventDefault();
-        }}
-        onInteractOutside={(event) => {
-          event.preventDefault();
-        }}
-        {...props}
-      >
-        <div className="flex flex-col flex-1 overflow-hidden relative">
-          {children}
+    <>
+      <DialogPortal>
+        <DialogOverlay />
+        <DialogPrimitive.Content
+          ref={ref}
+          data-maximized={isMaximized ? "true" : "false"}
+          className={cn(
+            "group/dialog fixed z-50 flex flex-col gap-0 border bg-background shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 overflow-hidden transition-all",
+            "left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%]",
+            className,
+            isMaximized
+              ? "h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] rounded-xl"
+              : cn("w-full max-h-[92vh] sm:rounded-md", maxWidthClasses[maxWidth] || "sm:max-w-lg")
+          )}
+          onPointerDownOutside={(event) => {
+            event.preventDefault()
+          }}
+          onInteractOutside={(event) => {
+            event.preventDefault()
+            if (confirmOnClose) {
+              attemptClose()
+            }
+          }}
+          onEscapeKeyDown={(event) => {
+            if (shouldConfirm) {
+              event.preventDefault()
+              setShowConfirm(true)
+            }
+            onEscapeKeyDown?.(event)
+          }}
+          {...props}
+        >
+          <div className="flex flex-col flex-1 overflow-hidden relative">
+            <DialogAttemptCloseContext.Provider value={attemptClose}>
+            {children}
+            </DialogAttemptCloseContext.Provider>
 
-          <div className="absolute right-4 top-0 flex h-14 items-center gap-1">
-            {showMaximize && (
-              <button
-                type="button"
-                className={dialogWindowControlClassName}
-                onClick={() => setIsMaximized((currentValue) => !currentValue)}
-                aria-label={sizeToggleLabel}
-                title={sizeToggleLabel}
-              >
-                {isMaximized ? (
-                  <MacRestoreIcon className="h-3.5 w-3.5 transition-transform duration-150 group-hover:scale-125" strokeWidth={1.9} />
-                ) : (
-                  <MacExpandIcon className="h-3.5 w-3.5 transition-transform duration-150 group-hover:scale-125" strokeWidth={1.9} />
-                )}
-                <span className="sr-only">{sizeToggleLabel}</span>
-              </button>
-            )}
-            <DialogPrimitive.Close className={dialogWindowControlClassName}>
-              <X className="h-4 w-4 transition-transform duration-150 group-hover:scale-110" />
-              <span className="sr-only">Close</span>
-            </DialogPrimitive.Close>
+            <div className="absolute right-4 top-0 flex h-14 items-center gap-1">
+              {showMaximize && (
+                <button
+                  type="button"
+                  className={dialogWindowControlClassName}
+                  onClick={() => setIsMaximized((v) => !v)}
+                  aria-label={sizeToggleLabel}
+                  title={sizeToggleLabel}
+                >
+                  {isMaximized ? (
+                    <MacRestoreIcon className="h-3.5 w-3.5 transition-transform duration-150 group-hover:scale-125" strokeWidth={1.9} />
+                  ) : (
+                    <MacExpandIcon className="h-3.5 w-3.5 transition-transform duration-150 group-hover:scale-125" strokeWidth={1.9} />
+                  )}
+                  <span className="sr-only">{sizeToggleLabel}</span>
+                </button>
+              )}
+
+              {confirmOnClose ? (
+                <button
+                  type="button"
+                  className={dialogWindowControlClassName}
+                  onClick={attemptClose}
+                  aria-label={t("closeLabel")}
+                  title={t("closeLabel")}
+                >
+                  <X className="h-4 w-4 transition-transform duration-150 group-hover:scale-110" />
+                  <span className="sr-only">{t("closeLabel")}</span>
+                </button>
+              ) : (
+                <DialogPrimitive.Close className={dialogWindowControlClassName}>
+                  <X className="h-4 w-4 transition-transform duration-150 group-hover:scale-110" />
+                  <span className="sr-only">Close</span>
+                </DialogPrimitive.Close>
+              )}
+            </div>
           </div>
-        </div>
-      </DialogPrimitive.Content>
-    </DialogPortal>
-  );
-});
+        </DialogPrimitive.Content>
+      </DialogPortal>
+
+      <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("title")}</AlertDialogTitle>
+          </AlertDialogHeader>
+          <AlertDialogDescription>{t("description")}</AlertDialogDescription>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleConfirmed}
+            >
+              {t("confirm")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  )
+})
 DialogContent.displayName = DialogPrimitive.Content.displayName
 
 const DialogHeader = ({
@@ -202,8 +324,7 @@ const DialogDescription = React.forwardRef<
     {...props}
   />
 ))
-DialogDescription.displayName =
-  DialogPrimitive.Description.displayName
+DialogDescription.displayName = DialogPrimitive.Description.displayName
 
 const DialogBody = ({
   className,
@@ -213,6 +334,32 @@ const DialogBody = ({
 )
 DialogBody.displayName = "DialogBody"
 
+/**
+ * A Cancel button that respects the dialog's confirmOnClose guard.
+ * Must be rendered inside DialogContent's children so it can read the close context.
+ */
+const DialogCancelButton = React.forwardRef<
+  HTMLButtonElement,
+  React.ComponentPropsWithoutRef<typeof Button>
+>(({ onClick, children, ...props }, ref) => {
+  const handleClose = useDialogClose()
+  return (
+    <Button
+      ref={ref}
+      type="button"
+      variant="outline"
+      onClick={(e) => {
+        onClick?.(e)
+        if (!e.defaultPrevented) handleClose()
+      }}
+      {...props}
+    >
+      {children}
+    </Button>
+  )
+})
+DialogCancelButton.displayName = "DialogCancelButton"
+
 export {
-  Dialog, DialogBody, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogOverlay, DialogPortal, DialogTitle, DialogTrigger
+  Dialog, DialogBody, DialogCancelButton, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogOverlay, DialogPortal, DialogTitle, DialogTrigger
 }

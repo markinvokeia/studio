@@ -15,6 +15,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  useDialogClose,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -66,6 +67,7 @@ export function ReminderFormDialog({
   const t = useTranslations('Reminders');
   const tGeneral = useTranslations('General');
   const { enhanceText, isReady: aiReady } = useLocalAI();
+  const handleClose = useDialogClose();
 
   const [title, setTitle] = React.useState('');
   const [description, setDescription] = React.useState('');
@@ -132,7 +134,7 @@ export function ReminderFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent maxWidth="md">
+      <DialogContent maxWidth="md" confirmOnClose isDirty={title.trim() !== ''}>
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -217,7 +219,7 @@ export function ReminderFormDialog({
               <span />
             )}
             <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={handleClose}>
                 {tGeneral('cancel')}
               </Button>
               <Button type="submit">{editingReminder ? t('saveEdit') : t('saveCreate')}</Button>

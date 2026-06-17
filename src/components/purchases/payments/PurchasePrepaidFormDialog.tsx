@@ -5,7 +5,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DatePickerInput } from '@/components/ui/date-picker';
-import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle, useDialogClose } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
 import { UserSelector } from '@/components/ui/user-selector';
@@ -61,6 +61,7 @@ export function PurchasePrepaidFormDialog({ open, onOpenChange, initialUser, onS
     const t = useTranslations('purchases');
     const tValidation = useTranslations('InvoicesPage');
     const { toast } = useToast();
+    const handleClose = useDialogClose();
     const { user, checkActiveSession } = useAuth();
     const { validateActiveSession, showCashSessionError } = useCashSessionValidation();
     const clinicInfo = useClinicInfo();
@@ -163,7 +164,7 @@ export function PurchasePrepaidFormDialog({ open, onOpenChange, initialUser, onS
     return (
         <>
             <Dialog open={open} onOpenChange={(o) => { if (!isConfirmOpen) onOpenChange(o); }}>
-                <DialogContent>
+                <DialogContent confirmOnClose isDirty={form.formState.isDirty}>
                     <DialogHeader>
                         <DialogTitle>{t('prepaidDialog.title')}</DialogTitle>
                     </DialogHeader>
@@ -294,7 +295,7 @@ export function PurchasePrepaidFormDialog({ open, onOpenChange, initialUser, onS
                                 )} />
                             </DialogBody>
                             <DialogFooter>
-                                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t('prepaidDialog.cancel')}</Button>
+                                <Button type="button" variant="outline" onClick={handleClose}>{t('prepaidDialog.cancel')}</Button>
                                 <Button type="submit">{t('prepaidDialog.save')}</Button>
                             </DialogFooter>
                         </form>
