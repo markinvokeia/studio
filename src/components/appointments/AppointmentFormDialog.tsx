@@ -13,12 +13,12 @@ import { UserSelector } from '@/components/ui/user-selector';
 import {
     Dialog,
     DialogBody,
+    DialogCancelButton,
     DialogContent,
     DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    useDialogClose,
 } from '@/components/ui/dialog';
 import { DatePickerInput } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
@@ -114,7 +114,6 @@ export function AppointmentFormDialog({
     const { toast } = useToast();
     const { reschedule } = useAppointmentReschedule();
     const isReschedule = mode === 'reschedule';
-    const handleClose = useDialogClose();
     const [hasBeenEdited, setHasBeenEdited] = React.useState(false);
 
     // Form State
@@ -1473,7 +1472,7 @@ export function AppointmentFormDialog({
                         )}
                     </DialogBody>
                     <DialogFooter className="flex-row justify-end gap-2 space-x-0">
-                        <Button variant="outline" onClick={handleClose}>{t('createDialog.cancel')}</Button>
+                        <DialogCancelButton variant="outline">{t('createDialog.cancel')}</DialogCancelButton>
                         <Button onClick={handleSave} disabled={isSessionDialogOpen}>
                             {isReschedule ? tReschedule('submit') : t('createDialog.save')}
                         </Button>

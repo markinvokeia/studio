@@ -5,11 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import {
     Dialog,
+    DialogCancelButton,
     DialogContent,
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    useDialogClose,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -138,7 +138,6 @@ export function ClinicSessionDialog({
     const tCommon = useTranslations('ClinicHistoryPage');
     const locale = useLocale();
     const { toast } = useToast();
-    const handleClose = useDialogClose();
     const [isDirty, setIsDirty] = React.useState(false);
 
     const [isLoadingDoctors, setIsLoadingDoctors] = React.useState(false);
@@ -1448,13 +1447,9 @@ export function ClinicSessionDialog({
                         </div>
                     </div>
                     <DialogFooter className="px-6 py-4 border-t shrink-0">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleClose}
-                        >
+                        <DialogCancelButton variant="outline">
                             {t('cancel')}
-                        </Button>
+                        </DialogCancelButton>
                         <Button type="submit" disabled={isSubmitting || isFetchingProcedure || isFetchingPlan || isProcedureDebouncing || isPlanDebouncing}>
                             {(isSubmitting || isFetchingProcedure || isFetchingPlan || isProcedureDebouncing || isPlanDebouncing) && (
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

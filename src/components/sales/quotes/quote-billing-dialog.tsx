@@ -13,7 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle, useDialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogBody, DialogCancelButton, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -182,7 +182,6 @@ export function QuoteBillingDialog({
   const t = useTranslations('QuoteBillingDialog');
   const tQuotes = useTranslations('QuotesPage');
   const { toast } = useToast();
-  const handleClose = useDialogClose();
 
   const schema = React.useMemo(() => getSchema(t), [t]);
   const form = useForm<QuoteBillingFormValues>({
@@ -794,9 +793,9 @@ export function QuoteBillingDialog({
               )}
             </DialogBody>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={handleClose}>
+              <DialogCancelButton variant="outline">
                 {t('cancel')}
-              </Button>
+              </DialogCancelButton>
               <Button type="submit" disabled={isSubmitting || isLoadingContext || pendingQuoteAmount <= 0}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {t('save')}

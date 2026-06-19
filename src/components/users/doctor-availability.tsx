@@ -7,11 +7,11 @@ import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogBody,
+    DialogCancelButton,
     DialogContent,
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    useDialogClose,
 } from "@/components/ui/dialog";
 import { DatePickerInput } from '@/components/ui/date-picker';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -107,7 +107,6 @@ export function DoctorAvailability({ userId }: { userId: string }) {
     const form = useForm<AvailabilityFormValues>({
         resolver: zodResolver(availabilityFormSchema(tValidation)),
     });
-    const handleClose = useDialogClose();
     const watchedRecurrence = form.watch('recurrence');
 
     React.useEffect(() => {
@@ -309,7 +308,7 @@ export function DoctorAvailability({ userId }: { userId: string }) {
                             </DialogBody>
                             <DialogFooter>
                                 <Button type="submit">{editingRule ? t('dialog.save') : t('dialog.create')}</Button>
-                                <Button type="button" variant="outline" onClick={handleClose}>{t('dialog.cancel')}</Button>
+                                <DialogCancelButton variant="outline">{t('dialog.cancel')}</DialogCancelButton>
                             </DialogFooter>
                         </form>
                     </Form>

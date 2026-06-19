@@ -15,12 +15,12 @@ import { DatePickerInput } from '@/components/ui/date-picker';
 import {
     Dialog,
     DialogBody,
+    DialogCancelButton,
     DialogContent,
     DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    useDialogClose,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -498,7 +498,6 @@ export function TreatmentPlanReviewDialog({
 }: TreatmentPlanReviewDialogProps) {
     const t = useTranslations('TreatmentPlans');
     const { toast } = useToast();
-    const handleClose = useDialogClose();
 
     const [wizardStep, setWizardStep] = React.useState(0);
     const [steps, setSteps] = React.useState<EditableStep[]>([]);
@@ -745,13 +744,18 @@ export function TreatmentPlanReviewDialog({
                         {t('wizard.stepLabel', { current: wizardStep + 1, total: WIZARD_STEPS })}
                     </p>
 
-                    <Button
+                    <DialogCancelButton
                         variant="outline"
-                        onClick={wizardStep === 0 ? handleClose : handleBack}
                         disabled={isCreating || isChecking}
+                        onClick={(e) => {
+                            if (wizardStep > 0) {
+                                e.preventDefault()
+                                handleBack()
+                            }
+                        }}
                     >
                         {wizardStep === 0 ? t('wizard.cancel') : t('wizard.back')}
-                    </Button>
+                    </DialogCancelButton>
 
                     <Button
                         onClick={handleNext}

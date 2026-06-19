@@ -5,12 +5,12 @@ import { Mail, Send, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
   Dialog,
+  DialogCancelButton,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  useDialogClose,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -93,7 +93,6 @@ function buildInitialBody(alert: AlertInstance | null, t: (key: string, values?:
 export function AlertEmailComposerDialog({ open, onOpenChange, alert }: AlertEmailComposerDialogProps) {
   const t = useTranslations('AlertEmailComposerDialog');
   const { toast } = useToast();
-  const handleClose = useDialogClose();
   const [subject, setSubject] = React.useState('');
   const [body, setBody] = React.useState('');
   const [isSending, setIsSending] = React.useState(false);
@@ -191,10 +190,10 @@ export function AlertEmailComposerDialog({ open, onOpenChange, alert }: AlertEma
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={isSending}>
+          <DialogCancelButton variant="outline" disabled={isSending}>
             <X className="h-4 w-4 mr-1" />
             {t('cancel')}
-          </Button>
+          </DialogCancelButton>
           <Button onClick={handleSend} disabled={!recipientEmail || !subject || !body || !userId || isSending}>
             <Send className="h-4 w-4 mr-1" />
             {isSending ? t('sending') : t('send')}

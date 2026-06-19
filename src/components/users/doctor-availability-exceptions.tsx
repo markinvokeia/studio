@@ -8,11 +8,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogBody,
+    DialogCancelButton,
     DialogContent,
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    useDialogClose,
 } from "@/components/ui/dialog";
 import { DatePickerInput } from '@/components/ui/date-picker';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -96,7 +96,6 @@ export function DoctorAvailabilityExceptions({ userId }: { userId: string }) {
     const form = useForm<ExceptionFormValues>({
         resolver: zodResolver(exceptionFormSchema(tValidation)),
     });
-    const handleClose = useDialogClose();
 
     const loadExceptions = React.useCallback(async () => {
         setIsLoading(true);
@@ -256,7 +255,7 @@ export function DoctorAvailabilityExceptions({ userId }: { userId: string }) {
                             </DialogBody>
                             <DialogFooter>
                                 <Button type="submit">{editingException ? t('dialog.save') : t('dialog.create')}</Button>
-                                <Button type="button" variant="outline" onClick={handleClose}>{t('dialog.cancel')}</Button>
+                                <DialogCancelButton variant="outline">{t('dialog.cancel')}</DialogCancelButton>
                             </DialogFooter>
                         </form>
                     </Form>

@@ -5,11 +5,11 @@ import { Bold, Italic, Underline, List, Link2, Send, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
   Dialog,
+  DialogCancelButton,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  useDialogClose,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,7 +59,6 @@ export function EmailComposerDialog({
 }: EmailComposerDialogProps) {
   const t = useTranslations('EmailComposerDialog');
   const { toast } = useToast();
-  const handleClose = useDialogClose();
   const [subject, setSubject] = React.useState('');
   const [clinic, setClinic] = React.useState<ClinicInfo | null>(null);
   const [isSending, setIsSending] = React.useState(false);
@@ -226,10 +225,10 @@ export function EmailComposerDialog({
 
         <DialogFooter className="px-4 py-3 shrink-0 flex-row items-center justify-between sm:justify-between gap-2">
           <div className="flex gap-2 ml-auto">
-            <Button variant="outline" size="sm" onClick={handleClose}>
+            <DialogCancelButton variant="outline" size="sm">
               <X className="h-4 w-4 mr-1" />
               {t('cancel')}
-            </Button>
+            </DialogCancelButton>
             <Button size="sm" onClick={handleSend} disabled={!to || !subject || !userId || isSending}>
               <Send className="h-4 w-4 mr-1" />
               {isSending ? t('sending') : t('send')}

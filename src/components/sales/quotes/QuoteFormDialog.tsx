@@ -7,12 +7,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogBody,
+    DialogCancelButton,
     DialogContent,
     DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    useDialogClose,
 } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -115,7 +115,6 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
     const t = useTranslations('QuotesPage');
     const { toast } = useToast();
     const { activeCashSession } = useAuth();
-    const handleClose = useDialogClose();
 
     const [clinic, setClinic] = React.useState<Clinic | null>(null);
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
@@ -702,9 +701,9 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                             />
                         </DialogBody>
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
+                            <DialogCancelButton variant="outline" disabled={isSubmitting}>
                                 {t('quoteDialog.cancel')}
-                            </Button>
+                            </DialogCancelButton>
                             <Button type="submit" disabled={isSubmitting}>
                                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 {isSubmitting ? t('quoteDialog.saving') : t('quoteDialog.save')}
