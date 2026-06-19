@@ -324,14 +324,26 @@ export function AppointmentPanel({
           appointmentId: appointment.id,
         }, onBillingSuccess);
       } else {
-        const preloadedItems = (appointment.services || []).map((svc) => ({
-          tempId: svc.id,
-          service_id: svc.id,
-          service_name: svc.name,
-          unit_price: svc.price || 0,
-          quantity: 1,
-          total: svc.price || 0,
-        }));
+        const sessionTreatments = (linkedSession?.tratamientos ?? []).filter(
+          (t) => t.service_id && !t.is_for_next_session,
+        );
+        const preloadedItems = sessionTreatments.length > 0
+          ? sessionTreatments.map((t) => ({
+              tempId: String(t.service_id),
+              service_id: String(t.service_id),
+              service_name: t.service_name ?? t.descripcion ?? '',
+              unit_price: t.unit_price ?? 0,
+              quantity: t.quantity ?? 1,
+              total: (t.unit_price ?? 0) * (t.quantity ?? 1),
+            }))
+          : (appointment.services || []).map((svc) => ({
+              tempId: svc.id,
+              service_id: svc.id,
+              service_name: svc.name,
+              unit_price: svc.price || 0,
+              quantity: 1,
+              total: svc.price || 0,
+            }));
         openBillingWizard({
           patientId: appointment.patientId,
           patientName: appointment.patientName,
