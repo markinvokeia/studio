@@ -81,11 +81,11 @@ interface AppointmentFormDialogProps {
         date?: boolean;
     };
     onSaveSuccess?: (savedAppointment: any, selectedDate: Date) => void;
-    calendars: CalendarType[];
-    doctors: UserType[];
-    doctorServiceMap: Map<string, Service[]>;
-    checkCalendarAvailability: boolean;
-    checkDoctorAvailability: boolean;
+    calendars?: CalendarType[];
+    doctors?: UserType[];
+    doctorServiceMap?: Map<string, Service[]>;
+    checkCalendarAvailability?: boolean;
+    checkDoctorAvailability?: boolean;
     userQuotes?: Quote[];
 }
 
@@ -97,11 +97,11 @@ export function AppointmentFormDialog({
     initialData,
     readOnlyFields,
     onSaveSuccess,
-    calendars,
-    doctors: allDoctors,
-    doctorServiceMap,
-    checkCalendarAvailability,
-    checkDoctorAvailability,
+    calendars = [],
+    doctors: allDoctors = [],
+    doctorServiceMap = new Map(),
+    checkCalendarAvailability = false,
+    checkDoctorAvailability = false,
     userQuotes: externalUserQuotes,
 }: AppointmentFormDialogProps) {
     const t = useTranslations('AppointmentsPage');

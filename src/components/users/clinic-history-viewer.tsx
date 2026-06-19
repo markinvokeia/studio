@@ -1656,13 +1656,21 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
     const openApptPanel = React.useCallback(async (appt: Appointment) => {
         setApptPanelAppointment(appt);
         setIsApptPanelOpen(true);
-        if (appt.quote_id) {
-            setIsLoadingApptLinkedSessions(true);
-            try {
-                const data = await api.get(API_ROUTES.CLINIC_HISTORY.PATIENT_SESSIONS, { user_id: userId });
-                const raw: any[] = Array.isArray(data) ? data : (data.patient_sessions || data.data || []);
-                const filtered = raw.filter((s: any) => s.quote_id != null && String(s.quote_id) === String(appt.quote_id));
-                setApptPanelLinkedSessions(filtered.map((s: any): PatientSession => ({
+        setIsLoadingApptLinkedSessions(true);
+        try {
+            const data = await api.get(API_ROUTES.CLINIC_HISTORY.PATIENT_SESSIONS, { user_id: userId });
+            const raw: any[] = Array.isArray(data) ? data : (data.patient_sessions || data.data || []);
+
+            // Match by appointment_id first; fall back to quote_id for older sessions.
+            const match =
+                raw.find((s: any) => s?.appointment_id != null && String(s.appointment_id) === String(appt.id)) ??
+                (appt.quote_id
+                    ? raw.find((s: any) => s?.quote_id != null && String(s.quote_id) === String(appt.quote_id))
+                    : undefined);
+
+            if (match) {
+                const s = match;
+                setApptPanelLinkedSessions([{
                     sesion_id: Number(s.sesion_id || s.id),
                     tipo_sesion: s.tipo_sesion,
                     fecha_sesion: s.fecha_sesion || '',
@@ -1680,14 +1688,14 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                     quote_id: s.quote_id?.toString(),
                     quote_doc_no: s.quote_doc_no,
                     appointment_id: s.appointment_id?.toString(),
-                })));
-            } catch {
+                }]);
+            } else {
                 setApptPanelLinkedSessions([]);
-            } finally {
-                setIsLoadingApptLinkedSessions(false);
             }
-        } else {
+        } catch {
             setApptPanelLinkedSessions([]);
+        } finally {
+            setIsLoadingApptLinkedSessions(false);
         }
     }, [userId]);
 

@@ -6,13 +6,19 @@ import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AppointmentPanel } from '@/components/appointments/AppointmentPanel';
-import { API_ROUTES } from '@/constants/routes';
-import { Appointment, AppointmentStatus, CancellationReason, PatientSession, User, Service, Calendar as CalendarType } from '@/lib/types';
-import { api } from '@/services/api';
-import { AppointmentStatusMenu } from '@/components/appointments/AppointmentStatusMenu';
+import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
 import { CancellationNoteDialog } from '@/components/appointments/CancellationNoteDialog';
+import { AppointmentStatusMenu } from '@/components/appointments/AppointmentStatusMenu';
+import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
+import { API_ROUTES } from '@/constants/routes';
+import { normalizeAppointmentStatus, normalizeCancellationReason, canReschedule } from '@/constants/appointment-status';
 import { useAppointmentStatus } from '@/hooks/use-appointment-status';
-import { normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
+import { useClinicHistory } from '@/hooks/useClinicHistory';
+import { useToast } from '@/hooks/use-toast';
+import { Appointment, AppointmentStatus, CancellationReason, Invoice, Order, PatientSession, QuoteItem, User, Service, Calendar as CalendarType } from '@/lib/types';
+import { api } from '@/services/api';
+import { getQuoteItems } from '@/services/quotes';
+import { updateAppointmentStatusRequest } from '@/services/appointments';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { FileText } from 'lucide-react';
 import { addMonths, format, parseISO } from 'date-fns';
@@ -274,8 +280,10 @@ interface UserAppointmentsProps {
 export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps) {
   const t = useTranslations('AppointmentsColumns');
   const tAppointmentsPage = useTranslations('AppointmentsPage');
+  const { toast } = useToast();
   const isViewportNarrow = useViewportNarrow();
-  
+  const { createSession, updateSession } = useClinicHistory();
+
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
   const [calendars, setCalendars] = React.useState<CalendarType[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -283,9 +291,27 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
   const [selectedAppointment, setSelectedAppointment] = React.useState<Appointment | null>(null);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
 
-  // Linked sessions state
-  const [linkedSessions, setLinkedSessions] = React.useState<PatientSession[]>([]);
-  const [isLoadingLinkedSessions, setIsLoadingLinkedSessions] = React.useState(false);
+  // Linked session
+  const [linkedSession, setLinkedSession] = React.useState<PatientSession | null>(null);
+  const [isLoadingLinkedSession, setIsLoadingLinkedSession] = React.useState(false);
+
+  // Quote / invoice info
+  const [quoteOrder, setQuoteOrder] = React.useState<Order | null>(null);
+  const [quoteInvoices, setQuoteInvoices] = React.useState<Invoice[]>([]);
+  const [isLoadingQuoteInfo, setIsLoadingQuoteInfo] = React.useState(false);
+
+  // Clinic session dialog
+  const [isClinicSessionOpen, setIsClinicSessionOpen] = React.useState(false);
+  const [clinicSessionAppointment, setClinicSessionAppointment] = React.useState<Appointment | null>(null);
+  const [quoteItems, setQuoteItems] = React.useState<QuoteItem[]>([]);
+
+  // Edit / reschedule dialog
+  const [isCreateOpen, setIsCreateOpen] = React.useState(false);
+  const [editingAppointment, setEditingAppointment] = React.useState<Appointment | null>(null);
+  const [isReschedulingMode, setIsReschedulingMode] = React.useState(false);
+
+  // Cancellation
+  const [pendingCancellation, setPendingCancellation] = React.useState<Appointment | null>(null);
 
   const { updateStatus } = useAppointmentStatus({
     onSuccess: (appt, newStatus, extra) => {
@@ -294,39 +320,25 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
         cancellation_reason: extra?.cancellation_reason ?? null,
         cancellation_note: extra?.cancellation_note ?? null,
       };
-
-      setAppointments((prev) =>
-        prev.map((a) => (a.id === appt.id ? { ...a, ...patch } : a)),
-      );
-      setSelectedAppointment((prev) =>
-        prev && prev.id === appt.id ? { ...prev, ...patch } : prev,
-      );
+      setAppointments((prev) => prev.map((a) => (a.id === appt.id ? { ...a, ...patch } : a)));
+      setSelectedAppointment((prev) => prev && prev.id === appt.id ? { ...prev, ...patch } : prev);
     },
   });
 
   const handleStatusChange = React.useCallback(
-    (
-      appointment: Appointment,
-      newStatus: AppointmentStatus,
-      extra?: { cancellation_reason?: CancellationReason; cancellation_note?: string },
-    ) => {
+    (appointment: Appointment, newStatus: AppointmentStatus, extra?: { cancellation_reason?: CancellationReason; cancellation_note?: string }) => {
       updateStatus({ appointment, newStatus, ...extra });
     },
     [updateStatus],
   );
 
-  const [pendingCancellation, setPendingCancellation] = React.useState<Appointment | null>(null);
   const handleRequestCustomCancellation = React.useCallback((appointment: Appointment) => {
     setPendingCancellation(appointment);
   }, []);
+
   const handleConfirmCustomCancellation = React.useCallback((note: string) => {
     if (!pendingCancellation) return;
-    updateStatus({
-      appointment: pendingCancellation,
-      newStatus: 'cancelled',
-      cancellation_reason: 'other',
-      cancellation_note: note,
-    });
+    updateStatus({ appointment: pendingCancellation, newStatus: 'cancelled', cancellation_reason: 'other', cancellation_note: note });
     setPendingCancellation(null);
   }, [pendingCancellation, updateStatus]);
 
@@ -343,91 +355,219 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
   const loadAppointments = React.useCallback(async () => {
     if (!user) return;
     setIsLoading(true);
-
     const calendarSourceIds = calendars.map(c => String(c.id));
-
     const fetchedAppointments = await getAppointmentsForUser(user, calendarSourceIds, calendars);
     setAppointments(fetchedAppointments);
     setIsLoading(false);
   }, [user, calendars]);
 
-  // Load linked sessions for an appointment: fetch all patient sessions, then filter by quote_id
-  const loadLinkedSessions = React.useCallback(async (userId: string, quoteId: string) => {
-    if (!userId || !quoteId) {
-      setLinkedSessions([]);
-      return;
-    }
-    setIsLoadingLinkedSessions(true);
+  const loadLinkedSession = React.useCallback(async (appointment: Appointment) => {
+    const patientId = appointment.patientId;
+    if (!patientId) { setLinkedSession(null); return; }
+    setIsLoadingLinkedSession(true);
     try {
-      const data = await api.get(API_ROUTES.CLINIC_HISTORY.PATIENT_SESSIONS, { user_id: userId });
-      const sessionsData: any[] = Array.isArray(data) ? data : (data.patient_sessions || data.data || []);
+      const data = await api.get(API_ROUTES.CLINIC_HISTORY.PATIENT_SESSIONS, { user_id: patientId });
+      const sessions: any[] = Array.isArray(data) ? data : (data.patient_sessions || data.data || []);
 
-      // Filter by quote_id on the client side
-      const filtered = sessionsData.filter((s: any) => s.quote_id != null && String(s.quote_id) === String(quoteId));
+      // Match by appointment_id first; fall back to quote_id for sessions created
+      // before appointment_id was persisted.
+      const match =
+        sessions.find((s: any) => s?.appointment_id?.toString() === appointment.id) ??
+        (appointment.quote_id
+          ? sessions.find((s: any) => s?.quote_id != null && String(s.quote_id) === String(appointment.quote_id))
+          : undefined);
 
-      setLinkedSessions(filtered.map((s: any): PatientSession => ({
-        sesion_id: Number(s.sesion_id || s.id),
-        tipo_sesion: s.tipo_sesion,
-        fecha_sesion: s.fecha_sesion || '',
-        diagnostico: s.diagnostico || null,
-        procedimiento_realizado: s.procedimiento_realizado || '',
-        notas_clinicas: s.notas_clinicas || '',
-        plan_proxima_cita: s.plan_proxima_cita || undefined,
-        fecha_proxima_cita: s.fecha_proxima_cita || undefined,
-        doctor_id: s.doctor_id || null,
-        doctor_name: s.doctor_name || s.nombre_doctor || undefined,
-        nombre_doctor: s.nombre_doctor || s.doctor_name || undefined,
-        estado_odontograma: s.estado_odontograma,
-        tratamientos: s.tratamientos || [],
-        archivos_adjuntos: s.archivos_adjuntos || [],
-        quote_id: s.quote_id?.toString(),
-        quote_doc_no: s.quote_doc_no,
-        appointment_id: s.appointment_id?.toString(),
-      })));
-    } catch (error) {
-      console.error("Failed to fetch linked sessions:", error);
-      setLinkedSessions([]);
+      if (match) {
+        const s = match;
+        setLinkedSession({
+          sesion_id: Number(s.sesion_id),
+          tipo_sesion: s.tipo_sesion,
+          fecha_sesion: s.fecha_sesion || '',
+          diagnostico: s.diagnostico || null,
+          procedimiento_realizado: s.procedimiento_realizado || '',
+          notas_clinicas: s.notas_clinicas || '',
+          plan_proxima_cita: s.plan_proxima_cita,
+          fecha_proxima_cita: s.fecha_proxima_cita,
+          doctor_id: s.doctor_id || null,
+          doctor_name: s.doctor_name || s.nombre_doctor,
+          nombre_doctor: s.nombre_doctor || s.doctor_name,
+          estado_odontograma: s.estado_odontograma,
+          tratamientos: s.tratamientos || [],
+          archivos_adjuntos: s.archivos_adjuntos || [],
+          quote_id: s.quote_id?.toString(),
+          quote_doc_no: s.quote_doc_no,
+          appointment_id: s.appointment_id?.toString(),
+        });
+      } else {
+        setLinkedSession(null);
+      }
+    } catch {
+      setLinkedSession(null);
     } finally {
-      setIsLoadingLinkedSessions(false);
+      setIsLoadingLinkedSession(false);
     }
   }, []);
 
+  const loadQuoteInfo = React.useCallback(async (quoteId: string) => {
+    setIsLoadingQuoteInfo(true);
+    try {
+      const [ordersData, invoicesData] = await Promise.all([
+        api.get(API_ROUTES.SALES.QUOTES_ORDERS, { quote_id: quoteId }).catch(() => []),
+        api.get(API_ROUTES.SALES.QUOTES_INVOICES, { quote_id: quoteId }).catch(() => []),
+      ]);
+      const orders: any[] = Array.isArray(ordersData) ? ordersData : (ordersData.orders || ordersData.data || []);
+      const invoices: any[] = Array.isArray(invoicesData) ? invoicesData : (invoicesData.invoices || invoicesData.data || []);
+      const firstOrder = orders.length > 0 ? orders[0] : null;
+      setQuoteOrder(firstOrder ? {
+        id: String(firstOrder.id || ''),
+        doc_no: firstOrder.doc_no,
+        user_id: firstOrder.user_id,
+        quote_id: firstOrder.quote_id,
+        quote_doc_no: firstOrder.quote_doc_no,
+        status: firstOrder.status || 'pending',
+        is_invoiced: firstOrder.is_invoiced ?? false,
+        currency: firstOrder.currency,
+        createdAt: firstOrder.created_at || firstOrder.createdAt || '',
+        updatedAt: firstOrder.updated_at || firstOrder.updatedAt || '',
+      } : null);
+      setQuoteInvoices(invoices.map((inv: any) => ({
+        id: String(inv.id || ''),
+        invoice_ref: inv.invoice_ref || '',
+        doc_no: inv.doc_no || inv.invoice_doc_no,
+        order_id: inv.order_id || '',
+        order_doc_no: inv.order_doc_no,
+        invoice_doc_no: inv.invoice_doc_no || inv.doc_no,
+        quote_id: inv.quote_id || quoteId,
+        quote_doc_no: inv.quote_doc_no,
+        user_name: inv.user_name || '',
+        user_id: inv.user_id || '',
+        total: parseFloat(inv.total) || 0,
+        paid_amount: parseFloat(inv.paid_amount) || 0,
+        status: inv.status || 'draft',
+        payment_status: inv.payment_state || inv.payment_status || 'unpaid',
+        type: inv.type || 'invoice',
+        currency: inv.currency,
+        is_historical: inv.is_historical || false,
+        createdAt: inv.created_at || inv.createdAt || '',
+        updatedAt: inv.updated_at || inv.updatedAt || '',
+      })));
+    } catch {
+      setQuoteOrder(null);
+      setQuoteInvoices([]);
+    } finally {
+      setIsLoadingQuoteInfo(false);
+    }
+  }, []);
+
+  const handleOpenClinicSession = React.useCallback(async (appointment: Appointment) => {
+    setClinicSessionAppointment(appointment);
+    setLinkedSession(null);
+
+    const tasks: Promise<any>[] = [loadLinkedSession(appointment)];
+    if (appointment.quote_id) {
+      tasks.push(
+        getQuoteItems(appointment.quote_id)
+          .then((items) => setQuoteItems(items))
+          .catch(() => setQuoteItems([])),
+      );
+    } else {
+      setQuoteItems([]);
+    }
+
+    await Promise.all(tasks);
+    setIsClinicSessionOpen(true);
+  }, [loadLinkedSession]);
+
+  const handleSaveClinicSession = React.useCallback(async (data: ClinicSessionFormData) => {
+    if (!clinicSessionAppointment?.patientId) return;
+    try {
+      const sessionData = {
+        ...data,
+        appointment_id: clinicSessionAppointment.id,
+        quote_id: clinicSessionAppointment.quote_id,
+      };
+
+      if (data.sesion_id) {
+        await updateSession(data.sesion_id, clinicSessionAppointment.patientId, sessionData, data.archivos_adjuntos, data.deletedAttachmentIds);
+        toast({ title: tAppointmentsPage('toasts.sessionUpdated') });
+      } else {
+        await createSession(clinicSessionAppointment.patientId, sessionData, data.archivos_adjuntos);
+        if (clinicSessionAppointment.status !== 'completed') {
+          await updateAppointmentStatusRequest({ appointment: clinicSessionAppointment, newStatus: 'completed' });
+          const patch = { status: 'completed' as AppointmentStatus };
+          setAppointments((prev) => prev.map((a) => a.id === clinicSessionAppointment.id ? { ...a, ...patch } : a));
+          setSelectedAppointment((prev) => prev && prev.id === clinicSessionAppointment.id ? { ...prev, ...patch } : prev);
+        }
+        toast({ title: tAppointmentsPage('toasts.sessionCreated'), description: tAppointmentsPage('toasts.sessionCreatedDesc') });
+      }
+
+      setIsClinicSessionOpen(false);
+      setClinicSessionAppointment(null);
+      loadLinkedSession(clinicSessionAppointment);
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: tAppointmentsPage('toasts.errorCreatingSession'),
+        description: error instanceof Error ? error.message : tAppointmentsPage('toasts.errorCreatingSessionDesc'),
+      });
+      throw error;
+    }
+  }, [clinicSessionAppointment, createSession, updateSession, loadLinkedSession, toast, tAppointmentsPage]);
+
+  const handleEdit = React.useCallback((appointment: Appointment) => {
+    setEditingAppointment(appointment);
+    setIsReschedulingMode(false);
+    setIsCreateOpen(true);
+  }, []);
+
+  const handleReschedule = React.useCallback((appointment: Appointment) => {
+    setEditingAppointment(appointment);
+    setIsReschedulingMode(true);
+    setIsCreateOpen(true);
+  }, []);
+
+  const prefillTreatments = React.useMemo(() => {
+    return quoteItems.map(item => {
+      const toothNum = item.tooth_number != null ? Number(item.tooth_number) : null;
+      return {
+        numero_diente: toothNum != null && !isNaN(toothNum) && toothNum > 0 ? toothNum : null,
+        descripcion: item.service_name,
+      };
+    });
+  }, [quoteItems]);
+
   React.useEffect(() => {
-    const init = async () => {
-      await loadCalendars();
-    };
-    init();
+    loadCalendars();
   }, [loadCalendars]);
 
   React.useEffect(() => {
-    if (calendars.length > 0) {
-      loadAppointments();
-    }
+    if (calendars.length > 0) loadAppointments();
   }, [calendars, loadAppointments]);
 
-  // Efecto para refrescar cuando cambia refreshTrigger
   React.useEffect(() => {
-    if (refreshTrigger && refreshTrigger > 0) {
-      loadAppointments();
-    }
+    if (refreshTrigger && refreshTrigger > 0) loadAppointments();
   }, [refreshTrigger, loadAppointments]);
 
-  // Handle row selection
   const handleRowSelectionChange = React.useCallback((selectedRows: Appointment[]) => {
     const appointment = selectedRows[0] ?? null;
     setSelectedAppointment(appointment);
     if (appointment) {
       setIsSheetOpen(true);
-      if (appointment.quote_id) {
-        loadLinkedSessions(String(user.id), appointment.quote_id);
-      } else {
-        setLinkedSessions([]);
-      }
+      setLinkedSession(null);
+      setQuoteOrder(null);
+      setQuoteInvoices([]);
+      setIsLoadingQuoteInfo(false);
+
+      const tasks: Promise<void>[] = [loadLinkedSession(appointment)];
+      if (appointment.quote_id) tasks.push(loadQuoteInfo(appointment.quote_id));
+      Promise.all(tasks);
     } else {
       setIsSheetOpen(false);
-      setLinkedSessions([]);
+      setLinkedSession(null);
+      setQuoteOrder(null);
+      setQuoteInvoices([]);
     }
-  }, [loadLinkedSessions, user.id]);
+  }, [loadLinkedSession, loadQuoteInfo]);
 
   if (isLoading) {
     return (
@@ -488,18 +628,61 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
           if (!open) {
             setRowSelection({});
             setSelectedAppointment(null);
-            setLinkedSessions([]);
+            setLinkedSession(null);
+            setQuoteOrder(null);
+            setQuoteInvoices([]);
           }
         }}
         appointment={selectedAppointment}
-        linkedSession={linkedSessions[0] ?? null}
-        isLoadingLinkedSession={isLoadingLinkedSessions}
-        quoteOrder={null}
-        quoteInvoices={[]}
-        isLoadingQuoteInfo={false}
+        linkedSession={linkedSession}
+        isLoadingLinkedSession={isLoadingLinkedSession}
+        quoteOrder={quoteOrder}
+        quoteInvoices={quoteInvoices}
+        isLoadingQuoteInfo={isLoadingQuoteInfo}
+        onEdit={handleEdit}
+        onReschedule={handleReschedule}
+        onOpenClinicSession={handleOpenClinicSession}
         onStatusChange={handleStatusChange}
         onRequestCustomCancellation={handleRequestCustomCancellation}
+        onBillingSuccess={loadAppointments}
       />
+
+      {clinicSessionAppointment && (
+        <ClinicSessionDialog
+          open={isClinicSessionOpen}
+          onOpenChange={(open) => {
+            setIsClinicSessionOpen(open);
+            if (!open) setClinicSessionAppointment(null);
+          }}
+          onSave={handleSaveClinicSession}
+          userId={clinicSessionAppointment.patientId}
+          patientName={clinicSessionAppointment.patientName}
+          quoteId={clinicSessionAppointment.quote_id}
+          appointmentId={clinicSessionAppointment.id}
+          defaultDate={clinicSessionAppointment.date ? new Date(clinicSessionAppointment.date) : undefined}
+          serviceName={clinicSessionAppointment.summary || clinicSessionAppointment.service_name}
+          showTreatments={true}
+          showAttachments={true}
+          prefillData={{
+            doctor_id: clinicSessionAppointment.doctorId,
+            doctor_name: clinicSessionAppointment.doctorName,
+          }}
+          prefillTreatments={prefillTreatments}
+          existingSession={linkedSession ?? undefined}
+        />
+      )}
+
+      <AppointmentFormDialog
+        open={isCreateOpen}
+        onOpenChange={(open) => {
+          setIsCreateOpen(open);
+          if (!open) { setEditingAppointment(null); setIsReschedulingMode(false); }
+        }}
+        editingAppointment={editingAppointment}
+        mode={isReschedulingMode ? 'reschedule' : (editingAppointment ? 'edit' : 'create')}
+        onSaveSuccess={() => { setIsCreateOpen(false); loadAppointments(); }}
+      />
+
       <CancellationNoteDialog
         open={!!pendingCancellation}
         onOpenChange={(open) => { if (!open) setPendingCancellation(null); }}
