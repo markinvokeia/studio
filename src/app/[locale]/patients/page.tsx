@@ -56,7 +56,7 @@ import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/compone
 import { UserCommunicationPreferences } from '@/components/users/user-communication-preferences';
 import { UserFinancialSummaryStats } from '@/components/users/user-financial-summary-stats';
 import { UserInvoices } from '@/components/users/user-invoices';
-import { UserTreatmentPlans } from '@/components/users/user-treatment-plans';
+import { UserTreatmentPlans, type TreatmentContactContext } from '@/components/users/user-treatment-plans';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import { UserOrders } from '@/components/users/user-orders';
 import { UserPayments } from '@/components/users/user-payments';
@@ -1025,6 +1025,7 @@ export default function UsersPage() {
   const [isStatsOpen, setIsStatsOpen] = React.useState(true);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = React.useState(false);
   const [isWhatsAppDialogOpen, setIsWhatsAppDialogOpen] = React.useState(false);
+  const [treatmentContactCtx, setTreatmentContactCtx] = React.useState<TreatmentContactContext | null>(null);
   const [isRightExpanded, setIsRightExpanded] = React.useState(false);
   const [dependantContactInfo, setDependantContactInfo] = React.useState<DependantContactInfo | null>(null);
   const [apptCalendars, setApptCalendars] = React.useState<CalendarType[]>([]);
@@ -2073,7 +2074,7 @@ export default function UsersPage() {
                               setActiveTab('clinical')
                               setActiveClinicalSubTab('clinical-history')
                             }}
-                            onContact={() => setIsWhatsAppDialogOpen(true)}
+                            onContact={(ctx) => { setTreatmentContactCtx(ctx); setIsWhatsAppDialogOpen(true); }}
                           />
                         }
                         documentsContent={<DocumentsViewer userId={selectedUser.id} createTrigger={createDocumentTrigger} />}
@@ -2507,9 +2508,10 @@ export default function UsersPage() {
       {selectedUser && (
         <WhatsAppComposerDialog
           open={isWhatsAppDialogOpen}
-          onOpenChange={setIsWhatsAppDialogOpen}
+          onOpenChange={(v) => { setIsWhatsAppDialogOpen(v); if (!v) setTreatmentContactCtx(null); }}
           phone={effectivePatientPhone || ''}
           recipientName={selectedUser.name}
+          treatmentContext={treatmentContactCtx ?? undefined}
         />
       )}
     </>

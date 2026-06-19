@@ -17,12 +17,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { useClinicInfo } from '@/hooks/useClinicInfo';
+import { useCommunicationTemplates, substituteTokens } from '@/hooks/useCommunicationTemplates';
+import { WHATSAPP_TEMPLATE_DEFAULTS } from '@/lib/whatsapp-template-defaults';
 
 interface WhatsAppComposerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   phone: string;
   recipientName?: string;
+  treatmentContext?: { serviceName: string; missedStep: string; missedDate?: string };
 }
 
 export function WhatsAppComposerDialog({
@@ -30,10 +34,13 @@ export function WhatsAppComposerDialog({
   onOpenChange,
   phone,
   recipientName,
+  treatmentContext,
 }: WhatsAppComposerDialogProps) {
   const t = useTranslations('WhatsAppComposerDialog');
   const { toast } = useToast();
   const handleClose = useDialogClose();
+  const clinic = useClinicInfo();
+  const commTemplates = useCommunicationTemplates();
   const [message, setMessage] = React.useState('');
   const [isOpening, setIsOpening] = React.useState(false);
   const normalizedPhone = React.useMemo(
@@ -42,11 +49,23 @@ export function WhatsAppComposerDialog({
   );
 
   React.useEffect(() => {
-    if (!open) {
-      setMessage('');
-      setIsOpening(false);
+    if (!open) { setMessage(''); setIsOpening(false); return; }
+    const vars: Record<string, string> = {
+      patient_name:  recipientName            || '',
+      clinic_name:   clinic?.name             || '',
+      clinic_phone:  clinic?.phone            || '',
+      service_name:  treatmentContext?.serviceName || '',
+      missed_step:   treatmentContext?.missedStep  || '',
+      missed_date:   treatmentContext?.missedDate  || '',
+    };
+    if (treatmentContext) {
+      const tpl = commTemplates['TREATMENT_INTERRUPTED_WHATSAPP'];
+      setMessage(substituteTokens(tpl?.body_text || WHATSAPP_TEMPLATE_DEFAULTS.whatsapp_treatment_interrupted, vars));
+    } else {
+      const tpl = commTemplates['PATIENT_GENERAL_WHATSAPP'];
+      setMessage(substituteTokens(tpl?.body_text || WHATSAPP_TEMPLATE_DEFAULTS.whatsapp_patient_general, vars));
     }
-  }, [open]);
+  }, [open, clinic, commTemplates, recipientName, treatmentContext]);
 
   const handleOpenWhatsApp = async () => {
     if (!normalizedPhone || isOpening) return;

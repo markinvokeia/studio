@@ -53,6 +53,7 @@
     "Sequences": "Secuencias",
     "MutualSocieties": "Sociedades Mutuales",
     "PrintTemplates": "Plantillas de Documentos",
+    "Templates": "Plantillas",
     "System": "Sistema",
     "SystemUsers": "Usuarios",
     "Roles": "Roles",
@@ -5558,6 +5559,63 @@
         "clinic": "Clínica",
         "tables": "Tablas"
       }
+    },
+    "Templates": {
+      "title": "Plantillas",
+      "sections": {
+        "document": "Documentos",
+        "email": "Email",
+        "sms": "SMS",
+        "whatsapp": "WhatsApp"
+      },
+      "tabs": {
+        "invoice": "Factura",
+        "quote": "Presupuesto",
+        "payment": "Pago",
+        "credit_note": "Nota de Crédito",
+        "prepayment": "Prepago",
+        "financial_summary": "Resumen Financiero",
+        "email_patient_general": "Mensaje general",
+        "email_alert_followup": "Seguimiento de alerta",
+        "email_invoice": "Factura",
+        "email_quote": "Presupuesto",
+        "email_quote_approved": "Presupuesto aprobado",
+        "email_quote_rejected": "Presupuesto rechazado",
+        "email_payment": "Recibo de Pago",
+        "email_appointment_reminder": "Recordatorio de Cita",
+        "email_appointment_confirmation": "Confirmación de Cita",
+        "email_cash_opening": "Apertura de Caja",
+        "email_cash_closing": "Cierre de Caja",
+        "email_financial_summary": "Estado de Cuenta",
+        "email_treatment_update": "Actualización de Tratamiento",
+        "email_password_reset": "Restablecer Contraseña",
+        "sms_appointment_reminder": "Recordatorio de Cita",
+        "sms_appointment_confirmation": "Confirmación de Cita",
+        "whatsapp_patient_general": "Mensaje general",
+        "whatsapp_alert_followup": "Seguimiento de alerta",
+        "whatsapp_treatment_interrupted": "Tratamiento interrumpido"
+      },
+      "subject": "Asunto",
+      "subjectPlaceholder": "Asunto del email (admite variables)",
+      "preview": "Vista previa",
+      "insertVariable": "Insertar variable",
+      "expandEditor": "Expandir editor",
+      "splitView": "Vista dividida",
+      "save": "Guardar",
+      "resetDefault": "Restaurar predeterminado",
+      "saveSuccess": "Plantilla guardada exitosamente",
+      "saveError": "Error al guardar la plantilla",
+      "resetSuccess": "Plantilla restaurada al valor predeterminado",
+      "groups": {
+        "document": "Documento",
+        "patient": "Paciente",
+        "clinic": "Clínica",
+        "tables": "Tablas",
+        "appointment": "Cita",
+        "alert": "Alerta",
+        "treatment": "Tratamiento",
+        "cash": "Caja"
+      }
     }
   },
   "MutualSocietiesColumns": {
@@ -5966,6 +6024,8 @@
     "missingEmail": "Esta alerta no tiene correo del paciente.",
     "missingUserId": "Esta alerta no tiene identificador de paciente para enviar el correo.",
     "unknownPatient": "paciente",
+    "preview": "Vista previa",
+    "editMode": "Editar",
     "cancel": "Cancelar",
     "send": "Enviar correo",
     "sending": "Enviando...",
@@ -6026,7 +6086,10 @@
       "underline": "Subrayado",
       "list": "Lista",
       "insertLink": "Insertar enlace",
-      "linkPrompt": "URL del enlace:"
+      "linkPrompt": "URL del enlace:",
+      "modeEdit": "Editar",
+      "modeSource": "Código HTML",
+      "modePreview": "Vista previa"
     },
     "toast": {
       "sendSuccessTitle": "Correo enviado",

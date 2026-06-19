@@ -53,6 +53,7 @@
     "Sequences": "Sequences",
     "MutualSocieties": "Mutual Societies",
     "PrintTemplates": "Document Templates",
+    "Templates": "Templates",
     "System": "System",
     "SystemUsers": "Users",
     "Roles": "Roles",
@@ -5577,6 +5578,63 @@
         "clinic": "Clinic",
         "tables": "Tables"
       }
+    },
+    "Templates": {
+      "title": "Templates",
+      "sections": {
+        "document": "Documents",
+        "email": "Email",
+        "sms": "SMS",
+        "whatsapp": "WhatsApp"
+      },
+      "tabs": {
+        "invoice": "Invoice",
+        "quote": "Quote",
+        "payment": "Payment",
+        "credit_note": "Credit Note",
+        "prepayment": "Prepayment",
+        "financial_summary": "Financial Summary",
+        "email_patient_general": "General message",
+        "email_alert_followup": "Alert follow-up",
+        "email_invoice": "Invoice",
+        "email_quote": "Quote",
+        "email_quote_approved": "Approved quote",
+        "email_quote_rejected": "Rejected quote",
+        "email_payment": "Payment Receipt",
+        "email_appointment_reminder": "Appointment Reminder",
+        "email_appointment_confirmation": "Appointment Confirmation",
+        "email_cash_opening": "Cash Opening",
+        "email_cash_closing": "Cash Closing",
+        "email_financial_summary": "Account Statement",
+        "email_treatment_update": "Treatment Update",
+        "email_password_reset": "Password Reset",
+        "sms_appointment_reminder": "Appointment Reminder",
+        "sms_appointment_confirmation": "Appointment Confirmation",
+        "whatsapp_patient_general": "General message",
+        "whatsapp_alert_followup": "Alert follow-up",
+        "whatsapp_treatment_interrupted": "Interrupted treatment"
+      },
+      "subject": "Subject",
+      "subjectPlaceholder": "Email subject (supports variables)",
+      "preview": "Preview",
+      "insertVariable": "Insert variable",
+      "expandEditor": "Expand editor",
+      "splitView": "Split view",
+      "save": "Save",
+      "resetDefault": "Restore default",
+      "saveSuccess": "Template saved successfully",
+      "saveError": "Error saving template",
+      "resetSuccess": "Template restored to default",
+      "groups": {
+        "document": "Document",
+        "patient": "Patient",
+        "clinic": "Clinic",
+        "tables": "Tables",
+        "appointment": "Appointment",
+        "alert": "Alert",
+        "treatment": "Treatment",
+        "cash": "Cash"
+      }
     }
   },
   "MutualSocietiesColumns": {
@@ -5985,6 +6043,8 @@
     "missingEmail": "This alert has no patient email.",
     "missingUserId": "This alert has no patient identifier to send the email.",
     "unknownPatient": "patient",
+    "preview": "Preview",
+    "editMode": "Edit",
     "cancel": "Cancel",
     "send": "Send email",
     "sending": "Sending...",
@@ -6045,7 +6105,10 @@
       "underline": "Underline",
       "list": "List",
       "insertLink": "Insert link",
-      "linkPrompt": "Link URL:"
+      "linkPrompt": "Link URL:",
+      "modeEdit": "Edit",
+      "modeSource": "HTML source",
+      "modePreview": "Preview"
     },
     "toast": {
       "sendSuccessTitle": "Email sent",

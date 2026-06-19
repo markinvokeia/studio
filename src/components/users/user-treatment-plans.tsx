@@ -89,6 +89,12 @@ import {
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
+export interface TreatmentContactContext {
+    serviceName: string;
+    missedStep: string;
+    missedDate?: string;
+}
+
 interface UserTreatmentPlansProps {
     userId: string;
     userName?: string;
@@ -96,7 +102,7 @@ interface UserTreatmentPlansProps {
     onViewAppointment?: (appointmentId: string, scheduledDate?: string, serviceId?: string, serviceName?: string) => void;
     onViewSession?: (sesionId: number) => void;
     onStepCompleted?: (data: SessionPrefillData) => void;
-    onContact?: () => void;
+    onContact?: (context: TreatmentContactContext) => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -1831,7 +1837,7 @@ function ActivePlanCard({
     onViewAppointment?: (appointmentId: string, scheduledDate?: string, serviceId?: string, serviceName?: string) => void;
     onViewSession?: (sesionId: number) => void;
     onStepCompleted?: (data: SessionPrefillData) => void;
-    onContact?: () => void;
+    onContact?: (context: TreatmentContactContext) => void;
     t: ReturnType<typeof useTranslations>;
 }) {
     const [expanded, setExpanded] = React.useState(false);
@@ -1904,7 +1910,14 @@ function ActivePlanCard({
                             {missedDaysAgo != null && <> — {t('missedDaysAgo', { days: missedDaysAgo })}</>}
                         </p>
                     </div>
-                    <Button size="sm" variant="destructive" className="shrink-0 h-7 text-xs gap-1.5" onClick={onContact}>
+                    <Button
+                        size="sm" variant="destructive" className="shrink-0 h-7 text-xs gap-1.5"
+                        onClick={() => onContact?.({
+                            serviceName: sequence.service_name,
+                            missedStep:  missedStep?.step_name ?? '',
+                            missedDate:  missedStep?.scheduled_date,
+                        })}
+                    >
                         <Phone className="h-3 w-3" />
                         {t('contact')}
                     </Button>

@@ -17,7 +17,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { useClinicInfo } from '@/hooks/useClinicInfo';
+import { useCommunicationTemplates, substituteTokens } from '@/hooks/useCommunicationTemplates';
 import { AlertInstance } from '@/lib/types';
+import { WHATSAPP_TEMPLATE_DEFAULTS } from '@/lib/whatsapp-template-defaults';
 import { formatDateTime } from '@/lib/utils';
 
 interface AlertWhatsAppComposerDialogProps {
@@ -66,25 +69,30 @@ export function AlertWhatsAppComposerDialog({ open, onOpenChange, alert }: Alert
   const t = useTranslations('AlertWhatsAppComposerDialog');
   const { toast } = useToast();
   const handleClose = useDialogClose();
+  const clinic = useClinicInfo();
+  const commTemplates = useCommunicationTemplates();
   const [message, setMessage] = React.useState('');
   const [isOpening, setIsOpening] = React.useState(false);
   const [hasEdited, setHasEdited] = React.useState(false);
 
-  const phone = React.useMemo(() => getPatientPhone(alert), [alert]);
+  const phone         = React.useMemo(() => getPatientPhone(alert), [alert]);
   const recipientName = React.useMemo(() => getRecipientName(alert), [alert]);
   const normalizedPhone = React.useMemo(() => phone.trim().replace(/^\+/, '').replace(/\D/g, ''), [phone]);
 
   React.useEffect(() => {
-    if (!open) {
-      setMessage('');
-      setIsOpening(false);
-      setHasEdited(false);
-      return;
-    }
-
-    setMessage(buildInitialMessage(alert, t));
+    if (!open) { setMessage(''); setIsOpening(false); setHasEdited(false); return; }
+    const vars: Record<string, string> = {
+      patient_name:  recipientName || t('unknownPatient'),
+      clinic_name:   clinic?.name  || '',
+      clinic_phone:  clinic?.phone || '',
+      alert_title:   alert?.title   || '',
+      alert_summary: alert?.summary || '',
+      alert_date:    alert?.alert_date ? formatDateTime(alert.alert_date) : '',
+    };
+    const tpl = commTemplates['ALERT_FOLLOWUP_WHATSAPP'];
+    setMessage(substituteTokens(tpl?.body_text || WHATSAPP_TEMPLATE_DEFAULTS.whatsapp_alert_followup, vars));
     setHasEdited(false);
-  }, [open, alert, t]);
+  }, [open, alert, clinic, commTemplates, recipientName, t]);
 
   const handleOpenWhatsApp = async () => {
     if (!normalizedPhone || isOpening) return;

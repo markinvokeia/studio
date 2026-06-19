@@ -233,7 +233,7 @@ export const navItems: NavItem[] = [
       { title: 'Currencies', href: '/config/currencies', icon: DollarSign, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.CURRENCIES_VIEW_LIST },
       { title: 'Sequences', href: '/config/sequences', icon: List, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.SEQUENCES_VIEW_LIST },
       { title: 'MutualSocieties', href: '/config/mutual-societies', icon: Handshake, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.MUTUAL_SOC_VIEW_MENU },
-      { title: 'PrintTemplates', href: '/config/print-templates', icon: FileText, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.PRINT_TEMPLATES_VIEW },
+      { title: 'Templates', href: '/config/templates', icon: FileText, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.PRINT_TEMPLATES_VIEW },
     ],
   },
   {
