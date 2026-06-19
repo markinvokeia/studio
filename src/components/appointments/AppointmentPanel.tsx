@@ -589,23 +589,11 @@ export function AppointmentPanel({
                 )}
               </section>
 
-              {(linkedSession || isLoadingLinkedSession || appointment.treatment_seq_step_id != null) && (
+              {(linkedSession || isLoadingLinkedSession || appointment.treatment_seq_step_id != null || !!onOpenClinicSession) && (
                 <section className="mt-6 border-t border-border pt-4">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <HeartPulse className="h-4 w-4 text-muted-foreground" />
-                      <h3 className="text-base font-semibold">{t('linkedSession')}</h3>
-                    </div>
-                    {onOpenClinicSession && (
-                      <Button
-                        variant="link"
-                        className="h-auto px-0 text-primary"
-                        onClick={() => onOpenClinicSession(appointment)}
-                      >
-                        {linkedSession ? t('editSession') : t('createSession')}
-                        <ArrowRight className="h-4 w-4" />
-                      </Button>
-                    )}
+                  <div className="mb-3 flex items-center gap-2">
+                    <HeartPulse className="h-4 w-4 text-muted-foreground" />
+                    <h3 className="text-base font-semibold">{t('linkedSession')}</h3>
                   </div>
 
                   {isLoadingLinkedSession ? (
