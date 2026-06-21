@@ -266,10 +266,7 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
     }, [createOdontogramTrigger]);
 
     return (
-        <div className="flex flex-col h-full min-h-0">
-            <div className="flex-1 min-h-0 overflow-hidden">
-                <ScrollArea className="h-full w-full">
-                    <div className="pt-1">
+        <div className="pt-1">
                         <TreatmentTimeline
                             sessions={patientSessions}
                             appointments={patientAppointments}
@@ -297,9 +294,6 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
                             onAppointmentStatusUpdated={handleAppointmentStatusUpdated}
                             onEditAppointment={onEditAppointment}
                         />
-                    </div>
-                </ScrollArea>
-            </div>
         </div>
     );
 }
@@ -2036,8 +2030,8 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
     }
 
     return (
-        <div className="space-y-4">
-            <div className="bg-card text-card-foreground rounded-xl shadow-sm border overflow-hidden flex flex-col" style={{ minHeight: '400px' }}>
+        <div>
+            <div className="bg-card text-card-foreground rounded-xl shadow-sm border overflow-hidden flex flex-col">
                 <div className="flex items-center justify-between px-3 py-3 border-b shrink-0 gap-2">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -2171,9 +2165,7 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                     </div>
                 )}
 
-                <div className="flex flex-1 min-h-0 overflow-hidden">
-                    <div className="flex flex-col w-full overflow-hidden">
-                        <ScrollArea className="flex-1">
+                <div>
                             {allItems.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center h-32 text-muted-foreground gap-2 p-4">
                                     <Clock className="w-6 h-6 opacity-40" />
@@ -2282,9 +2274,6 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                                     })}
                                 </div>
                             )}
-                        </ScrollArea>
-                    </div>
-
                 </div>
             </div>
 
