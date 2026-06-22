@@ -152,6 +152,7 @@ interface AppointmentPanelProps {
   onOpenClinicSession?: (appointment: Appointment) => void;
   onReschedule?: (appointment: Appointment) => void;
   onBillingSuccess?: () => void;
+  hideBillingAction?: boolean;
   onStatusChange: (
     appointment: Appointment,
     newStatus: AppointmentStatus,
@@ -176,6 +177,7 @@ export function AppointmentPanel({
   onStatusChange,
   onRequestCustomCancellation,
   onBillingSuccess,
+  hideBillingAction = false,
 }: AppointmentPanelProps) {
   const locale = useLocale();
   const t = useTranslations('AppointmentsPage');
@@ -793,7 +795,7 @@ export function AppointmentPanel({
 
           <div className="flex-none border-t border-border bg-muted/30 px-5 py-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
-              {appointment.patientId && (
+              {appointment.patientId && !hideBillingAction && (
                 <Button
                   variant="default"
                   className="w-full gap-2 sm:w-auto"

@@ -102,6 +102,7 @@ interface ClinicHistoryViewerProps {
     createSessionTrigger?: number;
     createOdontogramTrigger?: number;
     sessionPrefill?: SessionPrefillData | null;
+    isDoctorMode?: boolean;
     onSessionCreated?: (sesionId: number, stepId?: string) => void;
     editSessionId?: number | null;
     onClinicalDataChange?: () => void;
@@ -109,7 +110,7 @@ interface ClinicHistoryViewerProps {
     onEditAppointment?: (appointment: Appointment) => void;
 }
 
-export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, createOdontogramTrigger = 0, sessionPrefill, onSessionCreated, editSessionId, onClinicalDataChange, onEditAppointment }: ClinicHistoryViewerProps) {
+export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, createOdontogramTrigger = 0, sessionPrefill, onSessionCreated, editSessionId, onClinicalDataChange, onEditAppointment, isDoctorMode = false }: ClinicHistoryViewerProps) {
     const {
         patientSessions,
         isLoadingPatientSessions,
@@ -293,6 +294,7 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
                             onRefreshAppointments={() => fetchPatientAppointments(userId)}
                             onAppointmentStatusUpdated={handleAppointmentStatusUpdated}
                             onEditAppointment={onEditAppointment}
+                            isDoctorMode={isDoctorMode}
                         />
         </div>
     );
@@ -1638,9 +1640,10 @@ interface TreatmentTimelineProps {
         extra?: { cancellation_reason?: CancellationReason | null; cancellation_note?: string | null },
     ) => void;
     onEditAppointment?: (appointment: Appointment) => void;
+    isDoctorMode?: boolean;
 }
 
-function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAppointments = false, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, createOdontogramTrigger = 0, onOdontogramTriggerConsumed, sessionPrefill, onSessionCreated, editSessionId, onRefreshAppointments, onAppointmentStatusUpdated, onEditAppointment }: TreatmentTimelineProps) {
+function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAppointments = false, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, createOdontogramTrigger = 0, onOdontogramTriggerConsumed, sessionPrefill, onSessionCreated, editSessionId, onRefreshAppointments, onAppointmentStatusUpdated, onEditAppointment, isDoctorMode = false }: TreatmentTimelineProps) {
     const t = useTranslations('ClinicHistoryPage.timeline');
     const tDialog = useTranslations('ClinicHistoryPage.sessionDialog');
     const tPage = useTranslations('ClinicHistoryPage');
@@ -2118,6 +2121,7 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                             </DropdownMenu>
                         )}
                         {/* Add session */}
+                        {!isDoctorMode && (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button size="sm" className="h-8 gap-1.5">
@@ -2136,6 +2140,7 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
+                        )}
                     </div>
                 </div>
 
@@ -2371,6 +2376,7 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                 onStatusChange={handleApptStatusChange}
                 onRequestCustomCancellation={(appt) => setPendingCancellation(appt)}
                 onBillingSuccess={handleBillingSuccess}
+                hideBillingAction={isDoctorMode}
                 onEdit={onEditAppointment ? (appt) => { setIsApptPanelOpen(false); onEditAppointment(appt); } : undefined}
             />
             <CancellationNoteDialog
