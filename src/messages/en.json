@@ -4229,6 +4229,7 @@
       "sessionTypeOdontogram": "Odontogram",
       "sessionTypeClinical": "Clinical Session",
       "sessionTypeAppointment": "Appointment",
+      "upcomingAppointment": "Upcoming",
       "quote": "Quote",
       "addFirstSession": "Add first session",
       "toast": {

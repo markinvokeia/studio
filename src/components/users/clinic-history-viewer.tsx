@@ -1536,7 +1536,7 @@ function ImageViewerWithControls({ src, alt }: ImageViewerWithControlsProps) {
     const resetView = () => { setZoom(1); setPosition({ x: 0, y: 0 }); };
 
     return (
-        <div 
+        <div
             ref={containerRef}
             className="flex-1 w-full h-full overflow-hidden flex items-center justify-center relative bg-muted/20 cursor-grab"
             onMouseDown={handleMouseDown}
@@ -1549,7 +1549,7 @@ function ImageViewerWithControls({ src, alt }: ImageViewerWithControlsProps) {
                 src={src}
                 alt={alt}
                 className="max-w-full max-h-full object-contain transform-gpu"
-                style={{ 
+                style={{
                     transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
                     transition: isDragging ? 'none' : 'transform 0.1s ease-out'
                 }}
@@ -1767,8 +1767,8 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
     // Handle viewing an attachment from timeline
     const handleViewTimelineAttachment = async (attachment: any, sessionId: number) => {
         const attachmentId = attachment.id || attachment.ruta;
-        setViewingAttachment({ 
-            id: attachmentId, 
+        setViewingAttachment({
+            id: attachmentId,
             name: attachment.file_name || attachment.nombre || attachment.name || 'Attachment',
             mimeType: attachment.mime_type || attachment.tipo
         });
@@ -1789,8 +1789,8 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
     // Handle viewing an attachment from dialog
     const handleViewDialogAttachment = async (attachment: any, sessionId: number) => {
         const attachmentId = attachment.id || attachment.ruta;
-        setViewingAttachment({ 
-            id: attachmentId, 
+        setViewingAttachment({
+            id: attachmentId,
             name: attachment.file_name || attachment.nombre || attachment.name || 'Attachment',
             mimeType: attachment.mime_type || attachment.tipo
         });
@@ -2142,19 +2142,31 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                                         const isSelected = selectedItemKey === key;
                                         if (item.kind === 'appointment') {
                                             const appt = item.data;
+                                            const isFuture = item.date > new Date();
                                             return (
                                                 <div key={key}
-                                                    className={cn('flex items-start gap-2 px-2.5 py-2 cursor-pointer border-b last:border-b-0 transition-colors border-l-2', isSelected ? 'bg-primary/5 border-l-primary' : 'border-l-transparent hover:bg-muted/50')}
+                                                    className={cn(
+                                                        'flex items-start gap-2 px-2.5 py-2 cursor-pointer border-b last:border-b-0 transition-colors border-l-2',
+                                                        isSelected ? 'bg-primary/5 border-l-primary' : 'border-l-transparent hover:bg-muted/50',
+                                                    )}
                                                     onClick={() => { setSelectedItemKey(isSelected ? null : key); openApptPanel(appt); }}
                                                 >
-                                                    <div className="w-5 h-5 rounded-full border-2 border-background shadow-sm bg-blue-50 dark:bg-blue-950 flex items-center justify-center shrink-0 mt-0.5">
-                                                        <CalendarCheck className="h-3 w-3 text-blue-500" />
+                                                    <div className={cn('w-5 h-5 rounded-full border-2 border-background shadow-sm flex items-center justify-center shrink-0 mt-0.5', isFuture ? 'bg-violet-50 dark:bg-violet-950' : 'bg-blue-50 dark:bg-blue-950')}>
+                                                        {isFuture
+                                                            ? <CalendarSync className="h-3 w-3 text-violet-500" />
+                                                            : <CalendarCheck className="h-3 w-3 text-blue-500" />
+                                                        }
                                                     </div>
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-center gap-1 flex-wrap">
-                                                            <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 px-1.5 py-0 leading-relaxed">
+                                                            <Badge variant="secondary" className={cn('text-xs px-1.5 py-0 leading-relaxed', isFuture ? 'bg-violet-100 text-violet-700 dark:bg-violet-950/40 dark:text-violet-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400')}>
                                                                 {t('sessionTypeAppointment')}
                                                             </Badge>
+                                                            {isFuture && (
+                                                                <Badge variant="secondary" className="text-xs bg-violet-200 text-violet-800 dark:bg-violet-900/60 dark:text-violet-300 px-1.5 py-0 leading-relaxed font-medium">
+                                                                    {t('upcomingAppointment')}
+                                                                </Badge>
+                                                            )}
                                                             <span className="text-xs text-muted-foreground">{format(item.date, 'dd/MM/yy')}</span>
                                                             {appt.quote_doc_no && (
                                                                 <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-1.5 py-0 leading-relaxed font-mono">
@@ -2506,9 +2518,9 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                             </div>
                         ) : attachmentContent ? (
                             viewingAttachment?.mimeType?.startsWith('image/') || viewingAttachment?.name?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                                <ImageViewerWithControls 
-                                    src={attachmentContent} 
-                                    alt={viewingAttachment?.name || 'Document'} 
+                                <ImageViewerWithControls
+                                    src={attachmentContent}
+                                    alt={viewingAttachment?.name || 'Document'}
                                 />
                             ) : (
                                 <iframe

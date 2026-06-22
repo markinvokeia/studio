@@ -4207,6 +4207,7 @@
       "sessionTypeOdontogram": "Odontograma",
       "sessionTypeClinical": "Sesión Clínica",
       "sessionTypeAppointment": "Cita",
+      "upcomingAppointment": "Próxima",
       "quote": "Presupuesto",
       "addFirstSession": "Agregar primera sesión",
       "toast": {
