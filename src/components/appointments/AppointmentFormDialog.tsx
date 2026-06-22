@@ -37,7 +37,7 @@ import { markLocallyCreated } from '@/hooks/use-appointment-status';
 import { getSalesServices } from '@/services/services';
 import { TreatmentPlanReviewDialog } from '@/components/appointments/TreatmentPlanReviewDialog';
 import { getServicesByQuoteId, getQuoteItems } from '@/services/quotes';
-import { addMinutes, format, isValid, parse, parseISO } from 'date-fns';
+import { addMinutes, differenceInMinutes, format, isValid, parse, parseISO } from 'date-fns';
 import { CalendarDays, Check, ChevronsUpDown, ClipboardList, Clock, FilePlus, Link2, Loader2, MapPin, Plus, Stethoscope, UserRound, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -275,7 +275,7 @@ export function AppointmentFormDialog({
                     id: q.id ? String(q.id) : `qt_${Math.random().toString(36).substr(2, 9)}`,
                     doc_no: q.doc_no || 'N/A',
                     user_id: q.user_id || appointment.user!.id,
-                    total: q.total || 0,
+                    total: Number(q.total_presupuesto ?? q.total ?? 0),
                     status: q.status || 'draft',
                     payment_status: q.payment_status || 'unpaid',
                     billing_status: q.billing_status || 'not_invoiced',
@@ -594,6 +594,23 @@ export function AppointmentFormDialog({
             setAppointment(prev => ({ ...prev, endTime: calculatedEndTime }));
         }
     }, [calculatedEndTime, editingAppointment]);
+
+    const derivedDuration = React.useMemo(() => {
+        const { date, time, endTime } = appointment;
+        if (!date || !time || !endTime) return '';
+        try {
+            const start = parse(`${date} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
+            const end = parse(`${date} ${endTime}`, 'yyyy-MM-dd HH:mm', new Date());
+            if (!isValid(start) || !isValid(end) || end <= start) return '';
+            const diffMins = differenceInMinutes(end, start);
+            const hours = Math.floor(diffMins / 60);
+            const mins = diffMins % 60;
+            return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+        } catch {
+            return '';
+        }
+    }, [appointment.date, appointment.time, appointment.endTime]);
+
 
     const handleSave = async () => {
         const isEditing = !!editingAppointment;
@@ -1143,7 +1160,7 @@ export function AppointmentFormDialog({
 
                                 <div className="space-y-2">
                                     <Label>{t('createDialog.serviceName')}</Label>
-                                    <Popover open={isServiceSearchOpen} onOpenChange={(o) => { if (!o) setIsCreatingService(false); setServiceSearchOpen(o); }}>
+                                    <Popover open={isServiceSearchOpen} onOpenChange={(o) => { if (!o) { setIsCreatingService(false); setServiceSearchQuery(''); } setServiceSearchOpen(o); }}>
                                         <PopoverTrigger asChild>
                                             <Button variant="outline" className="w-full justify-start" disabled={readOnlyFields?.services || isLoadingQuoteServices}>
                                                 {isLoadingQuoteServices ? (
@@ -1346,8 +1363,14 @@ export function AppointmentFormDialog({
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="endTime">{t('createDialog.endTime')}</Label>
-                                    <Input id="endTime" type="time" value={appointment.endTime} onChange={e => setAppointment(prev => ({ ...prev, endTime: e.target.value }))} />
+                                    <Input id="endTime" type="time" value={appointment.endTime} onChange={e => { setHasBeenEdited(true); setAppointment(prev => ({ ...prev, endTime: e.target.value })); }} />
                                 </div>
+                                {derivedDuration && (
+                                    <div className="space-y-2">
+                                        <Label>{t('createDialog.duration')}</Label>
+                                        <p className="flex h-9 items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground">{derivedDuration}</p>
+                                    </div>
+                                )}
                                 <div className="space-y-2">
                                     <Label htmlFor="notes">{t('createDialog.notes')}</Label>
                                     <Textarea id="notes" value={appointment.notes} onChange={e => { setHasBeenEdited(true); setAppointment(prev => ({ ...prev, notes: e.target.value })); }} />

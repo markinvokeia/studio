@@ -152,6 +152,7 @@ interface AppointmentPanelProps {
   onOpenClinicSession?: (appointment: Appointment) => void;
   onReschedule?: (appointment: Appointment) => void;
   onBillingSuccess?: () => void;
+  hideBillingAction?: boolean;
   onStatusChange: (
     appointment: Appointment,
     newStatus: AppointmentStatus,
@@ -176,6 +177,7 @@ export function AppointmentPanel({
   onStatusChange,
   onRequestCustomCancellation,
   onBillingSuccess,
+  hideBillingAction = false,
 }: AppointmentPanelProps) {
   const locale = useLocale();
   const t = useTranslations('AppointmentsPage');
@@ -402,6 +404,9 @@ export function AppointmentPanel({
   const endDt = parseLocalDateTime(appointment.end?.dateTime);
   const endTime = timeFromDateTime(appointment.end?.dateTime);
   const durationMin = startDt && endDt ? differenceInMinutes(endDt, startDt) : null;
+  const durationHHmm = durationMin != null && durationMin > 0
+    ? `${String(Math.floor(durationMin / 60)).padStart(2, '0')}:${String(durationMin % 60).padStart(2, '0')}`
+    : null;
   const StatusIcon = getStatusIcon(appointment.status, appointment.cancellation_reason);
   const statusColor = STATUS_ACCENT_COLOR[appointment.status];
   const appointmentCode = `#${appointment.id.slice(0, 8).toUpperCase()}`;
@@ -535,10 +540,8 @@ export function AppointmentPanel({
                   <DetailRow
                     icon={Clock}
                     label={tColumns('time')}
-                    value={`${appointment.time}${endTime ? ` -> ${endTime}` : ''}`}
-                    detail={durationMin != null && durationMin > 0
-                      ? tPanel('durationMinutes', { minutes: durationMin })
-                      : undefined}
+                    value={`${appointment.time}${endTime ? ` → ${endTime}` : ''}`}
+                    detail={durationHHmm ?? undefined}
                   />
                   <DetailRow
                     icon={MapPin}
@@ -792,7 +795,7 @@ export function AppointmentPanel({
 
           <div className="flex-none border-t border-border bg-muted/30 px-5 py-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
-              {appointment.patientId && (
+              {appointment.patientId && !hideBillingAction && (
                 <Button
                   variant="default"
                   className="w-full gap-2 sm:w-auto"

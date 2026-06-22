@@ -591,6 +591,7 @@
       "none": "Ninguno",
       "allCalendars": "Seleccionar Calendario",
       "endTime": "Hora de Fin",
+      "duration": "Duración",
       "descriptionLabel": "Descripción",
       "cancelAppointmentDescription": "Está seguro que desea cancelar la cita?",
       "close": "Cerrar",
@@ -4209,6 +4210,7 @@
       "sessionTypeOdontogram": "Odontograma",
       "sessionTypeClinical": "Sesión Clínica",
       "sessionTypeAppointment": "Cita",
+      "upcomingAppointment": "Próxima",
       "quote": "Presupuesto",
       "addFirstSession": "Agregar primera sesión",
       "toast": {
