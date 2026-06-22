@@ -535,6 +535,8 @@
     "settings": {
       "title": "Configuración del Calendario",
       "defaultView": "Vista predeterminada",
+      "hourHeight": "Altura de la hora",
+      "hourHeightOption": "{px} px",
       "groupBy": "Agrupar por",
       "checkAvailability": "Verificar disponibilidad",
       "filterDoctorsByService": "Filtrar doctores por servicio",

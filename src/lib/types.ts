@@ -713,6 +713,8 @@ export type CalendarSettings = {
   grouped_by: string;
   check_availability: boolean;
   filter_doctors_by_service: boolean;
+  /** Height in px of one hour slot in day/week views. */
+  hour_height?: number;
 };
 
 export type Sede = {

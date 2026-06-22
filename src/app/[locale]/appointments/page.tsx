@@ -7,6 +7,7 @@ import Calendar, { type CalendarGroupBy, type CalendarGroupingColumn, type Calen
 import { CalendarSettingsPopover } from '@/components/calendar/calendar-settings-popover';
 import { CalendarSettingsForm } from '@/components/calendar/calendar-settings-form';
 import { getCalendarSettings } from '@/components/calendar/calendar-settings-utils';
+import { HOUR_SLOT_HEIGHT } from '@/components/calendar/calendar-constants';
 import { ReminderFormDialog, type ReminderFormValues } from '@/components/appointments/ReminderFormDialog';
 import { ReminderPanel } from '@/components/appointments/ReminderPanel';
 import { useCalendarBreakpoint } from '@/hooks/use-calendar-breakpoint';
@@ -502,6 +503,7 @@ export default function AppointmentsPage() {
     const [selectedDoctorIds, setSelectedDoctorIds] = React.useState<string[]>([]);
     const [groupBy, setGroupBy] = React.useState<CalendarGroupBy>('none');
     const [currentView, setCurrentView] = React.useState<CalendarView>('month');
+    const [hourSlotHeight, setHourSlotHeight] = React.useState<number>(HOUR_SLOT_HEIGHT);
 
     const handleSettingsChange = React.useCallback((settings: CalendarSettings) => {
         const mappedView = SETTINGS_VIEW_MAP[settings.default_view] || 'month';
@@ -509,11 +511,13 @@ export default function AppointmentsPage() {
         setGroupBy(settings.grouped_by as CalendarGroupBy);
         setCheckCalendarAvailability(settings.check_availability);
         setCheckDoctorAvailability(settings.filter_doctors_by_service);
+        setHourSlotHeight(settings.hour_height ?? HOUR_SLOT_HEIGHT);
     }, []);
 
     const handleSettingsEditorChange = React.useCallback((settings: CalendarSettings) => {
         setCheckCalendarAvailability(settings.check_availability);
         setCheckDoctorAvailability(settings.filter_doctors_by_service);
+        setHourSlotHeight(settings.hour_height ?? HOUR_SLOT_HEIGHT);
     }, []);
 
     // Clinic Session Dialog state
@@ -1606,6 +1610,7 @@ export default function AppointmentsPage() {
             <CardContent className="p-0 h-[calc(100vh-6rem)] min-h-[600px]">
                 <Calendar
                     view={currentView}
+                    hourSlotHeight={hourSlotHeight}
                     events={calendarEvents}
                     onDateChange={onDateChange}
                     isLoading={isRefreshing}

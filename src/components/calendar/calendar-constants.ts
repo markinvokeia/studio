@@ -30,8 +30,11 @@ export const GROUPED_COLUMN_MIN_WIDTH = 140;
 /** Gap between grouped day blocks in rem */
 export const GROUPED_DAY_GAP = 1.6;
 
-/** Height of one hour time slot in px */
-export const HOUR_SLOT_HEIGHT = 60;
+/** Default height of one hour time slot in px (subdivided into 15-min quarters) */
+export const HOUR_SLOT_HEIGHT = 80;
+
+/** Selectable hour-slot heights for the calendar density setting */
+export const HOUR_SLOT_HEIGHT_OPTIONS = [60, 80, 100, 120, 140] as const;
 
 /** Hour to auto-scroll to on initial day/week view render (working day start) */
 export const DEFAULT_SCROLL_HOUR = 8;

@@ -41,6 +41,8 @@ export interface CalendarProps {
   onEventClick: (event: any) => void;
   view?: CalendarView;
   defaultView?: CalendarView;
+  /** Height in px of one hour slot in the day/week time grid. Defaults to HOUR_SLOT_HEIGHT. */
+  hourSlotHeight?: number;
   onViewChange?: (view: CalendarView) => void;
   groupBy?: CalendarGroupBy;
   groupingColumns?: CalendarGroupingColumn[];

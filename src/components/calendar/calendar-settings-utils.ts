@@ -1,12 +1,14 @@
 import { CalendarSettings } from '@/lib/types';
 import api from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
+import { HOUR_SLOT_HEIGHT } from './calendar-constants';
 
 export const DEFAULT_CALENDAR_SETTINGS: CalendarSettings = {
   default_view: 'month',
   grouped_by: 'none',
   check_availability: false,
   filter_doctors_by_service: false,
+  hour_height: HOUR_SLOT_HEIGHT,
 };
 
 const normalizeBoolean = (value: unknown, defaultValue: boolean): boolean => {
@@ -32,7 +34,10 @@ export const normalizeCalendarSettings = (data: unknown): CalendarSettings | nul
   const rawSettings = settingsData as Partial<CalendarSettings> & {
     check_availability?: unknown;
     filter_doctors_by_service?: unknown;
+    hour_height?: unknown;
   };
+
+  const parsedHourHeight = Number(rawSettings.hour_height);
 
   return {
     ...DEFAULT_CALENDAR_SETTINGS,
@@ -44,6 +49,7 @@ export const normalizeCalendarSettings = (data: unknown): CalendarSettings | nul
       rawSettings.filter_doctors_by_service,
       DEFAULT_CALENDAR_SETTINGS.filter_doctors_by_service
     ),
+    hour_height: Number.isFinite(parsedHourHeight) && parsedHourHeight > 0 ? parsedHourHeight : DEFAULT_CALENDAR_SETTINGS.hour_height,
   };
 };
 

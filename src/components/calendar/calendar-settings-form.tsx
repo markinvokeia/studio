@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { CalendarSettings } from '@/lib/types';
 import api from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
+import { HOUR_SLOT_HEIGHT, HOUR_SLOT_HEIGHT_OPTIONS } from './calendar-constants';
 import { DEFAULT_CALENDAR_SETTINGS, normalizeCalendarSettings } from './calendar-settings-utils';
 
 interface CalendarSettingsFormProps {
@@ -68,6 +69,10 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
     }
   };
 
+  const updateHourHeight = (value: number) => {
+    updateSettings({ hour_height: value });
+  };
+
   const viewOptions = ['day', '2_days', '3_days', 'week', 'month', 'agenda'];
   const groupOptions = ['none', 'doctor', 'calendar'];
 
@@ -96,6 +101,28 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
               {viewOptions.map(opt => (
                 <SelectItem key={opt} value={opt} className="text-xs">
                   {t(`options.${opt}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="hour-height" className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
+            {t('hourHeight')}
+          </Label>
+          <Select
+            value={String(settings.hour_height ?? HOUR_SLOT_HEIGHT)}
+            onValueChange={(val) => updateHourHeight(Number(val))}
+            disabled={isLoading}
+          >
+            <SelectTrigger id="hour-height" className="h-9 text-xs bg-card border-border/50 shadow-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {HOUR_SLOT_HEIGHT_OPTIONS.map((opt) => (
+                <SelectItem key={opt} value={String(opt)} className="text-xs">
+                  {t('hourHeightOption', { px: opt })}
                 </SelectItem>
               ))}
             </SelectContent>

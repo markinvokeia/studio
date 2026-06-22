@@ -535,6 +535,8 @@
     "settings": {
       "title": "Calendar Settings",
       "defaultView": "Default view",
+      "hourHeight": "Hour height",
+      "hourHeightOption": "{px} px",
       "groupBy": "Group by",
       "checkAvailability": "Check availability",
       "filterDoctorsByService": "Filter doctors by service",

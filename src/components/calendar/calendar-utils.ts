@@ -114,14 +114,18 @@ export function formatEventTime(value: Date | string, dateLocale: Locale): strin
 // Event positioning in time grid
 // ---------------------------------------------------------------------------
 
-export function getEventStyle(event: CalendarEvent): React.CSSProperties {
+export function getEventStyle(
+  event: CalendarEvent,
+  hourSlotHeight: number = HOUR_SLOT_HEIGHT
+): React.CSSProperties {
   const start = typeof event.start === 'string' ? parseISO(event.start) : event.start;
   const end = typeof event.end === 'string' ? parseISO(event.end) : event.end;
-  const top = (getHours(start) + getMinutes(start) / 60) * HOUR_SLOT_HEIGHT;
-  const duration = (end.getTime() - start.getTime()) / (1000 * 60);
+  const top = (getHours(start) + getMinutes(start) / 60) * hourSlotHeight;
+  const durationMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
+  const height = (durationMinutes / 60) * hourSlotHeight;
   return {
     top: `${top}px`,
-    height: `${duration}px`,
+    height: `${height}px`,
     backgroundColor: event.color || 'hsl(var(--primary))',
   };
 }

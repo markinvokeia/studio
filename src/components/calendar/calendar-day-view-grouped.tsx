@@ -32,6 +32,7 @@ interface CalendarDayViewGroupedProps {
   onEventColorChange: (data: any, colorId: string) => void;
   onEventContextMenu?: (data: any) => React.ReactNode;
   onSlotClick?: CalendarSlotClickHandler;
+  hourSlotHeight?: number;
 }
 
 export function CalendarDayViewGrouped({
@@ -49,6 +50,7 @@ export function CalendarDayViewGrouped({
   onEventColorChange,
   onEventContextMenu,
   onSlotClick,
+  hourSlotHeight = HOUR_SLOT_HEIGHT,
 }: CalendarDayViewGroupedProps) {
   const startDay = view === 'week' ? startOfWeek(currentDate, { weekStartsOn: 1 }) : currentDate;
   const days = Array.from({ length: numDays }, (_, i) => addDays(startDay, i));
@@ -62,15 +64,15 @@ export function CalendarDayViewGrouped({
   const groupedDayMinWidth = effectiveColCount * groupedColumnMinWidth;
   const contentMinWidth = `${60 + (days.length * groupedDayMinWidth) + ((days.length - 1) * groupedDayGap)}px`;
 
-  const currentTimePosition = (currentTime.getHours() + currentTime.getMinutes() / 60) * 60;
+  const currentTimePosition = (currentTime.getHours() + currentTime.getMinutes() / 60) * hourSlotHeight;
   const showTimeIndicator = days.some((day) => isSameDay(day, currentTime));
 
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
   React.useLayoutEffect(() => {
     if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop = DEFAULT_SCROLL_HOUR * HOUR_SLOT_HEIGHT;
+      scrollContainerRef.current.scrollTop = DEFAULT_SCROLL_HOUR * hourSlotHeight;
     }
-  }, []);
+  }, [hourSlotHeight]);
 
   const handleSlotClick = (day: Date, col: CalendarGroupingColumn, e: React.MouseEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
@@ -79,8 +81,8 @@ export function CalendarDayViewGrouped({
     if (onSlotClick) {
       const rect = e.currentTarget.getBoundingClientRect();
       const y = e.clientY - rect.top;
-      const hour = Math.floor(y / 60);
-      const minute = Math.floor((y % 60) / 15) * 15;
+      const hour = Math.floor(y / hourSlotHeight);
+      const minute = Math.floor((y % hourSlotHeight) / (hourSlotHeight / 4)) * 15;
       const clickedDate = set(day, { hours: hour, minutes: minute, seconds: 0, milliseconds: 0 });
       const context = groupBy !== 'none' ? { groupBy, value: col.value } : undefined;
       onSlotClick(clickedDate, context);
@@ -141,7 +143,7 @@ export function CalendarDayViewGrouped({
         {/* Body: time grid with grouped columns */}
         <div
           className="day-view-body-grouped"
-          style={{ gridTemplateColumns: `60px repeat(${days.length}, minmax(${groupedDayMinWidth}px, 1fr))` }}
+          style={{ gridTemplateColumns: `60px repeat(${days.length}, minmax(${groupedDayMinWidth}px, 1fr))`, '--hour-slot-height': `${hourSlotHeight}px` } as React.CSSProperties}
         >
           <CalendarTimeColumn />
           {days.map((day) => (
@@ -165,7 +167,7 @@ export function CalendarDayViewGrouped({
                       <CalendarEventDay
                         key={event.id}
                         event={event}
-                        style={getEventStyle(event)}
+                        style={getEventStyle(event, hourSlotHeight)}
                         dateLocale={dateLocale}
                         onEventClick={onEventClick}
                         onEventColorChange={onEventColorChange}
