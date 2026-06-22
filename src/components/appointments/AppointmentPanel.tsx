@@ -402,6 +402,9 @@ export function AppointmentPanel({
   const endDt = parseLocalDateTime(appointment.end?.dateTime);
   const endTime = timeFromDateTime(appointment.end?.dateTime);
   const durationMin = startDt && endDt ? differenceInMinutes(endDt, startDt) : null;
+  const durationHHmm = durationMin != null && durationMin > 0
+    ? `${String(Math.floor(durationMin / 60)).padStart(2, '0')}:${String(durationMin % 60).padStart(2, '0')}`
+    : null;
   const StatusIcon = getStatusIcon(appointment.status, appointment.cancellation_reason);
   const statusColor = STATUS_ACCENT_COLOR[appointment.status];
   const appointmentCode = `#${appointment.id.slice(0, 8).toUpperCase()}`;
@@ -535,10 +538,8 @@ export function AppointmentPanel({
                   <DetailRow
                     icon={Clock}
                     label={tColumns('time')}
-                    value={`${appointment.time}${endTime ? ` -> ${endTime}` : ''}`}
-                    detail={durationMin != null && durationMin > 0
-                      ? tPanel('durationMinutes', { minutes: durationMin })
-                      : undefined}
+                    value={`${appointment.time}${endTime ? ` → ${endTime}` : ''}`}
+                    detail={durationHHmm ?? undefined}
                   />
                   <DetailRow
                     icon={MapPin}

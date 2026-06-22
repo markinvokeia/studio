@@ -589,6 +589,7 @@
       "none": "None",
       "allCalendars": "Select Calendar",
       "endTime": "End Time",
+      "duration": "Duration",
       "descriptionLabel": "Description",
       "cancelAppointmentDescription": "Are you sure you want to cancel the appointment?",
       "close": "Close",
