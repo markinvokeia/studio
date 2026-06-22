@@ -1160,7 +1160,7 @@ export function AppointmentFormDialog({
 
                                 <div className="space-y-2">
                                     <Label>{t('createDialog.serviceName')}</Label>
-                                    <Popover open={isServiceSearchOpen} onOpenChange={(o) => { if (!o) setIsCreatingService(false); setServiceSearchOpen(o); }}>
+                                    <Popover open={isServiceSearchOpen} onOpenChange={(o) => { if (!o) { setIsCreatingService(false); setServiceSearchQuery(''); } setServiceSearchOpen(o); }}>
                                         <PopoverTrigger asChild>
                                             <Button variant="outline" className="w-full justify-start" disabled={readOnlyFields?.services || isLoadingQuoteServices}>
                                                 {isLoadingQuoteServices ? (
