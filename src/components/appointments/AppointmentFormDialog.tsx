@@ -275,7 +275,7 @@ export function AppointmentFormDialog({
                     id: q.id ? String(q.id) : `qt_${Math.random().toString(36).substr(2, 9)}`,
                     doc_no: q.doc_no || 'N/A',
                     user_id: q.user_id || appointment.user!.id,
-                    total: q.total || 0,
+                    total: Number(q.total_presupuesto ?? q.total ?? 0),
                     status: q.status || 'draft',
                     payment_status: q.payment_status || 'unpaid',
                     billing_status: q.billing_status || 'not_invoiced',
