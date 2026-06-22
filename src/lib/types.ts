@@ -267,6 +267,7 @@ export type Invoice = {
   paid_amount?: number;
   type?: string;
   invoice_id?: string | null;
+  parent_id?: string;
   is_historical?: boolean;
   due_date?: string;
   external_id?: string | number | null;

@@ -42,7 +42,7 @@ import { getPurchaseServices, getSalesServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { addDays, format, parseISO } from 'date-fns';
-import { AlertTriangle, ArrowRight, Box, CalendarIcon, Check, ChevronsUpDown, Download, FileUp, Loader2, MoreHorizontal, Printer, Receipt, Send, Trash2 } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Box, CalendarIcon, Check, ChevronsUpDown, Download, FileUp, Link2, Loader2, MoreHorizontal, Printer, Receipt, Send, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import * as React from 'react';
@@ -89,6 +89,7 @@ const getColumns = (
   tStatus: (key: string) => string,
   tMethods: (key: string) => string,
   columnTranslations: { [key: string]: string },
+  invoices: Invoice[],
   onPrint?: (invoice: Invoice) => void,
   onSendEmail?: (invoice: Invoice) => void,
   onAddPayment?: (invoice: Invoice, isHistorical?: boolean) => void,
@@ -128,7 +129,16 @@ const getColumns = (
       ),
       cell: ({ row }) => {
         const value = row.getValue('doc_no') as string;
-        return <div className="font-medium">{value || `INV-${row.original.id}`}</div>;
+        const invoice = row.original;
+        const isLinked = invoice.type === 'credit_note'
+          ? !!(invoice.invoice_id || invoice.parent_id)
+          : invoices.some(inv => inv.type === 'credit_note' && (inv.invoice_id === invoice.id || inv.parent_id === invoice.id));
+        return (
+          <div className="font-medium flex items-center gap-1.5">
+            {value || `INV-${invoice.id}`}
+            {isLinked && <Link2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+          </div>
+        );
       },
     },
     {
@@ -359,6 +369,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     tStatus,
     tMethods,
     mergedColumnTranslations,
+    invoices,
     onPrint,
     onSendEmail,
     handleAddPaymentClick,
@@ -367,7 +378,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       setEditingInvoice(invoice);
       setIsFormDialogOpen(true);
     }
-  ), [t, tStatus, tMethods, mergedColumnTranslations, onPrint, onSendEmail, handleAddPaymentClick]);
+  ), [t, tStatus, tMethods, mergedColumnTranslations, invoices, onPrint, onSendEmail, handleAddPaymentClick]);
 
   return (
     <>
