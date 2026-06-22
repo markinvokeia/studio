@@ -44,7 +44,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
-import { normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
+import { normalizeAppointmentStatus, normalizeCancellationReason, STATUS_BADGE_VARIANT } from '@/constants/appointment-status';
+import { getStatusIcon } from '@/components/appointments/status-icons';
 import { useAppointmentStatus } from '@/hooks/use-appointment-status';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
@@ -224,6 +225,31 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
         }
     }, [userId, refreshAll, fetchPatientAppointments]);
 
+    // Optimistically reflect a status change in the local appointments list.
+    // The backend is eventually consistent, so we update local state rather than
+    // re-fetching immediately (which could read back the stale status).
+    const handleAppointmentStatusUpdated = React.useCallback(
+        (
+            appointmentId: string,
+            newStatus: AppointmentStatus,
+            extra?: { cancellation_reason?: CancellationReason | null; cancellation_note?: string | null },
+        ) => {
+            setPatientAppointments(prev =>
+                prev.map(a =>
+                    a.id === appointmentId
+                        ? {
+                            ...a,
+                            status: newStatus,
+                            cancellation_reason: newStatus === 'cancelled' ? extra?.cancellation_reason ?? null : null,
+                            cancellation_note: newStatus === 'cancelled' ? extra?.cancellation_note ?? null : null,
+                        }
+                        : a,
+                ),
+            );
+        },
+        [],
+    );
+
     const [localSessionTrigger, setLocalSessionTrigger] = React.useState(0);
     const [localOdontogramTrigger, setLocalOdontogramTrigger] = React.useState(0);
 
@@ -240,10 +266,7 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
     }, [createOdontogramTrigger]);
 
     return (
-        <div className="flex flex-col h-full min-h-0">
-            <div className="flex-1 min-h-0 overflow-hidden">
-                <ScrollArea className="h-full w-full">
-                    <div className="pt-1">
+        <div className="pt-1">
                         <TreatmentTimeline
                             sessions={patientSessions}
                             appointments={patientAppointments}
@@ -268,11 +291,9 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
                             onSessionCreated={onSessionCreated}
                             editSessionId={editSessionId}
                             onRefreshAppointments={() => fetchPatientAppointments(userId)}
+                            onAppointmentStatusUpdated={handleAppointmentStatusUpdated}
                             onEditAppointment={onEditAppointment}
                         />
-                    </div>
-                </ScrollArea>
-            </div>
         </div>
     );
 }
@@ -1611,13 +1632,20 @@ interface TreatmentTimelineProps {
     onOdontogramTriggerConsumed?: () => void;
     sessionPrefill?: SessionPrefillData | null;
     onRefreshAppointments?: () => void;
+    onAppointmentStatusUpdated?: (
+        appointmentId: string,
+        newStatus: AppointmentStatus,
+        extra?: { cancellation_reason?: CancellationReason | null; cancellation_note?: string | null },
+    ) => void;
     onEditAppointment?: (appointment: Appointment) => void;
 }
 
-function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAppointments = false, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, createOdontogramTrigger = 0, onOdontogramTriggerConsumed, sessionPrefill, onSessionCreated, editSessionId, onRefreshAppointments, onEditAppointment }: TreatmentTimelineProps) {
+function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAppointments = false, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, createOdontogramTrigger = 0, onOdontogramTriggerConsumed, sessionPrefill, onSessionCreated, editSessionId, onRefreshAppointments, onAppointmentStatusUpdated, onEditAppointment }: TreatmentTimelineProps) {
     const t = useTranslations('ClinicHistoryPage.timeline');
     const tDialog = useTranslations('ClinicHistoryPage.sessionDialog');
     const tPage = useTranslations('ClinicHistoryPage');
+    const tStatus = useTranslations('AppointmentStatus');
+    const tReason = useTranslations('CancellationReason');
     const { toast } = useToast();
     const [openItems, setOpenItems] = React.useState<string[]>([]);
     const [selectedItemKey, setSelectedItemKey] = React.useState<string | null>(null);
@@ -1638,7 +1666,22 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
     const [pendingCancellation, setPendingCancellation] = React.useState<Appointment | null>(null);
 
     const { updateStatus } = useAppointmentStatus({
-        onSuccess: () => { onRefreshAll?.(userId); },
+        onSuccess: (appointment, newStatus, extra) => {
+            // Optimistically update the timeline list and the open panel so the
+            // new status shows immediately (backend is eventually consistent).
+            onAppointmentStatusUpdated?.(appointment.id, newStatus, extra);
+            setApptPanelAppointment(prev =>
+                prev && prev.id === appointment.id
+                    ? {
+                        ...prev,
+                        status: newStatus,
+                        cancellation_reason: newStatus === 'cancelled' ? extra?.cancellation_reason ?? null : null,
+                        cancellation_note: newStatus === 'cancelled' ? extra?.cancellation_note ?? null : null,
+                    }
+                    : prev,
+            );
+            onRefreshAll?.(userId);
+        },
     });
 
     const handleBillingSuccess = React.useCallback(() => {
@@ -1987,8 +2030,8 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
     }
 
     return (
-        <div className="space-y-4">
-            <div className="bg-card text-card-foreground rounded-xl shadow-sm border overflow-hidden flex flex-col" style={{ minHeight: '400px' }}>
+        <div>
+            <div className="bg-card text-card-foreground rounded-xl shadow-sm border overflow-hidden flex flex-col">
                 <div className="flex items-center justify-between px-3 py-3 border-b shrink-0 gap-2">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -2122,9 +2165,7 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                     </div>
                 )}
 
-                <div className="flex flex-1 min-h-0 overflow-hidden">
-                    <div className="flex flex-col w-full overflow-hidden">
-                        <ScrollArea className="flex-1">
+                <div>
                             {allItems.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center h-32 text-muted-foreground gap-2 p-4">
                                     <Clock className="w-6 h-6 opacity-40" />
@@ -2157,30 +2198,45 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                                                             : <CalendarCheck className="h-3 w-3 text-blue-500" />
                                                         }
                                                     </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center gap-1 flex-wrap">
-                                                            <Badge variant="secondary" className={cn('text-xs px-1.5 py-0 leading-relaxed', isFuture ? 'bg-violet-100 text-violet-700 dark:bg-violet-950/40 dark:text-violet-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400')}>
-                                                                {t('sessionTypeAppointment')}
-                                                            </Badge>
-                                                            {isFuture && (
-                                                                <Badge variant="secondary" className="text-xs bg-violet-200 text-violet-800 dark:bg-violet-900/60 dark:text-violet-300 px-1.5 py-0 leading-relaxed font-medium">
-                                                                    {t('upcomingAppointment')}
+                                                    <div className="flex-1 min-w-0 flex flex-row items-start justify-between gap-2">
+                                                        <div className="min-w-0">
+                                                            <div className="flex items-center gap-1 flex-wrap">
+                                                                <Badge variant="secondary" className={cn('text-xs px-1.5 py-0 leading-relaxed', isFuture ? 'bg-violet-100 text-violet-700 dark:bg-violet-950/40 dark:text-violet-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400')}>
+                                                                    {t('sessionTypeAppointment')}
                                                                 </Badge>
-                                                            )}
-                                                            <span className="text-xs text-muted-foreground">{format(item.date, 'dd/MM/yy')}</span>
-                                                            {appt.quote_doc_no && (
-                                                                <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-1.5 py-0 leading-relaxed font-mono">
-                                                                    {appt.quote_doc_no}
-                                                                </Badge>
-                                                            )}
-                                                            {appt.invoice_id && (
-                                                                <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-1.5 py-0 leading-relaxed font-mono">
-                                                                    <FileText className="h-2.5 w-2.5 mr-0.5" />#{appt.invoice_id}
-                                                                </Badge>
-                                                            )}
+                                                                {isFuture && (
+                                                                    <Badge variant="secondary" className="text-xs bg-violet-200 text-violet-800 dark:bg-violet-900/60 dark:text-violet-300 px-1.5 py-0 leading-relaxed font-medium">
+                                                                        {t('upcomingAppointment')}
+                                                                    </Badge>
+                                                                )}
+                                                                <span className="text-xs text-muted-foreground">{format(item.date, 'dd/MM/yy')}</span>
+                                                                {appt.quote_doc_no && (
+                                                                    <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-1.5 py-0 leading-relaxed font-mono">
+                                                                        {appt.quote_doc_no}
+                                                                    </Badge>
+                                                                )}
+                                                                {appt.invoice_id && (
+                                                                    <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-1.5 py-0 leading-relaxed font-mono">
+                                                                        <FileText className="h-2.5 w-2.5 mr-0.5" />#{appt.invoice_id}
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+                                                            <p className="text-xs font-medium truncate mt-0.5">{appt.summary}</p>
+                                                            {appt.doctorName && <p className="text-xs text-muted-foreground truncate">{appt.doctorName}</p>}
                                                         </div>
-                                                        <p className="text-xs font-medium truncate mt-0.5">{appt.summary}</p>
-                                                        {appt.doctorName && <p className="text-xs text-muted-foreground truncate">{appt.doctorName}</p>}
+                                                        {(() => {
+                                                            const StatusIcon = getStatusIcon(appt.status, appt.cancellation_reason);
+                                                            const statusVariant = (STATUS_BADGE_VARIANT[appt.status] ?? 'default') as
+                                                                'default' | 'success' | 'destructive' | 'info' | 'warning' | 'secondary' | 'outline';
+                                                            return (
+                                                                <Badge variant={statusVariant} className="capitalize gap-1 text-xs px-2 py-0.5 self-start shrink-0 mt-0.5">
+                                                                    <StatusIcon className="h-3 w-3" />
+                                                                    {appt.status === 'cancelled' && appt.cancellation_reason
+                                                                        ? tReason(appt.cancellation_reason)
+                                                                        : tStatus(appt.status)}
+                                                                </Badge>
+                                                            );
+                                                        })()}
                                                     </div>
                                                 </div>
                                             );
@@ -2230,9 +2286,6 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                                     })}
                                 </div>
                             )}
-                        </ScrollArea>
-                    </div>
-
                 </div>
             </div>
 
