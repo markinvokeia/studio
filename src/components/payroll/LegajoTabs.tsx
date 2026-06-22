@@ -38,7 +38,7 @@ import { ContractFormDialog, addOneYear } from '@/components/payroll/ContractFor
 import { FamilyChargeList } from '@/components/payroll/FamilyChargeList';
 import { EmploymentList } from '@/components/payroll/EmploymentList';
 import { IrpfDeductionList } from '@/components/payroll/IrpfDeductionList';
-import { ClinicalSessionsList } from '@/components/payroll/ClinicalSessionsList';
+import { WorkLogPanel } from '@/components/payroll/WorkLogPanel';
 import { EmployeeAdjustmentsTab } from '@/components/payroll/EmployeeAdjustmentsTab';
 import { EmailComposerDialog } from '@/components/email-composer-dialog';
 import { WhatsAppComposerDialog } from '@/components/whatsapp-composer-dialog';
@@ -50,7 +50,6 @@ import { formatDate, toDateInput } from '@/components/payroll/payroll-utils';
 import type {
   DoctorContract,
   PayrollAusencia,
-  PayrollClinicalSession,
   PayrollEmployee,
   PayrollEmployment,
   PayrollFamilyCharge,
@@ -58,11 +57,9 @@ import type {
   VacationBalance,
 } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { startOfMonth, endOfMonth, format } from 'date-fns';
 import { Briefcase, Building, CalendarOff, ClipboardList, Clock, Coins, LogOut, Mail, Maximize2, Minimize2, Pencil, Phone, Plus, Receipt, RefreshCw, RotateCcw, Trash2, User, Users, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
-import type { DateRange } from 'react-day-picker';
 
 interface Props {
   employeeId: string;
@@ -175,13 +172,6 @@ export function LegajoTabs({ employeeId, employee, onEmployeeUpdate, onClose, is
   const [irpfSaving, setIrpfSaving] = useState(false);
   const [irpfDeleting, setIrpfDeleting] = useState<string | null>(null);
 
-  // ── Jornadas (clinical sessions) tab state ────────────────────────────────
-  const [clinicalSessions, setClinicalSessions] = useState<PayrollClinicalSession[]>([]);
-  const [clinicalLoading, setClinicalLoading] = useState(false);
-  const [clinicalRange, setClinicalRange] = useState<DateRange | undefined>({
-    from: startOfMonth(new Date()),
-    to: endOfMonth(new Date()),
-  });
 
   // ── Licencias y Ausencias tab state ───────────────────────────────────────
   const [ausencias, setAusencias] = useState<PayrollAusencia[]>([]);
@@ -288,28 +278,6 @@ export function LegajoTabs({ employeeId, employee, onEmployeeUpdate, onClose, is
     return () => { cancelled = true; };
   }, [employee?.user_id]);
 
-  // Clinical sessions (Jornadas) — fetch by doctor user_id within the date range
-  useEffect(() => {
-    const userId = employee?.user_id;
-    if (!userId || !clinicalRange?.from || !clinicalRange?.to) {
-      setClinicalSessions([]);
-      return;
-    }
-    let cancelled = false;
-    setClinicalLoading(true);
-    api
-      .get(API_ROUTES.PAYROLL.CLINICAL_SESSIONS_BY_USER, {
-        user_id: userId,
-        date_from: format(clinicalRange.from, 'yyyy-MM-dd'),
-        date_to: format(clinicalRange.to, 'yyyy-MM-dd'),
-      })
-      .then((res) => {
-        if (!cancelled) setClinicalSessions((Array.isArray(res) ? res : (res?.data ?? [])) as PayrollClinicalSession[]);
-      })
-      .catch(() => { if (!cancelled) setClinicalSessions([]); })
-      .finally(() => { if (!cancelled) setClinicalLoading(false); });
-    return () => { cancelled = true; };
-  }, [employee?.user_id, clinicalRange?.from, clinicalRange?.to]);
 
   // Licencias/Ausencias + vacation balance
   useEffect(() => {
@@ -1303,15 +1271,10 @@ export function LegajoTabs({ employeeId, employee, onEmployeeUpdate, onClose, is
           <EmployeeAdjustmentsTab employee={employee} />
         )}
 
-        {/* ── Jornadas (sesiones clínicas) ─────────────────────────────── */}
-        {activeTab === 'jornadas' && (
+        {/* ── Jornadas (parte de trabajo diario, editable) ──────────────── */}
+        {activeTab === 'jornadas' && employee.user_id && (
           <div className="flex flex-col h-full -mx-4 -mb-4 min-h-0">
-            <ClinicalSessionsList
-              sessions={clinicalSessions}
-              loading={clinicalLoading}
-              dateRange={clinicalRange}
-              onDateRangeChange={setClinicalRange}
-            />
+            <WorkLogPanel userId={employee.user_id} />
           </div>
         )}
       </div>{/* end flex-1 overflow-y-auto p-4 */}

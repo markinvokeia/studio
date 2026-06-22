@@ -1,0 +1,347 @@
+{
+  "name": "Nóminas - Parte de trabajo",
+  "nodes": [
+    {
+      "id": "wh-wl-by",
+      "name": "GET /payroll/worklog/by-employee",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        100
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/worklog/by-employee",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-wl-by",
+      "name": "WorkLog By Employee",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        320,
+        100
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT w.* FROM payroll_work_log w\nJOIN payroll_employees pe ON pe.id = w.employee_id\nWHERE (pe.id = $1::uuid OR pe.user_id = $1::uuid)\n  AND w.fecha BETWEEN $2::date AND $3::date\nORDER BY w.fecha",
+        "additionalFields": {
+          "queryParams": "={{ [$input.first().json.query?.employee_id, $input.first().json.query?.date_from, $input.first().json.query?.date_to] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "resp-wl-by",
+      "name": "Respond WorkLog",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        540,
+        100
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.all().map(i => i.json) } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "wh-wl-up",
+      "name": "POST /payroll/worklog/upsert",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/worklog/upsert",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-wl-up",
+      "name": "Parse WorkLog",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || $input.first().json;\nconst num = (v) => (v===undefined||v===null||v==='')?0:Number(v);\nreturn [{ json: {\n  id: b.id || '',\n  emp: b.employee_id || b.user_id || '',\n  fecha: b.fecha || '',\n  horas_normales: num(b.horas_normales),\n  horas_extra_habiles: num(b.horas_extra_habiles),\n  horas_extra_feriados: num(b.horas_extra_feriados),\n  sesiones: b.sesiones!=null?Number(b.sesiones):0,\n  produccion_facturada: num(b.produccion_facturada),\n  produccion_listada: num(b.produccion_listada),\n  notas: b.notas || '',\n  created_by: b.created_by || ''\n} }];"
+      }
+    },
+    {
+      "id": "pg-wl-up",
+      "name": "Upsert WorkLog",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        540,
+        300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO payroll_work_log\n  (id, employee_id, clinic_id, fecha, horas_normales, horas_extra_habiles, horas_extra_feriados, sesiones, produccion_facturada, produccion_listada, origen, notas, created_by)\nSELECT COALESCE(NULLIF($1,'')::uuid, gen_random_uuid()), e.id, e.clinic_id, $3::date,\n  $4::decimal, $5::decimal, $6::decimal, $7::int, $8::decimal, $9::decimal, 'manual', NULLIF($10,''), NULLIF($11,'')::uuid\nFROM payroll_employees e WHERE e.id = $2::uuid OR e.user_id = $2::uuid LIMIT 1\nON CONFLICT (employee_id, fecha) DO UPDATE SET\n  horas_normales = EXCLUDED.horas_normales,\n  horas_extra_habiles = EXCLUDED.horas_extra_habiles,\n  horas_extra_feriados = EXCLUDED.horas_extra_feriados,\n  sesiones = EXCLUDED.sesiones,\n  produccion_facturada = EXCLUDED.produccion_facturada,\n  produccion_listada = EXCLUDED.produccion_listada,\n  origen = 'manual',\n  notas = EXCLUDED.notas\nRETURNING *",
+        "additionalFields": {
+          "queryParams": "={{ [$json.id,$json.emp,$json.fecha,$json.horas_normales,$json.horas_extra_habiles,$json.horas_extra_feriados,$json.sesiones,$json.produccion_facturada,$json.produccion_listada,$json.notas,$json.created_by] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "resp-wl-up",
+      "name": "Respond WorkLog Upsert",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        760,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "wh-wl-del",
+      "name": "POST /payroll/worklog/delete",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        500
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/worklog/delete",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-wl-del",
+      "name": "Delete WorkLog",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        320,
+        500
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM payroll_work_log WHERE id = $1::uuid RETURNING id",
+        "additionalFields": {
+          "queryParams": "={{ [($input.first().json.body || $input.first().json).id] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "resp-wl-del",
+      "name": "Respond WorkLog Delete",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        540,
+        500
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "wh-wl-prep",
+      "name": "POST /payroll/worklog/prepopulate",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        700
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/worklog/prepopulate",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-wl-prep",
+      "name": "Prepopulate WorkLog",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        320,
+        700
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH sess AS (\n  SELECT sc.doctor_id, sc.fecha_sesion::date AS fecha, sc.appointment_id, sc.invoice_id\n  FROM sesiones_clinicas sc\n  WHERE sc.fecha_sesion::date BETWEEN $1::date AND $2::date AND sc.doctor_id IS NOT NULL\n    AND ($3::uuid IS NULL OR sc.doctor_id = $3::uuid)\n),\ncounts AS (\n  SELECT s.doctor_id, s.fecha, COUNT(*)::int AS sesiones,\n    ROUND(COALESCE(SUM(COALESCE(EXTRACT(EPOCH FROM (a.end_datetime - a.start_datetime))/60.0,0)),0)/60.0, 2) AS horas\n  FROM sess s LEFT JOIN appointments a ON a.id = s.appointment_id\n  GROUP BY s.doctor_id, s.fecha\n),\nrev AS (\n  SELECT d.doctor_id, d.fecha, COALESCE(SUM(i.total),0) AS prod_listada, COALESCE(SUM(i.paid_amount),0) AS prod_facturada\n  FROM (SELECT DISTINCT doctor_id, fecha, invoice_id FROM sess WHERE invoice_id IS NOT NULL) d\n  JOIN invoices i ON i.id = d.invoice_id GROUP BY d.doctor_id, d.fecha\n)\nINSERT INTO payroll_work_log (employee_id, clinic_id, fecha, horas_normales, sesiones, produccion_facturada, produccion_listada, origen)\nSELECT e.id, e.clinic_id, c.fecha, c.horas, c.sesiones, COALESCE(r.prod_facturada,0), COALESCE(r.prod_listada,0), 'auto'\nFROM counts c\nJOIN payroll_employees e ON e.user_id = c.doctor_id\nLEFT JOIN rev r ON r.doctor_id = c.doctor_id AND r.fecha = c.fecha\nON CONFLICT (employee_id, fecha) DO UPDATE SET\n  horas_normales = EXCLUDED.horas_normales,\n  sesiones = EXCLUDED.sesiones,\n  produccion_facturada = EXCLUDED.produccion_facturada,\n  produccion_listada = EXCLUDED.produccion_listada\nWHERE payroll_work_log.origen = 'auto'\nRETURNING *",
+        "additionalFields": {
+          "queryParams": "={{ [($input.first().json.body||$input.first().json).date_from, ($input.first().json.body||$input.first().json).date_to, (($input.first().json.body||$input.first().json).user_id)||null] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "resp-wl-prep",
+      "name": "Respond WorkLog Prepopulate",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        540,
+        700
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.all().map(i => i.json), success: true } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    }
+  ],
+  "connections": {
+    "GET /payroll/worklog/by-employee": {
+      "main": [
+        [
+          {
+            "node": "WorkLog By Employee",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WorkLog By Employee": {
+      "main": [
+        [
+          {
+            "node": "Respond WorkLog",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /payroll/worklog/upsert": {
+      "main": [
+        [
+          {
+            "node": "Parse WorkLog",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse WorkLog": {
+      "main": [
+        [
+          {
+            "node": "Upsert WorkLog",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert WorkLog": {
+      "main": [
+        [
+          {
+            "node": "Respond WorkLog Upsert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /payroll/worklog/delete": {
+      "main": [
+        [
+          {
+            "node": "Delete WorkLog",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete WorkLog": {
+      "main": [
+        [
+          {
+            "node": "Respond WorkLog Delete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /payroll/worklog/prepopulate": {
+      "main": [
+        [
+          {
+            "node": "Prepopulate WorkLog",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepopulate WorkLog": {
+      "main": [
+        [
+          {
+            "node": "Respond WorkLog Prepopulate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null
+}

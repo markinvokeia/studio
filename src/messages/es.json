@@ -3393,7 +3393,20 @@
     "sedeDeleteConfirmDelete": "Eliminar",
     "validation": {
       "phoneInvalid": "Número de teléfono inválido"
-    }
+    },
+    "fiscalSection": "Datos fiscales / patronales",
+    "fiscalSectionDesc": "Información requerida por BPS, DGI, MTSS y bancos para los reportes de nómina.",
+    "razonSocialLabel": "Razón social",
+    "razonSocialPlaceholder": "Denominación legal de la empresa",
+    "domicilioFiscalLabel": "Domicilio fiscal",
+    "domicilioFiscalPlaceholder": "Domicilio fiscal declarado",
+    "bpsEmpresaLabel": "Nº empresa BPS",
+    "bpsGrupoLabel": "Grupo BPS",
+    "bpsSubgrupoLabel": "Subgrupo BPS",
+    "bseLabel": "Nº póliza BSE",
+    "mtssPlanillaLabel": "Nº planilla MTSS",
+    "bancoEmpresaLabel": "Banco (cuenta a debitar)",
+    "cuentaEmpresaLabel": "Cuenta a debitar"
   },
   "SchedulesPage": {
     "title": "Horarios",
@@ -7192,7 +7205,20 @@
       "totalDeductions": "Total deducciones",
       "net": "Líquido a cobrar",
       "employerSign": "Firma empleador",
-      "employeeSign": "Firma empleado"
+      "employeeSign": "Firma empleado",
+      "rut": "RUT",
+      "bpsNo": "Nº BPS",
+      "hours": "Horas",
+      "employeeId": "C.I.",
+      "hireDate": "Fecha de ingreso",
+      "category": "Categoría",
+      "contract": "Vínculo",
+      "employerContributions": "Aportes patronales",
+      "aguinaldo": "Provisión aguinaldo",
+      "vacation": "Provisión vacacional",
+      "payment": "Forma de pago",
+      "bank": "Banco",
+      "account": "Cuenta"
     }
   },
   "License": {
@@ -7630,7 +7656,8 @@
       "totalGrossHelp": "Suma de los salarios brutos de todas las liquidaciones del período.",
       "totalNetHelp": "Suma de los líquidos a pagar (bruto − deducciones + ajustes).",
       "employerCostHelp": "Costo total para la empresa = bruto + aportes patronales + provisiones (aguinaldo, vacaciones). NO se restan: se suman al bruto.",
-      "noSessions": "Sin sesiones en el período"
+      "noSessions": "Sin sesiones en el período",
+      "workLog": "Parte de trabajo"
     },
     "employees": {
       "title": "Empleados",
@@ -7882,7 +7909,28 @@
         "procedure": "Procedimiento",
         "none": "Sin sesiones en el período",
         "totalSessions": "Sesiones",
-        "totalTime": "Tiempo total"
+        "totalTime": "Tiempo total",
+        "prepopulate": "Prepoblar desde sesiones",
+        "prepopulateError": "No se pudo prepoblar",
+        "addDay": "Agregar día",
+        "save": "Guardar",
+        "cancel": "Cancelar",
+        "saveError": "No se pudo guardar la jornada",
+        "normalHours": "Horas",
+        "extraHabil": "Extra hábil",
+        "extraFeriado": "Extra feriado",
+        "sessions": "Sesiones",
+        "billed": "Producción",
+        "notes": "Notas",
+        "auto": "auto",
+        "totalHours": "Total horas",
+        "totalExtraHabil": "Extra hábil",
+        "totalExtraFeriado": "Extra feriado",
+        "totalProduction": "Producción",
+        "origin": "Origen",
+        "editDay": "Editar jornada",
+        "delete": "Eliminar",
+        "totalDays": "Días"
       },
       "licencias": {
         "addNew": "Agregar Licencia",
@@ -8119,7 +8167,37 @@
         "viewFactura": "Ver factura"
       },
       "filterAll": "Todos",
-      "T": "T"
+      "T": "T",
+      "totalRegistros": "Registros",
+      "totalRetenciones": "Retenciones",
+      "add": "Agregar",
+      "form": {
+        "addTitle": "Agregar honorario",
+        "editTitle": "Editar honorario",
+        "editAmounts": "Editar montos",
+        "professional": "Profesional",
+        "selectProfessional": "Seleccionar profesional",
+        "period": "Período",
+        "selectPeriod": "Seleccionar período",
+        "modalidad": "Modalidad",
+        "produccionBase": "Producción base",
+        "porcentaje": "Porcentaje",
+        "bruto": "Bruto",
+        "iva": "IVA",
+        "retenciones": "Retenciones",
+        "descuentos": "Descuentos",
+        "notas": "Notas",
+        "liquidoPreview": "Líquido (calculado)",
+        "rut": "RUT",
+        "save": "Guardar",
+        "cancel": "Cancelar",
+        "delete": "Eliminar",
+        "deleteConfirm": "¿Eliminar este honorario? Esta acción no se puede deshacer.",
+        "saved": "Honorario guardado.",
+        "deleted": "Honorario eliminado.",
+        "errorSave": "No se pudo guardar el honorario.",
+        "requiredFields": "Selecciona profesional y período."
+      }
     },
     "contracts": {
       "searchPlaceholder": "Buscar contrato...",

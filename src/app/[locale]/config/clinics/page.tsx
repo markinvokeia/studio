@@ -69,6 +69,15 @@ async function getClinic(fallbacks: ClinicFallbacks): Promise<Clinic | null> {
             phone_number: c.phone || '000-000-0000',
             currency: c.currency || 'USD',
             rut: c.rut || '',
+            razon_social: c.razon_social || '',
+            domicilio_fiscal: c.domicilio_fiscal || '',
+            bps_empresa_nro: c.bps_empresa_nro || '',
+            bps_grupo: c.bps_grupo || '',
+            bps_subgrupo: c.bps_subgrupo || '',
+            bse_nro: c.bse_nro || '',
+            mtss_planilla_nro: c.mtss_planilla_nro || '',
+            banco_empresa: c.banco_empresa || '',
+            cuenta_empresa: c.cuenta_empresa || '',
         };
     } catch {
         return null;
@@ -227,6 +236,16 @@ export default function ClinicsPage() {
         formData.append('phone', clinic.phone_number);
         if (clinic.currency) formData.append('currency', clinic.currency);
         if (clinic.rut) formData.append('rut', clinic.rut);
+        // Datos fiscales / patronales (reportes de nómina)
+        formData.append('razon_social', clinic.razon_social ?? '');
+        formData.append('domicilio_fiscal', clinic.domicilio_fiscal ?? '');
+        formData.append('bps_empresa_nro', clinic.bps_empresa_nro ?? '');
+        formData.append('bps_grupo', clinic.bps_grupo ?? '');
+        formData.append('bps_subgrupo', clinic.bps_subgrupo ?? '');
+        formData.append('bse_nro', clinic.bse_nro ?? '');
+        formData.append('mtss_planilla_nro', clinic.mtss_planilla_nro ?? '');
+        formData.append('banco_empresa', clinic.banco_empresa ?? '');
+        formData.append('cuenta_empresa', clinic.cuenta_empresa ?? '');
         if (logoFile) formData.append('data', logoFile);
         try {
             const res = await api.post(API_ROUTES.CLINIC_UPDATE, formData);
@@ -468,6 +487,52 @@ export default function ClinicsPage() {
                                         <SelectItem value="UYU">UYU</SelectItem>
                                     </SelectContent>
                                 </Select>
+                            </div>
+
+                            {/* ── Datos fiscales / patronales (reportes de nómina) ── */}
+                            <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
+                                <div>
+                                    <p className="text-sm font-medium">{tc('fiscalSection')}</p>
+                                    <p className="text-xs text-muted-foreground">{tc('fiscalSectionDesc')}</p>
+                                </div>
+                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    <div className="space-y-2 sm:col-span-2">
+                                        <Label htmlFor="razon_social">{tc('razonSocialLabel')}</Label>
+                                        <Input id="razon_social" value={clinic.razon_social ?? ''} onChange={handleInputChange} placeholder={tc('razonSocialPlaceholder')} />
+                                    </div>
+                                    <div className="space-y-2 sm:col-span-2">
+                                        <Label htmlFor="domicilio_fiscal">{tc('domicilioFiscalLabel')}</Label>
+                                        <Input id="domicilio_fiscal" value={clinic.domicilio_fiscal ?? ''} onChange={handleInputChange} placeholder={tc('domicilioFiscalPlaceholder')} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="bps_empresa_nro">{tc('bpsEmpresaLabel')}</Label>
+                                        <Input id="bps_empresa_nro" value={clinic.bps_empresa_nro ?? ''} onChange={handleInputChange} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="mtss_planilla_nro">{tc('mtssPlanillaLabel')}</Label>
+                                        <Input id="mtss_planilla_nro" value={clinic.mtss_planilla_nro ?? ''} onChange={handleInputChange} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="bps_grupo">{tc('bpsGrupoLabel')}</Label>
+                                        <Input id="bps_grupo" value={clinic.bps_grupo ?? ''} onChange={handleInputChange} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="bps_subgrupo">{tc('bpsSubgrupoLabel')}</Label>
+                                        <Input id="bps_subgrupo" value={clinic.bps_subgrupo ?? ''} onChange={handleInputChange} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="bse_nro">{tc('bseLabel')}</Label>
+                                        <Input id="bse_nro" value={clinic.bse_nro ?? ''} onChange={handleInputChange} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="banco_empresa">{tc('bancoEmpresaLabel')}</Label>
+                                        <Input id="banco_empresa" value={clinic.banco_empresa ?? ''} onChange={handleInputChange} />
+                                    </div>
+                                    <div className="space-y-2 sm:col-span-2">
+                                        <Label htmlFor="cuenta_empresa">{tc('cuentaEmpresaLabel')}</Label>
+                                        <Input id="cuenta_empresa" value={clinic.cuenta_empresa ?? ''} onChange={handleInputChange} />
+                                    </div>
+                                </div>
                             </div>
                         </div>
 

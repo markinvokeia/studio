@@ -332,6 +332,13 @@ textarea::placeholder {
   }
 }
 
+/* Very narrow: collapse action-button labels to icon-only to avoid overlap. */
+@container ptoolbar (max-width: 26rem) {
+  .payroll-toolbar__btn-label {
+    display: none;
+  }
+}
+
 /* ── Payroll detail panel header (container query) ──────────────────────── */
 .payroll-panel-header {
   container-type: inline-size;

@@ -10,13 +10,13 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { formatCurrency, getMonthName } from '@/components/payroll/payroll-utils';
+import { coerceNumericStrings, formatCurrency, getMonthName } from '@/components/payroll/payroll-utils';
 import { exportPayrollPeriodCSV, exportPayrollPeriodExcel } from '@/components/payroll/payroll-period-export';
 import {
   PAYROLL_REPORT_DEFS, buildDataBlob, downloadBlob, rowsFrom, rowsToMatrix,
   type ReportCategory, type ReportDef, type ReportFormat,
 } from '@/lib/payroll-report-formatters';
-import type { PayrollDocument, PayrollEntry, PayrollPeriod } from '@/lib/types';
+import type { PayrollDocument, PayrollEntry, PayrollPeriod, PayrollReceiptRow } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import api from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
@@ -134,9 +134,10 @@ export function ReportsPanel() {
         else if (format === 'excel') await exportPayrollPeriodExcel(period, entries, printLabel, statusText);
         else exportPayrollPeriodCSV(period, entries, printLabel, statusText);
       } else if (def.source === 'receipts') {
-        const entries = unwrapEntries(await api.get(API_ROUTES.PAYROLL.ENTRIES_BY_PERIOD, { period_id: selectedPeriod }));
         if (!period) throw new Error('no_period');
-        await printPayrollReceipts(period, entries);
+        const rows = rowsFrom(await api.get(API_ROUTES.PAYROLL.REPORTS_RECEIPTS, { period_id: selectedPeriod }))
+          .map((r) => coerceNumericStrings(r as Record<string, unknown>) as unknown as PayrollReceiptRow);
+        await printPayrollReceipts(period, rows);
       } else if (def.source === 'data') {
         const query: Record<string, string> = def.annual ? { year: selectedYear } : { period_id: selectedPeriod };
         const rows = rowsFrom(await api.get(def.endpoint!, query));

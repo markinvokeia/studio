@@ -13,6 +13,7 @@ export default function PayrollHonorariosPage() {
   const t = useTranslations('PayrollPage.honorarios');
   const [selected, setSelected] = useState<PayrollHonorario | null>(null);
   const [isRightExpanded, setIsRightExpanded] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   return (
     <TwoPanelLayout
@@ -36,6 +37,7 @@ export default function PayrollHonorariosPage() {
             <HonorariosList
               selectedId={selected?.id}
               onSelect={setSelected}
+              reloadKey={reloadKey}
             />
           </CardContent>
         </Card>
@@ -48,6 +50,8 @@ export default function PayrollHonorariosPage() {
                 honorario={selected}
                 onClose={() => setSelected(null)}
                 onStatusChange={(updated) => setSelected(updated)}
+                onEdited={() => setReloadKey((k) => k + 1)}
+                onDeleted={() => { setSelected(null); setReloadKey((k) => k + 1); }}
                 isExpanded={isRightExpanded}
                 onToggleExpand={() => setIsRightExpanded(v => !v)}
               />

@@ -36,7 +36,7 @@ export const PAYROLL_REPORT_DEFS: ReportDef[] = [
   { tipo: 'bps_gafi',         category: 'bps',     source: 'none',  formats: [],          available: false },
   { tipo: 'dgi_irpf',         category: 'dgi',     source: 'data', endpoint: API_ROUTES.PAYROLL.REPORTS_DGI_IRPF,    formats: ALL, available: true, annual: true },
   { tipo: 'bank_file',        category: 'bank',    source: 'data', endpoint: API_ROUTES.PAYROLL.REPORTS_BANK_FILE,   formats: ALL, available: true },
-  { tipo: 'mtss',             category: 'otros',   source: 'none',  formats: [],          available: false },
+  { tipo: 'mtss',             category: 'otros',   source: 'data', endpoint: API_ROUTES.PAYROLL.REPORTS_MTSS,       formats: ALL, available: true },
 ];
 
 // ── Data helpers ────────────────────────────────────────────────────────────────

@@ -22,6 +22,7 @@ import { ReportExportActions } from '@/components/reports/report-export-actions'
 import { useNarrowMode } from '@/components/layout/two-panel-layout';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { PayrollListToolbar } from '@/components/payroll/PayrollListToolbar';
+import { HonorarioFormDialog } from '@/components/payroll/HonorarioFormDialog';
 import { formatCurrency, getMonthName } from '@/components/payroll/payroll-utils';
 import type { HonorariosEstado, PayrollHonorario, PayrollPeriod } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -29,7 +30,7 @@ import api from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Plus, Settings2 } from 'lucide-react';
+import { Plus, Settings2, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -44,9 +45,11 @@ const STATUS_COLORS: Record<HonorariosEstado, string> = {
 interface HonorariosListProps {
   selectedId?: string;
   onSelect?: (honorario: PayrollHonorario) => void;
+  /** Bump to force a refetch (e.g. after edit/delete from the detail panel). */
+  reloadKey?: number;
 }
 
-export function HonorariosList({ selectedId, onSelect }: HonorariosListProps) {
+export function HonorariosList({ selectedId, onSelect, reloadKey }: HonorariosListProps) {
   const t = useTranslations('PayrollPage.honorarios');
   const { toast } = useToast();
   const { isNarrow } = useNarrowMode();
@@ -61,6 +64,7 @@ export function HonorariosList({ selectedId, onSelect }: HonorariosListProps) {
   const [loadingHonorarios, setLoadingHonorarios] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [isCardMode, setIsCardMode] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
 
   useEffect(() => {
     api.get(API_ROUTES.PAYROLL.PERIODS, undefined).then((data) => {
@@ -84,7 +88,7 @@ export function HonorariosList({ selectedId, onSelect }: HonorariosListProps) {
     }
   }, []);
 
-  useEffect(() => { if (selectedPeriod) fetchHonorarios(selectedPeriod); }, [selectedPeriod, fetchHonorarios]);
+  useEffect(() => { if (selectedPeriod) fetchHonorarios(selectedPeriod); }, [selectedPeriod, fetchHonorarios, reloadKey]);
 
   async function handleGenerate() {
     if (!selectedPeriod) return;
@@ -106,8 +110,9 @@ export function HonorariosList({ selectedId, onSelect }: HonorariosListProps) {
     return matchSearch && matchEstado;
   }), [honorarios, search, estadoFilter]);
 
-  const totalBruto = filtered.reduce((s, h) => s + h.bruto, 0);
-  const totalLiquido = filtered.reduce((s, h) => s + h.liquido, 0);
+  const totalBruto = filtered.reduce((s, h) => s + (Number(h.bruto) || 0), 0);
+  const totalRetenciones = filtered.reduce((s, h) => s + (Number(h.retenciones) || 0), 0);
+  const totalLiquido = filtered.reduce((s, h) => s + (Number(h.liquido) || 0), 0);
 
   const showCardMode = isCardMode || isNarrow || isViewportNarrow || !!selectedId;
 
@@ -194,23 +199,6 @@ export function HonorariosList({ selectedId, onSelect }: HonorariosListProps) {
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      {/* Summary bar */}
-      {filtered.length > 0 && !loadingHonorarios && (
-        <div className="flex gap-4 px-3 py-1.5 border-b bg-muted/20 text-xs shrink-0 flex-wrap">
-          <span className="text-muted-foreground">{t('totalBruto')}: <strong>{formatCurrency(totalBruto)}</strong></span>
-          <span className="text-muted-foreground">{t('totalLiquido')}: <strong className="text-green-600 dark:text-green-400">{formatCurrency(totalLiquido)}</strong></span>
-          {(['pendiente', 'validada', 'autorizada', 'pagada', 'rechazada'] as const).map((estado) => {
-            const count = filtered.filter((h) => h.estado === estado).length;
-            if (!count) return null;
-            return (
-              <span key={estado} className="text-muted-foreground">
-                {t(`estados.${estado}`)}: <strong>{count}</strong>
-              </span>
-            );
-          })}
-        </div>
-      )}
-
       <DataTable
         columns={columns}
         data={filtered}
@@ -305,9 +293,13 @@ export function HonorariosList({ selectedId, onSelect }: HonorariosListProps) {
             )}
             actions={
               <>
+                <Button size="sm" variant="outline" className="h-8 text-xs" disabled={!selectedPeriod} onClick={() => setAddOpen(true)} title={t('add')}>
+                  <Plus className="h-3 w-3 mr-1" />
+                  <span className="payroll-toolbar__btn-label">{t('add')}</span>
+                </Button>
                 <Button size="sm" className="h-8 text-xs" disabled={generating || !selectedPeriod} onClick={handleGenerate} title={t('generate')}>
-                  <Plus className="h-3 w-3 sm:mr-1" />
-                  <span className="hidden sm:inline">{generating ? '...' : t('generate')}</span>
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  <span className="payroll-toolbar__btn-label">{generating ? '...' : t('generate')}</span>
                 </Button>
                 <ReportExportActions
                   disabled={filtered.length === 0}
@@ -319,6 +311,29 @@ export function HonorariosList({ selectedId, onSelect }: HonorariosListProps) {
             paginationNode={paginationNode}
           />
         )}
+      />
+
+      {/* Totals footer — always visible */}
+      <div className="flex-none border-t bg-background px-3 py-2 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+        {[
+          [t('totalRegistros'), String(filtered.length), ''],
+          [t('totalBruto'), formatCurrency(totalBruto), ''],
+          [t('totalRetenciones'), formatCurrency(totalRetenciones), ''],
+          [t('totalLiquido'), formatCurrency(totalLiquido), 'text-green-600 dark:text-green-400'],
+        ].map(([label, value, tone]) => (
+          <div key={label}>
+            <p className="text-[11px] text-muted-foreground">{label}</p>
+            <p className={cn('text-sm font-semibold', tone)}>{value}</p>
+          </div>
+        ))}
+      </div>
+
+      <HonorarioFormDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        periods={periods}
+        defaultPeriodId={selectedPeriod}
+        onSaved={() => fetchHonorarios(selectedPeriod)}
       />
     </div>
   );

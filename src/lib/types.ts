@@ -310,7 +310,6 @@ export type Invoice = {
   is_historical?: boolean;
   due_date?: string;
   external_id?: string | number | null;
-  parent_id?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -468,6 +467,16 @@ export type Clinic = {
   web_view_link?: string;
   thumbnail_link?: string;
   rut?: string;
+  // Datos fiscales / patronales (reportes de nómina)
+  razon_social?: string;
+  domicilio_fiscal?: string;
+  bps_empresa_nro?: string;
+  bps_grupo?: string;
+  bps_subgrupo?: string;
+  bse_nro?: string;
+  mtss_planilla_nro?: string;
+  banco_empresa?: string;
+  cuenta_empresa?: string;
 };
 
 export type ClinicSchedule = {
@@ -2029,6 +2038,66 @@ export interface PayrollCalculationParams {
   revenue_base?: number;
   absence_days?: number;
   is_empleado?: boolean;
+}
+
+/** Daily work log entry per employee (source of the payroll calc). */
+export interface PayrollWorkLog {
+  id: string;
+  employee_id: string;
+  employment_id?: string;
+  clinic_id?: number;
+  fecha: string;
+  horas_normales: number;
+  horas_extra_habiles: number;
+  horas_extra_feriados: number;
+  sesiones: number;
+  produccion_facturada: number;
+  produccion_listada: number;
+  origen: 'manual' | 'auto';
+  notas?: string;
+  created_at?: string;
+}
+
+/** Enriched per-employee receipt row (REPORTS_RECEIPTS / receipts-batch query). */
+export interface PayrollReceiptRow {
+  entry_id: string;
+  // Empresa (datos fiscales/patronales)
+  empresa?: string;
+  empresa_rut?: string;
+  empresa_bps?: string;
+  empresa_domicilio?: string;
+  // Empleado
+  nombre: string;
+  ci?: string;
+  numero_bps?: string;
+  banco?: string;
+  cuenta?: string;
+  fecha_ingreso?: string;
+  categoria?: string;
+  vinculo?: string;
+  // Período / actividad
+  period_year: number;
+  period_month: number;
+  sessions_count: number;
+  hours_worked: number;
+  hours_extra_habiles?: number;
+  hours_extra_feriados?: number;
+  // Liquidación
+  gross_salary: number;
+  bps_employee: number;
+  fonasa_employee: number;
+  frl_employee: number;
+  irpf_withholding: number;
+  other_deductions: number;
+  total_deductions: number;
+  net_salary: number;
+  // Costo patronal
+  bps_employer: number;
+  fonasa_employer: number;
+  aguinaldo_provision: number;
+  vacation_provision: number;
+  currency: string;
+  status: string;
 }
 
 export type PayrollDocumentTipo =

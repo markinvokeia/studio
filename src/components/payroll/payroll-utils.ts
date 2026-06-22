@@ -170,12 +170,13 @@ export function coerceNumericStrings<T extends Record<string, unknown>>(row: T):
 }
 
 export function formatCurrency(amount: number, currency: 'UYU' | 'USD' = 'UYU'): string {
+  const n = Number(amount);
   return new Intl.NumberFormat('es-UY', {
     style: 'currency',
     currency,
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(amount);
+  }).format(Number.isFinite(n) ? n : 0);
 }
 
 export function getMonthName(month: number, locale = 'es'): string {

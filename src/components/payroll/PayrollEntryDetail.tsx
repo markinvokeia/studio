@@ -5,8 +5,9 @@ import { ManualAdjustmentsPanel } from '@/components/payroll/ManualAdjustmentsPa
 import { EmployeeIrpfDeductionsPanel } from '@/components/payroll/EmployeeIrpfDeductionsPanel';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { PayrollAusencia, PayrollClinicalSession, PayrollEntry, PayrollManualAdjustment, PayrollPeriod } from '@/lib/types';
-import { coerceNumericStrings, formatCurrency, formatDate, formatDuration, formatTime } from '@/components/payroll/payroll-utils';
+import type { PayrollAusencia, PayrollEntry, PayrollManualAdjustment, PayrollPeriod } from '@/lib/types';
+import { coerceNumericStrings, formatCurrency, formatDate } from '@/components/payroll/payroll-utils';
+import { WorkLogPanel } from '@/components/payroll/WorkLogPanel';
 import { cn } from '@/lib/utils';
 import api from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
@@ -38,7 +39,6 @@ export function PayrollEntryDetail({ entry, period, readonly, onEntryChanged }: 
   const tLic = useTranslations('PayrollPage.legajo.licencias');
 
   const [adjustments, setAdjustments] = useState<PayrollManualAdjustment[]>([]);
-  const [sessions, setSessions] = useState<PayrollClinicalSession[]>([]);
   const [ausencias, setAusencias] = useState<PayrollAusencia[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -57,15 +57,6 @@ export function PayrollEntryDetail({ entry, period, readonly, onEntryChanged }: 
       setAdjustments([]);
     } finally {
       setLoading(false);
-    }
-
-    // Clinical sessions of the period for this doctor (same source as the generate wizard).
-    if (periodStart && periodEnd && entry.user_id) {
-      api.get(API_ROUTES.PAYROLL.CLINICAL_SESSIONS_BY_USER, { user_id: entry.user_id, date_from: periodStart, date_to: periodEnd })
-        .then((res) => setSessions(unwrapRows<PayrollClinicalSession>(res, 'sessions')))
-        .catch(() => setSessions([]));
-    } else {
-      setSessions([]);
     }
 
     // Leave/absences overlapping the period for this employee (read-only).
@@ -147,31 +138,19 @@ export function PayrollEntryDetail({ entry, period, readonly, onEntryChanged }: 
         <EmployeeIrpfDeductionsPanel userId={entry.user_id} readonly={readonly} onChanged={onEntryChanged} />
       )}
 
-      {/* Clinical sessions of the period (read-only) */}
-      <div className="flex flex-col gap-1">
-        <p className="text-xs font-medium text-muted-foreground mb-1">{t('sessions')} ({sessions.length})</p>
-        {sessions.length === 0 ? (
-          <p className="text-xs text-muted-foreground/70">{t('noSessions')}</p>
-        ) : (
-          <div className="rounded-md border divide-y">
-            {sessions.map((s) => (
-              <div key={s.id} className="flex items-center justify-between gap-2 px-3 py-1.5 text-xs">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-muted-foreground shrink-0">{formatDate(s.start_at)}</span>
-                  <span className="text-muted-foreground/70 shrink-0">
-                    {formatTime(s.start_at)}{s.end_at ? `–${formatTime(s.end_at)}` : ''}
-                  </span>
-                  {s.paciente_name && <span className="truncate">{s.paciente_name}</span>}
-                  {s.procedimiento_realizado && <span className="truncate text-muted-foreground hidden sm:inline">· {s.procedimiento_realizado}</span>}
-                </div>
-                {s.duration_min != null && (
-                  <span className="font-mono text-muted-foreground shrink-0">{formatDuration(s.duration_min)}</span>
-                )}
-              </div>
-            ))}
+      {/* Parte de trabajo del período (lectura) */}
+      {entry.user_id && periodStart && periodEnd && (
+        <div className="flex flex-col gap-1">
+          <p className="text-xs font-medium text-muted-foreground mb-1">{t('workLog')}</p>
+          <div className="h-80 rounded-lg border">
+            <WorkLogPanel
+              userId={entry.user_id}
+              readonly
+              initialRange={{ from: new Date(`${periodStart}T00:00:00`), to: new Date(`${periodEnd}T00:00:00`) }}
+            />
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Leave / absences in the period (read-only) — always shown for reference */}
       <div className="flex flex-col gap-1">

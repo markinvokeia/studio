@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ReportExportActions } from '@/components/reports/report-export-actions';
-import { formatCurrency, getMonthName } from '@/components/payroll/payroll-utils';
+import { coerceNumericStrings, formatCurrency, getMonthName } from '@/components/payroll/payroll-utils';
 import type { PayrollEntry, PayrollPeriod, PayrollPeriodStatus } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import api from '@/services/api';
@@ -72,7 +72,22 @@ export function PayrollDashboard() {
         API_ROUTES.PAYROLL.DASHBOARD,
         { year: String(selectedYear), month: String(selectedMonth) }
       );
-      setData((result as DashboardData) ?? {});
+      // The backend returns { data: { period, kpis, top_earners } }; flatten it
+      // into the shape the dashboard consumes (and coerce numeric strings).
+      const root = (result as { data?: Record<string, unknown> })?.data ?? (result as Record<string, unknown>) ?? {};
+      const kpis = (root.kpis as Record<string, unknown>) ?? {};
+      const periodRaw = (root.period as Record<string, unknown>) ?? {};
+      const hasPeriod = periodRaw && Object.keys(periodRaw).length > 0;
+      const topEarners = Array.isArray(root.top_earners) ? root.top_earners : (Array.isArray(root.entries) ? root.entries : []);
+      setData({
+        current_period: hasPeriod ? (coerceNumericStrings(periodRaw) as unknown as PayrollPeriod) : undefined,
+        entries: topEarners.map((e) => coerceNumericStrings(e as Record<string, unknown>) as unknown as PayrollEntry),
+        active_employees: Number(kpis.active_employees ?? 0),
+        pending_count: Number(kpis.pending_count ?? 0),
+        total_gross: Number(kpis.total_gross ?? 0),
+        total_net: Number(kpis.total_net ?? 0),
+        total_employer_cost: Number(kpis.total_employer_cost ?? 0),
+      });
     } catch {
       setData({});
     } finally {
@@ -90,6 +105,15 @@ export function PayrollDashboard() {
   const currentEntries = doctorSearch
     ? allEntries.filter((e) => (e.doctor_name ?? '').toLowerCase().includes(doctorSearch.toLowerCase()))
     : allEntries;
+
+  // KPI totals: prefer the period's own values, fall back to summing the entries
+  // (the backend KPIs can be 0 when the period isn't calculated yet).
+  const sumEntries = (key: keyof PayrollEntry) =>
+    allEntries.reduce((s, e) => s + (Number(e[key]) || 0), 0);
+  const totalGross = Number(currentPeriod?.total_gross) || Number(data.total_gross) || sumEntries('gross_salary');
+  const totalNet = Number(currentPeriod?.total_net) || Number(data.total_net) || sumEntries('net_salary');
+  const totalEmployerCost = Number(currentPeriod?.total_employer_cost) || Number(data.total_employer_cost) || sumEntries('total_employer_cost');
+  const activeDoctorsDisplay = activeDoctors || allEntries.length;
 
   const entryColumns = useMemo<ColumnDef<PayrollEntry>[]>(() => [
     {
@@ -254,11 +278,7 @@ export function PayrollDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="px-4 pb-4">
-                <p className="text-xl font-bold">
-                  {currentPeriod?.total_gross
-                    ? formatCurrency(currentPeriod.total_gross)
-                    : (data.total_gross ? formatCurrency(data.total_gross) : '—')}
-                </p>
+                <p className="text-xl font-bold">{formatCurrency(totalGross)}</p>
               </CardContent>
             </Card>
             <Card>
@@ -269,11 +289,7 @@ export function PayrollDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="px-4 pb-4">
-                <p className="text-xl font-bold text-green-600 dark:text-green-400">
-                  {currentPeriod?.total_net
-                    ? formatCurrency(currentPeriod.total_net)
-                    : (data.total_net ? formatCurrency(data.total_net) : '—')}
-                </p>
+                <p className="text-xl font-bold text-green-600 dark:text-green-400">{formatCurrency(totalNet)}</p>
               </CardContent>
             </Card>
             <Card>
@@ -284,11 +300,7 @@ export function PayrollDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="px-4 pb-4">
-                <p className="text-xl font-bold text-amber-600 dark:text-amber-400">
-                  {currentPeriod?.total_employer_cost
-                    ? formatCurrency(currentPeriod.total_employer_cost)
-                    : (data.total_employer_cost ? formatCurrency(data.total_employer_cost) : '—')}
-                </p>
+                <p className="text-xl font-bold text-amber-600 dark:text-amber-400">{formatCurrency(totalEmployerCost)}</p>
               </CardContent>
             </Card>
             <Card>
@@ -299,7 +311,7 @@ export function PayrollDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="px-4 pb-4">
-                <p className="text-xl font-bold">{activeDoctors}</p>
+                <p className="text-xl font-bold">{activeDoctorsDisplay}</p>
                 {pendingCount > 0 && (
                   <p className="text-xs text-amber-600 mt-0.5">{pendingCount} {t('pendingApproval')}</p>
                 )}
@@ -382,11 +394,11 @@ export function PayrollDashboard() {
               {currentEntries.length > 0 && !isCardMode && (
                 <div className="border-t bg-muted/30 grid grid-cols-6 text-sm font-semibold px-4 py-2.5">
                   <span>Total</span>
-                  <span className="text-right tabular-nums">{currentEntries.reduce((s, e) => s + e.sessions_count, 0)}</span>
-                  <span className="text-right tabular-nums">{currentEntries.reduce((s, e) => s + e.hours_worked, 0).toFixed(1)}h</span>
-                  <span className="text-right font-mono tabular-nums">{formatCurrency(currentEntries.reduce((s, e) => s + e.services_revenue_billed, 0))}</span>
-                  <span className="text-right font-mono tabular-nums">{formatCurrency(currentEntries.reduce((s, e) => s + e.gross_salary, 0))}</span>
-                  <span className="text-right text-green-600 dark:text-green-400 font-mono tabular-nums">{formatCurrency(currentEntries.reduce((s, e) => s + e.net_salary, 0))}</span>
+                  <span className="text-right tabular-nums">{currentEntries.reduce((s, e) => s + (Number(e.sessions_count) || 0), 0)}</span>
+                  <span className="text-right tabular-nums">{currentEntries.reduce((s, e) => s + (Number(e.hours_worked) || 0), 0).toFixed(1)}h</span>
+                  <span className="text-right font-mono tabular-nums">{formatCurrency(currentEntries.reduce((s, e) => s + (Number(e.services_revenue_billed) || 0), 0))}</span>
+                  <span className="text-right font-mono tabular-nums">{formatCurrency(currentEntries.reduce((s, e) => s + (Number(e.gross_salary) || 0), 0))}</span>
+                  <span className="text-right text-green-600 dark:text-green-400 font-mono tabular-nums">{formatCurrency(currentEntries.reduce((s, e) => s + (Number(e.net_salary) || 0), 0))}</span>
                 </div>
               )}
             </CardContent>

@@ -22,6 +22,7 @@
 | `doctor_contracts` | Contratos honorarios / arrendamiento / empresa unipersonal |
 | `payroll_periods` | Períodos mensuales de nómina |
 | `payroll_documents` | Seguimiento de reportes/documentos por período (estado, fecha, errores). Migración `011` |
+| `payroll_work_log` | Parte de trabajo diario por empleado (horas, extras, producción); fuente del cálculo. Migración `012` |
 | `payroll_entries` | Liquidación individual por empleado/período |
 | `payroll_session_assignments` | Sesiones clínicas incluidas en una liquidación |
 | `payroll_manual_adjustments` | Ajustes manuales (bonos, adelantos, descuentos) |

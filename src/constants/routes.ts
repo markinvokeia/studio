@@ -436,6 +436,10 @@ export const API_ROUTES = {
         CONTRACTS_UPSERT:            '/payroll/contracts/upsert',
         CONTRACTS_DELETE:            '/payroll/contracts/delete',
         CLINICAL_SESSIONS_BY_USER:   '/payroll/clinical-sessions/by-user',
+        WORKLOG_BY_EMPLOYEE:         '/payroll/worklog/by-employee',
+        WORKLOG_UPSERT:              '/payroll/worklog/upsert',
+        WORKLOG_DELETE:              '/payroll/worklog/delete',
+        WORKLOG_PREPOPULATE:         '/payroll/worklog/prepopulate',
         USERS:                       '/payroll/users',
         // periods.json
         PERIODS:                     '/payroll/periods',
@@ -472,6 +476,8 @@ export const API_ROUTES = {
         HONORARIOS_AUTHORIZE:        '/payroll/honorarios/authorize-payment',
         HONORARIOS_MARK_PAID:        '/payroll/honorarios/mark-paid',
         HONORARIOS_REJECT:           '/payroll/honorarios/reject',
+        HONORARIOS_UPSERT:           '/payroll/honorarios/upsert',
+        HONORARIOS_DELETE:           '/payroll/honorarios/delete',
         // dashboard.json
         DASHBOARD:                   '/payroll/dashboard',
         // settings.json

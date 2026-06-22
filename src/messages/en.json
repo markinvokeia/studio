@@ -3416,7 +3416,20 @@
     "sedeDeleteConfirmDelete": "Delete",
     "validation": {
       "phoneInvalid": "Invalid phone number"
-    }
+    },
+    "fiscalSection": "Fiscal / employer data",
+    "fiscalSectionDesc": "Information required by BPS, DGI, MTSS and banks for payroll reports.",
+    "razonSocialLabel": "Legal name",
+    "razonSocialPlaceholder": "Company legal name",
+    "domicilioFiscalLabel": "Fiscal address",
+    "domicilioFiscalPlaceholder": "Declared fiscal address",
+    "bpsEmpresaLabel": "BPS company No.",
+    "bpsGrupoLabel": "BPS group",
+    "bpsSubgrupoLabel": "BPS subgroup",
+    "bseLabel": "BSE policy No.",
+    "mtssPlanillaLabel": "MTSS sheet No.",
+    "bancoEmpresaLabel": "Bank (debit account)",
+    "cuentaEmpresaLabel": "Debit account"
   },
   "SchedulesPage": {
     "title": "Schedules",
@@ -7212,7 +7225,20 @@
       "totalDeductions": "Total deductions",
       "net": "Net pay",
       "employerSign": "Employer signature",
-      "employeeSign": "Employee signature"
+      "employeeSign": "Employee signature",
+      "rut": "Tax ID",
+      "bpsNo": "SS No.",
+      "hours": "Hours",
+      "employeeId": "ID",
+      "hireDate": "Hire date",
+      "category": "Category",
+      "contract": "Employment",
+      "employerContributions": "Employer contributions",
+      "aguinaldo": "Bonus provision",
+      "vacation": "Vacation provision",
+      "payment": "Payment",
+      "bank": "Bank",
+      "account": "Account"
     }
   },
   "License": {
@@ -7650,7 +7676,8 @@
       "totalGrossHelp": "Sum of gross salaries across all settlements in the period.",
       "totalNetHelp": "Sum of take-home pay (gross − deductions + adjustments).",
       "employerCostHelp": "Total cost to the company = gross + employer contributions + provisions (bonus, vacation). They are NOT deducted: they add on top of gross.",
-      "noSessions": "No sessions in the period"
+      "noSessions": "No sessions in the period",
+      "workLog": "Work log"
     },
     "employees": {
       "title": "Employees",
@@ -7902,7 +7929,28 @@
         "procedure": "Procedure",
         "none": "No sessions in the period",
         "totalSessions": "Sessions",
-        "totalTime": "Total time"
+        "totalTime": "Total time",
+        "prepopulate": "Prefill from sessions",
+        "prepopulateError": "Could not prefill",
+        "addDay": "Add day",
+        "save": "Save",
+        "cancel": "Cancel",
+        "saveError": "Could not save the work day",
+        "normalHours": "Hours",
+        "extraHabil": "Overtime",
+        "extraFeriado": "Holiday OT",
+        "sessions": "Sessions",
+        "billed": "Production",
+        "notes": "Notes",
+        "auto": "auto",
+        "totalHours": "Total hours",
+        "totalExtraHabil": "Overtime",
+        "totalExtraFeriado": "Holiday OT",
+        "totalProduction": "Production",
+        "origin": "Source",
+        "editDay": "Edit work day",
+        "delete": "Delete",
+        "totalDays": "Days"
       },
       "licencias": {
         "addNew": "Add Leave",
@@ -8139,7 +8187,37 @@
         "viewFactura": "View invoice"
       },
       "filterAll": "All",
-      "T": "T"
+      "T": "T",
+      "totalRegistros": "Records",
+      "totalRetenciones": "Withholdings",
+      "add": "Add",
+      "form": {
+        "addTitle": "Add fee",
+        "editTitle": "Edit fee",
+        "editAmounts": "Edit amounts",
+        "professional": "Professional",
+        "selectProfessional": "Select professional",
+        "period": "Period",
+        "selectPeriod": "Select period",
+        "modalidad": "Modality",
+        "produccionBase": "Base production",
+        "porcentaje": "Percentage",
+        "bruto": "Gross",
+        "iva": "VAT",
+        "retenciones": "Withholdings",
+        "descuentos": "Discounts",
+        "notas": "Notes",
+        "liquidoPreview": "Net (computed)",
+        "rut": "Tax ID",
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "deleteConfirm": "Delete this fee? This action cannot be undone.",
+        "saved": "Fee saved.",
+        "deleted": "Fee deleted.",
+        "errorSave": "Could not save the fee.",
+        "requiredFields": "Select a professional and a period."
+      }
     },
     "contracts": {
       "searchPlaceholder": "Search contract...",

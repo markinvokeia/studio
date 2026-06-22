@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Quote, QuoteItem, Invoice, InvoiceItem, CreditNote, Payment, DocPrintTemplate, FinancialSummaryReport, CajaSessionDetails, PayrollPeriod, PayrollEntry } from '@/lib/types';
+import type { Quote, QuoteItem, Invoice, InvoiceItem, CreditNote, Payment, DocPrintTemplate, FinancialSummaryReport, CajaSessionDetails, PayrollPeriod, PayrollEntry, PayrollReceiptRow } from '@/lib/types';
 
 export type PrintDocumentType = 'quote' | 'invoice' | 'payment' | 'credit_note' | 'prepayment' | 'financial_summary' | 'caja_apertura' | 'caja_cierre' | 'caja_sesion' | 'payroll_period' | 'payroll_receipt' | 'payroll_report';
 
@@ -61,7 +61,7 @@ export type PayrollPeriodPrintData = {
 
 export type PayrollReceiptPrintData = {
   period: PayrollPeriod;
-  entries: PayrollEntry[];
+  rows: PayrollReceiptRow[];
 };
 
 /** Generic tabular report (used to print any data report as PDF). */

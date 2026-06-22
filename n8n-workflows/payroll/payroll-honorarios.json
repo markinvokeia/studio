@@ -6,7 +6,10 @@
       "name": "GET /payroll/honorarios",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [100, 100],
+      "position": [
+        100,
+        100
+      ],
       "parameters": {
         "httpMethod": "GET",
         "path": "payroll/honorarios",
@@ -19,26 +22,39 @@
       "name": "List Honorarios",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [320, 100],
+      "position": [
+        320,
+        100
+      ],
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT ph.*, u.name AS doctor_name, dc.contract_type, dc.calculation_type,\n  pp.period_year, pp.period_month\nFROM payroll_honorarios ph\nLEFT JOIN payroll_contracts dc ON ph.contract_id = dc.id\nLEFT JOIN users u ON dc.user_id = u.id\nLEFT JOIN payroll_periods pp ON ph.period_id = pp.id\nWHERE ($1::uuid IS NULL OR ph.period_id = $1::uuid)\n  AND ($2::uuid IS NULL OR dc.user_id = $2::uuid)\n  AND ($3::text IS NULL OR ph.status::text = $3)\nORDER BY ph.period_start_date DESC, u.name",
+        "query": "SELECT ph.*, u.name AS doctor_name,\n  pp.period_year, pp.period_month\nFROM payroll_honorarios ph\nLEFT JOIN users u ON ph.user_id = u.id\nLEFT JOIN payroll_periods pp ON ph.payroll_period_id = pp.id\nWHERE ($1::uuid IS NULL OR ph.payroll_period_id = $1::uuid)\n  AND ($2::uuid IS NULL OR ph.user_id = $2::uuid)\n  AND ($3::text IS NULL OR ph.estado::text = $3)\nORDER BY pp.period_year DESC, pp.period_month DESC, u.name",
         "additionalFields": {
           "queryParams": "={{ [($input.first().json.query?.period_id||null),($input.first().json.query?.user_id||null),($input.first().json.query?.status||null)] }}"
         }
       },
-      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
     },
     {
       "id": "resp-honorarios-list",
       "name": "Respond Honorarios List",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [540, 100],
+      "position": [
+        540,
+        100
+      ],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ { data: $input.all().map(i => i.json) } }}",
-        "options": { "responseCode": 200 }
+        "options": {
+          "responseCode": 200
+        }
       }
     },
     {
@@ -46,7 +62,10 @@
       "name": "POST /payroll/honorarios/generate-order",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [100, 280],
+      "position": [
+        100,
+        280
+      ],
       "parameters": {
         "httpMethod": "POST",
         "path": "payroll/honorarios/generate-order",
@@ -59,26 +78,39 @@
       "name": "Generate Honorario Order",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [320, 280],
+      "position": [
+        320,
+        280
+      ],
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE payroll_honorarios\nSET status = 'pending_invoice', updated_at = NOW()\nWHERE id = $1::uuid AND status = 'draft'\nRETURNING id, status, gross_amount",
+        "query": "WITH s AS (\n  SELECT\n    COALESCE((SELECT (setting_value #>> '{}')::numeric FROM payroll_settings WHERE setting_key='honorarios_iva_rate'),0.22)            AS iva_rate,\n    COALESCE((SELECT (setting_value #>> '{}')::numeric FROM payroll_settings WHERE setting_key='honorarios_irpf_servicios_rate'),0.07) AS irpf_rate,\n    COALESCE((SELECT (setting_value #>> '{}')::numeric FROM payroll_settings WHERE setting_key='honorarios_retencion_iva_rate'),0)      AS ret_iva_rate,\n    COALESCE((SELECT (setting_value #>> '{}')::numeric FROM payroll_settings WHERE setting_key='honorarios_retencion_min_uyu'),0)       AS ret_min\n)\nINSERT INTO payroll_honorarios (\n  payroll_period_id, user_id, doctor_rut, modalidad, clinic_id,\n  produccion_base, porcentaje, descuentos, bruto, iva, retenciones, liquido, estado\n)\nSELECT\n  pe.payroll_period_id,\n  pe.user_id,\n  NULL::varchar,\n  (CASE pe.contract_type WHEN 'empresa_unipersonal' THEN 'empresa_unipersonal' ELSE 'honorarios' END)::honorarios_modalidad_enum,\n  pe.clinic_id,\n  pe.services_revenue_billed,\n  COALESCE(empl.productividad_porcentaje,0),\n  0,\n  pe.gross_salary,\n  ROUND(pe.gross_salary * s.iva_rate, 2),\n  ROUND((CASE WHEN pe.gross_salary >= s.ret_min THEN pe.gross_salary * s.irpf_rate ELSE 0 END)\n        + pe.gross_salary * s.iva_rate * s.ret_iva_rate, 2),\n  ROUND(pe.gross_salary + pe.gross_salary * s.iva_rate\n        - ((CASE WHEN pe.gross_salary >= s.ret_min THEN pe.gross_salary * s.irpf_rate ELSE 0 END)\n           + pe.gross_salary * s.iva_rate * s.ret_iva_rate), 2),\n  'pendiente'\nFROM payroll_entries pe\nCROSS JOIN s\nJOIN users u ON u.id = pe.user_id\nLEFT JOIN payroll_employments empl ON empl.id = pe.payroll_employment_id\nWHERE pe.payroll_period_id = $1::uuid\n  AND pe.contract_type IN ('honorarios','empresa_unipersonal','arrendamiento')\nON CONFLICT (payroll_period_id, user_id) DO UPDATE SET\n  produccion_base = EXCLUDED.produccion_base,\n  porcentaje      = EXCLUDED.porcentaje,\n  bruto           = EXCLUDED.bruto,\n  iva             = EXCLUDED.iva,\n  retenciones     = EXCLUDED.retenciones,\n  liquido         = EXCLUDED.liquido\nWHERE payroll_honorarios.estado IN ('pendiente','rechazada')\nRETURNING *",
         "additionalFields": {
-          "queryParams": "={{ [($input.first().json.body||$input.first().json).id] }}"
+          "queryParams": "={{ [$input.first().json.body?.period_id || $input.first().json.query?.period_id || null] }}"
         }
       },
-      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
     },
     {
       "id": "resp-honorarios-generate",
       "name": "Respond Generate Order",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [540, 280],
+      "position": [
+        540,
+        280
+      ],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ { data: $json, success: true } }}",
-        "options": { "responseCode": 200 }
+        "options": {
+          "responseCode": 200
+        }
       }
     },
     {
@@ -86,7 +118,10 @@
       "name": "POST /payroll/honorarios/validate-invoice",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [100, 460],
+      "position": [
+        100,
+        460
+      ],
       "parameters": {
         "httpMethod": "POST",
         "path": "payroll/honorarios/validate-invoice",
@@ -99,9 +134,12 @@
       "name": "Parse Validate Invoice",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [320, 460],
+      "position": [
+        320,
+        460
+      ],
       "parameters": {
-        "jsCode": "const b = $input.first().json.body || $input.first().json;\nreturn [{ json: {\n  id:             b.id || '',\n  invoice_number: b.invoice_number || '',\n  invoice_amount: b.invoice_amount != null ? String(b.invoice_amount) : ''\n} }];"
+        "jsCode": "const b = $input.first().json.body || $input.first().json;\nreturn [{ json: {\n  id:             b.id || '',\n  factura_numero: b.factura_numero || '',\n  factura_fecha:  b.factura_fecha || ''\n} }];"
       }
     },
     {
@@ -109,26 +147,39 @@
       "name": "Validate Invoice",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [540, 460],
+      "position": [
+        540,
+        460
+      ],
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE payroll_honorarios\nSET status = 'invoice_validated', invoice_number = NULLIF($2,''), invoice_amount = NULLIF($3,'')::decimal, updated_at = NOW()\nWHERE id = $1::uuid\nRETURNING id, status, invoice_number, invoice_amount",
+        "query": "UPDATE payroll_honorarios\nSET estado = 'validada',\n    factura_numero = NULLIF($2,''),\n    factura_fecha = NULLIF($3,'')::date\nWHERE id = $1::uuid AND estado = 'pendiente'\nRETURNING *",
         "additionalFields": {
-          "queryParams": "={{ [$json.id,$json.invoice_number,$json.invoice_amount] }}"
+          "queryParams": "={{ [$json.id,$json.factura_numero,$json.factura_fecha] }}"
         }
       },
-      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
     },
     {
       "id": "resp-honorarios-validate",
       "name": "Respond Validate Invoice",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [760, 460],
+      "position": [
+        760,
+        460
+      ],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ { data: $json, success: true } }}",
-        "options": { "responseCode": 200 }
+        "options": {
+          "responseCode": 200
+        }
       }
     },
     {
@@ -136,7 +187,10 @@
       "name": "POST /payroll/honorarios/authorize-payment",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [100, 640],
+      "position": [
+        100,
+        640
+      ],
       "parameters": {
         "httpMethod": "POST",
         "path": "payroll/honorarios/authorize-payment",
@@ -149,26 +203,39 @@
       "name": "Authorize Honorario",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [320, 640],
+      "position": [
+        320,
+        640
+      ],
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE payroll_honorarios\nSET status = 'authorized', authorized_by = NULLIF($2,'')::uuid, authorized_at = NOW(), updated_at = NOW()\nWHERE id = $1::uuid AND status = 'invoice_validated'\nRETURNING id, status, authorized_at",
+        "query": "UPDATE payroll_honorarios\nSET estado = 'autorizada'\nWHERE id = $1::uuid AND estado = 'validada'\nRETURNING *",
         "additionalFields": {
-          "queryParams": "={{ [($input.first().json.body||$input.first().json).id, ($input.first().json.body||$input.first().json).authorized_by||''] }}"
+          "queryParams": "={{ [$input.first().json.body?.id || $input.first().json.id] }}"
         }
       },
-      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
     },
     {
       "id": "resp-honorarios-authorize",
       "name": "Respond Authorize",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [540, 640],
+      "position": [
+        540,
+        640
+      ],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ { data: $json, success: true } }}",
-        "options": { "responseCode": 200 }
+        "options": {
+          "responseCode": 200
+        }
       }
     },
     {
@@ -176,7 +243,10 @@
       "name": "POST /payroll/honorarios/mark-paid",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [100, 820],
+      "position": [
+        100,
+        820
+      ],
       "parameters": {
         "httpMethod": "POST",
         "path": "payroll/honorarios/mark-paid",
@@ -189,26 +259,39 @@
       "name": "Mark Honorario Paid",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [320, 820],
+      "position": [
+        320,
+        820
+      ],
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE payroll_honorarios\nSET status = 'paid', paid_at = NOW(), updated_at = NOW()\nWHERE id = $1::uuid AND status IN ('authorized','invoice_validated')\nRETURNING id, status, paid_at",
+        "query": "UPDATE payroll_honorarios\nSET estado = 'pagada',\n    fecha_pago = COALESCE(NULLIF($2,'')::date, CURRENT_DATE)\nWHERE id = $1::uuid AND estado IN ('autorizada','validada')\nRETURNING *",
         "additionalFields": {
-          "queryParams": "={{ [($input.first().json.body||$input.first().json).id] }}"
+          "queryParams": "={{ [($input.first().json.body?.id || $input.first().json.id),($input.first().json.body?.fecha_pago || '')] }}"
         }
       },
-      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
     },
     {
       "id": "resp-honorarios-markpaid",
       "name": "Respond Honorario Mark Paid",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [540, 820],
+      "position": [
+        540,
+        820
+      ],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ { data: $json, success: true } }}",
-        "options": { "responseCode": 200 }
+        "options": {
+          "responseCode": 200
+        }
       }
     },
     {
@@ -216,7 +299,10 @@
       "name": "POST /payroll/honorarios/reject",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [100, 1000],
+      "position": [
+        100,
+        1000
+      ],
       "parameters": {
         "httpMethod": "POST",
         "path": "payroll/honorarios/reject",
@@ -229,44 +315,354 @@
       "name": "Reject Honorario",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [320, 1000],
+      "position": [
+        320,
+        1000
+      ],
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE payroll_honorarios\nSET status = 'rejected', rejection_reason = NULLIF($2,''), updated_at = NOW()\nWHERE id = $1::uuid\nRETURNING id, status, rejection_reason",
+        "query": "UPDATE payroll_honorarios\nSET estado = 'rechazada',\n    notes = COALESCE(NULLIF($2,''), notes)\nWHERE id = $1::uuid AND estado <> 'pagada'\nRETURNING *",
         "additionalFields": {
-          "queryParams": "={{ [($input.first().json.body||$input.first().json).id, ($input.first().json.body||$input.first().json).rejection_reason||''] }}"
+          "queryParams": "={{ [($input.first().json.body?.id || $input.first().json.id),($input.first().json.body?.motivo_rechazo || '')] }}"
         }
       },
-      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
     },
     {
       "id": "resp-honorarios-reject",
       "name": "Respond Reject",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [540, 1000],
+      "position": [
+        540,
+        1000
+      ],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ { data: $json, success: true } }}",
-        "options": { "responseCode": 200 }
+        "options": {
+          "responseCode": 200
+        }
       }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/honorarios/upsert",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "POST /payroll/honorarios/upsert",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const b=$input.first().json.body||$input.first().json;\nconst s=v=>v==null?'':String(v);\nreturn [{json:{\n  id:s(b.id), payroll_period_id:s(b.payroll_period_id), user_id:s(b.user_id),\n  doctor_rut:s(b.doctor_rut), modalidad:s(b.modalidad), clinic_id:s(b.clinic_id),\n  produccion_base:s(b.produccion_base), porcentaje:s(b.porcentaje), descuentos:s(b.descuentos),\n  bruto:s(b.bruto), iva:s(b.iva), retenciones:s(b.retenciones), notes:s(b.notes)\n}}];"
+      },
+      "name": "Parse Upsert Honorario",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO payroll_honorarios (\n  id, payroll_period_id, user_id, doctor_rut, modalidad, clinic_id,\n  produccion_base, porcentaje, descuentos, bruto, iva, retenciones, liquido, notes, estado\n) VALUES (\n  COALESCE(NULLIF($1,'')::uuid, gen_random_uuid()),\n  $2::uuid, $3::uuid, NULLIF($4,''),\n  COALESCE(NULLIF($5,'')::honorarios_modalidad_enum,'honorarios'),\n  NULLIF($6,'')::int,\n  COALESCE(NULLIF($7,'')::numeric,0), COALESCE(NULLIF($8,'')::numeric,0), COALESCE(NULLIF($9,'')::numeric,0),\n  COALESCE(NULLIF($10,'')::numeric,0), COALESCE(NULLIF($11,'')::numeric,0), COALESCE(NULLIF($12,'')::numeric,0),\n  COALESCE(NULLIF($10,'')::numeric,0) + COALESCE(NULLIF($11,'')::numeric,0)\n    - COALESCE(NULLIF($12,'')::numeric,0) - COALESCE(NULLIF($9,'')::numeric,0),\n  NULLIF($13,''), 'pendiente'\n)\nON CONFLICT (payroll_period_id, user_id) DO UPDATE SET\n  doctor_rut=EXCLUDED.doctor_rut, modalidad=EXCLUDED.modalidad,\n  produccion_base=EXCLUDED.produccion_base, porcentaje=EXCLUDED.porcentaje,\n  descuentos=EXCLUDED.descuentos, bruto=EXCLUDED.bruto, iva=EXCLUDED.iva,\n  retenciones=EXCLUDED.retenciones, liquido=EXCLUDED.liquido, notes=EXCLUDED.notes\nRETURNING *",
+        "additionalFields": {
+          "queryParams": "={{ [$json.id,$json.payroll_period_id,$json.user_id,$json.doctor_rut,$json.modalidad,$json.clinic_id,$json.produccion_base,$json.porcentaje,$json.descuentos,$json.bruto,$json.iva,$json.retenciones,$json.notes] }}"
+        }
+      },
+      "name": "Upsert Honorario",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        540,
+        1200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Respond Upsert Honorario",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        760,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/honorarios/delete",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "POST /payroll/honorarios/delete",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        1340
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM payroll_honorarios WHERE id = $1::uuid RETURNING id",
+        "additionalFields": {
+          "queryParams": "={{ [$input.first().json.body?.id || $input.first().json.id] }}"
+        }
+      },
+      "name": "Delete Honorario",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        320,
+        1340
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Respond Delete Honorario",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        540,
+        1340
+      ]
     }
   ],
   "connections": {
-    "GET /payroll/honorarios": { "main": [[{ "node": "List Honorarios", "type": "main", "index": 0 }]] },
-    "List Honorarios": { "main": [[{ "node": "Respond Honorarios List", "type": "main", "index": 0 }]] },
-    "POST /payroll/honorarios/generate-order": { "main": [[{ "node": "Generate Honorario Order", "type": "main", "index": 0 }]] },
-    "Generate Honorario Order": { "main": [[{ "node": "Respond Generate Order", "type": "main", "index": 0 }]] },
-    "POST /payroll/honorarios/validate-invoice": { "main": [[{ "node": "Parse Validate Invoice", "type": "main", "index": 0 }]] },
-    "Parse Validate Invoice": { "main": [[{ "node": "Validate Invoice", "type": "main", "index": 0 }]] },
-    "Validate Invoice": { "main": [[{ "node": "Respond Validate Invoice", "type": "main", "index": 0 }]] },
-    "POST /payroll/honorarios/authorize-payment": { "main": [[{ "node": "Authorize Honorario", "type": "main", "index": 0 }]] },
-    "Authorize Honorario": { "main": [[{ "node": "Respond Authorize", "type": "main", "index": 0 }]] },
-    "POST /payroll/honorarios/mark-paid": { "main": [[{ "node": "Mark Honorario Paid", "type": "main", "index": 0 }]] },
-    "Mark Honorario Paid": { "main": [[{ "node": "Respond Honorario Mark Paid", "type": "main", "index": 0 }]] },
-    "POST /payroll/honorarios/reject": { "main": [[{ "node": "Reject Honorario", "type": "main", "index": 0 }]] },
-    "Reject Honorario": { "main": [[{ "node": "Respond Reject", "type": "main", "index": 0 }]] }
+    "GET /payroll/honorarios": {
+      "main": [
+        [
+          {
+            "node": "List Honorarios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Honorarios": {
+      "main": [
+        [
+          {
+            "node": "Respond Honorarios List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /payroll/honorarios/generate-order": {
+      "main": [
+        [
+          {
+            "node": "Generate Honorario Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Honorario Order": {
+      "main": [
+        [
+          {
+            "node": "Respond Generate Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /payroll/honorarios/validate-invoice": {
+      "main": [
+        [
+          {
+            "node": "Parse Validate Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Validate Invoice": {
+      "main": [
+        [
+          {
+            "node": "Validate Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Invoice": {
+      "main": [
+        [
+          {
+            "node": "Respond Validate Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /payroll/honorarios/authorize-payment": {
+      "main": [
+        [
+          {
+            "node": "Authorize Honorario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Authorize Honorario": {
+      "main": [
+        [
+          {
+            "node": "Respond Authorize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /payroll/honorarios/mark-paid": {
+      "main": [
+        [
+          {
+            "node": "Mark Honorario Paid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Honorario Paid": {
+      "main": [
+        [
+          {
+            "node": "Respond Honorario Mark Paid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /payroll/honorarios/reject": {
+      "main": [
+        [
+          {
+            "node": "Reject Honorario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reject Honorario": {
+      "main": [
+        [
+          {
+            "node": "Respond Reject",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /payroll/honorarios/upsert": {
+      "main": [
+        [
+          {
+            "node": "Parse Upsert Honorario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Upsert Honorario": {
+      "main": [
+        [
+          {
+            "node": "Upsert Honorario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Honorario": {
+      "main": [
+        [
+          {
+            "node": "Respond Upsert Honorario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /payroll/honorarios/delete": {
+      "main": [
+        [
+          {
+            "node": "Delete Honorario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Honorario": {
+      "main": [
+        [
+          {
+            "node": "Respond Delete Honorario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
-  "settings": { "executionOrder": "v1" },
+  "settings": {
+    "executionOrder": "v1"
+  },
   "staticData": null
 }

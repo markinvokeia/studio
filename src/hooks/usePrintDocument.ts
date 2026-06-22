@@ -8,7 +8,7 @@ import {
   usePrintDocumentStore,
   type PrintInvoiceRow,
 } from '@/stores/print-document-store';
-import type { Quote, Invoice, Payment, CreditNote, QuoteItem, InvoiceItem, DocPrintTemplate, FinancialSummaryReport, CajaSessionDetails, PayrollPeriod, PayrollEntry } from '@/lib/types';
+import type { Quote, Invoice, Payment, CreditNote, QuoteItem, InvoiceItem, DocPrintTemplate, FinancialSummaryReport, CajaSessionDetails, PayrollPeriod, PayrollEntry, PayrollReceiptRow } from '@/lib/types';
 import { fetchClinicInfo } from '@/hooks/useClinicInfo';
 
 // ── Data mappers (match patterns in user-quotes.tsx / user-invoices.tsx) ───────
@@ -281,9 +281,9 @@ export function usePrintDocument() {
     triggerPrint(deactivate);
   }
 
-  async function printPayrollReceipts(period: PayrollPeriod, entries: PayrollEntry[]): Promise<void> {
+  async function printPayrollReceipts(period: PayrollPeriod, rows: PayrollReceiptRow[]): Promise<void> {
     await fetchClinicInfo();
-    activate('payroll_receipt', { period, entries });
+    activate('payroll_receipt', { period, rows });
     await waitForFrame();
     await waitForImages();
     triggerPrint(deactivate);

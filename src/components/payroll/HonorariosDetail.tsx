@@ -14,13 +14,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import { HonorarioFormDialog } from '@/components/payroll/HonorarioFormDialog';
 import { formatCurrency, formatDate } from '@/components/payroll/payroll-utils';
 import type { HonorariosEstado, PayrollHonorario } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import api from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, CheckCircle, Download, FileCheck, FileText, Maximize2, Minimize2, XCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Download, FileCheck, FileText, Maximize2, Minimize2, Pencil, Trash2, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
@@ -38,6 +39,8 @@ interface Props {
   honorario: PayrollHonorario;
   onClose?: () => void;
   onStatusChange?: (updated: PayrollHonorario) => void;
+  onDeleted?: () => void;
+  onEdited?: () => void;
   isExpanded?: boolean;
   onToggleExpand?: () => void;
 }
@@ -51,8 +54,9 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-export function HonorariosDetail({ honorario: initial, onClose, onStatusChange, isExpanded, onToggleExpand }: Props) {
+export function HonorariosDetail({ honorario: initial, onClose, onStatusChange, onDeleted, onEdited, isExpanded, onToggleExpand }: Props) {
   const t = useTranslations('PayrollPage.honorarios');
+  const tf = useTranslations('PayrollPage.honorarios.form');
   const { toast } = useToast();
   const [hon, setHon] = useState<PayrollHonorario>(initial);
   const [actionLoading, setActionLoading] = useState(false);
@@ -61,6 +65,8 @@ export function HonorariosDetail({ honorario: initial, onClose, onStatusChange, 
   const [validateOpen, setValidateOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   // Form fields
   const [facturaNumero, setFacturaNumero] = useState(hon.factura_numero ?? '');
@@ -108,10 +114,26 @@ export function HonorariosDetail({ honorario: initial, onClose, onStatusChange, 
     setMotivoRechazo('');
   }
 
+  async function handleDelete() {
+    try {
+      setActionLoading(true);
+      await api.post(API_ROUTES.PAYROLL.HONORARIOS_DELETE, { id: hon.id });
+      toast({ title: tf('deleted') });
+      setDeleteOpen(false);
+      onDeleted?.();
+    } catch {
+      toast({ title: 'Error', description: tf('errorSave'), variant: 'destructive' });
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
   const canValidate = hon.estado === 'pendiente';
   const canAuthorize = hon.estado === 'validada';
   const canMarkPaid = hon.estado === 'autorizada';
   const canReject = hon.estado !== 'pagada' && hon.estado !== 'rechazada';
+  // Manual edits/deletes only while not yet authorized/paid.
+  const canEdit = hon.estado === 'pendiente' || hon.estado === 'rechazada';
 
   const stepIdx = STATUS_STEPS.indexOf(hon.estado);
 
@@ -278,6 +300,12 @@ export function HonorariosDetail({ honorario: initial, onClose, onStatusChange, 
               {t('actions.markPaid')}
             </Button>
           )}
+          {canEdit && (
+            <Button size="sm" variant="outline" disabled={actionLoading} onClick={() => setEditOpen(true)}>
+              <Pencil className="h-4 w-4 mr-1.5" />
+              {tf('editAmounts')}
+            </Button>
+          )}
           {canReject && (
             <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive"
               disabled={actionLoading} onClick={() => { setMotivoRechazo(''); setRejectOpen(true); }}>
@@ -285,8 +313,42 @@ export function HonorariosDetail({ honorario: initial, onClose, onStatusChange, 
               {t('actions.reject')}
             </Button>
           )}
+          {canEdit && (
+            <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive ml-auto"
+              disabled={actionLoading} onClick={() => setDeleteOpen(true)}>
+              <Trash2 className="h-4 w-4 mr-1.5" />
+              {tf('delete')}
+            </Button>
+          )}
         </div>
       </div>
+
+      {/* Edit amounts dialog */}
+      <HonorarioFormDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        periods={[]}
+        honorario={hon}
+        onSaved={(saved) => { if (saved) { setHon(saved); onStatusChange?.(saved); } onEdited?.(); }}
+      />
+
+      {/* Delete confirm dialog */}
+      <Dialog open={deleteOpen} onOpenChange={(v) => !v && setDeleteOpen(false)}>
+        <DialogContent className="max-w-sm flex flex-col">
+          <DialogHeader className="px-6 pt-6 pb-0 shrink-0">
+            <DialogTitle className="text-destructive">{tf('delete')}</DialogTitle>
+          </DialogHeader>
+          <div className="px-6 py-4">
+            <p className="text-sm text-muted-foreground">{tf('deleteConfirm')}</p>
+          </div>
+          <DialogFooter className="px-6 py-4 border-t shrink-0 bg-background">
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>{tf('cancel')}</Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={actionLoading}>
+              {actionLoading ? '...' : tf('delete')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Validate dialog (requires factura data) */}
       <Dialog open={validateOpen} onOpenChange={(v) => !v && setValidateOpen(false)}>
