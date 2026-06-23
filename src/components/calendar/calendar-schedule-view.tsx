@@ -6,6 +6,7 @@ import type { Locale } from 'date-fns';
 import { format, parseISO } from 'date-fns';
 import { BellRing, CheckCircle2, Clock, Stethoscope, FileText } from 'lucide-react';
 
+import { Checkbox } from '@/components/ui/checkbox';
 import { getStatusIcon } from '@/components/appointments/status-icons';
 import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
 import { cn } from '@/lib/utils';
@@ -43,6 +44,8 @@ interface CalendarScheduleViewProps {
   dateLocale: Locale;
   breakpoint?: CalendarBreakpoint;
   onEventClick: (data: any) => void;
+  selectedAppointmentIds?: Set<string>;
+  onToggleAppointmentSelect?: (id: string) => void;
 }
 
 export function CalendarScheduleView({
@@ -50,7 +53,10 @@ export function CalendarScheduleView({
   dateLocale,
   breakpoint = 'desktop',
   onEventClick,
+  selectedAppointmentIds,
+  onToggleAppointmentSelect,
 }: CalendarScheduleViewProps) {
+  const isBulkMode = !!onToggleAppointmentSelect;
   const groupedEvents = events.reduce<Record<string, CalendarEvent[]>>((acc, event) => {
     if (!event.start) return acc;
     try {
@@ -115,25 +121,59 @@ export function CalendarScheduleView({
               const ReminderIcon = reminderIsDone ? CheckCircle2 : BellRing;
               const status = (rawStatus?.toLowerCase() as AppointmentStatus | undefined) ?? undefined;
               const cancellationReason = (event.data?.cancellation_reason as CancellationReason | undefined) ?? null;
+              const appointmentId: string = event.data?.id ?? event.id;
+              const isSelected = !isReminder && isBulkMode && (selectedAppointmentIds?.has(appointmentId) ?? false);
               return (
               <div
                 key={event.id}
                 title={event.label ?? event.title}
                 data-testid="calendar-schedule-event"
                 className={cn(
-                  'p-2 rounded-md cursor-pointer',
-                  isReminder && 'border border-dashed border-[var(--reminder-border)] bg-[var(--reminder-bg)]',
-                  reminderIsDone && 'border-solid border-slate-200 opacity-80',
+                  'relative group/card overflow-hidden p-2 rounded-md cursor-pointer transition-all duration-150',
+                  isReminder && !isBulkMode && 'border border-dashed border-[var(--reminder-border)] bg-[var(--reminder-bg)]',
+                  reminderIsDone && !isBulkMode && 'border-solid border-slate-200 opacity-80',
+                  isBulkMode && isReminder && 'opacity-40 cursor-default pointer-events-none',
+                  isBulkMode && !isReminder && isSelected && 'shadow-sm',
                 )}
-                style={isReminder ? reminderCardStyle : { backgroundColor: event.color ? `${event.color}20` : 'var(--muted)' }}
+                style={
+                  isReminder
+                    ? (isBulkMode ? { backgroundColor: 'var(--muted)' } : reminderCardStyle)
+                    : isSelected
+                      ? { backgroundColor: event.color ? `${event.color}35` : 'hsl(var(--primary) / 0.13)' }
+                      : { backgroundColor: event.color ? `${event.color}20` : 'var(--muted)' }
+                }
                 onClick={(e) => {
                   if (e.button !== 0) return;
+                  if (isBulkMode && !isReminder) {
+                    onToggleAppointmentSelect!(appointmentId);
+                    return;
+                  }
                   onEventClick(event.data);
                 }}
               >
+                {/* Accent bar — selection indicator */}
+                {isBulkMode && !isReminder && (
+                  <span
+                    aria-hidden
+                    className={cn(
+                      'absolute left-0 top-0 bottom-0 w-[3px] rounded-l-md transition-[background-color] duration-150',
+                      isSelected
+                        ? 'bg-primary'
+                        : 'bg-transparent group-hover/card:bg-primary/40',
+                    )}
+                  />
+                )}
                 {isMobile ? (
                   /* Mobile: stacked single-column layout */
                   <div className="flex items-start gap-2.5">
+                    {isBulkMode && !isReminder && (
+                      <Checkbox
+                        checked={isSelected}
+                        className={cn('mt-0.5 shrink-0 transition-transform duration-150', isSelected && 'scale-110')}
+                        onCheckedChange={() => onToggleAppointmentSelect!(appointmentId)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    )}
                     <div
                       className="w-1 self-stretch rounded-full shrink-0 mt-0.5"
                       style={{ backgroundColor: isReminder ? reminderColor : event.color || 'hsl(var(--primary))' }}
@@ -171,6 +211,14 @@ export function CalendarScheduleView({
                 ) : (
                   /* Desktop/Tablet: horizontal 3-column layout — status badge first */
                   <div className="flex items-center gap-4">
+                    {isBulkMode && !isReminder && (
+                      <Checkbox
+                        checked={isSelected}
+                        className={cn('transition-transform duration-150 shrink-0', isSelected && 'scale-110')}
+                        onCheckedChange={() => onToggleAppointmentSelect!(appointmentId)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    )}
                     {isReminder ? (
                       <span
                         aria-hidden

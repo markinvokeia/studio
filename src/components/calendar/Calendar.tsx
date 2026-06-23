@@ -53,6 +53,9 @@ const Calendar: React.FC<CalendarProps> = ({
   extraActions,
   extraActionsAfterToday,
   trailingActions,
+  selectedAppointmentIds,
+  onToggleAppointmentSelect,
+  bulkModeContent,
 }) => {
   const t = useTranslations('Calendar');
   const breakpoint = useCalendarBreakpoint();
@@ -165,6 +168,8 @@ const Calendar: React.FC<CalendarProps> = ({
             dateLocale={dateLocale}
             breakpoint={breakpoint}
             onEventClick={onEventClick}
+            selectedAppointmentIds={selectedAppointmentIds}
+            onToggleAppointmentSelect={onToggleAppointmentSelect}
           />
         );
 
@@ -212,6 +217,7 @@ const Calendar: React.FC<CalendarProps> = ({
         extraActions={extraActions}
         extraActionsAfterToday={extraActionsAfterToday}
         trailingActions={trailingActions}
+        bulkModeContent={bulkModeContent}
       >
         {children}
       </CalendarHeader>

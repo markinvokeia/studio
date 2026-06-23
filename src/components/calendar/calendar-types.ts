@@ -60,4 +60,10 @@ export interface CalendarProps {
   extraActionsAfterToday?: React.ReactNode;
   /** Content rendered at the end of the desktop header actions */
   trailingActions?: React.ReactNode;
+  /** IDs of appointments currently selected in bulk mode */
+  selectedAppointmentIds?: Set<string>;
+  /** Called when the user clicks the checkbox on a schedule-view event */
+  onToggleAppointmentSelect?: (id: string) => void;
+  /** When provided, replaces the entire desktop header with this content */
+  bulkModeContent?: React.ReactNode;
 }

@@ -53,20 +53,21 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
-import { Appointment, AppointmentStatus, Calendar as CalendarType, CalendarReminder, CalendarSettings, Invoice, Order, PatientSession, Quote, QuoteItem, Sede, Service, SessionPreloadedService, User as UserType } from '@/lib/types';
+import { Appointment, AppointmentBulkFilterParams, AppointmentDatePreset, AppointmentStatus, Calendar as CalendarType, CalendarReminder, CalendarSettings, Invoice, Order, PatientSession, Quote, QuoteItem, Sede, Service, SessionPreloadedService, User as UserType } from '@/lib/types';
 import { toLocalISOString } from '@/lib/utils';
 import api from '@/services/api';
 import { getQuoteItems } from '@/services/quotes';
 import { updateAppointmentStatusRequest } from '@/services/appointments';
 import { getSalesServices, getUsersServicesBatch, fetchServicesByIds } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
-import { addMinutes, format, isValid, parseISO } from 'date-fns';
-import { BellRing, Calendar as CalendarIcon, CalendarPlus, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileText, Layers, Loader2, PlusCircle, RefreshCw, Stethoscope, Trash2, Users } from 'lucide-react';
+import { addMinutes, endOfMonth, endOfWeek, format, isValid, parseISO, startOfMonth, startOfWeek } from 'date-fns';
+import { BellRing, Calendar as CalendarIcon, CalendarPlus, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileText, Layers, Loader2, PlusCircle, RefreshCw, Stethoscope, Trash2, Users, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
 import { AppointmentPanel } from '@/components/appointments/AppointmentPanel';
+import { BulkReassignDoctorDialog } from '@/components/appointments/BulkReassignDoctorDialog';
 import { AppointmentStatusContextItems } from '@/components/appointments/AppointmentStatusMenu';
 import { useAppointmentStatus } from '@/hooks/use-appointment-status';
 import { canReschedule, normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
@@ -518,9 +519,132 @@ export default function AppointmentsPage() {
     const [selectedDoctorIds, setSelectedDoctorIds] = React.useState<string[]>([]);
     const [groupBy, setGroupBy] = React.useState<CalendarGroupBy>('none');
     const [currentView, setCurrentView] = React.useState<CalendarView>('month');
+
+    // ── Bulk selection mode ──────────────────────────────────────────────────
+    const [isBulkMode, setIsBulkMode] = React.useState(false);
+    const [bulkSelectedIds, setBulkSelectedIds] = React.useState<Set<string>>(new Set());
+    const [bulkDatePreset, setBulkDatePreset] = React.useState<AppointmentDatePreset>('today');
+    const [bulkDoctorIds, setBulkDoctorIds] = React.useState<string[]>([]);
+    const [bulkCalendarIds, setBulkCalendarIds] = React.useState<string[]>([]);
+    const [bulkStatuses, setBulkStatuses] = React.useState<AppointmentStatus[]>([]);
+    const [isBulkLoading, setIsBulkLoading] = React.useState(false);
+    const [isReassignDialogOpen, setIsReassignDialogOpen] = React.useState(false);
+    const [isReassignLoading, setIsReassignLoading] = React.useState(false);
+    const prevViewRef = React.useRef<CalendarView>('month');
     const [hourSlotHeight, setHourSlotHeight] = React.useState<number>(HOUR_SLOT_HEIGHT);
     const [eventLabelFormat, setEventLabelFormat] = React.useState<string>(DEFAULT_EVENT_LABEL_FORMAT);
     const [defaultSede, setDefaultSede] = React.useState<string>('');
+
+    const tBulk = useTranslations('AppointmentsPage.bulk');
+
+    const getBulkDateRange = (preset: AppointmentDatePreset) => {
+        const today = new Date();
+        if (preset === 'today') return { date_from: format(today, 'yyyy-MM-dd'), date_to: format(today, 'yyyy-MM-dd') };
+        if (preset === 'this_week') return { date_from: format(startOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd'), date_to: format(endOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd') };
+        return { date_from: format(startOfMonth(today), 'yyyy-MM-dd'), date_to: format(endOfMonth(today), 'yyyy-MM-dd') };
+    };
+
+    const handleToggleBulkMode = React.useCallback(() => {
+        setIsBulkMode((prev) => {
+            if (!prev) {
+                prevViewRef.current = currentView;
+                setCurrentView('schedule');
+            } else {
+                setCurrentView(prevViewRef.current);
+            }
+            return !prev;
+        });
+        setBulkSelectedIds(new Set());
+        setBulkDoctorIds([]);
+        setBulkCalendarIds([]);
+        setBulkStatuses([]);
+        setBulkDatePreset('today');
+    }, [currentView]);
+
+    const handleApplyBulkFilter = React.useCallback(async () => {
+        setIsBulkLoading(true);
+        try {
+            const dateRange = getBulkDateRange(bulkDatePreset);
+            const params: AppointmentBulkFilterParams = { ...dateRange };
+            if (bulkDoctorIds.length > 0) params.doctor_ids = bulkDoctorIds;
+            if (bulkCalendarIds.length > 0) params.calendar_source_ids = bulkCalendarIds;
+            if (bulkStatuses.length > 0) params.statuses = bulkStatuses;
+            const response = await api.post(API_ROUTES.APPOINTMENTS_FILTER_IDS, params);
+            const ids: string[] = (response?.ids ?? []).map(String);
+            setBulkSelectedIds(new Set(ids));
+            toast({ title: tBulk('filterResult', { count: ids.length }) });
+        } catch {
+            toast({ variant: 'destructive', title: tBulk('filterError') });
+        } finally {
+            setIsBulkLoading(false);
+        }
+    }, [bulkDatePreset, bulkDoctorIds, bulkCalendarIds, bulkStatuses, tBulk]);
+
+    const handleToggleAppointmentSelect = React.useCallback((id: string) => {
+        setBulkSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id); else next.add(id);
+            return next;
+        });
+    }, []);
+
+    const handleBulkReassign = React.useCallback(async (doctorId: string, doctorName: string, doctorEmail?: string) => {
+        setIsReassignLoading(true);
+        try {
+            const response = await api.post(API_ROUTES.APPOINTMENTS_BULK_REASSIGN_DOCTOR, {
+                appointment_ids: Array.from(bulkSelectedIds),
+                doctor_id: doctorId,
+                doctor_name: doctorName,
+                doctor_email: doctorEmail,
+            });
+            const updated: number = response?.updated ?? 0;
+            const failed: number = response?.failed ?? 0;
+            if (failed > 0) {
+                toast({ title: tBulk('reassignPartial', { updated, failed }) });
+            } else {
+                toast({ title: tBulk('reassignSuccess', { count: updated }) });
+            }
+            setIsReassignDialogOpen(false);
+            setIsBulkMode(false);
+            setCurrentView(prevViewRef.current);
+            setBulkSelectedIds(new Set());
+            setBulkDoctorIds([]);
+            setBulkCalendarIds([]);
+            setBulkStatuses([]);
+            setBulkDatePreset('today');
+            refreshCalendarDataRef.current();
+        } catch {
+            toast({ variant: 'destructive', title: tBulk('reassignError') });
+        } finally {
+            setIsReassignLoading(false);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [bulkSelectedIds, tBulk]);
+
+    const BULK_SELECTABLE_STATUSES: AppointmentStatus[] = ['scheduled', 'confirmed', 'pending', 'arrived', 'no_show'];
+
+    const handleSelectAllVisible = React.useCallback((checked: boolean) => {
+        if (checked) {
+            const ids = appointments
+                .filter(a => !['completed', 'cancelled', 'in_progress'].includes(a.status))
+                .map(a => a.id);
+            setBulkSelectedIds(new Set(ids));
+        } else {
+            setBulkSelectedIds(new Set());
+        }
+    }, [appointments]);
+
+    const handleSelectBulkDoctor = React.useCallback((id: string, checked: boolean) => {
+        setBulkDoctorIds((prev) => checked ? [...prev, id] : prev.filter((x) => x !== id));
+    }, []);
+
+    const handleSelectBulkCalendar = React.useCallback((id: string, checked: boolean) => {
+        setBulkCalendarIds((prev) => checked ? [...prev, id] : prev.filter((x) => x !== id));
+    }, []);
+
+    const handleToggleBulkStatus = React.useCallback((status: AppointmentStatus, checked: boolean) => {
+        setBulkStatuses((prev) => checked ? [...prev, status] : prev.filter((s) => s !== status));
+    }, []);
 
     const handleSettingsChange = React.useCallback((settings: CalendarSettings) => {
         const mappedView = SETTINGS_VIEW_MAP[settings.default_view] || 'month';
@@ -1094,6 +1218,8 @@ export default function AppointmentsPage() {
         loadAppointments();
     }, [loadAppointments]);
 
+    React.useEffect(() => { refreshCalendarDataRef.current = forceRefresh; }, [forceRefresh]);
+
     const [isQuickQuoteOpen, setIsQuickQuoteOpen] = React.useState(false);
     const [quickQuotePatient, setQuickQuotePatient] = React.useState<UserType | null>(null);
     const [quickQuoteInitialItems, setQuickQuoteInitialItems] = React.useState<SessionPreloadedService[] | undefined>();
@@ -1653,6 +1779,141 @@ export default function AppointmentsPage() {
         });
     }, [quoteItems]);
 
+    // Bulk selection header computed values
+    const visibleSelectableIds = React.useMemo(
+        () => appointments.filter(a => !['completed', 'cancelled', 'in_progress'].includes(a.status)).map(a => a.id),
+        [appointments],
+    );
+    const bulkAllSelected = visibleSelectableIds.length > 0 && visibleSelectableIds.every(id => bulkSelectedIds.has(id));
+    const bulkSomeSelected = !bulkAllSelected && visibleSelectableIds.some(id => bulkSelectedIds.has(id));
+
+    // Desktop-only contextual header rendered when bulk mode is active
+    const bulkModeHeaderContent = (isBulkMode && breakpoint === 'desktop') ? (
+        <div className="flex items-center gap-2.5 w-full">
+            <Checkbox
+                checked={bulkSomeSelected ? 'indeterminate' : bulkAllSelected}
+                onCheckedChange={(c) => handleSelectAllVisible(!!c)}
+            />
+            <span className="text-sm font-medium whitespace-nowrap shrink-0">
+                {bulkSelectedIds.size > 0
+                    ? tBulk('selectedCount', { count: bulkSelectedIds.size })
+                    : tBulk('selectHint')}
+            </span>
+            {bulkSelectedIds.size > 0 && (
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs shrink-0" onClick={() => setBulkSelectedIds(new Set())}>
+                    <X className="h-3.5 w-3.5 mr-1" />
+                    {tBulk('clearSelection')}
+                </Button>
+            )}
+            <div className="flex-1" />
+            {/* Date preset pills */}
+            <div className="flex items-center rounded-md border overflow-hidden text-xs shrink-0">
+                {(['today', 'this_week', 'this_month'] as AppointmentDatePreset[]).map((preset) => (
+                    <button
+                        key={preset}
+                        onClick={() => setBulkDatePreset(preset)}
+                        className={`px-2.5 py-1.5 transition-colors ${bulkDatePreset === preset ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+                    >
+                        {tBulk(preset)}
+                    </button>
+                ))}
+            </div>
+            {/* Doctor filter */}
+            <Popover>
+                <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs shrink-0">
+                        <Users className="h-3.5 w-3.5" />
+                        {tBulk('doctorFilter')}
+                        {bulkDoctorIds.length > 0 && <Badge variant="secondary" className="h-4 px-1 text-[10px]">{bulkDoctorIds.length}</Badge>}
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-52 p-2" align="start">
+                    <div className="space-y-0.5">
+                        {(() => {
+                            const activeDoctors = doctors.filter(d => d.is_active);
+                            const allSelected = activeDoctors.length > 0 && activeDoctors.every(d => bulkDoctorIds.includes(d.id));
+                            const someSelected = !allSelected && activeDoctors.some(d => bulkDoctorIds.includes(d.id));
+                            return (
+                                <>
+                                    <label className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer border-b pb-2 mb-1">
+                                        <Checkbox
+                                            checked={someSelected ? 'indeterminate' : allSelected}
+                                            onCheckedChange={(c) => setBulkDoctorIds(c ? activeDoctors.map(d => d.id) : [])}
+                                        />
+                                        <span className="text-sm font-medium">{t('selectAll')}</span>
+                                    </label>
+                                    {activeDoctors.map((doctor) => (
+                                        <label key={doctor.id} className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer">
+                                            <Checkbox checked={bulkDoctorIds.includes(doctor.id)} onCheckedChange={(c) => handleSelectBulkDoctor(doctor.id, !!c)} />
+                                            <span className="text-sm">{doctor.name}</span>
+                                        </label>
+                                    ))}
+                                </>
+                            );
+                        })()}
+                    </div>
+                </PopoverContent>
+            </Popover>
+            {/* Calendar/room filter */}
+            <Popover>
+                <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs shrink-0">
+                        <CalendarIcon className="h-3.5 w-3.5" />
+                        {tBulk('calendarFilter')}
+                        {bulkCalendarIds.length > 0 && <Badge variant="secondary" className="h-4 px-1 text-[10px]">{bulkCalendarIds.length}</Badge>}
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-52 p-2" align="start">
+                    <div className="space-y-0.5">
+                        {(() => {
+                            const allSelected = calendars.length > 0 && calendars.every(c => bulkCalendarIds.includes(c.id));
+                            const someSelected = !allSelected && calendars.some(c => bulkCalendarIds.includes(c.id));
+                            return (
+                                <>
+                                    <label className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer border-b pb-2 mb-1">
+                                        <Checkbox
+                                            checked={someSelected ? 'indeterminate' : allSelected}
+                                            onCheckedChange={(c) => setBulkCalendarIds(c ? calendars.map(c => c.id) : [])}
+                                        />
+                                        <span className="text-sm font-medium">{t('selectAll')}</span>
+                                    </label>
+                                    {calendars.map((cal) => (
+                                        <label key={cal.id} className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer">
+                                            <Checkbox checked={bulkCalendarIds.includes(cal.id)} onCheckedChange={(c) => handleSelectBulkCalendar(cal.id, !!c)} />
+                                            <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: cal.color }} />
+                                            <span className="text-sm truncate">{cal.name}</span>
+                                        </label>
+                                    ))}
+                                </>
+                            );
+                        })()}
+                    </div>
+                </PopoverContent>
+            </Popover>
+            {/* Search & select */}
+            <Button size="sm" className="h-8 gap-1.5 text-xs shrink-0" onClick={handleApplyBulkFilter} disabled={isBulkLoading}>
+                {isBulkLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                {isBulkLoading ? tBulk('applying') : tBulk('applyFilter')}
+            </Button>
+            <Separator orientation="vertical" className="h-5 shrink-0" />
+            {/* Reassign */}
+            <Button
+                size="sm"
+                className="h-8 gap-1.5 text-xs shrink-0"
+                disabled={bulkSelectedIds.size === 0}
+                onClick={() => setIsReassignDialogOpen(true)}
+            >
+                <Stethoscope className="h-3.5 w-3.5" />
+                {tBulk('reassignDoctor')}
+            </Button>
+            {/* Exit bulk mode */}
+            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs shrink-0" onClick={handleToggleBulkMode}>
+                <X className="h-3.5 w-3.5" />
+                {tBulk('exitBulkMode')}
+            </Button>
+        </div>
+    ) : undefined;
+
     return (
         <Card className="border-none shadow-none h-full">
             <CardContent className="p-0 h-[calc(100vh-6rem)] min-h-[600px]">
@@ -1664,13 +1925,94 @@ export default function AppointmentsPage() {
                     isLoading={isRefreshing}
                     onEventClick={handleEventClick}
                     onEventColorChange={handleEventColorChange}
-                    onEventContextMenu={renderEventContextMenu}
+                    onEventContextMenu={isBulkMode ? undefined : renderEventContextMenu}
                     groupBy={groupBy}
                     groupingColumns={groupingColumns}
                     onViewChange={setCurrentView}
+                    selectedAppointmentIds={isBulkMode ? bulkSelectedIds : undefined}
+                    onToggleAppointmentSelect={isBulkMode ? handleToggleAppointmentSelect : undefined}
+                    bulkModeContent={bulkModeHeaderContent}
                     onSlotClick={handleSlotClick}
                     filterSheet={
                         <div className="space-y-6">
+                            {/* Bulk selection filters (mobile) */}
+                            {isBulkMode && (
+                                <>
+                                    <div>
+                                        <h4 className="text-sm font-semibold mb-3">{tBulk('panelTitle')}</h4>
+                                        <div className="flex flex-wrap gap-1.5 mb-3">
+                                            {(['today', 'this_week', 'this_month'] as AppointmentDatePreset[]).map((preset) => (
+                                                <Button
+                                                    key={preset}
+                                                    size="sm"
+                                                    variant={bulkDatePreset === preset ? 'default' : 'outline'}
+                                                    className="text-xs h-7"
+                                                    onClick={() => setBulkDatePreset(preset)}
+                                                >
+                                                    {tBulk(preset)}
+                                                </Button>
+                                            ))}
+                                        </div>
+                                        <div className="space-y-1 mb-3">
+                                            <p className="text-xs text-muted-foreground font-medium mb-1">{tBulk('doctorFilter')}</p>
+                                            {(() => {
+                                                const activeDoctors = doctors.filter(d => d.is_active);
+                                                const allSelected = activeDoctors.length > 0 && activeDoctors.every(d => bulkDoctorIds.includes(d.id));
+                                                const someSelected = !allSelected && activeDoctors.some(d => bulkDoctorIds.includes(d.id));
+                                                return (
+                                                    <>
+                                                        <label className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer border-b pb-2 mb-1">
+                                                            <Checkbox
+                                                                checked={someSelected ? 'indeterminate' : allSelected}
+                                                                onCheckedChange={(c) => setBulkDoctorIds(c ? activeDoctors.map(d => d.id) : [])}
+                                                            />
+                                                            <span className="text-sm font-medium">{t('selectAll')}</span>
+                                                        </label>
+                                                        {activeDoctors.map((doctor) => (
+                                                            <label key={doctor.id} className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer">
+                                                                <Checkbox checked={bulkDoctorIds.includes(doctor.id)} onCheckedChange={(c) => handleSelectBulkDoctor(doctor.id, !!c)} />
+                                                                <span className="text-sm">{doctor.name}</span>
+                                                            </label>
+                                                        ))}
+                                                    </>
+                                                );
+                                            })()}
+                                        </div>
+                                        <div className="space-y-1 mb-3">
+                                            <p className="text-xs text-muted-foreground font-medium mb-1">{tBulk('calendarFilter')}</p>
+                                            {(() => {
+                                                const allSelected = calendars.length > 0 && calendars.every(c => bulkCalendarIds.includes(c.id));
+                                                const someSelected = !allSelected && calendars.some(c => bulkCalendarIds.includes(c.id));
+                                                return (
+                                                    <>
+                                                        <label className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer border-b pb-2 mb-1">
+                                                            <Checkbox
+                                                                checked={someSelected ? 'indeterminate' : allSelected}
+                                                                onCheckedChange={(c) => setBulkCalendarIds(c ? calendars.map(cal => cal.id) : [])}
+                                                            />
+                                                            <span className="text-sm font-medium">{t('selectAll')}</span>
+                                                        </label>
+                                                        {calendars.map((cal) => (
+                                                            <label key={cal.id} className="flex items-center justify-between py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer">
+                                                                <div className="flex items-center gap-2">
+                                                                    <Checkbox checked={bulkCalendarIds.includes(cal.id)} onCheckedChange={(c) => handleSelectBulkCalendar(cal.id, !!c)} />
+                                                                    <span className="text-sm">{cal.name}</span>
+                                                                </div>
+                                                                <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: cal.color }} />
+                                                            </label>
+                                                        ))}
+                                                    </>
+                                                );
+                                            })()}
+                                        </div>
+                                        <Button className="w-full" onClick={handleApplyBulkFilter} disabled={isBulkLoading}>
+                                            {isBulkLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                                            {isBulkLoading ? tBulk('applying') : tBulk('applyFilter')}
+                                        </Button>
+                                    </div>
+                                    <Separator />
+                                </>
+                            )}
                             {/* Calendars section */}
                             <div>
                                 <h4 className="text-sm font-semibold mb-3">{t('calendars')}</h4>
@@ -1772,6 +2114,21 @@ export default function AppointmentsPage() {
                     }
                     extraActions={
                         <TooltipProvider>
+                            <div className="flex items-center gap-1.5">
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant={isBulkMode ? 'default' : 'outline'}
+                                        size={isMobile ? 'icon' : 'sm'}
+                                        className={isMobile ? 'h-8 w-8' : 'h-9 gap-1.5'}
+                                        onClick={handleToggleBulkMode}
+                                    >
+                                        <Layers className="h-4 w-4" />
+                                        {!isMobile && tBulk('toggleButton')}
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>{tBulk('toggleButton')}</TooltipContent>
+                            </Tooltip>
                             <DropdownMenu>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
@@ -1826,6 +2183,7 @@ export default function AppointmentsPage() {
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
+                            </div>
                         </TooltipProvider>
                     }
                     extraActionsAfterToday={
@@ -1849,6 +2207,38 @@ export default function AppointmentsPage() {
                     }
                 >
                     <div className="flex items-center gap-2">
+                        {/* Mobile/tablet bulk mode bar — compact row shown below the normal header */}
+                        {isBulkMode && breakpoint !== 'desktop' && (
+                            <div className="flex items-center gap-1.5 w-full py-0.5">
+                                <Checkbox
+                                    checked={bulkSomeSelected ? 'indeterminate' : bulkAllSelected}
+                                    onCheckedChange={(c) => handleSelectAllVisible(!!c)}
+                                    className="shrink-0"
+                                />
+                                <span className="text-xs font-medium flex-1 min-w-0 truncate">
+                                    {bulkSelectedIds.size > 0
+                                        ? tBulk('selectedCount', { count: bulkSelectedIds.size })
+                                        : tBulk('selectHint')}
+                                </span>
+                                {bulkSelectedIds.size > 0 && (
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setBulkSelectedIds(new Set())}>
+                                        <X className="h-3.5 w-3.5" />
+                                    </Button>
+                                )}
+                                <Button
+                                    size="sm"
+                                    className="h-7 shrink-0 gap-1.5"
+                                    disabled={bulkSelectedIds.size === 0}
+                                    onClick={() => setIsReassignDialogOpen(true)}
+                                >
+                                    <Stethoscope className="h-3.5 w-3.5" />
+                                    {breakpoint === 'tablet' && <span className="text-xs">{tBulk('reassignDoctor')}</span>}
+                                </Button>
+                                <Button variant="outline" size="icon" className="h-7 w-7 shrink-0" onClick={handleToggleBulkMode}>
+                                    <X className="h-3.5 w-3.5" />
+                                </Button>
+                            </div>
+                        )}
                         {breakpoint === 'desktop' && (
                             <div className="flex items-center gap-2">
                                 <Popover>
@@ -2011,6 +2401,16 @@ export default function AppointmentsPage() {
 
                 </Calendar>
             </CardContent>
+
+            <BulkReassignDoctorDialog
+                open={isReassignDialogOpen}
+                onOpenChange={setIsReassignDialogOpen}
+                doctors={doctors.filter(d => d.is_active)}
+                selectedCount={bulkSelectedIds.size}
+                onReassign={handleBulkReassign}
+                isLoading={isReassignLoading}
+            />
+
             <CalendarCreateTypeDialog
                 open={isCreateTypeOpen}
                 onOpenChange={setIsCreateTypeOpen}

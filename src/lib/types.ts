@@ -580,6 +580,34 @@ export type Appointment = {
   cancellation_note?: string | null;
 };
 
+export type AppointmentDatePreset = 'today' | 'this_week' | 'this_month';
+
+export interface AppointmentBulkFilterParams {
+  date_from: string;
+  date_to: string;
+  doctor_ids?: string[];
+  calendar_source_ids?: string[];
+  statuses?: AppointmentStatus[];
+}
+
+export interface AppointmentBulkFilterResponse {
+  ids: string[];
+  total: number;
+}
+
+export interface AppointmentBulkReassignRequest {
+  appointment_ids: string[];
+  doctor_id: string;
+  doctor_name: string;
+  doctor_email?: string;
+}
+
+export interface AppointmentBulkReassignResponse {
+  updated: number;
+  failed: number;
+  errors: Array<{ appointment_id: string; reason: string }>;
+}
+
 export type CalendarReminderPriority = 'LOW' | 'MEDIUM' | 'HIGH';
 
 export type CalendarReminderStatus = 'pending' | 'done' | 'dismissed' | 'cancelled';
