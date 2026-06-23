@@ -42,6 +42,7 @@ const Calendar: React.FC<CalendarProps> = ({
   onEventClick,
   view: propsView,
   defaultView,
+  hourSlotHeight,
   onViewChange,
   groupBy = 'none',
   groupingColumns = [],
@@ -107,6 +108,7 @@ const Calendar: React.FC<CalendarProps> = ({
               groupingColumns={groupingColumns}
               currentTime={currentTime}
               dateLocale={dateLocale}
+              hourSlotHeight={hourSlotHeight}
               {...eventHandlers}
             />
           );
@@ -126,6 +128,7 @@ const Calendar: React.FC<CalendarProps> = ({
               dateLocale={dateLocale}
               timeZoneLabel={timeZoneLabel}
               breakpoint={breakpoint}
+              hourSlotHeight={hourSlotHeight}
               {...eventHandlers}
             />
           );
@@ -140,6 +143,7 @@ const Calendar: React.FC<CalendarProps> = ({
             currentTime={currentTime}
             dateLocale={dateLocale}
             timeZoneLabel={timeZoneLabel}
+            hourSlotHeight={hourSlotHeight}
             {...eventHandlers}
           />
         );

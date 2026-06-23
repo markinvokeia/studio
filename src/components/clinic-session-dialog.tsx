@@ -57,7 +57,6 @@ interface ClinicSessionDialogProps {
     };
     prefillTreatments?: { numero_diente: number | null; descripcion: string }[];
     existingSession?: PatientSession;  // Para edición de sesión existente
-    hideNextAppointmentDate?: boolean;
     lockDoctor?: boolean;
     showPatient?: boolean;           // Show read-only patient name field
     showQuoteSelector?: boolean;     // Show quote picker + "Nuevo" button
@@ -130,7 +129,6 @@ export function ClinicSessionDialog({
     prefillData,
     prefillTreatments,
     existingSession,
-    hideNextAppointmentDate = false,
     lockDoctor = false,
     pendingAppointmentData,
 }: ClinicSessionDialogProps) {
@@ -1185,38 +1183,6 @@ export function ClinicSessionDialog({
                                         </div>
                                     )}
                                 </div>
-
-                                {/* Next Appointment Date */}
-                                {!hideNextAppointmentDate && (
-                                    <div className="space-y-2">
-                                        <Label>{t('nextAppointmentDate')}</Label>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    className={cn(
-                                                        "w-full justify-start text-left font-normal h-10 border-input",
-                                                        !form.fecha_proxima_cita && "text-muted-foreground"
-                                                    )}
-                                                >
-                                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                                    {form.fecha_proxima_cita
-                                                        ? format(new Date(form.fecha_proxima_cita + 'T00:00:00'), 'dd/MM/yyyy', { locale: dateLocale })
-                                                        : t('selectNextAppointmentDate')}
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0" align="start">
-                                                <Calendar
-                                                    mode="single"
-                                                    selected={form.fecha_proxima_cita ? new Date(form.fecha_proxima_cita + 'T00:00:00') : undefined}
-                                                    onSelect={(date) => setForm({ ...form, fecha_proxima_cita: date ? formatDate(date) : '' })}
-                                                    initialFocus
-                                                />
-                                            </PopoverContent>
-                                        </Popover>
-                                    </div>
-                                )}
 
                                 <div className="space-y-3 md:col-span-2">
                                     <div className="flex items-start gap-3 rounded-xl border border-border/70 bg-muted/20 px-4 py-3">

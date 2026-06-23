@@ -7,6 +7,7 @@ import Calendar, { type CalendarGroupBy, type CalendarGroupingColumn, type Calen
 import { CalendarSettingsPopover } from '@/components/calendar/calendar-settings-popover';
 import { CalendarSettingsForm } from '@/components/calendar/calendar-settings-form';
 import { getCalendarSettings } from '@/components/calendar/calendar-settings-utils';
+import { DEFAULT_EVENT_LABEL_FORMAT, HOUR_SLOT_HEIGHT } from '@/components/calendar/calendar-constants';
 import { ReminderFormDialog, type ReminderFormValues } from '@/components/appointments/ReminderFormDialog';
 import { ReminderPanel } from '@/components/appointments/ReminderPanel';
 import { useCalendarBreakpoint } from '@/hooks/use-calendar-breakpoint';
@@ -187,6 +188,21 @@ const GOOGLE_CALENDAR_COLORS = [
 ];
 
 const colorMap = new Map(GOOGLE_CALENDAR_COLORS.map(c => [c.id, c.hex]));
+
+// Builds the label shown on each appointment by concatenating its fields
+// according to the configured format (see EVENT_LABEL_FORMATS).
+function buildEventLabel(appt: Appointment, start: Date, fmt: string): string {
+    const time = format(start, 'HH:mm');
+    const patient = (appt.patientName || '').trim();
+    const treatment = (appt.summary || appt.service_name || '').trim();
+    const notes = (appt.notes || '').trim();
+    if (fmt === 'patient_treatment_time') {
+        return [patient, treatment, time].filter(Boolean).join(' ');
+    }
+    // default: time_patient_notes -> "HH:mm Patient (Notes)"
+    const base = [time, patient].filter(Boolean).join(' ');
+    return notes ? `${base} (${notes})` : base;
+}
 
 const SETTINGS_VIEW_MAP: Record<string, CalendarView> = {
     day: 'day',
@@ -502,6 +518,9 @@ export default function AppointmentsPage() {
     const [selectedDoctorIds, setSelectedDoctorIds] = React.useState<string[]>([]);
     const [groupBy, setGroupBy] = React.useState<CalendarGroupBy>('none');
     const [currentView, setCurrentView] = React.useState<CalendarView>('month');
+    const [hourSlotHeight, setHourSlotHeight] = React.useState<number>(HOUR_SLOT_HEIGHT);
+    const [eventLabelFormat, setEventLabelFormat] = React.useState<string>(DEFAULT_EVENT_LABEL_FORMAT);
+    const [defaultSede, setDefaultSede] = React.useState<string>('');
 
     const handleSettingsChange = React.useCallback((settings: CalendarSettings) => {
         const mappedView = SETTINGS_VIEW_MAP[settings.default_view] || 'month';
@@ -509,12 +528,32 @@ export default function AppointmentsPage() {
         setGroupBy(settings.grouped_by as CalendarGroupBy);
         setCheckCalendarAvailability(settings.check_availability);
         setCheckDoctorAvailability(settings.filter_doctors_by_service);
+        setHourSlotHeight(settings.hour_height ?? HOUR_SLOT_HEIGHT);
+        setEventLabelFormat(settings.event_label_format ?? DEFAULT_EVENT_LABEL_FORMAT);
+        setDefaultSede(settings.default_sede ?? '');
     }, []);
 
     const handleSettingsEditorChange = React.useCallback((settings: CalendarSettings) => {
         setCheckCalendarAvailability(settings.check_availability);
         setCheckDoctorAvailability(settings.filter_doctors_by_service);
+        setHourSlotHeight(settings.hour_height ?? HOUR_SLOT_HEIGHT);
+        setEventLabelFormat(settings.event_label_format ?? DEFAULT_EVENT_LABEL_FORMAT);
+        setDefaultSede(settings.default_sede ?? '');
     }, []);
+
+    // Tracks the last applied default sede so the effect below only re-scopes the
+    // calendars when the sede actually changes (preserving manual selections).
+    const prevSedeRef = React.useRef<string>('');
+    React.useEffect(() => {
+        if (calendars.length === 0) return;
+        if (prevSedeRef.current === defaultSede) return;
+        prevSedeRef.current = defaultSede;
+        const ids = (defaultSede
+            ? calendars.filter(c => String(c.sede_id) === String(defaultSede))
+            : calendars
+        ).map(c => c.id).filter(Boolean);
+        setSelectedCalendarIds(ids);
+    }, [defaultSede, calendars]);
 
     // Clinic Session Dialog state
     const [isClinicSessionOpen, setIsClinicSessionOpen] = React.useState(false);
@@ -1184,7 +1223,16 @@ export default function AppointmentsPage() {
         setDoctorServiceMap(serviceMap);
 
         setSelectedDoctorIds(fetchedDoctors.map(d => d.id));
-        setSelectedCalendarIds(fetchedCalendars.map(c => c.id).filter(id => id));
+        // Honor the configured default branch (sede): show only its calendars by
+        // default. Empty = all. prevSedeRef keeps the live-change effect from
+        // re-applying this same selection right after load.
+        const defaultSedeId = fetchedSettings.default_sede || '';
+        const initialCalendarIds = (defaultSedeId
+            ? fetchedCalendars.filter(c => String(c.sede_id) === String(defaultSedeId))
+            : fetchedCalendars
+        ).map(c => c.id).filter(id => id);
+        prevSedeRef.current = defaultSedeId;
+        setSelectedCalendarIds(initialCalendarIds);
         setIsDataLoading(false);
     }, [handleSettingsChange]);
 
@@ -1367,6 +1415,7 @@ export default function AppointmentsPage() {
                 return {
                     id: String(appt.id),
                     title: appt.summary || appt.service_name || 'Cita',
+                    label: buildEventLabel(appt, start, eventLabelFormat),
                     start,
                     end,
                     doctorGroupId: appt.doctorId || undefined,
@@ -1400,7 +1449,7 @@ export default function AppointmentsPage() {
             .filter((event): event is NonNullable<typeof event> => event !== null);
 
         return [...events, ...reminderEvents];
-    }, [appointments, calendars, reminders, selectedCalendarIds, selectedDoctorIds]);
+    }, [appointments, calendars, reminders, selectedCalendarIds, selectedDoctorIds, eventLabelFormat]);
 
 
     const handleSelectDoctor = React.useCallback((doctorId: string, checked: boolean) => {
@@ -1414,6 +1463,9 @@ export default function AppointmentsPage() {
     }, []);
 
     const showGroupControls = ['day', '2-day', '3-day', 'week'].includes(currentView);
+    // The doctors filter also applies to the agenda (schedule) view, even though
+    // that view does not support column grouping.
+    const showDoctorFilter = showGroupControls || currentView === 'schedule';
 
     const handleSelectCalendar = React.useCallback((calendarId: string, checked: boolean) => {
         setSelectedCalendarIds(prev => {
@@ -1606,6 +1658,7 @@ export default function AppointmentsPage() {
             <CardContent className="p-0 h-[calc(100vh-6rem)] min-h-[600px]">
                 <Calendar
                     view={currentView}
+                    hourSlotHeight={hourSlotHeight}
                     events={calendarEvents}
                     onDateChange={onDateChange}
                     isLoading={isRefreshing}
@@ -1666,7 +1719,7 @@ export default function AppointmentsPage() {
                             <Separator />
 
                             {/* Doctors section */}
-                            {showGroupControls && (
+                            {showDoctorFilter && (
                                 <>
                                     <div>
                                         <h4 className="text-sm font-semibold mb-3">{t('doctors')}</h4>
@@ -1713,7 +1766,7 @@ export default function AppointmentsPage() {
 
                             {/* Settings section */}
                             <div className="pt-2">
-                                <CalendarSettingsForm onSettingsChange={handleSettingsEditorChange} showTitle={true} />
+                                <CalendarSettingsForm onSettingsChange={handleSettingsEditorChange} showTitle={true} sedes={sedes} />
                             </div>
                         </div>
                     }
@@ -1791,7 +1844,7 @@ export default function AppointmentsPage() {
                     }
                     trailingActions={
                         breakpoint === 'desktop' ? (
-                            <CalendarSettingsPopover onSettingsChange={handleSettingsEditorChange} />
+                            <CalendarSettingsPopover onSettingsChange={handleSettingsEditorChange} sedes={sedes} />
                         ) : null
                     }
                 >
@@ -1867,8 +1920,7 @@ export default function AppointmentsPage() {
                                         </Command>
                                     </PopoverContent>
                                 </Popover>
-                                {showGroupControls && (
-                                    <>
+                                {showDoctorFilter && (
                                         <Popover>
                                             <PopoverTrigger asChild>
                                                 <Button variant="outline" className="flex items-center gap-2">
@@ -1900,6 +1952,8 @@ export default function AppointmentsPage() {
                                                 </Command>
                                             </PopoverContent>
                                         </Popover>
+                                )}
+                                {showGroupControls && (
                                         <Popover>
                                             <PopoverTrigger asChild>
                                                 <Button variant="outline" className="flex items-center gap-2">
@@ -1950,7 +2004,6 @@ export default function AppointmentsPage() {
                                                 </Command>
                                             </PopoverContent>
                                         </Popover>
-                                    </>
                                 )}
                             </div>
                         )}

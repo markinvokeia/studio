@@ -36,7 +36,7 @@ export function TimeSlotDividers({ keyPrefix }: { keyPrefix?: string }) {
   return (
     <>
       {timeSlots.map((time) => (
-        <div key={keyPrefix ? `${time}-${keyPrefix}` : time} className="time-slot" />
+        <div key={keyPrefix ? `${time}-${keyPrefix}` : time} className="time-slot time-slot-divider" />
       ))}
     </>
   );

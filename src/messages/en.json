@@ -535,6 +535,15 @@
     "settings": {
       "title": "Calendar Settings",
       "defaultView": "Default view",
+      "hourHeight": "Hour height",
+      "hourHeightOption": "{px} px",
+      "sede": "Branch",
+      "allSedes": "All branches",
+      "eventLabel": "Appointment label",
+      "eventLabelOptions": {
+        "time_patient_notes": "Time - Patient - (Notes)",
+        "patient_treatment_time": "Patient - Treatment - Time"
+      },
       "groupBy": "Group by",
       "checkAvailability": "Check availability",
       "filterDoctorsByService": "Filter doctors by service",
@@ -590,6 +599,8 @@
       "allCalendars": "Select Calendar",
       "endTime": "End Time",
       "duration": "Duration",
+      "durationMinutes": "Duration (minutes)",
+      "durationMinutesPlaceholder": "e.g. 20",
       "descriptionLabel": "Description",
       "cancelAppointmentDescription": "Are you sure you want to cancel the appointment?",
       "close": "Close",
@@ -760,6 +771,7 @@
   "AppointmentPanel": {
     "openPatient": "View patient",
     "openDoctor": "View doctor",
+    "noDoctor": "No doctor assigned",
     "openQuote": "View quote",
     "servicesLabel": "Services",
     "servicesCount": "{count, plural, one {# service} other {# services}}",

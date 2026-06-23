@@ -714,6 +714,12 @@ export type CalendarSettings = {
   grouped_by: string;
   check_availability: boolean;
   filter_doctors_by_service: boolean;
+  /** Height in px of one hour slot in day/week views. */
+  hour_height?: number;
+  /** How each appointment's label is composed. See EVENT_LABEL_FORMATS. */
+  event_label_format?: string;
+  /** Default branch (sede) id to show. Empty string = all branches. */
+  default_sede?: string;
 };
 
 export type Sede = {

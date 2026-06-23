@@ -7,6 +7,9 @@ export type CalendarBreakpoint = 'mobile' | 'tablet' | 'desktop';
 export interface CalendarEvent {
   id: string;
   title: string;
+  /** Pre-composed display label shown on the event block. When set, renderers
+   *  show this instead of `title` + a separate time (the time is part of it). */
+  label?: string;
   start: Date | string;
   end: Date | string;
   color?: string;
@@ -41,6 +44,8 @@ export interface CalendarProps {
   onEventClick: (event: any) => void;
   view?: CalendarView;
   defaultView?: CalendarView;
+  /** Height in px of one hour slot in the day/week time grid. Defaults to HOUR_SLOT_HEIGHT. */
+  hourSlotHeight?: number;
   onViewChange?: (view: CalendarView) => void;
   groupBy?: CalendarGroupBy;
   groupingColumns?: CalendarGroupingColumn[];

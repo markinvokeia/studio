@@ -193,6 +193,12 @@
 .day-view-scroll-content {
   display: flex;
   flex-direction: column;
+  /* Must grow to the full content height (not shrink to the viewport) so it
+     stays the containing block for the sticky day header across the whole
+     scroll range. Without this it collapses to the visible height and the
+     header un-sticks once you scroll past one viewport (visible at tall
+     hour-slot heights). */
+  flex-shrink: 0;
   min-height: 100%;
   min-width: 100%;
   padding-right: 12px;
@@ -360,7 +366,7 @@
 }
 
 .time-slot {
-  height: 60px;
+  height: var(--hour-slot-height, 60px);
   /* 1 hour */
   border-bottom: 1px solid hsl(var(--border) / 0.5);
   position: relative;
@@ -368,6 +374,27 @@
 
 .time-slot:last-child {
   border-bottom: none;
+}
+
+/* Quarter-hour subdivisions inside grid columns: a stronger line at the
+   half-hour (30 min) and fainter lines at the quarters (15 / 45 min), so
+   appointments can be read at 15-minute precision. */
+.time-slot-divider {
+  background-image:
+    repeating-linear-gradient(
+      to bottom,
+      hsl(var(--border) / 0.55) 0,
+      hsl(var(--border) / 0.55) 1px,
+      transparent 1px,
+      transparent calc(var(--hour-slot-height, 60px) / 2)
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      hsl(var(--border) / 0.32) 0,
+      hsl(var(--border) / 0.32) 1px,
+      transparent 1px,
+      transparent calc(var(--hour-slot-height, 60px) / 4)
+    );
 }
 
 .time-slot-label {
@@ -437,8 +464,12 @@
 .event-day-title {
   font-weight: 600;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /* Wrap onto multiple lines so the title can flow downward whenever the event
+     has vertical room (long appointments, narrow overlapping columns). The
+     event block's overflow:hidden clips it to the available height. */
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
 }
 
 .event-day-time {
@@ -460,6 +491,8 @@
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
+  /* Short events stay on a single line */
+  white-space: nowrap;
 }
 
 .event-in-day-view-compact .event-day-time {

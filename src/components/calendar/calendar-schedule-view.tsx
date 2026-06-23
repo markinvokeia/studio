@@ -1,5 +1,7 @@
 'use client';
 
+import React from 'react';
+
 import type { Locale } from 'date-fns';
 import { format, parseISO } from 'date-fns';
 import { BellRing, CheckCircle2, Clock, Stethoscope, FileText } from 'lucide-react';
@@ -72,10 +74,32 @@ export function CalendarScheduleView({
   const sortedDates = Object.keys(groupedEvents).sort();
   const isMobile = breakpoint === 'mobile';
 
+  // Auto-scroll so today (or the next upcoming day) sits at the top, instead of
+  // always landing on the first day of the month. Re-runs when the set of dates
+  // changes (mount, async data load, month navigation).
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const datesKey = sortedDates.join(',');
+  React.useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const scrollToToday = () => {
+      const todayStr = format(new Date(), 'yyyy-MM-dd');
+      const target = sortedDates.find((d) => d >= todayStr);
+      if (!target) return;
+      const el = container.querySelector<HTMLElement>(`[data-date="${target}"]`);
+      if (!el) return;
+      container.scrollTop += el.getBoundingClientRect().top - container.getBoundingClientRect().top;
+    };
+    scrollToToday();
+    // Re-align after web fonts load, since text reflow can shift the target.
+    document.fonts?.ready.then(scrollToToday).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [datesKey]);
+
   return (
-    <div className="overflow-y-auto p-4">
+    <div ref={containerRef} className="overflow-y-auto p-4">
       {sortedDates.map((date) => (
-        <div key={date} className="mb-4">
+        <div key={date} data-date={date} className="mb-4">
           <h3 className="font-bold text-lg mb-2">
             {format(parseISO(date), 'EEEE, MMMM d, yyyy', { locale: dateLocale })}
           </h3>
@@ -94,6 +118,7 @@ export function CalendarScheduleView({
               return (
               <div
                 key={event.id}
+                title={event.label ?? event.title}
                 data-testid="calendar-schedule-event"
                 className={cn(
                   'p-2 rounded-md cursor-pointer',
@@ -117,7 +142,7 @@ export function CalendarScheduleView({
                       <div className="flex items-center gap-1.5 text-sm font-semibold">
                         <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                         <span className={cn('truncate flex-1', reminderIsDone && 'text-muted-foreground line-through')}>
-                          {event.title}
+                          {event.label ?? event.title}
                         </span>
                         {isReminder ? (
                           <span
@@ -129,10 +154,12 @@ export function CalendarScheduleView({
                           </span>
                         ) : status && <StatusBadge status={status} cancellationReason={cancellationReason} />}
                       </div>
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums">
-                        <Clock className="h-3 w-3 shrink-0" />
-                        {formatEventTime(event.start, dateLocale)}
-                      </div>
+                      {!event.label && (
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums">
+                          <Clock className="h-3 w-3 shrink-0" />
+                          {formatEventTime(event.start, dateLocale)}
+                        </div>
+                      )}
                       {event.data?.doctorName && (
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate">
                           <Stethoscope className="h-3 w-3 shrink-0" />
@@ -153,18 +180,26 @@ export function CalendarScheduleView({
                         <ReminderIcon className="h-3 w-3" strokeWidth={2.5} />
                       </span>
                     ) : status && <StatusBadge status={status} cancellationReason={cancellationReason} />}
-                    <div className="flex items-center gap-2 w-28 text-sm font-semibold">
-                      <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                      <div
-                        className="h-2 w-2 rounded-full shrink-0"
-                        style={{ backgroundColor: event.color || 'hsl(var(--primary))' }}
-                      />
-                      {formatEventTime(event.start, dateLocale)}
-                    </div>
+                    {!event.label && (
+                      <div className="flex items-center gap-2 w-28 text-sm font-semibold">
+                        <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        <div
+                          className="h-2 w-2 rounded-full shrink-0"
+                          style={{ backgroundColor: event.color || 'hsl(var(--primary))' }}
+                        />
+                        {formatEventTime(event.start, dateLocale)}
+                      </div>
+                    )}
                     <div className="flex items-center gap-1.5 flex-1 text-sm min-w-0">
+                      {event.label && (
+                        <span
+                          className="h-2 w-2 rounded-full shrink-0"
+                          style={{ backgroundColor: event.color || 'hsl(var(--primary))' }}
+                        />
+                      )}
                       <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                       <span className={cn('truncate', reminderIsDone && 'text-muted-foreground line-through')}>
-                        {event.title}
+                        {event.label ?? event.title}
                       </span>
                     </div>
                     {event.data?.doctorName && (

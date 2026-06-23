@@ -30,6 +30,7 @@ interface CalendarDayViewProps {
   onEventColorChange: (data: any, colorId: string) => void;
   onEventContextMenu?: (data: any) => React.ReactNode;
   onSlotClick?: CalendarSlotClickHandler;
+  hourSlotHeight?: number;
 }
 
 export function CalendarDayView({
@@ -44,20 +45,21 @@ export function CalendarDayView({
   onEventColorChange,
   onEventContextMenu,
   onSlotClick,
+  hourSlotHeight = HOUR_SLOT_HEIGHT,
 }: CalendarDayViewProps) {
   const startDay = view === 'week' ? startOfWeek(currentDate, { weekStartsOn: 1 }) : currentDate;
   const days = Array.from({ length: numDays }, (_, i) => addDays(startDay, i));
   const timeSlots = generateTimeSlots();
 
-  const currentTimePosition = (currentTime.getHours() + currentTime.getMinutes() / 60) * 60;
+  const currentTimePosition = (currentTime.getHours() + currentTime.getMinutes() / 60) * hourSlotHeight;
   const showTimeIndicator = days.some((day) => isSameDay(day, currentTime));
 
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
   React.useLayoutEffect(() => {
     if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop = DEFAULT_SCROLL_HOUR * HOUR_SLOT_HEIGHT;
+      scrollContainerRef.current.scrollTop = DEFAULT_SCROLL_HOUR * hourSlotHeight;
     }
-  }, []);
+  }, [hourSlotHeight]);
 
   const handleSlotClick = (day: Date, e: React.MouseEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
@@ -66,8 +68,8 @@ export function CalendarDayView({
     if (onSlotClick) {
       const rect = e.currentTarget.getBoundingClientRect();
       const y = e.clientY - rect.top;
-      const hour = Math.floor(y / 60);
-      const minute = Math.floor((y % 60) / 15) * 15;
+      const hour = Math.floor(y / hourSlotHeight);
+      const minute = Math.floor((y % hourSlotHeight) / (hourSlotHeight / 4)) * 15;
       const clickedDate = set(day, { hours: hour, minutes: minute, seconds: 0, milliseconds: 0 });
       onSlotClick(clickedDate);
     }
@@ -92,7 +94,7 @@ export function CalendarDayView({
             ))}
           </div>
         </div>
-        <div className="day-view-body" style={{ '--num-days': days.length } as any}>
+        <div className="day-view-body" style={{ '--num-days': days.length, '--hour-slot-height': `${hourSlotHeight}px` } as any}>
           <CalendarTimeColumn />
           {days.map((day) => (
             <div
@@ -105,7 +107,7 @@ export function CalendarDayView({
                 <CalendarEventDay
                   key={event.id}
                   event={event}
-                  style={getEventStyle(event)}
+                  style={getEventStyle(event, hourSlotHeight)}
                   dateLocale={dateLocale}
                   onEventClick={onEventClick}
                   onEventColorChange={onEventColorChange}
