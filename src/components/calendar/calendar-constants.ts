@@ -25,7 +25,7 @@ export const MOBILE_MAX_WEEK_DAYS = 3;
 export const TABLET_MAX_RESOURCE_COLS = 3;
 
 /** Minimum width in px for a grouped resource column */
-export const GROUPED_COLUMN_MIN_WIDTH = 140;
+export const GROUPED_COLUMN_MIN_WIDTH = 280;
 
 /** Gap between grouped day blocks in rem */
 export const GROUPED_DAY_GAP = 1.6;

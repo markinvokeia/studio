@@ -57,7 +57,7 @@ export function CalendarDayViewGrouped({
 
   const columns = groupingColumns;
   const isTablet = breakpoint === 'tablet';
-  const groupedColumnMinWidth = isTablet ? 180 : GROUPED_COLUMN_MIN_WIDTH;
+  const groupedColumnMinWidth = isTablet ? 360 : GROUPED_COLUMN_MIN_WIDTH;
   const groupedDayGap = 1.6;
   // On tablet, cap visible columns to avoid excessive horizontal overflow
   const effectiveColCount = isTablet ? Math.min(columns.length, TABLET_MAX_RESOURCE_COLS) : columns.length;
