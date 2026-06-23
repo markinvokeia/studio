@@ -541,7 +541,7 @@ export function AppointmentPanel({
                     icon={Clock}
                     label={tColumns('time')}
                     value={`${appointment.time}${endTime ? ` → ${endTime}` : ''}`}
-                    detail={durationHHmm ?? undefined}
+                    detail={durationHHmm ? `${tPanel('duration')}: ${durationHHmm}` : undefined}
                   />
                   <DetailRow
                     icon={MapPin}

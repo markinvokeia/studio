@@ -595,21 +595,46 @@ export function AppointmentFormDialog({
         }
     }, [calculatedEndTime, editingAppointment]);
 
-    const derivedDuration = React.useMemo(() => {
+    // Current appointment duration in minutes (derived from start/end). Allows 0
+    // (end == start); a save-time validation blocks zero-length appointments.
+    const derivedDurationMinutes = React.useMemo(() => {
         const { date, time, endTime } = appointment;
         if (!date || !time || !endTime) return '';
         try {
             const start = parse(`${date} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
             const end = parse(`${date} ${endTime}`, 'yyyy-MM-dd HH:mm', new Date());
-            if (!isValid(start) || !isValid(end) || end <= start) return '';
-            const diffMins = differenceInMinutes(end, start);
-            const hours = Math.floor(diffMins / 60);
-            const mins = diffMins % 60;
-            return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+            if (!isValid(start) || !isValid(end) || end < start) return '';
+            return String(differenceInMinutes(end, start));
         } catch {
             return '';
         }
     }, [appointment.date, appointment.time, appointment.endTime]);
+
+    // Local state for the duration input so the user can type/clear it freely. It
+    // syncs from the derived value whenever the field is not being edited.
+    const [durationInput, setDurationInput] = React.useState('');
+    const durationFocusedRef = React.useRef(false);
+    React.useEffect(() => {
+        if (!durationFocusedRef.current) setDurationInput(derivedDurationMinutes);
+    }, [derivedDurationMinutes]);
+
+    // When the user types a duration in minutes, recompute the end time from the
+    // start time + duration. Empty/0 -> end equals start.
+    const handleDurationMinutesChange = (raw: string) => {
+        setHasBeenEdited(true);
+        setDurationInput(raw);
+        if (!appointment.date || !appointment.time) return;
+        const start = parse(`${appointment.date} ${appointment.time}`, 'yyyy-MM-dd HH:mm', new Date());
+        if (!isValid(start)) return;
+        const minutes = raw.trim() === '' ? 0 : parseInt(raw, 10);
+        if (Number.isNaN(minutes) || minutes < 0) return;
+        setAppointment(prev => ({ ...prev, endTime: format(addMinutes(start, minutes), 'HH:mm') }));
+    };
+
+    const handleDurationBlur = () => {
+        durationFocusedRef.current = false;
+        setDurationInput(derivedDurationMinutes || '0');
+    };
 
 
     const handleSave = async () => {
@@ -1365,12 +1390,21 @@ export function AppointmentFormDialog({
                                     <Label htmlFor="endTime">{t('createDialog.endTime')}</Label>
                                     <Input id="endTime" type="time" value={appointment.endTime} onChange={e => { setHasBeenEdited(true); setAppointment(prev => ({ ...prev, endTime: e.target.value })); }} />
                                 </div>
-                                {derivedDuration && (
-                                    <div className="space-y-2">
-                                        <Label>{t('createDialog.duration')}</Label>
-                                        <p className="flex h-9 items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground">{derivedDuration}</p>
-                                    </div>
-                                )}
+                                <div className="space-y-2">
+                                    <Label htmlFor="durationMinutes">{t('createDialog.durationMinutes')}</Label>
+                                    <Input
+                                        id="durationMinutes"
+                                        type="number"
+                                        min={0}
+                                        step={5}
+                                        inputMode="numeric"
+                                        placeholder={t('createDialog.durationMinutesPlaceholder')}
+                                        value={durationInput}
+                                        onFocus={() => { durationFocusedRef.current = true; }}
+                                        onChange={e => handleDurationMinutesChange(e.target.value)}
+                                        onBlur={handleDurationBlur}
+                                    />
+                                </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="notes">{t('createDialog.notes')}</Label>
                                     <Textarea id="notes" value={appointment.notes} onChange={e => { setHasBeenEdited(true); setAppointment(prev => ({ ...prev, notes: e.target.value })); }} />

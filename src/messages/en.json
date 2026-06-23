@@ -599,6 +599,8 @@
       "allCalendars": "Select Calendar",
       "endTime": "End Time",
       "duration": "Duration",
+      "durationMinutes": "Duration (minutes)",
+      "durationMinutesPlaceholder": "e.g. 20",
       "descriptionLabel": "Description",
       "cancelAppointmentDescription": "Are you sure you want to cancel the appointment?",
       "close": "Close",
