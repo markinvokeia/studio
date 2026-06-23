@@ -193,6 +193,12 @@
 .day-view-scroll-content {
   display: flex;
   flex-direction: column;
+  /* Must grow to the full content height (not shrink to the viewport) so it
+     stays the containing block for the sticky day header across the whole
+     scroll range. Without this it collapses to the visible height and the
+     header un-sticks once you scroll past one viewport (visible at tall
+     hour-slot heights). */
+  flex-shrink: 0;
   min-height: 100%;
   min-width: 100%;
   padding-right: 12px;

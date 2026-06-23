@@ -1,5 +1,7 @@
 'use client';
 
+import React from 'react';
+
 import type { Locale } from 'date-fns';
 import { format, parseISO } from 'date-fns';
 import { BellRing, CheckCircle2, Clock, Stethoscope, FileText } from 'lucide-react';
@@ -72,10 +74,32 @@ export function CalendarScheduleView({
   const sortedDates = Object.keys(groupedEvents).sort();
   const isMobile = breakpoint === 'mobile';
 
+  // Auto-scroll so today (or the next upcoming day) sits at the top, instead of
+  // always landing on the first day of the month. Re-runs when the set of dates
+  // changes (mount, async data load, month navigation).
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const datesKey = sortedDates.join(',');
+  React.useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const scrollToToday = () => {
+      const todayStr = format(new Date(), 'yyyy-MM-dd');
+      const target = sortedDates.find((d) => d >= todayStr);
+      if (!target) return;
+      const el = container.querySelector<HTMLElement>(`[data-date="${target}"]`);
+      if (!el) return;
+      container.scrollTop += el.getBoundingClientRect().top - container.getBoundingClientRect().top;
+    };
+    scrollToToday();
+    // Re-align after web fonts load, since text reflow can shift the target.
+    document.fonts?.ready.then(scrollToToday).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [datesKey]);
+
   return (
-    <div className="overflow-y-auto p-4">
+    <div ref={containerRef} className="overflow-y-auto p-4">
       {sortedDates.map((date) => (
-        <div key={date} className="mb-4">
+        <div key={date} data-date={date} className="mb-4">
           <h3 className="font-bold text-lg mb-2">
             {format(parseISO(date), 'EEEE, MMMM d, yyyy', { locale: dateLocale })}
           </h3>
