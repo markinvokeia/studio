@@ -118,6 +118,7 @@ export function CalendarScheduleView({
               return (
               <div
                 key={event.id}
+                title={event.label ?? event.title}
                 data-testid="calendar-schedule-event"
                 className={cn(
                   'p-2 rounded-md cursor-pointer',

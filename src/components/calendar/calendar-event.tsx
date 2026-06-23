@@ -58,6 +58,7 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
       <ContextMenuTrigger>
         <div
           data-testid="calendar-event"
+          title={event.label ?? event.title}
           className={cn(
             'event',
             isCancelled && 'event-cancelled',

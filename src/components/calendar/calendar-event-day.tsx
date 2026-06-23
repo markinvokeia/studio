@@ -61,6 +61,7 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
       <ContextMenuTrigger>
         <div
           data-testid="calendar-day-event"
+          title={event.label ?? event.title}
           className={cn(
             'event-in-day-view',
             isShortEvent && 'event-in-day-view-compact',
