@@ -877,6 +877,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
         is_sales: isSales,
       });
       toast({ title: editingItem ? 'Ítem actualizado' : 'Ítem agregado' });
+      itemForm.reset();
       setIsItemDialogOpen(false);
       loadItems(selectedInvoice.id);
       onDataChange?.();
@@ -1231,8 +1232,8 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 <TabsContent value="items" className="flex-1 overflow-hidden mt-0 px-4 py-3 data-[state=active]:flex data-[state=active]:flex-col data-[state=inactive]:hidden">
                   <DataTable
                     columns={getInvoiceItemColumns(selectedInvoice.currency, {
-                      canUpdateItem,
-                      canDeleteItem,
+                      canUpdateItem: isDraft && canUpdateItem,
+                      canDeleteItem: isDraft && canDeleteItem,
                       onEdit: (item) => { setEditingItem(item); setIsItemDialogOpen(true); loadServices(); },
                       onDelete: (item) => setDeletingItem(item),
                     })}

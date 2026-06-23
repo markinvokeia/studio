@@ -186,12 +186,12 @@ const DialogContent = React.forwardRef<
           )}
           onPointerDownOutside={(event) => {
             event.preventDefault()
-          }}
-          onInteractOutside={(event) => {
-            event.preventDefault()
             if (confirmOnClose) {
               attemptClose()
             }
+          }}
+          onInteractOutside={(event) => {
+            event.preventDefault()
           }}
           onEscapeKeyDown={(event) => {
             if (shouldConfirm) {
