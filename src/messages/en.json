@@ -2474,6 +2474,7 @@
     "openingDenominations": "Opening Denominations",
     "closingDenominations": "Closing Denominations",
     "noDetails": "No details available",
+    "movementsLimitWarning": "Showing the first 100 movements. There may be additional records not displayed.",
     "movements": "Movements",
     "reconciliationSummary": "Reconciliation Summary",
     "reconciliation": {

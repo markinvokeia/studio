@@ -1,6 +1,7 @@
 
 'use client';
 
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -18,7 +19,7 @@ import { cn, formatDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
 import { ColumnDef, ColumnFiltersState, PaginationState, VisibilityState } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
-import { ChevronDown, Printer, RefreshCw, History } from 'lucide-react';
+import { AlertTriangle, ChevronDown, Printer, RefreshCw, History } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import * as React from 'react';
@@ -242,8 +243,16 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
                     {t('movements')}
                     <ChevronDown className="h-4 w-4" />
                 </CollapsibleTrigger>
-                <CollapsibleContent className="pt-4">
-                    <DataTable columns={movementColumns} data={movements} />
+                <CollapsibleContent className="pt-4 space-y-3">
+                    {movements.length >= 100 && (
+                        <Alert variant="default" className="border-yellow-400 bg-yellow-50 text-yellow-800 dark:border-yellow-600 dark:bg-yellow-950 dark:text-yellow-300">
+                            <AlertTriangle className="h-4 w-4 !text-yellow-600 dark:!text-yellow-400" />
+                            <AlertDescription>
+                                {t('movementsLimitWarning')}
+                            </AlertDescription>
+                        </Alert>
+                    )}
+                    <DataTable columns={movementColumns} data={movements} initialPageSize={100} />
                 </CollapsibleContent>
             </Collapsible>
 

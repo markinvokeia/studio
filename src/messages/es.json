@@ -2451,6 +2451,7 @@
     "openingDenominations": "Denominaciones de Apertura",
     "closingDenominations": "Denominaciones de Cierre",
     "noDetails": "Sin detalles disponibles",
+    "movementsLimitWarning": "Se están mostrando los primeros 100 movimientos. Es posible que existan más registros no visibles.",
     "movements": "Movimientos",
     "reconciliationSummary": "Resumen de Conciliación",
     "reconciliation": {
