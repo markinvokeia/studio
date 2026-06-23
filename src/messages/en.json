@@ -537,6 +537,11 @@
       "defaultView": "Default view",
       "hourHeight": "Hour height",
       "hourHeightOption": "{px} px",
+      "eventLabel": "Appointment label",
+      "eventLabelOptions": {
+        "time_patient_notes": "Time - Patient - (Notes)",
+        "patient_treatment_time": "Patient - Treatment - Time"
+      },
       "groupBy": "Group by",
       "checkAvailability": "Check availability",
       "filterDoctorsByService": "Filter doctors by service",
@@ -762,6 +767,7 @@
   "AppointmentPanel": {
     "openPatient": "View patient",
     "openDoctor": "View doctor",
+    "noDoctor": "No doctor assigned",
     "openQuote": "View quote",
     "servicesLabel": "Services",
     "servicesCount": "{count, plural, one {# service} other {# services}}",

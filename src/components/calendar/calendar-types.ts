@@ -7,6 +7,9 @@ export type CalendarBreakpoint = 'mobile' | 'tablet' | 'desktop';
 export interface CalendarEvent {
   id: string;
   title: string;
+  /** Pre-composed display label shown on the event block. When set, renderers
+   *  show this instead of `title` + a separate time (the time is part of it). */
+  label?: string;
   start: Date | string;
   end: Date | string;
   color?: string;

@@ -537,6 +537,11 @@
       "defaultView": "Vista predeterminada",
       "hourHeight": "Altura de la hora",
       "hourHeightOption": "{px} px",
+      "eventLabel": "Formato de la cita",
+      "eventLabelOptions": {
+        "time_patient_notes": "Hora - Paciente - (Notas)",
+        "patient_treatment_time": "Paciente - Tratamiento - Hora"
+      },
       "groupBy": "Agrupar por",
       "checkAvailability": "Verificar disponibilidad",
       "filterDoctorsByService": "Filtrar doctores por servicio",
@@ -762,6 +767,7 @@
   "AppointmentPanel": {
     "openPatient": "Ver paciente",
     "openDoctor": "Ver doctor",
+    "noDoctor": "Sin Doctor asignado",
     "openQuote": "Ver presupuesto",
     "servicesLabel": "Servicios",
     "servicesCount": "{count, plural, one {# servicio} other {# servicios}}",

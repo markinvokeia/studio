@@ -716,6 +716,8 @@ export type CalendarSettings = {
   filter_doctors_by_service: boolean;
   /** Height in px of one hour slot in day/week views. */
   hour_height?: number;
+  /** How each appointment's label is composed. See EVENT_LABEL_FORMATS. */
+  event_label_format?: string;
 };
 
 export type Sede = {

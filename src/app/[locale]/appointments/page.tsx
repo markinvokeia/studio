@@ -7,7 +7,7 @@ import Calendar, { type CalendarGroupBy, type CalendarGroupingColumn, type Calen
 import { CalendarSettingsPopover } from '@/components/calendar/calendar-settings-popover';
 import { CalendarSettingsForm } from '@/components/calendar/calendar-settings-form';
 import { getCalendarSettings } from '@/components/calendar/calendar-settings-utils';
-import { HOUR_SLOT_HEIGHT } from '@/components/calendar/calendar-constants';
+import { DEFAULT_EVENT_LABEL_FORMAT, HOUR_SLOT_HEIGHT } from '@/components/calendar/calendar-constants';
 import { ReminderFormDialog, type ReminderFormValues } from '@/components/appointments/ReminderFormDialog';
 import { ReminderPanel } from '@/components/appointments/ReminderPanel';
 import { useCalendarBreakpoint } from '@/hooks/use-calendar-breakpoint';
@@ -188,6 +188,21 @@ const GOOGLE_CALENDAR_COLORS = [
 ];
 
 const colorMap = new Map(GOOGLE_CALENDAR_COLORS.map(c => [c.id, c.hex]));
+
+// Builds the label shown on each appointment by concatenating its fields
+// according to the configured format (see EVENT_LABEL_FORMATS).
+function buildEventLabel(appt: Appointment, start: Date, fmt: string): string {
+    const time = format(start, 'HH:mm');
+    const patient = (appt.patientName || '').trim();
+    const treatment = (appt.summary || appt.service_name || '').trim();
+    const notes = (appt.notes || '').trim();
+    if (fmt === 'patient_treatment_time') {
+        return [patient, treatment, time].filter(Boolean).join(' ');
+    }
+    // default: time_patient_notes -> "HH:mm Patient (Notes)"
+    const base = [time, patient].filter(Boolean).join(' ');
+    return notes ? `${base} (${notes})` : base;
+}
 
 const SETTINGS_VIEW_MAP: Record<string, CalendarView> = {
     day: 'day',
@@ -504,6 +519,7 @@ export default function AppointmentsPage() {
     const [groupBy, setGroupBy] = React.useState<CalendarGroupBy>('none');
     const [currentView, setCurrentView] = React.useState<CalendarView>('month');
     const [hourSlotHeight, setHourSlotHeight] = React.useState<number>(HOUR_SLOT_HEIGHT);
+    const [eventLabelFormat, setEventLabelFormat] = React.useState<string>(DEFAULT_EVENT_LABEL_FORMAT);
 
     const handleSettingsChange = React.useCallback((settings: CalendarSettings) => {
         const mappedView = SETTINGS_VIEW_MAP[settings.default_view] || 'month';
@@ -512,12 +528,14 @@ export default function AppointmentsPage() {
         setCheckCalendarAvailability(settings.check_availability);
         setCheckDoctorAvailability(settings.filter_doctors_by_service);
         setHourSlotHeight(settings.hour_height ?? HOUR_SLOT_HEIGHT);
+        setEventLabelFormat(settings.event_label_format ?? DEFAULT_EVENT_LABEL_FORMAT);
     }, []);
 
     const handleSettingsEditorChange = React.useCallback((settings: CalendarSettings) => {
         setCheckCalendarAvailability(settings.check_availability);
         setCheckDoctorAvailability(settings.filter_doctors_by_service);
         setHourSlotHeight(settings.hour_height ?? HOUR_SLOT_HEIGHT);
+        setEventLabelFormat(settings.event_label_format ?? DEFAULT_EVENT_LABEL_FORMAT);
     }, []);
 
     // Clinic Session Dialog state
@@ -1371,6 +1389,7 @@ export default function AppointmentsPage() {
                 return {
                     id: String(appt.id),
                     title: appt.summary || appt.service_name || 'Cita',
+                    label: buildEventLabel(appt, start, eventLabelFormat),
                     start,
                     end,
                     doctorGroupId: appt.doctorId || undefined,
@@ -1404,7 +1423,7 @@ export default function AppointmentsPage() {
             .filter((event): event is NonNullable<typeof event> => event !== null);
 
         return [...events, ...reminderEvents];
-    }, [appointments, calendars, reminders, selectedCalendarIds, selectedDoctorIds]);
+    }, [appointments, calendars, reminders, selectedCalendarIds, selectedDoctorIds, eventLabelFormat]);
 
 
     const handleSelectDoctor = React.useCallback((doctorId: string, checked: boolean) => {

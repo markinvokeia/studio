@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { CalendarSettings } from '@/lib/types';
 import api from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
-import { HOUR_SLOT_HEIGHT, HOUR_SLOT_HEIGHT_OPTIONS } from './calendar-constants';
+import { DEFAULT_EVENT_LABEL_FORMAT, EVENT_LABEL_FORMATS, HOUR_SLOT_HEIGHT, HOUR_SLOT_HEIGHT_OPTIONS } from './calendar-constants';
 import { DEFAULT_CALENDAR_SETTINGS, normalizeCalendarSettings } from './calendar-settings-utils';
 
 interface CalendarSettingsFormProps {
@@ -123,6 +123,28 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
               {HOUR_SLOT_HEIGHT_OPTIONS.map((opt) => (
                 <SelectItem key={opt} value={String(opt)} className="text-xs">
                   {t('hourHeightOption', { px: opt })}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="event-label-format" className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
+            {t('eventLabel')}
+          </Label>
+          <Select
+            value={settings.event_label_format ?? DEFAULT_EVENT_LABEL_FORMAT}
+            onValueChange={(val) => updateSettings({ event_label_format: val })}
+            disabled={isLoading}
+          >
+            <SelectTrigger id="event-label-format" className="h-9 text-xs bg-card border-border/50 shadow-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {EVENT_LABEL_FORMATS.map((opt) => (
+                <SelectItem key={opt} value={opt} className="text-xs">
+                  {t(`eventLabelOptions.${opt}`)}
                 </SelectItem>
               ))}
             </SelectContent>

@@ -464,8 +464,12 @@
 .event-day-title {
   font-weight: 600;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /* Wrap onto multiple lines so the title can flow downward whenever the event
+     has vertical room (long appointments, narrow overlapping columns). The
+     event block's overflow:hidden clips it to the available height. */
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
 }
 
 .event-day-time {
@@ -487,6 +491,8 @@
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
+  /* Short events stay on a single line */
+  white-space: nowrap;
 }
 
 .event-in-day-view-compact .event-day-time {

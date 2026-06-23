@@ -141,7 +141,7 @@ export function CalendarScheduleView({
                       <div className="flex items-center gap-1.5 text-sm font-semibold">
                         <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                         <span className={cn('truncate flex-1', reminderIsDone && 'text-muted-foreground line-through')}>
-                          {event.title}
+                          {event.label ?? event.title}
                         </span>
                         {isReminder ? (
                           <span
@@ -153,10 +153,12 @@ export function CalendarScheduleView({
                           </span>
                         ) : status && <StatusBadge status={status} cancellationReason={cancellationReason} />}
                       </div>
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums">
-                        <Clock className="h-3 w-3 shrink-0" />
-                        {formatEventTime(event.start, dateLocale)}
-                      </div>
+                      {!event.label && (
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums">
+                          <Clock className="h-3 w-3 shrink-0" />
+                          {formatEventTime(event.start, dateLocale)}
+                        </div>
+                      )}
                       {event.data?.doctorName && (
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate">
                           <Stethoscope className="h-3 w-3 shrink-0" />
@@ -177,18 +179,26 @@ export function CalendarScheduleView({
                         <ReminderIcon className="h-3 w-3" strokeWidth={2.5} />
                       </span>
                     ) : status && <StatusBadge status={status} cancellationReason={cancellationReason} />}
-                    <div className="flex items-center gap-2 w-28 text-sm font-semibold">
-                      <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                      <div
-                        className="h-2 w-2 rounded-full shrink-0"
-                        style={{ backgroundColor: event.color || 'hsl(var(--primary))' }}
-                      />
-                      {formatEventTime(event.start, dateLocale)}
-                    </div>
+                    {!event.label && (
+                      <div className="flex items-center gap-2 w-28 text-sm font-semibold">
+                        <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        <div
+                          className="h-2 w-2 rounded-full shrink-0"
+                          style={{ backgroundColor: event.color || 'hsl(var(--primary))' }}
+                        />
+                        {formatEventTime(event.start, dateLocale)}
+                      </div>
+                    )}
                     <div className="flex items-center gap-1.5 flex-1 text-sm min-w-0">
+                      {event.label && (
+                        <span
+                          className="h-2 w-2 rounded-full shrink-0"
+                          style={{ backgroundColor: event.color || 'hsl(var(--primary))' }}
+                        />
+                      )}
                       <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                       <span className={cn('truncate', reminderIsDone && 'text-muted-foreground line-through')}>
-                        {event.title}
+                        {event.label ?? event.title}
                       </span>
                     </div>
                     {event.data?.doctorName && (

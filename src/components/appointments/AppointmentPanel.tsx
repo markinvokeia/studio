@@ -551,7 +551,7 @@ export function AppointmentPanel({
                   <DetailRow
                     icon={UserSquare}
                     label={tColumns('doctor')}
-                    value={appointment.doctorName || '-'}
+                    value={appointment.doctorId ? (appointment.doctorName || tPanel('noDoctor')) : tPanel('noDoctor')}
                     detail={doctorColor ? (
                       <span className="inline-flex items-center gap-1.5">
                         <span className="h-2 w-2 rounded-full" style={{ backgroundColor: doctorColor }} />
