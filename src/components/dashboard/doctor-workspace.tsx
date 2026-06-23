@@ -1708,7 +1708,6 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
           prefillData={clinicSessionPrefillData}
           prefillTreatments={clinicSessionPrefillTreatments}
           existingSession={linkedSession ?? undefined}
-          hideNextAppointmentDate
           lockDoctor
         />
       )}
