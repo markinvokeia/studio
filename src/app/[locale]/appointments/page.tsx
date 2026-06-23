@@ -1418,6 +1418,9 @@ export default function AppointmentsPage() {
     }, []);
 
     const showGroupControls = ['day', '2-day', '3-day', 'week'].includes(currentView);
+    // The doctors filter also applies to the agenda (schedule) view, even though
+    // that view does not support column grouping.
+    const showDoctorFilter = showGroupControls || currentView === 'schedule';
 
     const handleSelectCalendar = React.useCallback((calendarId: string, checked: boolean) => {
         setSelectedCalendarIds(prev => {
@@ -1671,7 +1674,7 @@ export default function AppointmentsPage() {
                             <Separator />
 
                             {/* Doctors section */}
-                            {showGroupControls && (
+                            {showDoctorFilter && (
                                 <>
                                     <div>
                                         <h4 className="text-sm font-semibold mb-3">{t('doctors')}</h4>
@@ -1872,8 +1875,7 @@ export default function AppointmentsPage() {
                                         </Command>
                                     </PopoverContent>
                                 </Popover>
-                                {showGroupControls && (
-                                    <>
+                                {showDoctorFilter && (
                                         <Popover>
                                             <PopoverTrigger asChild>
                                                 <Button variant="outline" className="flex items-center gap-2">
@@ -1905,6 +1907,8 @@ export default function AppointmentsPage() {
                                                 </Command>
                                             </PopoverContent>
                                         </Popover>
+                                )}
+                                {showGroupControls && (
                                         <Popover>
                                             <PopoverTrigger asChild>
                                                 <Button variant="outline" className="flex items-center gap-2">
@@ -1955,7 +1959,6 @@ export default function AppointmentsPage() {
                                                 </Command>
                                             </PopoverContent>
                                         </Popover>
-                                    </>
                                 )}
                             </div>
                         )}
