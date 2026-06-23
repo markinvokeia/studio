@@ -718,6 +718,8 @@ export type CalendarSettings = {
   hour_height?: number;
   /** How each appointment's label is composed. See EVENT_LABEL_FORMATS. */
   event_label_format?: string;
+  /** Default branch (sede) id to show. Empty string = all branches. */
+  default_sede?: string;
 };
 
 export type Sede = {

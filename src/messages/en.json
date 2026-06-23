@@ -537,6 +537,8 @@
       "defaultView": "Default view",
       "hourHeight": "Hour height",
       "hourHeightOption": "{px} px",
+      "sede": "Branch",
+      "allSedes": "All branches",
       "eventLabel": "Appointment label",
       "eventLabelOptions": {
         "time_patient_notes": "Time - Patient - (Notes)",

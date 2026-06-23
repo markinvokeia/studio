@@ -520,6 +520,7 @@ export default function AppointmentsPage() {
     const [currentView, setCurrentView] = React.useState<CalendarView>('month');
     const [hourSlotHeight, setHourSlotHeight] = React.useState<number>(HOUR_SLOT_HEIGHT);
     const [eventLabelFormat, setEventLabelFormat] = React.useState<string>(DEFAULT_EVENT_LABEL_FORMAT);
+    const [defaultSede, setDefaultSede] = React.useState<string>('');
 
     const handleSettingsChange = React.useCallback((settings: CalendarSettings) => {
         const mappedView = SETTINGS_VIEW_MAP[settings.default_view] || 'month';
@@ -529,6 +530,7 @@ export default function AppointmentsPage() {
         setCheckDoctorAvailability(settings.filter_doctors_by_service);
         setHourSlotHeight(settings.hour_height ?? HOUR_SLOT_HEIGHT);
         setEventLabelFormat(settings.event_label_format ?? DEFAULT_EVENT_LABEL_FORMAT);
+        setDefaultSede(settings.default_sede ?? '');
     }, []);
 
     const handleSettingsEditorChange = React.useCallback((settings: CalendarSettings) => {
@@ -536,7 +538,22 @@ export default function AppointmentsPage() {
         setCheckDoctorAvailability(settings.filter_doctors_by_service);
         setHourSlotHeight(settings.hour_height ?? HOUR_SLOT_HEIGHT);
         setEventLabelFormat(settings.event_label_format ?? DEFAULT_EVENT_LABEL_FORMAT);
+        setDefaultSede(settings.default_sede ?? '');
     }, []);
+
+    // Tracks the last applied default sede so the effect below only re-scopes the
+    // calendars when the sede actually changes (preserving manual selections).
+    const prevSedeRef = React.useRef<string>('');
+    React.useEffect(() => {
+        if (calendars.length === 0) return;
+        if (prevSedeRef.current === defaultSede) return;
+        prevSedeRef.current = defaultSede;
+        const ids = (defaultSede
+            ? calendars.filter(c => String(c.sede_id) === String(defaultSede))
+            : calendars
+        ).map(c => c.id).filter(Boolean);
+        setSelectedCalendarIds(ids);
+    }, [defaultSede, calendars]);
 
     // Clinic Session Dialog state
     const [isClinicSessionOpen, setIsClinicSessionOpen] = React.useState(false);
@@ -1206,7 +1223,16 @@ export default function AppointmentsPage() {
         setDoctorServiceMap(serviceMap);
 
         setSelectedDoctorIds(fetchedDoctors.map(d => d.id));
-        setSelectedCalendarIds(fetchedCalendars.map(c => c.id).filter(id => id));
+        // Honor the configured default branch (sede): show only its calendars by
+        // default. Empty = all. prevSedeRef keeps the live-change effect from
+        // re-applying this same selection right after load.
+        const defaultSedeId = fetchedSettings.default_sede || '';
+        const initialCalendarIds = (defaultSedeId
+            ? fetchedCalendars.filter(c => String(c.sede_id) === String(defaultSedeId))
+            : fetchedCalendars
+        ).map(c => c.id).filter(id => id);
+        prevSedeRef.current = defaultSedeId;
+        setSelectedCalendarIds(initialCalendarIds);
         setIsDataLoading(false);
     }, [handleSettingsChange]);
 
@@ -1740,7 +1766,7 @@ export default function AppointmentsPage() {
 
                             {/* Settings section */}
                             <div className="pt-2">
-                                <CalendarSettingsForm onSettingsChange={handleSettingsEditorChange} showTitle={true} />
+                                <CalendarSettingsForm onSettingsChange={handleSettingsEditorChange} showTitle={true} sedes={sedes} />
                             </div>
                         </div>
                     }
@@ -1818,7 +1844,7 @@ export default function AppointmentsPage() {
                     }
                     trailingActions={
                         breakpoint === 'desktop' ? (
-                            <CalendarSettingsPopover onSettingsChange={handleSettingsEditorChange} />
+                            <CalendarSettingsPopover onSettingsChange={handleSettingsEditorChange} sedes={sedes} />
                         ) : null
                     }
                 >

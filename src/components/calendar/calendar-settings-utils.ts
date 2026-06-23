@@ -10,6 +10,7 @@ export const DEFAULT_CALENDAR_SETTINGS: CalendarSettings = {
   filter_doctors_by_service: false,
   hour_height: HOUR_SLOT_HEIGHT,
   event_label_format: DEFAULT_EVENT_LABEL_FORMAT,
+  default_sede: '',
 };
 
 const normalizeBoolean = (value: unknown, defaultValue: boolean): boolean => {
@@ -56,6 +57,7 @@ export const normalizeCalendarSettings = (data: unknown): CalendarSettings | nul
       (EVENT_LABEL_FORMATS as readonly string[]).includes(rawSettings.event_label_format)
         ? rawSettings.event_label_format
         : DEFAULT_CALENDAR_SETTINGS.event_label_format,
+    default_sede: typeof rawSettings.default_sede === 'string' ? rawSettings.default_sede : DEFAULT_CALENDAR_SETTINGS.default_sede,
   };
 };
 

@@ -537,6 +537,8 @@
       "defaultView": "Vista predeterminada",
       "hourHeight": "Altura de la hora",
       "hourHeightOption": "{px} px",
+      "sede": "Sede",
+      "allSedes": "Todas las sedes",
       "eventLabel": "Formato de la cita",
       "eventLabelOptions": {
         "time_patient_notes": "Hora - Paciente - (Notas)",
