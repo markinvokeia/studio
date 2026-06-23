@@ -17,6 +17,7 @@ import {
   MapPin,
   StickyNote,
   Stethoscope,
+  Trash2,
   UserSquare,
   Zap,
 } from 'lucide-react';
@@ -25,6 +26,16 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Dialog,
   DialogBody,
@@ -148,6 +159,8 @@ interface AppointmentPanelProps {
   isLoadingQuoteInfo: boolean;
   doctorColor?: string;
   onEdit?: (appointment: Appointment) => void;
+  /** Soft-deletes the appointment (status → 'deleted') and removes it from the calendar. */
+  onDelete?: (appointment: Appointment) => void;
   onCancel?: (appointment: Appointment) => void;
   onOpenClinicSession?: (appointment: Appointment) => void;
   onReschedule?: (appointment: Appointment) => void;
@@ -172,6 +185,7 @@ export function AppointmentPanel({
   isLoadingQuoteInfo,
   doctorColor,
   onEdit,
+  onDelete,
   onOpenClinicSession,
   onReschedule,
   onStatusChange,
@@ -195,6 +209,7 @@ export function AppointmentPanel({
   const [isQuoteSheetOpen, setIsQuoteSheetOpen] = React.useState(false);
   const [selectedService, setSelectedService] = React.useState<NonNullable<Appointment['services']>[number] | null>(null);
   const [isBillingLoading, setIsBillingLoading] = React.useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = React.useState(false);
   const canOpenDetailDeepLinks = useCanOpenDetailDeepLinks();
   const { open: openBillingWizard } = useBillingWizard();
 
@@ -834,11 +849,45 @@ export function AppointmentPanel({
                     {tColumns('edit')}
                   </Button>
                 )}
+                {onDelete && (
+                  <Button
+                    size="lg"
+                    variant="destructive"
+                    className="flex-1 gap-2 sm:flex-none"
+                    onClick={() => setIsDeleteConfirmOpen(true)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    {tPanel('delete')}
+                  </Button>
+                )}
               </div>
             </div>
           </div>
         </div>
       </ResizableSheet>
+
+      {/* Delete confirmation — soft-deletes the appointment (removed from the system) */}
+      <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{tPanel('deleteTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{tPanel('deleteDescription')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tPanel('deleteCancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                setIsDeleteConfirmOpen(false);
+                if (appointment) onDelete?.(appointment);
+                onOpenChange(false);
+              }}
+            >
+              {tPanel('deleteConfirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {appointment.patientId && (
         <PatientDetailSheet
