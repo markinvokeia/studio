@@ -715,7 +715,9 @@
       "errorCreatingSessionDesc": "An error occurred while saving the clinic session.",
       "patientIdRequired": "Patient ID is required",
       "errorLoadingQuoteItems": "Error loading treatments",
-      "errorLoadingQuoteItemsDesc": "Could not load treatments from quote."
+      "errorLoadingQuoteItemsDesc": "Could not load treatments from quote.",
+      "appointmentDeleted": "Appointment deleted",
+      "appointmentDeletedDesc": "The appointment was removed from the system."
     },
     "linkedSession": "Linked Clinic Session",
     "noLinkedSession": "No clinic session linked to this appointment",
@@ -817,7 +819,11 @@
     "treatmentPlanGoTo": "Go to plan",
     "noNotes": "No notes",
     "delete": "Delete",
-    "deleteBlocked": "Only appointments in scheduled, pending, cancelled or no-show state can be deleted."
+    "deleteBlocked": "Only appointments in scheduled, pending, cancelled or no-show state can be deleted.",
+    "deleteTitle": "Delete appointment",
+    "deleteDescription": "This will completely remove the appointment from the system and it can no longer be viewed. Do you want to continue?",
+    "deleteConfirm": "Yes, delete",
+    "deleteCancel": "Cancel"
   },
   "AppointmentReschedule": {
     "action": "Reschedule",

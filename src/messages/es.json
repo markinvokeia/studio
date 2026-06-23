@@ -715,7 +715,9 @@
       "errorCreatingSessionDesc": "Ocurrió un error al guardar la sesión clínica.",
       "patientIdRequired": "Se requiere el ID del paciente",
       "errorLoadingQuoteItems": "Error al cargar tratamientos",
-      "errorLoadingQuoteItemsDesc": "No se pudieron cargar los tratamientos del presupuesto."
+      "errorLoadingQuoteItemsDesc": "No se pudieron cargar los tratamientos del presupuesto.",
+      "appointmentDeleted": "Cita eliminada",
+      "appointmentDeletedDesc": "La cita fue eliminada del sistema."
     },
     "linkedSession": "Sesión Clínica Enlazada",
     "noLinkedSession": "No hay sesión clínica enlazada a esta cita",
@@ -817,7 +819,11 @@
     "treatmentPlanGoTo": "Ir al plan",
     "noNotes": "Sin notas",
     "delete": "Eliminar",
-    "deleteBlocked": "Sólo se puede eliminar una cita en estado programada, pendiente, cancelada o no asistió."
+    "deleteBlocked": "Sólo se puede eliminar una cita en estado programada, pendiente, cancelada o no asistió.",
+    "deleteTitle": "Eliminar cita",
+    "deleteDescription": "Esta acción eliminará la cita por completo del sistema y no se podrá volver a ver. ¿Deseas continuar?",
+    "deleteConfirm": "Sí, eliminar",
+    "deleteCancel": "Cancelar"
   },
   "AppointmentReschedule": {
     "action": "Reagendar",

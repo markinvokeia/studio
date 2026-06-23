@@ -1114,6 +1114,33 @@ export default function AppointmentsPage() {
         [updateStatus],
     );
 
+    // Soft-delete: flips the appointment's status to 'deleted' on the backend
+    // (excluded from future fetches) and removes it from the calendar immediately.
+    const handleSoftDelete = React.useCallback(async (appointment: Appointment) => {
+        try {
+            const response = await api.post(API_ROUTES.APPOINTMENTS_UPDATE_STATUS, {
+                appointment_id: appointment.id,
+                google_event_id: appointment.googleEventId,
+                calendar_source_id: appointment.calendar_source_id,
+                status: 'deleted',
+            });
+            const result = Array.isArray(response) ? response[0] : response;
+            if (result?.error || (result?.code && result.code >= 400)) {
+                throw new Error(result?.message || 'Failed to delete appointment');
+            }
+            setAppointments((prev) => prev.filter((a) => a.id !== appointment.id));
+            setIsDetailViewOpen(false);
+            setSelectedAppointment(null);
+            toast({ title: tToasts('appointmentDeleted'), description: tToasts('appointmentDeletedDesc') });
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: tToasts('error'),
+                description: error instanceof Error ? error.message : tToasts('failedDelete'),
+            });
+        }
+    }, [toast, tToasts]);
+
     const [pendingCancellation, setPendingCancellation] = React.useState<Appointment | null>(null);
     const handleRequestCustomCancellation = React.useCallback((appointment: Appointment) => {
         setPendingCancellation(appointment);
@@ -1235,7 +1262,8 @@ export default function AppointmentsPage() {
             getAppointments(selectedCalendarIds, fetchRange.start, fetchRange.end, calendars, services, doctors, t),
             getReminders(fetchRange.start, fetchRange.end, user?.id),
         ]);
-        setAppointments(fetchedAppointments);
+        // Defensive: exclude soft-deleted appointments (the backend also excludes them).
+        setAppointments(fetchedAppointments.filter((a) => (a.status as string) !== 'deleted'));
         setReminders(fetchedReminders);
 
         setIsRefreshing(false);
@@ -2561,6 +2589,7 @@ export default function AppointmentsPage() {
                 isLoadingQuoteInfo={isLoadingQuoteInfo}
                 doctorColor={selectedAppointment?.doctorId ? (doctors.find(d => d.id === selectedAppointment.doctorId)?.color ?? undefined) : undefined}
                 onEdit={handleEdit}
+                onDelete={handleSoftDelete}
                 onCancel={handleCancel}
                 onReschedule={handleReschedule}
                 onOpenClinicSession={handleOpenClinicSession}
