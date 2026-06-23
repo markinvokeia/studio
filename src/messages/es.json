@@ -2009,6 +2009,7 @@
       "currency": "Moneda",
       "type": "Tipo",
       "paidAmount": "Monto Pagado",
+      "remainingAmount": "Saldo Pendiente",
       "invoiceRef": "Referencia de Factura",
       "docNo": "Doc No.",
       "orderDocNo": "Orden Doc No.",

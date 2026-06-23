@@ -2009,6 +2009,7 @@
       "currency": "Currency",
       "type": "Type",
       "paidAmount": "Paid Amount",
+      "remainingAmount": "Remaining Balance",
       "invoiceRef": "Invoice Reference",
       "docNo": "Doc No.",
       "orderDocNo": "Order Doc No.",

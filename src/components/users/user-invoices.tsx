@@ -156,6 +156,32 @@ const getColumns = (t: (key: string) => string, tStatus: (key: string) => string
     },
   },
   {
+    accessorKey: 'paid_amount',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('InvoicesPage.columns.paidAmount')} />,
+    cell: ({ row }) => {
+      const amount = row.original.paid_amount != null ? Number(row.original.paid_amount) : 0;
+      return (
+        <div className="font-medium tabular-nums">
+          {new Intl.NumberFormat('en-US', { style: 'currency', currency: row.original.currency || 'USD' }).format(amount)}
+        </div>
+      );
+    },
+  },
+  {
+    id: 'remaining_amount',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('InvoicesPage.columns.remainingAmount')} />,
+    cell: ({ row }) => {
+      const total = Number(row.original.total) || 0;
+      const paid = row.original.paid_amount != null ? Number(row.original.paid_amount) : 0;
+      const remaining = Math.max(0, total - paid);
+      return (
+        <div className="font-medium tabular-nums">
+          {new Intl.NumberFormat('en-US', { style: 'currency', currency: row.original.currency || 'USD' }).format(remaining)}
+        </div>
+      );
+    },
+  },
+  {
     accessorKey: 'due_date',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('InvoicesPage.columns.dueDate')} />,
     cell: ({ row }) => {
@@ -1046,6 +1072,8 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
               total: t('InvoicesPage.columns.total'),
               status: t('InvoicesPage.columns.status'),
               payment_status: t('InvoicesPage.columns.payment'),
+              paid_amount: t('InvoicesPage.columns.paidAmount'),
+              remaining_amount: t('InvoicesPage.columns.remainingAmount'),
               due_date: t('InvoicesPage.columns.dueDate'),
               createdAt: t('InvoicesPage.columns.createdAt'),
               external_id: t('InvoicesPage.columns.externalId'),
