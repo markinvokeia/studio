@@ -58,6 +58,8 @@ export interface CalendarProps {
   extraActions?: React.ReactNode;
   /** Content rendered in the header after the Today button */
   extraActionsAfterToday?: React.ReactNode;
+  /** Primary action (e.g. Create) — kept on the first header row, after Refresh */
+  primaryActions?: React.ReactNode;
   /** Content rendered at the end of the desktop header actions */
   trailingActions?: React.ReactNode;
   /** IDs of appointments currently selected in bulk mode */
@@ -66,4 +68,14 @@ export interface CalendarProps {
   onToggleAppointmentSelect?: (id: string) => void;
   /** When provided, replaces the entire desktop header with this content */
   bulkModeContent?: React.ReactNode;
+  /** Free-slot ("Huecos") highlights to overlay on the current view */
+  gaps?: import('./calendar-gaps').Gap[];
+  /** Key of the currently selected gap (emphasized) */
+  selectedGapKey?: string;
+  /** Called when a gap highlight is clicked */
+  onGapClick?: (gap: import('./calendar-gaps').Gap) => void;
+  /** Non-working time bands ("No disponible") to overlay on grid views */
+  blockedRanges?: import('./calendar-gaps').BlockedRange[];
+  /** Days (yyyy-MM-dd) fully closed — month cells become non-clickable */
+  blockedFullDays?: Set<string>;
 }

@@ -17,16 +17,28 @@ interface CalendarSettingsFormProps {
   showTitle?: boolean;
   /** Branches available to pick as the default calendar scope. */
   sedes?: Sede[];
+  /** When provided, the parent owns the settings: the form uses this value and
+   *  does NOT fetch on mount (prevents reloads from clobbering live toggles). */
+  value?: CalendarSettings;
 }
 
 const ALL_SEDES_VALUE = '__all__';
 
-export function CalendarSettingsForm({ onSettingsChange, className, showTitle = false, sedes = [] }: CalendarSettingsFormProps) {
+export function CalendarSettingsForm({ onSettingsChange, className, showTitle = false, sedes = [], value }: CalendarSettingsFormProps) {
   const t = useTranslations('AppointmentsPage.settings');
-  const [settings, setSettings] = React.useState<CalendarSettings>(DEFAULT_CALENDAR_SETTINGS);
-  const [isLoading, setIsLoading] = React.useState(true);
+  const controlled = value !== undefined;
+  const [settings, setSettings] = React.useState<CalendarSettings>(value ?? DEFAULT_CALENDAR_SETTINGS);
+  const [isLoading, setIsLoading] = React.useState(!controlled);
+
+  // Keep the local copy in sync with the parent-owned value (controlled mode).
+  React.useEffect(() => {
+    if (value !== undefined) setSettings(value);
+  }, [value]);
 
   React.useEffect(() => {
+    // When the parent supplies the settings, don't fetch (avoids overwriting a
+    // freshly-toggled preference whenever this form remounts).
+    if (controlled) return;
     let isMounted = true;
 
     const loadSettings = async () => {
@@ -59,7 +71,7 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
     return () => {
       isMounted = false;
     };
-  }, [onSettingsChange]);
+  }, [onSettingsChange, controlled]);
 
   const updateSettings = async (updates: Partial<CalendarSettings>) => {
     const newSettings = { ...settings, ...updates };
@@ -211,6 +223,19 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
           id="check-availability" 
           checked={settings.check_availability} 
           onCheckedChange={(checked) => updateSettings({ check_availability: checked })}
+          disabled={isLoading}
+          className="scale-90"
+        />
+      </div>
+
+      <div className="flex items-center justify-between pt-4 px-1">
+        <Label htmlFor="block-unavailable" className="text-xs font-medium cursor-pointer">
+          {t('blockUnavailable')}
+        </Label>
+        <Switch
+          id="block-unavailable"
+          checked={settings.block_unavailable ?? false}
+          onCheckedChange={(checked) => updateSettings({ block_unavailable: checked })}
           disabled={isLoading}
           className="scale-90"
         />

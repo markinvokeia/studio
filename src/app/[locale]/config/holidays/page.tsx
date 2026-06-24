@@ -22,7 +22,7 @@ import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { ClinicException } from '@/lib/types';
-import { formatHolidayDate } from '@/lib/utils';
+import { formatHolidayDate, formatDate } from '@/lib/utils';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
@@ -49,7 +49,8 @@ async function getHolidays(): Promise<ClinicException[]> {
         const holidaysData = Array.isArray(data) ? data : (data.exceptions || data.data || data.result || []);
         return holidaysData.map((apiHoliday: any) => ({
             id: apiHoliday.id ? String(apiHoliday.id) : `ex_${Math.random().toString(36).substr(2, 9)}`,
-            date: formatHolidayDate(apiHoliday.date),
+            // Keep an ISO (yyyy-MM-dd) date; format only at display time.
+            date: formatDate(apiHoliday.date),
             is_open: apiHoliday.is_open,
             start_time: apiHoliday.start_time ?? '',
             end_time: apiHoliday.end_time ?? '',
@@ -64,7 +65,8 @@ async function getHolidays(): Promise<ClinicException[]> {
 function mapHolidayToFormValues(holiday: ClinicException): HolidayFormValues {
     return {
         id: holiday.id,
-        date: formatHolidayDate(holiday.date),
+        // Already ISO (yyyy-MM-dd) — the DatePicker/Input handle this directly.
+        date: holiday.date,
         is_open: holiday.is_open,
         start_time: holiday.start_time ?? '',
         end_time: holiday.end_time ?? '',
@@ -213,7 +215,7 @@ export default function HolidaysPage() {
     };
 
     const columns: ColumnDef<ClinicException>[] = [
-        { accessorKey: 'date', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.date')} /> },
+        { accessorKey: 'date', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.date')} />, cell: ({ row }) => formatHolidayDate(row.original.date) },
         {
             accessorKey: 'is_open',
             header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
@@ -260,7 +262,7 @@ export default function HolidaysPage() {
                     )}
                     renderCard={(row: ClinicException, _isSelected: boolean) => (
                         <DataCard isSelected={_isSelected}
-                            title={row.date}
+                            title={formatHolidayDate(row.date)}
                             subtitle={row.notes || (row.is_open ? `${row.start_time} – ${row.end_time}` : '')}
                             badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.is_open ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{row.is_open ? 'Abierto' : 'Cerrado'}</span>}
                             showArrow
@@ -278,7 +280,7 @@ export default function HolidaysPage() {
                     <div className="flex items-center gap-2 min-w-0">
                         <div className="header-icon-circle flex-none"><CalendarOff className="h-5 w-5" /></div>
                         <CardTitle className="text-base lg:text-lg truncate">
-                            {isEditing && !selectedHoliday ? t('createDialog.title') : (selectedHoliday?.date ?? '')}
+                            {isEditing && !selectedHoliday ? t('createDialog.title') : (selectedHoliday ? formatHolidayDate(selectedHoliday.date) : '')}
                         </CardTitle>
                     </div>
                     <div className="flex items-center gap-1 ml-2 flex-none">
@@ -318,7 +320,7 @@ export default function HolidaysPage() {
                             <FormItem>
                                 <FormLabel>{t('createDialog.date')}</FormLabel>
                                 <FormControl>
-                                    {isEditing ? <DatePickerInput value={field.value ?? ''} onChange={field.onChange} /> : <Input {...field} value={field.value ?? ''} disabled />}
+                                    {isEditing ? <DatePickerInput value={field.value ?? ''} onChange={field.onChange} /> : <Input {...field} value={formatHolidayDate(field.value)} disabled />}
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>

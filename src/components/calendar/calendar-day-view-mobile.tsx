@@ -25,6 +25,9 @@ import {
 } from './calendar-utils';
 import { CalendarEventDay } from './calendar-event-day';
 import { TimeSlotDividers } from './calendar-time-column';
+import { CalendarGapOverlays } from './calendar-gap-overlay';
+import { CalendarBlockedOverlays } from './calendar-blocked-overlay';
+import type { Gap, BlockedRange } from './calendar-gaps';
 
 interface CalendarDayViewMobileProps {
   currentDate: Date;
@@ -40,6 +43,10 @@ interface CalendarDayViewMobileProps {
   onEventContextMenu?: (data: any) => React.ReactNode;
   onSlotClick?: CalendarSlotClickHandler;
   hourSlotHeight?: number;
+  gaps?: Gap[];
+  selectedGapKey?: string;
+  onGapClick?: (gap: Gap) => void;
+  blockedRanges?: BlockedRange[];
 }
 
 export function CalendarDayViewMobile({
@@ -56,6 +63,10 @@ export function CalendarDayViewMobile({
   onEventContextMenu,
   onSlotClick,
   hourSlotHeight = HOUR_SLOT_HEIGHT,
+  gaps,
+  selectedGapKey,
+  onGapClick,
+  blockedRanges,
 }: CalendarDayViewMobileProps) {
   const [api, setApi] = React.useState<CarouselApi>();
   const [activeIndex, setActiveIndex] = React.useState(0);
@@ -297,6 +308,20 @@ export function CalendarDayViewMobile({
                         onClick={(e) => handleSlotClick(slide.day, slide.column, e)}
                       >
                         <TimeSlotDividers keyPrefix={slide.key} />
+                        <CalendarBlockedOverlays
+                          ranges={blockedRanges}
+                          dayKey={format(slide.day, 'yyyy-MM-dd')}
+                          groupValue={slide.column?.value}
+                          hourSlotHeight={hourSlotHeight}
+                        />
+                        <CalendarGapOverlays
+                          gaps={gaps}
+                          dayKey={format(slide.day, 'yyyy-MM-dd')}
+                          groupValue={slide.column?.value}
+                          hourSlotHeight={hourSlotHeight}
+                          selectedGapKey={selectedGapKey}
+                          onGapClick={onGapClick}
+                        />
                         {slide.events.map((event) => (
                           <CalendarEventDay
                             key={event.id}

@@ -52,10 +52,16 @@ const Calendar: React.FC<CalendarProps> = ({
   filterSheet,
   extraActions,
   extraActionsAfterToday,
+  primaryActions,
   trailingActions,
   selectedAppointmentIds,
   onToggleAppointmentSelect,
   bulkModeContent,
+  gaps,
+  selectedGapKey,
+  onGapClick,
+  blockedRanges,
+  blockedFullDays,
 }) => {
   const t = useTranslations('Calendar');
   const breakpoint = useCalendarBreakpoint();
@@ -91,6 +97,11 @@ const Calendar: React.FC<CalendarProps> = ({
     onSlotClick,
   };
 
+  // Free-slot ("Huecos") overlay props, threaded into the grid/month views.
+  const gapProps = { gaps, selectedGapKey, onGapClick };
+  // Out-of-office blocking overlay props (independent of Huecos).
+  const blockProps = { blockedRanges };
+
   const renderView = () => {
     switch (effectiveView) {
       case 'day':
@@ -113,6 +124,8 @@ const Calendar: React.FC<CalendarProps> = ({
               dateLocale={dateLocale}
               hourSlotHeight={hourSlotHeight}
               {...eventHandlers}
+              {...gapProps}
+              {...blockProps}
             />
           );
         }
@@ -133,6 +146,8 @@ const Calendar: React.FC<CalendarProps> = ({
               breakpoint={breakpoint}
               hourSlotHeight={hourSlotHeight}
               {...eventHandlers}
+              {...gapProps}
+              {...blockProps}
             />
           );
         }
@@ -148,6 +163,8 @@ const Calendar: React.FC<CalendarProps> = ({
             timeZoneLabel={timeZoneLabel}
             hourSlotHeight={hourSlotHeight}
             {...eventHandlers}
+            {...gapProps}
+            {...blockProps}
           />
         );
       }
@@ -184,6 +201,8 @@ const Calendar: React.FC<CalendarProps> = ({
               collapsed={monthCollapsed}
               onEventClick={onEventClick}
               onSlotClick={onSlotClick}
+              {...gapProps}
+              blockedFullDays={blockedFullDays}
             />
           );
         }
@@ -197,6 +216,8 @@ const Calendar: React.FC<CalendarProps> = ({
             onEventColorChange={onEventColorChange}
             onEventContextMenu={onEventContextMenu}
             onSlotClick={onSlotClick}
+            {...gapProps}
+            blockedFullDays={blockedFullDays}
           />
         );
     }
@@ -216,6 +237,7 @@ const Calendar: React.FC<CalendarProps> = ({
         onOpenFilterSheet={isCompactHeader && filterSheet ? () => setFilterSheetOpen(true) : undefined}
         extraActions={extraActions}
         extraActionsAfterToday={extraActionsAfterToday}
+        primaryActions={primaryActions}
         trailingActions={trailingActions}
         bulkModeContent={bulkModeContent}
       >

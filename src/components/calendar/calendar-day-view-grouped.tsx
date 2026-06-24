@@ -16,6 +16,9 @@ import {
 import { CalendarEventDay } from './calendar-event-day';
 import { CalendarTimeColumn } from './calendar-time-column';
 import { TimeSlotDividers } from './calendar-time-column';
+import { CalendarGapOverlays } from './calendar-gap-overlay';
+import { CalendarBlockedOverlays } from './calendar-blocked-overlay';
+import type { Gap, BlockedRange } from './calendar-gaps';
 
 interface CalendarDayViewGroupedProps {
   currentDate: Date;
@@ -33,6 +36,10 @@ interface CalendarDayViewGroupedProps {
   onEventContextMenu?: (data: any) => React.ReactNode;
   onSlotClick?: CalendarSlotClickHandler;
   hourSlotHeight?: number;
+  gaps?: Gap[];
+  selectedGapKey?: string;
+  onGapClick?: (gap: Gap) => void;
+  blockedRanges?: BlockedRange[];
 }
 
 export function CalendarDayViewGrouped({
@@ -51,6 +58,10 @@ export function CalendarDayViewGrouped({
   onEventContextMenu,
   onSlotClick,
   hourSlotHeight = HOUR_SLOT_HEIGHT,
+  gaps,
+  selectedGapKey,
+  onGapClick,
+  blockedRanges,
 }: CalendarDayViewGroupedProps) {
   const startDay = view === 'week' ? startOfWeek(currentDate, { weekStartsOn: 1 }) : currentDate;
   const days = Array.from({ length: numDays }, (_, i) => addDays(startDay, i));
@@ -163,6 +174,20 @@ export function CalendarDayViewGrouped({
                     onClick={(e) => handleSlotClick(day, col, e)}
                   >
                     <TimeSlotDividers keyPrefix={col.id} />
+                    <CalendarBlockedOverlays
+                      ranges={blockedRanges}
+                      dayKey={format(day, 'yyyy-MM-dd')}
+                      groupValue={col.value}
+                      hourSlotHeight={hourSlotHeight}
+                    />
+                    <CalendarGapOverlays
+                      gaps={gaps}
+                      dayKey={format(day, 'yyyy-MM-dd')}
+                      groupValue={col.value}
+                      hourSlotHeight={hourSlotHeight}
+                      selectedGapKey={selectedGapKey}
+                      onGapClick={onGapClick}
+                    />
                     {eventsWithLayout.map((event) => (
                       <CalendarEventDay
                         key={event.id}
