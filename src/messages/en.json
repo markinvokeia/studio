@@ -5584,7 +5584,6 @@
       "sections": {
         "document": "Documents",
         "email": "Email",
-        "sms": "SMS",
         "whatsapp": "WhatsApp"
       },
       "tabs": {
@@ -5603,15 +5602,12 @@
         "email_payment": "Payment Receipt",
         "email_appointment_reminder": "Appointment Reminder",
         "email_appointment_confirmation": "Appointment Confirmation",
-        "email_cash_opening": "Cash Opening",
-        "email_cash_closing": "Cash Closing",
         "email_financial_summary": "Account Statement",
         "email_treatment_update": "Treatment Update",
         "email_password_reset": "Password Reset",
-        "sms_appointment_reminder": "Appointment Reminder",
-        "sms_appointment_confirmation": "Appointment Confirmation",
         "whatsapp_patient_general": "General message",
         "whatsapp_alert_followup": "Alert follow-up",
+        "whatsapp_appointment_reminder": "Appointment reminder",
         "whatsapp_treatment_interrupted": "Interrupted treatment"
       },
       "subject": "Subject",

@@ -1,11 +1,13 @@
 export type WhatsappTemplateType =
   | 'whatsapp_patient_general'
   | 'whatsapp_alert_followup'
+  | 'whatsapp_appointment_reminder'
   | 'whatsapp_treatment_interrupted';
 
 export const WHATSAPP_CODE_MAP: Record<WhatsappTemplateType, string> = {
-  whatsapp_patient_general:      'PATIENT_GENERAL_WHATSAPP',
-  whatsapp_alert_followup:       'ALERT_FOLLOWUP_WHATSAPP',
+  whatsapp_patient_general:       'PATIENT_GENERAL_WHATSAPP',
+  whatsapp_alert_followup:        'ALERT_FOLLOWUP_WHATSAPP',
+  whatsapp_appointment_reminder:  'APPOINTMENT_REMINDER_WHATSAPP',
   whatsapp_treatment_interrupted: 'TREATMENT_INTERRUPTED_WHATSAPP',
 };
 
@@ -21,6 +23,16 @@ export const WHATSAPP_TEMPLATE_DEFAULTS: Record<WhatsappTemplateType, string> = 
     '{{alert_summary}}',
     '',
     'Consultas: {{clinic_phone}}',
+  ].join('\n'),
+  whatsapp_appointment_reminder: [
+    'Hola {{patient_name}}, te recordamos tu próxima cita en *{{clinic_name}}*.',
+    '',
+    '📅 Fecha: {{appointment_date}}',
+    '🕐 Hora: {{appointment_time}}',
+    '👩‍⚕️ Doctor/a: {{doctor_name}}',
+    '📍 Lugar: {{location}}',
+    '',
+    'Si necesitás cancelar o reprogramar, contactanos: {{clinic_phone}}',
   ].join('\n'),
   whatsapp_treatment_interrupted: [
     'Hola {{patient_name}}, te contactamos desde *{{clinic_name}}*.',

@@ -1,9 +1,9 @@
 import type { PrintTemplateVariable } from './print-template-variables';
-import type { EmailTemplateType, SmsTemplateType } from './email-template-defaults';
+import type { EmailTemplateType } from './email-template-defaults';
 import type { WhatsappTemplateType } from './whatsapp-template-defaults';
 
 // Re-export so consumers only need one import
-export type { EmailTemplateType, SmsTemplateType, WhatsappTemplateType };
+export type { EmailTemplateType, WhatsappTemplateType };
 
 // ── Shared variable groups ─────────────────────────────────────────────────────
 
@@ -43,14 +43,6 @@ const PLAIN_CLINIC_VARS = CLINIC_VARS.filter(
   (v) => v.key !== '{{clinic_logo}}' && v.key !== '{{clinic_address}}'
 );
 const PLAIN_PATIENT_VARS = PATIENT_VARS.filter((v) => v.key !== '{{patient_email}}');
-
-const CASH_VARS: PrintTemplateVariable[] = [
-  { key: '{{session_id}}',      label: 'ID Sesión',       group: 'cash' as any },
-  { key: '{{cash_point_name}}', label: 'Punto de caja',   group: 'cash' as any },
-  { key: '{{user_name}}',       label: 'Usuario',          group: 'cash' as any },
-  { key: '{{opened_at}}',       label: 'Fecha apertura',  group: 'cash' as any },
-  { key: '{{closed_at}}',       label: 'Fecha cierre',    group: 'cash' as any },
-];
 
 const TREATMENT_STATUS_VARS: PrintTemplateVariable[] = [
   { key: '{{service_name}}',     label: 'Servicio',          group: 'treatment' as any },
@@ -124,17 +116,6 @@ export const EMAIL_TEMPLATE_VARIABLES: Record<EmailTemplateType, PrintTemplateVa
     ...PATIENT_VARS.filter((v) => v.key !== '{{patient_email}}'),
     ...ALERT_VARS,
   ],
-  email_cash_opening: [
-    ...PLAIN_CLINIC_VARS,
-    ...CASH_VARS.filter((v) => v.key !== '{{closed_at}}'),
-    { key: '{{opening_table}}', label: 'Tabla apertura', group: 'tables' },
-  ],
-  email_cash_closing: [
-    ...PLAIN_CLINIC_VARS,
-    ...CASH_VARS.filter((v) => v.key !== '{{opened_at}}'),
-    { key: '{{movements_table}}',  label: 'Tabla movimientos', group: 'tables' },
-    { key: '{{currencies_table}}', label: 'Tabla monedas',     group: 'tables' },
-  ],
   email_financial_summary: [
     ...CLINIC_VARS,
     ...PATIENT_VARS,
@@ -154,13 +135,9 @@ export const EMAIL_TEMPLATE_VARIABLES: Record<EmailTemplateType, PrintTemplateVa
   ],
 };
 
-export const SMS_TEMPLATE_VARIABLES: Record<SmsTemplateType, PrintTemplateVariable[]> = {
-  sms_appointment_reminder: [...PLAIN_CLINIC_VARS, ...PLAIN_PATIENT_VARS, ...APPOINTMENT_VARS],
-  sms_appointment_confirmation: [...PLAIN_CLINIC_VARS, ...PLAIN_PATIENT_VARS, ...APPOINTMENT_VARS],
-};
-
 export const WHATSAPP_TEMPLATE_VARIABLES: Record<WhatsappTemplateType, PrintTemplateVariable[]> = {
   whatsapp_patient_general:       [...PLAIN_CLINIC_VARS, ...PLAIN_PATIENT_VARS],
   whatsapp_alert_followup:        [...PLAIN_CLINIC_VARS, ...PLAIN_PATIENT_VARS, ...ALERT_VARS],
+  whatsapp_appointment_reminder:  [...PLAIN_CLINIC_VARS, ...PLAIN_PATIENT_VARS, ...APPOINTMENT_VARS],
   whatsapp_treatment_interrupted: [...PLAIN_CLINIC_VARS, ...PLAIN_PATIENT_VARS, ...TREATMENT_VARS],
 };

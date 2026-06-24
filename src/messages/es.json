@@ -5565,7 +5565,6 @@
       "sections": {
         "document": "Documentos",
         "email": "Email",
-        "sms": "SMS",
         "whatsapp": "WhatsApp"
       },
       "tabs": {
@@ -5584,15 +5583,12 @@
         "email_payment": "Recibo de Pago",
         "email_appointment_reminder": "Recordatorio de Cita",
         "email_appointment_confirmation": "Confirmación de Cita",
-        "email_cash_opening": "Apertura de Caja",
-        "email_cash_closing": "Cierre de Caja",
         "email_financial_summary": "Estado de Cuenta",
         "email_treatment_update": "Actualización de Tratamiento",
         "email_password_reset": "Restablecer Contraseña",
-        "sms_appointment_reminder": "Recordatorio de Cita",
-        "sms_appointment_confirmation": "Confirmación de Cita",
         "whatsapp_patient_general": "Mensaje general",
         "whatsapp_alert_followup": "Seguimiento de alerta",
+        "whatsapp_appointment_reminder": "Recordatorio de cita",
         "whatsapp_treatment_interrupted": "Tratamiento interrumpido"
       },
       "subject": "Asunto",

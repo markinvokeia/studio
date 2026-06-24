@@ -79,7 +79,16 @@ export function EmailComposerDialog({
   const [viewMode, setViewMode] = React.useState<ViewMode>('edit');
   const [sourceHtml, setSourceHtml] = React.useState('');
 
-  const editorRef = React.useRef<HTMLDivElement>(null);
+  const editorRef = React.useRef<HTMLDivElement | null>(null);
+  // editorMounted tracks when the contentEditable div actually enters the DOM.
+  // Radix Presence mounts dialog content one render cycle after `open` becomes true,
+  // so we need this state as a dep to re-run the pre-fill effect at the right time.
+  const [editorMounted, setEditorMounted] = React.useState(false);
+  const setEditorRef = React.useCallback((node: HTMLDivElement | null) => {
+    editorRef.current = node;
+    setEditorMounted(node !== null);
+  }, []);
+
   // Tracks whether the user has manually edited body/subject — only then do we stop auto-filling.
   // Using refs (not state) so the effects don't re-run just because the user typed.
   const bodyUserEdited = React.useRef(false);
@@ -96,16 +105,18 @@ export function EmailComposerDialog({
     ...templateVars,
   }), [clinic, recipientName, templateVars]);
 
-  // Pre-fill body — re-runs whenever templates or vars change, stops only if user edited manually.
+  // Pre-fill body — re-runs whenever templates, vars, or the editor element change.
+  // editorMounted is required as a dep: Radix Presence mounts the dialog content one render
+  // cycle after `open` becomes true, so the first effect run always sees editorRef.current=null.
   React.useEffect(() => {
-    if (!open || !editorRef.current || bodyUserEdited.current) return;
+    if (!open || !editorMounted || !editorRef.current || bodyUserEdited.current) return;
     const code = templateCode ?? 'PATIENT_GENERAL_EMAIL';
     const tpl = commTemplates[code];
     const rawBody = tpl?.body_html || tpl?.body_text || defaultBody || EMAIL_TEMPLATE_DEFAULTS.email_patient_general.body;
     const html = substituteTokens(rawBody, allVars);
     editorRef.current.innerHTML = html;
     editorRef.current.dataset.hasContent = html ? 'true' : '';
-  }, [open, commTemplates, allVars, templateCode, defaultBody]);
+  }, [open, editorMounted, commTemplates, allVars, templateCode, defaultBody]);
 
   // Pre-fill subject — re-runs whenever templates or vars change, stops only if user edited manually.
   React.useEffect(() => {
@@ -242,7 +253,7 @@ export function EmailComposerDialog({
           <div className="flex-1 overflow-y-auto px-4 py-2 min-h-0">
             {/* WYSIWYG — kept mounted so the ref stays valid */}
             <div
-              ref={editorRef}
+              ref={setEditorRef}
               contentEditable
               suppressContentEditableWarning
               onInput={() => {

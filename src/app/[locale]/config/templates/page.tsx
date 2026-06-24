@@ -23,27 +23,27 @@ import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
 import { PRINT_TEMPLATE_DEFAULTS } from '@/lib/print-template-defaults';
 import { PRINT_TEMPLATE_VARIABLES } from '@/lib/print-template-variables';
-import { EMAIL_TEMPLATE_DEFAULTS, SMS_TEMPLATE_DEFAULTS, EMAIL_CODE_MAP, SMS_CODE_MAP } from '@/lib/email-template-defaults';
-import { EMAIL_TEMPLATE_VARIABLES, SMS_TEMPLATE_VARIABLES, WHATSAPP_TEMPLATE_VARIABLES } from '@/lib/email-template-variables';
+import { EMAIL_TEMPLATE_DEFAULTS, EMAIL_CODE_MAP } from '@/lib/email-template-defaults';
+import { EMAIL_TEMPLATE_VARIABLES, WHATSAPP_TEMPLATE_VARIABLES } from '@/lib/email-template-variables';
 import { WHATSAPP_TEMPLATE_DEFAULTS, WHATSAPP_CODE_MAP } from '@/lib/whatsapp-template-defaults';
 import { invalidateCommTemplatesCache } from '@/hooks/useCommunicationTemplates';
 import { usePrintDocumentStore } from '@/stores/print-document-store';
 import type { PrintDocumentType } from '@/stores/print-document-store';
-import type { EmailTemplateType, SmsTemplateType } from '@/lib/email-template-defaults';
+import type { EmailTemplateType } from '@/lib/email-template-defaults';
 import type { WhatsappTemplateType } from '@/lib/whatsapp-template-defaults';
 import type { DocPrintTemplate, CommunicationTemplate } from '@/lib/types';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type EditorRef = Parameters<NonNullable<React.ComponentProps<typeof Editor>['onMount']>>[0];
-type TemplateSection = 'document' | 'email' | 'sms' | 'whatsapp';
-type AllTemplateType = PrintDocumentType | EmailTemplateType | SmsTemplateType | WhatsappTemplateType;
+type TemplateSection = 'document' | 'email' | 'whatsapp';
+type AllTemplateType = PrintDocumentType | EmailTemplateType | WhatsappTemplateType;
 
 const GROUP_ORDER: Array<'clinic' | 'document' | 'patient' | 'tables' | 'appointment' | 'alert' | 'treatment' | 'cash'> =
   ['clinic', 'document', 'patient', 'appointment', 'alert', 'treatment', 'cash', 'tables'];
 
 // Types that use a plain-text textarea instead of Monaco
-const PLAIN_TEXT_TYPES = new Set<string>(['sms_appointment_reminder', 'sms_appointment_confirmation', 'whatsapp_patient_general', 'whatsapp_alert_followup', 'whatsapp_treatment_interrupted', 'email_alert_followup']);
+const PLAIN_TEXT_TYPES = new Set<string>(['whatsapp_patient_general', 'whatsapp_alert_followup', 'whatsapp_appointment_reminder', 'whatsapp_treatment_interrupted']);
 function isPlainText(type: AllTemplateType) { return PLAIN_TEXT_TYPES.has(type as string); }
 
 // ── Section / item config ──────────────────────────────────────────────────────
@@ -77,19 +77,9 @@ const SECTION_GROUPS: SectionGroup[] = [
       { type: 'email_payment',                  labelKey: 'tabs.email_payment',                  Icon: Mail, section: 'email' },
       { type: 'email_appointment_reminder',     labelKey: 'tabs.email_appointment_reminder',     Icon: Mail, section: 'email' },
       { type: 'email_appointment_confirmation', labelKey: 'tabs.email_appointment_confirmation', Icon: Mail, section: 'email' },
-      { type: 'email_cash_opening',             labelKey: 'tabs.email_cash_opening',             Icon: Mail, section: 'email' },
-      { type: 'email_cash_closing',             labelKey: 'tabs.email_cash_closing',             Icon: Mail, section: 'email' },
       { type: 'email_financial_summary',        labelKey: 'tabs.email_financial_summary',        Icon: Mail, section: 'email' },
       { type: 'email_treatment_update',         labelKey: 'tabs.email_treatment_update',         Icon: Mail, section: 'email' },
       { type: 'email_password_reset',           labelKey: 'tabs.email_password_reset',           Icon: Mail, section: 'email' },
-    ],
-  },
-  {
-    section: 'sms',
-    headerKey: 'sections.sms',
-    items: [
-      { type: 'sms_appointment_reminder',     labelKey: 'tabs.sms_appointment_reminder',     Icon: MessageSquare, section: 'sms' },
-      { type: 'sms_appointment_confirmation', labelKey: 'tabs.sms_appointment_confirmation', Icon: MessageSquare, section: 'sms' },
     ],
   },
   {
@@ -98,6 +88,7 @@ const SECTION_GROUPS: SectionGroup[] = [
     items: [
       { type: 'whatsapp_patient_general',       labelKey: 'tabs.whatsapp_patient_general',       Icon: MessageSquare, section: 'whatsapp' },
       { type: 'whatsapp_alert_followup',        labelKey: 'tabs.whatsapp_alert_followup',        Icon: MessageSquare, section: 'whatsapp' },
+      { type: 'whatsapp_appointment_reminder',  labelKey: 'tabs.whatsapp_appointment_reminder',  Icon: MessageSquare, section: 'whatsapp' },
       { type: 'whatsapp_treatment_interrupted', labelKey: 'tabs.whatsapp_treatment_interrupted', Icon: MessageSquare, section: 'whatsapp' },
     ],
   },
@@ -105,11 +96,10 @@ const SECTION_GROUPS: SectionGroup[] = [
 
 const DOC_ITEMS      = SECTION_GROUPS[0].items;
 const EMAIL_ITEMS    = SECTION_GROUPS[1].items.filter((i) => !isPlainText(i.type));
-const WHATSAPP_ITEMS = SECTION_GROUPS[3].items;
+const WHATSAPP_ITEMS = SECTION_GROUPS[2].items;
 
 function getSectionOf(type: AllTemplateType): TemplateSection {
   if ((type as string).startsWith('email_'))    return 'email';
-  if ((type as string).startsWith('sms_'))      return 'sms';
   if ((type as string).startsWith('whatsapp_')) return 'whatsapp';
   return 'document';
 }
@@ -148,8 +138,6 @@ function substituteEmailForPreview(
 ): string {
   const sampleItems = `<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f9fafb;"><th style="text-align:left;padding:6px 8px;">Servicio</th><th style="text-align:right;padding:6px 8px;">Total</th></tr></thead><tbody><tr><td style="padding:6px 8px;">Extracción simple</td><td style="text-align:right;padding:6px 8px;">UYU 500</td></tr></tbody></table>`;
   const sampleMovements = `<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f9fafb;"><th style="text-align:left;padding:6px 8px;">Fecha</th><th style="text-align:left;padding:6px 8px;">Tipo</th><th style="text-align:right;padding:6px 8px;">Monto</th><th style="text-align:right;padding:6px 8px;">Saldo</th></tr></thead><tbody><tr><td style="padding:6px 8px;">28/05/2026</td><td style="padding:6px 8px;">Pago</td><td style="text-align:right;padding:6px 8px;color:#15803d;">+500</td><td style="text-align:right;padding:6px 8px;">500</td></tr></tbody></table>`;
-  const sampleCurrencies = `<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f9fafb;"><th style="padding:6px 8px;">Moneda</th><th style="padding:6px 8px;">Apertura</th><th style="padding:6px 8px;">Declarado</th><th style="padding:6px 8px;">Calculado</th></tr></thead><tbody><tr><td style="padding:6px 8px;">UYU</td><td style="padding:6px 8px;">1000</td><td style="padding:6px 8px;">1500</td><td style="padding:6px 8px;">1500</td></tr></tbody></table>`;
-  const sampleOpening = `<table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="background:#f9fafb;"><th style="padding:6px 8px;">Denominación</th><th style="padding:6px 8px;">Cantidad</th><th style="padding:6px 8px;">Total</th></tr></thead><tbody><tr><td style="padding:6px 8px;">UYU 500</td><td style="padding:6px 8px;">2</td><td style="padding:6px 8px;">UYU 1000</td></tr></tbody></table>`;
   const v: Record<string, string> = {
     clinic_name: clinicName || 'Mi Clínica Demo', clinic_logo: clinicLogoUrl || '',
     clinic_address: clinicAddress || 'Av. Principal 123', clinic_phone: clinicPhone || '+598 99 000 000',
@@ -161,9 +149,8 @@ function substituteEmailForPreview(
     exchange_rate: '1.00',
     appointment_date: '30/06/2026', appointment_time: '10:00',
     doctor_name: 'Dra. Martínez', location: 'Consultorio 2 — Av. Principal 123',
-    session_id: 'SES-0042', cash_point_name: 'Caja Principal', user_name: 'Admin',
-    opened_at: '28/05/2026 08:00', closed_at: '28/05/2026 18:00',
-    opening_table: sampleOpening, movements_table: sampleMovements, currencies_table: sampleCurrencies,
+    alert_title: 'Control de seguimiento', alert_summary: 'El paciente no asistió a su última cita programada.', alert_date: '24/06/2026 10:00',
+    movements_table: sampleMovements,
     date_from: '01/05/2026', date_to: '28/05/2026',
     service_name: 'Ortodoncia', treatment_status: 'En progreso', treatment_date: '28/05/2026',
     reset_link: '#',
@@ -171,12 +158,14 @@ function substituteEmailForPreview(
   return html.replace(/\{\{(\w+)\}\}/g, (_, key: string) => v[key] ?? `[${key}]`);
 }
 
-function substituteSmsForPreview(text: string, clinicName: string, clinicPhone: string): string {
+function substituteWhatsappForPreview(text: string, clinicName: string, clinicPhone: string): string {
   const v: Record<string, string> = {
     clinic_name: clinicName || 'Mi Clínica Demo', clinic_phone: clinicPhone || '+598 99 000 000',
-    clinic_email: '', patient_name: 'Ana García',
+    patient_name: 'Ana García',
     appointment_date: '30/06/2026', appointment_time: '10:00',
     doctor_name: 'Dra. Martínez', location: 'Consultorio 2',
+    alert_title: 'Control de seguimiento', alert_summary: 'El paciente no asistió a su última cita.', alert_date: '24/06/2026 10:00',
+    service_name: 'Ortodoncia', missed_step: 'Aplicación de brackets', missed_date: '28/05/2026',
   };
   return text.replace(/\{\{(\w+)\}\}/g, (_, key: string) => v[key] ?? `[${key}]`);
 }
@@ -198,9 +187,8 @@ export default function TemplatesPage() {
   const [docTemplates, setDocTemplates]       = React.useState<Partial<Record<PrintDocumentType, string>>>({});
   const [emailTemplates, setEmailTemplates]   = React.useState<Partial<Record<EmailTemplateType, string>>>({});
   const [emailSubjects, setEmailSubjects]     = React.useState<Partial<Record<EmailTemplateType, string>>>({});
-  const [smsTemplates, setSmsTemplates]       = React.useState<Partial<Record<SmsTemplateType, string>>>({});
   const [whatsappTemplates, setWhatsappTemplates] = React.useState<Partial<Record<WhatsappTemplateType, string>>>({});
-  const [commIds, setCommIds] = React.useState<Partial<Record<EmailTemplateType | SmsTemplateType | WhatsappTemplateType, string>>>({});
+  const [commIds, setCommIds] = React.useState<Partial<Record<EmailTemplateType | WhatsappTemplateType, string>>>({});
 
   const [isLoading, setIsLoading]           = React.useState(true);
   const [saving, setSaving]                 = React.useState<AllTemplateType | null>(null);
@@ -220,7 +208,6 @@ export default function TemplatesPage() {
     const section = getSectionOf(type);
     if (section === 'document')  return docTemplates[type as PrintDocumentType]     ?? PRINT_TEMPLATE_DEFAULTS[type as PrintDocumentType];
     if (section === 'email')     return emailTemplates[type as EmailTemplateType]   ?? EMAIL_TEMPLATE_DEFAULTS[type as EmailTemplateType].body;
-    if (section === 'sms')       return smsTemplates[type as SmsTemplateType]       ?? SMS_TEMPLATE_DEFAULTS[type as SmsTemplateType];
     return whatsappTemplates[type as WhatsappTemplateType] ?? WHATSAPP_TEMPLATE_DEFAULTS[type as WhatsappTemplateType];
   }
 
@@ -239,12 +226,12 @@ export default function TemplatesPage() {
       } else if (activeSection === 'email' && !isPlainText(activeType)) {
         setPreviewContent(substituteEmailForPreview(content, activeType as EmailTemplateType, cn, logo, addr, ph, em));
       } else {
-        setPreviewContent(substituteSmsForPreview(content, cn, ph));
+        setPreviewContent(substituteWhatsappForPreview(content, cn, ph));
       }
     }, 300);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeType, docTemplates, emailTemplates, smsTemplates, whatsappTemplates, clinic]);
+  }, [activeType, docTemplates, emailTemplates, whatsappTemplates, clinic]);
 
   // ── Load templates ─────────────────────────────────────────────────────────
   React.useEffect(() => {
@@ -263,12 +250,11 @@ export default function TemplatesPage() {
 
         const loadedEmail:    Partial<Record<EmailTemplateType, string>>    = {};
         const loadedSubj:     Partial<Record<EmailTemplateType, string>>    = {};
-        const loadedSms:      Partial<Record<SmsTemplateType, string>>      = {};
+
         const loadedWhatsapp: Partial<Record<WhatsappTemplateType, string>> = {};
-        const ids: Partial<Record<EmailTemplateType | SmsTemplateType | WhatsappTemplateType, string>> = {};
+        const ids: Partial<Record<EmailTemplateType | WhatsappTemplateType, string>> = {};
 
         const codeToEmail    = Object.fromEntries(Object.entries(EMAIL_CODE_MAP).map(([k, v]) => [v, k as EmailTemplateType]));
-        const codeToSms      = Object.fromEntries(Object.entries(SMS_CODE_MAP).map(([k, v]) => [v, k as SmsTemplateType]));
         const codeToWhatsapp = Object.fromEntries(Object.entries(WHATSAPP_CODE_MAP).map(([k, v]) => [v, k as WhatsappTemplateType]));
 
         comms.forEach((tpl) => {
@@ -277,11 +263,6 @@ export default function TemplatesPage() {
             loadedEmail[emailType] = isPlainText(emailType) ? (tpl.body_text || tpl.body_html || '') : (tpl.body_html || '');
             loadedSubj[emailType]  = tpl.subject || '';
             if (tpl.id) ids[emailType] = tpl.id;
-          }
-          const smsType = codeToSms[tpl.code];
-          if (smsType) {
-            loadedSms[smsType] = tpl.body_text || tpl.body_html || '';
-            if (tpl.id) ids[smsType] = tpl.id;
           }
           const waType = codeToWhatsapp[tpl.code];
           if (waType) {
@@ -292,7 +273,6 @@ export default function TemplatesPage() {
 
         setEmailTemplates(loadedEmail);
         setEmailSubjects(loadedSubj);
-        setSmsTemplates(loadedSms);
         setWhatsappTemplates(loadedWhatsapp);
         setCommIds(ids);
       } finally {
@@ -311,8 +291,7 @@ export default function TemplatesPage() {
       const end   = textarea.selectionEnd;
       const prev  = textarea.value;
       const next  = prev.substring(0, start) + text + prev.substring(end);
-      if (activeSection === 'sms')      setSmsTemplates((s) => ({ ...s, [activeType]: next }));
-      else if (activeSection === 'whatsapp') setWhatsappTemplates((s) => ({ ...s, [activeType]: next }));
+      if (activeSection === 'whatsapp') setWhatsappTemplates((s) => ({ ...s, [activeType]: next }));
       else setEmailTemplates((s) => ({ ...s, [activeType]: next }));
       setTimeout(() => {
         textarea.selectionStart = textarea.selectionEnd = start + text.length;
@@ -369,21 +348,12 @@ export default function TemplatesPage() {
           is_active: true, ...payload,
         });
         if (saved?.id) setCommIds((prev) => ({ ...prev, [eType]: saved.id }));
-      } else if (section === 'sms') {
-        const sType = type as SmsTemplateType;
-        const body  = smsTemplates[sType] ?? SMS_TEMPLATE_DEFAULTS[sType];
-        const saved = await api.post(API_ROUTES.SYSTEM.COMMUNICATION_TEMPLATES, {
-          ...(commIds[sType] ? { id: commIds[sType] } : {}),
-          code: SMS_CODE_MAP[sType], name: t(SECTION_GROUPS[2].items.find((i) => i.type === sType)!.labelKey as any),
-          type: 'SMS', body_text: body, is_active: true,
-        });
-        if (saved?.id) setCommIds((prev) => ({ ...prev, [sType]: saved.id }));
       } else {
         const waType = type as WhatsappTemplateType;
         const body   = whatsappTemplates[waType] ?? WHATSAPP_TEMPLATE_DEFAULTS[waType];
         const saved  = await api.post(API_ROUTES.SYSTEM.COMMUNICATION_TEMPLATES, {
           ...(commIds[waType] ? { id: commIds[waType] } : {}),
-          code: WHATSAPP_CODE_MAP[waType], name: t(SECTION_GROUPS[3].items.find((i) => i.type === waType)!.labelKey as any),
+          code: WHATSAPP_CODE_MAP[waType], name: t(SECTION_GROUPS[2].items.find((i) => i.type === waType)!.labelKey as any),
           type: 'WHATSAPP', body_text: body, is_active: true,
         });
         if (saved?.id) setCommIds((prev) => ({ ...prev, [waType]: saved.id }));
@@ -419,12 +389,6 @@ export default function TemplatesPage() {
         setEmailSubjects((prev) => ({ ...prev, [eType]: defaults.subject }));
         setCommIds((prev) => { const n = { ...prev }; delete n[eType]; return n; });
         if (!isPlainText(eType)) editorRefs.current[eType]?.setValue(defaults.body);
-      } else if (section === 'sms') {
-        const sType = type as SmsTemplateType;
-        const id = commIds[sType];
-        if (id) try { await api.delete(API_ROUTES.SYSTEM.COMMUNICATION_TEMPLATES, { id }); } catch { /* ok */ }
-        setSmsTemplates((prev) => ({ ...prev, [sType]: SMS_TEMPLATE_DEFAULTS[sType] }));
-        setCommIds((prev) => { const n = { ...prev }; delete n[sType]; return n; });
       } else {
         const waType = type as WhatsappTemplateType;
         const id = commIds[waType];
@@ -445,9 +409,7 @@ export default function TemplatesPage() {
     ? PRINT_TEMPLATE_VARIABLES[activeType as PrintDocumentType]
     : activeSection === 'email'
       ? EMAIL_TEMPLATE_VARIABLES[activeType as EmailTemplateType]
-      : activeSection === 'sms'
-        ? SMS_TEMPLATE_VARIABLES[activeType as SmsTemplateType]
-        : WHATSAPP_TEMPLATE_VARIABLES[activeType as WhatsappTemplateType];
+      : WHATSAPP_TEMPLATE_VARIABLES[activeType as WhatsappTemplateType];
 
   const groupedVars = GROUP_ORDER
     .map((g) => ({ group: g, vars: variables.filter((v) => v.group === g) }))
@@ -672,9 +634,8 @@ export default function TemplatesPage() {
                   value={getCurrentBody(activeType)}
                   onChange={(e) => {
                     const val = e.target.value;
-                    if (activeSection === 'sms')           setSmsTemplates((s) => ({ ...s, [activeType]: val }));
-                    else if (activeSection === 'whatsapp') setWhatsappTemplates((s) => ({ ...s, [activeType]: val }));
-                    else                                   setEmailTemplates((s) => ({ ...s, [activeType]: val }));
+                    if (activeSection === 'whatsapp') setWhatsappTemplates((s) => ({ ...s, [activeType]: val }));
+                    else                             setEmailTemplates((s) => ({ ...s, [activeType]: val }));
                   }}
                 />
               </div>

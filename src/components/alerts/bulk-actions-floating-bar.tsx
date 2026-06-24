@@ -5,32 +5,23 @@ import { Button } from '@/components/ui/button'
 import {
     CheckCircle,
     Mail,
-    MessageSquare,
-    MessageCircle,
     X,
     Clock,
-    XCircle,
     Loader2
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface BulkActionsFloatingBarProps {
     selectedCount: number
-    loadingAction?: 'complete' | 'email' | 'sms' | 'whatsapp' | 'ignore' | 'snooze' | null
+    loadingAction?: 'complete' | 'email' | 'snooze' | null
     onMarkAsCompleted: () => void
     onSendEmail: () => void
-    onSendSms: () => void
-    onSendWhatsApp: () => void
-    onIgnore: () => void
     onSnooze: () => void
     onDeselectAll: () => void
     className?: string
     canComplete?: boolean
     canSendEmail?: boolean
-    canSendSms?: boolean
-    canSendWhatsApp?: boolean
     canSnooze?: boolean
-    canIgnore?: boolean
 }
 
 export function BulkActionsFloatingBar({
@@ -38,18 +29,12 @@ export function BulkActionsFloatingBar({
     loadingAction = null,
     onMarkAsCompleted,
     onSendEmail,
-    onSendSms,
-    onSendWhatsApp,
-    onIgnore,
     onSnooze,
     onDeselectAll,
     className,
     canComplete = true,
     canSendEmail = true,
-    canSendSms = true,
-    canSendWhatsApp = true,
     canSnooze = true,
-    canIgnore = true,
 }: BulkActionsFloatingBarProps) {
     if (selectedCount === 0) {
         return null
@@ -110,50 +95,21 @@ export function BulkActionsFloatingBar({
                 
                 {canSendEmail && (
                 <Button
-                    variant={loadingAction === 'email' ? 'default' : 'ghost'}
+                    variant="ghost"
                     size="sm"
                     onClick={onSendEmail}
-                    disabled={loadingAction !== null}
-                    title="Enviar email"
+                    disabled={loadingAction !== null || selectedCount !== 1}
+                    title={selectedCount !== 1 ? 'Seleccioná exactamente 1 alerta para enviar email' : 'Enviar email'}
                     className={cn(
                         "h-9 w-9 p-0 transition-all duration-200",
-                        loadingAction === 'email' 
-                            ? "bg-blue-500 hover:bg-blue-600 text-white animate-pulse" 
-                            : "hover:bg-blue-100 hover:text-blue-700 dark:hover:bg-blue-900/20 dark:hover:text-blue-400",
-                        loadingAction && loadingAction !== 'email' ? "opacity-50 cursor-not-allowed" : ""
+                        "hover:bg-blue-100 hover:text-blue-700 dark:hover:bg-blue-900/20 dark:hover:text-blue-400",
+                        (loadingAction !== null || selectedCount !== 1) ? "opacity-50 cursor-not-allowed" : ""
                     )}
                 >
-                    {loadingAction === 'email' ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                        <Mail className="h-4 w-4" />
-                    )}
+                    <Mail className="h-4 w-4" />
                 </Button>
                 )}
-                
-                {canSendWhatsApp && (
-                <Button
-                    variant={loadingAction === 'whatsapp' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={onSendWhatsApp}
-                    disabled={true}
-                    title="Enviar WhatsApp (deshabilitado)"
-                    className={cn(
-                        "h-9 w-9 p-0 transition-all duration-200 opacity-50 cursor-not-allowed",
-                        loadingAction === 'whatsapp' 
-                            ? "bg-green-500 hover:bg-green-600 text-white animate-pulse" 
-                            : "hover:bg-green-100 hover:text-green-700 dark:hover:bg-green-900/20 dark:hover:text-green-400",
-                        loadingAction && loadingAction !== 'whatsapp' ? "opacity-50 cursor-not-allowed" : ""
-                    )}
-                >
-                    {loadingAction === 'whatsapp' ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                        <MessageCircle className="h-4 w-4" />
-                    )}
-                </Button>
-                )}
-                
+
                 {canSnooze && (
                 <Button
                     variant={loadingAction === 'snooze' ? 'default' : 'ghost'}

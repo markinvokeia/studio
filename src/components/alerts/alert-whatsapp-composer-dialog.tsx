@@ -21,7 +21,7 @@ import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { useCommunicationTemplates, substituteTokens } from '@/hooks/useCommunicationTemplates';
 import { AlertInstance } from '@/lib/types';
 import { WHATSAPP_TEMPLATE_DEFAULTS } from '@/lib/whatsapp-template-defaults';
-import { formatDateTime } from '@/lib/utils';
+import { formatDate, formatDateTime } from '@/lib/utils';
 
 interface AlertWhatsAppComposerDialogProps {
   open: boolean;
@@ -39,32 +39,6 @@ function getRecipientName(alert: AlertInstance | null): string {
   return typeof name === 'string' && name.trim() !== '' ? name : '';
 }
 
-function buildInitialMessage(alert: AlertInstance | null, t: (key: string, values?: Record<string, string>) => string): string {
-  if (!alert) return '';
-
-  const recipientName = getRecipientName(alert) || t('unknownPatient');
-  const lines: string[] = [
-    t('template.greeting', { name: recipientName }),
-    t('template.intro'),
-    `${t('template.alertTitle')}: ${alert.title}`,
-  ];
-
-  if (alert.summary) {
-    lines.push(`${t('template.summary')}: ${alert.summary}`);
-  }
-
-  if (alert.alert_date) {
-    lines.push(`${t('template.alertDate')}: ${formatDateTime(alert.alert_date)}`);
-  }
-
-  if (alert.event_date) {
-    lines.push(`${t('template.eventDate')}: ${formatDateTime(alert.event_date)}`);
-  }
-
-  lines.push('', t('template.closing'));
-  return lines.join('\n');
-}
-
 export function AlertWhatsAppComposerDialog({ open, onOpenChange, alert }: AlertWhatsAppComposerDialogProps) {
   const t = useTranslations('AlertWhatsAppComposerDialog');
   const { toast } = useToast();
@@ -73,26 +47,43 @@ export function AlertWhatsAppComposerDialog({ open, onOpenChange, alert }: Alert
   const commTemplates = useCommunicationTemplates();
   const [message, setMessage] = React.useState('');
   const [isOpening, setIsOpening] = React.useState(false);
-  const [hasEdited, setHasEdited] = React.useState(false);
+  const userEdited = React.useRef(false);
 
   const phone         = React.useMemo(() => getPatientPhone(alert), [alert]);
   const recipientName = React.useMemo(() => getRecipientName(alert), [alert]);
   const normalizedPhone = React.useMemo(() => phone.trim().replace(/^\+/, '').replace(/\D/g, ''), [phone]);
 
+  const isAppointment = alert?.reference_table === 'appointments';
+  const appt = alert?.details_json?.appointment;
+
   React.useEffect(() => {
-    if (!open) { setMessage(''); setIsOpening(false); setHasEdited(false); return; }
+    if (!open) { setMessage(''); setIsOpening(false); userEdited.current = false; return; }
+    if (userEdited.current) return;
     const vars: Record<string, string> = {
-      patient_name:  recipientName || t('unknownPatient'),
-      clinic_name:   clinic?.name  || '',
-      clinic_phone:  clinic?.phone || '',
-      alert_title:   alert?.title   || '',
-      alert_summary: alert?.summary || '',
-      alert_date:    alert?.alert_date ? formatDateTime(alert.alert_date) : '',
+      patient_name: recipientName || t('unknownPatient'),
+      clinic_name:  clinic?.name  || '',
+      clinic_phone: clinic?.phone || '',
     };
-    const tpl = commTemplates['ALERT_FOLLOWUP_WHATSAPP'];
-    setMessage(substituteTokens(tpl?.body_text || WHATSAPP_TEMPLATE_DEFAULTS.whatsapp_alert_followup, vars));
-    setHasEdited(false);
-  }, [open, alert, clinic, commTemplates, recipientName, t]);
+    let tplCode: string;
+    let defaultText: string;
+    if (isAppointment) {
+      vars.appointment_date = appt?.date || appt?.scheduled_date || formatDate(alert?.event_date);
+      vars.appointment_time = appt?.time || appt?.start_time     || '';
+      vars.doctor_name      = appt?.doctor_name || appt?.provider_name || '';
+      vars.location         = appt?.location    || '';
+      tplCode     = 'APPOINTMENT_REMINDER_WHATSAPP';
+      defaultText = WHATSAPP_TEMPLATE_DEFAULTS.whatsapp_appointment_reminder;
+    } else {
+      vars.alert_title   = alert?.title   || '';
+      vars.alert_summary = alert?.summary || '';
+      vars.alert_date    = alert?.alert_date ? formatDateTime(alert.alert_date) : '';
+      tplCode     = 'ALERT_FOLLOWUP_WHATSAPP';
+      defaultText = WHATSAPP_TEMPLATE_DEFAULTS.whatsapp_alert_followup;
+    }
+    const tpl = commTemplates[tplCode];
+    setMessage(substituteTokens(tpl?.body_text || defaultText, vars));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, alert, clinic, commTemplates, recipientName, isAppointment, t]);
 
   const handleOpenWhatsApp = async () => {
     if (!normalizedPhone || isOpening) return;
@@ -116,7 +107,7 @@ export function AlertWhatsAppComposerDialog({ open, onOpenChange, alert }: Alert
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg" confirmOnClose isDirty={hasEdited}>
+      <DialogContent className="sm:max-w-lg" confirmOnClose isDirty={userEdited.current}>
         <DialogHeader>
           <DialogTitle className="text-base flex items-center gap-2">
             <MessageCircle className="h-4 w-4 text-primary" />
@@ -138,7 +129,7 @@ export function AlertWhatsAppComposerDialog({ open, onOpenChange, alert }: Alert
             <Textarea
               id="alert-whatsapp-message"
               value={message}
-              onChange={(event) => { setMessage(event.target.value); setHasEdited(true); }}
+              onChange={(event) => { setMessage(event.target.value); userEdited.current = true; }}
               placeholder={t('messagePlaceholder')}
               rows={7}
             />

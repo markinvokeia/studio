@@ -1,5 +1,6 @@
 'use client';
 
+import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { EmailComposerDialog } from '@/components/email-composer-dialog';
 import { EMAIL_TEMPLATE_DEFAULTS } from '@/lib/email-template-defaults';
@@ -44,20 +45,21 @@ export function AlertEmailComposerDialog({ open, onOpenChange, alert }: AlertEma
     ? EMAIL_TEMPLATE_DEFAULTS.email_appointment_reminder.body
     : EMAIL_TEMPLATE_DEFAULTS.email_alert_followup.body;
 
-  const templateVars: Record<string, string> = isAppointment
-    ? {
-        patient_name:     getRecipientName(alert) || t('unknownPatient'),
-        appointment_date: appt?.date || appt?.scheduled_date || formatDate(alert?.event_date),
-        appointment_time: appt?.time || appt?.start_time     || '',
-        doctor_name:      appt?.doctor_name || appt?.provider_name || '',
-        location:         appt?.location    || '',
-      }
-    : {
-        patient_name:  getRecipientName(alert) || t('unknownPatient'),
-        alert_title:   alert?.title    || '',
-        alert_summary: alert?.summary  || '',
-        alert_date:    alert?.alert_date ? formatDateTime(alert.alert_date) : '',
-      };
+  const templateVars = React.useMemo<Record<string, string>>(() => {
+    const base: Record<string, string> = { patient_name: getRecipientName(alert) || t('unknownPatient') };
+    if (isAppointment) {
+      base.appointment_date = appt?.date || appt?.scheduled_date || formatDate(alert?.event_date);
+      base.appointment_time = appt?.time || appt?.start_time     || '';
+      base.doctor_name      = appt?.doctor_name || appt?.provider_name || '';
+      base.location         = appt?.location    || '';
+    } else {
+      base.alert_title   = alert?.title    || '';
+      base.alert_summary = alert?.summary  || '';
+      base.alert_date    = alert?.alert_date ? formatDateTime(alert.alert_date) : '';
+    }
+    return base;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alert, isAppointment, appt, t]);
 
   return (
     <EmailComposerDialog

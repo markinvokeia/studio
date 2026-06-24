@@ -8,15 +8,9 @@ export type EmailTemplateType =
   | 'email_appointment_confirmation'
   | 'email_patient_general'
   | 'email_alert_followup'
-  | 'email_cash_opening'
-  | 'email_cash_closing'
   | 'email_financial_summary'
   | 'email_treatment_update'
   | 'email_password_reset';
-
-export type SmsTemplateType =
-  | 'sms_appointment_reminder'
-  | 'sms_appointment_confirmation';
 
 export interface EmailTemplateDefault {
   subject: string;
@@ -34,16 +28,9 @@ export const EMAIL_CODE_MAP: Record<EmailTemplateType, string> = {
   email_appointment_confirmation:  'APPOINTMENT_CONFIRMATION_EMAIL',
   email_patient_general:           'PATIENT_GENERAL_EMAIL',
   email_alert_followup:            'ALERT_FOLLOWUP_EMAIL',
-  email_cash_opening:              'CASH_OPENING_EMAIL',
-  email_cash_closing:              'CASH_CLOSING_EMAIL',
   email_financial_summary:         'FINANCIAL_SUMMARY_EMAIL',
   email_treatment_update:          'TREATMENT_UPDATE_EMAIL',
   email_password_reset:            'PASSWORD_RESET_EMAIL',
-};
-
-export const SMS_CODE_MAP: Record<SmsTemplateType, string> = {
-  sms_appointment_reminder:     'APPOINTMENT_REMINDER_SMS',
-  sms_appointment_confirmation: 'APPOINTMENT_CONFIRMATION_SMS',
 };
 
 // ── Shared partials ────────────────────────────────────────────────────────────
@@ -162,29 +149,6 @@ const QUOTE_REJECTED_BODY = `<p style="font-size:18px;font-weight:700;margin:0 0
     <p style="color:#6b7280;font-size:13px;margin:0 0 8px;">Lamentamos que no pueda proceder con el tratamiento propuesto en esta ocasión.</p>
     <p style="color:#6b7280;font-size:13px;margin:0;">Si tiene alguna consulta o desea considerar otras opciones, no dude en contactarnos.<br><strong>{{clinic_phone}}</strong> · {{clinic_email}}</p>`;
 
-const CASH_OPENING_BODY = `<p style="font-size:18px;font-weight:700;margin:0 0 16px;color:#111827;">Apertura de Caja</p>
-    <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:16px;margin-bottom:20px;">
-      <table style="width:100%;border-collapse:collapse;font-size:13px;">
-        <tr style="border-bottom:1px solid #e0f2fe;"><td style="padding:6px 0;color:#0c4a6e;width:40%;">ID de Sesión</td><td style="font-weight:600;font-family:monospace;color:#0c4a6e;">#{{session_id}}</td></tr>
-        <tr style="border-bottom:1px solid #e0f2fe;"><td style="padding:6px 0;color:#0c4a6e;">Punto de Caja</td><td style="color:#0c4a6e;">{{cash_point_name}}</td></tr>
-        <tr style="border-bottom:1px solid #e0f2fe;"><td style="padding:6px 0;color:#0c4a6e;">Usuario</td><td style="color:#0c4a6e;">{{user_name}}</td></tr>
-        <tr><td style="padding:6px 0;color:#0c4a6e;">Fecha de Apertura</td><td style="color:#0c4a6e;">{{opened_at}}</td></tr>
-      </table>
-    </div>
-    <div style="margin-bottom:20px;">{{opening_table}}</div>
-    <p style="color:#6b7280;font-size:13px;margin:0;">{{clinic_name}} · <strong>{{clinic_phone}}</strong></p>`;
-
-const CASH_CLOSING_BODY = `<p style="font-size:18px;font-weight:700;margin:0 0 16px;color:#111827;">Cierre de Caja</p>
-    <table style="width:100%;border-collapse:collapse;margin-bottom:20px;font-size:13px;">
-      <tr style="border-bottom:1px solid #f3f4f6;"><td style="padding:7px 0;color:#6b7280;width:40%;">ID de Sesión</td><td style="font-weight:600;font-family:monospace;">#{{session_id}}</td></tr>
-      <tr style="border-bottom:1px solid #f3f4f6;"><td style="padding:7px 0;color:#6b7280;">Punto de Caja</td><td>{{cash_point_name}}</td></tr>
-      <tr style="border-bottom:1px solid #f3f4f6;"><td style="padding:7px 0;color:#6b7280;">Usuario</td><td>{{user_name}}</td></tr>
-      <tr><td style="padding:7px 0;color:#6b7280;">Fecha de Cierre</td><td>{{closed_at}}</td></tr>
-    </table>
-    <div style="margin-bottom:20px;">{{movements_table}}</div>
-    <div style="margin-bottom:20px;">{{currencies_table}}</div>
-    <p style="color:#6b7280;font-size:13px;margin:0;">{{clinic_name}} · <strong>{{clinic_phone}}</strong></p>`;
-
 const FINANCIAL_SUMMARY_BODY = `<p style="font-size:18px;font-weight:700;margin:0 0 16px;color:#111827;">Estado de Cuenta</p>
     <p style="margin:0 0 8px;">Estimado/a <strong>{{patient_name}}</strong>,</p>
     <p style="margin:0 0 20px;color:#6b7280;font-size:13px;">Período: {{date_from}} — {{date_to}}</p>
@@ -239,20 +203,15 @@ export const EMAIL_TEMPLATE_DEFAULTS: Record<EmailTemplateType, EmailTemplateDef
   },
   email_alert_followup: {
     subject: 'Seguimiento — {{alert_title}} — {{clinic_name}}',
-    body: [
-      'Hola {{patient_name}},',
-      '',
-      'Nos comunicamos desde {{clinic_name}} en relación al siguiente aviso:',
-      '"{{alert_title}}"',
-      '',
-      '{{alert_summary}}',
-      '',
-      'Si tenés alguna consulta, no dudes en contactarnos:',
-      '{{clinic_phone}} · {{clinic_email}}',
-      '',
-      'Atentamente,',
-      '{{clinic_name}}',
-    ].join('\n'),
+    body: emailShell(`<p style="font-size:18px;font-weight:700;margin:0 0 16px;color:#111827;">Seguimiento</p>
+    <p style="margin:0 0 16px;">Hola <strong>{{patient_name}}</strong>,</p>
+    <p style="margin:0 0 12px;color:#374151;">Nos comunicamos desde <strong>{{clinic_name}}</strong> en relación al siguiente aviso:</p>
+    <div style="background:#fefce8;border:1px solid #fde68a;border-radius:6px;padding:16px;margin-bottom:20px;">
+      <p style="font-size:15px;font-weight:600;margin:0 0 8px;color:#92400e;">{{alert_title}}</p>
+      <p style="margin:0 0 8px;color:#78350f;font-size:13px;">{{alert_summary}}</p>
+      <p style="margin:0;color:#a16207;font-size:12px;">{{alert_date}}</p>
+    </div>
+    <p style="color:#6b7280;font-size:13px;margin:0;">Para consultas: <strong>{{clinic_phone}}</strong> · {{clinic_email}}</p>`),
   },
   email_quote_approved: {
     subject: 'Presupuesto #{{doc_no}} aprobado — {{clinic_name}}',
@@ -261,14 +220,6 @@ export const EMAIL_TEMPLATE_DEFAULTS: Record<EmailTemplateType, EmailTemplateDef
   email_quote_rejected: {
     subject: 'Respuesta al Presupuesto #{{doc_no}} — {{clinic_name}}',
     body: emailShell(QUOTE_REJECTED_BODY),
-  },
-  email_cash_opening: {
-    subject: 'Apertura de Caja #{{session_id}} — {{clinic_name}}',
-    body: emailShell(CASH_OPENING_BODY),
-  },
-  email_cash_closing: {
-    subject: 'Cierre de Caja #{{session_id}} — {{clinic_name}}',
-    body: emailShell(CASH_CLOSING_BODY),
   },
   email_financial_summary: {
     subject: 'Estado de Cuenta — {{clinic_name}}',
@@ -284,9 +235,3 @@ export const EMAIL_TEMPLATE_DEFAULTS: Record<EmailTemplateType, EmailTemplateDef
   },
 };
 
-export const SMS_TEMPLATE_DEFAULTS: Record<SmsTemplateType, string> = {
-  sms_appointment_reminder:
-    'Hola {{patient_name}}, te recordamos tu cita el {{appointment_date}} a las {{appointment_time}} con {{doctor_name}} en {{clinic_name}}. Consultas: {{clinic_phone}}.',
-  sms_appointment_confirmation:
-    'Hola {{patient_name}}, tu cita el {{appointment_date}} a las {{appointment_time}} con {{doctor_name}} en {{clinic_name}} ha sido confirmada. Consultas: {{clinic_phone}}.',
-};
