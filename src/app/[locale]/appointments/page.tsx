@@ -481,6 +481,7 @@ export default function AppointmentsPage() {
     const tToasts = useTranslations('AppointmentsPage.toasts');
     const tOrderStatus = useTranslations('OrderStatus');
     const tReminders = useTranslations('Reminders');
+    const tPanel = useTranslations('AppointmentPanel');
 
     const { refreshNotifications: refreshReminders, markSessionAction } = useNotifications();
     const { user } = useAuth();
@@ -506,6 +507,8 @@ export default function AppointmentsPage() {
     const [isReschedulingMode, setIsReschedulingMode] = React.useState(false);
     const [deletingAppointment, setDeletingAppointment] = React.useState<Appointment | null>(null);
     const [isDeleteAlertOpen, setIsDeleteAlertOpen] = React.useState(false);
+    // Soft-delete (status → 'deleted') target for the right-click menu confirmation.
+    const [softDeleteTarget, setSoftDeleteTarget] = React.useState<Appointment | null>(null);
 
     const [selectedAppointment, setSelectedAppointment] = React.useState<Appointment | null>(null);
     const [isDetailViewOpen, setIsDetailViewOpen] = React.useState(false);
@@ -1813,6 +1816,18 @@ export default function AppointmentsPage() {
                 <Stethoscope className="h-4 w-4" />
                 {t('contextMenu.createSession')}
             </ContextMenuItem>
+            <ContextMenuSeparator />
+            <ContextMenuItem
+                key="delete"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setSoftDeleteTarget(appointment);
+                }}
+                className="flex items-center gap-2 cursor-pointer text-destructive"
+            >
+                <Trash2 className="h-4 w-4" />
+                {tPanel('delete')}
+            </ContextMenuItem>
             </>
         );
     };
@@ -2575,6 +2590,29 @@ export default function AppointmentsPage() {
                     <AlertDialogFooter>
                         <AlertDialogAction onClick={confirmDeleteAppointment} className="bg-destructive hover:bg-destructive/90">{t('AppointmentsColumns.cancel')}</AlertDialogAction>
                         <AlertDialogCancel onClick={() => setIsDeleteAlertOpen(false)}>{t('createDialog.close')}</AlertDialogCancel>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Soft-delete confirmation for the right-click menu (same as the detail panel button) */}
+            <AlertDialog open={!!softDeleteTarget} onOpenChange={(v) => !v && setSoftDeleteTarget(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{tPanel('deleteTitle')}</AlertDialogTitle>
+                        <AlertDialogDescription>{tPanel('deleteDescription')}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>{tPanel('deleteCancel')}</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={() => {
+                                const target = softDeleteTarget;
+                                setSoftDeleteTarget(null);
+                                if (target) handleSoftDelete(target);
+                            }}
+                        >
+                            {tPanel('deleteConfirm')}
+                        </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
