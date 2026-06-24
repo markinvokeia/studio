@@ -742,6 +742,9 @@ export type CalendarSettings = {
   grouped_by: string;
   check_availability: boolean;
   filter_doctors_by_service: boolean;
+  /** When true, blocks (greys out + prevents clicks on) time outside clinic
+   *  business hours, honoring schedules and exceptions. Default false. */
+  block_unavailable?: boolean;
   /** Height in px of one hour slot in day/week views. */
   hour_height?: number;
   /** How each appointment's label is composed. See EVENT_LABEL_FORMATS. */

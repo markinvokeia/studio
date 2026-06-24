@@ -8,6 +8,7 @@ export const DEFAULT_CALENDAR_SETTINGS: CalendarSettings = {
   grouped_by: 'none',
   check_availability: false,
   filter_doctors_by_service: false,
+  block_unavailable: false,
   hour_height: HOUR_SLOT_HEIGHT,
   event_label_format: DEFAULT_EVENT_LABEL_FORMAT,
   default_sede: '',
@@ -50,6 +51,10 @@ export const normalizeCalendarSettings = (data: unknown): CalendarSettings | nul
     filter_doctors_by_service: normalizeBoolean(
       rawSettings.filter_doctors_by_service,
       DEFAULT_CALENDAR_SETTINGS.filter_doctors_by_service
+    ),
+    block_unavailable: normalizeBoolean(
+      (rawSettings as { block_unavailable?: unknown }).block_unavailable,
+      DEFAULT_CALENDAR_SETTINGS.block_unavailable ?? false
     ),
     hour_height: Number.isFinite(parsedHourHeight) && parsedHourHeight > 0 ? parsedHourHeight : DEFAULT_CALENDAR_SETTINGS.hour_height,
     event_label_format:

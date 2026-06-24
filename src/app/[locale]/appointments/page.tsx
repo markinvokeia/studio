@@ -3,10 +3,13 @@
 
 import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
 import { CalendarCreateTypeDialog } from '@/components/appointments/CalendarCreateTypeDialog';
-import Calendar, { type CalendarGroupBy, type CalendarGroupingColumn, type CalendarView } from '@/components/calendar/Calendar';
+import Calendar, { type CalendarGroupBy, type CalendarGroupingColumn, type CalendarView, type CalendarEvent } from '@/components/calendar/Calendar';
 import { CalendarSettingsPopover } from '@/components/calendar/calendar-settings-popover';
 import { CalendarSettingsForm } from '@/components/calendar/calendar-settings-form';
 import { getCalendarSettings } from '@/components/calendar/calendar-settings-utils';
+import { CalendarGapsPanel } from '@/components/calendar/calendar-gaps-panel';
+import { computeRangeGaps, computeDayGaps, computeDayGapsForIntervals, getBusinessWindow, getAvailableIntervals, computeBlockedRanges, gapKey, DEFAULT_MIN_GAP_MINUTES, type Gap, type BlockedRange } from '@/components/calendar/calendar-gaps';
+import { filterEventsByDayAndGroup } from '@/components/calendar/calendar-utils';
 import { DEFAULT_EVENT_LABEL_FORMAT, HOUR_SLOT_HEIGHT } from '@/components/calendar/calendar-constants';
 import { ReminderFormDialog, type ReminderFormValues } from '@/components/appointments/ReminderFormDialog';
 import { ReminderPanel } from '@/components/appointments/ReminderPanel';
@@ -54,16 +57,17 @@ import { Separator } from '@/components/ui/separator';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
-import { Appointment, AppointmentBulkFilterParams, AppointmentDatePreset, AppointmentStatus, Calendar as CalendarType, CalendarReminder, CalendarSettings, Invoice, Order, PatientSession, Quote, QuoteItem, Sede, Service, SessionPreloadedService, User as UserType } from '@/lib/types';
+import { Appointment, AppointmentBulkFilterParams, AppointmentDatePreset, AppointmentStatus, Calendar as CalendarType, CalendarReminder, CalendarSettings, ClinicSchedule, ClinicException, Invoice, Order, PatientSession, Quote, QuoteItem, Sede, Service, SessionPreloadedService, User as UserType } from '@/lib/types';
 import { cn, toLocalISOString } from '@/lib/utils';
 import api from '@/services/api';
 import { getQuoteItems } from '@/services/quotes';
 import { updateAppointmentStatusRequest } from '@/services/appointments';
 import { getSalesServices, getUsersServicesBatch, fetchServicesByIds } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
-import { addMinutes, endOfMonth, endOfWeek, format, isValid, parseISO, startOfMonth, startOfWeek } from 'date-fns';
-import { BellRing, Calendar as CalendarIcon, CalendarPlus, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileText, Layers, Loader2, PlusCircle, RefreshCw, Stethoscope, Trash2, Users, X } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { addMinutes, eachDayOfInterval, endOfMonth, endOfWeek, format, isValid, parseISO, startOfMonth, startOfWeek } from 'date-fns';
+import { es, enUS } from 'date-fns/locale';
+import { BellRing, Calendar as CalendarIcon, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileText, Layers, Loader2, PlusCircle, RefreshCw, Stethoscope, Trash2, Users, X } from 'lucide-react';
+import { useTranslations, useLocale } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
@@ -481,6 +485,10 @@ export default function AppointmentsPage() {
     const tToasts = useTranslations('AppointmentsPage.toasts');
     const tOrderStatus = useTranslations('OrderStatus');
     const tReminders = useTranslations('Reminders');
+    const tPanel = useTranslations('AppointmentPanel');
+    const tGaps = useTranslations('Calendar.gaps');
+    const locale = useLocale();
+    const gapsDateLocale = locale === 'es' ? es : enUS;
 
     const { refreshNotifications: refreshReminders, markSessionAction } = useNotifications();
     const { user } = useAuth();
@@ -506,6 +514,8 @@ export default function AppointmentsPage() {
     const [isReschedulingMode, setIsReschedulingMode] = React.useState(false);
     const [deletingAppointment, setDeletingAppointment] = React.useState<Appointment | null>(null);
     const [isDeleteAlertOpen, setIsDeleteAlertOpen] = React.useState(false);
+    // Soft-delete (status → 'deleted') target for the right-click menu confirmation.
+    const [softDeleteTarget, setSoftDeleteTarget] = React.useState<Appointment | null>(null);
 
     const [selectedAppointment, setSelectedAppointment] = React.useState<Appointment | null>(null);
     const [isDetailViewOpen, setIsDetailViewOpen] = React.useState(false);
@@ -520,6 +530,20 @@ export default function AppointmentsPage() {
     const [selectedDoctorIds, setSelectedDoctorIds] = React.useState<string[]>([]);
     const [groupBy, setGroupBy] = React.useState<CalendarGroupBy>('none');
     const [currentView, setCurrentView] = React.useState<CalendarView>('month');
+
+    // ── "Huecos" — free-slot finder ──────────────────────────────────────────
+    const [gapsActive, setGapsActive] = React.useState(false);
+    const [selectedGap, setSelectedGap] = React.useState<Gap | null>(null);
+    const [clinicSchedules, setClinicSchedules] = React.useState<ClinicSchedule[]>([]);
+
+    // ── Out-of-office blocking (schedules + exceptions), toggled in settings ──
+    const [blockUnavailable, setBlockUnavailable] = React.useState(false);
+    const [clinicExceptions, setClinicExceptions] = React.useState<ClinicException[]>([]);
+
+    // Authoritative calendar settings (single source of truth). Fed to the
+    // settings forms so they don't independently re-fetch and clobber live
+    // toggles (e.g. block_unavailable) when they remount on view/layout changes.
+    const [calendarSettings, setCalendarSettings] = React.useState<CalendarSettings | null>(null);
 
     // ── Bulk selection mode ──────────────────────────────────────────────────
     const [isBulkMode, setIsBulkMode] = React.useState(false);
@@ -548,6 +572,8 @@ export default function AppointmentsPage() {
     const handleToggleBulkMode = React.useCallback(() => {
         setIsBulkMode((prev) => {
             if (!prev) {
+                setGapsActive(false); // gaps and bulk modes are mutually exclusive
+                setSelectedGap(null);
                 skipNextBulkFilterRef.current = true; // entering — skip auto-trigger
                 prevViewRef.current = currentView;
                 setCurrentView('schedule');
@@ -674,19 +700,23 @@ export default function AppointmentsPage() {
     }, []);
 
     const handleSettingsChange = React.useCallback((settings: CalendarSettings) => {
+        setCalendarSettings(settings);
         const mappedView = SETTINGS_VIEW_MAP[settings.default_view] || 'month';
         setCurrentView(mappedView);
         setGroupBy(settings.grouped_by as CalendarGroupBy);
         setCheckCalendarAvailability(settings.check_availability);
         setCheckDoctorAvailability(settings.filter_doctors_by_service);
+        setBlockUnavailable(settings.block_unavailable ?? false);
         setHourSlotHeight(settings.hour_height ?? HOUR_SLOT_HEIGHT);
         setEventLabelFormat(settings.event_label_format ?? DEFAULT_EVENT_LABEL_FORMAT);
         setDefaultSede(settings.default_sede ?? '');
     }, []);
 
     const handleSettingsEditorChange = React.useCallback((settings: CalendarSettings) => {
+        setCalendarSettings(settings);
         setCheckCalendarAvailability(settings.check_availability);
         setCheckDoctorAvailability(settings.filter_doctors_by_service);
+        setBlockUnavailable(settings.block_unavailable ?? false);
         setHourSlotHeight(settings.hour_height ?? HOUR_SLOT_HEIGHT);
         setEventLabelFormat(settings.event_label_format ?? DEFAULT_EVENT_LABEL_FORMAT);
         setDefaultSede(settings.default_sede ?? '');
@@ -1634,6 +1664,162 @@ export default function AppointmentsPage() {
         return [...events, ...reminderEvents];
     }, [appointments, calendars, reminders, selectedCalendarIds, selectedDoctorIds, eventLabelFormat, isBulkMode]);
 
+    // ── "Huecos"/blocking: clinic schedules. `/schedules` requires `sede_id`, so
+    // fetch the availability of every sede and combine.
+    React.useEffect(() => {
+        if (sedes.length === 0) return;
+        let cancelled = false;
+        Promise.all(
+            sedes.map((sede) =>
+                api.get(API_ROUTES.CLINIC_SCHEDULES, { sede_id: String(sede.id) })
+                    .then((data) => {
+                        const rows = Array.isArray(data) ? data : ((data as { schedules?: unknown[]; data?: unknown[]; result?: unknown[] })?.schedules || (data as { data?: unknown[] })?.data || (data as { result?: unknown[] })?.result || []);
+                        return (rows as ClinicSchedule[]).map((s) => ({
+                            id: String((s as { id: unknown }).id),
+                            day_of_week: (s as ClinicSchedule).day_of_week,
+                            start_time: (s as ClinicSchedule).start_time,
+                            end_time: (s as ClinicSchedule).end_time,
+                            sede_id: (s as ClinicSchedule).sede_id ? String((s as ClinicSchedule).sede_id) : String(sede.id),
+                        }));
+                    })
+                    .catch(() => [] as ClinicSchedule[]),
+            ),
+        ).then((all) => { if (!cancelled) setClinicSchedules(all.flat()); });
+        return () => { cancelled = true; };
+    }, [sedes]);
+
+    // Clinic exceptions (holidays / one-off openings) for out-of-office blocking.
+    React.useEffect(() => {
+        api.get(API_ROUTES.EXCEPTIONS)
+            .then((data) => {
+                const rows = Array.isArray(data) ? data : ((data as { exceptions?: unknown[]; data?: unknown[]; result?: unknown[] })?.exceptions || (data as { data?: unknown[] })?.data || (data as { result?: unknown[] })?.result || []);
+                setClinicExceptions((rows as Record<string, unknown>[]).map((e) => ({
+                    id: String(e.id ?? ''),
+                    date: String(e.date ?? ''),
+                    is_open: e.is_open as boolean,
+                    start_time: (e.start_time as string) ?? '',
+                    end_time: (e.end_time as string) ?? '',
+                    // Notes can come under a few key names depending on the flow.
+                    notes: String(e.notes ?? e.note ?? e.nota ?? e.notas ?? e.description ?? e.descripcion ?? e.motivo ?? ''),
+                })));
+            })
+            .catch(() => setClinicExceptions([]));
+    }, []);
+
+    // Schedules scoped to the selected sede (matching sede + rows with no sede).
+    const effectiveSchedules = React.useMemo(() => {
+        if (!defaultSede) return clinicSchedules;
+        const scoped = clinicSchedules.filter((s) => !s.sede_id || String(s.sede_id) === String(defaultSede));
+        // Don't over-filter: if the sede filter removes everything, fall back to all
+        // schedules so the calendar isn't accidentally blocked end-to-end.
+        return scoped.length > 0 ? scoped : clinicSchedules;
+    }, [clinicSchedules, defaultSede]);
+
+    // Visible days for the blocking overlay (independent of the Huecos toggle).
+    const blockVisibleDays = React.useMemo(() => {
+        if (!blockUnavailable || !fetchRange?.start || !fetchRange?.end) return [];
+        try {
+            return eachDayOfInterval({ start: fetchRange.start, end: fetchRange.end });
+        } catch {
+            return [];
+        }
+    }, [blockUnavailable, fetchRange]);
+
+    // Safeguard: blocking requires configured schedules (they define the working
+    // hours). Exceptions only refine them. Without schedules we can't know the
+    // hours, so nothing is blocked (avoids locking the whole calendar).
+    const blockingConfigured = effectiveSchedules.length > 0;
+
+    const blockedRanges = React.useMemo<BlockedRange[]>(() => {
+        if (!blockUnavailable || !blockingConfigured) return [];
+        const isGroupingView = ['day', '2-day', '3-day', 'week'].includes(currentView);
+        const tagDay = (day: Date, sched: ClinicSchedule[], groupValue?: string): BlockedRange[] =>
+            computeBlockedRanges(day, sched, clinicExceptions)
+                .map((r) => ({ dayKey: format(day, 'yyyy-MM-dd'), startMin: r.startMin, endMin: r.endMin, groupValue, reason: r.reason, note: r.note }));
+
+        // Grouped by consultorio: each column blocks per its calendar's SEDE schedules.
+        if (isGroupingView && groupBy === 'calendar') {
+            return calendars.flatMap((cal) => {
+                const sedeId = cal.sede_id;
+                const sched = sedeId
+                    ? clinicSchedules.filter((s) => !s.sede_id || String(s.sede_id) === String(sedeId))
+                    : effectiveSchedules;
+                return blockVisibleDays.flatMap((day) => tagDay(day, sched, String(cal.id)));
+            });
+        }
+        // Grouped by doctor: clinic-wide hours, tagged per column so each shows them.
+        if (isGroupingView && groupBy === 'doctor') {
+            return doctors.flatMap((doc) =>
+                blockVisibleDays.flatMap((day) => tagDay(day, effectiveSchedules, String(doc.id))),
+            );
+        }
+        // Non-grouped: a single clinic-wide timeline.
+        return blockVisibleDays.flatMap((day) => tagDay(day, effectiveSchedules, undefined));
+    }, [blockUnavailable, blockingConfigured, currentView, groupBy, blockVisibleDays, effectiveSchedules, clinicSchedules, clinicExceptions, calendars, doctors]);
+
+    const blockedFullDays = React.useMemo<Set<string>>(() => {
+        if (!blockUnavailable || !blockingConfigured) return new Set();
+        const set = new Set<string>();
+        for (const day of blockVisibleDays) {
+            if (getAvailableIntervals(day, effectiveSchedules, clinicExceptions).length === 0) {
+                set.add(format(day, 'yyyy-MM-dd'));
+            }
+        }
+        return set;
+    }, [blockUnavailable, blockingConfigured, blockVisibleDays, effectiveSchedules, clinicExceptions]);
+
+    const gapVisibleDays = React.useMemo(() => {
+        if (!gapsActive || !fetchRange?.start || !fetchRange?.end) return [];
+        try {
+            return eachDayOfInterval({ start: fetchRange.start, end: fetchRange.end });
+        } catch {
+            return [];
+        }
+    }, [gapsActive, fetchRange]);
+
+    const handleToggleGaps = React.useCallback(() => {
+        setGapsActive((prev) => {
+            const next = !prev;
+            if (next) setIsBulkMode(false); // gaps and bulk modes are mutually exclusive
+            if (!next) setSelectedGap(null);
+            return next;
+        });
+    }, []);
+
+    const handleCloseGaps = React.useCallback(() => {
+        setGapsActive(false);
+        setSelectedGap(null);
+    }, []);
+
+    const handleSelectGap = React.useCallback((gap: Gap) => {
+        setEditingAppointment(null);
+        setIsReschedulingMode(false);
+        const base: {
+            date: string;
+            time: string;
+            doctor?: UserType | null;
+            calendar?: CalendarType | null;
+        } = {
+            date: format(gap.start, 'yyyy-MM-dd'),
+            time: format(gap.start, 'HH:mm'),
+        };
+        // Prefill the doctor/consultorio when the gap belongs to a grouped column.
+        if (gap.groupValue) {
+            if (groupBy === 'doctor') {
+                const doctor = doctors.find((d) => String(d.id) === String(gap.groupValue));
+                if (doctor) base.doctor = doctor;
+            } else if (groupBy === 'calendar') {
+                const calendar = calendars.find((c) => String(c.id) === String(gap.groupValue));
+                if (calendar) base.calendar = calendar;
+            }
+        }
+        setSlotInitialData(base);
+        setPendingSlotDate(gap.start);
+        setCreateOpen(true);
+        // Per the requirement: selecting a proposal closes the panel and clears the effect.
+        setGapsActive(false);
+        setSelectedGap(null);
+    }, [groupBy, doctors, calendars]);
 
     const handleSelectDoctor = React.useCallback((doctorId: string, checked: boolean) => {
         setSelectedDoctorIds(prev => {
@@ -1716,6 +1902,34 @@ export default function AppointmentsPage() {
         if (groupBy === 'calendar') return calendarGroupingColumns;
         return [];
     }, [calendarGroupingColumns, doctorGroupingColumns, groupBy]);
+
+    const calendarGaps = React.useMemo<Gap[]>(() => {
+        if (!gapsActive) return [];
+        // When blocking is on, restrict gaps to the available intervals (split shifts
+        // + exceptions); otherwise keep the original single-window behavior.
+        const useIntervals = blockUnavailable && blockingConfigured;
+        const dayGapsFor = (evts: CalendarEvent[], day: Date): Gap[] =>
+            useIntervals
+                ? computeDayGapsForIntervals(evts, day, DEFAULT_MIN_GAP_MINUTES, getAvailableIntervals(day, effectiveSchedules, clinicExceptions))
+                : computeDayGaps(evts, day, DEFAULT_MIN_GAP_MINUTES, getBusinessWindow(day, clinicSchedules));
+        // Grouped (by doctor/consultorio): free slots PER column, so a consultorio's
+        // continuous free time merges across hours regardless of other columns.
+        // Only the grid views render grouped columns; month/schedule/year use union.
+        const isGroupingView = ['day', '2-day', '3-day', 'week'].includes(currentView);
+        if (isGroupingView && groupBy !== 'none' && groupingColumns.length > 0) {
+            return groupingColumns.flatMap((col) =>
+                gapVisibleDays.flatMap((day) =>
+                    dayGapsFor(filterEventsByDayAndGroup(calendarEvents, day, groupBy, col.value), day)
+                        .map((g) => ({ ...g, groupValue: col.value, groupLabel: col.label })),
+                ),
+            );
+        }
+        // Non-grouped: a single timeline (union of all visible events).
+        if (useIntervals) {
+            return gapVisibleDays.flatMap((day) => dayGapsFor(calendarEvents, day));
+        }
+        return computeRangeGaps(calendarEvents, gapVisibleDays, clinicSchedules);
+    }, [gapsActive, blockUnavailable, blockingConfigured, groupBy, groupingColumns, currentView, calendarEvents, gapVisibleDays, clinicSchedules, effectiveSchedules, clinicExceptions]);
 
     const groupByLabel = React.useMemo(() => {
         if (groupBy === 'doctor') return t('grouping.options.doctor');
@@ -1812,6 +2026,18 @@ export default function AppointmentsPage() {
             >
                 <Stethoscope className="h-4 w-4" />
                 {t('contextMenu.createSession')}
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+            <ContextMenuItem
+                key="delete"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setSoftDeleteTarget(appointment);
+                }}
+                className="flex items-center gap-2 cursor-pointer text-destructive"
+            >
+                <Trash2 className="h-4 w-4" />
+                {tPanel('delete')}
             </ContextMenuItem>
             </>
         );
@@ -2008,7 +2234,16 @@ export default function AppointmentsPage() {
 
     return (
         <Card className="border-none shadow-none h-full">
-            <CardContent className="p-0 h-[calc(100vh-6rem)] min-h-[600px]">
+            <CardContent className="relative p-0 h-[calc(100vh-6rem)] min-h-[600px]">
+                {gapsActive && (
+                    <CalendarGapsPanel
+                        gaps={calendarGaps}
+                        selectedGapKey={selectedGap ? gapKey(selectedGap) : undefined}
+                        dateLocale={gapsDateLocale}
+                        onSelect={handleSelectGap}
+                        onClose={handleCloseGaps}
+                    />
+                )}
                 <Calendar
                     view={currentView}
                     hourSlotHeight={hourSlotHeight}
@@ -2025,6 +2260,11 @@ export default function AppointmentsPage() {
                     onToggleAppointmentSelect={isBulkMode ? handleToggleAppointmentSelect : undefined}
                     bulkModeContent={bulkModeHeaderContent}
                     onSlotClick={handleSlotClick}
+                    gaps={gapsActive ? calendarGaps : undefined}
+                    selectedGapKey={selectedGap ? gapKey(selectedGap) : undefined}
+                    onGapClick={handleSelectGap}
+                    blockedRanges={blockedRanges}
+                    blockedFullDays={blockedFullDays}
                     filterSheet={
                         <div className="space-y-6">
                             {/* Bulk selection filters (mobile) */}
@@ -2201,13 +2441,27 @@ export default function AppointmentsPage() {
 
                             {/* Settings section */}
                             <div className="pt-2">
-                                <CalendarSettingsForm onSettingsChange={handleSettingsEditorChange} showTitle={true} sedes={sedes} />
+                                <CalendarSettingsForm onSettingsChange={handleSettingsEditorChange} showTitle={true} sedes={sedes} value={calendarSettings ?? undefined} />
                             </div>
                         </div>
                     }
                     extraActions={
                         <TooltipProvider>
                             <div className="flex items-center gap-1.5">
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant={gapsActive ? 'default' : 'outline'}
+                                        size={isMobile ? 'icon' : 'sm'}
+                                        className={isMobile ? 'h-8 w-8' : 'h-9 gap-1.5'}
+                                        onClick={handleToggleGaps}
+                                    >
+                                        <CalendarSearch className="h-4 w-4" />
+                                        {!isMobile && tGaps('button')}
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>{tGaps('button')}</TooltipContent>
+                            </Tooltip>
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Button
@@ -2222,7 +2476,12 @@ export default function AppointmentsPage() {
                                 </TooltipTrigger>
                                 <TooltipContent>{tBulk('toggleButton')}</TooltipContent>
                             </Tooltip>
-                            <DropdownMenu>
+                            </div>
+                        </TooltipProvider>
+                    }
+                    primaryActions={
+                        <DropdownMenu>
+                            <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <DropdownMenuTrigger asChild>
@@ -2245,39 +2504,38 @@ export default function AppointmentsPage() {
                                         {tGeneral('create')}
                                     </TooltipContent>
                                 </Tooltip>
-                                <DropdownMenuContent align="end" className="w-64 p-1.5">
-                                    <DropdownMenuItem
-                                        className="cursor-pointer items-start gap-3 rounded-md p-3"
-                                        onSelect={handleNewAppointmentClick}
-                                    >
-                                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
-                                            <CalendarPlus className="h-4 w-4" />
+                            </TooltipProvider>
+                            <DropdownMenuContent align="end" className="w-64 p-1.5">
+                                <DropdownMenuItem
+                                    className="cursor-pointer items-start gap-3 rounded-md p-3"
+                                    onSelect={handleNewAppointmentClick}
+                                >
+                                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
+                                        <CalendarPlus className="h-4 w-4" />
+                                    </span>
+                                    <span className="min-w-0">
+                                        <span className="block font-medium">{tReminders('createType.appointment')}</span>
+                                        <span className="block text-xs leading-snug text-muted-foreground">
+                                            {tReminders('createType.appointmentDescription')}
                                         </span>
-                                        <span className="min-w-0">
-                                            <span className="block font-medium">{tReminders('createType.appointment')}</span>
-                                            <span className="block text-xs leading-snug text-muted-foreground">
-                                                {tReminders('createType.appointmentDescription')}
-                                            </span>
+                                    </span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    className="cursor-pointer items-start gap-3 rounded-md p-3"
+                                    onSelect={handleNewReminderClick}
+                                >
+                                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-violet-100 text-violet-700">
+                                        <BellRing className="h-4 w-4" />
+                                    </span>
+                                    <span className="min-w-0">
+                                        <span className="block font-medium">{tReminders('createType.reminder')}</span>
+                                        <span className="block text-xs leading-snug text-muted-foreground">
+                                            {tReminders('createType.reminderDescription')}
                                         </span>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        className="cursor-pointer items-start gap-3 rounded-md p-3"
-                                        onSelect={handleNewReminderClick}
-                                    >
-                                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-violet-100 text-violet-700">
-                                            <BellRing className="h-4 w-4" />
-                                        </span>
-                                        <span className="min-w-0">
-                                            <span className="block font-medium">{tReminders('createType.reminder')}</span>
-                                            <span className="block text-xs leading-snug text-muted-foreground">
-                                                {tReminders('createType.reminderDescription')}
-                                            </span>
-                                        </span>
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                            </div>
-                        </TooltipProvider>
+                                    </span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     }
                     extraActionsAfterToday={
                         <TooltipProvider>
@@ -2295,7 +2553,7 @@ export default function AppointmentsPage() {
                     }
                     trailingActions={
                         breakpoint === 'desktop' ? (
-                            <CalendarSettingsPopover onSettingsChange={handleSettingsEditorChange} sedes={sedes} />
+                            <CalendarSettingsPopover onSettingsChange={handleSettingsEditorChange} sedes={sedes} value={calendarSettings ?? undefined} />
                         ) : null
                     }
                 >
@@ -2575,6 +2833,29 @@ export default function AppointmentsPage() {
                     <AlertDialogFooter>
                         <AlertDialogAction onClick={confirmDeleteAppointment} className="bg-destructive hover:bg-destructive/90">{t('AppointmentsColumns.cancel')}</AlertDialogAction>
                         <AlertDialogCancel onClick={() => setIsDeleteAlertOpen(false)}>{t('createDialog.close')}</AlertDialogCancel>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Soft-delete confirmation for the right-click menu (same as the detail panel button) */}
+            <AlertDialog open={!!softDeleteTarget} onOpenChange={(v) => !v && setSoftDeleteTarget(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{tPanel('deleteTitle')}</AlertDialogTitle>
+                        <AlertDialogDescription>{tPanel('deleteDescription')}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>{tPanel('deleteCancel')}</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={() => {
+                                const target = softDeleteTarget;
+                                setSoftDeleteTarget(null);
+                                if (target) handleSoftDelete(target);
+                            }}
+                        >
+                            {tPanel('deleteConfirm')}
+                        </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

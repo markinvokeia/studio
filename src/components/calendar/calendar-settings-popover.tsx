@@ -9,9 +9,11 @@ import { CalendarSettingsForm } from './calendar-settings-form';
 interface CalendarSettingsPopoverProps {
   onSettingsChange?: (settings: CalendarSettings) => void;
   sedes?: Sede[];
+  /** Authoritative settings from the parent; when set the form won't re-fetch. */
+  value?: CalendarSettings;
 }
 
-export function CalendarSettingsPopover({ onSettingsChange, sedes }: CalendarSettingsPopoverProps) {
+export function CalendarSettingsPopover({ onSettingsChange, sedes, value }: CalendarSettingsPopoverProps) {
   const t = useTranslations('AppointmentsPage.settings');
 
   return (
@@ -27,7 +29,7 @@ export function CalendarSettingsPopover({ onSettingsChange, sedes }: CalendarSet
             <Settings2 className="h-4 w-4 text-primary" />
             <h4 className="font-semibold text-sm tracking-tight">{t('title')}</h4>
           </div>
-          <CalendarSettingsForm onSettingsChange={onSettingsChange} sedes={sedes} />
+          <CalendarSettingsForm onSettingsChange={onSettingsChange} sedes={sedes} value={value} />
         </div>
       </PopoverContent>
     </Popover>

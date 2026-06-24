@@ -559,7 +559,8 @@
         "calendar": "Consulting rooms",
         "none": "No grouping",
         "sede": "Branches"
-      }
+      },
+      "blockUnavailable": "Block out-of-office hours"
     },
     "newAppointment": "New Appointment",
     "calendarView": "Calendar View",
@@ -4715,7 +4716,18 @@
     },
     "weekShort": "Wk",
     "filterTitle": "Filter Schedule",
-    "noAppointments": "No appointments"
+    "noAppointments": "No appointments",
+    "gaps": {
+      "button": "Free slots",
+      "panelTitle": "Available slots",
+      "duration": "{min} min",
+      "empty": "No free slots within business hours.",
+      "maxBadge": "Largest",
+      "close": "Close"
+    },
+    "blocked": {
+      "label": "Unavailable"
+    }
   },
   "Reminders": {
     "recordatorio": "Reminder",

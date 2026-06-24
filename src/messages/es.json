@@ -559,7 +559,8 @@
         "calendar": "Consultorios",
         "none": "Sin agrupar",
         "sede": "Sedes"
-      }
+      },
+      "blockUnavailable": "Bloquear horarios fuera de atención"
     },
     "newAppointment": "Nueva Cita",
     "calendarView": "Vista de Calendario",
@@ -2725,7 +2726,6 @@
       "type": "Tipo",
       "paymentTypes": {
         "direct_payment": "Pago Directo",
-        "direct_payment": "Pago Directo",
         "payment": "Pago",
         "prepaid": "Prepago",
         "payment_allocation": "Asignación de Pago",
@@ -4694,7 +4694,18 @@
     },
     "weekShort": "Sem",
     "filterTitle": "Filtrar Agenda",
-    "noAppointments": "Sin citas"
+    "noAppointments": "Sin citas",
+    "gaps": {
+      "button": "Huecos",
+      "panelTitle": "Huecos disponibles",
+      "duration": "{min} min",
+      "empty": "No hay huecos en el horario de atención.",
+      "maxBadge": "Mayor",
+      "close": "Cerrar"
+    },
+    "blocked": {
+      "label": "No disponible"
+    }
   },
   "Reminders": {
     "recordatorio": "Recordatorio",

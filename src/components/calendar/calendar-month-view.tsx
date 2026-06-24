@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 import type { CalendarEvent, CalendarSlotClickHandler } from './calendar-types';
 import { CalendarEventChip } from './calendar-event';
+import { type Gap, gapKey } from './calendar-gaps';
 
 interface CalendarMonthViewProps {
   currentDate: Date;
@@ -19,6 +20,10 @@ interface CalendarMonthViewProps {
   onEventColorChange: (data: any, colorId: string) => void;
   onEventContextMenu?: (data: any) => React.ReactNode;
   onSlotClick?: CalendarSlotClickHandler;
+  gaps?: Gap[];
+  selectedGapKey?: string;
+  onGapClick?: (gap: Gap) => void;
+  blockedFullDays?: Set<string>;
 }
 
 export function CalendarMonthView({
@@ -30,6 +35,10 @@ export function CalendarMonthView({
   onEventColorChange,
   onEventContextMenu,
   onSlotClick,
+  gaps,
+  selectedGapKey,
+  onGapClick,
+  blockedFullDays,
 }: CalendarMonthViewProps) {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -66,14 +75,19 @@ export function CalendarMonthView({
           return startA - startB;
         });
 
+      const dayKey = format(date, 'yyyy-MM-dd');
+      const maxGap = gaps?.find((g) => g.dayKey === dayKey && g.isMax);
+      const isBlocked = blockedFullDays?.has(dayKey) ?? false;
+
       dayElements.push(
         <div
           key={day}
-          className="calendar-day"
+          className={cn('calendar-day', isBlocked && 'calendar-day--blocked')}
           onClick={(e) => {
             if (e.button !== 0) return;
             // Ignore synthetic clicks that bubbled from portalled children.
             if (!e.currentTarget.contains(e.target as Node)) return;
+            if (isBlocked) return; // closed day — not bookable
             if (onSlotClick) {
               e.stopPropagation();
               onSlotClick(date);
@@ -88,6 +102,16 @@ export function CalendarMonthView({
           >
             {day}
           </span>
+          {maxGap && (
+            <button
+              type="button"
+              className={cn('calendar-gap-badge', selectedGapKey === gapKey(maxGap) && 'calendar-gap-badge--selected')}
+              onClick={(e) => { e.stopPropagation(); onGapClick?.(maxGap); }}
+              title={`${format(maxGap.start, 'HH:mm')} – ${format(maxGap.end, 'HH:mm')}`}
+            >
+              {format(maxGap.start, 'HH:mm')}–{format(maxGap.end, 'HH:mm')}
+            </button>
+          )}
           <div className="mt-1 space-y-1">
             {dayEvents.map((event, index) => (
               <CalendarEventChip
