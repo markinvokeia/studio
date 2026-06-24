@@ -70,7 +70,7 @@ export function EmailComposerDialog({
 }: EmailComposerDialogProps) {
   const t = useTranslations('EmailComposerDialog');
   const { toast } = useToast();
-  const handleClose = useDialogClose();
+
   const clinic = useClinicInfo();
   const commTemplates = useCommunicationTemplates();
 

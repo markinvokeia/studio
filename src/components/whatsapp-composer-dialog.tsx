@@ -38,7 +38,7 @@ export function WhatsAppComposerDialog({
 }: WhatsAppComposerDialogProps) {
   const t = useTranslations('WhatsAppComposerDialog');
   const { toast } = useToast();
-  const handleClose = useDialogClose();
+
   const clinic = useClinicInfo();
   const commTemplates = useCommunicationTemplates();
   const [message, setMessage] = React.useState('');

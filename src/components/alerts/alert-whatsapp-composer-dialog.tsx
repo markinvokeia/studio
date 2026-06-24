@@ -42,7 +42,7 @@ function getRecipientName(alert: AlertInstance | null): string {
 export function AlertWhatsAppComposerDialog({ open, onOpenChange, alert }: AlertWhatsAppComposerDialogProps) {
   const t = useTranslations('AlertWhatsAppComposerDialog');
   const { toast } = useToast();
-  const handleClose = useDialogClose();
+
   const clinic = useClinicInfo();
   const commTemplates = useCommunicationTemplates();
   const [message, setMessage] = React.useState('');
