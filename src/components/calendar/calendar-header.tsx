@@ -35,6 +35,8 @@ interface CalendarHeaderProps {
   extraActionsAfterToday?: React.ReactNode;
   trailingActions?: React.ReactNode;
   children?: React.ReactNode;
+  /** When provided, replaces the entire desktop header with this content */
+  bulkModeContent?: React.ReactNode;
 }
 
 interface ViewMenuItemsProps {
@@ -74,6 +76,7 @@ export function CalendarHeader({
   extraActionsAfterToday,
   trailingActions,
   children,
+  bulkModeContent,
 }: CalendarHeaderProps) {
   const t = useTranslations('Calendar');
 
@@ -129,7 +132,15 @@ export function CalendarHeader({
     );
   }
 
-  // Desktop / Tablet: full header
+  // Desktop / Tablet: full header — replaced entirely when in bulk mode
+  if (bulkModeContent) {
+    return (
+      <div className="calendar-header flex-wrap gap-2">
+        {bulkModeContent}
+      </div>
+    );
+  }
+
   return (
     <div className="calendar-header flex-wrap gap-2">
       <div className="flex items-center gap-2 min-w-0">

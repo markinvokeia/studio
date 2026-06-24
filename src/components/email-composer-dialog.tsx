@@ -5,12 +5,12 @@ import { Bold, Italic, Underline, List, Link2, Send, X, Code2, Eye, PenLine } fr
 import { useTranslations } from 'next-intl';
 import {
   Dialog,
+  DialogCancelButton,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  useDialogClose,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -96,11 +96,11 @@ export function EmailComposerDialog({
 
   // Build the full token variable map
   const allVars = React.useMemo<Record<string, string>>(() => ({
-    patient_name:   recipientName   || '',
-    clinic_name:    clinic?.name    || '',
-    clinic_phone:   clinic?.phone   || '',
-    clinic_email:   clinic?.email   || '',
-    clinic_logo:    clinic?.logoUrl || '',
+    patient_name: recipientName || '',
+    clinic_name: clinic?.name || '',
+    clinic_phone: clinic?.phone || '',
+    clinic_email: clinic?.email || '',
+    clinic_logo: clinic?.logoUrl || '',
     clinic_address: clinic?.address || '',
     ...templateVars,
   }), [clinic, recipientName, templateVars]);
@@ -227,11 +227,11 @@ export function EmailComposerDialog({
           <div className="flex items-center gap-0.5 px-3 py-1 shrink-0 border-b border-border">
             {viewMode === 'edit' && (
               <>
-                <ToolbarButton icon={Bold}      label={t('toolbar.bold')}       onClick={() => execCmd('bold')} />
-                <ToolbarButton icon={Italic}    label={t('toolbar.italic')}     onClick={() => execCmd('italic')} />
-                <ToolbarButton icon={Underline} label={t('toolbar.underline')}  onClick={() => execCmd('underline')} />
+                <ToolbarButton icon={Bold} label={t('toolbar.bold')} onClick={() => execCmd('bold')} />
+                <ToolbarButton icon={Italic} label={t('toolbar.italic')} onClick={() => execCmd('italic')} />
+                <ToolbarButton icon={Underline} label={t('toolbar.underline')} onClick={() => execCmd('underline')} />
                 <div className="w-px h-5 bg-border mx-1" />
-                <ToolbarButton icon={List}      label={t('toolbar.list')}       onClick={() => execCmd('insertUnorderedList')} />
+                <ToolbarButton icon={List} label={t('toolbar.list')} onClick={() => execCmd('insertUnorderedList')} />
                 <ToolbarButton
                   icon={Link2}
                   label={t('toolbar.insertLink')}
@@ -243,9 +243,9 @@ export function EmailComposerDialog({
               </>
             )}
             <div className="ml-auto flex items-center border border-border rounded-md overflow-hidden">
-              <ToolbarButton icon={PenLine} label={t('toolbar.modeEdit')}    onClick={() => switchMode('edit')}    active={viewMode === 'edit'} />
-              <ToolbarButton icon={Code2}   label={t('toolbar.modeSource')}  onClick={() => switchMode('source')}  active={viewMode === 'source'} />
-              <ToolbarButton icon={Eye}     label={t('toolbar.modePreview')} onClick={() => switchMode('preview')} active={viewMode === 'preview'} />
+              <ToolbarButton icon={PenLine} label={t('toolbar.modeEdit')} onClick={() => switchMode('edit')} active={viewMode === 'edit'} />
+              <ToolbarButton icon={Code2} label={t('toolbar.modeSource')} onClick={() => switchMode('source')} active={viewMode === 'source'} />
+              <ToolbarButton icon={Eye} label={t('toolbar.modePreview')} onClick={() => switchMode('preview')} active={viewMode === 'preview'} />
             </div>
           </div>
 
@@ -290,10 +290,10 @@ export function EmailComposerDialog({
 
         <DialogFooter className="px-4 py-3 shrink-0 flex-row items-center justify-between sm:justify-between gap-2">
           <div className="flex gap-2 ml-auto">
-            <Button variant="outline" size="sm" onClick={handleClose}>
+            <DialogCancelButton variant="outline" size="sm">
               <X className="h-4 w-4 mr-1" />
               {t('cancel')}
-            </Button>
+            </DialogCancelButton>
             <Button size="sm" onClick={handleSend} disabled={!to || !subject || !userId || isSending}>
               <Send className="h-4 w-4 mr-1" />
               {isSending ? t('sending') : t('send')}

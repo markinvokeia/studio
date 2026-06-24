@@ -5,18 +5,23 @@ import { useTranslations } from 'next-intl';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { CalendarSettings } from '@/lib/types';
+import { CalendarSettings, Sede } from '@/lib/types';
 import api from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
+import { DEFAULT_EVENT_LABEL_FORMAT, EVENT_LABEL_FORMATS, HOUR_SLOT_HEIGHT, HOUR_SLOT_HEIGHT_OPTIONS } from './calendar-constants';
 import { DEFAULT_CALENDAR_SETTINGS, normalizeCalendarSettings } from './calendar-settings-utils';
 
 interface CalendarSettingsFormProps {
   onSettingsChange?: (settings: CalendarSettings) => void;
   className?: string;
   showTitle?: boolean;
+  /** Branches available to pick as the default calendar scope. */
+  sedes?: Sede[];
 }
 
-export function CalendarSettingsForm({ onSettingsChange, className, showTitle = false }: CalendarSettingsFormProps) {
+const ALL_SEDES_VALUE = '__all__';
+
+export function CalendarSettingsForm({ onSettingsChange, className, showTitle = false, sedes = [] }: CalendarSettingsFormProps) {
   const t = useTranslations('AppointmentsPage.settings');
   const [settings, setSettings] = React.useState<CalendarSettings>(DEFAULT_CALENDAR_SETTINGS);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -68,6 +73,10 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
     }
   };
 
+  const updateHourHeight = (value: number) => {
+    updateSettings({ hour_height: value });
+  };
+
   const viewOptions = ['day', '2_days', '3_days', 'week', 'month', 'agenda'];
   const groupOptions = ['none', 'doctor', 'calendar'];
 
@@ -96,6 +105,75 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
               {viewOptions.map(opt => (
                 <SelectItem key={opt} value={opt} className="text-xs">
                   {t(`options.${opt}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="hour-height" className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
+            {t('hourHeight')}
+          </Label>
+          <Select
+            value={String(settings.hour_height ?? HOUR_SLOT_HEIGHT)}
+            onValueChange={(val) => updateHourHeight(Number(val))}
+            disabled={isLoading}
+          >
+            <SelectTrigger id="hour-height" className="h-9 text-xs bg-card border-border/50 shadow-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {HOUR_SLOT_HEIGHT_OPTIONS.map((opt) => (
+                <SelectItem key={opt} value={String(opt)} className="text-xs">
+                  {t('hourHeightOption', { px: opt })}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {sedes.length > 0 && (
+          <div className="space-y-1.5">
+            <Label htmlFor="default-sede" className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
+              {t('sede')}
+            </Label>
+            <Select
+              value={settings.default_sede ? settings.default_sede : ALL_SEDES_VALUE}
+              onValueChange={(val) => updateSettings({ default_sede: val === ALL_SEDES_VALUE ? '' : val })}
+              disabled={isLoading}
+            >
+              <SelectTrigger id="default-sede" className="h-9 text-xs bg-card border-border/50 shadow-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_SEDES_VALUE} className="text-xs">{t('allSedes')}</SelectItem>
+                {sedes.map((sede) => (
+                  <SelectItem key={sede.id} value={sede.id} className="text-xs">
+                    {sede.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        <div className="space-y-1.5">
+          <Label htmlFor="event-label-format" className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
+            {t('eventLabel')}
+          </Label>
+          <Select
+            value={settings.event_label_format ?? DEFAULT_EVENT_LABEL_FORMAT}
+            onValueChange={(val) => updateSettings({ event_label_format: val })}
+            disabled={isLoading}
+          >
+            <SelectTrigger id="event-label-format" className="h-9 text-xs bg-card border-border/50 shadow-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {EVENT_LABEL_FORMATS.map((opt) => (
+                <SelectItem key={opt} value={opt} className="text-xs">
+                  {t(`eventLabelOptions.${opt}`)}
                 </SelectItem>
               ))}
             </SelectContent>

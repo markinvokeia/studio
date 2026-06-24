@@ -1,9 +1,12 @@
 'use client';
 
+import React from 'react';
+
 import type { Locale } from 'date-fns';
 import { format, parseISO } from 'date-fns';
 import { BellRing, CheckCircle2, Clock, Stethoscope, FileText } from 'lucide-react';
 
+import { Checkbox } from '@/components/ui/checkbox';
 import { getStatusIcon } from '@/components/appointments/status-icons';
 import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
 import { cn } from '@/lib/utils';
@@ -41,6 +44,8 @@ interface CalendarScheduleViewProps {
   dateLocale: Locale;
   breakpoint?: CalendarBreakpoint;
   onEventClick: (data: any) => void;
+  selectedAppointmentIds?: Set<string>;
+  onToggleAppointmentSelect?: (id: string) => void;
 }
 
 export function CalendarScheduleView({
@@ -48,7 +53,10 @@ export function CalendarScheduleView({
   dateLocale,
   breakpoint = 'desktop',
   onEventClick,
+  selectedAppointmentIds,
+  onToggleAppointmentSelect,
 }: CalendarScheduleViewProps) {
+  const isBulkMode = !!onToggleAppointmentSelect;
   const groupedEvents = events.reduce<Record<string, CalendarEvent[]>>((acc, event) => {
     if (!event.start) return acc;
     try {
@@ -72,10 +80,32 @@ export function CalendarScheduleView({
   const sortedDates = Object.keys(groupedEvents).sort();
   const isMobile = breakpoint === 'mobile';
 
+  // Auto-scroll so today (or the next upcoming day) sits at the top, instead of
+  // always landing on the first day of the month. Re-runs when the set of dates
+  // changes (mount, async data load, month navigation).
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const datesKey = sortedDates.join(',');
+  React.useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const scrollToToday = () => {
+      const todayStr = format(new Date(), 'yyyy-MM-dd');
+      const target = sortedDates.find((d) => d >= todayStr);
+      if (!target) return;
+      const el = container.querySelector<HTMLElement>(`[data-date="${target}"]`);
+      if (!el) return;
+      container.scrollTop += el.getBoundingClientRect().top - container.getBoundingClientRect().top;
+    };
+    scrollToToday();
+    // Re-align after web fonts load, since text reflow can shift the target.
+    document.fonts?.ready.then(scrollToToday).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [datesKey]);
+
   return (
-    <div className="overflow-y-auto p-4">
+    <div ref={containerRef} className="overflow-y-auto p-4">
       {sortedDates.map((date) => (
-        <div key={date} className="mb-4">
+        <div key={date} data-date={date} className="mb-4">
           <h3 className="font-bold text-lg mb-2">
             {format(parseISO(date), 'EEEE, MMMM d, yyyy', { locale: dateLocale })}
           </h3>
@@ -91,24 +121,59 @@ export function CalendarScheduleView({
               const ReminderIcon = reminderIsDone ? CheckCircle2 : BellRing;
               const status = (rawStatus?.toLowerCase() as AppointmentStatus | undefined) ?? undefined;
               const cancellationReason = (event.data?.cancellation_reason as CancellationReason | undefined) ?? null;
+              const appointmentId: string = event.data?.id ?? event.id;
+              const isSelected = !isReminder && isBulkMode && (selectedAppointmentIds?.has(appointmentId) ?? false);
               return (
               <div
                 key={event.id}
+                title={event.label ?? event.title}
                 data-testid="calendar-schedule-event"
                 className={cn(
-                  'p-2 rounded-md cursor-pointer',
-                  isReminder && 'border border-dashed border-[var(--reminder-border)] bg-[var(--reminder-bg)]',
-                  reminderIsDone && 'border-solid border-slate-200 opacity-80',
+                  'relative group/card overflow-hidden p-2 rounded-md cursor-pointer transition-all duration-150',
+                  isReminder && !isBulkMode && 'border border-dashed border-[var(--reminder-border)] bg-[var(--reminder-bg)]',
+                  reminderIsDone && !isBulkMode && 'border-solid border-slate-200 opacity-80',
+                  isBulkMode && isReminder && 'opacity-40 cursor-default pointer-events-none',
+                  isBulkMode && !isReminder && isSelected && 'shadow-sm',
                 )}
-                style={isReminder ? reminderCardStyle : { backgroundColor: event.color ? `${event.color}20` : 'var(--muted)' }}
+                style={
+                  isReminder
+                    ? (isBulkMode ? { backgroundColor: 'var(--muted)' } : reminderCardStyle)
+                    : isSelected
+                      ? { backgroundColor: event.color ? `${event.color}35` : 'hsl(var(--primary) / 0.13)' }
+                      : { backgroundColor: event.color ? `${event.color}20` : 'var(--muted)' }
+                }
                 onClick={(e) => {
                   if (e.button !== 0) return;
+                  if (isBulkMode && !isReminder) {
+                    onToggleAppointmentSelect!(appointmentId);
+                    return;
+                  }
                   onEventClick(event.data);
                 }}
               >
+                {/* Accent bar — selection indicator */}
+                {isBulkMode && !isReminder && (
+                  <span
+                    aria-hidden
+                    className={cn(
+                      'absolute left-0 top-0 bottom-0 w-[3px] rounded-l-md transition-[background-color] duration-150',
+                      isSelected
+                        ? 'bg-primary'
+                        : 'bg-transparent group-hover/card:bg-primary/40',
+                    )}
+                  />
+                )}
                 {isMobile ? (
                   /* Mobile: stacked single-column layout */
                   <div className="flex items-start gap-2.5">
+                    {isBulkMode && !isReminder && (
+                      <Checkbox
+                        checked={isSelected}
+                        className={cn('mt-0.5 shrink-0 transition-transform duration-150', isSelected && 'scale-110')}
+                        onCheckedChange={() => onToggleAppointmentSelect!(appointmentId)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    )}
                     <div
                       className="w-1 self-stretch rounded-full shrink-0 mt-0.5"
                       style={{ backgroundColor: isReminder ? reminderColor : event.color || 'hsl(var(--primary))' }}
@@ -117,7 +182,7 @@ export function CalendarScheduleView({
                       <div className="flex items-center gap-1.5 text-sm font-semibold">
                         <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                         <span className={cn('truncate flex-1', reminderIsDone && 'text-muted-foreground line-through')}>
-                          {event.title}
+                          {event.label ?? event.title}
                         </span>
                         {isReminder ? (
                           <span
@@ -129,10 +194,12 @@ export function CalendarScheduleView({
                           </span>
                         ) : status && <StatusBadge status={status} cancellationReason={cancellationReason} />}
                       </div>
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums">
-                        <Clock className="h-3 w-3 shrink-0" />
-                        {formatEventTime(event.start, dateLocale)}
-                      </div>
+                      {!event.label && (
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums">
+                          <Clock className="h-3 w-3 shrink-0" />
+                          {formatEventTime(event.start, dateLocale)}
+                        </div>
+                      )}
                       {event.data?.doctorName && (
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate">
                           <Stethoscope className="h-3 w-3 shrink-0" />
@@ -144,6 +211,14 @@ export function CalendarScheduleView({
                 ) : (
                   /* Desktop/Tablet: horizontal 3-column layout — status badge first */
                   <div className="flex items-center gap-4">
+                    {isBulkMode && !isReminder && (
+                      <Checkbox
+                        checked={isSelected}
+                        className={cn('transition-transform duration-150 shrink-0', isSelected && 'scale-110')}
+                        onCheckedChange={() => onToggleAppointmentSelect!(appointmentId)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    )}
                     {isReminder ? (
                       <span
                         aria-hidden
@@ -153,18 +228,26 @@ export function CalendarScheduleView({
                         <ReminderIcon className="h-3 w-3" strokeWidth={2.5} />
                       </span>
                     ) : status && <StatusBadge status={status} cancellationReason={cancellationReason} />}
-                    <div className="flex items-center gap-2 w-28 text-sm font-semibold">
-                      <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                      <div
-                        className="h-2 w-2 rounded-full shrink-0"
-                        style={{ backgroundColor: event.color || 'hsl(var(--primary))' }}
-                      />
-                      {formatEventTime(event.start, dateLocale)}
-                    </div>
+                    {!event.label && (
+                      <div className="flex items-center gap-2 w-28 text-sm font-semibold">
+                        <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        <div
+                          className="h-2 w-2 rounded-full shrink-0"
+                          style={{ backgroundColor: event.color || 'hsl(var(--primary))' }}
+                        />
+                        {formatEventTime(event.start, dateLocale)}
+                      </div>
+                    )}
                     <div className="flex items-center gap-1.5 flex-1 text-sm min-w-0">
+                      {event.label && (
+                        <span
+                          className="h-2 w-2 rounded-full shrink-0"
+                          style={{ backgroundColor: event.color || 'hsl(var(--primary))' }}
+                        />
+                      )}
                       <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                       <span className={cn('truncate', reminderIsDone && 'text-muted-foreground line-through')}>
-                        {event.title}
+                        {event.label ?? event.title}
                       </span>
                     </div>
                     {event.data?.doctorName && (

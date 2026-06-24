@@ -15,12 +15,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogBody,
+  DialogCancelButton,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  useDialogClose,
 } from '@/components/ui/dialog';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -108,7 +108,6 @@ export function InvoicePaymentDialog({
   const t = useTranslations('InvoicesPage');
   const locale = useLocale();
   const { user, checkActiveSession, activeCashSession } = useAuth();
-  const handleClose = useDialogClose();
   const { validateActiveSession } = useCashSessionValidation();
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
@@ -834,9 +833,9 @@ export function InvoicePaymentDialog({
               </DialogBody>
 
               <DialogFooter>
-                <Button variant="outline" type="button" onClick={handleClose}>
+                <DialogCancelButton variant="outline">
                   {t('paymentDialog.cancel')}
-                </Button>
+                </DialogCancelButton>
                 <Button type="submit" disabled={isSubmitting}>
                   {t('paymentDialog.add')}
                 </Button>

@@ -5,11 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import {
     Dialog,
+    DialogCancelButton,
     DialogContent,
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    useDialogClose,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -57,7 +57,6 @@ interface ClinicSessionDialogProps {
     };
     prefillTreatments?: { numero_diente: number | null; descripcion: string }[];
     existingSession?: PatientSession;  // Para edición de sesión existente
-    hideNextAppointmentDate?: boolean;
     lockDoctor?: boolean;
     showPatient?: boolean;           // Show read-only patient name field
     showQuoteSelector?: boolean;     // Show quote picker + "Nuevo" button
@@ -130,7 +129,6 @@ export function ClinicSessionDialog({
     prefillData,
     prefillTreatments,
     existingSession,
-    hideNextAppointmentDate = false,
     lockDoctor = false,
     pendingAppointmentData,
 }: ClinicSessionDialogProps) {
@@ -138,7 +136,6 @@ export function ClinicSessionDialog({
     const tCommon = useTranslations('ClinicHistoryPage');
     const locale = useLocale();
     const { toast } = useToast();
-    const handleClose = useDialogClose();
     const [isDirty, setIsDirty] = React.useState(false);
 
     const [isLoadingDoctors, setIsLoadingDoctors] = React.useState(false);
@@ -1187,38 +1184,6 @@ export function ClinicSessionDialog({
                                     )}
                                 </div>
 
-                                {/* Next Appointment Date */}
-                                {!hideNextAppointmentDate && (
-                                    <div className="space-y-2">
-                                        <Label>{t('nextAppointmentDate')}</Label>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    className={cn(
-                                                        "w-full justify-start text-left font-normal h-10 border-input",
-                                                        !form.fecha_proxima_cita && "text-muted-foreground"
-                                                    )}
-                                                >
-                                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                                    {form.fecha_proxima_cita
-                                                        ? format(new Date(form.fecha_proxima_cita + 'T00:00:00'), 'dd/MM/yyyy', { locale: dateLocale })
-                                                        : t('selectNextAppointmentDate')}
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0" align="start">
-                                                <Calendar
-                                                    mode="single"
-                                                    selected={form.fecha_proxima_cita ? new Date(form.fecha_proxima_cita + 'T00:00:00') : undefined}
-                                                    onSelect={(date) => setForm({ ...form, fecha_proxima_cita: date ? formatDate(date) : '' })}
-                                                    initialFocus
-                                                />
-                                            </PopoverContent>
-                                        </Popover>
-                                    </div>
-                                )}
-
                                 <div className="space-y-3 md:col-span-2">
                                     <div className="flex items-start gap-3 rounded-xl border border-border/70 bg-muted/20 px-4 py-3">
                                         <Checkbox
@@ -1448,13 +1413,9 @@ export function ClinicSessionDialog({
                         </div>
                     </div>
                     <DialogFooter className="px-6 py-4 border-t shrink-0">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleClose}
-                        >
+                        <DialogCancelButton variant="outline">
                             {t('cancel')}
-                        </Button>
+                        </DialogCancelButton>
                         <Button type="submit" disabled={isSubmitting || isFetchingProcedure || isFetchingPlan || isProcedureDebouncing || isPlanDebouncing}>
                             {(isSubmitting || isFetchingProcedure || isFetchingPlan || isProcedureDebouncing || isPlanDebouncing) && (
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

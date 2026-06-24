@@ -7,11 +7,11 @@ import { Loader2, Zap } from 'lucide-react';
 import {
   Dialog,
   DialogBody,
+  DialogCancelButton,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  useDialogClose,
 } from '@/components/ui/dialog';
 import { API_ROUTES } from '@/constants/routes';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
@@ -539,7 +539,6 @@ export function BillingWizardModal() {
     }
   }, [close, confirmationData, onSuccess]);
 
-  const handleCancelClose = useDialogClose();
 
   // Invoice toggle for selection step
   const handleToggleInvoice = React.useCallback((id: string) => {
@@ -993,14 +992,12 @@ export function BillingWizardModal() {
           <div className="shrink-0 border-t px-6 pb-5 pt-3 flex items-center justify-end gap-2">
             {/* Cancel — all non-confirmation steps */}
             {!isConfirmationStep && (
-              <button
-                type="button"
-                onClick={handleCancelClose}
+              <DialogCancelButton
                 disabled={isProcessing || isPaymentSubmitting}
-                className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                variant="outline"
               >
                 Cancelar
-              </button>
+              </DialogCancelButton>
             )}
 
             {/* Quote step 0: buttons depend on what's selected */}

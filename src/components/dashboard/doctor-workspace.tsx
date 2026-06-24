@@ -1653,7 +1653,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                   appointments={appointments}
                   isLoading={isLoadingAppointments}
                   onSelect={(appointmentId) => selectAppointment(appointmentId, true)}
-                  selectedAppointmentId={selectedAppointment?.id}
+                  selectedAppointmentId={isMobile && !mobileDetailsOpen ? null : selectedAppointment?.id}
                 />
               </CardContent>
             </Card>
@@ -1708,7 +1708,6 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
           prefillData={clinicSessionPrefillData}
           prefillTreatments={clinicSessionPrefillTreatments}
           existingSession={linkedSession ?? undefined}
-          hideNextAppointmentDate
           lockDoctor
         />
       )}

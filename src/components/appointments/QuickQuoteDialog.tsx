@@ -6,12 +6,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogBody,
+    DialogCancelButton,
     DialogContent,
     DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    useDialogClose,
 } from '@/components/ui/dialog';
 import { DatePickerInput } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
@@ -51,7 +51,6 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
   const t = useTranslations();
   const { toast } = useToast();
   const clinicInfo = useClinicInfo();
-  const handleClose = useDialogClose();
 
   const [items, setItems] = React.useState<QuoteItem[]>([]);
   const [currency, setCurrency] = React.useState<'USD' | 'UYU'>(clinicInfo?.currency ?? 'UYU');
@@ -391,9 +390,9 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
           </div>
         </DialogBody>
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose}>
+          <DialogCancelButton variant="outline">
             {t('General.cancel')}
-          </Button>
+          </DialogCancelButton>
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting || items.length === 0 || !user}

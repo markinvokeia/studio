@@ -10,12 +10,12 @@ import { getPriorityColor } from '@/lib/reminders';
 import {
   Dialog,
   DialogBody,
+  DialogCancelButton,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  useDialogClose,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -67,7 +67,6 @@ export function ReminderFormDialog({
   const t = useTranslations('Reminders');
   const tGeneral = useTranslations('General');
   const { enhanceText, isReady: aiReady } = useLocalAI();
-  const handleClose = useDialogClose();
 
   const [title, setTitle] = React.useState('');
   const [description, setDescription] = React.useState('');
@@ -219,9 +218,9 @@ export function ReminderFormDialog({
               <span />
             )}
             <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={handleClose}>
+              <DialogCancelButton variant="outline">
                 {tGeneral('cancel')}
-              </Button>
+              </DialogCancelButton>
               <Button type="submit">{editingReminder ? t('saveEdit') : t('saveCreate')}</Button>
             </div>
           </DialogFooter>

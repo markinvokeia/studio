@@ -3,14 +3,15 @@ import { Settings2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarSettings } from '@/lib/types';
+import { CalendarSettings, Sede } from '@/lib/types';
 import { CalendarSettingsForm } from './calendar-settings-form';
 
 interface CalendarSettingsPopoverProps {
   onSettingsChange?: (settings: CalendarSettings) => void;
+  sedes?: Sede[];
 }
 
-export function CalendarSettingsPopover({ onSettingsChange }: CalendarSettingsPopoverProps) {
+export function CalendarSettingsPopover({ onSettingsChange, sedes }: CalendarSettingsPopoverProps) {
   const t = useTranslations('AppointmentsPage.settings');
 
   return (
@@ -26,7 +27,7 @@ export function CalendarSettingsPopover({ onSettingsChange }: CalendarSettingsPo
             <Settings2 className="h-4 w-4 text-primary" />
             <h4 className="font-semibold text-sm tracking-tight">{t('title')}</h4>
           </div>
-          <CalendarSettingsForm onSettingsChange={onSettingsChange} />
+          <CalendarSettingsForm onSettingsChange={onSettingsChange} sedes={sedes} />
         </div>
       </PopoverContent>
     </Popover>

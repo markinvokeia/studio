@@ -23,7 +23,6 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    useDialogClose,
 } from '@/components/ui/dialog';
 import {
     DropdownMenu,
@@ -584,7 +583,6 @@ function ScheduleStepDialog({
     const [googleCalendarId, setGoogleCalendarId] = React.useState<string | null>(state.defaultGoogleCalendarId);
     const [notes, setNotes] = React.useState(state.defaultNotes);
     const [notify, setNotify] = React.useState(true);
-    const handleClose = useDialogClose();
     const [isSaving, setIsSaving] = React.useState(false);
     const [availability, setAvailability] = React.useState<AvailabilityResult | null>(null);
     const [isChecking, setIsChecking] = React.useState(false);
@@ -889,7 +887,6 @@ function CreateSessionFromStepDialog({
     onClose: () => void;
     t: ReturnType<typeof useTranslations>;
 }) {
-    const handleClose = useDialogClose();
     const [date, setDate] = React.useState(state.prefill.date);
     const [doctorId, setDoctorId] = React.useState(state.prefill.doctorId);
     const [notes, setNotes] = React.useState(state.prefill.notes);

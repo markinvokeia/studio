@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, useDialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogBody, DialogCancelButton, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { API_ROUTES } from '@/constants/routes';
@@ -83,7 +83,6 @@ function mapUpdatedPaymentResponse(response: unknown): Payment | undefined {
 export function PaymentEditDialog({ open, onOpenChange, payment, onSuccess }: PaymentEditDialogProps) {
     const t = useTranslations('PaymentsPage');
     const { toast } = useToast();
-    const handleClose = useDialogClose();
     const { checkActiveSession } = useAuth();
     const [paymentMethods, setPaymentMethods] = React.useState<PaymentMethod[]>([]);
     const [paymentMethodId, setPaymentMethodId] = React.useState('');
@@ -238,9 +237,9 @@ export function PaymentEditDialog({ open, onOpenChange, payment, onSuccess }: Pa
                 </DialogBody>
 
                 <DialogFooter>
-                    <Button type="button" variant="outline" onClick={handleClose} disabled={isSaving}>
+                    <DialogCancelButton variant="outline" disabled={isSaving}>
                         {t('editDialog.cancel')}
-                    </Button>
+                    </DialogCancelButton>
                     <Button type="button" onClick={handleSave} disabled={!isPaymentEditable(payment) || !paymentMethodId || isLoadingMethods || isSaving}>
                         {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {t('editDialog.save')}

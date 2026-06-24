@@ -7,6 +7,9 @@ export type CalendarBreakpoint = 'mobile' | 'tablet' | 'desktop';
 export interface CalendarEvent {
   id: string;
   title: string;
+  /** Pre-composed display label shown on the event block. When set, renderers
+   *  show this instead of `title` + a separate time (the time is part of it). */
+  label?: string;
   start: Date | string;
   end: Date | string;
   color?: string;
@@ -41,6 +44,8 @@ export interface CalendarProps {
   onEventClick: (event: any) => void;
   view?: CalendarView;
   defaultView?: CalendarView;
+  /** Height in px of one hour slot in the day/week time grid. Defaults to HOUR_SLOT_HEIGHT. */
+  hourSlotHeight?: number;
   onViewChange?: (view: CalendarView) => void;
   groupBy?: CalendarGroupBy;
   groupingColumns?: CalendarGroupingColumn[];
@@ -55,4 +60,10 @@ export interface CalendarProps {
   extraActionsAfterToday?: React.ReactNode;
   /** Content rendered at the end of the desktop header actions */
   trailingActions?: React.ReactNode;
+  /** IDs of appointments currently selected in bulk mode */
+  selectedAppointmentIds?: Set<string>;
+  /** Called when the user clicks the checkbox on a schedule-view event */
+  onToggleAppointmentSelect?: (id: string) => void;
+  /** When provided, replaces the entire desktop header with this content */
+  bulkModeContent?: React.ReactNode;
 }

@@ -267,6 +267,7 @@ export type Invoice = {
   paid_amount?: number;
   type?: string;
   invoice_id?: string | null;
+  parent_id?: string;
   is_historical?: boolean;
   due_date?: string;
   external_id?: string | number | null;
@@ -579,6 +580,34 @@ export type Appointment = {
   cancellation_note?: string | null;
 };
 
+export type AppointmentDatePreset = 'today' | 'this_week' | 'this_month';
+
+export interface AppointmentBulkFilterParams {
+  date_from: string;
+  date_to: string;
+  doctor_ids?: string[];
+  calendar_source_ids?: string[];
+  statuses?: AppointmentStatus[];
+}
+
+export interface AppointmentBulkFilterResponse {
+  ids: string[];
+  total: number;
+}
+
+export interface AppointmentBulkReassignRequest {
+  appointment_ids: string[];
+  doctor_id: string;
+  doctor_name: string;
+  doctor_email?: string;
+}
+
+export interface AppointmentBulkReassignResponse {
+  updated: number;
+  failed: number;
+  errors: Array<{ appointment_id: string; reason: string }>;
+}
+
 export type CalendarReminderPriority = 'LOW' | 'MEDIUM' | 'HIGH';
 
 export type CalendarReminderStatus = 'pending' | 'done' | 'dismissed' | 'cancelled';
@@ -713,6 +742,12 @@ export type CalendarSettings = {
   grouped_by: string;
   check_availability: boolean;
   filter_doctors_by_service: boolean;
+  /** Height in px of one hour slot in day/week views. */
+  hour_height?: number;
+  /** How each appointment's label is composed. See EVENT_LABEL_FORMATS. */
+  event_label_format?: string;
+  /** Default branch (sede) id to show. Empty string = all branches. */
+  default_sede?: string;
 };
 
 export type Sede = {

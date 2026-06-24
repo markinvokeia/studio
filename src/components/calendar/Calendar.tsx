@@ -42,6 +42,7 @@ const Calendar: React.FC<CalendarProps> = ({
   onEventClick,
   view: propsView,
   defaultView,
+  hourSlotHeight,
   onViewChange,
   groupBy = 'none',
   groupingColumns = [],
@@ -52,6 +53,9 @@ const Calendar: React.FC<CalendarProps> = ({
   extraActions,
   extraActionsAfterToday,
   trailingActions,
+  selectedAppointmentIds,
+  onToggleAppointmentSelect,
+  bulkModeContent,
 }) => {
   const t = useTranslations('Calendar');
   const breakpoint = useCalendarBreakpoint();
@@ -107,6 +111,7 @@ const Calendar: React.FC<CalendarProps> = ({
               groupingColumns={groupingColumns}
               currentTime={currentTime}
               dateLocale={dateLocale}
+              hourSlotHeight={hourSlotHeight}
               {...eventHandlers}
             />
           );
@@ -126,6 +131,7 @@ const Calendar: React.FC<CalendarProps> = ({
               dateLocale={dateLocale}
               timeZoneLabel={timeZoneLabel}
               breakpoint={breakpoint}
+              hourSlotHeight={hourSlotHeight}
               {...eventHandlers}
             />
           );
@@ -140,6 +146,7 @@ const Calendar: React.FC<CalendarProps> = ({
             currentTime={currentTime}
             dateLocale={dateLocale}
             timeZoneLabel={timeZoneLabel}
+            hourSlotHeight={hourSlotHeight}
             {...eventHandlers}
           />
         );
@@ -161,6 +168,8 @@ const Calendar: React.FC<CalendarProps> = ({
             dateLocale={dateLocale}
             breakpoint={breakpoint}
             onEventClick={onEventClick}
+            selectedAppointmentIds={selectedAppointmentIds}
+            onToggleAppointmentSelect={onToggleAppointmentSelect}
           />
         );
 
@@ -208,6 +217,7 @@ const Calendar: React.FC<CalendarProps> = ({
         extraActions={extraActions}
         extraActionsAfterToday={extraActionsAfterToday}
         trailingActions={trailingActions}
+        bulkModeContent={bulkModeContent}
       >
         {children}
       </CalendarHeader>

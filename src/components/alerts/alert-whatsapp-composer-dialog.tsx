@@ -5,12 +5,12 @@ import { MessageCircle, Send, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
   Dialog,
+  DialogCancelButton,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  useDialogClose,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,7 +49,7 @@ export function AlertWhatsAppComposerDialog({ open, onOpenChange, alert }: Alert
   const [isOpening, setIsOpening] = React.useState(false);
   const userEdited = React.useRef(false);
 
-  const phone         = React.useMemo(() => getPatientPhone(alert), [alert]);
+  const phone = React.useMemo(() => getPatientPhone(alert), [alert]);
   const recipientName = React.useMemo(() => getRecipientName(alert), [alert]);
   const normalizedPhone = React.useMemo(() => phone.trim().replace(/^\+/, '').replace(/\D/g, ''), [phone]);
 
@@ -61,28 +61,28 @@ export function AlertWhatsAppComposerDialog({ open, onOpenChange, alert }: Alert
     if (userEdited.current) return;
     const vars: Record<string, string> = {
       patient_name: recipientName || t('unknownPatient'),
-      clinic_name:  clinic?.name  || '',
+      clinic_name: clinic?.name || '',
       clinic_phone: clinic?.phone || '',
     };
     let tplCode: string;
     let defaultText: string;
     if (isAppointment) {
       vars.appointment_date = appt?.date || appt?.scheduled_date || formatDate(alert?.event_date);
-      vars.appointment_time = appt?.time || appt?.start_time     || '';
-      vars.doctor_name      = appt?.doctor_name || appt?.provider_name || '';
-      vars.location         = appt?.location    || '';
-      tplCode     = 'APPOINTMENT_REMINDER_WHATSAPP';
+      vars.appointment_time = appt?.time || appt?.start_time || '';
+      vars.doctor_name = appt?.doctor_name || appt?.provider_name || '';
+      vars.location = appt?.location || '';
+      tplCode = 'APPOINTMENT_REMINDER_WHATSAPP';
       defaultText = WHATSAPP_TEMPLATE_DEFAULTS.whatsapp_appointment_reminder;
     } else {
-      vars.alert_title   = alert?.title   || '';
+      vars.alert_title = alert?.title || '';
       vars.alert_summary = alert?.summary || '';
-      vars.alert_date    = alert?.alert_date ? formatDateTime(alert.alert_date) : '';
-      tplCode     = 'ALERT_FOLLOWUP_WHATSAPP';
+      vars.alert_date = alert?.alert_date ? formatDateTime(alert.alert_date) : '';
+      tplCode = 'ALERT_FOLLOWUP_WHATSAPP';
       defaultText = WHATSAPP_TEMPLATE_DEFAULTS.whatsapp_alert_followup;
     }
     const tpl = commTemplates[tplCode];
     setMessage(substituteTokens(tpl?.body_text || defaultText, vars));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, alert, clinic, commTemplates, recipientName, isAppointment, t]);
 
   const handleOpenWhatsApp = async () => {
@@ -137,10 +137,10 @@ export function AlertWhatsAppComposerDialog({ open, onOpenChange, alert }: Alert
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={isOpening}>
+          <DialogCancelButton variant="outline" disabled={isOpening}>
             <X className="h-4 w-4 mr-1" />
             {t('cancel')}
-          </Button>
+          </DialogCancelButton>
           <Button onClick={handleOpenWhatsApp} disabled={!normalizedPhone || isOpening}>
             <Send className="h-4 w-4 mr-1" />
             {isOpening ? t('opening') : t('open')}

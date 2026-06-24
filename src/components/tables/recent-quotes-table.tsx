@@ -13,12 +13,12 @@ import {
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
   Dialog,
+  DialogCancelButton,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  useDialogClose,
 } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
@@ -473,7 +473,6 @@ export function RecentQuotesTable({
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
   const { printQuote } = usePrintDocument();
-  const handleEmailDialogClose = useDialogClose();
   const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
   const [selectedQuoteForEmail, setSelectedQuoteForEmail] = React.useState<Quote | null>(null);
   const [emailRecipients, setEmailRecipients] = React.useState('');
@@ -876,7 +875,7 @@ export function RecentQuotesTable({
             <p className="text-sm text-muted-foreground mt-1">{t('QuotesPage.sendEmailDialog.helperText')}</p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={handleEmailDialogClose} disabled={isSendingEmail}>{t('QuotesPage.quoteDialog.cancel')}</Button>
+            <DialogCancelButton variant="outline" disabled={isSendingEmail}>{t('QuotesPage.quoteDialog.cancel')}</DialogCancelButton>
             <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
               {isSendingEmail ? (
                 <>

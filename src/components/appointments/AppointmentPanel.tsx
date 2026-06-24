@@ -17,6 +17,7 @@ import {
   MapPin,
   StickyNote,
   Stethoscope,
+  Trash2,
   UserSquare,
   Zap,
 } from 'lucide-react';
@@ -25,6 +26,16 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Dialog,
   DialogBody,
@@ -148,10 +159,13 @@ interface AppointmentPanelProps {
   isLoadingQuoteInfo: boolean;
   doctorColor?: string;
   onEdit?: (appointment: Appointment) => void;
+  /** Soft-deletes the appointment (status → 'deleted') and removes it from the calendar. */
+  onDelete?: (appointment: Appointment) => void;
   onCancel?: (appointment: Appointment) => void;
   onOpenClinicSession?: (appointment: Appointment) => void;
   onReschedule?: (appointment: Appointment) => void;
   onBillingSuccess?: () => void;
+  hideBillingAction?: boolean;
   onStatusChange: (
     appointment: Appointment,
     newStatus: AppointmentStatus,
@@ -171,11 +185,13 @@ export function AppointmentPanel({
   isLoadingQuoteInfo,
   doctorColor,
   onEdit,
+  onDelete,
   onOpenClinicSession,
   onReschedule,
   onStatusChange,
   onRequestCustomCancellation,
   onBillingSuccess,
+  hideBillingAction = false,
 }: AppointmentPanelProps) {
   const locale = useLocale();
   const t = useTranslations('AppointmentsPage');
@@ -193,6 +209,7 @@ export function AppointmentPanel({
   const [isQuoteSheetOpen, setIsQuoteSheetOpen] = React.useState(false);
   const [selectedService, setSelectedService] = React.useState<NonNullable<Appointment['services']>[number] | null>(null);
   const [isBillingLoading, setIsBillingLoading] = React.useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = React.useState(false);
   const canOpenDetailDeepLinks = useCanOpenDetailDeepLinks();
   const { open: openBillingWizard } = useBillingWizard();
 
@@ -324,14 +341,26 @@ export function AppointmentPanel({
           appointmentId: appointment.id,
         }, onBillingSuccess);
       } else {
-        const preloadedItems = (appointment.services || []).map((svc) => ({
-          tempId: svc.id,
-          service_id: svc.id,
-          service_name: svc.name,
-          unit_price: svc.price || 0,
-          quantity: 1,
-          total: svc.price || 0,
-        }));
+        const sessionTreatments = (linkedSession?.tratamientos ?? []).filter(
+          (t) => t.service_id && !t.is_for_next_session,
+        );
+        const preloadedItems = sessionTreatments.length > 0
+          ? sessionTreatments.map((t) => ({
+              tempId: String(t.service_id),
+              service_id: String(t.service_id),
+              service_name: t.service_name ?? t.descripcion ?? '',
+              unit_price: t.unit_price ?? 0,
+              quantity: t.quantity ?? 1,
+              total: (t.unit_price ?? 0) * (t.quantity ?? 1),
+            }))
+          : (appointment.services || []).map((svc) => ({
+              tempId: svc.id,
+              service_id: svc.id,
+              service_name: svc.name,
+              unit_price: svc.price || 0,
+              quantity: 1,
+              total: svc.price || 0,
+            }));
         openBillingWizard({
           patientId: appointment.patientId,
           patientName: appointment.patientName,
@@ -390,6 +419,9 @@ export function AppointmentPanel({
   const endDt = parseLocalDateTime(appointment.end?.dateTime);
   const endTime = timeFromDateTime(appointment.end?.dateTime);
   const durationMin = startDt && endDt ? differenceInMinutes(endDt, startDt) : null;
+  const durationHHmm = durationMin != null && durationMin > 0
+    ? `${String(Math.floor(durationMin / 60)).padStart(2, '0')}:${String(durationMin % 60).padStart(2, '0')}`
+    : null;
   const StatusIcon = getStatusIcon(appointment.status, appointment.cancellation_reason);
   const statusColor = STATUS_ACCENT_COLOR[appointment.status];
   const appointmentCode = `#${appointment.id.slice(0, 8).toUpperCase()}`;
@@ -523,10 +555,8 @@ export function AppointmentPanel({
                   <DetailRow
                     icon={Clock}
                     label={tColumns('time')}
-                    value={`${appointment.time}${endTime ? ` -> ${endTime}` : ''}`}
-                    detail={durationMin != null && durationMin > 0
-                      ? tPanel('durationMinutes', { minutes: durationMin })
-                      : undefined}
+                    value={`${appointment.time}${endTime ? ` → ${endTime}` : ''}`}
+                    detail={durationHHmm ? `${tPanel('duration')}: ${durationHHmm}` : undefined}
                   />
                   <DetailRow
                     icon={MapPin}
@@ -536,7 +566,7 @@ export function AppointmentPanel({
                   <DetailRow
                     icon={UserSquare}
                     label={tColumns('doctor')}
-                    value={appointment.doctorName || '-'}
+                    value={appointment.doctorId ? (appointment.doctorName || tPanel('noDoctor')) : tPanel('noDoctor')}
                     detail={doctorColor ? (
                       <span className="inline-flex items-center gap-1.5">
                         <span className="h-2 w-2 rounded-full" style={{ backgroundColor: doctorColor }} />
@@ -589,23 +619,11 @@ export function AppointmentPanel({
                 )}
               </section>
 
-              {(linkedSession || isLoadingLinkedSession || appointment.treatment_seq_step_id != null) && (
+              {(linkedSession || isLoadingLinkedSession || appointment.treatment_seq_step_id != null || !!onOpenClinicSession) && (
                 <section className="mt-6 border-t border-border pt-4">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <HeartPulse className="h-4 w-4 text-muted-foreground" />
-                      <h3 className="text-base font-semibold">{t('linkedSession')}</h3>
-                    </div>
-                    {onOpenClinicSession && (
-                      <Button
-                        variant="link"
-                        className="h-auto px-0 text-primary"
-                        onClick={() => onOpenClinicSession(appointment)}
-                      >
-                        {linkedSession ? t('editSession') : t('createSession')}
-                        <ArrowRight className="h-4 w-4" />
-                      </Button>
-                    )}
+                  <div className="mb-3 flex items-center gap-2">
+                    <HeartPulse className="h-4 w-4 text-muted-foreground" />
+                    <h3 className="text-base font-semibold">{t('linkedSession')}</h3>
                   </div>
 
                   {isLoadingLinkedSession ? (
@@ -792,7 +810,7 @@ export function AppointmentPanel({
 
           <div className="flex-none border-t border-border bg-muted/30 px-5 py-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
-              {appointment.patientId && (
+              {appointment.patientId && !hideBillingAction && (
                 <Button
                   variant="default"
                   className="w-full gap-2 sm:w-auto"
@@ -831,11 +849,45 @@ export function AppointmentPanel({
                     {tColumns('edit')}
                   </Button>
                 )}
+                {onDelete && (
+                  <Button
+                    size="lg"
+                    variant="destructive"
+                    className="flex-1 gap-2 sm:flex-none"
+                    onClick={() => setIsDeleteConfirmOpen(true)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    {tPanel('delete')}
+                  </Button>
+                )}
               </div>
             </div>
           </div>
         </div>
       </ResizableSheet>
+
+      {/* Delete confirmation — soft-deletes the appointment (removed from the system) */}
+      <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{tPanel('deleteTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{tPanel('deleteDescription')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tPanel('deleteCancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                setIsDeleteConfirmOpen(false);
+                if (appointment) onDelete?.(appointment);
+                onOpenChange(false);
+              }}
+            >
+              {tPanel('deleteConfirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {appointment.patientId && (
         <PatientDetailSheet

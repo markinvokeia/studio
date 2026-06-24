@@ -61,6 +61,7 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
       <ContextMenuTrigger>
         <div
           data-testid="calendar-day-event"
+          title={event.label ?? event.title}
           className={cn(
             'event-in-day-view',
             isShortEvent && 'event-in-day-view-compact',
@@ -82,12 +83,18 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
             onEventClick(event.data);
           }}
         >
-          <span className="event-day-title">{event.title}</span>
-          <span className="event-day-time whitespace-nowrap">
-            {isShortEvent
-              ? `, ${formatEventTime(event.start, dateLocale)} - ${formatEventTime(event.end, dateLocale)}`
-              : `${formatEventTime(event.start, dateLocale)} - ${formatEventTime(event.end, dateLocale)}`}
-          </span>
+          {event.label ? (
+            <span className="event-day-title">{event.label}</span>
+          ) : (
+            <>
+              <span className="event-day-title">{event.title}</span>
+              <span className="event-day-time whitespace-nowrap">
+                {isShortEvent
+                  ? `, ${formatEventTime(event.start, dateLocale)} - ${formatEventTime(event.end, dateLocale)}`
+                  : `${formatEventTime(event.start, dateLocale)} - ${formatEventTime(event.end, dateLocale)}`}
+              </span>
+            </>
+          )}
           {isReminder && (
             <span
               aria-hidden

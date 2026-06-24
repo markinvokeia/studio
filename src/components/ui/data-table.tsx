@@ -86,6 +86,8 @@ interface DataTableProps<TData, TValue> {
   primaryActions?: React.ReactNode;
   /** View controls (e.g. a view-mode toggle) rendered after pagination in the toolbar */
   viewControls?: React.ReactNode;
+  /** Override the default initial page size (default: 25) */
+  initialPageSize?: number;
 }
 
 export function DataTable<TData, TValue>({
@@ -129,6 +131,7 @@ export function DataTable<TData, TValue>({
   cardListClassName,
   primaryActions,
   viewControls,
+  initialPageSize = 25,
 }: DataTableProps<TData, TValue>) {
   const t = useTranslations('General');
   const showCardList = Boolean(isNarrow && renderCard);
@@ -155,7 +158,7 @@ export function DataTable<TData, TValue>({
     pageCount: pageCount,
     ...(rowCount !== undefined && { rowCount }),
     initialState: {
-      pagination: { pageSize: 25 },
+      pagination: { pageSize: initialPageSize },
     },
     state: {
       sorting,

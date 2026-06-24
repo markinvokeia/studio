@@ -216,7 +216,7 @@ export function PatientDetailSheet({
           onFinancialSubTabChange={setActiveFinancialSubTab}
           isDoctorMode={isDoctorMode}
           anamnesisContent={<AnamnesisViewer userId={userId} />}
-          clinicalHistoryContent={<ClinicHistoryViewer userId={userId} userName={userName} deepLinkView={clinicalHistoryDefaultView} />}
+          clinicalHistoryContent={<ClinicHistoryViewer userId={userId} userName={userName} deepLinkView={clinicalHistoryDefaultView} isDoctorMode={isDoctorMode} />}
           treatmentPlansContent={<UserTreatmentPlans userId={userId} userName={userName} />}
           documentsContent={<DocumentsViewer userId={userId} />}
           financialSummaryContent={

@@ -5,12 +5,12 @@ import { MessageCircle, Send, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
   Dialog,
+  DialogCancelButton,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  useDialogClose,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,12 +51,12 @@ export function WhatsAppComposerDialog({
   React.useEffect(() => {
     if (!open) { setMessage(''); setIsOpening(false); return; }
     const vars: Record<string, string> = {
-      patient_name:  recipientName            || '',
-      clinic_name:   clinic?.name             || '',
-      clinic_phone:  clinic?.phone            || '',
-      service_name:  treatmentContext?.serviceName || '',
-      missed_step:   treatmentContext?.missedStep  || '',
-      missed_date:   treatmentContext?.missedDate  || '',
+      patient_name: recipientName || '',
+      clinic_name: clinic?.name || '',
+      clinic_phone: clinic?.phone || '',
+      service_name: treatmentContext?.serviceName || '',
+      missed_step: treatmentContext?.missedStep || '',
+      missed_date: treatmentContext?.missedDate || '',
     };
     if (treatmentContext) {
       const tpl = commTemplates['TREATMENT_INTERRUPTED_WHATSAPP'];
@@ -118,10 +118,10 @@ export function WhatsAppComposerDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={isOpening}>
+          <DialogCancelButton variant="outline" disabled={isOpening}>
             <X className="h-4 w-4 mr-1" />
             {t('cancel')}
-          </Button>
+          </DialogCancelButton>
           <Button onClick={handleOpenWhatsApp} disabled={!normalizedPhone || isOpening}>
             <Send className="h-4 w-4 mr-1" />
             {isOpening ? t('opening') : t('open')}
