@@ -471,6 +471,30 @@ async function getDoctors(): Promise<UserType[]> {
 }
 
 
+// Builds a map of doctorId -> calendars the doctor has access to, from the full
+// calendar_users association list. Used to limit the calendar picker per doctor.
+async function getDoctorCalendarMap(calendars: CalendarType[]): Promise<Map<string, CalendarType[]>> {
+    const map = new Map<string, CalendarType[]>();
+    try {
+        const data = await api.get(API_ROUTES.CALENDAR_USERS_SEARCH);
+        const raw = Array.isArray(data) ? data : (data?.calendar_users || data?.data || []);
+        const calendarById = new Map(calendars.map(c => [String(c.id), c]));
+        for (const item of raw) {
+            const userId = String(item.user_id ?? item.id ?? '');
+            const calendarId = String(item.calendar_source_id ?? '');
+            if (!userId || !calendarId) continue;
+            const calendar = calendarById.get(calendarId);
+            if (!calendar) continue;
+            const existing = map.get(userId) ?? [];
+            existing.push(calendar);
+            map.set(userId, existing);
+        }
+    } catch (error) {
+        console.error('Failed to fetch calendar users map:', error);
+    }
+    return map;
+}
+
 export default function AppointmentsPage() {
     const breakpoint = useCalendarBreakpoint();
     const isMobile = breakpoint === 'mobile';
@@ -502,6 +526,7 @@ export default function AppointmentsPage() {
     const [services, setServices] = React.useState<Service[]>([]);
     const [doctors, setDoctors] = React.useState<UserType[]>([]);
     const [doctorServiceMap, setDoctorServiceMap] = React.useState<Map<string, Service[]>>(new Map());
+    const [doctorCalendarMap, setDoctorCalendarMap] = React.useState<Map<string, CalendarType[]>>(new Map());
     const [selectedCalendarIds, setSelectedCalendarIds] = React.useState<string[]>([]);
     const [isDataLoading, setIsDataLoading] = React.useState(true);
     const [isCreateOpen, setCreateOpen] = React.useState(false);
@@ -1432,6 +1457,8 @@ export default function AppointmentsPage() {
         const doctorIds = fetchedDoctors.map(d => d.id).filter(Boolean);
         const serviceMap = await getUsersServicesBatch(doctorIds);
         setDoctorServiceMap(serviceMap);
+
+        setDoctorCalendarMap(await getDoctorCalendarMap(fetchedCalendars));
 
         setSelectedDoctorIds(fetchedDoctors.map(d => d.id));
         // Honor the configured default branch (sede): show only its calendars by
@@ -2779,6 +2806,7 @@ export default function AppointmentsPage() {
                 calendars={calendars}
                 doctors={doctors}
                 doctorServiceMap={doctorServiceMap}
+                doctorCalendarMap={doctorCalendarMap}
                 checkCalendarAvailability={checkCalendarAvailability}
                 checkDoctorAvailability={checkDoctorAvailability}
             />

@@ -76,7 +76,6 @@
     "Marketing": "Marketing",
     "Campaigns": "Campañas",
     "Audiences": "Audiencias",
-    "Templates": "Plantillas",
     "Finance": "Finanzas",
     "FinancialSummary": "Resumen Financiero",
     "CashFlow": "Flujo de Caja",
@@ -1010,6 +1009,15 @@
         "sessionConfirmSaving": "Guardando...",
         "sessionConfirmSavedOk": "Sesión guardada correctamente."
       }
+    },
+    "calendarSwitch": {
+      "myAppointments": "Mis citas",
+      "ariaLabel": "Ver citas de",
+      "assignedToMe": "Asignadas a mí",
+      "fromCalendar": "Del calendario",
+      "selectCalendar": "Seleccionar calendario...",
+      "viewingCalendar": "Del calendario: {name}",
+      "myCalendars": "Mis calendarios"
     }
   },
   "AilmentsPage": {
@@ -3404,6 +3412,23 @@
       "sedeRequired": "La sede es obligatoria.",
       "emailInvalid": "Correo electrónico de Google Calendar inválido.",
       "colorInvalid": "Color hexadecimal inválido (ej. #FFFFFF)."
+    },
+    "tabs": {
+      "details": "Detalle",
+      "access": "Doctores con acceso"
+    },
+    "access": {
+      "title": "Doctores con acceso",
+      "description": "Selecciona los doctores que podrán ver las citas de este calendario desde su workspace.",
+      "selectPlaceholder": "Seleccionar doctores...",
+      "search": "Buscar doctor...",
+      "noDoctors": "No hay doctores disponibles",
+      "empty": "Ningún doctor con acceso",
+      "count": "{count} con acceso",
+      "save": "Guardar accesos",
+      "saved": "Accesos actualizados",
+      "saveError": "No se pudieron guardar los accesos",
+      "selectCalendarFirst": "Selecciona un calendario para gestionar sus accesos."
     }
   },
   "DoctorsPage": {
@@ -3469,7 +3494,9 @@
       "defaultCalendar": "Consultorio por defecto",
       "selectCalendar": "Seleccionar consultorio...",
       "searchCalendarPlaceholder": "Buscar consultorio...",
-      "noCalendar": "Sin consultorio por defecto"
+      "noCalendar": "Sin consultorio por defecto",
+      "canBrowseCalendars": "Puede ver agendas de calendarios",
+      "canBrowseCalendarsHint": "Permite a este doctor alternar en su workspace entre sus citas asignadas y las de los calendarios a los que tiene acceso."
     },
     "filters": {
       "showOnlyActive": "Mostrar solo activos"
@@ -3477,7 +3504,20 @@
     "tabs": {
       "details": "Detalles",
       "availability": "Disponibilidad",
-      "exceptions": "Excepciones"
+      "exceptions": "Excepciones",
+      "calendars": "Calendarios con acceso"
+    },
+    "calendarAccess": {
+      "title": "Calendarios con acceso",
+      "description": "Selecciona los calendarios cuyas citas podrá ver este doctor desde su workspace.",
+      "selectPlaceholder": "Seleccionar calendarios...",
+      "search": "Buscar calendario...",
+      "noItems": "No hay calendarios disponibles",
+      "empty": "Sin acceso a calendarios",
+      "count": "{count} con acceso",
+      "save": "Guardar accesos",
+      "saved": "Accesos actualizados",
+      "saveError": "No se pudieron guardar los accesos"
     }
   },
   "UserLogsPage": {

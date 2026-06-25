@@ -14,14 +14,18 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
+import { VerticalTabStrip } from '@/components/ui/vertical-tab-strip';
+import { CalendarAccessTab } from '@/components/calendar/calendar-access-tab';
 import { API_ROUTES } from '@/constants/routes';
+import { BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { Calendar as CalendarType, Sede } from '@/lib/types';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, Calendar, Check, ChevronsUpDown, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { AlertTriangle, Calendar, Check, ChevronsUpDown, Info, Loader2, Pencil, Trash2, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -123,8 +127,12 @@ export default function CalendarsPage() {
     const tNav = useTranslations('Navigation');
     const tValidation = useTranslations('CalendarsPage.validation');
     const tGeneral = useTranslations('General');
+    const tTabs = useTranslations('CalendarsPage.tabs');
     const { toast } = useToast();
+    const { hasPermission } = usePermissions();
+    const canManageAccess = hasPermission(BUSINESS_CONFIG_PERMISSIONS.CALENDARS_MANAGE_USERS);
     const isNarrow = useViewportNarrow();
+    const [activeTab, setActiveTab] = React.useState<'details' | 'access'>('details');
 
     const [calendars, setCalendars] = React.useState<CalendarType[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -167,6 +175,7 @@ export default function CalendarsPage() {
     const handleRowSelection = (rows: CalendarType[]) => {
         const calendar = rows[0] ?? null;
         setSelectedCalendar(calendar);
+        setActiveTab('details');
         setSubmissionError(null);
         if (calendar) {
             setIsEditing(false);
@@ -307,20 +316,20 @@ export default function CalendarsPage() {
                         </CardTitle>
                     </div>
                     <div className="flex items-center gap-1 ml-2 flex-none">
-                        {selectedCalendar && !isEditing && (
+                        {selectedCalendar && !isEditing && activeTab === 'details' && (
                             <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setIsEditing(true)}>
                                 <Pencil className="h-3.5 w-3.5" />
                                 <span className="hidden sm:inline">{t('dialog.edit')}</span>
                             </Button>
                         )}
-                        {selectedCalendar && !isEditing && (
+                        {selectedCalendar && !isEditing && activeTab === 'details' && (
                             <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" onClick={() => { setDeletingCalendar(selectedCalendar); setIsDeleteDialogOpen(true); }}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         )}
                     </div>
                 </div>
-                {selectedCalendar && !isEditing && (
+                {selectedCalendar && !isEditing && activeTab === 'details' && (
                     <div className="ml-10 mt-1">
                         <Badge variant={selectedCalendar.is_active ? 'success' : 'outline'} className="text-[10px]">
                             {selectedCalendar.is_active ? 'Activo' : 'Inactivo'}
@@ -329,7 +338,20 @@ export default function CalendarsPage() {
                 )}
             </CardHeader>
             <Separator />
+            {selectedCalendar && !isEditing && (
+                <VerticalTabStrip
+                    tabs={[
+                        { id: 'details', icon: Info, label: tTabs('details') },
+                        { id: 'access', icon: Users, label: tTabs('access') },
+                    ]}
+                    activeTabId={activeTab}
+                    onTabClick={(tab) => setActiveTab(tab.id as 'details' | 'access')}
+                />
+            )}
             <CardContent className="flex-1 overflow-auto p-4">
+                {selectedCalendar && activeTab === 'access' ? (
+                    <CalendarAccessTab calendarId={selectedCalendar.id} canManage={canManageAccess} />
+                ) : (
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                         {submissionError && (
@@ -429,6 +451,7 @@ export default function CalendarsPage() {
                         )}
                     </form>
                 </Form>
+                )}
             </CardContent>
         </Card>
     );

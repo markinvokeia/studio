@@ -76,7 +76,6 @@
     "Marketing": "Marketing",
     "Campaigns": "Campaigns",
     "Audiences": "Audiences",
-    "Templates": "Templates",
     "Finance": "Finance",
     "FinancialSummary": "Financial Summary",
     "CashFlow": "Cash Flow",
@@ -1010,6 +1009,15 @@
         "sessionConfirmSaving": "Saving...",
         "sessionConfirmSavedOk": "Session saved successfully."
       }
+    },
+    "calendarSwitch": {
+      "myAppointments": "My appointments",
+      "ariaLabel": "View appointments for",
+      "assignedToMe": "Assigned to me",
+      "fromCalendar": "From calendar",
+      "selectCalendar": "Select calendar...",
+      "viewingCalendar": "From calendar: {name}",
+      "myCalendars": "My calendars"
     }
   },
   "AilmentsPage": {
@@ -3427,6 +3435,23 @@
       "sedeRequired": "Branch is required.",
       "emailInvalid": "Invalid Google Calendar email.",
       "colorInvalid": "Invalid hex color (e.g. #FFFFFF)."
+    },
+    "tabs": {
+      "details": "Details",
+      "access": "Doctors with access"
+    },
+    "access": {
+      "title": "Doctors with access",
+      "description": "Select the doctors who can see this calendar’s appointments from their workspace.",
+      "selectPlaceholder": "Select doctors...",
+      "search": "Search doctor...",
+      "noDoctors": "No doctors available",
+      "empty": "No doctors with access",
+      "count": "{count} with access",
+      "save": "Save access",
+      "saved": "Access updated",
+      "saveError": "Failed to save access",
+      "selectCalendarFirst": "Select a calendar to manage its access."
     }
   },
   "DoctorsPage": {
@@ -3492,7 +3517,9 @@
       "defaultCalendar": "Default Consultorio",
       "selectCalendar": "Select consultorio...",
       "searchCalendarPlaceholder": "Search consultorio...",
-      "noCalendar": "No default consultorio"
+      "noCalendar": "No default consultorio",
+      "canBrowseCalendars": "Can view calendar agendas",
+      "canBrowseCalendarsHint": "Lets this doctor switch in their workspace between their assigned appointments and those of the calendars they have access to."
     },
     "filters": {
       "showOnlyActive": "Show only active"
@@ -3500,7 +3527,20 @@
     "tabs": {
       "details": "Detalles",
       "availability": "Availability",
-      "exceptions": "Exceptions"
+      "exceptions": "Exceptions",
+      "calendars": "Calendars with access"
+    },
+    "calendarAccess": {
+      "title": "Calendars with access",
+      "description": "Select the calendars whose appointments this doctor can see from their workspace.",
+      "selectPlaceholder": "Select calendars...",
+      "search": "Search calendar...",
+      "noItems": "No calendars available",
+      "empty": "No calendar access",
+      "count": "{count} with access",
+      "save": "Save access",
+      "saved": "Access updated",
+      "saveError": "Failed to save access"
     }
   },
   "UserLogsPage": {
