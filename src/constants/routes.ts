@@ -44,6 +44,8 @@ export const API_ROUTES = {
     REMINDERS: '/reminders',
     REMINDERS_UPSERT: '/reminders/upsert',
     REMINDERS_DELETE: '/reminders/delete',
+    NOTIFICATIONS: '/notifications',
+    NOTIFICATIONS_STATUS: '/notifications/status',
     ALERTS: '/alerts',
     APPOINTMENTS: '/appointments',
     PAYMENT_METHODS: '/metodospago/all',
