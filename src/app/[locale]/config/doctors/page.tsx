@@ -48,6 +48,7 @@ import { cn } from '@/lib/utils';
 import { DoctorsColumnsWrapper } from './columns';
 import { useDeepLink } from '@/hooks/use-deep-link';
 import { extractCreatedUserId, sendFirstTimePasswordToken } from '@/services/users';
+import { useCheckFirstPassword } from '@/hooks/use-check-first-password';
 
 
 const doctorFormSchema = (t: (key: string) => string) => z.object({
@@ -253,14 +254,13 @@ export default function DoctorsPage() {
   const [users, setUsers] = React.useState<User[]>([]);
   const [userCount, setUserCount] = React.useState(0);
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
-  const [hasPasswordPermission, setHasPasswordPermission] = React.useState(false);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
   const [detailError, setDetailError] = React.useState<string | null>(null);
   const [isSavingDetail, setIsSavingDetail] = React.useState(false);
 
   const canSetInitialPassword = hasPermission(SYSTEM_PERMISSIONS.USERS_SET_INITIAL_PASSWORD);
-
+  const hasPasswordPermission = useCheckFirstPassword(selectedUser, canSetInitialPassword);
 
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
@@ -399,31 +399,6 @@ export default function DoctorsPage() {
     }
   };
 
-  React.useEffect(() => {
-    const checkFirstPasswordRequirements = async () => {
-      if (!selectedUser || !canSetInitialPassword) {
-        setHasPasswordPermission(false);
-        return;
-      }
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setHasPasswordPermission(false);
-        return;
-      }
-      try {
-        await api.get(API_ROUTES.SYSTEM.API_AUTH_CHECK_FIRST_PASSWORD, { user_id: selectedUser.id });
-        setHasPasswordPermission(true);
-      } catch {
-        setHasPasswordPermission(false);
-      }
-    };
-
-    if (selectedUser) {
-      checkFirstPasswordRequirements();
-    } else {
-      setHasPasswordPermission(false);
-    }
-  }, [selectedUser, canSetInitialPassword]);
 
   const handleSendInitialPassword = async () => {
     if (!selectedUser || !canSetInitialPassword) return;
