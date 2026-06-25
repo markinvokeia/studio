@@ -84,6 +84,9 @@ interface AppointmentFormDialogProps {
     calendars?: CalendarType[];
     doctors?: UserType[];
     doctorServiceMap?: Map<string, Service[]>;
+    /** Calendars each doctor is granted access to (by doctor id). When provided,
+     *  the calendar picker is limited to the selected doctor's accessible calendars. */
+    doctorCalendarMap?: Map<string, CalendarType[]>;
     checkCalendarAvailability?: boolean;
     checkDoctorAvailability?: boolean;
     userQuotes?: Quote[];
@@ -100,6 +103,7 @@ export function AppointmentFormDialog({
     calendars = [],
     doctors: allDoctors = [],
     doctorServiceMap = new Map(),
+    doctorCalendarMap = new Map(),
     checkCalendarAvailability = false,
     checkDoctorAvailability = false,
     userQuotes: externalUserQuotes,
@@ -1042,6 +1046,23 @@ export function AppointmentFormDialog({
         });
     }, [allDoctors, appointment.services, doctorServiceMap, checkDoctorAvailability]);
 
+    // When a doctor is selected and we know their calendar access, limit the calendar
+    // picker to those calendars (plus the doctor's own calendar). Otherwise show all.
+    const availableCalendars = React.useMemo(() => {
+        const doctorId = appointment.doctor?.id ? String(appointment.doctor.id) : null;
+        if (!doctorId) return calendars;
+        const granted = doctorCalendarMap.get(doctorId);
+        if (!granted || granted.length === 0) {
+            // No explicit access map for this doctor: fall back to all calendars.
+            if (doctorCalendarMap.size === 0) return calendars;
+        }
+        const allowedIds = new Set((granted ?? []).map(c => String(c.id)));
+        const ownCalendarId = appointment.doctor?.calendar_source_id;
+        if (ownCalendarId) allowedIds.add(String(ownCalendarId));
+        if (allowedIds.size === 0) return calendars;
+        return calendars.filter(c => allowedIds.has(String(c.id)));
+    }, [appointment.doctor, doctorCalendarMap, calendars]);
+
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1364,7 +1385,7 @@ export function AppointmentFormDialog({
                                                             <Check className={cn("mr-2 h-4 w-4", !appointment.calendar ? "opacity-100" : "opacity-0")} />
                                                             {t('createDialog.allCalendars')}
                                                         </CommandItem>
-                                                        {calendars.map(calendar => (
+                                                        {availableCalendars.map(calendar => (
                                                             <CommandItem key={calendar.id} value={calendar.name} onSelect={() => { setAppointment(prev => ({ ...prev, calendar })); setCalendarSearchOpen(false); setErrors(prev => prev.filter(err => err !== 'calendar')); }}>
                                                                 <Check className={cn("mr-2 h-4 w-4", appointment.calendar?.id === calendar.id ? "opacity-100" : "opacity-0")} />
                                                                 {calendar.name}

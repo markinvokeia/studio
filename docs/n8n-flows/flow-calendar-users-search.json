@@ -1,0 +1,79 @@
+{
+  "name": "Calendar Users — Search",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Calendar Users — Search\n\n**GET** `/webhook/calendar_users/search`\n\nDevuelve las asociaciones entre calendarios y usuarios (doctores con acceso).\n\n**Query params (todos opcionales):**\n- `calendar_source_id`: filtra por calendario (modo CRUD — lista doctores con acceso).\n- `user_id`: filtra por usuario (modo workspace / form — lista calendarios accesibles).\n- _(sin params)_: devuelve TODAS las asociaciones (modo mapa doctor→calendarios del form de citas).\n\n**Response 200:** array de filas con:\n`calendar_source_id`, `user_id`, `user_name`, `calendar_name`, `color`.\nEl frontend usa los campos según el modo.",
+        "height": 360,
+        "width": 460,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-120, 20],
+      "typeVersion": 1,
+      "id": "cu-search-note",
+      "name": "Flow Documentation"
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "calendar_users/search",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [300, 300],
+      "id": "cu-search-wh",
+      "name": "Webhook",
+      "webhookId": "calendar-users-search"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst query = input.query ?? input;\nconst esc = (v) => String(v).replace(/'/g, \"''\");\n\nconst rawCalendarId = query.calendar_source_id != null ? String(query.calendar_source_id).trim() : '';\nlet calendarSourceIdSql = 'NULL';\nif (rawCalendarId !== '') {\n  const parsed = parseInt(rawCalendarId, 10);\n  if (Number.isNaN(parsed)) throw new Error(`calendar_source_id inválido: ${query.calendar_source_id}`);\n  calendarSourceIdSql = String(parsed);\n}\n\nconst rawUserId = query.user_id != null ? String(query.user_id).trim() : '';\nconst userIdSql = rawUserId !== '' ? `'${esc(rawUserId)}'` : 'NULL';\n\nreturn [{ json: { calendar_source_id_sql: calendarSourceIdSql, user_id_sql: userIdSql } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [540, 300],
+      "id": "cu-search-parse",
+      "name": "Parse Query"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  cu.calendar_source_id::text AS calendar_source_id,\n  cu.user_id::text AS user_id,\n  u.name AS user_name,\n  cs.name AS calendar_name,\n  cs.color::text AS color\nFROM calendar_users cu\nJOIN users u ON u.id = cu.user_id\nJOIN calendar_sources cs ON cs.id = cu.calendar_source_id\nWHERE ({{ $json.calendar_source_id_sql }}::bigint IS NULL OR cu.calendar_source_id = {{ $json.calendar_source_id_sql }}::bigint)\n  AND ({{ $json.user_id_sql }}::uuid IS NULL OR cu.user_id = {{ $json.user_id_sql }}::uuid)\nORDER BY cs.name, u.name;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [780, 300],
+      "id": "cu-search-pg",
+      "name": "Load Calendar Users",
+      "credentials": {
+        "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($input.all().map(item => item.json)) }}",
+        "options": { "responseCode": 200 }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1020, 300],
+      "id": "cu-search-respond",
+      "name": "Respond 200"
+    }
+  ],
+  "connections": {
+    "Webhook":             { "main": [[{ "node": "Parse Query",         "type": "main", "index": 0 }]] },
+    "Parse Query":         { "main": [[{ "node": "Load Calendar Users", "type": "main", "index": 0 }]] },
+    "Load Calendar Users": { "main": [[{ "node": "Respond 200",         "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1", "errorWorkflow": "" },
+  "meta": { "templateCredsSetupCompleted": true },
+  "tags": ["calendar-users", "calendars", "clinic"]
+}

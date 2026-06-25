@@ -1,0 +1,79 @@
+{
+  "name": "Calendar Users — Upsert",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Calendar Users — Upsert\n\n**POST** `/webhook/calendar_users/upsert`\n\nReemplaza el conjunto completo de doctores con acceso a un calendario\n(DELETE de los actuales + INSERT de los enviados, en una sola sentencia atómica).\n\n**Request body:**\n```json\n{\n  \"calendar_source_id\": 12,\n  \"user_ids\": [\"uuid-doctor-1\", \"uuid-doctor-3\"]\n}\n```\n- `user_ids` vacío → quita todos los accesos del calendario.\n\n**Response 200:** `{ \"success\": true, \"calendar_source_id\": 12, \"count\": 2 }`",
+        "height": 320,
+        "width": 420,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-120, 20],
+      "typeVersion": 1,
+      "id": "cu-upsert-note",
+      "name": "Flow Documentation"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "calendar_users/upsert",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [300, 300],
+      "id": "cu-upsert-wh",
+      "name": "Webhook",
+      "webhookId": "calendar-users-upsert"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body ?? $input.first().json;\n\nconst rawCalendarId = body?.calendar_source_id;\nif (rawCalendarId === undefined || rawCalendarId === null || String(rawCalendarId).trim() === '') {\n  throw new Error('Campo calendar_source_id es requerido');\n}\nconst calendarSourceId = parseInt(String(rawCalendarId).trim(), 10);\nif (Number.isNaN(calendarSourceId)) throw new Error(`calendar_source_id inválido: ${rawCalendarId}`);\n\nconst rawIds = Array.isArray(body?.user_ids) ? body.user_ids : [];\nconst uuidRe = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;\nconst cleanIds = [...new Set(rawIds.map((x) => String(x).trim()).filter(Boolean))];\nfor (const id of cleanIds) {\n  if (!uuidRe.test(id)) throw new Error(`user_id inválido: ${id}`);\n}\nconst userIdsSql = cleanIds.map((id) => `'${id}'`).join(',');\n\nreturn [{ json: { calendar_source_id: calendarSourceId, user_ids_sql: userIdsSql, count: cleanIds.length } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [540, 300],
+      "id": "cu-upsert-extract",
+      "name": "Extract Body"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH deleted AS (\n  DELETE FROM calendar_users\n  WHERE calendar_source_id = {{ $json.calendar_source_id }}::bigint\n), inserted AS (\n  INSERT INTO calendar_users (calendar_source_id, user_id)\n  SELECT {{ $json.calendar_source_id }}::bigint, uid\n  FROM unnest(ARRAY[{{ $json.user_ids_sql }}]::uuid[]) AS uid\n  ON CONFLICT (calendar_source_id, user_id) DO NOTHING\n  RETURNING user_id\n)\nSELECT {{ $json.calendar_source_id }}::bigint::text AS calendar_source_id, COUNT(*)::int AS count FROM inserted;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [780, 300],
+      "id": "cu-upsert-pg",
+      "name": "Replace Access",
+      "credentials": {
+        "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, calendar_source_id: $json.calendar_source_id, count: $json.count }) }}",
+        "options": { "responseCode": 200 }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1020, 300],
+      "id": "cu-upsert-respond",
+      "name": "Respond 200"
+    }
+  ],
+  "connections": {
+    "Webhook":        { "main": [[{ "node": "Extract Body",   "type": "main", "index": 0 }]] },
+    "Extract Body":   { "main": [[{ "node": "Replace Access",  "type": "main", "index": 0 }]] },
+    "Replace Access": { "main": [[{ "node": "Respond 200",     "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1", "errorWorkflow": "" },
+  "meta": { "templateCredsSetupCompleted": true },
+  "tags": ["calendar-users", "calendars", "clinic"]
+}

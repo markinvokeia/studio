@@ -28,6 +28,8 @@ export type User = {
   responsible_contact_id?: string;
   responsible_contact_name?: string;
   calendar_source_id?: string;
+  /** Doctor flag: enables browsing appointments of calendars they have access to in the workspace. */
+  can_browse_calendars?: boolean;
 };
 
 export type CurrencyFinancialData = {
@@ -108,6 +110,8 @@ export type AuthUser = {
   internal_id?: string | null;
   is_active: boolean;
   roles_and_permissions: UserRoleAndPermission[];
+  /** Doctor flag: enables the "view calendar agendas" switch in the workspace. */
+  can_browse_calendars?: boolean;
 };
 
 export type PatientDischarge = {
@@ -773,6 +777,12 @@ export type Calendar = {
   color?: string;
   sede_id?: string;
   sede_name?: string;
+};
+
+export type CalendarUserAccess = {
+  calendar_source_id: string;
+  user_id: string;
+  user_name?: string;
 };
 
 export type Ailment = {
