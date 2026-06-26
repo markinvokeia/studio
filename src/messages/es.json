@@ -1,4 +1,24 @@
 {
+  "AccountStatement": {
+    "title": "Estado de cuenta",
+    "print": "Imprimir",
+    "close": "Cerrar",
+    "loading": "Cargando estado de cuenta…",
+    "noData": "Este paciente no tiene movimientos financieros.",
+    "error": "No se pudo cargar el estado de cuenta.",
+    "printError": "No se pudo imprimir",
+    "printErrorGeneric": "Ocurrió un error al generar el documento.",
+    "viewStatement": "Ver estado de cuenta",
+    "debtAlertTitle": "Este paciente tiene deuda pendiente",
+    "noDebt": "Sin deuda pendiente"
+  },
+  "QuickPatientSearch": {
+    "title": "Buscar paciente",
+    "placeholder": "Buscar paciente por nombre o teléfono…",
+    "searching": "Buscando…",
+    "noResults": "No se encontraron pacientes.",
+    "hint": "Escribe para buscar un paciente."
+  },
   "ConfirmCloseDialog": {
     "title": "¿Descartar cambios?",
     "description": "Tiene cambios sin guardar. Si cierra ahora, se perderán.",
@@ -718,7 +738,12 @@
       "errorLoadingQuoteItems": "Error al cargar tratamientos",
       "errorLoadingQuoteItemsDesc": "No se pudieron cargar los tratamientos del presupuesto.",
       "appointmentDeleted": "Cita eliminada",
-      "appointmentDeletedDesc": "La cita fue eliminada del sistema."
+      "appointmentDeletedDesc": "La cita fue eliminada del sistema.",
+      "doctorReassigned": "Doctor actualizado",
+      "calendarReassigned": "Consultorio actualizado",
+      "quoteLinked": "Presupuesto enlazado",
+      "quoteUnlinked": "Presupuesto desvinculado",
+      "invoiceLinked": "Factura enlazada"
     },
     "linkedSession": "Sesión Clínica Enlazada",
     "noLinkedSession": "No hay sesión clínica enlazada a esta cita",
@@ -729,8 +754,21 @@
     "clinicSession": "Sesión Clínica",
     "contextMenu": {
       "createSession": "Registrar sesión clínica",
+      "editSession": "Editar sesión clínica",
       "services": "Servicios",
-      "notes": "Notas"
+      "notes": "Notas",
+      "linkQuote": "Enlazar presupuesto",
+      "changeQuote": "Cambiar presupuesto",
+      "unlinkQuote": "Quitar presupuesto",
+      "newQuote": "Crear nuevo presupuesto",
+      "searchQuote": "Buscar presupuesto…",
+      "noQuotes": "Sin presupuestos",
+      "createInvoice": "Facturar",
+      "changeInvoice": "Cambiar factura",
+      "newInvoice": "Crear nueva factura",
+      "searchInvoice": "Buscar factura…",
+      "noInvoices": "Sin facturas",
+      "quickBill": "Cobro rápido"
     },
     "linkedInvoice": "Factura",
     "notInvoiced": "Sin facturar",
@@ -807,7 +845,17 @@
   "AppointmentPanel": {
     "openPatient": "Ver paciente",
     "openDoctor": "Ver doctor",
+    "appointmentTitleFor": "Detalles de la cita para",
     "noDoctor": "Sin Doctor asignado",
+    "noCalendar": "Sin consultorio asignado",
+    "changeDoctor": "Cambiar doctor",
+    "assignDoctor": "Asignar doctor",
+    "changeCalendar": "Cambiar consultorio",
+    "assignCalendar": "Asignar consultorio",
+    "searchDoctor": "Buscar doctor…",
+    "searchCalendar": "Buscar consultorio…",
+    "noDoctorFound": "No se encontraron doctores.",
+    "noCalendarFound": "No se encontraron consultorios.",
     "openQuote": "Ver presupuesto",
     "servicesLabel": "Servicios",
     "servicesCount": "{count, plural, one {# servicio} other {# servicios}}",
@@ -1227,7 +1275,8 @@
       "printFinancialSummary": "Imprimir Resumen Financiero",
       "print": "Imprimir",
       "showStats": "VER",
-      "hideStats": "OCULTAR"
+      "hideStats": "OCULTAR",
+      "statement": "ESTADO"
     },
     "financialSummaryDialog": {
       "title": "Imprimir Resumen Financiero",
@@ -6960,7 +7009,8 @@
       "phone": "Teléfono",
       "concept": "Concepto",
       "balance": "Saldo",
-      "finalBalance": "Saldo Final"
+      "finalBalance": "Saldo Final",
+      "paysInvoice": "Paga"
     }
   },
   "License": {

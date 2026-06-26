@@ -48,6 +48,7 @@ const Calendar: React.FC<CalendarProps> = ({
   groupingColumns = [],
   onEventColorChange,
   onSlotClick,
+  onSlotContextMenu,
   onEventContextMenu,
   filterSheet,
   extraActions,
@@ -95,6 +96,7 @@ const Calendar: React.FC<CalendarProps> = ({
     onEventColorChange,
     onEventContextMenu,
     onSlotClick,
+    onSlotContextMenu,
   };
 
   // Free-slot ("Huecos") overlay props, threaded into the grid/month views.

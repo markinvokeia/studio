@@ -13,6 +13,8 @@ import { PrivateRoute } from '@/components/auth/PrivateRoute';
 import { NotificationsProvider } from '@/context/notifications-context';
 import { BillingWizardModal } from '@/components/billing-wizard';
 import { PrintDocumentContainer } from '@/components/print-templates';
+import { AccountStatementSheet } from '@/components/financial/AccountStatementSheet';
+import { PatientQuickViewHost } from '@/components/patients/PatientQuickViewHost';
 import { LicenseInitializer } from '@/components/license/LicenseInitializer';
 import type { RuntimeConfig } from '@/lib/runtime-config';
 
@@ -72,6 +74,8 @@ export default async function LocaleLayout({
                 {children}
                 <BillingWizardModal />
                 <PrintDocumentContainer />
+                <AccountStatementSheet />
+                <PatientQuickViewHost />
               </PrivateRoute>
             </NotificationsProvider>
           </TVDisplayProvider>

@@ -111,8 +111,8 @@ export function DateRangePresets({ value, onChange, className }: DateRangePreset
             type="button"
             onClick={() => applyPreset(key)}
             className={cn(
-              'flex w-full items-center rounded px-3 py-1.5 text-left text-sm transition-colors hover:bg-accent',
-              active === key && 'bg-accent font-medium'
+              'flex w-full items-center rounded px-3 py-1.5 text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground',
+              active === key && 'bg-accent text-accent-foreground font-medium'
             )}
           >
             {label}
@@ -126,7 +126,7 @@ export function DateRangePresets({ value, onChange, className }: DateRangePreset
         <div
           className={cn(
             'rounded px-3 py-2 space-y-2',
-            active === 'custom' && 'bg-accent'
+            active === 'custom' && 'bg-accent text-accent-foreground'
           )}
           onClick={() => setActive('custom')}
         >

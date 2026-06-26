@@ -51,6 +51,8 @@ export interface CalendarProps {
   groupingColumns?: CalendarGroupingColumn[];
   onEventColorChange: (event: any, colorId: string) => void;
   onSlotClick?: CalendarSlotClickHandler;
+  /** Right-click on an empty slot — used to offer appointment vs reminder creation. */
+  onSlotContextMenu?: CalendarSlotClickHandler;
   onEventContextMenu?: (event: any) => React.ReactNode;
   /** Content rendered inside the mobile bottom sheet for filters */
   filterSheet?: React.ReactNode;

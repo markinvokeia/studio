@@ -38,7 +38,10 @@ import { getSalesServices } from '@/services/services';
 import { TreatmentPlanReviewDialog } from '@/components/appointments/TreatmentPlanReviewDialog';
 import { getServicesByQuoteId, getQuoteItems } from '@/services/quotes';
 import { addMinutes, differenceInMinutes, format, isValid, parse, parseISO } from 'date-fns';
-import { CalendarDays, Check, ChevronsUpDown, ClipboardList, Clock, FilePlus, Link2, Loader2, MapPin, Plus, Stethoscope, UserRound, X } from 'lucide-react';
+import { AlertTriangle, CalendarDays, Check, ChevronsUpDown, ClipboardList, Clock, FileText, FilePlus, Link2, Loader2, MapPin, Plus, Stethoscope, UserRound, X } from 'lucide-react';
+
+import { useAccountStatement } from '@/stores/account-statement-store';
+import { usePatientView } from '@/stores/patient-view-store';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -117,8 +120,15 @@ export function AppointmentFormDialog({
     const { user: currentUser } = useAuth();
     const { toast } = useToast();
     const { reschedule } = useAppointmentReschedule();
+    const { open: openAccountStatement } = useAccountStatement();
+    const { open: openPatientView } = usePatientView();
+    const tAccount = useTranslations('AccountStatement');
+    const tPanelAccount = useTranslations('AppointmentPanel');
     const isReschedule = mode === 'reschedule';
     const [hasBeenEdited, setHasBeenEdited] = React.useState(false);
+
+    // Outstanding-debt indicator for the selected patient (per currency).
+    const [patientDebt, setPatientDebt] = React.useState<{ currency: string; amount: number }[]>([]);
 
     // Form State
     const [appointment, setAppointment] = React.useState({
@@ -307,6 +317,25 @@ export function AppointmentFormDialog({
 
         loadUserQuotes();
     }, [appointment.user?.id, externalUserQuotes]);
+
+    // Load the selected patient's outstanding debt to surface it inline.
+    React.useEffect(() => {
+        const userId = appointment.user?.id;
+        if (!userId) { setPatientDebt([]); return; }
+        let active = true;
+        api.get(API_ROUTES.USER_FINANCIAL, { user_id: userId })
+            .then((raw: any) => {
+                if (!active) return;
+                const fin = Array.isArray(raw) ? raw[0] : raw;
+                const byCurrency = fin?.financial_data ?? {};
+                const debts = Object.entries(byCurrency)
+                    .map(([currency, d]: [string, any]) => ({ currency, amount: Number(d?.current_debt ?? 0) }))
+                    .filter((d) => d.amount > 0);
+                setPatientDebt(debts);
+            })
+            .catch(() => { if (active) setPatientDebt([]); });
+        return () => { active = false; };
+    }, [appointment.user?.id]);
 
     // Initialize/Reset form
     React.useEffect(() => {
@@ -585,6 +614,11 @@ export function AppointmentFormDialog({
                 } else {
                     totalDuration = 30;
                 }
+            }
+
+            // New appointment with no service-derived duration → default to 30 min.
+            if (!editingAppointment && totalDuration === 0) {
+                totalDuration = 30;
             }
 
             return format(addMinutes(startDateTime, totalDuration), 'HH:mm');
@@ -1099,9 +1133,46 @@ export function AppointmentFormDialog({
                                         placeholder={t('createDialog.searchUserPlaceholder')}
                                         className={errors.includes('user') ? 'border-destructive text-destructive' : undefined}
                                     />
+                                    {appointment.user && (
+                                        <div className="space-y-2">
+                                            {patientDebt.length > 0 && (
+                                                <Alert variant="destructive" className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200 [&>svg]:text-amber-600 dark:[&>svg]:text-amber-400">
+                                                    <AlertTriangle className="h-4 w-4" />
+                                                    <AlertTitle>{tAccount('debtAlertTitle')}</AlertTitle>
+                                                    <AlertDescription className="font-semibold">
+                                                        {patientDebt.map((d) => `${d.currency} ${d.amount.toLocaleString('es-UY', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`).join(' · ')}
+                                                    </AlertDescription>
+                                                </Alert>
+                                            )}
+                                            <div className="flex flex-wrap gap-2">
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="flex-1 gap-1.5"
+                                                    onClick={() => appointment.user && openPatientView({ userId: appointment.user.id, userName: appointment.user.name, userEmail: appointment.user.email || undefined, userPhone: appointment.user.phone_number || undefined })}
+                                                >
+                                                    <UserRound className="h-3.5 w-3.5" />
+                                                    {tPanelAccount('openPatient')}
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="flex-1 gap-1.5"
+                                                    onClick={() => appointment.user && openAccountStatement(appointment.user.id, appointment.user.name)}
+                                                >
+                                                    <FileText className="h-3.5 w-3.5" />
+                                                    {tAccount('viewStatement')}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
-                                {/* Quote Selection */}
+                                {/* Quote Selection — hidden when creating a lean brand-new appointment,
+                                    but kept when editing or when a quote is preloaded (e.g. "schedule next"). */}
+                                {(editingAppointment || appointment.quote || readOnlyFields?.quote) && (
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between">
                                         <Label className="flex items-center gap-1">
@@ -1203,6 +1274,7 @@ export function AppointmentFormDialog({
                                         <p className="text-xs text-muted-foreground">{t('createDialog.selectUserFirst')}</p>
                                     )}
                                 </div>
+                                )}
 
                                 <div className="space-y-2">
                                     <Label>{t('createDialog.serviceName')}</Label>
@@ -1408,10 +1480,6 @@ export function AppointmentFormDialog({
                                     <Input id="time" type="time" value={appointment.time} onChange={e => { setHasBeenEdited(true); setAppointment(prev => ({ ...prev, time: e.target.value })); setErrors(prev => prev.filter(err => err !== 'time')); }} className={errors.includes('time') ? "border-destructive" : ""} />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="endTime">{t('createDialog.endTime')}</Label>
-                                    <Input id="endTime" type="time" value={appointment.endTime} onChange={e => { setHasBeenEdited(true); setAppointment(prev => ({ ...prev, endTime: e.target.value })); }} />
-                                </div>
-                                <div className="space-y-2">
                                     <Label htmlFor="durationMinutes">{t('createDialog.durationMinutes')}</Label>
                                     <Input
                                         id="durationMinutes"
@@ -1427,59 +1495,52 @@ export function AppointmentFormDialog({
                                     />
                                 </div>
                                 <div className="space-y-2">
+                                    <Label htmlFor="endTime">{t('createDialog.endTime')}</Label>
+                                    <Input id="endTime" type="time" value={appointment.endTime} readOnly tabIndex={-1} className="bg-muted/50 text-muted-foreground cursor-default" />
+                                </div>
+                                <div className="space-y-2">
                                     <Label htmlFor="notes">{t('createDialog.notes')}</Label>
                                     <Textarea id="notes" value={appointment.notes} onChange={e => { setHasBeenEdited(true); setAppointment(prev => ({ ...prev, notes: e.target.value })); }} />
                                 </div>
                             </div>
                         </div>
 
-                        {/* Clinic Session Section */}
+                        {/* Clinic Session Section — only when editing; hidden for brand-new appointments */}
+                        {editingAppointment && (
                         <div className="border-t px-6 pt-4 pb-2">
                             <div className="flex items-center gap-2 mb-3">
                                 <Stethoscope className="h-4 w-4 text-muted-foreground" />
                                 <span className="text-sm font-medium">{t('clinicSession')}</span>
                             </div>
-                            {editingAppointment ? (
-                                <div className="space-y-2">
-                                    {isLoadingLinkedSession ? (
-                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                            <span>{t('checking')}</span>
+                            <div className="space-y-2">
+                                {isLoadingLinkedSession ? (
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        <span>{t('checking')}</span>
+                                    </div>
+                                ) : linkedSession ? (
+                                    <div className="flex items-center justify-between rounded-md border p-3">
+                                        <div className="space-y-0.5">
+                                            <p className="text-sm font-medium">{linkedSession.procedimiento_realizado || '—'}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {linkedSession.fecha_sesion} · {linkedSession.doctor_name}
+                                            </p>
                                         </div>
-                                    ) : linkedSession ? (
-                                        <div className="flex items-center justify-between rounded-md border p-3">
-                                            <div className="space-y-0.5">
-                                                <p className="text-sm font-medium">{linkedSession.procedimiento_realizado || '—'}</p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {linkedSession.fecha_sesion} · {linkedSession.doctor_name}
-                                                </p>
-                                            </div>
-                                            <Button type="button" variant="outline" size="sm" onClick={() => setIsSessionDialogOpen(true)}>
-                                                {t('editSession')}
-                                            </Button>
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center justify-between">
-                                            <p className="text-sm text-muted-foreground">{t('noLinkedSession')}</p>
-                                            <Button type="button" variant="outline" size="sm" onClick={() => setIsSessionDialogOpen(true)}>
-                                                {t('createSession')}
-                                            </Button>
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="flex items-center space-x-2">
-                                    <Checkbox
-                                        id="createSessionOnSave"
-                                        checked={createSessionOnSave}
-                                        onCheckedChange={(checked) => setCreateSessionOnSave(checked === true)}
-                                    />
-                                    <Label htmlFor="createSessionOnSave" className="text-sm font-normal cursor-pointer">
-                                        {t('createSessionOnSave')}
-                                    </Label>
-                                </div>
-                            )}
+                                        <Button type="button" variant="outline" size="sm" onClick={() => setIsSessionDialogOpen(true)}>
+                                            {t('editSession')}
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-sm text-muted-foreground">{t('noLinkedSession')}</p>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => setIsSessionDialogOpen(true)}>
+                                            {t('createSession')}
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
+                        )}
 
                         {!editingAppointment && (availabilityStatus === 'unavailable' || availabilityStatus === 'checking') && (
                             <div className="border-t pt-4 px-6 mb-4">

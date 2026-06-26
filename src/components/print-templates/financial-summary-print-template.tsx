@@ -92,10 +92,15 @@ export function FinancialSummaryPrintTemplate({ data }: FinancialSummaryPrintTem
                 <tbody>
                   {section.movements.map((mov, idx) => {
                     const isDebit = mov.amount > 0;
+                    // Invoices a payment is applied to → show their references as the concept.
+                    const paidInvoices = mov.document_type === 'payment'
+                      ? (mov.metadata.target_invoices?.length ? mov.metadata.target_invoices : mov.metadata.applied_to)
+                      : undefined;
                     const concept = [
                       mov.metadata.label,
                       mov.metadata.services?.length ? mov.metadata.services.join(', ') : null,
                       mov.metadata.payment_type ?? null,
+                      paidInvoices?.length ? `${t('financialSummary.paysInvoice')} ${paidInvoices.join(', ')}` : null,
                     ].filter(Boolean).join(' — ');
 
                     return (
@@ -108,7 +113,7 @@ export function FinancialSummaryPrintTemplate({ data }: FinancialSummaryPrintTem
                             <span className="text-gray-400"> · {mov.metadata.notes}</span>
                           )}
                         </td>
-                        <td className={`text-right font-mono ${isDebit ? 'text-gray-900' : 'text-gray-900'}`}>
+                        <td className={`text-right font-mono font-semibold ${isDebit ? 'text-emerald-600' : 'text-red-600'}`}>
                           {isDebit ? '' : '−'}{fmtAmount(mov.amount, currency)}
                         </td>
                         <td className="text-right font-mono">

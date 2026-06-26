@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { differenceInMinutes, format, parseISO } from 'date-fns';
 import {
+  AlertTriangle,
   ArrowRight,
   Calendar as CalendarIcon,
   CalendarSync,
@@ -18,6 +19,7 @@ import {
   StickyNote,
   Stethoscope,
   Trash2,
+  UserRound,
   UserSquare,
   Zap,
 } from 'lucide-react';
@@ -44,18 +46,27 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover';
 import { ResizableSheet, SheetDescription, SheetTitle } from '@/components/ui/resizable-sheet';
+import { useToast } from '@/hooks/use-toast';
 import { STATUS_ACCENT_COLOR, canReschedule } from '@/constants/appointment-status';
 import { formatDisplayDate, cn, formatServicePrice } from '@/lib/utils';
-import type { Appointment, AppointmentStatus, Invoice, Order, PatientSession } from '@/lib/types';
+import type { Appointment, AppointmentStatus, Calendar as CalendarType, Invoice, Order, PatientSession, User } from '@/lib/types';
 
 import { DoctorDetailSheet } from '@/components/appointments/DoctorDetailSheet';
-import { PatientDetailSheet } from '@/components/appointments/PatientDetailSheet';
+import { InlineEntityPicker } from '@/components/appointments/InlineEntityPicker';
 import { QuoteDetailSheet } from '@/components/appointments/QuoteDetailSheet';
 import { AppointmentStatusRail, type StatusChangeExtra } from '@/components/appointments/AppointmentStatusRail';
 import { getStatusIcon } from '@/components/appointments/status-icons';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
+import { usePatientView } from '@/stores/patient-view-store';
+import { useAccountStatement } from '@/stores/account-statement-store';
 import { fetchAppointmentBillingState } from '@/services/billing-preflight';
+import {
+  fetchReassignCalendars,
+  fetchReassignDoctors,
+  reassignAppointmentField,
+} from '@/lib/appointment-reassign';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 
@@ -148,6 +159,74 @@ function DetailRow({ icon: Icon, label, value, detail, onClick, tone = 'default'
   );
 }
 
+interface EditableDetailRowProps {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: React.ReactNode;
+  detail?: React.ReactNode;
+  onValueClick?: () => void;
+  editLabel: string;
+  isEditing: boolean;
+  onEditingChange: (open: boolean) => void;
+  /** Floating picker rendered in the popover anchored below the value. */
+  picker: React.ReactNode;
+  className?: string;
+}
+
+/**
+ * A DetailRow whose value can be quick-edited via a floating dropdown picker
+ * anchored directly below the value. Opening is toggled by a trailing pencil
+ * button; selecting an option closes the popover.
+ */
+function EditableDetailRow({
+  icon: Icon,
+  label,
+  value,
+  detail,
+  onValueClick,
+  editLabel,
+  isEditing,
+  onEditingChange,
+  picker,
+  className,
+}: EditableDetailRowProps) {
+  return (
+    <Popover open={isEditing} onOpenChange={onEditingChange}>
+      <div className={cn('flex w-full items-center gap-3 border-b border-border/70 py-3 text-left', className)}>
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-muted/60 text-muted-foreground">
+          <Icon className="h-4 w-4" />
+        </span>
+        <PopoverAnchor asChild>
+          <button
+            type="button"
+            onClick={onValueClick}
+            disabled={!onValueClick}
+            className={cn('min-w-0 flex-1 text-left', onValueClick && 'transition-colors hover:opacity-80')}
+          >
+            <span className="block text-xs font-medium text-muted-foreground">{label}</span>
+            <span className="block text-sm font-semibold leading-snug text-foreground">{value}</span>
+            {detail && <span className="mt-0.5 block text-xs text-muted-foreground">{detail}</span>}
+          </button>
+        </PopoverAnchor>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className={cn('h-8 w-8 shrink-0 text-muted-foreground', isEditing && 'bg-muted text-foreground')}
+          onClick={() => onEditingChange(!isEditing)}
+          title={editLabel}
+          aria-label={editLabel}
+        >
+          <Edit className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+      <PopoverContent align="start" sideOffset={6} className="w-72 p-0">
+        {picker}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 interface AppointmentPanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -172,6 +251,12 @@ interface AppointmentPanelProps {
     extra?: StatusChangeExtra,
   ) => void;
   onRequestCustomCancellation?: (appointment: Appointment) => void;
+  /** Doctors offered in the quick-edit picker. Fetched lazily when omitted. */
+  doctors?: User[];
+  /** Rooms (calendars) offered in the quick-edit picker. Fetched lazily when omitted. */
+  calendars?: CalendarType[];
+  /** Called after a successful inline doctor/room reassignment so parents can sync state. */
+  onAppointmentUpdated?: (appointment: Appointment) => void;
 }
 
 export function AppointmentPanel({
@@ -192,19 +277,23 @@ export function AppointmentPanel({
   onRequestCustomCancellation,
   onBillingSuccess,
   hideBillingAction = false,
+  doctors: doctorsProp,
+  calendars: calendarsProp,
+  onAppointmentUpdated,
 }: AppointmentPanelProps) {
   const locale = useLocale();
+  const { toast } = useToast();
   const t = useTranslations('AppointmentsPage');
   const tColumns = useTranslations('AppointmentsColumns');
   const tStatus = useTranslations('AppointmentStatus');
   const tReason = useTranslations('CancellationReason');
   const tReschedule = useTranslations('AppointmentReschedule');
   const tPanel = useTranslations('AppointmentPanel');
+  const tAccount = useTranslations('AccountStatement');
   const tServices = useTranslations('ServicesPage');
   const tServicesColumns = useTranslations('ServicesColumns');
   const tGeneral = useTranslations('General');
 
-  const [isPatientSheetOpen, setIsPatientSheetOpen] = React.useState(false);
   const [isDoctorSheetOpen, setIsDoctorSheetOpen] = React.useState(false);
   const [isQuoteSheetOpen, setIsQuoteSheetOpen] = React.useState(false);
   const [selectedService, setSelectedService] = React.useState<NonNullable<Appointment['services']>[number] | null>(null);
@@ -212,6 +301,91 @@ export function AppointmentPanel({
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = React.useState(false);
   const canOpenDetailDeepLinks = useCanOpenDetailDeepLinks();
   const { open: openBillingWizard } = useBillingWizard();
+  const { open: openPatientView } = usePatientView();
+  const { open: openAccountStatement } = useAccountStatement();
+
+  // Outstanding-debt indicator for the appointment's patient (per currency).
+  const [patientDebt, setPatientDebt] = React.useState<{ currency: string; amount: number }[]>([]);
+  React.useEffect(() => {
+    const patientId = appointment?.patientId;
+    if (!open || !patientId) { setPatientDebt([]); return; }
+    let active = true;
+    api.get(API_ROUTES.USER_FINANCIAL, { user_id: patientId })
+      .then((raw: any) => {
+        if (!active) return;
+        const fin = Array.isArray(raw) ? raw[0] : raw;
+        const byCurrency = fin?.financial_data ?? {};
+        setPatientDebt(
+          Object.entries(byCurrency)
+            .map(([currency, d]: [string, any]) => ({ currency, amount: Number(d?.current_debt ?? 0) }))
+            .filter((d) => d.amount > 0),
+        );
+      })
+      .catch(() => { if (active) setPatientDebt([]); });
+    return () => { active = false; };
+  }, [open, appointment?.patientId]);
+
+  // ── Quick-edit doctor / room (calendar) ─────────────────────────────────────
+  // Local override so the panel reflects the reassignment immediately even if the
+  // parent doesn't sync its own copy.
+  const [localAppointment, setLocalAppointment] = React.useState<Appointment | null>(null);
+  const [editingField, setEditingField] = React.useState<'doctor' | 'calendar' | null>(null);
+  const [isReassignSaving, setIsReassignSaving] = React.useState(false);
+  const [fetchedDoctors, setFetchedDoctors] = React.useState<User[] | null>(null);
+  const [fetchedCalendars, setFetchedCalendars] = React.useState<CalendarType[] | null>(null);
+  const [isLoadingTargets, setIsLoadingTargets] = React.useState(false);
+
+  const doctors = React.useMemo(() => doctorsProp ?? fetchedDoctors ?? [], [doctorsProp, fetchedDoctors]);
+  const calendars = React.useMemo(() => calendarsProp ?? fetchedCalendars ?? [], [calendarsProp, fetchedCalendars]);
+
+  // Reset transient edit state whenever the appointment changes.
+  React.useEffect(() => {
+    setLocalAppointment(null);
+    setEditingField(null);
+  }, [appointment?.id]);
+
+  const handleEditingChange = React.useCallback(async (field: 'doctor' | 'calendar', open: boolean) => {
+    setEditingField(open ? field : null);
+    if (!open) return;
+    // Lazily load picker options the first time they're needed.
+    if (field === 'doctor' && !doctorsProp && fetchedDoctors === null) {
+      setIsLoadingTargets(true);
+      setFetchedDoctors(await fetchReassignDoctors());
+      setIsLoadingTargets(false);
+    } else if (field === 'calendar' && !calendarsProp && fetchedCalendars === null) {
+      setIsLoadingTargets(true);
+      setFetchedCalendars(await fetchReassignCalendars());
+      setIsLoadingTargets(false);
+    }
+  }, [doctorsProp, calendarsProp, fetchedDoctors, fetchedCalendars]);
+
+  const handlePickReassign = React.useCallback(async (field: 'doctor' | 'calendar', id: string) => {
+    const current = localAppointment ?? appointment;
+    if (!current) return;
+    const change = field === 'doctor'
+      ? { doctor: doctors.find((d) => String(d.id) === id) }
+      : { calendar: calendars.find((c) => String(c.id) === id) };
+    if (field === 'doctor' && !change.doctor) return;
+    if (field === 'calendar' && !change.calendar) return;
+    setIsReassignSaving(true);
+    try {
+      const updated = await reassignAppointmentField(current, change);
+      setLocalAppointment(updated);
+      setEditingField(null);
+      onAppointmentUpdated?.(updated);
+      toast({
+        title: field === 'doctor' ? t('toasts.doctorReassigned') : t('toasts.calendarReassigned'),
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: t('toasts.error'),
+        description: error instanceof Error ? error.message : t('toasts.unexpectedError'),
+      });
+    } finally {
+      setIsReassignSaving(false);
+    }
+  }, [appointment, localAppointment, doctors, calendars, onAppointmentUpdated, toast, t]);
 
   // ── Invoice payments ───────────────────────────────────────────────────────
   const [paymentsMap, setPaymentsMap] = React.useState<Record<string, any[]>>({});
@@ -377,23 +551,29 @@ export function AppointmentPanel({
 
   const openPatientDetail = React.useCallback(() => {
     if (!appointment?.patientId) return;
-    if (canOpenDetailDeepLinks) {
-      const params = new URLSearchParams({ f: appointment.patientId });
-      openInNewTab(`/${locale}/patients?${params.toString()}`);
-      return;
-    }
-    setIsPatientSheetOpen(true);
-  }, [appointment, canOpenDetailDeepLinks, locale]);
+    openPatientView({
+      userId: appointment.patientId,
+      userName: appointment.patientName,
+      userEmail: appointment.patientEmail,
+      userPhone: appointment.patientPhone,
+    });
+  }, [appointment, openPatientView]);
+
+  const openAccountStatementForPatient = React.useCallback(() => {
+    if (!appointment?.patientId) return;
+    openAccountStatement(appointment.patientId, appointment.patientName);
+  }, [appointment, openAccountStatement]);
 
   const openDoctorDetail = React.useCallback(() => {
-    if (!appointment?.doctorId) return;
+    const doctorId = (localAppointment ?? appointment)?.doctorId;
+    if (!doctorId) return;
     if (canOpenDetailDeepLinks) {
-      const params = new URLSearchParams({ f: appointment.doctorId, t: 'Detalles' });
+      const params = new URLSearchParams({ f: doctorId, t: 'Detalles' });
       openInNewTab(`/${locale}/config/doctors?${params.toString()}`);
       return;
     }
     setIsDoctorSheetOpen(true);
-  }, [appointment, canOpenDetailDeepLinks, locale]);
+  }, [appointment, localAppointment, canOpenDetailDeepLinks, locale]);
 
   const openServiceDetail = React.useCallback((service: NonNullable<Appointment['services']>[number]) => {
     const filter = service.name || service.id;
@@ -411,6 +591,9 @@ export function AppointmentPanel({
   }, [canOpenDetailDeepLinks, locale]);
 
   if (!appointment) return null;
+
+  // Reflect inline doctor/room reassignments without waiting for the parent to sync.
+  const displayAppointment = localAppointment ?? appointment;
 
   const serviceName = appointment.services && appointment.services.length > 0
     ? appointment.services.map((service) => service.name).join(', ')
@@ -447,52 +630,29 @@ export function AppointmentPanel({
       >
         <div className="flex h-full flex-col overflow-hidden bg-card font-body">
           <div className="flex-none border-b border-border bg-card px-5 py-4 pr-24">
-            <div className="flex items-start gap-3">
-              <button
-                type="button"
-                onClick={openPatientDetail}
-                className="shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-ring"
-                aria-label={tPanel('openPatient')}
-                disabled={!appointment.patientId}
-              >
-                <Avatar className="h-12 w-12">
-                  <AvatarFallback className="bg-primary/25 text-base font-semibold text-primary">
-                    {initials(appointment.patientName)}
-                  </AvatarFallback>
-                </Avatar>
-              </button>
-
+            <div className="flex items-center gap-2.5">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                <Info className="h-4 w-4" />
+              </span>
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <SheetTitle asChild>
-                    <button
-                      type="button"
-                      onClick={openPatientDetail}
-                      disabled={!appointment.patientId}
-                      className={cn(
-                        'truncate text-left text-lg font-semibold text-foreground',
-                        appointment.patientId && 'hover:underline underline-offset-4',
-                      )}
-                    >
-                      {appointment.patientName}
-                    </button>
-                  </SheetTitle>
-                  <span className="rounded-md bg-muted px-2 py-0.5 font-mono text-sm font-semibold text-muted-foreground">
-                    {appointmentCode}
-                  </span>
-                </div>
-                {patientMeta && (
-                  <p className="mt-1 truncate text-sm font-medium text-muted-foreground">{patientMeta}</p>
-                )}
-                {serviceName && (
-                  <SheetDescription className="mt-1 truncate text-sm text-muted-foreground">
-                    {serviceName}
-                  </SheetDescription>
-                )}
+                <SheetTitle className="truncate text-sm font-medium text-foreground">
+                  {tPanel('appointmentTitleFor')}{' '}
+                  <button
+                    type="button"
+                    onClick={openPatientDetail}
+                    disabled={!appointment.patientId}
+                    className={cn('font-bold', appointment.patientId && 'hover:underline underline-offset-4')}
+                  >
+                    {appointment.patientName}
+                  </button>
+                </SheetTitle>
+                <SheetDescription className="sr-only">{serviceName || appointment.patientName}</SheetDescription>
               </div>
-
-              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-sm font-semibold text-primary">
-                <StatusIcon className="h-3.5 w-3.5" style={{ color: statusColor }} />
+              <span className="hidden shrink-0 rounded-md bg-muted px-2 py-0.5 font-mono text-xs font-semibold text-muted-foreground sm:inline">
+                {appointmentCode}
+              </span>
+              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                <StatusIcon className="h-3 w-3" style={{ color: statusColor }} />
                 {cancellationReasonLabel ?? tStatus(appointment.status)}
               </span>
             </div>
@@ -541,12 +701,75 @@ export function AppointmentPanel({
               )}
 
               <section>
-                <div className="mb-3 flex items-center gap-2">
-                  <Info className="h-4 w-4 text-muted-foreground" />
-                  <h3 className="text-base font-semibold">{t('panelTabs.info')}</h3>
+                {/* Patient row — moved out of the header so the appointment (not the patient) leads */}
+                <div className="flex items-center gap-3 border-b border-border/70 py-3">
+                  <button
+                    type="button"
+                    onClick={openPatientDetail}
+                    disabled={!appointment.patientId}
+                    className="shrink-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-ring"
+                    aria-label={tPanel('openPatient')}
+                  >
+                    <Avatar className="h-10 w-10">
+                      <AvatarFallback className="bg-primary/15 text-sm font-semibold text-primary">
+                        {initials(appointment.patientName)}
+                      </AvatarFallback>
+                    </Avatar>
+                  </button>
+                  <div className="min-w-0 flex-1">
+                    <button
+                      type="button"
+                      onClick={openPatientDetail}
+                      disabled={!appointment.patientId}
+                      className={cn(
+                        'block max-w-full truncate text-left text-sm font-bold text-foreground',
+                        appointment.patientId && 'hover:underline underline-offset-4',
+                      )}
+                    >
+                      {appointment.patientName}
+                    </button>
+                    {patientMeta && <p className="truncate text-xs text-muted-foreground">{patientMeta}</p>}
+                    <p className={cn('truncate text-xs font-medium', patientDebt.length > 0 ? 'text-destructive' : 'text-muted-foreground')}>
+                      {patientDebt.length > 0 ? tAccount('debtAlertTitle') : tAccount('noDebt')}
+                    </p>
+                  </div>
+                  {appointment.patientId && (
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Button type="button" variant="outline" size="sm" className="h-7 gap-1.5 px-2.5 text-xs" onClick={openAccountStatementForPatient}>
+                        <FileText className="h-3.5 w-3.5" />
+                        {tAccount('viewStatement')}
+                      </Button>
+                      <Button type="button" variant="outline" size="sm" className="h-7 gap-1.5 px-2.5 text-xs" onClick={openPatientDetail}>
+                        <UserRound className="h-3.5 w-3.5" />
+                        {tPanel('openPatient')}
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
-                <div className="grid gap-x-8 md:grid-cols-2">
+                {/* Outstanding-debt alert */}
+                {patientDebt.length > 0 && (
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2.5">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-destructive">
+                      <AlertTriangle className="h-4 w-4 shrink-0" />
+                      <span>
+                        {patientDebt.map((d) => `${d.currency} ${d.amount.toLocaleString('es-UY', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`).join(' · ')}
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 gap-1.5 border-destructive/40 px-2.5 text-xs text-destructive hover:bg-destructive/10"
+                      onClick={openAccountStatementForPatient}
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      {tAccount('viewStatement')}
+                    </Button>
+                  </div>
+                )}
+
+                <div className="mt-3 grid gap-x-8 md:grid-cols-2">
                   <DetailRow
                     icon={CalendarIcon}
                     label={tColumns('date')}
@@ -558,22 +781,52 @@ export function AppointmentPanel({
                     value={`${appointment.time}${endTime ? ` → ${endTime}` : ''}`}
                     detail={durationHHmm ? `${tPanel('duration')}: ${durationHHmm}` : undefined}
                   />
-                  <DetailRow
+                  <EditableDetailRow
                     icon={MapPin}
                     label={tColumns('calendar')}
-                    value={appointment.calendar_name || '-'}
+                    value={displayAppointment.calendar_name || tPanel('noCalendar')}
+                    editLabel={displayAppointment.calendar_source_id ? tPanel('changeCalendar') : tPanel('assignCalendar')}
+                    isEditing={editingField === 'calendar'}
+                    onEditingChange={(open) => handleEditingChange('calendar', open)}
+                    picker={
+                      <InlineEntityPicker
+                        className="border-0"
+                        items={calendars.map((c) => ({ id: String(c.id), name: c.name, color: c.color }))}
+                        selectedId={displayAppointment.calendar_source_id}
+                        onSelect={(id) => handlePickReassign('calendar', id)}
+                        isLoading={isLoadingTargets}
+                        isSaving={isReassignSaving}
+                        searchPlaceholder={tPanel('searchCalendar')}
+                        emptyText={tPanel('noCalendarFound')}
+                      />
+                    }
                   />
-                  <DetailRow
+                  <EditableDetailRow
                     icon={UserSquare}
                     label={tColumns('doctor')}
-                    value={appointment.doctorId ? (appointment.doctorName || tPanel('noDoctor')) : tPanel('noDoctor')}
+                    value={displayAppointment.doctorId ? (displayAppointment.doctorName || tPanel('noDoctor')) : tPanel('noDoctor')}
                     detail={doctorColor ? (
                       <span className="inline-flex items-center gap-1.5">
                         <span className="h-2 w-2 rounded-full" style={{ backgroundColor: doctorColor }} />
                         {tPanel('openDoctor')}
                       </span>
                     ) : undefined}
-                    onClick={appointment.doctorId ? openDoctorDetail : undefined}
+                    onValueClick={displayAppointment.doctorId ? openDoctorDetail : undefined}
+                    editLabel={displayAppointment.doctorId ? tPanel('changeDoctor') : tPanel('assignDoctor')}
+                    isEditing={editingField === 'doctor'}
+                    onEditingChange={(open) => handleEditingChange('doctor', open)}
+                    picker={
+                      <InlineEntityPicker
+                        className="border-0"
+                        items={doctors.map((d) => ({ id: String(d.id), name: d.name, color: d.color }))}
+                        selectedId={displayAppointment.doctorId}
+                        onSelect={(id) => handlePickReassign('doctor', id)}
+                        isLoading={isLoadingTargets}
+                        isSaving={isReassignSaving}
+                        searchPlaceholder={tPanel('searchDoctor')}
+                        emptyText={tPanel('noDoctorFound')}
+                      />
+                    }
                   />
                 </div>
 
@@ -889,22 +1142,12 @@ export function AppointmentPanel({
         </AlertDialogContent>
       </AlertDialog>
 
-      {appointment.patientId && (
-        <PatientDetailSheet
-          open={isPatientSheetOpen}
-          onOpenChange={setIsPatientSheetOpen}
-          userId={appointment.patientId}
-          userName={appointment.patientName}
-          userEmail={appointment.patientEmail}
-          userPhone={appointment.patientPhone}
-        />
-      )}
-      {appointment.doctorId && (
+      {displayAppointment.doctorId && (
         <DoctorDetailSheet
           open={isDoctorSheetOpen}
           onOpenChange={setIsDoctorSheetOpen}
-          doctorId={appointment.doctorId}
-          doctorName={appointment.doctorName ?? ''}
+          doctorId={displayAppointment.doctorId}
+          doctorName={displayAppointment.doctorName ?? ''}
           doctorColor={doctorColor}
         />
       )}
