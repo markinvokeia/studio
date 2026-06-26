@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import { GlobalNotificationAlerts } from '@/components/notifications/GlobalNotificationAlerts';
 import { useAuth } from '@/context/AuthContext';
 import { useDoctorAlertStyle } from '@/hooks/use-doctor-alert-style';
+import { useEventStream } from '@/hooks/use-event-stream';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeAppointmentStatus } from '@/constants/appointment-status';
 import { api } from '@/services/api';
@@ -24,7 +25,6 @@ import { normalizeTratamiento } from '@/lib/utils';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const POLL_MS = 10_000;
 const SEEN_IDS_KEY = 'notifications:seen-ids';
 const ACTIONS_TAKEN_PREFIX = 'notifications:actions-taken';
 
@@ -285,9 +285,9 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     );
   }, []);
 
-  // ── Backend notifications poll ────────────────────────────────────────────
+  // ── Backend notifications fetch ───────────────────────────────────────────
 
-  const pollBackendNotifications = React.useCallback(async () => {
+  const fetchNotifications = React.useCallback(async () => {
     if (!userId) return;
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     if (!token) return;
@@ -333,15 +333,11 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
         });
       });
     } catch (e) {
-      console.error('[Notifications] poll error:', e);
+      console.error('[Notifications] fetch error:', e);
     }
   }, [userId]);
 
-  // ── Polling orchestration ─────────────────────────────────────────────────
-
-  const poll = React.useCallback(() => {
-    void pollBackendNotifications();
-  }, [pollBackendNotifications]);
+  // ── Initial fetch + cleanup ───────────────────────────────────────────────
 
   React.useEffect(() => {
     if (!userId) {
@@ -349,13 +345,20 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       return;
     }
     mountedRef.current = true;
-    poll();
-    const id = setInterval(poll, POLL_MS);
-    return () => {
-      mountedRef.current = false;
-      clearInterval(id);
-    };
-  }, [userId, poll]);
+    void fetchNotifications();
+    return () => { mountedRef.current = false; };
+  }, [userId, fetchNotifications]);
+
+  // ── SSE event stream ──────────────────────────────────────────────────────
+
+  const fetchDebounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleSSEEvent = React.useCallback((_eventType: string, _data: unknown) => {
+    if (fetchDebounceRef.current) clearTimeout(fetchDebounceRef.current);
+    fetchDebounceRef.current = setTimeout(() => void fetchNotifications(), 500);
+  }, [fetchNotifications]);
+
+  useEventStream(userId, handleSSEEvent);
 
   // ── Global alert queue (modal / toast) ───────────────────────────────────
 
@@ -444,7 +447,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
   const openPanel = React.useCallback(() => setIsPanelOpen(true), []);
   const closePanel = React.useCallback(() => setIsPanelOpen(false), []);
-  const refreshNotifications = React.useCallback(() => { poll(); }, [poll]);
+  const refreshNotifications = React.useCallback(() => { void fetchNotifications(); }, [fetchNotifications]);
 
   const pendingCount = notifications.length;
 
