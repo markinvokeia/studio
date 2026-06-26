@@ -825,7 +825,9 @@ export default function AppointmentsPage() {
         calendarId?: string;
     } | null>(null);
 
-    const handleSlotClick = React.useCallback((date: Date, context?: { groupBy: 'doctor' | 'calendar' | 'sede'; value: string }) => {
+    // Shared slot preparation: stores the slot's initial data (date/time + doctor/calendar
+    // from the grouping context) and remembers the clicked date for reminder creation.
+    const prepareSlot = React.useCallback((date: Date, context?: { groupBy: 'doctor' | 'calendar' | 'sede'; value: string }) => {
         setEditingAppointment(null);
         const base: {
             date: string;
@@ -845,8 +847,20 @@ export default function AppointmentsPage() {
         }
         setSlotInitialData(base);
         setPendingSlotDate(date);
-        setIsCreateTypeOpen(true);
     }, [doctors, calendars]);
+
+    // Left-click on an empty slot → go straight to the appointment form.
+    const handleSlotClick = React.useCallback((date: Date, context?: { groupBy: 'doctor' | 'calendar' | 'sede'; value: string }) => {
+        prepareSlot(date, context);
+        setIsReschedulingMode(false);
+        setCreateOpen(true);
+    }, [prepareSlot]);
+
+    // Right-click on an empty slot → choose between appointment or reminder.
+    const handleSlotContextMenu = React.useCallback((date: Date, context?: { groupBy: 'doctor' | 'calendar' | 'sede'; value: string }) => {
+        prepareSlot(date, context);
+        setIsCreateTypeOpen(true);
+    }, [prepareSlot]);
 
     const handleCreateAppointmentFromSlot = React.useCallback(() => {
         setEditingAppointment(null);
@@ -2287,6 +2301,7 @@ export default function AppointmentsPage() {
                     onToggleAppointmentSelect={isBulkMode ? handleToggleAppointmentSelect : undefined}
                     bulkModeContent={bulkModeHeaderContent}
                     onSlotClick={handleSlotClick}
+                    onSlotContextMenu={handleSlotContextMenu}
                     gaps={gapsActive ? calendarGaps : undefined}
                     selectedGapKey={selectedGap ? gapKey(selectedGap) : undefined}
                     onGapClick={handleSelectGap}

@@ -35,6 +35,7 @@ interface CalendarDayViewGroupedProps {
   onEventColorChange: (data: any, colorId: string) => void;
   onEventContextMenu?: (data: any) => React.ReactNode;
   onSlotClick?: CalendarSlotClickHandler;
+  onSlotContextMenu?: CalendarSlotClickHandler;
   hourSlotHeight?: number;
   gaps?: Gap[];
   selectedGapKey?: string;
@@ -57,6 +58,7 @@ export function CalendarDayViewGrouped({
   onEventColorChange,
   onEventContextMenu,
   onSlotClick,
+  onSlotContextMenu,
   hourSlotHeight = HOUR_SLOT_HEIGHT,
   gaps,
   selectedGapKey,
@@ -85,19 +87,32 @@ export function CalendarDayViewGrouped({
     }
   }, [hourSlotHeight]);
 
+  const slotDateFromEvent = (day: Date, e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const hour = Math.floor(y / hourSlotHeight);
+    const minute = Math.floor((y % hourSlotHeight) / (hourSlotHeight / 4)) * 15;
+    return set(day, { hours: hour, minutes: minute, seconds: 0, milliseconds: 0 });
+  };
+
   const handleSlotClick = (day: Date, col: CalendarGroupingColumn, e: React.MouseEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     // Ignore synthetic clicks that bubbled from portalled children (Sheets, DropdownMenu, ContextMenu).
     if (!e.currentTarget.contains(e.target as Node)) return;
     if (onSlotClick) {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const y = e.clientY - rect.top;
-      const hour = Math.floor(y / hourSlotHeight);
-      const minute = Math.floor((y % hourSlotHeight) / (hourSlotHeight / 4)) * 15;
-      const clickedDate = set(day, { hours: hour, minutes: minute, seconds: 0, milliseconds: 0 });
       const context = groupBy !== 'none' ? { groupBy, value: col.value } : undefined;
-      onSlotClick(clickedDate, context);
+      onSlotClick(slotDateFromEvent(day, e), context);
     }
+  };
+
+  const handleSlotContextMenu = (day: Date, col: CalendarGroupingColumn, e: React.MouseEvent<HTMLDivElement>) => {
+    if (!onSlotContextMenu) return;
+    // Events have their own context menu — don't hijack a right-click on them.
+    if ((e.target as HTMLElement).closest('.event')) return;
+    if (!e.currentTarget.contains(e.target as Node)) return;
+    e.preventDefault();
+    const context = groupBy !== 'none' ? { groupBy, value: col.value } : undefined;
+    onSlotContextMenu(slotDateFromEvent(day, e), context);
   };
 
   return (
@@ -172,6 +187,7 @@ export function CalendarDayViewGrouped({
                     key={`${format(day, 'yyyy-MM-dd')}-${col.id}`}
                     className="day-column"
                     onClick={(e) => handleSlotClick(day, col, e)}
+                    onContextMenu={(e) => handleSlotContextMenu(day, col, e)}
                   >
                     <TimeSlotDividers keyPrefix={col.id} />
                     <CalendarBlockedOverlays
