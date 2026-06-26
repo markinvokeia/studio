@@ -8,14 +8,12 @@ import { GlobalNotificationAlerts } from '@/components/notifications/GlobalNotif
 import { useAuth } from '@/context/AuthContext';
 import { useDoctorAlertStyle } from '@/hooks/use-doctor-alert-style';
 import { useToast } from '@/hooks/use-toast';
-import { normalizeReminder } from '@/lib/reminders';
 import { normalizeAppointmentStatus } from '@/constants/appointment-status';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 import type {
   AppointmentStatus,
   AppointmentStatusChangeNotification,
-  CalendarReminder,
   DoctorAlertStyle,
   NewAppointmentNotification,
   ReminderPanelNotification,
@@ -29,7 +27,6 @@ import { normalizeTratamiento } from '@/lib/utils';
 const POLL_MS = 10_000;
 const SEEN_IDS_KEY = 'notifications:seen-ids';
 const ACTIONS_TAKEN_PREFIX = 'notifications:actions-taken';
-const REMINDER_SEEN_KEY = 'notifications:reminder-seen';
 
 // ── Storage helpers ───────────────────────────────────────────────────────────
 
@@ -71,30 +68,12 @@ function writeActionsTaken(notifId: string, actions: ('quote' | 'invoice' | 'sch
   } catch {}
 }
 
-function readSeenReminderIds(): Set<string> {
-  if (typeof window === 'undefined') return new Set();
-  try {
-    const arr = JSON.parse(window.localStorage.getItem(REMINDER_SEEN_KEY) ?? '[]');
-    return new Set(Array.isArray(arr) ? arr.map(String) : []);
-  } catch {
-    return new Set();
-  }
-}
-
-function addSeenReminderId(id: string) {
-  if (typeof window === 'undefined') return;
-  try {
-    const existing = readSeenReminderIds();
-    existing.add(id);
-    window.localStorage.setItem(REMINDER_SEEN_KEY, JSON.stringify([...existing]));
-  } catch {}
-}
-
 // ── Backend notification shape ────────────────────────────────────────────────
 
 interface BackendNotification {
   id: number | string;
-  type: 'appointment_status_change' | 'session_completed' | 'new_appointment';
+  type: 'appointment_status_change' | 'session_completed' | 'new_appointment' | 'reminder';
+  reminder_id?: string | null;
   status: 'pending' | 'read' | 'dismissed';
   appointment_id?: string | null;
   session_id?: number | null;
@@ -145,7 +124,7 @@ function normalizeBackendNotification(n: BackendNotification): UnifiedNotificati
   const services = Array.isArray(m.services)
     ? m.services.map((s: any, i: number) => ({
         id: String(i),
-        name: typeof s === 'string' ? s : (s.name ?? ''),
+        name: typeof s === 'string' ? s : (s?.name ?? ''),
         price: 0,
         category: '',
         duration_minutes: 30,
@@ -210,15 +189,33 @@ function normalizeBackendNotification(n: BackendNotification): UnifiedNotificati
         appointment: buildAppointment(normalizeAppointmentStatus(m.status ?? 'scheduled')),
       } satisfies NewAppointmentNotification;
 
+    case 'reminder':
+      return {
+        ...base,
+        type: 'reminder',
+        reminder: {
+          id: m.id ?? n.reminder_id ?? '',
+          title: m.title ?? '',
+          description: m.description ?? null,
+          start_datetime: m.start_datetime ?? '',
+          end_datetime: m.end_datetime ?? null,
+          color: m.color ?? null,
+          priority: m.priority ?? 'MEDIUM',
+          status: m.status ?? 'pending',
+          visibility: 'clinic',
+          raise_alert: m.raise_alert ?? true,
+          alert_instance_id: m.alert_instance_id ?? null,
+          created_by: m.created_by ?? null,
+          created_at: m.created_at ?? n.created_at,
+          updated_at: m.updated_at ?? null,
+          completed_at: m.completed_at ?? null,
+          completed_by: m.completed_by ?? null,
+        },
+      } satisfies ReminderPanelNotification;
+
     default:
       return null;
   }
-}
-
-// ── API helpers ───────────────────────────────────────────────────────────────
-
-function formatForAPI(date: Date) {
-  return format(date, 'yyyy-MM-dd HH:mm:ss');
 }
 
 // ── Context shape ─────────────────────────────────────────────────────────────
@@ -296,81 +293,55 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     if (!token) return;
     try {
       const response = await api.get(API_ROUTES.NOTIFICATIONS, { status: 'pending' });
-      const raw: unknown[] = Array.isArray(response) ? response : [];
+      const raw: unknown[] = Array.isArray(response)
+        ? response
+        : Array.isArray((response as any)?.data)
+          ? (response as any).data
+          : [];
       const incoming = raw
-        .map((item) => normalizeBackendNotification(item as BackendNotification))
+        .map((item) => {
+          try {
+            return normalizeBackendNotification(item as BackendNotification);
+          } catch (e) {
+            console.error('[Notifications] normalizeBackendNotification error:', e, item);
+            return null;
+          }
+        })
         .filter((n): n is UnifiedNotification => n !== null);
 
       if (!mountedRef.current) return;
 
+      // Purge SEEN_IDS_KEY entries for IDs no longer pending in the backend,
+      // so they can fire again if re-inserted (e.g. after a data fix).
+      const incomingIds = new Set(incoming.map((n) => n.id));
+      try {
+        const stored = readSeenIds();
+        const pruned = [...stored].filter((id) => incomingIds.has(id));
+        if (pruned.length !== stored.size) {
+          window.localStorage.setItem(SEEN_IDS_KEY, JSON.stringify(pruned));
+        }
+      } catch {}
+
       setNotifications((prev) => {
-        const reminders = prev.filter((n) => n.type === 'reminder');
         // Preserve in-memory actions_taken (may be ahead of localStorage)
         const prevById = new Map(prev.map((n) => [n.id, n]));
-        const merged = incoming.map((n) => {
+        return incoming.map((n) => {
           const existing = prevById.get(n.id);
           if (!existing || n.type !== 'session_completed') return n;
           const existingActions = (existing as SessionCompletedNotification).actions_taken;
           return existingActions ? { ...n, actions_taken: existingActions } : n;
         });
-        return [...reminders, ...merged];
       });
-    } catch {}
-  }, [userId]);
-
-  // ── Reminders poll ────────────────────────────────────────────────────────
-
-  const pollReminders = React.useCallback(async () => {
-    if (!userId) return;
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    if (!token) return;
-    const now = new Date();
-    try {
-      const response = await api.get(API_ROUTES.REMINDERS, {
-        from: formatForAPI(new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0)),
-        to: formatForAPI(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 23, 59, 59)),
-        created_by: userId,
-      });
-      const raw: unknown[] = Array.isArray(response)
-        ? response
-        : ((response as any)?.reminders ?? (response as any)?.data ?? []);
-      const reminders: CalendarReminder[] = raw
-        .map((r) => normalizeReminder(r as Record<string, unknown>))
-        .filter((r): r is CalendarReminder => r !== null && r.status === 'pending');
-
-      const seenIds = readSeenReminderIds();
-      const nowMs = Date.now();
-      const toAdd: ReminderPanelNotification[] = [];
-
-      for (const reminder of reminders) {
-        if (seenIds.has(reminder.id)) continue;
-        const dueMs = parseISO(reminder.start_datetime.replace(/Z$/, '')).getTime();
-        if (Number.isNaN(dueMs) || dueMs > nowMs) continue;
-        addSeenReminderId(reminder.id);
-        toAdd.push({
-          id: `reminder:${reminder.id}`,
-          type: 'reminder',
-          createdAt: new Date().toISOString(),
-          reminder,
-        });
-      }
-
-      if (mountedRef.current && toAdd.length > 0) {
-        setNotifications((prev) => {
-          const existingIds = new Set(prev.map((n) => n.id));
-          const novel = toAdd.filter((n) => !existingIds.has(n.id));
-          return novel.length > 0 ? [...novel, ...prev] : prev;
-        });
-      }
-    } catch {}
+    } catch (e) {
+      console.error('[Notifications] poll error:', e);
+    }
   }, [userId]);
 
   // ── Polling orchestration ─────────────────────────────────────────────────
 
   const poll = React.useCallback(() => {
     void pollBackendNotifications();
-    void pollReminders();
-  }, [pollBackendNotifications, pollReminders]);
+  }, [pollBackendNotifications]);
 
   React.useEffect(() => {
     if (!userId) {
@@ -457,13 +428,8 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   // ── Actions ───────────────────────────────────────────────────────────────
 
   const dismissNotification = React.useCallback((id: string) => {
-    setNotifications((prev) => {
-      const target = prev.find((n) => n.id === id);
-      if (target?.type !== 'reminder') {
-        void api.post(API_ROUTES.NOTIFICATIONS_STATUS, { ids: [id], status: 'read' }).catch(() => {});
-      }
-      return prev.filter((n) => n.id !== id);
-    });
+    void api.post(API_ROUTES.NOTIFICATIONS_STATUS, { ids: [id], status: 'read' }).catch(() => {});
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
   }, []);
 
   const clearAll = React.useCallback(() => {
