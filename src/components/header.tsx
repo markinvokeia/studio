@@ -2,6 +2,7 @@
 
 import { OpenCashSessionWidget } from '@/components/cash-session-widget';
 import { TVDisplayWidget } from '@/components/tv-display-widget';
+import { QuickPatientSearch } from '@/components/patients/QuickPatientSearch';
 import { NotificationsBell } from '@/components/notifications/notifications-bell';
 import { NotificationsPanel } from '@/components/notifications/notifications-panel';
 import { Button } from '@/components/ui/button';
@@ -444,6 +445,10 @@ export function Header() {
                         >
                             <ChevronRight className="h-4 w-4" />
                         </Button>
+
+                        <PanelItem label="Paciente">
+                            <QuickPatientSearch />
+                        </PanelItem>
 
                         {hasPermission(CASHIER_PERMISSIONS.VIEW_WIDGET) && (
                             <PanelItem label="Caja">

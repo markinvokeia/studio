@@ -88,6 +88,7 @@ import { UserColumnsWrapper } from './columns';
 import { useDeepLink } from '@/hooks/use-deep-link';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
+import { useAccountStatement } from '@/stores/account-statement-store';
 import { useLicenseStore } from '@/stores/license-store';
 import { usePatientDetailNavigation } from '@/hooks/patients/use-patient-detail-navigation';
 
@@ -923,6 +924,7 @@ export default function UsersPage() {
   const { hasPermission } = usePermissions();
   const { toast } = useToast();
   const { open: openBillingWizard } = useBillingWizard();
+  const { open: openAccountStatement } = useAccountStatement();
   const { printFinancialSummary } = usePrintDocument();
   const searchParams = useSearchParams();
   const initialQ = searchParams.get('q') ?? '';
@@ -2084,6 +2086,7 @@ export default function UsersPage() {
                             isOpen={isStatsOpen}
                             onToggle={() => setIsStatsOpen(v => !v)}
                             onPrint={handlePrintFinancialSummary}
+                            onViewStatement={selectedUser ? () => openAccountStatement(selectedUser.id, selectedUser.name) : undefined}
                           />
                         }
                         quotesContent={

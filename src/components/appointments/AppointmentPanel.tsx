@@ -18,6 +18,7 @@ import {
   StickyNote,
   Stethoscope,
   Trash2,
+  UserRound,
   UserSquare,
   Zap,
 } from 'lucide-react';
@@ -53,11 +54,12 @@ import type { Appointment, AppointmentStatus, Calendar as CalendarType, Invoice,
 
 import { DoctorDetailSheet } from '@/components/appointments/DoctorDetailSheet';
 import { InlineEntityPicker } from '@/components/appointments/InlineEntityPicker';
-import { PatientDetailSheet } from '@/components/appointments/PatientDetailSheet';
 import { QuoteDetailSheet } from '@/components/appointments/QuoteDetailSheet';
 import { AppointmentStatusRail, type StatusChangeExtra } from '@/components/appointments/AppointmentStatusRail';
 import { getStatusIcon } from '@/components/appointments/status-icons';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
+import { usePatientView } from '@/stores/patient-view-store';
+import { useAccountStatement } from '@/stores/account-statement-store';
 import { fetchAppointmentBillingState } from '@/services/billing-preflight';
 import {
   fetchReassignCalendars,
@@ -286,11 +288,11 @@ export function AppointmentPanel({
   const tReason = useTranslations('CancellationReason');
   const tReschedule = useTranslations('AppointmentReschedule');
   const tPanel = useTranslations('AppointmentPanel');
+  const tAccount = useTranslations('AccountStatement');
   const tServices = useTranslations('ServicesPage');
   const tServicesColumns = useTranslations('ServicesColumns');
   const tGeneral = useTranslations('General');
 
-  const [isPatientSheetOpen, setIsPatientSheetOpen] = React.useState(false);
   const [isDoctorSheetOpen, setIsDoctorSheetOpen] = React.useState(false);
   const [isQuoteSheetOpen, setIsQuoteSheetOpen] = React.useState(false);
   const [selectedService, setSelectedService] = React.useState<NonNullable<Appointment['services']>[number] | null>(null);
@@ -298,6 +300,8 @@ export function AppointmentPanel({
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = React.useState(false);
   const canOpenDetailDeepLinks = useCanOpenDetailDeepLinks();
   const { open: openBillingWizard } = useBillingWizard();
+  const { open: openPatientView } = usePatientView();
+  const { open: openAccountStatement } = useAccountStatement();
 
   // ── Quick-edit doctor / room (calendar) ─────────────────────────────────────
   // Local override so the panel reflects the reassignment immediately even if the
@@ -525,13 +529,18 @@ export function AppointmentPanel({
 
   const openPatientDetail = React.useCallback(() => {
     if (!appointment?.patientId) return;
-    if (canOpenDetailDeepLinks) {
-      const params = new URLSearchParams({ f: appointment.patientId });
-      openInNewTab(`/${locale}/patients?${params.toString()}`);
-      return;
-    }
-    setIsPatientSheetOpen(true);
-  }, [appointment, canOpenDetailDeepLinks, locale]);
+    openPatientView({
+      userId: appointment.patientId,
+      userName: appointment.patientName,
+      userEmail: appointment.patientEmail,
+      userPhone: appointment.patientPhone,
+    });
+  }, [appointment, openPatientView]);
+
+  const openAccountStatementForPatient = React.useCallback(() => {
+    if (!appointment?.patientId) return;
+    openAccountStatement(appointment.patientId, appointment.patientName);
+  }, [appointment, openAccountStatement]);
 
   const openDoctorDetail = React.useCallback(() => {
     const doctorId = (localAppointment ?? appointment)?.doctorId;
@@ -640,6 +649,18 @@ export function AppointmentPanel({
                   <SheetDescription className="mt-1 truncate text-sm text-muted-foreground">
                     {serviceName}
                   </SheetDescription>
+                )}
+                {appointment.patientId && (
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <Button type="button" variant="outline" size="sm" className="h-7 gap-1.5 px-2.5 text-xs" onClick={openPatientDetail}>
+                      <UserRound className="h-3.5 w-3.5" />
+                      {tPanel('openPatient')}
+                    </Button>
+                    <Button type="button" variant="outline" size="sm" className="h-7 gap-1.5 px-2.5 text-xs" onClick={openAccountStatementForPatient}>
+                      <FileText className="h-3.5 w-3.5" />
+                      {tAccount('viewStatement')}
+                    </Button>
+                  </div>
                 )}
               </div>
 
@@ -1071,16 +1092,6 @@ export function AppointmentPanel({
         </AlertDialogContent>
       </AlertDialog>
 
-      {appointment.patientId && (
-        <PatientDetailSheet
-          open={isPatientSheetOpen}
-          onOpenChange={setIsPatientSheetOpen}
-          userId={appointment.patientId}
-          userName={appointment.patientName}
-          userEmail={appointment.patientEmail}
-          userPhone={appointment.patientPhone}
-        />
-      )}
       {displayAppointment.doctorId && (
         <DoctorDetailSheet
           open={isDoctorSheetOpen}

@@ -38,7 +38,10 @@ import { getSalesServices } from '@/services/services';
 import { TreatmentPlanReviewDialog } from '@/components/appointments/TreatmentPlanReviewDialog';
 import { getServicesByQuoteId, getQuoteItems } from '@/services/quotes';
 import { addMinutes, differenceInMinutes, format, isValid, parse, parseISO } from 'date-fns';
-import { CalendarDays, Check, ChevronsUpDown, ClipboardList, Clock, FilePlus, Link2, Loader2, MapPin, Plus, Stethoscope, UserRound, X } from 'lucide-react';
+import { AlertTriangle, CalendarDays, Check, ChevronsUpDown, ClipboardList, Clock, FileText, FilePlus, Link2, Loader2, MapPin, Plus, Stethoscope, UserRound, X } from 'lucide-react';
+
+import { useAccountStatement } from '@/stores/account-statement-store';
+import { usePatientView } from '@/stores/patient-view-store';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -117,8 +120,15 @@ export function AppointmentFormDialog({
     const { user: currentUser } = useAuth();
     const { toast } = useToast();
     const { reschedule } = useAppointmentReschedule();
+    const { open: openAccountStatement } = useAccountStatement();
+    const { open: openPatientView } = usePatientView();
+    const tAccount = useTranslations('AccountStatement');
+    const tPanelAccount = useTranslations('AppointmentPanel');
     const isReschedule = mode === 'reschedule';
     const [hasBeenEdited, setHasBeenEdited] = React.useState(false);
+
+    // Outstanding-debt indicator for the selected patient (per currency).
+    const [patientDebt, setPatientDebt] = React.useState<{ currency: string; amount: number }[]>([]);
 
     // Form State
     const [appointment, setAppointment] = React.useState({
@@ -307,6 +317,25 @@ export function AppointmentFormDialog({
 
         loadUserQuotes();
     }, [appointment.user?.id, externalUserQuotes]);
+
+    // Load the selected patient's outstanding debt to surface it inline.
+    React.useEffect(() => {
+        const userId = appointment.user?.id;
+        if (!userId) { setPatientDebt([]); return; }
+        let active = true;
+        api.get(API_ROUTES.USER_FINANCIAL, { user_id: userId })
+            .then((raw: any) => {
+                if (!active) return;
+                const fin = Array.isArray(raw) ? raw[0] : raw;
+                const byCurrency = fin?.financial_data ?? {};
+                const debts = Object.entries(byCurrency)
+                    .map(([currency, d]: [string, any]) => ({ currency, amount: Number(d?.current_debt ?? 0) }))
+                    .filter((d) => d.amount > 0);
+                setPatientDebt(debts);
+            })
+            .catch(() => { if (active) setPatientDebt([]); });
+        return () => { active = false; };
+    }, [appointment.user?.id]);
 
     // Initialize/Reset form
     React.useEffect(() => {
@@ -1104,6 +1133,41 @@ export function AppointmentFormDialog({
                                         placeholder={t('createDialog.searchUserPlaceholder')}
                                         className={errors.includes('user') ? 'border-destructive text-destructive' : undefined}
                                     />
+                                    {appointment.user && (
+                                        <div className="space-y-2">
+                                            {patientDebt.length > 0 && (
+                                                <Alert variant="destructive" className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200 [&>svg]:text-amber-600 dark:[&>svg]:text-amber-400">
+                                                    <AlertTriangle className="h-4 w-4" />
+                                                    <AlertTitle>{tAccount('debtAlertTitle')}</AlertTitle>
+                                                    <AlertDescription className="font-semibold">
+                                                        {patientDebt.map((d) => `${d.currency} ${d.amount.toLocaleString('es-UY', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`).join(' · ')}
+                                                    </AlertDescription>
+                                                </Alert>
+                                            )}
+                                            <div className="flex flex-wrap gap-2">
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="flex-1 gap-1.5"
+                                                    onClick={() => appointment.user && openPatientView({ userId: appointment.user.id, userName: appointment.user.name, userEmail: appointment.user.email || undefined, userPhone: appointment.user.phone_number || undefined })}
+                                                >
+                                                    <UserRound className="h-3.5 w-3.5" />
+                                                    {tPanelAccount('openPatient')}
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="flex-1 gap-1.5"
+                                                    onClick={() => appointment.user && openAccountStatement(appointment.user.id, appointment.user.name)}
+                                                >
+                                                    <FileText className="h-3.5 w-3.5" />
+                                                    {tAccount('viewStatement')}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Quote Selection — hidden when creating a lean brand-new appointment,

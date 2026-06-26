@@ -1,4 +1,24 @@
 {
+  "AccountStatement": {
+    "title": "Estado de cuenta",
+    "print": "Imprimir",
+    "close": "Cerrar",
+    "loading": "Cargando estado de cuenta…",
+    "noData": "Este paciente no tiene movimientos financieros.",
+    "error": "No se pudo cargar el estado de cuenta.",
+    "printError": "No se pudo imprimir",
+    "printErrorGeneric": "Ocurrió un error al generar el documento.",
+    "viewStatement": "Ver estado de cuenta",
+    "debtAlertTitle": "Este paciente tiene deuda pendiente",
+    "noDebt": "Sin deuda pendiente"
+  },
+  "QuickPatientSearch": {
+    "title": "Buscar paciente",
+    "placeholder": "Buscar paciente por nombre o teléfono…",
+    "searching": "Buscando…",
+    "noResults": "No se encontraron pacientes.",
+    "hint": "Escribe para buscar un paciente."
+  },
   "ConfirmCloseDialog": {
     "title": "¿Descartar cambios?",
     "description": "Tiene cambios sin guardar. Si cierra ahora, se perderán.",
@@ -1254,7 +1274,8 @@
       "printFinancialSummary": "Imprimir Resumen Financiero",
       "print": "Imprimir",
       "showStats": "VER",
-      "hideStats": "OCULTAR"
+      "hideStats": "OCULTAR",
+      "statement": "ESTADO"
     },
     "financialSummaryDialog": {
       "title": "Imprimir Resumen Financiero",
@@ -6987,7 +7008,8 @@
       "phone": "Teléfono",
       "concept": "Concepto",
       "balance": "Saldo",
-      "finalBalance": "Saldo Final"
+      "finalBalance": "Saldo Final",
+      "paysInvoice": "Paga"
     }
   },
   "License": {

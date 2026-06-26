@@ -16,6 +16,7 @@ import { UserInvoices } from '@/components/users/user-invoices';
 import { UserPayments } from '@/components/users/user-payments';
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
+import { useAccountStatement } from '@/stores/account-statement-store';
 import { UserFinancial } from '@/lib/types';
 import {
   AlertTriangle, Mail, Phone, Users,
@@ -74,6 +75,7 @@ export function PatientDetailSheet({
   initialTab = 'clinical',
 }: PatientDetailSheetProps) {
   const t = useTranslations('UsersPage');
+  const { open: openAccountStatement } = useAccountStatement();
   const isDoctorMode = mode === 'doctor';
   const [financialData, setFinancialData] = React.useState<UserFinancial | null>(null);
   const [isStatsOpen, setIsStatsOpen] = React.useState(false);
@@ -226,6 +228,7 @@ export function PatientDetailSheet({
                 isOpen={isStatsOpen}
                 onToggle={() => setIsStatsOpen(v => !v)}
                 onPrint={() => {}}
+                onViewStatement={() => openAccountStatement(userId, userName)}
               />
             ) : undefined
           }

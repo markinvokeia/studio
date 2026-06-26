@@ -488,3 +488,21 @@ textarea::placeholder {
   --tbl-cell-px: 0.5rem;
   --tbl-cell-py: 0.25rem;
 }
+/* ── On-screen account statement (reuses the print template markup) ─────────── */
+.account-statement-doc .print-template-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+.account-statement-doc .print-template-table th,
+.account-statement-doc .print-template-table td {
+  padding: 6px 8px;
+  border: 1px solid hsl(var(--border));
+  /* No forced text-align here: let the template's text-left/text-right utility
+     classes win so amount columns stay right-aligned. */
+}
+.account-statement-doc .print-template-table th {
+  background: hsl(var(--muted));
+  font-weight: 600;
+  white-space: nowrap;
+}

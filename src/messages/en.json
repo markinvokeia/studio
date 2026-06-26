@@ -1,4 +1,24 @@
 {
+  "AccountStatement": {
+    "title": "Account statement",
+    "print": "Print",
+    "close": "Close",
+    "loading": "Loading account statement…",
+    "noData": "This patient has no financial movements.",
+    "error": "Could not load the account statement.",
+    "printError": "Could not print",
+    "printErrorGeneric": "An error occurred generating the document.",
+    "viewStatement": "View account statement",
+    "debtAlertTitle": "This patient has outstanding debt",
+    "noDebt": "No outstanding debt"
+  },
+  "QuickPatientSearch": {
+    "title": "Search patient",
+    "placeholder": "Search patient by name or phone…",
+    "searching": "Searching…",
+    "noResults": "No patients found.",
+    "hint": "Type to search for a patient."
+  },
   "ConfirmCloseDialog": {
     "title": "Discard changes?",
     "description": "You have unsaved changes. If you close now, they will be lost.",
@@ -1254,7 +1274,8 @@
       "printFinancialSummary": "Print Financial Summary",
       "print": "Print",
       "showStats": "SHOW",
-      "hideStats": "HIDE"
+      "hideStats": "HIDE",
+      "statement": "STATEMENT"
     },
     "financialSummaryDialog": {
       "title": "Print Financial Summary",
@@ -7007,7 +7028,8 @@
       "phone": "Phone",
       "concept": "Concept",
       "balance": "Balance",
-      "finalBalance": "Final Balance"
+      "finalBalance": "Final Balance",
+      "paysInvoice": "Pays"
     }
   },
   "License": {
