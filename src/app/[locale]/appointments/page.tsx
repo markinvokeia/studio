@@ -66,13 +66,14 @@ import { getSalesServices, getUsersServicesBatch, fetchServicesByIds } from '@/s
 import { ColumnDef } from '@tanstack/react-table';
 import { addMinutes, eachDayOfInterval, endOfMonth, endOfWeek, format, isValid, parseISO, startOfMonth, startOfWeek } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
-import { BellRing, Calendar as CalendarIcon, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileText, Layers, Loader2, PlusCircle, RefreshCw, Stethoscope, Trash2, Users, X } from 'lucide-react';
+import { BellRing, Building2, Calendar as CalendarIcon, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileText, Layers, Loader2, PlusCircle, RefreshCw, Stethoscope, Trash2, UserCog, Users, X } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
 import { AppointmentPanel } from '@/components/appointments/AppointmentPanel';
 import { BulkReassignDoctorDialog } from '@/components/appointments/BulkReassignDoctorDialog';
+import { reassignAppointmentField, type AppointmentReassignChange } from '@/lib/appointment-reassign';
 import { AppointmentStatusContextItems } from '@/components/appointments/AppointmentStatusMenu';
 import { useAppointmentStatus } from '@/hooks/use-appointment-status';
 import { canReschedule, normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
@@ -1148,6 +1149,26 @@ export default function AppointmentsPage() {
         setCreateOpen(true);
     };
 
+    // Quick doctor/room reassignment (upsert) from the calendar context menu or
+    // the detail panel — no confirmation step, optimistic UI, then a silent refresh.
+    const handleReassign = React.useCallback(async (appointment: Appointment, change: AppointmentReassignChange) => {
+        try {
+            const updated = await reassignAppointmentField(appointment, change);
+            setAppointments((prev) => prev.map((a) => (a.id === updated.id ? { ...a, ...updated } : a)));
+            setSelectedAppointment((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev));
+            toast({
+                title: change.doctor ? tToasts('doctorReassigned') : tToasts('calendarReassigned'),
+            });
+            refreshCalendarDataRef.current();
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: tToasts('error'),
+                description: error instanceof Error ? error.message : tToasts('unexpectedError'),
+            });
+        }
+    }, [toast, tToasts]);
+
 
     const handleCancel = (appointment: Appointment) => {
         setDeletingAppointment(appointment);
@@ -2044,6 +2065,74 @@ export default function AppointmentsPage() {
                     />
                 </ContextMenuSubContent>
             </ContextMenuSub>
+            <ContextMenuSub>
+                <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                    <UserCog className="h-4 w-4 shrink-0" />
+                    <span className="flex min-w-0 flex-col">
+                        <span>{appointment.doctorId ? tPanel('changeDoctor') : tPanel('assignDoctor')}</span>
+                        {appointment.doctorId && appointment.doctorName && (
+                            <span className="truncate text-xs italic text-muted-foreground">{appointment.doctorName}</span>
+                        )}
+                    </span>
+                </ContextMenuSubTrigger>
+                <ContextMenuSubContent className="max-h-72 w-60 overflow-y-auto">
+                    {doctors.length === 0 ? (
+                        <ContextMenuItem disabled>{tPanel('noDoctorFound')}</ContextMenuItem>
+                    ) : (
+                        doctors.map((doctor) => (
+                            <ContextMenuItem
+                                key={doctor.id}
+                                onSelect={() => {
+                                    if (String(doctor.id) !== String(appointment.doctorId)) {
+                                        handleReassign(appointment, { doctor });
+                                    }
+                                }}
+                                className="flex items-center gap-2 cursor-pointer"
+                            >
+                                <Check className={cn('h-4 w-4 shrink-0', String(doctor.id) === String(appointment.doctorId) ? 'opacity-100' : 'opacity-0')} />
+                                {doctor.color && (
+                                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: doctor.color }} />
+                                )}
+                                <span className="min-w-0 flex-1 truncate">{doctor.name}</span>
+                            </ContextMenuItem>
+                        ))
+                    )}
+                </ContextMenuSubContent>
+            </ContextMenuSub>
+            <ContextMenuSub>
+                <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                    <Building2 className="h-4 w-4 shrink-0" />
+                    <span className="flex min-w-0 flex-col">
+                        <span>{appointment.calendar_source_id ? tPanel('changeCalendar') : tPanel('assignCalendar')}</span>
+                        {appointment.calendar_source_id && appointment.calendar_name && (
+                            <span className="truncate text-xs italic text-muted-foreground">{appointment.calendar_name}</span>
+                        )}
+                    </span>
+                </ContextMenuSubTrigger>
+                <ContextMenuSubContent className="max-h-72 w-60 overflow-y-auto">
+                    {calendars.length === 0 ? (
+                        <ContextMenuItem disabled>{tPanel('noCalendarFound')}</ContextMenuItem>
+                    ) : (
+                        calendars.map((calendar) => (
+                            <ContextMenuItem
+                                key={calendar.id}
+                                onSelect={() => {
+                                    if (String(calendar.id) !== String(appointment.calendar_source_id)) {
+                                        handleReassign(appointment, { calendar });
+                                    }
+                                }}
+                                className="flex items-center gap-2 cursor-pointer"
+                            >
+                                <Check className={cn('h-4 w-4 shrink-0', String(calendar.id) === String(appointment.calendar_source_id) ? 'opacity-100' : 'opacity-0')} />
+                                {calendar.color && (
+                                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: calendar.color }} />
+                                )}
+                                <span className="min-w-0 flex-1 truncate">{calendar.name}</span>
+                            </ContextMenuItem>
+                        ))
+                    )}
+                </ContextMenuSubContent>
+            </ContextMenuSub>
             {canReschedule(appointment.status) && (
                 <ContextMenuItem
                     key="reschedule"
@@ -2920,6 +3009,13 @@ export default function AppointmentsPage() {
                 onStatusChange={handleStatusChange}
                 onRequestCustomCancellation={handleRequestCustomCancellation}
                 onBillingSuccess={loadAppointments}
+                doctors={doctors}
+                calendars={calendars}
+                onAppointmentUpdated={(updated) => {
+                    setAppointments((prev) => prev.map((a) => (a.id === updated.id ? { ...a, ...updated } : a)));
+                    setSelectedAppointment((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev));
+                    refreshCalendarDataRef.current();
+                }}
             />
             <ReminderPanel
                 open={isReminderPanelOpen}

@@ -645,6 +645,11 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
         onStatusChange={handleStatusChange}
         onRequestCustomCancellation={handleRequestCustomCancellation}
         onBillingSuccess={loadAppointments}
+        calendars={calendars}
+        onAppointmentUpdated={(updated) => {
+          setAppointments((prev) => prev.map((a) => (a.id === updated.id ? { ...a, ...updated } : a)));
+          setSelectedAppointment((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev));
+        }}
       />
 
       {clinicSessionAppointment && (

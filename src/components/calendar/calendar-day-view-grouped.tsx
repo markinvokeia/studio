@@ -107,8 +107,10 @@ export function CalendarDayViewGrouped({
 
   const handleSlotContextMenu = (day: Date, col: CalendarGroupingColumn, e: React.MouseEvent<HTMLDivElement>) => {
     if (!onSlotContextMenu) return;
-    // Events have their own context menu — don't hijack a right-click on them.
-    if ((e.target as HTMLElement).closest('.event')) return;
+    // An event's own context menu (radix ContextMenuTrigger) already handled and
+    // preventDefault'd the right-click — don't also open the slot menu over it.
+    if (e.defaultPrevented) return;
+    if ((e.target as HTMLElement).closest('.event-in-day-view, .event')) return;
     if (!e.currentTarget.contains(e.target as Node)) return;
     e.preventDefault();
     const context = groupBy !== 'none' ? { groupBy, value: col.value } : undefined;
