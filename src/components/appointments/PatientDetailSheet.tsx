@@ -10,7 +10,7 @@ import {
 } from '@/components/patients/patient-detail-sheet-main-content';
 import { UserFinancialSummaryStats } from '@/components/users/user-financial-summary-stats';
 import { PatientInfoTab } from '@/components/patients/patient-info-tab';
-import { PatientActionsMenu } from '@/components/patients/patient-actions-menu';
+import { PatientQuickActions } from '@/components/patients/patient-quick-actions';
 import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/components/users/clinic-history-viewer';
 import { UserTreatmentPlans } from '@/components/users/user-treatment-plans';
 import { UserQuotes } from '@/components/users/user-quotes';
@@ -216,7 +216,7 @@ export function PatientDetailSheet({
             </div>
             {!isDoctorMode && (
               <div className="shrink-0">
-                <PatientActionsMenu
+                <PatientQuickActions
                   userId={userId}
                   userName={userName}
                   userEmail={userEmail}

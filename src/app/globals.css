@@ -524,3 +524,16 @@ textarea::placeholder {
 [role="menuitem"][data-state="open"] .text-muted-foreground {
   color: hsl(var(--accent-foreground)) !important;
 }
+
+/* ── Readable text on violet (primary/accent) backgrounds ────────────────────
+   Modal headers (bg-accent), active date-range presets/filters and any element
+   painted with the primary/accent color keep muted subtitles readable by
+   promoting them to the matching foreground (white in the Invoke theme). */
+.bg-accent .text-muted-foreground,
+.hover\:bg-accent:hover .text-muted-foreground {
+  color: hsl(var(--accent-foreground)) !important;
+}
+.bg-primary .text-muted-foreground,
+.hover\:bg-primary:hover .text-muted-foreground {
+  color: hsl(var(--primary-foreground)) !important;
+}

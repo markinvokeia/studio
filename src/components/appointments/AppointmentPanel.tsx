@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { differenceInMinutes, format, parseISO } from 'date-fns';
 import {
+  AlertTriangle,
   ArrowRight,
   Calendar as CalendarIcon,
   CalendarSync,
@@ -302,6 +303,27 @@ export function AppointmentPanel({
   const { open: openBillingWizard } = useBillingWizard();
   const { open: openPatientView } = usePatientView();
   const { open: openAccountStatement } = useAccountStatement();
+
+  // Outstanding-debt indicator for the appointment's patient (per currency).
+  const [patientDebt, setPatientDebt] = React.useState<{ currency: string; amount: number }[]>([]);
+  React.useEffect(() => {
+    const patientId = appointment?.patientId;
+    if (!open || !patientId) { setPatientDebt([]); return; }
+    let active = true;
+    api.get(API_ROUTES.USER_FINANCIAL, { user_id: patientId })
+      .then((raw: any) => {
+        if (!active) return;
+        const fin = Array.isArray(raw) ? raw[0] : raw;
+        const byCurrency = fin?.financial_data ?? {};
+        setPatientDebt(
+          Object.entries(byCurrency)
+            .map(([currency, d]: [string, any]) => ({ currency, amount: Number(d?.current_debt ?? 0) }))
+            .filter((d) => d.amount > 0),
+        );
+      })
+      .catch(() => { if (active) setPatientDebt([]); });
+    return () => { active = false; };
+  }, [open, appointment?.patientId]);
 
   // ── Quick-edit doctor / room (calendar) ─────────────────────────────────────
   // Local override so the panel reflects the reassignment immediately even if the
@@ -608,64 +630,29 @@ export function AppointmentPanel({
       >
         <div className="flex h-full flex-col overflow-hidden bg-card font-body">
           <div className="flex-none border-b border-border bg-card px-5 py-4 pr-24">
-            <div className="flex items-start gap-3">
-              <button
-                type="button"
-                onClick={openPatientDetail}
-                className="shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-ring"
-                aria-label={tPanel('openPatient')}
-                disabled={!appointment.patientId}
-              >
-                <Avatar className="h-12 w-12">
-                  <AvatarFallback className="bg-primary/25 text-base font-semibold text-primary">
-                    {initials(appointment.patientName)}
-                  </AvatarFallback>
-                </Avatar>
-              </button>
-
+            <div className="flex items-center gap-2.5">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                <Info className="h-4 w-4" />
+              </span>
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <SheetTitle asChild>
-                    <button
-                      type="button"
-                      onClick={openPatientDetail}
-                      disabled={!appointment.patientId}
-                      className={cn(
-                        'truncate text-left text-lg font-semibold text-foreground',
-                        appointment.patientId && 'hover:underline underline-offset-4',
-                      )}
-                    >
-                      {appointment.patientName}
-                    </button>
-                  </SheetTitle>
-                  <span className="rounded-md bg-muted px-2 py-0.5 font-mono text-sm font-semibold text-muted-foreground">
-                    {appointmentCode}
-                  </span>
-                </div>
-                {patientMeta && (
-                  <p className="mt-1 truncate text-sm font-medium text-muted-foreground">{patientMeta}</p>
-                )}
-                {serviceName && (
-                  <SheetDescription className="mt-1 truncate text-sm text-muted-foreground">
-                    {serviceName}
-                  </SheetDescription>
-                )}
-                {appointment.patientId && (
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <Button type="button" variant="outline" size="sm" className="h-7 gap-1.5 px-2.5 text-xs" onClick={openPatientDetail}>
-                      <UserRound className="h-3.5 w-3.5" />
-                      {tPanel('openPatient')}
-                    </Button>
-                    <Button type="button" variant="outline" size="sm" className="h-7 gap-1.5 px-2.5 text-xs" onClick={openAccountStatementForPatient}>
-                      <FileText className="h-3.5 w-3.5" />
-                      {tAccount('viewStatement')}
-                    </Button>
-                  </div>
-                )}
+                <SheetTitle className="truncate text-sm font-medium text-foreground">
+                  {tPanel('appointmentTitleFor')}{' '}
+                  <button
+                    type="button"
+                    onClick={openPatientDetail}
+                    disabled={!appointment.patientId}
+                    className={cn('font-bold', appointment.patientId && 'hover:underline underline-offset-4')}
+                  >
+                    {appointment.patientName}
+                  </button>
+                </SheetTitle>
+                <SheetDescription className="sr-only">{serviceName || appointment.patientName}</SheetDescription>
               </div>
-
-              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-sm font-semibold text-primary">
-                <StatusIcon className="h-3.5 w-3.5" style={{ color: statusColor }} />
+              <span className="hidden shrink-0 rounded-md bg-muted px-2 py-0.5 font-mono text-xs font-semibold text-muted-foreground sm:inline">
+                {appointmentCode}
+              </span>
+              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                <StatusIcon className="h-3 w-3" style={{ color: statusColor }} />
                 {cancellationReasonLabel ?? tStatus(appointment.status)}
               </span>
             </div>
@@ -714,12 +701,75 @@ export function AppointmentPanel({
               )}
 
               <section>
-                <div className="mb-3 flex items-center gap-2">
-                  <Info className="h-4 w-4 text-muted-foreground" />
-                  <h3 className="text-base font-semibold">{t('panelTabs.info')}</h3>
+                {/* Patient row — moved out of the header so the appointment (not the patient) leads */}
+                <div className="flex items-center gap-3 border-b border-border/70 py-3">
+                  <button
+                    type="button"
+                    onClick={openPatientDetail}
+                    disabled={!appointment.patientId}
+                    className="shrink-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-ring"
+                    aria-label={tPanel('openPatient')}
+                  >
+                    <Avatar className="h-10 w-10">
+                      <AvatarFallback className="bg-primary/15 text-sm font-semibold text-primary">
+                        {initials(appointment.patientName)}
+                      </AvatarFallback>
+                    </Avatar>
+                  </button>
+                  <div className="min-w-0 flex-1">
+                    <button
+                      type="button"
+                      onClick={openPatientDetail}
+                      disabled={!appointment.patientId}
+                      className={cn(
+                        'block max-w-full truncate text-left text-sm font-bold text-foreground',
+                        appointment.patientId && 'hover:underline underline-offset-4',
+                      )}
+                    >
+                      {appointment.patientName}
+                    </button>
+                    {patientMeta && <p className="truncate text-xs text-muted-foreground">{patientMeta}</p>}
+                    <p className={cn('truncate text-xs font-medium', patientDebt.length > 0 ? 'text-destructive' : 'text-muted-foreground')}>
+                      {patientDebt.length > 0 ? tAccount('debtAlertTitle') : tAccount('noDebt')}
+                    </p>
+                  </div>
+                  {appointment.patientId && (
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Button type="button" variant="outline" size="sm" className="h-7 gap-1.5 px-2.5 text-xs" onClick={openAccountStatementForPatient}>
+                        <FileText className="h-3.5 w-3.5" />
+                        {tAccount('viewStatement')}
+                      </Button>
+                      <Button type="button" variant="outline" size="sm" className="h-7 gap-1.5 px-2.5 text-xs" onClick={openPatientDetail}>
+                        <UserRound className="h-3.5 w-3.5" />
+                        {tPanel('openPatient')}
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
-                <div className="grid gap-x-8 md:grid-cols-2">
+                {/* Outstanding-debt alert */}
+                {patientDebt.length > 0 && (
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2.5">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-destructive">
+                      <AlertTriangle className="h-4 w-4 shrink-0" />
+                      <span>
+                        {patientDebt.map((d) => `${d.currency} ${d.amount.toLocaleString('es-UY', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`).join(' · ')}
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 gap-1.5 border-destructive/40 px-2.5 text-xs text-destructive hover:bg-destructive/10"
+                      onClick={openAccountStatementForPatient}
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      {tAccount('viewStatement')}
+                    </Button>
+                  </div>
+                )}
+
+                <div className="mt-3 grid gap-x-8 md:grid-cols-2">
                   <DetailRow
                     icon={CalendarIcon}
                     label={tColumns('date')}

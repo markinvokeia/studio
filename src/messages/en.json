@@ -845,6 +845,7 @@
   "AppointmentPanel": {
     "openPatient": "View patient",
     "openDoctor": "View doctor",
+    "appointmentTitleFor": "Appointment details for",
     "noDoctor": "No doctor assigned",
     "noCalendar": "No room assigned",
     "changeDoctor": "Change doctor",

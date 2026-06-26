@@ -845,6 +845,7 @@
   "AppointmentPanel": {
     "openPatient": "Ver paciente",
     "openDoctor": "Ver doctor",
+    "appointmentTitleFor": "Detalles de la cita para",
     "noDoctor": "Sin Doctor asignado",
     "noCalendar": "Sin consultorio asignado",
     "changeDoctor": "Cambiar doctor",
