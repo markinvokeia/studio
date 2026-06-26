@@ -22,7 +22,7 @@ export function PatientQuickViewHost() {
       userName={userName}
       userEmail={userEmail}
       userPhone={userPhone}
-      initialTab={initialTab}
+      initialTab={initialTab ?? 'info'}
     />
   );
 }

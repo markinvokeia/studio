@@ -506,3 +506,21 @@ textarea::placeholder {
   font-weight: 600;
   white-space: nowrap;
 }
+
+/* ── Readable muted subtitles on highlighted items ───────────────────────────
+   When a menu / list / select / command item (or a submenu trigger) is highlighted,
+   its background switches to --accent (violet in the Invoke theme). Muted subtitles
+   (text-muted-foreground) would stay gray and lose contrast, so promote them to the
+   item's foreground color. Scoped to menu/option roles so table rows are unaffected. */
+[role="menuitem"][data-highlighted] .text-muted-foreground,
+[role="menuitemcheckbox"][data-highlighted] .text-muted-foreground,
+[role="menuitemradio"][data-highlighted] .text-muted-foreground,
+[role="option"][data-highlighted] .text-muted-foreground,
+[role="option"][aria-selected="true"] .text-muted-foreground,
+[role="menuitem"]:focus .text-muted-foreground,
+[role="menuitemcheckbox"]:focus .text-muted-foreground,
+[role="menuitemradio"]:focus .text-muted-foreground,
+[role="option"]:focus .text-muted-foreground,
+[role="menuitem"][data-state="open"] .text-muted-foreground {
+  color: hsl(var(--accent-foreground)) !important;
+}

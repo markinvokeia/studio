@@ -45,6 +45,7 @@ import {
   type PatientMacroTab,
 } from '@/components/patients/patient-detail-main-content';
 import { PatientDetailHeader } from '@/components/patients/patient-detail-header';
+import { PatientInfoTab, ResponsibleContactField } from '@/components/patients/patient-info-tab';
 import { ToothIcon } from '@/components/users/dental-record/tooth-icon';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
@@ -240,32 +241,6 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyDe
   }
 }
 
-async function searchGuardianPatients(searchQuery: string, currentUserId?: string): Promise<User[]> {
-  try {
-    const responseData = await api.get(API_ROUTES.USERS, { search: searchQuery, filter_type: 'PACIENTE' });
-
-    let usersData = [];
-
-    if (Array.isArray(responseData) && responseData.length > 0) {
-      const firstElement = responseData[0];
-      if (firstElement.json && typeof firstElement.json === 'object') {
-        usersData = firstElement.json.data || [];
-      } else if (firstElement.data) {
-        usersData = firstElement.data;
-      }
-    } else if (typeof responseData === 'object' && responseData !== null && responseData.data) {
-      usersData = responseData.data;
-    }
-
-    return usersData
-      .map(mapApiUser)
-      .filter((user: User) => user.id !== currentUserId && !user.is_dependent);
-  } catch (error) {
-    console.error('Failed to search guardian patients:', error);
-    return [];
-  }
-}
-
 async function fetchCalendarsForAppt(): Promise<CalendarType[]> {
   try {
     const data = await api.get(API_ROUTES.CALENDARS);
@@ -396,142 +371,6 @@ async function getMutualSocietiesList(): Promise<MutualSociety[]> {
   }
 }
 
-const ResponsibleContactField = ({
-  form,
-  currentUserId,
-  initialDisplayName,
-  onDisplayNameChange,
-}: {
-  form: UseFormReturn<UserFormValues>;
-  currentUserId?: string;
-  initialDisplayName?: string;
-  onDisplayNameChange?: (name: string) => void;
-}) => {
-  const t = useTranslations();
-  const [guardianSearchQuery, setGuardianSearchQuery] = React.useState('');
-  const [guardianSearchResults, setGuardianSearchResults] = React.useState<User[]>([]);
-  const [isSearchingGuardians, setIsSearchingGuardians] = React.useState(false);
-  const [isGuardianSearchOpen, setIsGuardianSearchOpen] = React.useState(false);
-  const [guardianDisplayName, setGuardianDisplayName] = React.useState(initialDisplayName || '');
-
-  React.useEffect(() => {
-    setGuardianDisplayName(initialDisplayName || '');
-  }, [initialDisplayName, currentUserId]);
-
-  React.useEffect(() => {
-    onDisplayNameChange?.(guardianDisplayName);
-  }, [guardianDisplayName, onDisplayNameChange]);
-
-  React.useEffect(() => {
-    const handler = setTimeout(async () => {
-      if (!isGuardianSearchOpen) {
-        setGuardianSearchResults([]);
-        return;
-      }
-
-      setIsSearchingGuardians(true);
-      const results = await searchGuardianPatients(guardianSearchQuery, currentUserId);
-      setGuardianSearchResults(results);
-      setIsSearchingGuardians(false);
-    }, 300);
-
-    return () => clearTimeout(handler);
-  }, [guardianSearchQuery, currentUserId, isGuardianSearchOpen]);
-
-  return (
-    <FormField
-      control={form.control}
-      name="responsible_contact_id"
-      render={({ field }) => (
-        <FormItem>
-          <div className="flex items-center justify-between gap-3">
-            <FormLabel>{t('UsersPage.createDialog.responsibleContact')}</FormLabel>
-            {field.value && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-auto px-2 py-1 text-xs"
-                onClick={() => {
-                  field.onChange(null);
-                  setGuardianDisplayName('');
-                }}
-              >
-                {t('UsersPage.createDialog.clearResponsibleContact')}
-              </Button>
-            )}
-          </div>
-          <Popover
-            open={isGuardianSearchOpen}
-            onOpenChange={(open) => {
-              setIsGuardianSearchOpen(open);
-              if (!open) {
-                setGuardianSearchQuery('');
-              }
-            }}
-          >
-            <PopoverTrigger asChild>
-              <FormControl>
-                <Button
-                  type="button"
-                  variant="outline"
-                  role="combobox"
-                  className="w-full justify-between"
-                >
-                  <span className="truncate">
-                    {guardianDisplayName || t('UsersPage.createDialog.responsibleContactPlaceholder')}
-                  </span>
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </FormControl>
-            </PopoverTrigger>
-            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-              <Command shouldFilter={false}>
-                <CommandInput
-                  placeholder={t('UsersPage.createDialog.searchGuardianPlaceholder')}
-                  value={guardianSearchQuery}
-                  onValueChange={setGuardianSearchQuery}
-                />
-                <CommandList>
-                  <CommandEmpty>{t('UsersPage.createDialog.noGuardianResults')}</CommandEmpty>
-                  <CommandGroup>
-                    {isSearchingGuardians ? (
-                      <div className="flex items-center gap-2 px-2 py-3 text-sm text-muted-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>{t('UsersPage.createDialog.searchGuardianPlaceholder')}</span>
-                      </div>
-                    ) : null}
-                    {guardianSearchResults.map((guardian) => (
-                      <CommandItem
-                        key={guardian.id}
-                        value={`${guardian.name} ${guardian.email} ${guardian.phone_number}`}
-                        onSelect={() => {
-                          field.onChange(guardian.id);
-                          setGuardianDisplayName(guardian.name);
-                          setIsGuardianSearchOpen(false);
-                        }}
-                      >
-                        <Check className={cn('mr-2 h-4 w-4', field.value === guardian.id ? 'opacity-100' : 'opacity-0')} />
-                        <div className="min-w-0">
-                          <div className="truncate">{guardian.name}</div>
-                          <div className="truncate text-xs text-muted-foreground">
-                            {guardian.email || guardian.phone_number || guardian.identity_document || guardian.id}
-                          </div>
-                        </div>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-  );
-};
-
 const NotesTab = ({ user, onUpdate }: { user: User; onUpdate: (notes: string) => void }) => {
   const t = useTranslations();
   const { toast } = useToast();
@@ -606,209 +445,6 @@ const NotesTab = ({ user, onUpdate }: { user: User; onUpdate: (notes: string) =>
         )}
       </CardContent>
     </Card>
-  );
-};
-
-const UserInfoTab = ({
-  user,
-  mutualSocieties,
-  onSaved,
-}: {
-  user: User;
-  mutualSocieties: MutualSociety[];
-  onSaved: (updated: User) => void;
-}) => {
-  const t = useTranslations();
-  const { toast } = useToast();
-  const [isSaving, setIsSaving] = React.useState(false);
-  const [saveError, setSaveError] = React.useState<string | null>(null);
-  const [responsibleContactName, setResponsibleContactName] = React.useState(user.responsible_contact_name || '');
-
-  const infoForm = useForm<UserFormValues>({
-    resolver: zodResolver(userFormSchema(t)),
-    defaultValues: {
-      id: user.id,
-      name: user.name,
-      email: user.email || '',
-      phone: user.phone_number || '',
-      identity_document: user.identity_document || '',
-      birth_date: user.birth_date || '',
-      notes: user.notes || '',
-      is_active: user.is_active,
-      mutual_society_id: user.mutual_society_id ? String(user.mutual_society_id) : '',
-      is_dependent: user.is_dependent ?? false,
-      responsible_contact_id: user.responsible_contact_id || null,
-    },
-  });
-  const isDependent = infoForm.watch('is_dependent');
-
-  React.useEffect(() => {
-    infoForm.reset({
-      id: user.id,
-      name: user.name,
-      email: user.email || '',
-      phone: user.phone_number || '',
-      identity_document: user.identity_document || '',
-      birth_date: user.birth_date || '',
-      notes: user.notes || '',
-      is_active: user.is_active,
-      mutual_society_id: user.mutual_society_id ? String(user.mutual_society_id) : '',
-      is_dependent: user.is_dependent ?? false,
-      responsible_contact_id: user.responsible_contact_id || null,
-    });
-    setResponsibleContactName(user.responsible_contact_name || '');
-    setSaveError(null);
-  }, [infoForm, user]);
-
-  React.useEffect(() => {
-    let cancelled = false;
-
-    const loadResponsibleContactName = async () => {
-      if (!user.is_dependent || user.responsible_contact_name || !user.responsible_contact_id) {
-        return;
-      }
-
-      const contactInfo = await getDependantContactInfo(user.id);
-      if (!cancelled && contactInfo?.name) {
-        setResponsibleContactName(contactInfo.name);
-      }
-    };
-
-    loadResponsibleContactName();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user.id, user.is_dependent, user.responsible_contact_id, user.responsible_contact_name]);
-
-  React.useEffect(() => {
-    if (!isDependent && infoForm.getValues('responsible_contact_id') !== null) {
-      infoForm.setValue('responsible_contact_id', null);
-    }
-  }, [infoForm, isDependent]);
-
-  const handleSave = async (data: UserFormValues) => {
-    setIsSaving(true);
-    setSaveError(null);
-    try {
-      await upsertUser(data);
-      toast({
-        title: t('UsersPage.createDialog.editSuccessTitle'),
-        description: t('UsersPage.createDialog.editSuccessDescription'),
-      });
-      onSaved({
-        ...user,
-        name: data.name,
-        email: data.email || '',
-        phone_number: data.phone || '',
-        identity_document: data.identity_document,
-        birth_date: data.birth_date,
-        notes: data.notes,
-        is_active: data.is_active,
-        mutual_society_id: data.mutual_society_id,
-        is_dependent: data.is_dependent,
-        responsible_contact_id: data.responsible_contact_id || undefined,
-        responsible_contact_name: data.is_dependent ? responsibleContactName || undefined : undefined,
-      });
-    } catch (e: any) {
-      setSaveError(e instanceof Error ? e.message : t('UsersPage.createDialog.validation.genericError'));
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  return (
-    <div className="pr-1">
-      <Form {...infoForm}>
-        <form onSubmit={infoForm.handleSubmit(handleSave)} className="space-y-4 p-2">
-          {saveError && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>{saveError}</AlertDescription>
-            </Alert>
-          )}
-          <FormField control={infoForm.control} name="name" render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('UsersPage.createDialog.name')}</FormLabel>
-              <FormControl><Input placeholder={t('UsersPage.createDialog.namePlaceholder')} {...field} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-          <FormField control={infoForm.control} name="email" render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('UsersPage.createDialog.email')}</FormLabel>
-              <FormControl><Input type="email" placeholder={t('UsersPage.createDialog.emailPlaceholder')} {...field} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-          <FormField control={infoForm.control} name="phone" render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('UsersPage.createDialog.phone')}</FormLabel>
-              <FormControl>
-                <PhoneInput {...field} defaultCountry="UY" placeholder={t('UsersPage.createDialog.phonePlaceholder')} onChange={field.onChange} value={field.value} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-          <FormField control={infoForm.control} name="identity_document" render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('UsersPage.createDialog.identity_document')}</FormLabel>
-              <FormControl><Input placeholder={t('UsersPage.createDialog.identity_document_placeholder')} {...field} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-          <FormField control={infoForm.control} name="birth_date" render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('UsersPage.createDialog.birth_date')}</FormLabel>
-              <FormControl>
-                <DatePickerInput value={field.value} onChange={field.onChange} placeholder={t('UsersPage.createDialog.birth_date_placeholder')} disabledDays={(date: Date) => date > new Date() || date < new Date('1900-01-01')} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-          <FormField control={infoForm.control} name="mutual_society_id" render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('UsersPage.mutualSociety.select')}</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value || ''}>
-                <FormControl>
-                  <SelectTrigger><SelectValue placeholder={t('UsersPage.mutualSociety.select')} /></SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="none">{t('UsersPage.mutualSociety.none')}</SelectItem>
-                  {mutualSocieties.map((ms) => (
-                    <SelectItem key={ms.id} value={String(ms.id)}>{ms.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )} />
-          <FormField control={infoForm.control} name="is_dependent" render={({ field }) => (
-            <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-              <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-              <FormLabel>{t('UsersPage.createDialog.isDependent')}</FormLabel>
-            </FormItem>
-          )} />
-          {isDependent ? (
-            <ResponsibleContactField
-              form={infoForm}
-              currentUserId={user.id}
-              initialDisplayName={responsibleContactName}
-              onDisplayNameChange={setResponsibleContactName}
-            />
-          ) : null}
-          <FormField control={infoForm.control} name="is_active" render={({ field }) => (
-            <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-              <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-              <FormLabel>{t('UsersPage.createDialog.isActive')}</FormLabel>
-            </FormItem>
-          )} />
-          <Button type="submit" disabled={isSaving} className="w-full">
-            {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Guardando...</> : 'Guardar'}
-          </Button>
-        </form>
-      </Form>
-    </div>
   );
 };
 
@@ -2011,9 +1647,11 @@ export default function UsersPage() {
                         activeInfoSubTab={activeInfoSubTab}
                         onInfoSubTabChange={setActiveInfoSubTab}
                         infoContent={
-                          <UserInfoTab
+                          <PatientInfoTab
+                            userId={selectedUser.id}
                             user={selectedUser}
                             mutualSocieties={mutualSocieties}
+                            showNotes={false}
                             onSaved={(updated) => {
                               setSelectedUser(updated)
                               loadUsers()

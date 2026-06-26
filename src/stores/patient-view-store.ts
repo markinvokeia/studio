@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-type PatientDetailTab = 'clinical' | 'financial';
+type PatientDetailTab = 'info' | 'clinical' | 'financial';
 
 /**
  * Global patient quick-view. Opens the full PatientDetailSheet from anywhere

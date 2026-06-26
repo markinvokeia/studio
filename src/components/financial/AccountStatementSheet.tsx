@@ -5,7 +5,7 @@ import { FileText, Loader2, Printer } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
-import { ResizableSheet } from '@/components/ui/resizable-sheet';
+import { ResizableSheet, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
 import { FinancialSummaryPrintTemplate } from '@/components/print-templates/financial-summary-print-template';
 import { useAccountStatement } from '@/stores/account-statement-store';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
@@ -84,8 +84,8 @@ export function AccountStatementSheet() {
             <FileText className="h-5 w-5" />
           </span>
           <div className="min-w-0 flex-1">
-            <h2 className="truncate text-base font-semibold text-foreground">{t('title')}</h2>
-            <p className="truncate text-sm text-muted-foreground">{heading}</p>
+            <SheetTitle className="truncate text-base font-semibold text-foreground">{t('title')}</SheetTitle>
+            <SheetDescription className="truncate text-sm text-muted-foreground">{heading}</SheetDescription>
           </div>
           <Button
             variant="outline"

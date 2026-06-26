@@ -9,6 +9,8 @@ import {
   type PatientSheetMacroTab,
 } from '@/components/patients/patient-detail-sheet-main-content';
 import { UserFinancialSummaryStats } from '@/components/users/user-financial-summary-stats';
+import { PatientInfoTab } from '@/components/patients/patient-info-tab';
+import { PatientActionsMenu } from '@/components/patients/patient-actions-menu';
 import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/components/users/clinic-history-viewer';
 import { UserTreatmentPlans } from '@/components/users/user-treatment-plans';
 import { UserQuotes } from '@/components/users/user-quotes';
@@ -30,7 +32,7 @@ interface AllergySummaryItem {
   reaccion_descrita: string;
 }
 
-type PatientDetailTab = 'clinical' | 'financial';
+type PatientDetailTab = 'info' | 'clinical' | 'financial';
 type LegacyPatientDetailTab = 'clinical-history' | 'appointments' | 'messages' | 'notes' | 'quotes' | 'invoices' | 'payments';
 
 interface PatientDetailSheetProps {
@@ -45,8 +47,10 @@ interface PatientDetailSheetProps {
   initialTab?: PatientDetailTab | LegacyPatientDetailTab;
 }
 
-function mapInitialTabToMacroTab(tab?: PatientDetailTab | LegacyPatientDetailTab): PatientDetailTab {
+function mapInitialTabToMacroTab(tab?: PatientDetailTab | LegacyPatientDetailTab): PatientSheetMacroTab {
   switch (tab) {
+    case 'info':
+      return 'info';
     case 'quotes':
     case 'invoices':
     case 'payments':
@@ -83,6 +87,10 @@ export function PatientDetailSheet({
     isDoctorMode ? 'clinical' : mapInitialTabToMacroTab(initialTab)
   );
   const [activeClinicalSubTab, setActiveClinicalSubTab] = React.useState<PatientSheetClinicalSubTab>(clinicalHistoryDefaultView === 'anamnesis' ? 'anamnesis' : 'clinical-history');
+  // Trigger counters for clinical "create" actions launched from the actions menu.
+  const [createSessionTrigger, setCreateSessionTrigger] = React.useState(0);
+  const [createOdontogramTrigger, setCreateOdontogramTrigger] = React.useState(0);
+  const [createDocumentTrigger, setCreateDocumentTrigger] = React.useState(0);
   const [activeFinancialSubTab, setActiveFinancialSubTab] = React.useState<PatientSheetFinancialSubTab>(
     initialTab === 'invoices' ? 'invoices' : initialTab === 'payments' ? 'payments' : 'quotes'
   );
@@ -171,7 +179,7 @@ export function PatientDetailSheet({
                 }
               </div>
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <SheetTitle className="text-base font-semibold truncate leading-tight">{userName}</SheetTitle>
               {!isDoctorMode && (
                 <div className="flex items-center gap-3 mt-0.5 flex-wrap">
@@ -206,6 +214,19 @@ export function PatientDetailSheet({
               )}
               <SheetDescription className="sr-only">{t('detailsFor', { name: userName })}</SheetDescription>
             </div>
+            {!isDoctorMode && (
+              <div className="shrink-0">
+                <PatientActionsMenu
+                  userId={userId}
+                  userName={userName}
+                  userEmail={userEmail}
+                  userPhone={userPhone}
+                  onCreateClinicalSession={() => { setActiveTab('clinical'); setActiveClinicalSubTab('clinical-history'); setCreateSessionTrigger((n) => n + 1); }}
+                  onCreateOdontogram={() => { setActiveTab('clinical'); setActiveClinicalSubTab('clinical-history'); setCreateOdontogramTrigger((n) => n + 1); }}
+                  onCreateDocument={() => { setActiveTab('clinical'); setActiveClinicalSubTab('documents'); setCreateDocumentTrigger((n) => n + 1); }}
+                />
+              </div>
+            )}
           </div>
         </div>
 
@@ -217,10 +238,11 @@ export function PatientDetailSheet({
           activeFinancialSubTab={activeFinancialSubTab}
           onFinancialSubTabChange={setActiveFinancialSubTab}
           isDoctorMode={isDoctorMode}
+          infoContent={!isDoctorMode ? <PatientInfoTab userId={userId} /> : undefined}
           anamnesisContent={<AnamnesisViewer userId={userId} />}
-          clinicalHistoryContent={<ClinicHistoryViewer userId={userId} userName={userName} deepLinkView={clinicalHistoryDefaultView} isDoctorMode={isDoctorMode} />}
+          clinicalHistoryContent={<ClinicHistoryViewer userId={userId} userName={userName} deepLinkView={clinicalHistoryDefaultView} isDoctorMode={isDoctorMode} createSessionTrigger={createSessionTrigger} createOdontogramTrigger={createOdontogramTrigger} />}
           treatmentPlansContent={<UserTreatmentPlans userId={userId} userName={userName} />}
-          documentsContent={<DocumentsViewer userId={userId} />}
+          documentsContent={<DocumentsViewer userId={userId} createTrigger={createDocumentTrigger} />}
           financialSummaryContent={
             !isDoctorMode ? (
               <UserFinancialSummaryStats
