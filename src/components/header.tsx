@@ -6,7 +6,7 @@ import { NotificationsBell } from '@/components/notifications/notifications-bell
 import { NotificationsPanel } from '@/components/notifications/notifications-panel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CASHIER_PERMISSIONS, GLOBAL_PERMISSIONS, SALES_PERMISSIONS, STICKY_NOTES_PERMISSIONS } from '@/constants/permissions';
+import { CASHIER_PERMISSIONS, GLOBAL_PERMISSIONS, SALES_PERMISSIONS, STICKY_NOTES_PERMISSIONS, TV_DISPLAY_PERMISSIONS } from '@/constants/permissions';
 import { useAlertNotifications } from '@/context/alert-notifications-context';
 import { useNotifications } from '@/context/notifications-context';
 import { useAuth } from '@/context/AuthContext';
@@ -451,9 +451,11 @@ export function Header() {
                             </PanelItem>
                         )}
 
-                        <PanelItem label="TV">
-                            <TVDisplayWidget />
-                        </PanelItem>
+                        {hasPermission(TV_DISPLAY_PERMISSIONS.VIEW_MENU) && (
+                            <PanelItem label="TV">
+                                <TVDisplayWidget />
+                            </PanelItem>
+                        )}
 
                         {hasPermission(SALES_PERMISSIONS.INVOICES_CREATE) && (
                             <PanelItem label="Cobrar">
@@ -581,7 +583,7 @@ export function Header() {
                         'animate-in fade-in slide-in-from-top-2 duration-200',
                     )}>
                         <OpenCashSessionWidget />
-                        <TVDisplayWidget />
+                        {hasPermission(TV_DISPLAY_PERMISSIONS.VIEW_MENU) && <TVDisplayWidget />}
 
                         {hasPermission(SALES_PERMISSIONS.INVOICES_CREATE) && (
                             <Button
