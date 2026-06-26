@@ -16,6 +16,8 @@ const CALENDAR_COLORS = [
 export interface AppointmentReassignChange {
   doctor?: User;
   calendar?: CalendarType;
+  /** Quote to link, or `null` to unlink. Omit to leave the current quote untouched. */
+  quote?: { id: string; doc_no?: string } | null;
 }
 
 // Backend stores datetimes as local ISO strings (no timezone). Strip any trailing
@@ -48,7 +50,9 @@ export function buildReassignPayload(appointment: Appointment, change: Appointme
     service_ids: (appointment.services ?? []).filter((s) => s.id).map((s) => s.id),
     service_names: (appointment.services ?? []).map((s) => s.name).join(', '),
     notes: appointment.notes ?? '',
-    quote_id: appointment.quote_id ?? null,
+    quote_id: change.quote !== undefined
+      ? (change.quote ? String(change.quote.id) : null)
+      : (appointment.quote_id ?? null),
   };
 }
 
@@ -76,6 +80,10 @@ export async function reassignAppointmentField(
   if (change.calendar) {
     updated.calendar_source_id = String(change.calendar.id);
     updated.calendar_name = change.calendar.name;
+  }
+  if (change.quote !== undefined) {
+    updated.quote_id = change.quote ? String(change.quote.id) : undefined;
+    updated.quote_doc_no = change.quote?.doc_no;
   }
   return updated;
 }

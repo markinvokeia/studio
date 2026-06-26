@@ -720,7 +720,10 @@
       "appointmentDeleted": "Appointment deleted",
       "appointmentDeletedDesc": "The appointment was removed from the system.",
       "doctorReassigned": "Doctor updated",
-      "calendarReassigned": "Room updated"
+      "calendarReassigned": "Room updated",
+      "quoteLinked": "Quote linked",
+      "quoteUnlinked": "Quote unlinked",
+      "invoiceLinked": "Invoice linked"
     },
     "linkedSession": "Linked Clinic Session",
     "noLinkedSession": "No clinic session linked to this appointment",
@@ -731,8 +734,21 @@
     "clinicSession": "Clinic Session",
     "contextMenu": {
       "createSession": "Create clinic session",
+      "editSession": "Edit clinic session",
       "services": "Services",
-      "notes": "Notes"
+      "notes": "Notes",
+      "linkQuote": "Link quote",
+      "changeQuote": "Change quote",
+      "unlinkQuote": "Remove quote",
+      "newQuote": "Create new quote",
+      "searchQuote": "Search quote…",
+      "noQuotes": "No quotes",
+      "createInvoice": "Create invoice",
+      "changeInvoice": "Change invoice",
+      "newInvoice": "Create new invoice",
+      "searchInvoice": "Search invoice…",
+      "noInvoices": "No invoices",
+      "quickBill": "Quick charge"
     },
     "linkedInvoice": "Invoice",
     "notInvoiced": "Not invoiced",

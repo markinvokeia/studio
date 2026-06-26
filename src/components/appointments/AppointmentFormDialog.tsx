@@ -587,6 +587,11 @@ export function AppointmentFormDialog({
                 }
             }
 
+            // New appointment with no service-derived duration → default to 30 min.
+            if (!editingAppointment && totalDuration === 0) {
+                totalDuration = 30;
+            }
+
             return format(addMinutes(startDateTime, totalDuration), 'HH:mm');
         } catch {
             return null;
@@ -1101,7 +1106,9 @@ export function AppointmentFormDialog({
                                     />
                                 </div>
 
-                                {/* Quote Selection */}
+                                {/* Quote Selection — hidden when creating a lean brand-new appointment,
+                                    but kept when editing or when a quote is preloaded (e.g. "schedule next"). */}
+                                {(editingAppointment || appointment.quote || readOnlyFields?.quote) && (
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between">
                                         <Label className="flex items-center gap-1">
@@ -1203,6 +1210,7 @@ export function AppointmentFormDialog({
                                         <p className="text-xs text-muted-foreground">{t('createDialog.selectUserFirst')}</p>
                                     )}
                                 </div>
+                                )}
 
                                 <div className="space-y-2">
                                     <Label>{t('createDialog.serviceName')}</Label>
@@ -1408,10 +1416,6 @@ export function AppointmentFormDialog({
                                     <Input id="time" type="time" value={appointment.time} onChange={e => { setHasBeenEdited(true); setAppointment(prev => ({ ...prev, time: e.target.value })); setErrors(prev => prev.filter(err => err !== 'time')); }} className={errors.includes('time') ? "border-destructive" : ""} />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="endTime">{t('createDialog.endTime')}</Label>
-                                    <Input id="endTime" type="time" value={appointment.endTime} onChange={e => { setHasBeenEdited(true); setAppointment(prev => ({ ...prev, endTime: e.target.value })); }} />
-                                </div>
-                                <div className="space-y-2">
                                     <Label htmlFor="durationMinutes">{t('createDialog.durationMinutes')}</Label>
                                     <Input
                                         id="durationMinutes"
@@ -1427,59 +1431,52 @@ export function AppointmentFormDialog({
                                     />
                                 </div>
                                 <div className="space-y-2">
+                                    <Label htmlFor="endTime">{t('createDialog.endTime')}</Label>
+                                    <Input id="endTime" type="time" value={appointment.endTime} readOnly tabIndex={-1} className="bg-muted/50 text-muted-foreground cursor-default" />
+                                </div>
+                                <div className="space-y-2">
                                     <Label htmlFor="notes">{t('createDialog.notes')}</Label>
                                     <Textarea id="notes" value={appointment.notes} onChange={e => { setHasBeenEdited(true); setAppointment(prev => ({ ...prev, notes: e.target.value })); }} />
                                 </div>
                             </div>
                         </div>
 
-                        {/* Clinic Session Section */}
+                        {/* Clinic Session Section — only when editing; hidden for brand-new appointments */}
+                        {editingAppointment && (
                         <div className="border-t px-6 pt-4 pb-2">
                             <div className="flex items-center gap-2 mb-3">
                                 <Stethoscope className="h-4 w-4 text-muted-foreground" />
                                 <span className="text-sm font-medium">{t('clinicSession')}</span>
                             </div>
-                            {editingAppointment ? (
-                                <div className="space-y-2">
-                                    {isLoadingLinkedSession ? (
-                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                            <span>{t('checking')}</span>
+                            <div className="space-y-2">
+                                {isLoadingLinkedSession ? (
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        <span>{t('checking')}</span>
+                                    </div>
+                                ) : linkedSession ? (
+                                    <div className="flex items-center justify-between rounded-md border p-3">
+                                        <div className="space-y-0.5">
+                                            <p className="text-sm font-medium">{linkedSession.procedimiento_realizado || '—'}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {linkedSession.fecha_sesion} · {linkedSession.doctor_name}
+                                            </p>
                                         </div>
-                                    ) : linkedSession ? (
-                                        <div className="flex items-center justify-between rounded-md border p-3">
-                                            <div className="space-y-0.5">
-                                                <p className="text-sm font-medium">{linkedSession.procedimiento_realizado || '—'}</p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {linkedSession.fecha_sesion} · {linkedSession.doctor_name}
-                                                </p>
-                                            </div>
-                                            <Button type="button" variant="outline" size="sm" onClick={() => setIsSessionDialogOpen(true)}>
-                                                {t('editSession')}
-                                            </Button>
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center justify-between">
-                                            <p className="text-sm text-muted-foreground">{t('noLinkedSession')}</p>
-                                            <Button type="button" variant="outline" size="sm" onClick={() => setIsSessionDialogOpen(true)}>
-                                                {t('createSession')}
-                                            </Button>
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="flex items-center space-x-2">
-                                    <Checkbox
-                                        id="createSessionOnSave"
-                                        checked={createSessionOnSave}
-                                        onCheckedChange={(checked) => setCreateSessionOnSave(checked === true)}
-                                    />
-                                    <Label htmlFor="createSessionOnSave" className="text-sm font-normal cursor-pointer">
-                                        {t('createSessionOnSave')}
-                                    </Label>
-                                </div>
-                            )}
+                                        <Button type="button" variant="outline" size="sm" onClick={() => setIsSessionDialogOpen(true)}>
+                                            {t('editSession')}
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-sm text-muted-foreground">{t('noLinkedSession')}</p>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => setIsSessionDialogOpen(true)}>
+                                            {t('createSession')}
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
+                        )}
 
                         {!editingAppointment && (availabilityStatus === 'unavailable' || availabilityStatus === 'checking') && (
                             <div className="border-t pt-4 px-6 mb-4">

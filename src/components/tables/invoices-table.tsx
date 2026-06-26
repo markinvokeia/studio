@@ -558,7 +558,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
 interface InvoiceFormDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onInvoiceCreated: () => void;
+  onInvoiceCreated: (invoiceId?: string) => void;
   isSales: boolean;
   invoice?: Invoice | null;
   initialUser?: User;
@@ -928,7 +928,9 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
 
       toast({ title: t('success.title'), description: isEditing ? (t('success.updateDescription') || 'Invoice updated successfully') : t('success.description') });
 
-      onInvoiceCreated();
+      const createdResult = Array.isArray(responseData) ? responseData[0] : responseData;
+      const createdInvoiceId = createdResult?.id ?? createdResult?.invoice_id ?? createdResult?.invoiceId;
+      onInvoiceCreated(createdInvoiceId != null ? String(createdInvoiceId) : undefined);
       onOpenChange(false);
       form.reset();
     } catch (error) {

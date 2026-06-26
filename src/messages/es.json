@@ -720,7 +720,10 @@
       "appointmentDeleted": "Cita eliminada",
       "appointmentDeletedDesc": "La cita fue eliminada del sistema.",
       "doctorReassigned": "Doctor actualizado",
-      "calendarReassigned": "Consultorio actualizado"
+      "calendarReassigned": "Consultorio actualizado",
+      "quoteLinked": "Presupuesto enlazado",
+      "quoteUnlinked": "Presupuesto desvinculado",
+      "invoiceLinked": "Factura enlazada"
     },
     "linkedSession": "Sesión Clínica Enlazada",
     "noLinkedSession": "No hay sesión clínica enlazada a esta cita",
@@ -731,8 +734,21 @@
     "clinicSession": "Sesión Clínica",
     "contextMenu": {
       "createSession": "Registrar sesión clínica",
+      "editSession": "Editar sesión clínica",
       "services": "Servicios",
-      "notes": "Notas"
+      "notes": "Notas",
+      "linkQuote": "Enlazar presupuesto",
+      "changeQuote": "Cambiar presupuesto",
+      "unlinkQuote": "Quitar presupuesto",
+      "newQuote": "Crear nuevo presupuesto",
+      "searchQuote": "Buscar presupuesto…",
+      "noQuotes": "Sin presupuestos",
+      "createInvoice": "Facturar",
+      "changeInvoice": "Cambiar factura",
+      "newInvoice": "Crear nueva factura",
+      "searchInvoice": "Buscar factura…",
+      "noInvoices": "Sin facturas",
+      "quickBill": "Cobro rápido"
     },
     "linkedInvoice": "Factura",
     "notInvoiced": "Sin facturar",

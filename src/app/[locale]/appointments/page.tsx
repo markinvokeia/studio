@@ -66,7 +66,7 @@ import { getSalesServices, getUsersServicesBatch, fetchServicesByIds } from '@/s
 import { ColumnDef } from '@tanstack/react-table';
 import { addMinutes, eachDayOfInterval, endOfMonth, endOfWeek, format, isValid, parseISO, startOfMonth, startOfWeek } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
-import { BellRing, Building2, Calendar as CalendarIcon, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileText, Layers, Loader2, PlusCircle, RefreshCw, Stethoscope, Trash2, UserCog, Users, X } from 'lucide-react';
+import { BellRing, Building2, Calendar as CalendarIcon, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileText, Layers, Link2, Loader2, PlusCircle, Receipt, RefreshCw, Stethoscope, Trash2, UserCog, Users, X, Zap } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
@@ -74,6 +74,9 @@ import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-
 import { AppointmentPanel } from '@/components/appointments/AppointmentPanel';
 import { BulkReassignDoctorDialog } from '@/components/appointments/BulkReassignDoctorDialog';
 import { reassignAppointmentField, type AppointmentReassignChange } from '@/lib/appointment-reassign';
+import { ContextEntityPicker } from '@/components/appointments/ContextEntityPicker';
+import { linkInvoiceToAppointment } from '@/services/billing-links';
+import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { AppointmentStatusContextItems } from '@/components/appointments/AppointmentStatusMenu';
 import { useAppointmentStatus } from '@/hooks/use-appointment-status';
 import { canReschedule, normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
@@ -517,6 +520,7 @@ export default function AppointmentsPage() {
 
     const { refreshNotifications: refreshReminders, markSessionAction } = useNotifications();
     const { user } = useAuth();
+    const { open: openBillingWizard } = useBillingWizard();
 
     const { toast } = useToast();
 
@@ -766,6 +770,8 @@ export default function AppointmentsPage() {
     const [isClinicSessionOpen, setIsClinicSessionOpen] = React.useState(false);
     const [clinicSessionAppointment, setClinicSessionAppointment] = React.useState<Appointment | null>(null);
     const [linkedSession, setLinkedSession] = React.useState<PatientSession | null>(null);
+    // Tracks which appointments already have a clinic session (for the context-menu label).
+    const [sessionExistsMap, setSessionExistsMap] = React.useState<Record<string, boolean>>({});
     const [isLoadingLinkedSession, setIsLoadingLinkedSession] = React.useState(false);
     const [quoteItems, setQuoteItems] = React.useState<QuoteItem[]>([]);
     const [quoteOrder, setQuoteOrder] = React.useState<Order | null>(null);
@@ -899,6 +905,8 @@ export default function AppointmentsPage() {
             if (signal?.aborted) return;
             const sessions: any[] = Array.isArray(data) ? data : (data.patient_sessions || data.data || []);
             const match = sessions.find((s: any) => s?.appointment_id?.toString() === appointment.id);
+            // Keep the context-menu session label ("Register" vs "Edit") in sync.
+            setSessionExistsMap((prev) => ({ ...prev, [appointment.id]: !!match }));
             if (match) {
                 const s = match;
                 setLinkedSession({
@@ -1169,6 +1177,144 @@ export default function AppointmentsPage() {
         }
     }, [toast, tToasts]);
 
+    // ── Context-menu financial / session quick actions ───────────────────────
+    // Lazily-loaded data keyed by patient/appointment, populated the first time an
+    // appointment's context menu is opened (see requestAppointmentMenuData).
+    const [patientQuotesMap, setPatientQuotesMap] = React.useState<Record<string, Quote[]>>({});
+    const [patientInvoicesMap, setPatientInvoicesMap] = React.useState<Record<string, Invoice[]>>({});
+    const menuDataRequestedRef = React.useRef<Set<string>>(new Set());
+
+    const ensurePatientQuotes = React.useCallback(async (patientId: string) => {
+        if (!patientId || patientQuotesMap[patientId]) return;
+        try {
+            const data = await api.get(API_ROUTES.USER_QUOTES, { user_id: patientId });
+            const raw = Array.isArray(data) ? data : (data.user_quotes || data.data || data.result || []);
+            const quotes: Quote[] = raw.map((q: any) => ({
+                id: String(q.id),
+                doc_no: q.doc_no || q.quote_doc_no || '',
+                total: Number(q.total || 0),
+                currency: q.currency || 'USD',
+                status: q.status || 'draft',
+                createdAt: q.created_at || q.createdAt || '',
+            } as Quote));
+            setPatientQuotesMap((prev) => ({ ...prev, [patientId]: quotes }));
+        } catch {
+            setPatientQuotesMap((prev) => ({ ...prev, [patientId]: [] }));
+        }
+    }, [patientQuotesMap]);
+
+    const ensurePatientInvoices = React.useCallback(async (patientId: string) => {
+        if (!patientId || patientInvoicesMap[patientId]) return;
+        try {
+            const data = await api.get(API_ROUTES.USER_INVOICES, { user_id: patientId });
+            const raw = Array.isArray(data) ? data : (data.invoices || data.data || data.result || []);
+            const invoices: Invoice[] = raw.map((inv: any) => ({
+                id: String(inv.id),
+                invoice_ref: inv.invoice_ref || '',
+                doc_no: inv.doc_no || inv.invoice_doc_no || '',
+                invoice_doc_no: inv.invoice_doc_no || inv.doc_no || '',
+                order_id: String(inv.order_id || ''),
+                quote_id: String(inv.quote_id || ''),
+                user_id: String(inv.user_id || ''),
+                user_name: inv.user_name || '',
+                total: Number(inv.total || 0),
+                currency: inv.currency || 'USD',
+                status: inv.status || 'draft',
+                payment_status: inv.payment_state || inv.payment_status || 'unpaid',
+                paid_amount: Number(inv.paid_amount || 0),
+                type: inv.type || 'invoice',
+                createdAt: inv.created_at || inv.createdAt || '',
+                updatedAt: inv.updated_at || inv.updatedAt || '',
+            } as Invoice));
+            setPatientInvoicesMap((prev) => ({ ...prev, [patientId]: invoices }));
+        } catch {
+            setPatientInvoicesMap((prev) => ({ ...prev, [patientId]: [] }));
+        }
+    }, [patientInvoicesMap]);
+
+    const ensureSessionInfo = React.useCallback(async (appointment: Appointment) => {
+        if (!appointment.patientId || sessionExistsMap[appointment.id] !== undefined) return;
+        try {
+            const data = await api.get(API_ROUTES.CLINIC_HISTORY.PATIENT_SESSIONS, { user_id: appointment.patientId });
+            const sessions: any[] = Array.isArray(data) ? data : (data.patient_sessions || data.data || []);
+            // One fetch covers the patient: flag every appointment that already has a session.
+            const withSession = new Set(
+                sessions
+                    .map((s: any) => (s?.appointment_id ?? s?.appointmentId ?? s?.appointmentid)?.toString())
+                    .filter(Boolean),
+            );
+            setSessionExistsMap((prev) => {
+                const next = { ...prev };
+                withSession.forEach((id) => { next[id as string] = true; });
+                if (next[appointment.id] === undefined) next[appointment.id] = false;
+                return next;
+            });
+        } catch {
+            /* leave undefined so it can be retried */
+        }
+    }, [sessionExistsMap]);
+
+    // Called from the context menu render path (only runs when a menu actually opens,
+    // since Radix mounts the content lazily). Defers fetches to avoid setState-in-render.
+    const requestAppointmentMenuData = React.useCallback((appointment: Appointment) => {
+        if (menuDataRequestedRef.current.has(appointment.id)) return;
+        menuDataRequestedRef.current.add(appointment.id);
+        queueMicrotask(() => {
+            ensureSessionInfo(appointment);
+            if (appointment.patientId) {
+                ensurePatientQuotes(appointment.patientId);
+                ensurePatientInvoices(appointment.patientId);
+            }
+        });
+    }, [ensureSessionInfo, ensurePatientQuotes, ensurePatientInvoices]);
+
+    const handleLinkQuote = React.useCallback(async (appointment: Appointment, quote: Quote | null) => {
+        try {
+            const updated = await reassignAppointmentField(appointment, {
+                quote: quote ? { id: quote.id, doc_no: quote.doc_no } : null,
+            });
+            setAppointments((prev) => prev.map((a) => (a.id === updated.id ? { ...a, ...updated } : a)));
+            setSelectedAppointment((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev));
+            toast({ title: quote ? tToasts('quoteLinked') : tToasts('quoteUnlinked') });
+            refreshCalendarDataRef.current();
+        } catch (error) {
+            toast({ variant: 'destructive', title: tToasts('error'), description: error instanceof Error ? error.message : tToasts('unexpectedError') });
+        }
+    }, [toast, tToasts]);
+
+    const handleLinkInvoice = React.useCallback(async (appointment: Appointment, invoice: Invoice) => {
+        try {
+            await linkInvoiceToAppointment(invoice.id, appointment.id);
+            setAppointments((prev) => prev.map((a) => (a.id === appointment.id ? { ...a, invoice_id: invoice.id } : a)));
+            setSelectedAppointment((prev) => (prev && prev.id === appointment.id ? { ...prev, invoice_id: invoice.id } : prev));
+            toast({ title: tToasts('invoiceLinked') });
+            refreshCalendarDataRef.current();
+        } catch (error) {
+            toast({ variant: 'destructive', title: tToasts('error'), description: error instanceof Error ? error.message : tToasts('unexpectedError') });
+        }
+    }, [toast, tToasts]);
+
+    // Opens the global Cobro Rápido wizard with whatever the appointment already
+    // has (invoice → quote → services), mirroring the detail panel behavior.
+    const handleQuickBillFromContext = React.useCallback((appointment: Appointment) => {
+        if (!appointment.patientId) return;
+        const base = { patientId: appointment.patientId, patientName: appointment.patientName, isSales: true, appointmentId: appointment.id };
+        if (appointment.invoice_id) {
+            openBillingWizard({ ...base, invoiceId: String(appointment.invoice_id) }, () => refreshCalendarDataRef.current());
+        } else if (appointment.quote_id) {
+            openBillingWizard({ ...base, quoteId: String(appointment.quote_id) }, () => refreshCalendarDataRef.current());
+        } else {
+            const preloadedItems = (appointment.services || []).map((svc) => ({
+                tempId: svc.id,
+                service_id: svc.id,
+                service_name: svc.name,
+                unit_price: svc.price || 0,
+                quantity: 1,
+                total: svc.price || 0,
+            }));
+            openBillingWizard({ ...base, appointmentDate: appointment.date, preloadedItems: preloadedItems.length > 0 ? preloadedItems : undefined }, () => refreshCalendarDataRef.current());
+        }
+    }, [openBillingWizard]);
 
     const handleCancel = (appointment: Appointment) => {
         setDeletingAppointment(appointment);
@@ -1324,6 +1470,8 @@ export default function AppointmentsPage() {
                 toast({ title: t('toasts.sessionCreated'), description: t('toasts.sessionCreatedDesc') });
             }
 
+            // The appointment now has a session → next context-menu open says "Edit".
+            setSessionExistsMap((prev) => ({ ...prev, [clinicSessionAppointment.id]: true }));
             setIsClinicSessionOpen(false);
             setClinicSessionAppointment(null);
             loadLinkedSession(clinicSessionAppointment);
@@ -1377,6 +1525,38 @@ export default function AppointmentsPage() {
     const [pendingInvoiceNotifId, setPendingInvoiceNotifId] = React.useState<string | undefined>();
     const [pendingScheduleNotifId, setPendingScheduleNotifId] = React.useState<string | undefined>();
     const [scheduleNextResolvedServices, setScheduleNextResolvedServices] = React.useState<Service[] | undefined>();
+
+    // Quote/invoice creation dialogs preloaded with the appointment's patient +
+    // services; the freshly created document is linked back to the appointment.
+    const [quoteLinkTarget, setQuoteLinkTarget] = React.useState<Appointment | null>(null);
+    const [invoiceLinkTarget, setInvoiceLinkTarget] = React.useState<Appointment | null>(null);
+
+    const appointmentServiceItems = React.useCallback((appointment: Appointment): SessionPreloadedService[] => (
+        (appointment.services || []).map((svc) => ({
+            service_id: svc.id,
+            service_name: svc.name,
+            unit_price: svc.price || 0,
+            quantity: 1,
+            is_for_next_session: false,
+            numero_diente: null,
+        }))
+    ), []);
+
+    const handleCreateQuoteForAppointment = React.useCallback((appointment: Appointment) => {
+        if (!appointment.patientId) return;
+        setQuoteLinkTarget(appointment);
+        setQuickQuotePatient({ id: appointment.patientId, name: appointment.patientName, email: appointment.patientEmail || '', phone_number: appointment.patientPhone || '', is_active: true, avatar: '' } as UserType);
+        setQuickQuoteInitialItems(appointmentServiceItems(appointment));
+        setIsQuickQuoteOpen(true);
+    }, [appointmentServiceItems]);
+
+    const handleCreateInvoiceForAppointment = React.useCallback((appointment: Appointment) => {
+        if (!appointment.patientId) return;
+        setInvoiceLinkTarget(appointment);
+        setInvoicePatient({ id: appointment.patientId, name: appointment.patientName, email: appointment.patientEmail || '', phone_number: appointment.patientPhone || '', is_active: true, avatar: '' } as UserType);
+        setInvoiceInitialItems(appointmentServiceItems(appointment));
+        setIsInvoiceFormOpen(true);
+    }, [appointmentServiceItems]);
 
     // ── Notification deep-link handlers ───────────────────────────────────────
     /**
@@ -2044,13 +2224,24 @@ export default function AppointmentsPage() {
         }
 
         const appointment = eventData as Appointment;
+        // Lazily load session/quote/invoice info for this appointment's menu.
+        requestAppointmentMenuData(appointment);
+        const patientQuotes = appointment.patientId ? (patientQuotesMap[appointment.patientId] ?? []) : [];
+        const patientInvoices = appointment.patientId ? (patientInvoicesMap[appointment.patientId] ?? []) : [];
+        const linkedQuote = appointment.quote_id ? patientQuotes.find((q) => String(q.id) === String(appointment.quote_id)) : undefined;
+        const linkedInvoice = appointment.invoice_id ? patientInvoices.find((i) => String(i.id) === String(appointment.invoice_id)) : undefined;
+        const fmtMoney = (amount: number, currency?: string) => new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD' }).format(amount);
+        const hasSession = sessionExistsMap[appointment.id];
         return (
             <>
             <ContextMenuSeparator />
             <ContextMenuSub>
-                <ContextMenuSubTrigger className="flex items-center gap-2 cursor-pointer">
-                    <ClipboardCheck className="h-4 w-4" />
-                    {tStatusMenu('changeStatus')}
+                <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                    <ClipboardCheck className="h-4 w-4 shrink-0" />
+                    <span className="flex min-w-0 flex-col">
+                        <span>{tStatusMenu('changeStatus')}</span>
+                        <span className="truncate text-xs italic text-muted-foreground">{tStatus(appointment.status)}</span>
+                    </span>
                 </ContextMenuSubTrigger>
                 <ContextMenuSubContent>
                     <AppointmentStatusContextItems
@@ -2155,8 +2346,82 @@ export default function AppointmentsPage() {
                 className="flex items-center gap-2 cursor-pointer"
             >
                 <Stethoscope className="h-4 w-4" />
-                {t('contextMenu.createSession')}
+                {hasSession ? t('contextMenu.editSession') : t('contextMenu.createSession')}
             </ContextMenuItem>
+
+            <ContextMenuSeparator />
+
+            {/* Quote: link/change */}
+            <ContextMenuSub onOpenChange={(o) => { if (o && appointment.patientId) ensurePatientQuotes(appointment.patientId); }}>
+                <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                    <Link2 className="h-4 w-4 shrink-0" />
+                    <span className="flex min-w-0 flex-col">
+                        <span>{appointment.quote_id ? t('contextMenu.changeQuote') : t('contextMenu.linkQuote')}</span>
+                        {appointment.quote_id && (
+                            <span className="truncate text-xs italic text-muted-foreground">
+                                {(linkedQuote?.doc_no || appointment.quote_doc_no || appointment.quote_id)}
+                                {linkedQuote ? ` · ${fmtMoney(linkedQuote.total, linkedQuote.currency)}` : ''}
+                            </span>
+                        )}
+                    </span>
+                </ContextMenuSubTrigger>
+                <ContextMenuSubContent className="p-0">
+                    <ContextEntityPicker
+                        items={patientQuotes.map((quote) => ({
+                            id: String(quote.id),
+                            title: quote.doc_no || String(quote.id),
+                            subtitle: fmtMoney(quote.total, quote.currency),
+                        }))}
+                        selectedId={appointment.quote_id}
+                        onSelect={(id) => { const quote = patientQuotes.find((q) => String(q.id) === id); if (quote && String(id) !== String(appointment.quote_id)) handleLinkQuote(appointment, quote); }}
+                        onCreateNew={() => handleCreateQuoteForAppointment(appointment)}
+                        createLabel={t('contextMenu.newQuote')}
+                        searchPlaceholder={t('contextMenu.searchQuote')}
+                        emptyText={t('contextMenu.noQuotes')}
+                    />
+                </ContextMenuSubContent>
+            </ContextMenuSub>
+
+            {/* Invoice: bill/change */}
+            <ContextMenuSub onOpenChange={(o) => { if (o && appointment.patientId) ensurePatientInvoices(appointment.patientId); }}>
+                <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                    <Receipt className="h-4 w-4 shrink-0" />
+                    <span className="flex min-w-0 flex-col">
+                        <span>{appointment.invoice_id ? t('contextMenu.changeInvoice') : t('contextMenu.createInvoice')}</span>
+                        {appointment.invoice_id && (
+                            <span className="truncate text-xs italic text-muted-foreground">
+                                {(linkedInvoice?.doc_no || linkedInvoice?.invoice_doc_no || appointment.invoice_id)}
+                                {linkedInvoice ? ` · ${fmtMoney(linkedInvoice.total, linkedInvoice.currency)}` : ''}
+                            </span>
+                        )}
+                    </span>
+                </ContextMenuSubTrigger>
+                <ContextMenuSubContent className="p-0">
+                    <ContextEntityPicker
+                        items={patientInvoices.map((invoice) => ({
+                            id: String(invoice.id),
+                            title: invoice.doc_no || invoice.invoice_doc_no || String(invoice.id),
+                            subtitle: fmtMoney(invoice.total, invoice.currency),
+                        }))}
+                        selectedId={appointment.invoice_id}
+                        onSelect={(id) => { const invoice = patientInvoices.find((i) => String(i.id) === id); if (invoice && String(id) !== String(appointment.invoice_id)) handleLinkInvoice(appointment, invoice); }}
+                        onCreateNew={() => handleCreateInvoiceForAppointment(appointment)}
+                        createLabel={t('contextMenu.newInvoice')}
+                        searchPlaceholder={t('contextMenu.searchInvoice')}
+                        emptyText={t('contextMenu.noInvoices')}
+                    />
+                </ContextMenuSubContent>
+            </ContextMenuSub>
+
+            <ContextMenuItem
+                key="quick-bill"
+                onSelect={() => handleQuickBillFromContext(appointment)}
+                className="flex items-center gap-2 cursor-pointer font-medium text-emerald-600 focus:text-emerald-600 dark:text-emerald-400 dark:focus:text-emerald-400"
+            >
+                <Zap className="h-4 w-4" />
+                {t('contextMenu.quickBill')}
+            </ContextMenuItem>
+
             <ContextMenuSeparator />
             <ContextMenuItem
                 key="delete"
@@ -3034,15 +3299,20 @@ export default function AppointmentsPage() {
                 open={isQuickQuoteOpen}
                 onOpenChange={(open) => {
                     setIsQuickQuoteOpen(open);
-                    if (!open) { setQuickQuotePatient(null); setQuickQuoteInitialItems(undefined); setPendingQuoteNotifId(undefined); }
+                    if (!open) { setQuickQuotePatient(null); setQuickQuoteInitialItems(undefined); setPendingQuoteNotifId(undefined); setQuoteLinkTarget(null); }
                 }}
                 initialData={{ user: quickQuotePatient }}
                 initialItems={quickQuoteInitialItems}
                 onSaveSuccess={() => setIsQuickQuoteOpen(false)}
-                onQuoteCreated={() => {
+                onQuoteCreated={(quote) => {
                     if (pendingQuoteNotifId) {
                         markSessionAction(pendingQuoteNotifId, 'quote');
                         setPendingQuoteNotifId(undefined);
+                    }
+                    // Link the freshly created quote to the originating appointment.
+                    if (quoteLinkTarget && quote?.id) {
+                        handleLinkQuote(quoteLinkTarget, quote);
+                        setQuoteLinkTarget(null);
                     }
                 }}
             />
@@ -3050,12 +3320,20 @@ export default function AppointmentsPage() {
                 isOpen={isInvoiceFormOpen}
                 onOpenChange={(open) => {
                     setIsInvoiceFormOpen(open);
-                    if (!open) { setInvoicePatient(null); setInvoiceInitialItems(undefined); setPendingInvoiceNotifId(undefined); }
+                    if (!open) { setInvoicePatient(null); setInvoiceInitialItems(undefined); setPendingInvoiceNotifId(undefined); setInvoiceLinkTarget(null); }
                 }}
-                onInvoiceCreated={() => {
+                onInvoiceCreated={(invoiceId) => {
                     if (pendingInvoiceNotifId) {
                         markSessionAction(pendingInvoiceNotifId, 'invoice');
                         setPendingInvoiceNotifId(undefined);
+                    }
+                    // Link the freshly created invoice to the originating appointment.
+                    if (invoiceLinkTarget && invoiceId) {
+                        linkInvoiceToAppointment(invoiceId, invoiceLinkTarget.id).then(() => {
+                            setAppointments((prev) => prev.map((a) => (a.id === invoiceLinkTarget.id ? { ...a, invoice_id: invoiceId } : a)));
+                            refreshCalendarDataRef.current();
+                        });
+                        setInvoiceLinkTarget(null);
                     }
                     setIsInvoiceFormOpen(false);
                 }}
