@@ -4537,7 +4537,8 @@
           "reasonPlaceholder": "Reason for medication",
           "startDatePlaceholder": "Select start date",
           "endDatePlaceholder": "Select end date",
-          "endDateBeforeStartDate": "End date cannot be earlier than start date"
+          "endDateBeforeStartDate": "End date cannot be earlier than start date",
+          "createMedication": "Create \"{name}\""
         },
         "allergy": {
           "addTitle": "Add Allergy",
@@ -4551,6 +4552,7 @@
         },
         "searchAilment": "Search Ailment",
         "noAilmentFound": "No ailment found",
+        "createAilment": "Create \"{name}\"",
         "common": {
           "delete": "Delete",
           "confirmDelete": "Are you sure you want to delete this item? This action cannot be undone."

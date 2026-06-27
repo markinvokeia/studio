@@ -96,6 +96,25 @@ import { useLocale, useTranslations } from 'next-intl';
 import Image from 'next/image';
 import * as React from 'react';
 
+/**
+ * Inline "create new" row shown at the bottom of a catalog combobox when the
+ * typed term doesn't match an existing entry — mirrors the appointment form's
+ * inline patient/service creation.
+ */
+function CatalogCreateRow({ label, isCreating, onCreate }: { label: string; isCreating: boolean; onCreate: () => void }) {
+    return (
+        <button
+            type="button"
+            onClick={onCreate}
+            disabled={isCreating}
+            className="flex w-full items-center gap-2 border-t px-2 py-2 text-left text-sm hover:bg-accent disabled:opacity-50"
+        >
+            {isCreating ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" /> : <Plus className="h-4 w-4 shrink-0 text-muted-foreground" />}
+            <span className="truncate">{label}</span>
+        </button>
+    );
+}
+
 interface ClinicHistoryViewerProps {
     userId: string;
     userName?: string;
@@ -551,6 +570,64 @@ function AnamnesisSection({
     const [isFamilyComboboxOpen, setIsFamilyComboboxOpen] = React.useState(false);
     const [isMedicationComboboxOpen, setIsMedicationComboboxOpen] = React.useState(false);
 
+    // Inline catalog creation (ailments / medications)
+    const [personalAilmentSearch, setPersonalAilmentSearch] = React.useState('');
+    const [familyAilmentSearch, setFamilyAilmentSearch] = React.useState('');
+    const [isCreatingAilment, setIsCreatingAilment] = React.useState(false);
+    const [isCreatingMedication, setIsCreatingMedication] = React.useState(false);
+    // After creating a medication we refetch the catalog; this remembers the name
+    // to auto-select once it appears in the refreshed list.
+    const [pendingMedicationName, setPendingMedicationName] = React.useState<string | null>(null);
+
+    React.useEffect(() => {
+        if (!pendingMedicationName) return;
+        const match = medicationsCatalog.find((m) => m.nombre_generico.toLowerCase() === pendingMedicationName.toLowerCase());
+        if (match) {
+            setSelectedMedication(match);
+            setMedicationSearchTerm(match.nombre_generico);
+            setPendingMedicationName(null);
+        }
+    }, [medicationsCatalog, pendingMedicationName]);
+
+    const handleCreateAilment = async (term: string, target: 'personal' | 'family') => {
+        const nombre = term.trim();
+        if (!nombre) return;
+        setIsCreatingAilment(true);
+        try {
+            await api.post(API_ROUTES.CLINIC_CATALOG.AILMENTS_UPSERT, { nombre, categoria: '', nivel_alerta: 0 });
+            await onFetchAilmentsCatalog();
+            if (target === 'personal') {
+                setPersonalAilmentName(nombre);
+                setIsPersonalComboboxOpen(false);
+            } else {
+                setFamilyAilmentName(nombre);
+                setIsFamilyComboboxOpen(false);
+            }
+            toast({ title: t('toast.success') });
+        } catch {
+            toast({ title: t('toast.error'), variant: 'destructive' });
+        } finally {
+            setIsCreatingAilment(false);
+        }
+    };
+
+    const handleCreateMedication = async (term: string) => {
+        const nombre = term.trim();
+        if (!nombre) return;
+        setIsCreatingMedication(true);
+        try {
+            await api.post(API_ROUTES.CLINIC_CATALOG.MEDICATIONS_UPSERT, { nombre_generico: nombre, nombre_comercial: '' });
+            setPendingMedicationName(nombre);
+            await onFetchMedicationsCatalog(nombre);
+            setIsMedicationComboboxOpen(false);
+            toast({ title: t('toast.success') });
+        } catch {
+            toast({ title: t('toast.error'), variant: 'destructive' });
+        } finally {
+            setIsCreatingMedication(false);
+        }
+    };
+
     // Load catalog when dialog opens
     React.useEffect(() => {
         if (isPersonalDialogOpen || isFamilyDialogOpen) {
@@ -577,6 +654,7 @@ function AnamnesisSection({
                 setPersonalAilmentName('');
                 setPersonalComentarios('');
             }
+            setPersonalAilmentSearch('');
         }
     }, [isPersonalDialogOpen, editingPersonalItem]);
 
@@ -591,6 +669,7 @@ function AnamnesisSection({
                 setFamilyParentesco('');
                 setFamilyComentarios('');
             }
+            setFamilyAilmentSearch('');
         }
     }, [isFamilyDialogOpen, editingFamilyItem]);
 
@@ -1142,7 +1221,12 @@ function AnamnesisSection({
                                     </PopoverTrigger>
                                     <PopoverContent className="w-full p-0" style={{ width: 'var(--radix-popover-trigger-width)' }}>
                                         <Command>
-                                            <CommandInput placeholder={t('dialogs.searchAilment')} className="h-9" />
+                                            <CommandInput
+                                                placeholder={t('dialogs.searchAilment')}
+                                                className="h-9"
+                                                value={personalAilmentSearch}
+                                                onValueChange={setPersonalAilmentSearch}
+                                            />
                                             <CommandList>
                                                 <CommandEmpty>{t('dialogs.noAilmentFound')}</CommandEmpty>
                                                 <CommandGroup>
@@ -1160,6 +1244,13 @@ function AnamnesisSection({
                                                         </CommandItem>
                                                     ))}
                                                 </CommandGroup>
+                                                {personalAilmentSearch.trim() && !ailmentsCatalog.some((a) => a.nombre.toLowerCase() === personalAilmentSearch.trim().toLowerCase()) && (
+                                                    <CatalogCreateRow
+                                                        label={t('dialogs.createAilment', { name: personalAilmentSearch.trim() })}
+                                                        isCreating={isCreatingAilment}
+                                                        onCreate={() => handleCreateAilment(personalAilmentSearch, 'personal')}
+                                                    />
+                                                )}
                                             </CommandList>
                                         </Command>
                                     </PopoverContent>
@@ -1207,7 +1298,12 @@ function AnamnesisSection({
                                     </PopoverTrigger>
                                     <PopoverContent className="w-full p-0" style={{ width: 'var(--radix-popover-trigger-width)' }}>
                                         <Command>
-                                            <CommandInput placeholder={t('dialogs.searchAilment')} className="h-9" />
+                                            <CommandInput
+                                                placeholder={t('dialogs.searchAilment')}
+                                                className="h-9"
+                                                value={familyAilmentSearch}
+                                                onValueChange={setFamilyAilmentSearch}
+                                            />
                                             <CommandList>
                                                 <CommandEmpty>{t('dialogs.noAilmentFound')}</CommandEmpty>
                                                 <CommandGroup>
@@ -1225,6 +1321,13 @@ function AnamnesisSection({
                                                         </CommandItem>
                                                     ))}
                                                 </CommandGroup>
+                                                {familyAilmentSearch.trim() && !ailmentsCatalog.some((a) => a.nombre.toLowerCase() === familyAilmentSearch.trim().toLowerCase()) && (
+                                                    <CatalogCreateRow
+                                                        label={t('dialogs.createAilment', { name: familyAilmentSearch.trim() })}
+                                                        isCreating={isCreatingAilment}
+                                                        onCreate={() => handleCreateAilment(familyAilmentSearch, 'family')}
+                                                    />
+                                                )}
                                             </CommandList>
                                         </Command>
                                     </PopoverContent>
@@ -1361,6 +1464,13 @@ function AnamnesisSection({
                                                         </CommandItem>
                                                     ))}
                                                 </CommandGroup>
+                                                {medicationSearchTerm.trim() && !medicationsCatalog.some((m) => m.nombre_generico.toLowerCase() === medicationSearchTerm.trim().toLowerCase()) && (
+                                                    <CatalogCreateRow
+                                                        label={t('dialogs.medication.createMedication', { name: medicationSearchTerm.trim() })}
+                                                        isCreating={isCreatingMedication}
+                                                        onCreate={() => handleCreateMedication(medicationSearchTerm)}
+                                                    />
+                                                )}
                                             </CommandList>
                                         </Command>
                                     </PopoverContent>

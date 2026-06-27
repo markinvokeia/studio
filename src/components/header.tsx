@@ -583,10 +583,11 @@ export function Header() {
                     </button>
                 ) : (
                     <div className={cn(
-                        'flex flex-row items-center justify-evenly px-3 py-2 gap-1',
+                        'flex flex-row flex-wrap items-center justify-evenly px-1.5 py-2 gap-0.5',
                         'bg-[hsl(var(--floating-header-bg)/0.95)] backdrop-blur-md border-b border-border shadow-md w-full',
                         'animate-in fade-in slide-in-from-top-2 duration-200',
                     )}>
+                        <QuickPatientSearch />
                         <OpenCashSessionWidget />
                         {hasPermission(TV_DISPLAY_PERMISSIONS.VIEW_MENU) && <TVDisplayWidget />}
 

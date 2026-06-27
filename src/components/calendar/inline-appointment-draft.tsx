@@ -130,7 +130,7 @@ export function InlineAppointmentDraft({
   };
 
   return (
-    <div className="flex h-full flex-col gap-1.5 overflow-auto rounded-lg border border-primary/40 bg-primary/5 p-2 text-xs shadow-lg ring-1 ring-primary/20 backdrop-blur-sm">
+    <div className="flex h-full max-w-[300px] flex-col gap-1.5 overflow-auto rounded-lg border border-primary/40 bg-violet-50 p-2 text-xs shadow-lg ring-1 ring-primary/20 dark:bg-violet-950">
       {/* Header: title + close */}
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold text-foreground">{t('title')}</span>

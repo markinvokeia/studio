@@ -4514,7 +4514,8 @@
           "reasonPlaceholder": "Razon de la medicación",
           "startDatePlaceholder": "Seleccionar fecha de inicio",
           "endDatePlaceholder": "Seleccionar fecha de fin",
-          "endDateBeforeStartDate": "La fecha de fin no puede ser menor que la fecha de inicio"
+          "endDateBeforeStartDate": "La fecha de fin no puede ser menor que la fecha de inicio",
+          "createMedication": "Crear \"{name}\""
         },
         "allergy": {
           "addTitle": "Agregar Alergia",
@@ -4527,7 +4528,8 @@
           "reactionPlaceholder": "Describa la reacción alérgica..."
         },
         "searchAilment": "Buscar Padecimiento",
-        "noAilmentFound": "No se encontró el padecimiento"
+        "noAilmentFound": "No se encontró el padecimiento",
+        "createAilment": "Crear \"{name}\""
       },
       "toast": {
         "success": "Éxito",

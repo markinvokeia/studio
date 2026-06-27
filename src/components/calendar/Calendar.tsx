@@ -50,6 +50,7 @@ const Calendar: React.FC<CalendarProps> = ({
   groupingColumns = [],
   onEventColorChange,
   onSlotClick,
+  onCreateClick,
   onSlotContextMenu,
   onEventContextMenu,
   onEventContextMenuOpen,
@@ -170,6 +171,8 @@ const Calendar: React.FC<CalendarProps> = ({
               currentTime={currentTime}
               dateLocale={dateLocale}
               hourSlotHeight={effectiveSlotHeight}
+              inlineDraft={inlineDraft}
+              renderInlineDraft={renderInlineDraft}
               {...eventHandlers}
               {...gapProps}
               {...blockProps}
@@ -331,7 +334,7 @@ const Calendar: React.FC<CalendarProps> = ({
 
       {/* Mobile: FAB for creating appointments */}
       {isMobile && onSlotClick && (
-        <CalendarFab label={t('create')} onClick={() => onSlotClick(new Date())} />
+        <CalendarFab label={t('create')} onClick={onCreateClick ?? (() => onSlotClick(new Date()))} />
       )}
 
       {/* Mobile: filter bottom sheet */}

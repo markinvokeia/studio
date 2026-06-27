@@ -124,6 +124,7 @@ export function CalendarHeader({
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
+            {breakpoint === 'tablet' && trailingActions}
           </div>
         </div>
         {children ? (
@@ -145,10 +146,13 @@ export function CalendarHeader({
   }
 
   return (
-    <div className="calendar-header calendar-header--actions">
-      {/* Row-1 cluster: settings (before the title) + title + date navigation */}
+    <div className="calendar-header calendar-header--actions relative pr-14">
+      {/* Settings: pinned to the top-right of row 1; view buttons wrap below it. */}
+      {trailingActions && (
+        <div className="absolute right-3 top-2.5 z-10">{trailingActions}</div>
+      )}
+      {/* Row-1 cluster: title + date navigation */}
       <div className="flex items-center gap-2 min-w-0">
-        {trailingActions}
         <h2 className="text-xl font-bold whitespace-nowrap">{t('title')}</h2>
         <Button variant="outline" size="sm" onClick={onToday}>
           {t('today')}

@@ -973,9 +973,8 @@ export default function AppointmentsPage() {
     // Left-click on an empty slot → inline draft (if enabled, desktop, time-grid view)
     // or the modal form. Month/year/schedule always use the modal.
     const handleSlotClick = React.useCallback((date: Date, context?: { groupBy: 'doctor' | 'calendar' | 'sede'; value: string }) => {
-        const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
         const isTimeGrid = ['day', '2-day', '3-day', 'week'].includes(currentView);
-        if (calendarSettings?.inline_appointment_creation && isDesktop && isTimeGrid) {
+        if (calendarSettings?.inline_appointment_creation && isTimeGrid) {
             const draftDoctor = context?.groupBy === 'doctor' ? (doctors.find((d) => String(d.id) === String(context.value)) ?? null) : null;
             const draftCalendar = context?.groupBy === 'calendar' ? (calendars.find((c) => String(c.id) === String(context.value)) ?? null) : null;
             setInlineDraft({ date, context, durationMin: 30, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar });
@@ -2781,6 +2780,7 @@ export default function AppointmentsPage() {
                     onToggleAppointmentSelect={isBulkMode ? handleToggleAppointmentSelect : undefined}
                     bulkModeContent={bulkModeHeaderContent}
                     onSlotClick={handleSlotClick}
+                    onCreateClick={() => { setInlineDraft(null); prepareSlot(new Date()); setIsReschedulingMode(false); setCreateOpen(true); }}
                     onSlotContextMenu={handleSlotContextMenu}
                     gaps={gapsActive ? calendarGaps : undefined}
                     selectedGapKey={selectedGap ? gapKey(selectedGap) : undefined}
@@ -3074,7 +3074,7 @@ export default function AppointmentsPage() {
                         </TooltipProvider>
                     }
                     trailingActions={
-                        breakpoint === 'desktop' ? (
+                        !isMobile ? (
                             <CalendarSettingsPopover onSettingsChange={handleSettingsEditorChange} sedes={sedes} value={calendarSettings ?? undefined} />
                         ) : null
                     }

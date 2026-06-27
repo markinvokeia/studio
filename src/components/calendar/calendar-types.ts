@@ -61,6 +61,8 @@ export interface CalendarProps {
   groupingColumns?: CalendarGroupingColumn[];
   onEventColorChange: (event: any, colorId: string) => void;
   onSlotClick?: CalendarSlotClickHandler;
+  /** Explicit "create" action (mobile FAB) — always opens the modal, bypassing inline creation. */
+  onCreateClick?: () => void;
   /** Right-click on an empty slot — used to offer appointment vs reminder creation. */
   onSlotContextMenu?: CalendarSlotClickHandler;
   onEventContextMenu?: (event: any) => React.ReactNode;
