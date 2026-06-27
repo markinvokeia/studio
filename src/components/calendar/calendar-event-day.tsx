@@ -29,6 +29,7 @@ interface CalendarEventDayProps {
   onEventClick: (data: any) => void;
   onEventColorChange: (data: any, colorId: string) => void;
   onEventContextMenu?: (data: any) => React.ReactNode;
+  onEventContextMenuOpen?: (data: any) => void;
 }
 
 export const CalendarEventDay = React.memo(function CalendarEventDay({
@@ -38,6 +39,7 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
   onEventClick,
   onEventColorChange,
   onEventContextMenu,
+  onEventContextMenuOpen,
 }: CalendarEventDayProps) {
   const start = typeof event.start === 'string' ? parseISO(event.start) : event.start;
   const end = typeof event.end === 'string' ? parseISO(event.end) : event.end;
@@ -57,7 +59,7 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
   const reminderCardStyle = isReminder ? getReminderCardStyle(event.color, reminderIsDone) : {};
 
   return (
-    <ContextMenu>
+    <ContextMenu onOpenChange={(o) => { if (o) onEventContextMenuOpen?.(event.data); }}>
       <ContextMenuTrigger>
         <div
           data-testid="calendar-day-event"

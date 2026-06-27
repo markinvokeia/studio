@@ -36,6 +36,16 @@ export interface CalendarSlotClickContext {
 
 export type CalendarSlotClickHandler = (date: Date, context?: CalendarSlotClickContext) => void;
 
+/** A pending in-canvas appointment being created at a slot. */
+export interface InlineDraft {
+  /** Start date/time of the draft. */
+  date: Date;
+  /** Duration in minutes (drives the card height). */
+  durationMin: number;
+  /** Grouping column value (doctor/calendar id) when in a grouped view. */
+  groupValue?: string;
+}
+
 export interface CalendarProps {
   events?: CalendarEvent[];
   onDateChange?: (range: { start: Date; end: Date }) => void;
@@ -54,6 +64,12 @@ export interface CalendarProps {
   /** Right-click on an empty slot — used to offer appointment vs reminder creation. */
   onSlotContextMenu?: CalendarSlotClickHandler;
   onEventContextMenu?: (event: any) => React.ReactNode;
+  /** Fires when an event's context menu opens — used to lazily load per-appointment data. */
+  onEventContextMenuOpen?: (event: any) => void;
+  /** Inline appointment-creation draft, positioned on the time grid like an event. */
+  inlineDraft?: InlineDraft | null;
+  /** Renders the inline creation form inside the positioned draft card. */
+  renderInlineDraft?: () => React.ReactNode;
   /** Content rendered inside the mobile bottom sheet for filters */
   filterSheet?: React.ReactNode;
   /** Content rendered in the header next to navigation controls (mobile) or alongside children (desktop) */

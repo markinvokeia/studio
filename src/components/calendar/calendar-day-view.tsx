@@ -19,6 +19,7 @@ import { CalendarTimeColumn } from './calendar-time-column';
 import { TimeSlotDividers } from './calendar-time-column';
 import { CalendarGapOverlays } from './calendar-gap-overlay';
 import { CalendarBlockedOverlays } from './calendar-blocked-overlay';
+import { isSlotBlocked } from './calendar-gaps';
 import type { Gap, BlockedRange } from './calendar-gaps';
 
 interface CalendarDayViewProps {
@@ -32,8 +33,11 @@ interface CalendarDayViewProps {
   onEventClick: (data: any) => void;
   onEventColorChange: (data: any, colorId: string) => void;
   onEventContextMenu?: (data: any) => React.ReactNode;
+  onEventContextMenuOpen?: (data: any) => void;
   onSlotClick?: CalendarSlotClickHandler;
   onSlotContextMenu?: CalendarSlotClickHandler;
+  inlineDraft?: import('./calendar-types').InlineDraft | null;
+  renderInlineDraft?: () => React.ReactNode;
   hourSlotHeight?: number;
   gaps?: Gap[];
   selectedGapKey?: string;
@@ -52,8 +56,11 @@ export function CalendarDayView({
   onEventClick,
   onEventColorChange,
   onEventContextMenu,
+  onEventContextMenuOpen,
   onSlotClick,
   onSlotContextMenu,
+  inlineDraft,
+  renderInlineDraft,
   hourSlotHeight = HOUR_SLOT_HEIGHT,
   gaps,
   selectedGapKey,
@@ -68,11 +75,40 @@ export function CalendarDayView({
   const showTimeIndicator = days.some((day) => isSameDay(day, currentTime));
 
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  const didInitialScrollRef = React.useRef(false);
+  const prevHourRef = React.useRef(hourSlotHeight);
   React.useLayoutEffect(() => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop = DEFAULT_SCROLL_HOUR * hourSlotHeight;
+    const c = scrollContainerRef.current;
+    if (!c) return;
+    if (!didInitialScrollRef.current) {
+      c.scrollTop = DEFAULT_SCROLL_HOUR * hourSlotHeight;
+      didInitialScrollRef.current = true;
+    } else if (prevHourRef.current && prevHourRef.current !== hourSlotHeight) {
+      // Preserve the time at the viewport top when the slot height changes (zoom).
+      const topTimeMin = (c.scrollTop / prevHourRef.current) * 60;
+      c.scrollTop = (topTimeMin / 60) * hourSlotHeight;
     }
+    prevHourRef.current = hourSlotHeight;
   }, [hourSlotHeight]);
+
+  // Center the clicked point when an inline draft opens; restore the previous
+  // scroll position (zoom-independent, time-based) when it closes.
+  const draftKey = inlineDraft ? inlineDraft.date.getTime() : null;
+  const savedScrollMinRef = React.useRef<number | null>(null);
+  React.useEffect(() => {
+    const c = scrollContainerRef.current;
+    if (!c) return;
+    if (draftKey !== null) {
+      if (savedScrollMinRef.current === null) savedScrollMinRef.current = (c.scrollTop / hourSlotHeight) * 60;
+      const d = new Date(draftKey);
+      const clickMin = d.getHours() * 60 + d.getMinutes();
+      const top = (clickMin / 60) * hourSlotHeight;
+      c.scrollTo({ top: Math.max(0, top - c.clientHeight / 2), behavior: 'smooth' });
+    } else if (savedScrollMinRef.current !== null) {
+      c.scrollTo({ top: Math.max(0, (savedScrollMinRef.current / 60) * hourSlotHeight), behavior: 'smooth' });
+      savedScrollMinRef.current = null;
+    }
+  }, [draftKey, hourSlotHeight]);
 
   const slotDateFromEvent = (day: Date, e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -87,7 +123,9 @@ export function CalendarDayView({
     // Ignore synthetic clicks that bubbled from portalled children (Sheets, DropdownMenu, ContextMenu).
     if (!e.currentTarget.contains(e.target as Node)) return;
     if (onSlotClick) {
-      onSlotClick(slotDateFromEvent(day, e));
+      const date = slotDateFromEvent(day, e);
+      if (isSlotBlocked(blockedRanges, date)) return; // no creating on blocked slots
+      onSlotClick(date);
     }
   };
 
@@ -98,8 +136,10 @@ export function CalendarDayView({
     if (e.defaultPrevented) return;
     if ((e.target as HTMLElement).closest('.event-in-day-view, .event')) return;
     if (!e.currentTarget.contains(e.target as Node)) return;
+    const date = slotDateFromEvent(day, e);
+    if (isSlotBlocked(blockedRanges, date)) { e.preventDefault(); return; } // disable create/reminder on blocked slots
     e.preventDefault();
-    onSlotContextMenu(slotDateFromEvent(day, e));
+    onSlotContextMenu(date);
   };
 
   return (
@@ -152,8 +192,22 @@ export function CalendarDayView({
                   onEventClick={onEventClick}
                   onEventColorChange={onEventColorChange}
                   onEventContextMenu={onEventContextMenu}
+                  onEventContextMenuOpen={onEventContextMenuOpen}
                 />
               ))}
+              {inlineDraft && renderInlineDraft && isSameDay(day, inlineDraft.date) && (
+                <div
+                  className="absolute left-0.5 right-0.5 z-[12]"
+                  style={{
+                    top: `${((inlineDraft.date.getHours() + inlineDraft.date.getMinutes() / 60) / 1) * hourSlotHeight}px`,
+                    minHeight: `${Math.max((inlineDraft.durationMin / 60) * hourSlotHeight, 96)}px`,
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  onContextMenu={(e) => e.stopPropagation()}
+                >
+                  {renderInlineDraft()}
+                </div>
+              )}
             </div>
           ))}
           {showTimeIndicator && (

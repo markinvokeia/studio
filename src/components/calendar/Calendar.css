@@ -353,7 +353,7 @@
 }
 
 .time-column {
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--cal-font-scale, 1));
   color: hsl(var(--muted-foreground));
   text-align: right;
   padding-right: 0.5rem;
@@ -460,7 +460,7 @@
   color: hsl(var(--primary-foreground));
   border-radius: 4px;
   padding: 4px 4px 4px 8px;
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--cal-font-scale, 1));
   overflow: hidden;
   cursor: pointer;
   z-index: 10;
@@ -475,24 +475,26 @@
 
 .event-day-title {
   font-weight: 600;
-  overflow: hidden;
-  /* Wrap onto multiple lines so the title can flow downward whenever the event
-     has vertical room (long appointments, narrow overlapping columns). The
-     event block's overflow:hidden clips it to the available height. */
+  /* Wrap onto as many lines as needed, capped at 3 lines, then ellipsis. */
   white-space: normal;
   overflow-wrap: anywhere;
   line-height: 1.2;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
 }
 
 .event-day-time {
-  font-size: 0.7rem;
+  font-size: calc(0.7rem * var(--cal-font-scale, 1));
   line-height: 1;
   opacity: 0.95;
 }
 
 .event-in-day-view-compact {
-  flex-direction: row;
-  align-items: baseline;
+  flex-direction: column;
+  align-items: stretch;
   padding: 2px 4px 2px 8px;
   gap: 0;
 }
@@ -502,9 +504,12 @@
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
-  text-overflow: ellipsis;
-  /* Short events stay on a single line */
-  white-space: nowrap;
+  /* Wrap to fit the available width (up to 3 lines) instead of a single
+     ellipsised line, so the title stays readable in narrow columns. */
+  white-space: normal;
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
 }
 
 .event-in-day-view-compact .event-day-time {

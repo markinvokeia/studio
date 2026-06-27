@@ -8,6 +8,8 @@ import React from 'react';
 import './Calendar.css';
 
 import type { CalendarProps, CalendarView } from './calendar-types';
+import { HOUR_SLOT_HEIGHT } from './calendar-constants';
+import { CalendarZoomControl } from './calendar-zoom-control';
 import { useCalendarBreakpoint } from '@/hooks/use-calendar-breakpoint';
 import { useCalendarNavigation } from '@/hooks/use-calendar-navigation';
 
@@ -50,6 +52,9 @@ const Calendar: React.FC<CalendarProps> = ({
   onSlotClick,
   onSlotContextMenu,
   onEventContextMenu,
+  onEventContextMenuOpen,
+  inlineDraft,
+  renderInlineDraft,
   filterSheet,
   extraActions,
   extraActionsAfterToday,
@@ -71,6 +76,45 @@ const Calendar: React.FC<CalendarProps> = ({
 
   const [filterSheetOpen, setFilterSheetOpen] = React.useState(false);
   const [monthCollapsed, setMonthCollapsed] = React.useState(false);
+
+  // Calendar zoom (slider) — scales slot height AND font together so the slot:font
+  // ratio is kept. Persisted across sessions.
+  const [zoom, setZoom] = React.useState(0.9);
+  React.useEffect(() => {
+    const saved = typeof window !== 'undefined' ? window.localStorage.getItem('calendar-zoom') : null;
+    if (saved) {
+      const v = parseFloat(saved);
+      if (!Number.isNaN(v) && v >= 0.7 && v <= 2.5) setZoom(v);
+    }
+  }, []);
+  const handleZoomChange = React.useCallback((v: number) => {
+    setZoom(v);
+    try { window.localStorage.setItem('calendar-zoom', String(v)); } catch { /* ignore */ }
+  }, []);
+
+  // When an inline-creation draft opens, temporarily zoom in so the whole form is
+  // readable; restore the user's zoom when the draft is saved/cancelled.
+  const prevZoomRef = React.useRef<number | null>(null);
+  const draftActive = !!inlineDraft;
+  React.useEffect(() => {
+    if (draftActive) {
+      if (prevZoomRef.current === null) {
+        prevZoomRef.current = zoom;
+        if (zoom < 1.5) setZoom(1.5);
+      }
+    } else if (prevZoomRef.current !== null) {
+      setZoom(prevZoomRef.current);
+      prevZoomRef.current = null;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftActive]);
+
+  const baseSlotHeight = hourSlotHeight ?? HOUR_SLOT_HEIGHT;
+  // Zoom enlarges only the slot height...
+  const effectiveSlotHeight = Math.round(baseSlotHeight * zoom);
+  // ...while the font scales only with the configured slot size (px setting),
+  // dampened so larger slots don't blow up the text. Zoom does NOT change fonts.
+  const fontScale = Math.pow(baseSlotHeight / HOUR_SLOT_HEIGHT, 0.7);
 
   const {
     currentDate,
@@ -95,6 +139,7 @@ const Calendar: React.FC<CalendarProps> = ({
     onEventClick,
     onEventColorChange,
     onEventContextMenu,
+    onEventContextMenuOpen,
     onSlotClick,
     onSlotContextMenu,
   };
@@ -124,7 +169,7 @@ const Calendar: React.FC<CalendarProps> = ({
               groupingColumns={groupingColumns}
               currentTime={currentTime}
               dateLocale={dateLocale}
-              hourSlotHeight={hourSlotHeight}
+              hourSlotHeight={effectiveSlotHeight}
               {...eventHandlers}
               {...gapProps}
               {...blockProps}
@@ -146,7 +191,9 @@ const Calendar: React.FC<CalendarProps> = ({
               dateLocale={dateLocale}
               timeZoneLabel={timeZoneLabel}
               breakpoint={breakpoint}
-              hourSlotHeight={hourSlotHeight}
+              hourSlotHeight={effectiveSlotHeight}
+              inlineDraft={inlineDraft}
+              renderInlineDraft={renderInlineDraft}
               {...eventHandlers}
               {...gapProps}
               {...blockProps}
@@ -163,7 +210,9 @@ const Calendar: React.FC<CalendarProps> = ({
             currentTime={currentTime}
             dateLocale={dateLocale}
             timeZoneLabel={timeZoneLabel}
-            hourSlotHeight={hourSlotHeight}
+            hourSlotHeight={effectiveSlotHeight}
+            inlineDraft={inlineDraft}
+            renderInlineDraft={renderInlineDraft}
             {...eventHandlers}
             {...gapProps}
             {...blockProps}
@@ -264,8 +313,15 @@ const Calendar: React.FC<CalendarProps> = ({
         </div>
       )}
 
-      <div className="calendar-body">
+      <div
+        className="calendar-body relative"
+        style={{ '--cal-font-scale': fontScale } as React.CSSProperties}
+      >
         {renderView()}
+        {/* Zoom slider — only on time-grid views where slot height applies */}
+        {!isMobile && (effectiveView === 'day' || isMultiDayView) && (
+          <CalendarZoomControl zoom={zoom} onZoomChange={handleZoomChange} />
+        )}
       </div>
 
       {/* Mobile: bottom view tabs */}

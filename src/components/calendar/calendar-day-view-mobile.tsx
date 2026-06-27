@@ -41,6 +41,7 @@ interface CalendarDayViewMobileProps {
   onEventClick: (data: any) => void;
   onEventColorChange: (data: any, colorId: string) => void;
   onEventContextMenu?: (data: any) => React.ReactNode;
+  onEventContextMenuOpen?: (data: any) => void;
   onSlotClick?: CalendarSlotClickHandler;
   hourSlotHeight?: number;
   gaps?: Gap[];
@@ -61,6 +62,7 @@ export function CalendarDayViewMobile({
   onEventClick,
   onEventColorChange,
   onEventContextMenu,
+  onEventContextMenuOpen,
   onSlotClick,
   hourSlotHeight = HOUR_SLOT_HEIGHT,
   gaps,
@@ -331,6 +333,7 @@ export function CalendarDayViewMobile({
                             onEventClick={onEventClick}
                             onEventColorChange={onEventColorChange}
                             onEventContextMenu={onEventContextMenu}
+                            onEventContextMenuOpen={onEventContextMenuOpen}
                           />
                         ))}
                         {showIndicator && (

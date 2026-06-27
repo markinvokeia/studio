@@ -296,3 +296,23 @@ export function computeDayGapsForIntervals(
 /** Stable key for a blocked range (per day/group). */
 export const blockedKey = (dayKey: string, b: Interval & { groupValue?: string }): string =>
   `${b.groupValue ?? ''}_${dayKey}_${b.startMin}_${b.endMin}`;
+
+/**
+ * Whether a clicked slot (a Date, optionally within a grouping column) falls
+ * inside a non-working/blocked band — used to disable create on blocked slots.
+ */
+export function isSlotBlocked(
+  blockedRanges: BlockedRange[] | undefined,
+  date: Date,
+  groupValue?: string,
+): boolean {
+  if (!blockedRanges || blockedRanges.length === 0) return false;
+  const dayKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  const minuteOfDay = date.getHours() * 60 + date.getMinutes();
+  return blockedRanges.some((b) =>
+    b.dayKey === dayKey &&
+    (b.groupValue ?? '') === (groupValue ?? '') &&
+    minuteOfDay >= b.startMin &&
+    minuteOfDay < b.endMin,
+  );
+}

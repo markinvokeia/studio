@@ -18,6 +18,7 @@ import { CalendarTimeColumn } from './calendar-time-column';
 import { TimeSlotDividers } from './calendar-time-column';
 import { CalendarGapOverlays } from './calendar-gap-overlay';
 import { CalendarBlockedOverlays } from './calendar-blocked-overlay';
+import { isSlotBlocked } from './calendar-gaps';
 import type { Gap, BlockedRange } from './calendar-gaps';
 
 interface CalendarDayViewGroupedProps {
@@ -34,8 +35,11 @@ interface CalendarDayViewGroupedProps {
   onEventClick: (data: any) => void;
   onEventColorChange: (data: any, colorId: string) => void;
   onEventContextMenu?: (data: any) => React.ReactNode;
+  onEventContextMenuOpen?: (data: any) => void;
   onSlotClick?: CalendarSlotClickHandler;
   onSlotContextMenu?: CalendarSlotClickHandler;
+  inlineDraft?: import('./calendar-types').InlineDraft | null;
+  renderInlineDraft?: () => React.ReactNode;
   hourSlotHeight?: number;
   gaps?: Gap[];
   selectedGapKey?: string;
@@ -57,8 +61,11 @@ export function CalendarDayViewGrouped({
   onEventClick,
   onEventColorChange,
   onEventContextMenu,
+  onEventContextMenuOpen,
   onSlotClick,
   onSlotContextMenu,
+  inlineDraft,
+  renderInlineDraft,
   hourSlotHeight = HOUR_SLOT_HEIGHT,
   gaps,
   selectedGapKey,
@@ -81,11 +88,48 @@ export function CalendarDayViewGrouped({
   const showTimeIndicator = days.some((day) => isSameDay(day, currentTime));
 
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  const didInitialScrollRef = React.useRef(false);
+  const prevHourRef = React.useRef(hourSlotHeight);
   React.useLayoutEffect(() => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop = DEFAULT_SCROLL_HOUR * hourSlotHeight;
+    const c = scrollContainerRef.current;
+    if (!c) return;
+    if (!didInitialScrollRef.current) {
+      c.scrollTop = DEFAULT_SCROLL_HOUR * hourSlotHeight;
+      didInitialScrollRef.current = true;
+    } else if (prevHourRef.current && prevHourRef.current !== hourSlotHeight) {
+      const topTimeMin = (c.scrollTop / prevHourRef.current) * 60;
+      c.scrollTop = (topTimeMin / 60) * hourSlotHeight;
     }
+    prevHourRef.current = hourSlotHeight;
   }, [hourSlotHeight]);
+
+  // Center the clicked point when an inline draft opens (and scroll its column
+  // into view); restore the previous scroll position when it closes.
+  const draftKey = inlineDraft ? inlineDraft.date.getTime() : null;
+  const draftGroup = inlineDraft?.groupValue ?? null;
+  const savedScrollMinRef = React.useRef<number | null>(null);
+  const savedScrollLeftRef = React.useRef(0);
+  React.useEffect(() => {
+    const c = scrollContainerRef.current;
+    if (!c) return;
+    if (draftKey !== null) {
+      if (savedScrollMinRef.current === null) {
+        savedScrollMinRef.current = (c.scrollTop / hourSlotHeight) * 60;
+        savedScrollLeftRef.current = c.scrollLeft;
+      }
+      const d = new Date(draftKey);
+      const clickMin = d.getHours() * 60 + d.getMinutes();
+      const top = (clickMin / 60) * hourSlotHeight;
+      c.scrollTo({ top: Math.max(0, top - c.clientHeight / 2), behavior: 'smooth' });
+      if (draftGroup != null) {
+        const colEl = c.querySelector(`[data-group-col="${CSS.escape(String(draftGroup))}"]`) as HTMLElement | null;
+        colEl?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    } else if (savedScrollMinRef.current !== null) {
+      c.scrollTo({ top: Math.max(0, (savedScrollMinRef.current / 60) * hourSlotHeight), left: savedScrollLeftRef.current, behavior: 'smooth' });
+      savedScrollMinRef.current = null;
+    }
+  }, [draftKey, draftGroup, hourSlotHeight]);
 
   const slotDateFromEvent = (day: Date, e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -100,8 +144,10 @@ export function CalendarDayViewGrouped({
     // Ignore synthetic clicks that bubbled from portalled children (Sheets, DropdownMenu, ContextMenu).
     if (!e.currentTarget.contains(e.target as Node)) return;
     if (onSlotClick) {
+      const date = slotDateFromEvent(day, e);
+      if (isSlotBlocked(blockedRanges, date, col.value)) return; // no creating on blocked slots
       const context = groupBy !== 'none' ? { groupBy, value: col.value } : undefined;
-      onSlotClick(slotDateFromEvent(day, e), context);
+      onSlotClick(date, context);
     }
   };
 
@@ -112,9 +158,11 @@ export function CalendarDayViewGrouped({
     if (e.defaultPrevented) return;
     if ((e.target as HTMLElement).closest('.event-in-day-view, .event')) return;
     if (!e.currentTarget.contains(e.target as Node)) return;
+    const date = slotDateFromEvent(day, e);
+    if (isSlotBlocked(blockedRanges, date, col.value)) { e.preventDefault(); return; } // disable create/reminder on blocked slots
     e.preventDefault();
     const context = groupBy !== 'none' ? { groupBy, value: col.value } : undefined;
-    onSlotContextMenu(slotDateFromEvent(day, e), context);
+    onSlotContextMenu(date, context);
   };
 
   return (
@@ -188,6 +236,7 @@ export function CalendarDayViewGrouped({
                   <div
                     key={`${format(day, 'yyyy-MM-dd')}-${col.id}`}
                     className="day-column"
+                    data-group-col={col.value}
                     onClick={(e) => handleSlotClick(day, col, e)}
                     onContextMenu={(e) => handleSlotContextMenu(day, col, e)}
                   >
@@ -215,8 +264,22 @@ export function CalendarDayViewGrouped({
                         onEventClick={onEventClick}
                         onEventColorChange={onEventColorChange}
                         onEventContextMenu={onEventContextMenu}
+                        onEventContextMenuOpen={onEventContextMenuOpen}
                       />
                     ))}
+                    {inlineDraft && renderInlineDraft && isSameDay(day, inlineDraft.date) && String(inlineDraft.groupValue ?? '') === String(col.value) && (
+                      <div
+                        className="absolute left-0.5 right-0.5 z-[12]"
+                        style={{
+                          top: `${(inlineDraft.date.getHours() + inlineDraft.date.getMinutes() / 60) * hourSlotHeight}px`,
+                          minHeight: `${Math.max((inlineDraft.durationMin / 60) * hourSlotHeight, 96)}px`,
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        onContextMenu={(e) => e.stopPropagation()}
+                      >
+                        {renderInlineDraft()}
+                      </div>
+                    )}
                   </div>
                 );
               })}

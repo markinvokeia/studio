@@ -253,6 +253,19 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
           className="scale-90"
         />
       </div>
+
+      <div className="flex items-center justify-between pt-4 px-1">
+        <Label htmlFor="inline-appointment-creation" className="text-xs font-medium cursor-pointer">
+          {t('inlineAppointmentCreation')}
+        </Label>
+        <Switch
+          id="inline-appointment-creation"
+          checked={settings.inline_appointment_creation ?? false}
+          onCheckedChange={(checked) => updateSettings({ inline_appointment_creation: checked })}
+          disabled={isLoading}
+          className="scale-90"
+        />
+      </div>
     </div>
   );
 }

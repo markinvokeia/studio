@@ -75,8 +75,10 @@ import { AppointmentPanel } from '@/components/appointments/AppointmentPanel';
 import { BulkReassignDoctorDialog } from '@/components/appointments/BulkReassignDoctorDialog';
 import { reassignAppointmentField, type AppointmentReassignChange } from '@/lib/appointment-reassign';
 import { ContextEntityPicker } from '@/components/appointments/ContextEntityPicker';
+import { InlineAppointmentDraft } from '@/components/calendar/inline-appointment-draft';
 import { linkInvoiceToAppointment } from '@/services/billing-links';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
+import { useAccountStatement } from '@/stores/account-statement-store';
 import { AppointmentStatusContextItems } from '@/components/appointments/AppointmentStatusMenu';
 import { useAppointmentStatus } from '@/hooks/use-appointment-status';
 import { canReschedule, normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
@@ -521,6 +523,7 @@ export default function AppointmentsPage() {
     const { refreshNotifications: refreshReminders, markSessionAction } = useNotifications();
     const { user } = useAuth();
     const { open: openBillingWizard } = useBillingWizard();
+    const { open: openAccountStatement } = useAccountStatement();
 
     const { toast } = useToast();
 
@@ -856,12 +859,132 @@ export default function AppointmentsPage() {
         setPendingSlotDate(date);
     }, [doctors, calendars]);
 
-    // Left-click on an empty slot → go straight to the appointment form.
+    // ── In-canvas (inline) appointment creation ─────────────────────────────
+    const [inlineDraft, setInlineDraft] = React.useState<{
+        date: Date;
+        context?: { groupBy: 'doctor' | 'calendar' | 'sede'; value: string };
+        durationMin: number;
+        patient: UserType | null;
+        services: Service[];
+        doctor: UserType | null;
+        calendar: CalendarType | null;
+    } | null>(null);
+    const [isSavingInline, setIsSavingInline] = React.useState(false);
+    const [inlineDebt, setInlineDebt] = React.useState<{ currency: string; amount: number }[]>([]);
+
+    // Load the inline-draft patient's debt to surface a warning inline.
+    React.useEffect(() => {
+        const patientId = inlineDraft?.patient?.id;
+        if (!patientId) { setInlineDebt([]); return; }
+        let active = true;
+        api.get(API_ROUTES.USER_FINANCIAL, { user_id: patientId })
+            .then((raw: any) => {
+                if (!active) return;
+                const fin = Array.isArray(raw) ? raw[0] : raw;
+                const byCurrency = fin?.financial_data ?? {};
+                setInlineDebt(
+                    Object.entries(byCurrency)
+                        .map(([currency, d]: [string, any]) => ({ currency, amount: Number(d?.current_debt ?? 0) }))
+                        .filter((d) => d.amount > 0),
+                );
+            })
+            .catch(() => { if (active) setInlineDebt([]); });
+        return () => { active = false; };
+    }, [inlineDraft?.patient?.id]);
+
+    const handleSaveInlineDraft = React.useCallback(async () => {
+        if (!inlineDraft?.patient) return;
+        setIsSavingInline(true);
+        try {
+            const start = inlineDraft.date;
+            const end = addMinutes(start, inlineDraft.durationMin || 30);
+            const doctor = inlineDraft.doctor ?? undefined;
+            const calendar = inlineDraft.calendar ?? undefined;
+            const patient = inlineDraft.patient;
+            const svcNames = inlineDraft.services.map((s) => s.name).join(', ');
+            const response = await api.post(API_ROUTES.APPOINTMENTS_UPSERT, {
+                mode: 'create',
+                start: toLocalISOString(start),
+                end: toLocalISOString(end),
+                doctor_id: doctor?.id || '',
+                doctor_name: doctor?.name || '',
+                doctor_email: doctor?.email || '',
+                patient_id: patient.id,
+                patient_name: patient.name,
+                patient_email: patient.email || '',
+                patient_phone: patient.phone_number || '',
+                summary: svcNames ? `${patient.name} - ${svcNames}` : patient.name,
+                service_ids: inlineDraft.services.map((s) => s.id),
+                service_names: svcNames,
+                notes: '',
+                calendar_source_id: calendar?.id ? String(calendar.id) : '',
+                quote_id: null,
+            });
+            const result = Array.isArray(response) ? response[0] : response;
+            if (result?.error || (result?.code && result.code >= 400)) throw new Error(result?.message || 'Failed to create appointment');
+            toast({ title: tToasts('appointmentCreated') });
+            setInlineDraft(null);
+            refreshCalendarDataRef.current();
+        } catch (error) {
+            toast({ variant: 'destructive', title: tToasts('error'), description: error instanceof Error ? error.message : tToasts('unexpectedError') });
+        } finally {
+            setIsSavingInline(false);
+        }
+    }, [inlineDraft, doctors, calendars, toast, tToasts]);
+
+    const renderInlineDraft = React.useCallback(() => {
+        if (!inlineDraft) return null;
+        const draftStart = inlineDraft.date.getTime();
+        const draftEnd = addMinutes(inlineDraft.date, inlineDraft.durationMin || 30).getTime();
+        // Overlap: a non-cancelled appointment in the same column starting within the draft span.
+        const overlap = appointments.some((a) => {
+            if (a.status === 'cancelled') return false;
+            if (inlineDraft.doctor && String(a.doctorId) !== String(inlineDraft.doctor.id)) return false;
+            if (inlineDraft.calendar && String(a.calendar_source_id) !== String(inlineDraft.calendar.id)) return false;
+            const s = a.start?.dateTime ? parseISO(a.start.dateTime.replace(/Z$/, '')).getTime() : NaN;
+            return !Number.isNaN(s) && s > draftStart && s < draftEnd;
+        });
+        return (
+            <InlineAppointmentDraft
+                date={inlineDraft.date}
+                endTime={format(addMinutes(inlineDraft.date, inlineDraft.durationMin || 30), 'HH:mm')}
+                durationMin={inlineDraft.durationMin}
+                onDurationChange={(min) => setInlineDraft((d) => (d ? { ...d, durationMin: min } : d))}
+                calendar={inlineDraft.calendar}
+                onCalendarChange={(c) => setInlineDraft((d) => (d ? { ...d, calendar: c } : d))}
+                calendarOptions={calendars}
+                doctor={inlineDraft.doctor}
+                onDoctorChange={(doc) => setInlineDraft((d) => (d ? { ...d, doctor: doc } : d))}
+                doctorOptions={doctors}
+                patient={inlineDraft.patient}
+                onPatientChange={(u) => setInlineDraft((d) => (d ? { ...d, patient: u } : d))}
+                services={inlineDraft.services}
+                onServicesChange={(s) => setInlineDraft((d) => (d ? { ...d, services: s } : d))}
+                overlapWarning={overlap}
+                patientDebt={inlineDebt}
+                onViewStatement={inlineDraft.patient ? () => openAccountStatement(inlineDraft.patient!.id, inlineDraft.patient!.name) : undefined}
+                isSaving={isSavingInline}
+                onSave={handleSaveInlineDraft}
+                onCancel={() => setInlineDraft(null)}
+            />
+        );
+    }, [inlineDraft, doctors, calendars, appointments, inlineDebt, isSavingInline, handleSaveInlineDraft, openAccountStatement]);
+
+    // Left-click on an empty slot → inline draft (if enabled, desktop, time-grid view)
+    // or the modal form. Month/year/schedule always use the modal.
     const handleSlotClick = React.useCallback((date: Date, context?: { groupBy: 'doctor' | 'calendar' | 'sede'; value: string }) => {
+        const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
+        const isTimeGrid = ['day', '2-day', '3-day', 'week'].includes(currentView);
+        if (calendarSettings?.inline_appointment_creation && isDesktop && isTimeGrid) {
+            const draftDoctor = context?.groupBy === 'doctor' ? (doctors.find((d) => String(d.id) === String(context.value)) ?? null) : null;
+            const draftCalendar = context?.groupBy === 'calendar' ? (calendars.find((c) => String(c.id) === String(context.value)) ?? null) : null;
+            setInlineDraft({ date, context, durationMin: 30, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar });
+            return;
+        }
         prepareSlot(date, context);
         setIsReschedulingMode(false);
         setCreateOpen(true);
-    }, [prepareSlot]);
+    }, [prepareSlot, calendarSettings?.inline_appointment_creation, currentView, doctors, calendars]);
 
     // Right-click on an empty slot → choose between appointment or reminder.
     const handleSlotContextMenu = React.useCallback((date: Date, context?: { groupBy: 'doctor' | 'calendar' | 'sede'; value: string }) => {
@@ -2224,8 +2347,8 @@ export default function AppointmentsPage() {
         }
 
         const appointment = eventData as Appointment;
-        // Lazily load session/quote/invoice info for this appointment's menu.
-        requestAppointmentMenuData(appointment);
+        // Note: per-appointment session/quote/invoice data is loaded lazily when the
+        // menu actually opens (onEventContextMenuOpen), not on every render.
         const patientQuotes = appointment.patientId ? (patientQuotesMap[appointment.patientId] ?? []) : [];
         const patientInvoices = appointment.patientId ? (patientInvoicesMap[appointment.patientId] ?? []) : [];
         const linkedQuote = appointment.quote_id ? patientQuotes.find((q) => String(q.id) === String(appointment.quote_id)) : undefined;
@@ -2648,9 +2771,12 @@ export default function AppointmentsPage() {
                     onEventClick={handleEventClick}
                     onEventColorChange={handleEventColorChange}
                     onEventContextMenu={isBulkMode ? undefined : renderEventContextMenu}
+                    onEventContextMenuOpen={isBulkMode ? undefined : (data) => { if (data?.kind !== 'reminder') requestAppointmentMenuData(data as Appointment); }}
+                    inlineDraft={inlineDraft ? { date: inlineDraft.date, durationMin: inlineDraft.durationMin, groupValue: inlineDraft.context?.value } : null}
+                    renderInlineDraft={renderInlineDraft}
                     groupBy={groupBy}
                     groupingColumns={groupingColumns}
-                    onViewChange={setCurrentView}
+                    onViewChange={(v) => { setCurrentView(v); setInlineDraft(null); }}
                     selectedAppointmentIds={isBulkMode ? bulkSelectedIds : undefined}
                     onToggleAppointmentSelect={isBulkMode ? handleToggleAppointmentSelect : undefined}
                     bulkModeContent={bulkModeHeaderContent}

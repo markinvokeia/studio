@@ -19,6 +19,7 @@ interface CalendarMonthViewProps {
   onEventClick: (data: any) => void;
   onEventColorChange: (data: any, colorId: string) => void;
   onEventContextMenu?: (data: any) => React.ReactNode;
+  onEventContextMenuOpen?: (data: any) => void;
   onSlotClick?: CalendarSlotClickHandler;
   gaps?: Gap[];
   selectedGapKey?: string;
@@ -34,6 +35,7 @@ export function CalendarMonthView({
   onEventClick,
   onEventColorChange,
   onEventContextMenu,
+  onEventContextMenuOpen,
   onSlotClick,
   gaps,
   selectedGapKey,
@@ -121,6 +123,7 @@ export function CalendarMonthView({
                 onEventClick={onEventClick}
                 onEventColorChange={onEventColorChange}
                 onEventContextMenu={onEventContextMenu}
+                onEventContextMenuOpen={onEventContextMenuOpen}
               />
             ))}
           </div>

@@ -755,6 +755,10 @@ export type CalendarSettings = {
   event_label_format?: string;
   /** Default branch (sede) id to show. Empty string = all branches. */
   default_sede?: string;
+  /** When true, clicking a slot creates the appointment inline on the calendar
+   *  (a draft card) instead of opening the modal. The "Create" button always
+   *  opens the modal regardless. Default false. */
+  inline_appointment_creation?: boolean;
 };
 
 export type Sede = {

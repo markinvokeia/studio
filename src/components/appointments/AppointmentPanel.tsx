@@ -635,13 +635,13 @@ export function AppointmentPanel({
                 <Info className="h-4 w-4" />
               </span>
               <div className="min-w-0 flex-1">
-                <SheetTitle className="truncate text-sm font-medium text-foreground">
+                <SheetTitle className="line-clamp-3 text-sm font-medium text-foreground">
                   {tPanel('appointmentTitleFor')}{' '}
                   <button
                     type="button"
                     onClick={openPatientDetail}
                     disabled={!appointment.patientId}
-                    className={cn('font-bold', appointment.patientId && 'hover:underline underline-offset-4')}
+                    className={cn('text-left font-bold', appointment.patientId && 'hover:underline underline-offset-4')}
                   >
                     {appointment.patientName}
                   </button>
