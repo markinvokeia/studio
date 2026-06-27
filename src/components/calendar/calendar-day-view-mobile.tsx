@@ -22,6 +22,7 @@ import {
   getEventStyle,
   getEventsWithLayout,
   formatTimeSlotLabel,
+  slotTimeFromOffset,
 } from './calendar-utils';
 import { CalendarEventDay } from './calendar-event-day';
 import { TimeSlotDividers } from './calendar-time-column';
@@ -52,6 +53,7 @@ interface CalendarDayViewMobileProps {
   blockedRanges?: BlockedRange[];
   inlineDraft?: InlineDraft | null;
   renderInlineDraft?: () => React.ReactNode;
+  slotMinutes?: number;
 }
 
 export function CalendarDayViewMobile({
@@ -76,6 +78,7 @@ export function CalendarDayViewMobile({
   blockedRanges,
   inlineDraft,
   renderInlineDraft,
+  slotMinutes,
 }: CalendarDayViewMobileProps) {
   const [api, setApi] = React.useState<CarouselApi>();
   const [activeIndex, setActiveIndex] = React.useState(0);
@@ -136,8 +139,7 @@ export function CalendarDayViewMobile({
     if (onSlotClick) {
       const rect = e.currentTarget.getBoundingClientRect();
       const y = e.clientY - rect.top;
-      const hour = Math.floor(y / hourSlotHeight);
-      const minute = Math.floor((y % hourSlotHeight) / (hourSlotHeight / 4)) * 15;
+      const { hour, minute } = slotTimeFromOffset(y, hourSlotHeight, slotMinutes);
       const clickedDate = set(day, { hours: hour, minutes: minute, seconds: 0, milliseconds: 0 });
       if (isSlotBlocked(blockedRanges, clickedDate, column?.value)) return; // no creating on blocked slots
       const context = column && groupBy !== 'none' ? { groupBy, value: column.value } : undefined;

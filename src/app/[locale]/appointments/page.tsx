@@ -64,7 +64,7 @@ import { getQuoteItems } from '@/services/quotes';
 import { updateAppointmentStatusRequest } from '@/services/appointments';
 import { getSalesServices, getUsersServicesBatch, fetchServicesByIds } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
-import { addMinutes, eachDayOfInterval, endOfMonth, endOfWeek, format, isValid, parseISO, startOfMonth, startOfWeek } from 'date-fns';
+import { addMinutes, eachDayOfInterval, endOfMonth, endOfWeek, format, isValid, parseISO, set, startOfMonth, startOfWeek } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
 import { BellRing, Building2, Calendar as CalendarIcon, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileText, Layers, Link2, Loader2, PlusCircle, Receipt, RefreshCw, Stethoscope, Trash2, UserCog, Users, X, Zap } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
@@ -971,6 +971,7 @@ export default function AppointmentsPage() {
                 endTime={format(addMinutes(inlineDraft.date, inlineDraft.durationMin || 30), 'HH:mm')}
                 durationMin={inlineDraft.durationMin}
                 onDurationChange={(min) => setInlineDraft((d) => (d ? { ...d, durationMin: min } : d))}
+                onStartTimeChange={(h, m) => setInlineDraft((d) => (d ? { ...d, date: set(d.date, { hours: h, minutes: m, seconds: 0, milliseconds: 0 }) } : d))}
                 calendar={inlineDraft.calendar}
                 onCalendarChange={(c) => setInlineDraft((d) => (d ? { ...d, calendar: c } : d))}
                 calendarOptions={calendars}

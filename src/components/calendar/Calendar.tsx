@@ -180,6 +180,7 @@ const Calendar: React.FC<CalendarProps> = ({
               currentTime={currentTime}
               dateLocale={dateLocale}
               hourSlotHeight={effectiveSlotHeight}
+              slotMinutes={slotMinutes}
               inlineDraft={inlineDraft}
               renderInlineDraft={renderInlineDraft}
               {...eventHandlers}
@@ -204,6 +205,7 @@ const Calendar: React.FC<CalendarProps> = ({
               timeZoneLabel={timeZoneLabel}
               breakpoint={breakpoint}
               hourSlotHeight={effectiveSlotHeight}
+              slotMinutes={slotMinutes}
               inlineDraft={inlineDraft}
               renderInlineDraft={renderInlineDraft}
               {...eventHandlers}
@@ -223,6 +225,7 @@ const Calendar: React.FC<CalendarProps> = ({
             dateLocale={dateLocale}
             timeZoneLabel={timeZoneLabel}
             hourSlotHeight={effectiveSlotHeight}
+            slotMinutes={slotMinutes}
             inlineDraft={inlineDraft}
             renderInlineDraft={renderInlineDraft}
             {...eventHandlers}

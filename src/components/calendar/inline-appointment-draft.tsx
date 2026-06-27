@@ -19,6 +19,8 @@ interface InlineAppointmentDraftProps {
   endTime: string;
   durationMin: number;
   onDurationChange: (min: number) => void;
+  /** Refine the start time (HH:mm). When provided, the start becomes editable. */
+  onStartTimeChange?: (hours: number, minutes: number) => void;
   calendar: CalendarType | null;
   onCalendarChange: (c: CalendarType | null) => void;
   calendarOptions: CalendarType[];
@@ -109,6 +111,7 @@ export function InlineAppointmentDraft({
   endTime,
   durationMin,
   onDurationChange,
+  onStartTimeChange,
   calendar,
   onCalendarChange,
   calendarOptions,
@@ -131,6 +134,9 @@ export function InlineAppointmentDraft({
 }: InlineAppointmentDraftProps) {
   const t = useTranslations('AppointmentsPage.inlineCreate');
   const [serviceOpen, setServiceOpen] = React.useState(false);
+  // Start time is read-only until clicked; while editing we hide "→ end" so the
+  // input fits on a single line.
+  const [editingStart, setEditingStart] = React.useState(false);
   const hasDebt = (patientDebt?.length ?? 0) > 0;
 
   const toggleService = (svc: Service) => {
@@ -186,10 +192,35 @@ export function InlineAppointmentDraft({
         emptyText={t('noDoctors')}
       />
 
-      {/* Time: start → end + duration (only editable) */}
+      {/* Time: start (click to edit) → end + duration. While editing the start,
+          the "→ end" is hidden so the time input fits on one line. */}
       <Field icon={Clock}>
         <div className="flex items-center gap-1.5">
-          <span className="font-semibold text-foreground">{format(date, 'HH:mm')} → {endTime}</span>
+          {onStartTimeChange && editingStart ? (
+            <Input
+              type="time"
+              autoFocus
+              value={format(date, 'HH:mm')}
+              onChange={(e) => {
+                const [h, m] = e.target.value.split(':').map((n) => parseInt(n, 10));
+                if (!Number.isNaN(h) && !Number.isNaN(m)) onStartTimeChange(h, m);
+              }}
+              onBlur={() => setEditingStart(false)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') setEditingStart(false); }}
+              className="h-7 w-[5.5rem] px-1.5 text-xs font-semibold"
+            />
+          ) : onStartTimeChange ? (
+            <button
+              type="button"
+              onClick={() => setEditingStart(true)}
+              className="font-semibold text-foreground underline-offset-2 hover:underline"
+            >
+              {format(date, 'HH:mm')}
+            </button>
+          ) : (
+            <span className="font-semibold text-foreground">{format(date, 'HH:mm')}</span>
+          )}
+          {!editingStart && <span className="font-semibold text-foreground">→ {endTime}</span>}
           <span className="ml-auto text-muted-foreground">{t('duration')}</span>
           <Input
             type="number"

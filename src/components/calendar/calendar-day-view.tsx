@@ -13,6 +13,7 @@ import {
   generateTimeSlots,
   getEventStyle,
   getEventsWithLayout,
+  slotTimeFromOffset,
 } from './calendar-utils';
 import { CalendarEventDay } from './calendar-event-day';
 import { CalendarTimeColumn } from './calendar-time-column';
@@ -40,6 +41,7 @@ interface CalendarDayViewProps {
   inlineDraft?: import('./calendar-types').InlineDraft | null;
   renderInlineDraft?: () => React.ReactNode;
   hourSlotHeight?: number;
+  slotMinutes?: number;
   gaps?: Gap[];
   selectedGapKey?: string;
   onGapClick?: (gap: Gap) => void;
@@ -64,6 +66,7 @@ export function CalendarDayView({
   inlineDraft,
   renderInlineDraft,
   hourSlotHeight = HOUR_SLOT_HEIGHT,
+  slotMinutes,
   gaps,
   selectedGapKey,
   onGapClick,
@@ -115,8 +118,7 @@ export function CalendarDayView({
   const slotDateFromEvent = (day: Date, e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - rect.top;
-    const hour = Math.floor(y / hourSlotHeight);
-    const minute = Math.floor((y % hourSlotHeight) / (hourSlotHeight / 4)) * 15;
+    const { hour, minute } = slotTimeFromOffset(y, hourSlotHeight, slotMinutes);
     return set(day, { hours: hour, minutes: minute, seconds: 0, milliseconds: 0 });
   };
 
