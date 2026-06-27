@@ -982,7 +982,13 @@ export default function AppointmentsPage() {
                 patient={inlineDraft.patient}
                 onPatientChange={(u) => setInlineDraft((d) => (d ? { ...d, patient: u } : d))}
                 services={inlineDraft.services}
-                onServicesChange={(s) => setInlineDraft((d) => (d ? { ...d, services: s } : d))}
+                onServicesChange={(s) => setInlineDraft((d) => {
+                    if (!d) return d;
+                    // Selecting a service sets the duration to the service's time
+                    // (sum when several); falls back to the current value otherwise.
+                    const total = s.reduce((acc, svc) => acc + ((svc as any).duration_minutes || 0), 0);
+                    return { ...d, services: s, durationMin: total > 0 ? total : d.durationMin };
+                })}
                 notes={inlineDraft.notes}
                 onNotesChange={(n) => setInlineDraft((d) => (d ? { ...d, notes: n } : d))}
                 overlapWarning={overlap}
@@ -1005,13 +1011,13 @@ export default function AppointmentsPage() {
         if (calendarSettings?.inline_appointment_creation && isTimeGrid) {
             const draftDoctor = context?.groupBy === 'doctor' ? (doctors.find((d) => String(d.id) === String(context.value)) ?? null) : null;
             const draftCalendar = context?.groupBy === 'calendar' ? (calendars.find((c) => String(c.id) === String(context.value)) ?? null) : null;
-            setInlineDraft({ date, context, durationMin: 30, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '' });
+            setInlineDraft({ date, context, durationMin: slotDuration, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '' });
             return;
         }
         prepareSlot(date, context);
         setIsReschedulingMode(false);
         setCreateOpen(true);
-    }, [prepareSlot, calendarSettings?.inline_appointment_creation, currentView, doctors, calendars]);
+    }, [prepareSlot, calendarSettings?.inline_appointment_creation, currentView, doctors, calendars, slotDuration]);
 
     // Edit an existing appointment: inline edit card when the inline-creation
     // preference is on (and on a time-grid view), otherwise the modal form.
