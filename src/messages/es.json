@@ -765,6 +765,7 @@
       "searchService": "Buscar servicio…",
       "noServices": "Sin servicios",
       "servicesSelected": "{count} seleccionado(s)",
+      "notePlaceholder": "Nota…",
       "selectRoom": "Consultorio",
       "searchRoom": "Buscar consultorio…",
       "noRooms": "Sin consultorios",

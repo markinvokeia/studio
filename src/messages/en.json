@@ -765,6 +765,7 @@
       "searchService": "Search service…",
       "noServices": "No services",
       "servicesSelected": "{count} selected",
+      "notePlaceholder": "Note…",
       "selectRoom": "Room",
       "searchRoom": "Search room…",
       "noRooms": "No rooms",

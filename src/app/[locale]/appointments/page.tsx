@@ -872,6 +872,7 @@ export default function AppointmentsPage() {
         services: Service[];
         doctor: UserType | null;
         calendar: CalendarType | null;
+        notes: string;
         /** Set when the inline card is editing an existing appointment (vs creating). */
         editing?: Appointment | null;
     } | null>(null);
@@ -926,7 +927,7 @@ export default function AppointmentsPage() {
                 summary: svcNames ? `${patient.name} - ${svcNames}` : patient.name,
                 service_ids: inlineDraft.services.map((s) => s.id),
                 service_names: svcNames,
-                notes: editing?.notes || '',
+                notes: inlineDraft.notes || '',
                 calendar_source_id: calendar?.id ? String(calendar.id) : '',
                 color: draftColor,
                 quote_id: editing?.quote_id ?? null,
@@ -982,6 +983,8 @@ export default function AppointmentsPage() {
                 onPatientChange={(u) => setInlineDraft((d) => (d ? { ...d, patient: u } : d))}
                 services={inlineDraft.services}
                 onServicesChange={(s) => setInlineDraft((d) => (d ? { ...d, services: s } : d))}
+                notes={inlineDraft.notes}
+                onNotesChange={(n) => setInlineDraft((d) => (d ? { ...d, notes: n } : d))}
                 overlapWarning={overlap}
                 patientDebt={inlineDebt}
                 onViewStatement={inlineDraft.patient ? () => openAccountStatement(inlineDraft.patient!.id, inlineDraft.patient!.name) : undefined}
@@ -1002,7 +1005,7 @@ export default function AppointmentsPage() {
         if (calendarSettings?.inline_appointment_creation && isTimeGrid) {
             const draftDoctor = context?.groupBy === 'doctor' ? (doctors.find((d) => String(d.id) === String(context.value)) ?? null) : null;
             const draftCalendar = context?.groupBy === 'calendar' ? (calendars.find((c) => String(c.id) === String(context.value)) ?? null) : null;
-            setInlineDraft({ date, context, durationMin: 30, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar });
+            setInlineDraft({ date, context, durationMin: 30, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '' });
             return;
         }
         prepareSlot(date, context);
@@ -1037,7 +1040,7 @@ export default function AppointmentsPage() {
                 : groupBy === 'calendar'
                     ? { groupBy: 'calendar' as const, value: String(appointment.calendar_source_id) }
                     : undefined;
-            setInlineDraft({ date: start, context, durationMin, patient, services, doctor, calendar, editing: appointment });
+            setInlineDraft({ date: start, context, durationMin, patient, services, doctor, calendar, notes: appointment.notes || '', editing: appointment });
             return;
         }
         setEditingAppointment(appointment);

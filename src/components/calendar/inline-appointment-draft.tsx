@@ -2,12 +2,13 @@
 
 import * as React from 'react';
 import { format } from 'date-fns';
-import { AlertTriangle, Building2, ChevronsUpDown, Clock, FileText, Loader2, Stethoscope, UserCog, UserRound, X } from 'lucide-react';
+import { AlertTriangle, Building2, ChevronsUpDown, Clock, FileText, Loader2, StickyNote, Stethoscope, UserCog, UserRound, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { InlineEntityPicker } from '@/components/appointments/InlineEntityPicker';
 import { InlineServicePicker } from '@/components/calendar/inline-service-picker';
@@ -31,6 +32,8 @@ interface InlineAppointmentDraftProps {
   onPatientChange: (user: User | null) => void;
   services: Service[];
   onServicesChange: (services: Service[]) => void;
+  notes: string;
+  onNotesChange: (notes: string) => void;
   overlapWarning?: boolean;
   patientDebt?: { currency: string; amount: number }[];
   onViewStatement?: () => void;
@@ -122,6 +125,8 @@ export function InlineAppointmentDraft({
   onPatientChange,
   services,
   onServicesChange,
+  notes,
+  onNotesChange,
   overlapWarning,
   patientDebt,
   onViewStatement,
@@ -296,6 +301,17 @@ export function InlineAppointmentDraft({
           ))}
         </div>
       )}
+
+      {/* Note */}
+      <Field icon={StickyNote}>
+        <Textarea
+          value={notes}
+          onChange={(e) => onNotesChange(e.target.value)}
+          placeholder={t('notePlaceholder')}
+          rows={2}
+          className="min-h-[2.25rem] resize-none px-2 py-1 text-xs"
+        />
+      </Field>
 
       {/* Actions */}
       <div className="mt-auto flex items-center justify-end gap-1.5 pt-1">
