@@ -27,7 +27,8 @@ import { CalendarEventDay } from './calendar-event-day';
 import { TimeSlotDividers } from './calendar-time-column';
 import { CalendarGapOverlays } from './calendar-gap-overlay';
 import { CalendarBlockedOverlays } from './calendar-blocked-overlay';
-import type { Gap, BlockedRange } from './calendar-gaps';
+import { isSlotBlocked, type Gap, type BlockedRange } from './calendar-gaps';
+import type { InlineDraft } from './calendar-types';
 
 interface CalendarDayViewMobileProps {
   currentDate: Date;
@@ -40,6 +41,7 @@ interface CalendarDayViewMobileProps {
   dateLocale: Locale;
   onEventClick: (data: any) => void;
   onEventColorChange: (data: any, colorId: string) => void;
+  onEventDoubleClick?: (data: any) => void;
   onEventContextMenu?: (data: any) => React.ReactNode;
   onEventContextMenuOpen?: (data: any) => void;
   onSlotClick?: CalendarSlotClickHandler;
@@ -48,6 +50,8 @@ interface CalendarDayViewMobileProps {
   selectedGapKey?: string;
   onGapClick?: (gap: Gap) => void;
   blockedRanges?: BlockedRange[];
+  inlineDraft?: InlineDraft | null;
+  renderInlineDraft?: () => React.ReactNode;
 }
 
 export function CalendarDayViewMobile({
@@ -61,6 +65,7 @@ export function CalendarDayViewMobile({
   dateLocale,
   onEventClick,
   onEventColorChange,
+  onEventDoubleClick,
   onEventContextMenu,
   onEventContextMenuOpen,
   onSlotClick,
@@ -69,6 +74,8 @@ export function CalendarDayViewMobile({
   selectedGapKey,
   onGapClick,
   blockedRanges,
+  inlineDraft,
+  renderInlineDraft,
 }: CalendarDayViewMobileProps) {
   const [api, setApi] = React.useState<CarouselApi>();
   const [activeIndex, setActiveIndex] = React.useState(0);
@@ -132,6 +139,7 @@ export function CalendarDayViewMobile({
       const hour = Math.floor(y / hourSlotHeight);
       const minute = Math.floor((y % hourSlotHeight) / (hourSlotHeight / 4)) * 15;
       const clickedDate = set(day, { hours: hour, minutes: minute, seconds: 0, milliseconds: 0 });
+      if (isSlotBlocked(blockedRanges, clickedDate, column?.value)) return; // no creating on blocked slots
       const context = column && groupBy !== 'none' ? { groupBy, value: column.value } : undefined;
       onSlotClick(clickedDate, context);
     }
@@ -332,10 +340,24 @@ export function CalendarDayViewMobile({
                             dateLocale={dateLocale}
                             onEventClick={onEventClick}
                             onEventColorChange={onEventColorChange}
+                            onEventDoubleClick={onEventDoubleClick}
                             onEventContextMenu={onEventContextMenu}
                             onEventContextMenuOpen={onEventContextMenuOpen}
                           />
                         ))}
+                        {inlineDraft && renderInlineDraft && isSameDay(slide.day, inlineDraft.date) && (!isGrouped || String(slide.column?.value ?? '') === String(inlineDraft.groupValue ?? '')) && (
+                          <div
+                            className="absolute left-0.5 right-0.5 z-[12]"
+                            style={{
+                              top: `${(inlineDraft.date.getHours() + inlineDraft.date.getMinutes() / 60) * hourSlotHeight}px`,
+                              minHeight: `${Math.max((inlineDraft.durationMin / 60) * hourSlotHeight, 96)}px`,
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            onContextMenu={(e) => e.stopPropagation()}
+                          >
+                            {renderInlineDraft()}
+                          </div>
+                        )}
                         {showIndicator && (
                           <div
                             className="absolute left-0 right-0 z-20 pointer-events-none flex items-center"

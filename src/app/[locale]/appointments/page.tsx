@@ -10,7 +10,7 @@ import { getCalendarSettings } from '@/components/calendar/calendar-settings-uti
 import { CalendarGapsPanel } from '@/components/calendar/calendar-gaps-panel';
 import { computeRangeGaps, computeDayGaps, computeDayGapsForIntervals, getBusinessWindow, getAvailableIntervals, computeBlockedRanges, gapKey, DEFAULT_MIN_GAP_MINUTES, type Gap, type BlockedRange } from '@/components/calendar/calendar-gaps';
 import { filterEventsByDayAndGroup } from '@/components/calendar/calendar-utils';
-import { DEFAULT_EVENT_LABEL_FORMAT, HOUR_SLOT_HEIGHT } from '@/components/calendar/calendar-constants';
+import { DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, HOUR_SLOT_HEIGHT } from '@/components/calendar/calendar-constants';
 import { ReminderFormDialog, type ReminderFormValues } from '@/components/appointments/ReminderFormDialog';
 import { ReminderPanel } from '@/components/appointments/ReminderPanel';
 import { useCalendarBreakpoint } from '@/hooks/use-calendar-breakpoint';
@@ -516,6 +516,7 @@ export default function AppointmentsPage() {
     const tOrderStatus = useTranslations('OrderStatus');
     const tReminders = useTranslations('Reminders');
     const tPanel = useTranslations('AppointmentPanel');
+    const tInline = useTranslations('AppointmentsPage.inlineCreate');
     const tGaps = useTranslations('Calendar.gaps');
     const locale = useLocale();
     const gapsDateLocale = locale === 'es' ? es : enUS;
@@ -590,6 +591,7 @@ export default function AppointmentsPage() {
     const [isReassignLoading, setIsReassignLoading] = React.useState(false);
     const prevViewRef = React.useRef<CalendarView>('month');
     const [hourSlotHeight, setHourSlotHeight] = React.useState<number>(HOUR_SLOT_HEIGHT);
+    const [slotDuration, setSlotDuration] = React.useState<number>(DEFAULT_SLOT_DURATION);
     const [eventLabelFormat, setEventLabelFormat] = React.useState<string>(DEFAULT_EVENT_LABEL_FORMAT);
     const [defaultSede, setDefaultSede] = React.useState<string>('');
 
@@ -741,6 +743,7 @@ export default function AppointmentsPage() {
         setCheckDoctorAvailability(settings.filter_doctors_by_service);
         setBlockUnavailable(settings.block_unavailable ?? false);
         setHourSlotHeight(settings.hour_height ?? HOUR_SLOT_HEIGHT);
+        setSlotDuration(settings.slot_duration ?? DEFAULT_SLOT_DURATION);
         setEventLabelFormat(settings.event_label_format ?? DEFAULT_EVENT_LABEL_FORMAT);
         setDefaultSede(settings.default_sede ?? '');
     }, []);
@@ -751,6 +754,7 @@ export default function AppointmentsPage() {
         setCheckDoctorAvailability(settings.filter_doctors_by_service);
         setBlockUnavailable(settings.block_unavailable ?? false);
         setHourSlotHeight(settings.hour_height ?? HOUR_SLOT_HEIGHT);
+        setSlotDuration(settings.slot_duration ?? DEFAULT_SLOT_DURATION);
         setEventLabelFormat(settings.event_label_format ?? DEFAULT_EVENT_LABEL_FORMAT);
         setDefaultSede(settings.default_sede ?? '');
     }, []);
@@ -868,6 +872,8 @@ export default function AppointmentsPage() {
         services: Service[];
         doctor: UserType | null;
         calendar: CalendarType | null;
+        /** Set when the inline card is editing an existing appointment (vs creating). */
+        editing?: Appointment | null;
     } | null>(null);
     const [isSavingInline, setIsSavingInline] = React.useState(false);
     const [inlineDebt, setInlineDebt] = React.useState<{ currency: string; amount: number }[]>([]);
@@ -902,8 +908,12 @@ export default function AppointmentsPage() {
             const calendar = inlineDraft.calendar ?? undefined;
             const patient = inlineDraft.patient;
             const svcNames = inlineDraft.services.map((s) => s.name).join(', ');
-            const response = await api.post(API_ROUTES.APPOINTMENTS_UPSERT, {
-                mode: 'create',
+            // Color precedence: selected service color > doctor color > calendar color.
+            const draftColor = inlineDraft.services[inlineDraft.services.length - 1]?.color
+                || (doctor as any)?.color || (calendar as any)?.color || undefined;
+            const editing = inlineDraft.editing ?? null;
+            const payload: any = {
+                mode: editing ? 'update' : 'create',
                 start: toLocalISOString(start),
                 end: toLocalISOString(end),
                 doctor_id: doctor?.id || '',
@@ -916,13 +926,20 @@ export default function AppointmentsPage() {
                 summary: svcNames ? `${patient.name} - ${svcNames}` : patient.name,
                 service_ids: inlineDraft.services.map((s) => s.id),
                 service_names: svcNames,
-                notes: '',
+                notes: editing?.notes || '',
                 calendar_source_id: calendar?.id ? String(calendar.id) : '',
-                quote_id: null,
-            });
+                color: draftColor,
+                quote_id: editing?.quote_id ?? null,
+            };
+            if (editing) {
+                payload.appointment_id = editing.id;
+                payload.google_event_id = editing.googleEventId;
+                if (editing.calendar_source_id) payload.old_calendar_source_id = editing.calendar_source_id;
+            }
+            const response = await api.post(API_ROUTES.APPOINTMENTS_UPSERT, payload);
             const result = Array.isArray(response) ? response[0] : response;
-            if (result?.error || (result?.code && result.code >= 400)) throw new Error(result?.message || 'Failed to create appointment');
-            toast({ title: tToasts('appointmentCreated') });
+            if (result?.error || (result?.code && result.code >= 400)) throw new Error(result?.message || 'Failed to save appointment');
+            toast({ title: editing ? tToasts('appointmentUpdated') : tToasts('appointmentCreated') });
             setInlineDraft(null);
             refreshCalendarDataRef.current();
         } catch (error) {
@@ -944,6 +961,10 @@ export default function AppointmentsPage() {
             const s = a.start?.dateTime ? parseISO(a.start.dateTime.replace(/Z$/, '')).getTime() : NaN;
             return !Number.isNaN(s) && s > draftStart && s < draftEnd;
         });
+        const isEditing = !!inlineDraft.editing;
+        // Color precedence shown on the card: service > doctor > calendar.
+        const accentColor = inlineDraft.services[inlineDraft.services.length - 1]?.color
+            || (inlineDraft.doctor as any)?.color || (inlineDraft.calendar as any)?.color || undefined;
         return (
             <InlineAppointmentDraft
                 date={inlineDraft.date}
@@ -966,9 +987,12 @@ export default function AppointmentsPage() {
                 isSaving={isSavingInline}
                 onSave={handleSaveInlineDraft}
                 onCancel={() => setInlineDraft(null)}
+                accentColor={accentColor}
+                title={isEditing ? tInline('editTitle') : undefined}
+                saveLabel={isEditing ? tInline('update') : undefined}
             />
         );
-    }, [inlineDraft, doctors, calendars, appointments, inlineDebt, isSavingInline, handleSaveInlineDraft, openAccountStatement]);
+    }, [inlineDraft, doctors, calendars, appointments, inlineDebt, isSavingInline, handleSaveInlineDraft, openAccountStatement, tInline]);
 
     // Left-click on an empty slot → inline draft (if enabled, desktop, time-grid view)
     // or the modal form. Month/year/schedule always use the modal.
@@ -984,6 +1008,41 @@ export default function AppointmentsPage() {
         setIsReschedulingMode(false);
         setCreateOpen(true);
     }, [prepareSlot, calendarSettings?.inline_appointment_creation, currentView, doctors, calendars]);
+
+    // Edit an existing appointment: inline edit card when the inline-creation
+    // preference is on (and on a time-grid view), otherwise the modal form.
+    const handleEditAppointment = React.useCallback((appointment: Appointment) => {
+        const isTimeGrid = ['day', '2-day', '3-day', 'week'].includes(currentView);
+        if (calendarSettings?.inline_appointment_creation && isTimeGrid) {
+            const startStr = appointment.start?.dateTime;
+            const start = startStr ? parseISO(startStr.replace(/Z$/, '')) : new Date();
+            const endStr = appointment.end?.dateTime;
+            const end = endStr ? parseISO(endStr.replace(/Z$/, '')) : addMinutes(start, 30);
+            let durationMin = Math.round((end.getTime() - start.getTime()) / 60000);
+            if (!Number.isFinite(durationMin) || durationMin <= 0) durationMin = 30;
+            const doctor = doctors.find((d) => String(d.id) === String(appointment.doctorId)) ?? null;
+            const calendar = calendars.find((c) => String(c.id) === String(appointment.calendar_source_id)) ?? null;
+            const patient = {
+                id: appointment.patientId,
+                name: appointment.patientName,
+                email: appointment.patientEmail,
+                phone_number: appointment.patientPhone,
+            } as UserType;
+            const services: Service[] = Array.isArray(appointment.services)
+                ? appointment.services.map((s: any) => ({ id: String(s.id), name: s.name, color: s.color } as Service))
+                : [];
+            const context = groupBy === 'doctor'
+                ? { groupBy: 'doctor' as const, value: String(appointment.doctorId) }
+                : groupBy === 'calendar'
+                    ? { groupBy: 'calendar' as const, value: String(appointment.calendar_source_id) }
+                    : undefined;
+            setInlineDraft({ date: start, context, durationMin, patient, services, doctor, calendar, editing: appointment });
+            return;
+        }
+        setEditingAppointment(appointment);
+        setIsReschedulingMode(false);
+        setCreateOpen(true);
+    }, [calendarSettings?.inline_appointment_creation, currentView, doctors, calendars, groupBy]);
 
     // Right-click on an empty slot → choose between appointment or reminder.
     const handleSlotContextMenu = React.useCallback((date: Date, context?: { groupBy: 'doctor' | 'calendar' | 'sede'; value: string }) => {
@@ -1890,6 +1949,7 @@ export default function AppointmentsPage() {
 
         // Optimistically update UI
         setAppointments(prev => prev.map(a => a.id === appointment.id ? { ...a, color: colorHex, colorId: colorId } : a));
+        setSelectedAppointment(prev => (prev && prev.id === appointment.id ? { ...prev, color: colorHex, colorId: colorId } : prev));
 
         // Persist change to backend using snake_case for consistency
         const payload = {
@@ -2357,6 +2417,14 @@ export default function AppointmentsPage() {
         return (
             <>
             <ContextMenuSeparator />
+            <ContextMenuItem
+                key="edit-appointment"
+                onSelect={() => handleEditAppointment(appointment)}
+                className="flex items-center gap-2 cursor-pointer"
+            >
+                <Edit className="h-4 w-4 shrink-0" />
+                {t('contextMenu.editAppointment')}
+            </ContextMenuItem>
             <ContextMenuSub>
                 <ContextMenuSubTrigger className="cursor-pointer gap-2">
                     <ClipboardCheck className="h-4 w-4 shrink-0" />
@@ -2764,11 +2832,13 @@ export default function AppointmentsPage() {
                 <Calendar
                     view={currentView}
                     hourSlotHeight={hourSlotHeight}
+                    slotMinutes={slotDuration}
                     events={calendarEvents}
                     onDateChange={onDateChange}
                     isLoading={isRefreshing}
                     onEventClick={handleEventClick}
                     onEventColorChange={handleEventColorChange}
+                    onEventDoubleClick={isBulkMode ? undefined : (data) => { if (data?.kind !== 'reminder') handleEditAppointment(data as Appointment); }}
                     onEventContextMenu={isBulkMode ? undefined : renderEventContextMenu}
                     onEventContextMenuOpen={isBulkMode ? undefined : (data) => { if (data?.kind !== 'reminder') requestAppointmentMenuData(data as Appointment); }}
                     inlineDraft={inlineDraft ? { date: inlineDraft.date, durationMin: inlineDraft.durationMin, groupValue: inlineDraft.context?.value } : null}
@@ -3392,7 +3462,8 @@ export default function AppointmentsPage() {
                 quoteInvoices={quoteInvoices}
                 isLoadingQuoteInfo={isLoadingQuoteInfo}
                 doctorColor={selectedAppointment?.doctorId ? (doctors.find(d => d.id === selectedAppointment.doctorId)?.color ?? undefined) : undefined}
-                onEdit={handleEdit}
+                onEdit={handleEditAppointment}
+                onColorChange={handleEventColorChange}
                 onDelete={handleSoftDelete}
                 onCancel={handleCancel}
                 onReschedule={handleReschedule}

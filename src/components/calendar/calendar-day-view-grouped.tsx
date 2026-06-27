@@ -34,6 +34,7 @@ interface CalendarDayViewGroupedProps {
   breakpoint?: CalendarBreakpoint;
   onEventClick: (data: any) => void;
   onEventColorChange: (data: any, colorId: string) => void;
+  onEventDoubleClick?: (data: any) => void;
   onEventContextMenu?: (data: any) => React.ReactNode;
   onEventContextMenuOpen?: (data: any) => void;
   onSlotClick?: CalendarSlotClickHandler;
@@ -60,6 +61,7 @@ export function CalendarDayViewGrouped({
   breakpoint = 'desktop',
   onEventClick,
   onEventColorChange,
+  onEventDoubleClick,
   onEventContextMenu,
   onEventContextMenuOpen,
   onSlotClick,
@@ -263,6 +265,7 @@ export function CalendarDayViewGrouped({
                         dateLocale={dateLocale}
                         onEventClick={onEventClick}
                         onEventColorChange={onEventColorChange}
+                        onEventDoubleClick={onEventDoubleClick}
                         onEventContextMenu={onEventContextMenu}
                         onEventContextMenuOpen={onEventContextMenuOpen}
                       />

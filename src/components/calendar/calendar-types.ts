@@ -56,10 +56,15 @@ export interface CalendarProps {
   defaultView?: CalendarView;
   /** Height in px of one hour slot in the day/week time grid. Defaults to HOUR_SLOT_HEIGHT. */
   hourSlotHeight?: number;
+  /** Default slot duration in minutes. Sets how many slots fit per hour and floors
+   *  the row height so each slot's appointment title stays readable. Default 15. */
+  slotMinutes?: number;
   onViewChange?: (view: CalendarView) => void;
   groupBy?: CalendarGroupBy;
   groupingColumns?: CalendarGroupingColumn[];
   onEventColorChange: (event: any, colorId: string) => void;
+  /** Double-click on an event — used to open inline edit on time-grid views. */
+  onEventDoubleClick?: (event: any) => void;
   onSlotClick?: CalendarSlotClickHandler;
   /** Explicit "create" action (mobile FAB) — always opens the modal, bypassing inline creation. */
   onCreateClick?: () => void;

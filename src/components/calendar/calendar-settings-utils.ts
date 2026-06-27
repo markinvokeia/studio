@@ -1,7 +1,7 @@
 import { CalendarSettings } from '@/lib/types';
 import api from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
-import { DEFAULT_EVENT_LABEL_FORMAT, EVENT_LABEL_FORMATS, HOUR_SLOT_HEIGHT } from './calendar-constants';
+import { DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, EVENT_LABEL_FORMATS, HOUR_SLOT_HEIGHT, SLOT_DURATION_OPTIONS } from './calendar-constants';
 
 export const DEFAULT_CALENDAR_SETTINGS: CalendarSettings = {
   default_view: 'month',
@@ -10,6 +10,7 @@ export const DEFAULT_CALENDAR_SETTINGS: CalendarSettings = {
   filter_doctors_by_service: false,
   block_unavailable: false,
   hour_height: HOUR_SLOT_HEIGHT,
+  slot_duration: DEFAULT_SLOT_DURATION,
   event_label_format: DEFAULT_EVENT_LABEL_FORMAT,
   default_sede: '',
 };
@@ -41,6 +42,7 @@ export const normalizeCalendarSettings = (data: unknown): CalendarSettings | nul
   };
 
   const parsedHourHeight = Number(rawSettings.hour_height);
+  const parsedSlotDuration = Number((rawSettings as { slot_duration?: unknown }).slot_duration);
 
   return {
     ...DEFAULT_CALENDAR_SETTINGS,
@@ -57,6 +59,7 @@ export const normalizeCalendarSettings = (data: unknown): CalendarSettings | nul
       DEFAULT_CALENDAR_SETTINGS.block_unavailable ?? false
     ),
     hour_height: Number.isFinite(parsedHourHeight) && parsedHourHeight > 0 ? parsedHourHeight : DEFAULT_CALENDAR_SETTINGS.hour_height,
+    slot_duration: (SLOT_DURATION_OPTIONS as readonly number[]).includes(parsedSlotDuration) ? parsedSlotDuration : DEFAULT_CALENDAR_SETTINGS.slot_duration,
     event_label_format:
       typeof rawSettings.event_label_format === 'string' &&
       (EVENT_LABEL_FORMATS as readonly string[]).includes(rawSettings.event_label_format)

@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { CalendarSettings, Sede } from '@/lib/types';
 import api from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
-import { DEFAULT_EVENT_LABEL_FORMAT, EVENT_LABEL_FORMATS, HOUR_SLOT_HEIGHT, HOUR_SLOT_HEIGHT_OPTIONS } from './calendar-constants';
+import { DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, EVENT_LABEL_FORMATS, HOUR_SLOT_HEIGHT, HOUR_SLOT_HEIGHT_OPTIONS, SLOT_DURATION_OPTIONS } from './calendar-constants';
 import { DEFAULT_CALENDAR_SETTINGS, normalizeCalendarSettings } from './calendar-settings-utils';
 
 interface CalendarSettingsFormProps {
@@ -139,6 +139,28 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
               {HOUR_SLOT_HEIGHT_OPTIONS.map((opt) => (
                 <SelectItem key={opt} value={String(opt)} className="text-xs">
                   {t('hourHeightOption', { px: opt })}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="slot-duration" className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
+            {t('slotDuration')}
+          </Label>
+          <Select
+            value={String(settings.slot_duration ?? DEFAULT_SLOT_DURATION)}
+            onValueChange={(val) => updateSettings({ slot_duration: Number(val) })}
+            disabled={isLoading}
+          >
+            <SelectTrigger id="slot-duration" className="h-9 text-xs bg-card border-border/50 shadow-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SLOT_DURATION_OPTIONS.map((opt) => (
+                <SelectItem key={opt} value={String(opt)} className="text-xs">
+                  {opt >= 60 ? t('slotDurationHour') : t('slotDurationOption', { min: opt })}
                 </SelectItem>
               ))}
             </SelectContent>

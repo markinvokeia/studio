@@ -751,6 +751,9 @@ export type CalendarSettings = {
   block_unavailable?: boolean;
   /** Height in px of one hour slot in day/week views. */
   hour_height?: number;
+  /** Default slot duration in minutes (10/15/20/30/60). Defines how many slots
+   *  fit in an hour and floors the row height so titles stay readable. Default 15. */
+  slot_duration?: number;
   /** How each appointment's label is composed. See EVENT_LABEL_FORMATS. */
   event_label_format?: string;
   /** Default branch (sede) id to show. Empty string = all branches. */

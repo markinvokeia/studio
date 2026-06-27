@@ -35,6 +35,12 @@ interface InlineAppointmentDraftProps {
   isSaving?: boolean;
   onSave: () => void;
   onCancel: () => void;
+  /** Accent color shown on the card (derived from service > doctor > calendar). */
+  accentColor?: string;
+  /** Overrides the card title (e.g. "Edit appointment"). Defaults to "New appointment". */
+  title?: string;
+  /** Overrides the save button label (e.g. "Update"). Defaults to "Save". */
+  saveLabel?: string;
 }
 
 /** A field row: leading icon + content. */
@@ -119,6 +125,9 @@ export function InlineAppointmentDraft({
   isSaving,
   onSave,
   onCancel,
+  accentColor,
+  title,
+  saveLabel,
 }: InlineAppointmentDraftProps) {
   const t = useTranslations('AppointmentsPage.inlineCreate');
   const [serviceOpen, setServiceOpen] = React.useState(false);
@@ -130,10 +139,16 @@ export function InlineAppointmentDraft({
   };
 
   return (
-    <div className="flex h-full max-w-[300px] flex-col gap-1.5 overflow-auto rounded-lg border border-primary/40 bg-violet-50 p-2 text-xs shadow-lg ring-1 ring-primary/20 dark:bg-violet-950">
+    <div
+      className="flex h-full max-w-[300px] flex-col gap-1.5 overflow-auto rounded-lg border border-l-4 border-primary/40 bg-violet-50 p-2 text-xs shadow-lg ring-1 ring-primary/20 dark:bg-violet-950"
+      style={accentColor ? { borderLeftColor: accentColor } : undefined}
+    >
       {/* Header: title + close */}
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-foreground">{t('title')}</span>
+        <span className="flex min-w-0 items-center gap-1.5 text-xs font-semibold text-foreground">
+          {accentColor && <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: accentColor }} />}
+          <span className="truncate">{title ?? t('title')}</span>
+        </span>
         <button type="button" onClick={onCancel} className="rounded p-0.5 text-muted-foreground hover:bg-muted" aria-label={t('cancel')}>
           <X className="h-3.5 w-3.5" />
         </button>
@@ -197,7 +212,7 @@ export function InlineAppointmentDraft({
           onValueChange={(_, u) => onPatientChange(u ?? null)}
           triggerText={t('selectPatient')}
           placeholder={t('searchPatient')}
-          className="h-7 text-xs"
+          className="h-7 px-2 text-xs font-normal"
         />
       </Field>
 
@@ -258,7 +273,7 @@ export function InlineAppointmentDraft({
         </Button>
         <Button size="sm" className="h-7 gap-1 px-2.5 text-xs" onClick={onSave} disabled={isSaving || !patient}>
           {isSaving && <Loader2 className="h-3 w-3 animate-spin" />}
-          {t('save')}
+          {saveLabel ?? t('save')}
         </Button>
       </div>
     </div>

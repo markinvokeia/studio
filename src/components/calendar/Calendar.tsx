@@ -8,7 +8,7 @@ import React from 'react';
 import './Calendar.css';
 
 import type { CalendarProps, CalendarView } from './calendar-types';
-import { HOUR_SLOT_HEIGHT } from './calendar-constants';
+import { DEFAULT_SLOT_DURATION, HOUR_SLOT_HEIGHT, MIN_SLOT_HEIGHT } from './calendar-constants';
 import { CalendarZoomControl } from './calendar-zoom-control';
 import { useCalendarBreakpoint } from '@/hooks/use-calendar-breakpoint';
 import { useCalendarNavigation } from '@/hooks/use-calendar-navigation';
@@ -45,10 +45,12 @@ const Calendar: React.FC<CalendarProps> = ({
   view: propsView,
   defaultView,
   hourSlotHeight,
+  slotMinutes,
   onViewChange,
   groupBy = 'none',
   groupingColumns = [],
   onEventColorChange,
+  onEventDoubleClick,
   onSlotClick,
   onCreateClick,
   onSlotContextMenu,
@@ -110,12 +112,18 @@ const Calendar: React.FC<CalendarProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftActive]);
 
-  const baseSlotHeight = hourSlotHeight ?? HOUR_SLOT_HEIGHT;
+  const heightSetting = hourSlotHeight ?? HOUR_SLOT_HEIGHT;
+  // Slot density: how many slots fit per hour (e.g. 6 for 10-min slots). The hour
+  // row is floored at slotsPerHour * MIN_SLOT_HEIGHT so every slot can show a
+  // readable title, even on tight agendas. Taller rows simply make day/week views
+  // longer (and month scroll), keeping titles legible.
+  const slotsPerHour = Math.max(1, Math.round(60 / (slotMinutes ?? DEFAULT_SLOT_DURATION)));
+  const baseSlotHeight = Math.max(heightSetting, slotsPerHour * MIN_SLOT_HEIGHT);
   // Zoom enlarges only the slot height...
   const effectiveSlotHeight = Math.round(baseSlotHeight * zoom);
   // ...while the font scales only with the configured slot size (px setting),
   // dampened so larger slots don't blow up the text. Zoom does NOT change fonts.
-  const fontScale = Math.pow(baseSlotHeight / HOUR_SLOT_HEIGHT, 0.7);
+  const fontScale = Math.pow(heightSetting / HOUR_SLOT_HEIGHT, 0.7);
 
   const {
     currentDate,
@@ -139,6 +147,7 @@ const Calendar: React.FC<CalendarProps> = ({
   const eventHandlers = {
     onEventClick,
     onEventColorChange,
+    onEventDoubleClick,
     onEventContextMenu,
     onEventContextMenuOpen,
     onSlotClick,
@@ -318,7 +327,7 @@ const Calendar: React.FC<CalendarProps> = ({
 
       <div
         className="calendar-body relative"
-        style={{ '--cal-font-scale': fontScale } as React.CSSProperties}
+        style={{ '--cal-font-scale': fontScale, '--cal-slots-per-hour': slotsPerHour } as React.CSSProperties}
       >
         {renderView()}
         {/* Zoom slider — only on time-grid views where slot height applies */}

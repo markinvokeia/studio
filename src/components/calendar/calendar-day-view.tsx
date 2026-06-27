@@ -32,6 +32,7 @@ interface CalendarDayViewProps {
   timeZoneLabel: string;
   onEventClick: (data: any) => void;
   onEventColorChange: (data: any, colorId: string) => void;
+  onEventDoubleClick?: (data: any) => void;
   onEventContextMenu?: (data: any) => React.ReactNode;
   onEventContextMenuOpen?: (data: any) => void;
   onSlotClick?: CalendarSlotClickHandler;
@@ -55,6 +56,7 @@ export function CalendarDayView({
   timeZoneLabel,
   onEventClick,
   onEventColorChange,
+  onEventDoubleClick,
   onEventContextMenu,
   onEventContextMenuOpen,
   onSlotClick,
@@ -191,6 +193,7 @@ export function CalendarDayView({
                   dateLocale={dateLocale}
                   onEventClick={onEventClick}
                   onEventColorChange={onEventColorChange}
+                  onEventDoubleClick={onEventDoubleClick}
                   onEventContextMenu={onEventContextMenu}
                   onEventContextMenuOpen={onEventContextMenuOpen}
                 />

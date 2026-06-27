@@ -16,6 +16,7 @@ import {
   Layers,
   Loader2,
   MapPin,
+  Palette,
   StickyNote,
   Stethoscope,
   Trash2,
@@ -46,8 +47,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover';
+import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ResizableSheet, SheetDescription, SheetTitle } from '@/components/ui/resizable-sheet';
+import { GOOGLE_CALENDAR_COLORS } from '@/components/calendar/calendar-constants';
+import { getReadableTextColor } from '@/components/calendar/calendar-utils';
 import { useToast } from '@/hooks/use-toast';
 import { STATUS_ACCENT_COLOR, canReschedule } from '@/constants/appointment-status';
 import { formatDisplayDate, cn, formatServicePrice } from '@/lib/utils';
@@ -257,6 +260,9 @@ interface AppointmentPanelProps {
   calendars?: CalendarType[];
   /** Called after a successful inline doctor/room reassignment so parents can sync state. */
   onAppointmentUpdated?: (appointment: Appointment) => void;
+  /** Changes the appointment's color tag (Google color id), mirroring the calendar
+   *  right-click color picker. */
+  onColorChange?: (appointment: Appointment, colorId: string) => void;
 }
 
 export function AppointmentPanel({
@@ -280,6 +286,7 @@ export function AppointmentPanel({
   doctors: doctorsProp,
   calendars: calendarsProp,
   onAppointmentUpdated,
+  onColorChange,
 }: AppointmentPanelProps) {
   const locale = useLocale();
   const { toast } = useToast();
@@ -299,6 +306,10 @@ export function AppointmentPanel({
   const [selectedService, setSelectedService] = React.useState<NonNullable<Appointment['services']>[number] | null>(null);
   const [isBillingLoading, setIsBillingLoading] = React.useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = React.useState(false);
+  const [isColorPickerOpen, setIsColorPickerOpen] = React.useState(false);
+  // Optimistic color so the header updates immediately on a color change.
+  const [localColor, setLocalColor] = React.useState<string | undefined>(undefined);
+  React.useEffect(() => { setLocalColor(undefined); }, [appointment?.id]);
   const canOpenDetailDeepLinks = useCanOpenDetailDeepLinks();
   const { open: openBillingWizard } = useBillingWizard();
   const { open: openPatientView } = usePatientView();
@@ -618,6 +629,17 @@ export function AppointmentPanel({
       : tPanel('cancellationReasonUnknown')
     : null;
 
+  // Header tint: use the appointment's assigned color (optimistic local override
+  // wins) so the panel header matches how the appointment looks on the calendar.
+  const headerColor = localColor ?? appointment.color ?? undefined;
+  const headerText = headerColor ? getReadableTextColor(headerColor) : undefined;
+  const handleColorSelect = (colorId: string) => {
+    const hex = GOOGLE_CALENDAR_COLORS.find((c) => c.id === colorId)?.hex;
+    if (hex) setLocalColor(hex);
+    setIsColorPickerOpen(false);
+    onColorChange?.(appointment, colorId);
+  };
+
   return (
     <>
       <ResizableSheet
@@ -629,13 +651,18 @@ export function AppointmentPanel({
         storageKey="appointment-panel-width"
       >
         <div className="flex h-full flex-col overflow-hidden bg-card font-body">
-          <div className="flex-none border-b border-border bg-card px-5 py-4 pr-24">
+          <div
+            className={cn('flex-none border-b px-5 py-4 pr-24', headerColor ? 'border-black/10' : 'border-border bg-card')}
+            style={headerColor ? { backgroundColor: headerColor, color: headerText } : undefined}
+          >
             <div className="flex items-center gap-2.5">
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-                <Info className="h-4 w-4" />
+              <span
+                className={cn('grid h-9 w-9 shrink-0 place-items-center rounded-xl', headerColor ? 'bg-white/25' : 'bg-primary/10 text-primary')}
+              >
+                <Info className="h-4 w-4" style={headerColor ? { color: headerText } : undefined} />
               </span>
               <div className="min-w-0 flex-1">
-                <SheetTitle className="line-clamp-3 text-sm font-medium text-foreground">
+                <SheetTitle className={cn('line-clamp-3 text-sm font-medium', !headerColor && 'text-foreground')} style={headerColor ? { color: headerText } : undefined}>
                   {tPanel('appointmentTitleFor')}{' '}
                   <button
                     type="button"
@@ -648,11 +675,45 @@ export function AppointmentPanel({
                 </SheetTitle>
                 <SheetDescription className="sr-only">{serviceName || appointment.patientName}</SheetDescription>
               </div>
-              <span className="hidden shrink-0 rounded-md bg-muted px-2 py-0.5 font-mono text-xs font-semibold text-muted-foreground sm:inline">
+              {/* Change-color dropdown — same palette as the calendar right-click menu */}
+              {onColorChange && (
+                <Popover open={isColorPickerOpen} onOpenChange={setIsColorPickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className={cn('h-8 w-8 shrink-0 rounded-lg', headerColor ? 'hover:bg-white/20' : 'hover:bg-muted')}
+                      aria-label={tPanel('changeColor')}
+                      title={tPanel('changeColor')}
+                    >
+                      <Palette className="h-4 w-4" style={headerColor ? { color: headerText } : undefined} />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-auto p-2">
+                    <div className="grid grid-cols-4 gap-2">
+                      {GOOGLE_CALENDAR_COLORS.map((color) => (
+                        <button
+                          key={color.id}
+                          type="button"
+                          onClick={() => handleColorSelect(color.id)}
+                          className="h-6 w-6 rounded-full transition-transform hover:scale-110"
+                          style={{ backgroundColor: color.hex }}
+                          aria-label={color.id}
+                        />
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
+              <span className={cn('hidden shrink-0 rounded-md px-2 py-0.5 font-mono text-xs font-semibold sm:inline', headerColor ? 'bg-black/10' : 'bg-muted text-muted-foreground')} style={headerColor ? { color: headerText } : undefined}>
                 {appointmentCode}
               </span>
-              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
-                <StatusIcon className="h-3 w-3" style={{ color: statusColor }} />
+              <span
+                className={cn('inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold', headerColor ? 'bg-white/25' : 'border border-primary/20 bg-primary/10 text-primary')}
+                style={headerColor ? { color: headerText } : undefined}
+              >
+                <StatusIcon className="h-3 w-3" style={{ color: headerColor ? headerText : statusColor }} />
                 {cancellationReasonLabel ?? tStatus(appointment.status)}
               </span>
             </div>

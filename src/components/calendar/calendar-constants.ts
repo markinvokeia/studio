@@ -36,6 +36,17 @@ export const HOUR_SLOT_HEIGHT = 80;
 /** Selectable hour-slot heights for the calendar density setting */
 export const HOUR_SLOT_HEIGHT_OPTIONS = [60, 80, 100, 120, 140, 160, 180, 200] as const;
 
+/** Selectable default slot durations (minutes). Defines how many slots fit in an
+ *  hour (60/duration) and therefore the minimum row height needed so every slot's
+ *  appointment title stays readable. */
+export const SLOT_DURATION_OPTIONS = [10, 15, 20, 30, 60] as const;
+export type SlotDuration = (typeof SLOT_DURATION_OPTIONS)[number];
+export const DEFAULT_SLOT_DURATION: SlotDuration = 15;
+
+/** Minimum px height for a single slot so one appointment title fits on a line.
+ *  The hour row height is floored at slotsPerHour * MIN_SLOT_HEIGHT. */
+export const MIN_SLOT_HEIGHT = 24;
+
 /** How the label shown on each appointment is composed.
  *  - time_patient_notes:     "HH:mm - Patient - (Notes)"   (default)
  *  - patient_treatment_time: "Patient - Treatment - HH:mm" */
