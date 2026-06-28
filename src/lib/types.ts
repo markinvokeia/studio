@@ -90,6 +90,41 @@ export type FinancialSummaryReport = {
   history_by_currency: Record<string, FinancialSummaryByCurrency>;
 };
 
+/** A single row in the interactive account-statement timeline (one currency). */
+export type StatementEntry = {
+  /** Stable key, e.g. `${currency}-${internal_id}`. */
+  id: string;
+  kind: 'invoice' | 'payment' | 'credit_note';
+  /** ISO date of the movement (created_at). */
+  date: string;
+  docNo: string;
+  /** Composed concept line (label — services — payment type — pays invoice X). */
+  concept: string;
+  notes?: string | null;
+  /** Signed amount as in the movement (>0 invoice/debit = green, <0 payment = red). */
+  amount: number;
+  currency: string;
+  runningBalance: number;
+  // Invoice-only fields (populated by joining USER_INVOICES):
+  /** Real invoice id, required to register a payment against it. */
+  invoiceId?: string;
+  /** Outstanding amount; >0 means the invoice is a collectable candidate. */
+  pending?: number;
+  paymentStatus?: string;
+};
+
+/** A selected unpaid-invoice line in the quick "Cobrar" (settle) flow. */
+export type CobrarLineState = {
+  invoiceId: string;
+  docNo: string;
+  currency: string;
+  pending: number;
+  /** Amount to collect for this line (≤ pending). */
+  amount: number;
+  /** Per-line payment-method override; falls back to the shared method. */
+  methodId?: string;
+};
+
 export type UserPermission = {
   permission: string;
   action: string;
