@@ -2226,6 +2226,22 @@ export default function AppointmentsPage() {
     }, []);
 
     const handleSelectGap = React.useCallback((gap: Gap) => {
+        const context = (gap.groupValue && groupBy !== 'none')
+            ? { groupBy: groupBy as 'doctor' | 'calendar' | 'sede', value: gap.groupValue }
+            : undefined;
+
+        // When inline creation is on (and on a time-grid view), draft the appointment
+        // in-place on the calendar instead of opening the modal — same as a slot click.
+        const isTimeGrid = ['day', '2-day', '3-day', 'week'].includes(currentView);
+        if (calendarSettings?.inline_appointment_creation && isTimeGrid) {
+            const draftDoctor = context?.groupBy === 'doctor' ? (doctors.find((d) => String(d.id) === String(context.value)) ?? null) : null;
+            const draftCalendar = context?.groupBy === 'calendar' ? (calendars.find((c) => String(c.id) === String(context.value)) ?? null) : null;
+            setInlineDraft({ date: gap.start, context, durationMin: slotDuration, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '' });
+            setGapsActive(false);
+            setSelectedGap(null);
+            return;
+        }
+
         setEditingAppointment(null);
         setIsReschedulingMode(false);
         const base: {
@@ -2253,7 +2269,7 @@ export default function AppointmentsPage() {
         // Per the requirement: selecting a proposal closes the panel and clears the effect.
         setGapsActive(false);
         setSelectedGap(null);
-    }, [groupBy, doctors, calendars]);
+    }, [groupBy, doctors, calendars, calendarSettings?.inline_appointment_creation, currentView, slotDuration]);
 
     const handleSelectDoctor = React.useCallback((doctorId: string, checked: boolean) => {
         setSelectedDoctorIds(prev => {
