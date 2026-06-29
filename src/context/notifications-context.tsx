@@ -351,11 +351,17 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
   // ── SSE event stream ──────────────────────────────────────────────────────
 
-  const fetchDebounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const handleSSEEvent = React.useCallback((_eventType: string, _data: unknown) => {
-    if (fetchDebounceRef.current) clearTimeout(fetchDebounceRef.current);
-    fetchDebounceRef.current = setTimeout(() => void fetchNotifications(), 500);
+  const handleSSEEvent = React.useCallback((_eventType: string, data: unknown) => {
+    try {
+      const normalized = normalizeBackendNotification(data as BackendNotification);
+      if (!normalized) return;
+      setNotifications((prev) => {
+        if (prev.some((n) => n.id === normalized.id)) return prev;
+        return [normalized, ...prev];
+      });
+    } catch {
+      void fetchNotifications();
+    }
   }, [fetchNotifications]);
 
   useEventStream(userId, handleSSEEvent);
