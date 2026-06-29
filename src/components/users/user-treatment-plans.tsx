@@ -17,6 +17,7 @@ import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 import { DatePickerInput } from '@/components/ui/date-picker';
 import {
     Dialog,
+    DialogCancelButton,
     DialogContent,
     DialogDescription,
     DialogFooter,
@@ -87,6 +88,12 @@ import {
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
+export interface TreatmentContactContext {
+    serviceName: string;
+    missedStep: string;
+    missedDate?: string;
+}
+
 interface UserTreatmentPlansProps {
     userId: string;
     userName?: string;
@@ -94,7 +101,7 @@ interface UserTreatmentPlansProps {
     onViewAppointment?: (appointmentId: string, scheduledDate?: string, serviceId?: string, serviceName?: string) => void;
     onViewSession?: (sesionId: number) => void;
     onStepCompleted?: (data: SessionPrefillData) => void;
-    onContact?: () => void;
+    onContact?: (context: TreatmentContactContext) => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -646,7 +653,7 @@ function ScheduleStepDialog({
 
     return (
         <Dialog open={state.open} onOpenChange={(open) => { if (!open) onClose(); }}>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md" confirmOnClose isDirty={!!(doctorId || date || notes.trim())}>
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <CalendarPlus className="h-4 w-4 text-primary shrink-0" />
@@ -826,9 +833,9 @@ function ScheduleStepDialog({
                 </div>
 
                 <DialogFooter>
-                    <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={onClose}>
+                    <DialogCancelButton variant="ghost" size="sm" className="h-8 text-xs">
                         {t('edit.cancel')}
-                    </Button>
+                    </DialogCancelButton>
                     <Button
                         size="sm"
                         className="h-8 text-xs gap-1.5"
@@ -974,7 +981,7 @@ function CreateSessionFromStepDialog({
 
     return (
         <Dialog open={state.open} onOpenChange={(open) => { if (!open) onClose(); }}>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md" confirmOnClose isDirty={!!(doctorId || date || procedimiento.trim())}>
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Stethoscope className="h-4 w-4 text-primary shrink-0" />
@@ -1054,9 +1061,9 @@ function CreateSessionFromStepDialog({
                 )}
 
                 <DialogFooter>
-                    <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={onClose} disabled={isSaving}>
+                    <DialogCancelButton variant="ghost" size="sm" className="h-8 text-xs" disabled={isSaving}>
                         {t('edit.cancel')}
-                    </Button>
+                    </DialogCancelButton>
                     <Button
                         size="sm"
                         className="h-8 text-xs gap-1.5"
@@ -1827,7 +1834,7 @@ function ActivePlanCard({
     onViewAppointment?: (appointmentId: string, scheduledDate?: string, serviceId?: string, serviceName?: string) => void;
     onViewSession?: (sesionId: number) => void;
     onStepCompleted?: (data: SessionPrefillData) => void;
-    onContact?: () => void;
+    onContact?: (context: TreatmentContactContext) => void;
     t: ReturnType<typeof useTranslations>;
 }) {
     const [expanded, setExpanded] = React.useState(false);
@@ -1900,7 +1907,14 @@ function ActivePlanCard({
                             {missedDaysAgo != null && <> — {t('missedDaysAgo', { days: missedDaysAgo })}</>}
                         </p>
                     </div>
-                    <Button size="sm" variant="destructive" className="shrink-0 h-7 text-xs gap-1.5" onClick={onContact}>
+                    <Button
+                        size="sm" variant="destructive" className="shrink-0 h-7 text-xs gap-1.5"
+                        onClick={() => onContact?.({
+                            serviceName: sequence.service_name,
+                            missedStep:  missedStep?.step_name ?? '',
+                            missedDate:  missedStep?.scheduled_date,
+                        })}
+                    >
                         <Phone className="h-3 w-3" />
                         {t('contact')}
                     </Button>

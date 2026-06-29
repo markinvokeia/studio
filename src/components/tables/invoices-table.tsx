@@ -15,6 +15,7 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import {
   Dialog,
   DialogBody,
+  DialogCancelButton,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -41,7 +42,7 @@ import { getPurchaseServices, getSalesServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { addDays, format, parseISO } from 'date-fns';
-import { AlertTriangle, ArrowRight, Box, CalendarIcon, Check, ChevronsUpDown, Download, FileUp, Loader2, MoreHorizontal, Printer, Receipt, Send, Trash2 } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Box, CalendarIcon, Check, ChevronsUpDown, Download, FileUp, Link2, Loader2, MoreHorizontal, Printer, Receipt, Send, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import * as React from 'react';
@@ -88,6 +89,7 @@ const getColumns = (
   tStatus: (key: string) => string,
   tMethods: (key: string) => string,
   columnTranslations: { [key: string]: string },
+  invoices: Invoice[],
   onPrint?: (invoice: Invoice) => void,
   onSendEmail?: (invoice: Invoice) => void,
   onAddPayment?: (invoice: Invoice, isHistorical?: boolean) => void,
@@ -127,7 +129,16 @@ const getColumns = (
       ),
       cell: ({ row }) => {
         const value = row.getValue('doc_no') as string;
-        return <div className="font-medium">{value || `INV-${row.original.id}`}</div>;
+        const invoice = row.original;
+        const isLinked = invoice.type === 'credit_note'
+          ? !!(invoice.invoice_id || invoice.parent_id)
+          : invoices.some(inv => inv.type === 'credit_note' && (inv.invoice_id === invoice.id || inv.parent_id === invoice.id));
+        return (
+          <div className="font-medium flex items-center gap-1.5">
+            {value || `INV-${invoice.id}`}
+            {isLinked && <Link2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+          </div>
+        );
       },
     },
     {
@@ -220,6 +231,17 @@ const getColumns = (
         <DataTableColumnHeader column={column} title={columnTranslations.createdAt || "Created At"} />
       ),
       cell: ({ row }) => formatDisplayDate(row.original.createdAt),
+    },
+    {
+      accessorKey: 'external_id',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={columnTranslations.external_id || "External ID"} />
+      ),
+      cell: ({ row }) => (
+        <span className="font-mono text-xs text-muted-foreground">
+          {row.original.external_id ?? '—'}
+        </span>
+      ),
     },
     {
       id: 'actions',
@@ -338,6 +360,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     paid_amount: t('columns.paidAmount'),
     due_date: t('columns.dueDate'),
     createdAt: t('columns.createdAt'),
+    external_id: t('columns.externalId'),
     ...columnTranslations,
   }), [t, isSales, columnTranslations]);
 
@@ -346,6 +369,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     tStatus,
     tMethods,
     mergedColumnTranslations,
+    invoices,
     onPrint,
     onSendEmail,
     handleAddPaymentClick,
@@ -354,7 +378,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       setEditingInvoice(invoice);
       setIsFormDialogOpen(true);
     }
-  ), [t, tStatus, tMethods, mergedColumnTranslations, onPrint, onSendEmail, handleAddPaymentClick]);
+  ), [t, tStatus, tMethods, mergedColumnTranslations, invoices, onPrint, onSendEmail, handleAddPaymentClick]);
 
   return (
     <>
@@ -534,7 +558,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
 interface InvoiceFormDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onInvoiceCreated: () => void;
+  onInvoiceCreated: (invoiceId?: string) => void;
   isSales: boolean;
   invoice?: Invoice | null;
   initialUser?: User;
@@ -904,7 +928,9 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
 
       toast({ title: t('success.title'), description: isEditing ? (t('success.updateDescription') || 'Invoice updated successfully') : t('success.description') });
 
-      onInvoiceCreated();
+      const createdResult = Array.isArray(responseData) ? responseData[0] : responseData;
+      const createdInvoiceId = createdResult?.id ?? createdResult?.invoice_id ?? createdResult?.invoiceId;
+      onInvoiceCreated(createdInvoiceId != null ? String(createdInvoiceId) : undefined);
       onOpenChange(false);
       form.reset();
     } catch (error) {
@@ -930,7 +956,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent maxWidth="4xl">
+      <DialogContent maxWidth="4xl" confirmOnClose isDirty={form.formState.isDirty}>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 w-full overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) handleAddItem(); } }}>
             <DialogHeader>
@@ -1291,7 +1317,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
             </DialogBody>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>{t('cancel')}</Button>
+              <DialogCancelButton disabled={isSubmitting}>{t('cancel')}</DialogCancelButton>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {t('save')}

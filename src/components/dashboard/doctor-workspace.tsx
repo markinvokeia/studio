@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { normalizeAppointmentStatus, STATUS_ACCENT_COLOR, STATUS_BADGE_VARIANT } from '@/constants/appointment-status';
@@ -677,17 +678,26 @@ function markAppointmentLocallyUpdated(doctorId: string, appointmentId: string) 
   }
 }
 
-async function getAppointmentsForDoctorToday(doctorId: string): Promise<Appointment[]> {
+type WorkspaceAppointmentSource =
+  | { mode: 'doctor'; doctorId: string }
+  | { mode: 'calendar'; calendarId: string };
+
+async function getAppointmentsForToday(source: WorkspaceAppointmentSource): Promise<Appointment[]> {
   const now = new Date();
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
   const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
   const formatDateForAPI = (date: Date) => format(date, 'yyyy-MM-dd HH:mm:ss');
 
-  const data = await api.get(API_ROUTES.USERS_APPOINTMENTS, {
-    doctor_id: doctorId,
+  const query: Record<string, string> = {
     startingDateAndTime: formatDateForAPI(startOfDay),
     endingDateAndTime: formatDateForAPI(endOfDay),
-  });
+  };
+  if (source.mode === 'doctor') query.doctor_id = source.doctorId;
+  else query.calendar_source_ids = source.calendarId;
+
+  const fallbackDoctorId = source.mode === 'doctor' ? source.doctorId : '';
+
+  const data = await api.get(API_ROUTES.USERS_APPOINTMENTS, query);
 
   let rawAppointments: any[] = [];
   if (Array.isArray(data) && data.length > 0 && 'json' in data[0]) {
@@ -706,7 +716,7 @@ async function getAppointmentsForDoctorToday(doctorId: string): Promise<Appointm
       if (Number.isNaN(parsedStart.getTime())) return null;
 
       const endNode = apiAppointment.end_time || apiAppointment.end;
-      const doctorIdValue = apiAppointment.doctor_id || apiAppointment.doctorId || apiAppointment.doctorid || doctorId;
+      const doctorIdValue = apiAppointment.doctor_id || apiAppointment.doctorId || apiAppointment.doctorid || fallbackDoctorId;
 
       return {
         id: String(apiAppointment.appointment_id || apiAppointment.appointmentId || apiAppointment.id || ''),
@@ -1006,6 +1016,14 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
 
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
   const [selectedAppointmentId, setSelectedAppointmentId] = React.useState<string | null>(null);
+  // Calendar access: doctors with the `can_browse_calendars` flag and at least one
+  // assigned calendar can switch the agenda between their own appointments and a
+  // shared calendar's appointments. The flag ideally comes from AUTH_ME; if that
+  // endpoint doesn't provide it yet, we fall back to fetching the user's record.
+  const [canBrowseCalendars, setCanBrowseCalendars] = React.useState<boolean>(Boolean(user?.can_browse_calendars));
+  const [accessibleCalendars, setAccessibleCalendars] = React.useState<{ id: string; name: string; color?: string }[]>([]);
+  const [viewMode, setViewMode] = React.useState<'mine' | 'calendar'>('mine');
+  const [selectedCalendarId, setSelectedCalendarId] = React.useState<string>('');
   const [linkedSession, setLinkedSession] = React.useState<PatientSession | null>(null);
   const [patientSessions, setPatientSessions] = React.useState<PatientSession[]>([]);
   const [quoteItems, setQuoteItems] = React.useState<QuoteItem[]>([]);
@@ -1075,7 +1093,11 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     else setIsLoadingAppointments(true);
 
     try {
-      const data = await getAppointmentsForDoctorToday(String(user.id));
+      const useCalendar = viewMode === 'calendar' && !!selectedCalendarId;
+      const source: WorkspaceAppointmentSource = useCalendar
+        ? { mode: 'calendar', calendarId: selectedCalendarId }
+        : { mode: 'doctor', doctorId: String(user.id) };
+      const data = await getAppointmentsForToday(source);
       const dateKey = formatDate(new Date());
       const storageKey = getKnownAppointmentsStorageKey(String(user.id), dateKey);
       const previousAppointmentIds = readKnownAppointmentIds(storageKey);
@@ -1102,7 +1124,82 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
       setIsRefreshing(false);
       setIsLoadingAppointments(false);
     }
-  }, [user?.id]);
+  }, [user?.id, viewMode, selectedCalendarId]);
+
+  // Resolve the `can_browse_calendars` flag for the logged-in doctor. Prefer the value
+  // from AUTH_ME; if it isn't present, fetch the user's record from the USERS endpoint.
+  React.useEffect(() => {
+    if (user?.can_browse_calendars !== undefined) {
+      setCanBrowseCalendars(Boolean(user.can_browse_calendars));
+      return;
+    }
+    if (!user?.id) {
+      setCanBrowseCalendars(false);
+      return;
+    }
+    let cancelled = false;
+    api.get(API_ROUTES.USERS, { search: String(user.id), filter_type: 'DOCTOR', limit: '5' })
+      .then((data: any) => {
+        if (cancelled) return;
+        let rows: any[] = [];
+        if (Array.isArray(data) && data.length > 0) {
+          const first = data[0];
+          if (first?.json?.data) rows = first.json.data;
+          else if (first?.data) rows = first.data;
+          else rows = data;
+        } else if (data?.data) {
+          rows = data.data;
+        }
+        const me = rows.find((row: any) => String(row.id) === String(user.id));
+        setCanBrowseCalendars(Boolean(me?.can_browse_calendars));
+      })
+      .catch(() => { if (!cancelled) setCanBrowseCalendars(false); });
+    return () => { cancelled = true; };
+  }, [user?.id, user?.can_browse_calendars]);
+
+  // Load the calendars this doctor has been granted access to. Only when the doctor
+  // has the `can_browse_calendars` flag enabled. If none, the agenda source switch is
+  // hidden and the doctor only sees their own appointments.
+  React.useEffect(() => {
+    if (!user?.id || !canBrowseCalendars) {
+      setAccessibleCalendars([]);
+      return;
+    }
+    let cancelled = false;
+    api.get(API_ROUTES.CALENDAR_USERS_SEARCH, { user_id: String(user.id) })
+      .then((data: any) => {
+        if (cancelled) return;
+        const raw = Array.isArray(data) ? data : (data?.calendar_users || data?.calendars || data?.data || []);
+        const calendars = raw
+          .map((item: any) => ({
+            id: String(item.calendar_source_id ?? item.id ?? ''),
+            name: item.calendar_name ?? item.name ?? '',
+            color: item.color ?? undefined,
+          }))
+          .filter((calendar: { id: string }) => calendar.id);
+        setAccessibleCalendars(calendars);
+      })
+      .catch(() => {
+        if (!cancelled) setAccessibleCalendars([]);
+      });
+    return () => { cancelled = true; };
+  }, [user?.id, canBrowseCalendars]);
+
+  // Keep the selected calendar valid: when switching to calendar mode without a
+  // selection, default to the first accessible calendar; clear it if access is lost.
+  React.useEffect(() => {
+    setSelectedCalendarId((current) => {
+      if (current && accessibleCalendars.some((c) => c.id === current)) return current;
+      return accessibleCalendars[0]?.id ?? '';
+    });
+  }, [accessibleCalendars]);
+
+  // If the doctor loses calendar access (flag off / no calendars), fall back to "mine".
+  React.useEffect(() => {
+    if ((!canBrowseCalendars || accessibleCalendars.length === 0) && viewMode !== 'mine') {
+      setViewMode('mine');
+    }
+  }, [canBrowseCalendars, accessibleCalendars.length, viewMode]);
 
   const loadLinkedSession = React.useCallback(async (appointment: Appointment | null, requestId?: number, silent = false) => {
     if (!appointment?.patientId) {
@@ -1648,12 +1745,59 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                 </Button>
               </CardHeader>
 
+              {canBrowseCalendars && accessibleCalendars.length > 0 && (
+                <div className="shrink-0 space-y-2 border-b px-4 py-2.5">
+                  <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('mine')}
+                      className={cn(
+                        'rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
+                        viewMode === 'mine' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                      )}
+                    >
+                      {t('calendarSwitch.assignedToMe')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('calendar')}
+                      className={cn(
+                        'rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
+                        viewMode === 'calendar' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                      )}
+                    >
+                      {t('calendarSwitch.myCalendars')}
+                    </button>
+                  </div>
+
+                  {viewMode === 'calendar' && (
+                    <Select value={selectedCalendarId} onValueChange={setSelectedCalendarId}>
+                      <SelectTrigger className="h-8 w-full text-xs" aria-label={t('calendarSwitch.selectCalendar')}>
+                        <SelectValue placeholder={t('calendarSwitch.selectCalendar')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {accessibleCalendars.map((calendar) => (
+                          <SelectItem key={calendar.id} value={calendar.id}>
+                            <span className="flex items-center gap-2">
+                              {calendar.color && (
+                                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: calendar.color }} />
+                              )}
+                              {calendar.name}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              )}
+
               <CardContent className="flex-1 min-h-0 overflow-y-auto p-4">
                 <DoctorAgendaTimeline
                   appointments={appointments}
                   isLoading={isLoadingAppointments}
                   onSelect={(appointmentId) => selectAppointment(appointmentId, true)}
-                  selectedAppointmentId={selectedAppointment?.id}
+                  selectedAppointmentId={isMobile && !mobileDetailsOpen ? null : selectedAppointment?.id}
                 />
               </CardContent>
             </Card>
@@ -1708,7 +1852,6 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
           prefillData={clinicSessionPrefillData}
           prefillTreatments={clinicSessionPrefillTreatments}
           existingSession={linkedSession ?? undefined}
-          hideNextAppointmentDate
           lockDoctor
         />
       )}

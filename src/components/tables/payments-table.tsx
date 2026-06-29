@@ -9,6 +9,7 @@ import { DataListRow } from '@/components/ui/data-list-row';
 import { ViewModeToggle } from '@/components/ui/view-mode-toggle';
 import { useTableViewMode } from '@/hooks/use-table-view-mode';
 import { DataTable } from '@/components/ui/data-table';
+import { DataTableAdvancedToolbar, type FilterOption } from '@/components/ui/data-table-advanced-toolbar';
 import { useNarrowMode } from '@/components/layout/two-panel-layout';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -16,13 +17,15 @@ import { PURCHASES_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permission
 import { usePermissions } from '@/hooks/usePermissions';
 import { Payment } from '@/lib/types';
 import { cn, formatDisplayDate } from '@/lib/utils';
-import { isPaymentEditable } from '@/services/payments-service';
+import { isPaymentEditable, type PaymentTypeFilter } from '@/services/payments-service';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { CreditCard, Download, MoreHorizontal, Pencil, Printer, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import React from 'react';
 import { Button } from '../ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '../ui/dropdown-menu';
+
+const PAYMENT_TYPE_FILTER_OPTIONS: Exclude<PaymentTypeFilter, 'all'>[] = ['prepaid', 'direct_payment', 'payment_allocation', 'credit_note_allocation'];
 
 function HistoricalBadge({ label }: { label: string }) {
   return (
@@ -191,6 +194,17 @@ const getColumns = (
         );
       },
     },
+    {
+      accessorKey: 'external_id',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('external_id')} />
+      ),
+      cell: ({ row }) => (
+        <span className="font-mono text-xs text-muted-foreground">
+          {row.getValue('external_id') ?? '—'}
+        </span>
+      ),
+    },
 
   ];
 
@@ -276,9 +290,12 @@ interface PaymentsTableProps {
   isCompact?: boolean;
   onExport?: () => void;
   isSales?: boolean;
+  /** Server-side transaction-type filter (controlled) */
+  typeFilter?: PaymentTypeFilter;
+  onTypeFilterChange?: (type: PaymentTypeFilter) => void;
 }
 
-export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [], onPrint, onSendEmail, onEdit, onAllocate, onCreate, className, pagination, onPaginationChange, pageCount, rowCount, manualPagination = false, columnFilters, onColumnFiltersChange, onRowSelectionChange, rowSelection, setRowSelection, title, description, canCreate, isCompact = false, onExport, isSales = true }: PaymentsTableProps) {
+export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [], onPrint, onSendEmail, onEdit, onAllocate, onCreate, className, pagination, onPaginationChange, pageCount, rowCount, manualPagination = false, columnFilters, onColumnFiltersChange, onRowSelectionChange, rowSelection, setRowSelection, title, description, canCreate, isCompact = false, onExport, isSales = true, typeFilter, onTypeFilterChange }: PaymentsTableProps) {
   const t = useTranslations('PaymentsPage.columns');
   const tPage = useTranslations('PaymentsPage');
   const { hasPermission } = usePermissions();
@@ -293,6 +310,39 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
   const columns = React.useMemo(() => getColumns(t, tActions, tPaymentMethods, onPrint, onSendEmail, onEdit, onAllocate), [t, tActions, tPaymentMethods, onPrint, onSendEmail, onEdit, onAllocate]);
 
   const filteredColumns = columns.filter(col => !columnsToHide.includes((col as any).accessorKey));
+
+  const columnTranslations = {
+    doc_no: t('doc_no'),
+    user_name: t('user'),
+    invoice_doc_no: t('invoice_doc_no'),
+    type: t('type'),
+    payment_date: t('date'),
+    amount_applied: t('amount_applied'),
+    source_amount: t('source_amount'),
+    source_currency: t('source_currency'),
+    exchange_rate: t('exchange_rate'),
+    payment_method_code: t('method'),
+    method: t('method'),
+    external_id: t('external_id'),
+  };
+
+  const exportButton = onExport && hasPermission(isSales ? SALES_PERMISSIONS.PAYMENTS_EXPORT : PURCHASES_PERMISSIONS.PAYMENTS_EXPORT) ? (
+    <Button variant="outline" size="sm" className="h-9" onClick={onExport}>
+      <Download className="mr-2 h-4 w-4" /> {tPage('export')}
+    </Button>
+  ) : undefined;
+
+  // Transaction-type filter options for the advanced toolbar (sliders icon inside the search input)
+  const typeFilterOptions = React.useMemo<FilterOption[]>(() => {
+    if (!onTypeFilterChange) return [];
+    return PAYMENT_TYPE_FILTER_OPTIONS.map((option) => ({
+      value: option,
+      label: t(`paymentTypes.${option}`),
+      group: tPage('typeFilter.label'),
+      isActive: typeFilter === option,
+      onSelect: () => onTypeFilterChange(typeFilter === option ? 'all' : option),
+    }));
+  }, [onTypeFilterChange, typeFilter, t, tPage]);
 
   return (
     <Card className={cn("h-full flex-1 flex flex-col min-h-0 border-0 lg:border shadow-none lg:shadow-sm", className)}>
@@ -320,19 +370,26 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
           isRefreshing={isRefreshing}
           onCreate={canCreate ? () => onCreate?.() : undefined}
           createButtonLabel={tPage('createPrepaid')}
-          columnTranslations={{
-            doc_no: t('doc_no'),
-            user_name: t('user'),
-            invoice_doc_no: t('invoice_doc_no'),
-            type: t('type'),
-            payment_date: t('date'),
-            amount_applied: t('amount_applied'),
-            source_amount: t('source_amount'),
-            source_currency: t('source_currency'),
-            exchange_rate: t('exchange_rate'),
-            payment_method_code: t('method'),
-            method: t('method'),
-          }}
+          columnTranslations={columnTranslations}
+          customToolbar={onTypeFilterChange ? (table: any, paginationNode: React.ReactNode) => (
+            <DataTableAdvancedToolbar
+              table={table}
+              isCompact={isCompact}
+              endSlot={paginationNode}
+              filterPlaceholder={tPage('filterPlaceholder')}
+              searchQuery={(table.getColumn('doc_no')?.getFilterValue() as string) ?? ''}
+              onSearchChange={(value: string) => table.getColumn('doc_no')?.setFilterValue(value)}
+              filters={typeFilterOptions}
+              onClearFilters={() => onTypeFilterChange('all')}
+              onCreate={canCreate ? () => onCreate?.() : undefined}
+              createButtonLabel={tPage('createPrepaid')}
+              onRefresh={onRefresh}
+              isRefreshing={isRefreshing}
+              extraButtons={exportButton}
+              viewControls={showToggle ? <ViewModeToggle value={viewMode} onChange={setViewMode} /> : undefined}
+              columnTranslations={columnTranslations}
+            />
+          ) : undefined}
           pagination={pagination}
           onPaginationChange={onPaginationChange}
           pageCount={pageCount}
@@ -347,13 +404,7 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
           getRowClassName={(row: Payment) => row.is_historical ? 'border-l-4 border-l-amber-400 bg-amber-50/70 dark:border-l-amber-700 dark:bg-amber-950/30' : ''}
           isNarrow={isNarrow}
           viewControls={showToggle ? <ViewModeToggle value={viewMode} onChange={setViewMode} /> : undefined}
-          extraButtons={
-            onExport && hasPermission(isSales ? SALES_PERMISSIONS.PAYMENTS_EXPORT : PURCHASES_PERMISSIONS.PAYMENTS_EXPORT) ? (
-              <Button variant="outline" size="sm" className="h-9" onClick={onExport}>
-                <Download className="mr-2 h-4 w-4" /> {tPage('export')}
-              </Button>
-            ) : undefined
-          }
+          extraButtons={exportButton}
           cardListClassName={useListView ? 'gap-0 px-0 py-0 rounded-md border' : undefined}
           renderCard={(row: Payment, _isSelected: boolean) => {
             const amount = row.amount_applied != null

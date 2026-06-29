@@ -5,7 +5,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DatePickerInput } from '@/components/ui/date-picker';
-import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogBody, DialogCancelButton, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
 import { UserSelector } from '@/components/ui/user-selector';
@@ -162,7 +162,7 @@ export function PrepaidFormDialog({ open, onOpenChange, initialUser, onSaveSucce
     return (
         <>
             <Dialog open={open} onOpenChange={(o) => { if (!isConfirmOpen) onOpenChange(o); }}>
-                <DialogContent>
+                <DialogContent confirmOnClose isDirty={form.formState.isDirty}>
                     <DialogHeader>
                         <DialogTitle>{t('prepaidDialog.title')}</DialogTitle>
                     </DialogHeader>
@@ -293,7 +293,7 @@ export function PrepaidFormDialog({ open, onOpenChange, initialUser, onSaveSucce
                                 )} />
                             </DialogBody>
                             <DialogFooter>
-                                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t('prepaidDialog.cancel')}</Button>
+                                <DialogCancelButton variant="outline">{t('prepaidDialog.cancel')}</DialogCancelButton>
                                 <Button type="submit">{t('prepaidDialog.save')}</Button>
                             </DialogFooter>
                         </form>

@@ -13,6 +13,7 @@ import { DataTableAdvancedToolbar, FilterOption } from '@/components/ui/data-tab
 import {
   Dialog,
   DialogBody,
+  DialogCancelButton,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -26,7 +27,8 @@ import { VerticalTabStrip, VerticalTab } from '@/components/ui/vertical-tab-stri
 import { DoctorAvailability } from '@/components/users/doctor-availability';
 import { DoctorAvailabilityExceptions } from '@/components/users/doctor-availability-exceptions';
 import { UserServices } from '@/components/users/user-services';
-import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
+import { SYSTEM_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
+import { DoctorCalendarsTab } from '@/components/calendar/doctor-calendars-tab';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -36,7 +38,7 @@ import { useLicenseStore } from '@/stores/license-store';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, CalendarClock, CalendarX, Check, ChevronsUpDown, ClipboardList, KeyRound, Stethoscope, UserSquare, X } from 'lucide-react';
+import { AlertTriangle, Calendar as CalendarIcon, CalendarClock, CalendarX, Check, ChevronsUpDown, ClipboardList, KeyRound, Stethoscope, UserSquare, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -47,6 +49,7 @@ import { cn } from '@/lib/utils';
 import { DoctorsColumnsWrapper } from './columns';
 import { useDeepLink } from '@/hooks/use-deep-link';
 import { extractCreatedUserId, sendFirstTimePasswordToken } from '@/services/users';
+import { useCheckFirstPassword } from '@/hooks/use-check-first-password';
 
 
 const doctorFormSchema = (t: (key: string) => string) => z.object({
@@ -68,6 +71,7 @@ const doctorFormSchema = (t: (key: string) => string) => z.object({
   is_active: z.boolean().default(false),
   color: z.string().optional(),
   calendar_source_id: z.string().optional(),
+  can_browse_calendars: z.boolean().default(false),
 }).refine((data) => {
   const hasEmail = data.email && data.email.trim() !== '';
   const hasPhone = data.phone && data.phone.trim() !== '';
@@ -123,6 +127,7 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyAc
       color: apiUser.color,
       is_sales: apiUser.is_sales,
       calendar_source_id: apiUser.calendar_source_id ? String(apiUser.calendar_source_id) : undefined,
+      can_browse_calendars: apiUser.can_browse_calendars ?? false,
     }));
 
     return { users: mappedUsers, total: total };
@@ -252,14 +257,13 @@ export default function DoctorsPage() {
   const [users, setUsers] = React.useState<User[]>([]);
   const [userCount, setUserCount] = React.useState(0);
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
-  const [hasPasswordPermission, setHasPasswordPermission] = React.useState(false);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
   const [detailError, setDetailError] = React.useState<string | null>(null);
   const [isSavingDetail, setIsSavingDetail] = React.useState(false);
 
   const canSetInitialPassword = hasPermission(SYSTEM_PERMISSIONS.USERS_SET_INITIAL_PASSWORD);
-
+  const hasPasswordPermission = useCheckFirstPassword(selectedUser, canSetInitialPassword);
 
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
@@ -296,6 +300,7 @@ export default function DoctorsPage() {
       is_active: true,
       color: '',
       calendar_source_id: '',
+      can_browse_calendars: false,
     },
   });
 
@@ -309,6 +314,7 @@ export default function DoctorsPage() {
       is_active: true,
       color: '',
       calendar_source_id: '',
+      can_browse_calendars: false,
     },
   });
 
@@ -393,36 +399,12 @@ export default function DoctorsPage() {
         is_active: user.is_active,
         color: user.color || '',
         calendar_source_id: user.calendar_source_id || '',
+        can_browse_calendars: user.can_browse_calendars ?? false,
       });
       setDetailError(null);
     }
   };
 
-  React.useEffect(() => {
-    const checkFirstPasswordRequirements = async () => {
-      if (!selectedUser || !canSetInitialPassword) {
-        setHasPasswordPermission(false);
-        return;
-      }
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setHasPasswordPermission(false);
-        return;
-      }
-      try {
-        await api.get(API_ROUTES.SYSTEM.API_AUTH_CHECK_FIRST_PASSWORD, { user_id: selectedUser.id });
-        setHasPasswordPermission(true);
-      } catch {
-        setHasPasswordPermission(false);
-      }
-    };
-
-    if (selectedUser) {
-      checkFirstPasswordRequirements();
-    } else {
-      setHasPasswordPermission(false);
-    }
-  }, [selectedUser, canSetInitialPassword]);
 
   const handleSendInitialPassword = async () => {
     if (!selectedUser || !canSetInitialPassword) return;
@@ -620,6 +602,7 @@ export default function DoctorsPage() {
                   tabs={[
                     { id: 'details', icon: ClipboardList, label: t('DoctorsPage.tabs.details') },
                     { id: 'services', icon: Stethoscope, label: t('UsersPage.tabs.services') },
+                    { id: 'calendars', icon: CalendarIcon, label: t('DoctorsPage.tabs.calendars') },
                     { id: 'availability', icon: CalendarClock, label: t('DoctorsPage.tabs.availability') },
                     { id: 'exceptions', icon: CalendarX, label: t('DoctorsPage.tabs.exceptions') },
                   ] satisfies VerticalTab[]}
@@ -701,6 +684,15 @@ export default function DoctorsPage() {
                             <FormLabel>{t('DoctorsPage.createDialog.isActive')}</FormLabel>
                           </FormItem>
                         )} />
+                        <FormField control={detailForm.control} name="can_browse_calendars" render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-lg border p-3">
+                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                            <div className="space-y-0.5">
+                              <FormLabel>{t('DoctorsPage.createDialog.canBrowseCalendars')}</FormLabel>
+                              <p className="text-xs text-muted-foreground">{t('DoctorsPage.createDialog.canBrowseCalendarsHint')}</p>
+                            </div>
+                          </FormItem>
+                        )} />
                         <div className="flex gap-2 pt-2">
                           <Button type="submit" disabled={isSavingDetail}>
                             {isSavingDetail ? t('DoctorsPage.createDialog.editSave') + '...' : t('DoctorsPage.createDialog.editSave')}
@@ -708,6 +700,9 @@ export default function DoctorsPage() {
                         </div>
                       </form>
                     </Form>
+                  )}
+                  {activeTab === 'calendars' && (
+                    <DoctorCalendarsTab userId={selectedUser.id} canManage={hasPermission(BUSINESS_CONFIG_PERMISSIONS.CALENDARS_MANAGE_USERS)} />
                   )}
                   {activeTab === 'services' && (
                     <UserServices userId={selectedUser.id} isSalesUser={selectedUser.is_sales !== false} />
@@ -726,7 +721,7 @@ export default function DoctorsPage() {
       />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent confirmOnClose isDirty={form.formState.isDirty}>
           <DialogHeader>
             <DialogTitle>{t('DoctorsPage.createDialog.createTitle')}</DialogTitle>
             <DialogDescription>{t('DoctorsPage.createDialog.createDescription')}</DialogDescription>
@@ -867,10 +862,25 @@ export default function DoctorsPage() {
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="can_browse_calendars"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-lg border p-3">
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <div className="space-y-0.5">
+                        <FormLabel>{t('DoctorsPage.createDialog.canBrowseCalendars')}</FormLabel>
+                        <p className="text-xs text-muted-foreground">{t('DoctorsPage.createDialog.canBrowseCalendarsHint')}</p>
+                      </div>
+                    </FormItem>
+                  )}
+                />
               </DialogBody>
               <DialogFooter>
                 <Button type="submit">{t('DoctorsPage.createDialog.save')}</Button>
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('DoctorsPage.createDialog.cancel')}</Button>
+                <DialogCancelButton>{t('DoctorsPage.createDialog.cancel')}</DialogCancelButton>
               </DialogFooter>
             </form>
           </Form>

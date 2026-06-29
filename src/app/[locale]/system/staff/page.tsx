@@ -12,6 +12,7 @@ import { DataTableAdvancedToolbar, FilterOption } from '@/components/ui/data-tab
 import {
   Dialog,
   DialogBody,
+  DialogCancelButton,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -40,6 +41,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { Role, User, UserRole, UserRoleAssignment } from '@/lib/types';
 import { api } from '@/services/api';
 import { extractCreatedUserId, sendFirstTimePasswordToken } from '@/services/users';
+import { useCheckFirstPassword } from '@/hooks/use-check-first-password';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { isValidPhoneNumber } from 'libphonenumber-js';
@@ -412,7 +414,6 @@ export default function StaffPage() {
   // Detail panel state
   const [detailError, setDetailError] = React.useState<string | null>(null);
   const [isSavingDetail, setIsSavingDetail] = React.useState(false);
-  const [hasPasswordPermission, setHasPasswordPermission] = React.useState(false);
 
   // Table state
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -464,6 +465,7 @@ export default function StaffPage() {
   const canUpdate = hasPermission(SYSTEM_PERMISSIONS.USERS_UPDATE);
   const canToggleStatus = hasPermission(SYSTEM_PERMISSIONS.USERS_TOGGLE_STATUS);
   const canSetInitialPassword = hasPermission(SYSTEM_PERMISSIONS.USERS_SET_INITIAL_PASSWORD);
+  const hasPasswordPermission = useCheckFirstPassword(selectedUser, canSetInitialPassword);
   const canViewRoles = hasPermission(SYSTEM_PERMISSIONS.USERS_VIEW_ROLES);
   const canAssignRole = hasPermission(SYSTEM_PERMISSIONS.USERS_ASSIGN_ROLE);
   const canRemoveRole = hasPermission(SYSTEM_PERMISSIONS.USERS_REMOVE_ROLE);
@@ -545,31 +547,6 @@ export default function StaffPage() {
     }
   }, [selectedUser, loadUserRoles]);
 
-  React.useEffect(() => {
-    const checkFirstPasswordRequirements = async () => {
-      if (!selectedUser || !canSetInitialPassword) {
-        setHasPasswordPermission(false);
-        return;
-      }
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setHasPasswordPermission(false);
-        return;
-      }
-      try {
-        await api.get(API_ROUTES.SYSTEM.API_AUTH_CHECK_FIRST_PASSWORD, { user_id: selectedUser.id });
-        setHasPasswordPermission(true);
-      } catch {
-        setHasPasswordPermission(false);
-      }
-    };
-
-    if (selectedUser) {
-      checkFirstPasswordRequirements();
-    } else {
-      setHasPasswordPermission(false);
-    }
-  }, [selectedUser, canSetInitialPassword]);
 
   const handleSendInitialPassword = async () => {
     if (!selectedUser || !canSetInitialPassword) return;
@@ -1130,7 +1107,7 @@ export default function StaffPage() {
 
       {/* Create Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent confirmOnClose isDirty={form.formState.isDirty}>
           <DialogHeader>
             <DialogTitle>{t('StaffPage.createDialog.createTitle')}</DialogTitle>
             <DialogDescription>
@@ -1274,13 +1251,9 @@ export default function StaffPage() {
                 />
               </DialogBody>
               <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
-                >
+                <DialogCancelButton>
                   {t('StaffPage.createDialog.cancel')}
-                </Button>
+                </DialogCancelButton>
                 <Button type="submit">{t('StaffPage.createDialog.save')}</Button>
               </DialogFooter>
             </form>

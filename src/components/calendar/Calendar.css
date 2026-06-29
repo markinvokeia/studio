@@ -18,6 +18,18 @@
   gap: 0.5rem;
 }
 
+/* Reordered actions header (desktop): items flow left-to-right after the date.
+   When space is tight the secondary cluster wraps to a full-width second row,
+   staying left-aligned. */
+.calendar-header--actions {
+  justify-content: flex-start;
+}
+.calendar-header--actions .calendar-header__secondary {
+  /* Don't shrink: when it can't fit next to Create it drops to row 2 as a block. */
+  flex: 0 0 auto;
+  justify-content: flex-start;
+}
+
 .calendar-body {
   flex-grow: 1;
   overflow: hidden;
@@ -193,6 +205,12 @@
 .day-view-scroll-content {
   display: flex;
   flex-direction: column;
+  /* Must grow to the full content height (not shrink to the viewport) so it
+     stays the containing block for the sticky day header across the whole
+     scroll range. Without this it collapses to the visible height and the
+     header un-sticks once you scroll past one viewport (visible at tall
+     hour-slot heights). */
+  flex-shrink: 0;
   min-height: 100%;
   min-width: 100%;
   padding-right: 12px;
@@ -335,7 +353,7 @@
 }
 
 .time-column {
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--cal-font-scale, 1));
   color: hsl(var(--muted-foreground));
   text-align: right;
   padding-right: 0.5rem;
@@ -360,7 +378,7 @@
 }
 
 .time-slot {
-  height: 60px;
+  height: var(--hour-slot-height, 60px);
   /* 1 hour */
   border-bottom: 1px solid hsl(var(--border) / 0.5);
   position: relative;
@@ -368,6 +386,21 @@
 
 .time-slot:last-child {
   border-bottom: none;
+}
+
+/* Slot subdivisions inside grid columns: one faint line per slot, where the
+   number of slots per hour comes from the calendar's slot-duration setting
+   (--cal-slots-per-hour). This keeps the grid aligned with the configured
+   appointment granularity (e.g. 6 lines/hour for 10-min slots). */
+.time-slot-divider {
+  background-image:
+    repeating-linear-gradient(
+      to bottom,
+      hsl(var(--border) / 0.4) 0,
+      hsl(var(--border) / 0.4) 1px,
+      transparent 1px,
+      transparent calc(var(--hour-slot-height, 60px) / var(--cal-slots-per-hour, 4))
+    );
 }
 
 .time-slot-label {
@@ -421,7 +454,7 @@
   color: hsl(var(--primary-foreground));
   border-radius: 4px;
   padding: 4px 4px 4px 8px;
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--cal-font-scale, 1));
   overflow: hidden;
   cursor: pointer;
   z-index: 10;
@@ -436,20 +469,26 @@
 
 .event-day-title {
   font-weight: 600;
+  /* Wrap onto as many lines as needed, capped at 3 lines, then ellipsis. */
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .event-day-time {
-  font-size: 0.7rem;
+  font-size: calc(0.7rem * var(--cal-font-scale, 1));
   line-height: 1;
   opacity: 0.95;
 }
 
 .event-in-day-view-compact {
-  flex-direction: row;
-  align-items: baseline;
+  flex-direction: column;
+  align-items: stretch;
   padding: 2px 4px 2px 8px;
   gap: 0;
 }
@@ -459,7 +498,12 @@
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
-  text-overflow: ellipsis;
+  /* Wrap to fit the available width (up to 3 lines) instead of a single
+     ellipsised line, so the title stays readable in narrow columns. */
+  white-space: normal;
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
 }
 
 .event-in-day-view-compact .event-day-time {
@@ -587,4 +631,169 @@
   .day-block > .day-column {
     scroll-snap-align: start;
   }
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   "Huecos" — free-slot highlights (gap finder)
+   ─────────────────────────────────────────────────────────────────────────── */
+.calendar-gap {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  z-index: 6;
+  border-radius: 8px;
+  background: hsl(var(--primary) / 0.10);
+  border: 1.5px dashed hsl(var(--primary) / 0.5);
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 2px;
+  overflow: hidden;
+  appearance: none;
+  transition: background 0.15s ease;
+}
+.calendar-gap:hover {
+  background: hsl(var(--primary) / 0.2);
+}
+.calendar-gap__label {
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: hsl(var(--primary));
+  background: hsl(var(--background) / 0.85);
+  padding: 0 4px;
+  border-radius: 4px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.calendar-gap--selected {
+  background: hsl(var(--primary) / 0.22);
+  border-color: hsl(var(--primary));
+}
+
+/* Largest gap of the day: animated marching-ants border */
+.calendar-gap--max {
+  border: none;
+  background:
+    linear-gradient(90deg, hsl(var(--primary)) 50%, transparent 0) repeat-x,
+    linear-gradient(90deg, hsl(var(--primary)) 50%, transparent 0) repeat-x,
+    linear-gradient(0deg, hsl(var(--primary)) 50%, transparent 0) repeat-y,
+    linear-gradient(0deg, hsl(var(--primary)) 50%, transparent 0) repeat-y,
+    hsl(var(--primary) / 0.12);
+  background-size: 12px 2px, 12px 2px, 2px 12px, 2px 12px;
+  background-position: 0 0, 0 100%, 0 0, 100% 0;
+  background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
+  animation: calendar-gap-march 0.6s linear infinite;
+}
+.calendar-gap--max.calendar-gap--selected {
+  background:
+    linear-gradient(90deg, hsl(var(--primary)) 50%, transparent 0) repeat-x,
+    linear-gradient(90deg, hsl(var(--primary)) 50%, transparent 0) repeat-x,
+    linear-gradient(0deg, hsl(var(--primary)) 50%, transparent 0) repeat-y,
+    linear-gradient(0deg, hsl(var(--primary)) 50%, transparent 0) repeat-y,
+    hsl(var(--primary) / 0.24);
+  background-size: 12px 2px, 12px 2px, 2px 12px, 2px 12px;
+}
+@keyframes calendar-gap-march {
+  to {
+    background-position: 12px 0, -12px 100%, 0 -12px, 100% 12px;
+  }
+}
+
+/* Month view: per-day "largest free slot" badge */
+.calendar-gap-badge {
+  display: inline-block;
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  color: hsl(var(--primary));
+  background: hsl(var(--primary) / 0.12);
+  border: 1px dashed hsl(var(--primary) / 0.5);
+  border-radius: 6px;
+  padding: 0 5px;
+  cursor: pointer;
+  white-space: nowrap;
+  appearance: none;
+  animation: calendar-gap-pulse 1.3s ease-in-out infinite;
+}
+.calendar-gap-badge:hover {
+  background: hsl(var(--primary) / 0.2);
+}
+.calendar-gap-badge--selected {
+  background: hsl(var(--primary) / 0.25);
+  border-color: hsl(var(--primary));
+}
+@keyframes calendar-gap-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Out-of-office blocking ("No disponible") — schedules + exceptions
+   ─────────────────────────────────────────────────────────────────────────── */
+.calendar-blocked {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 3; /* below events (z-index:10), above the grid dividers */
+  cursor: not-allowed;
+  background-color: hsl(var(--muted) / 0.5);
+  background-image: repeating-linear-gradient(
+    45deg,
+    hsl(var(--muted-foreground) / 0.14) 0,
+    hsl(var(--muted-foreground) / 0.14) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+.calendar-blocked__label {
+  margin-top: 3px;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--background) / 0.7);
+  padding: 0 4px;
+  border-radius: 4px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* Closed-by-exception bands: red so they read as an exception at a glance */
+.calendar-blocked--exception {
+  background-color: hsl(0 72% 51% / 0.12);
+  background-image: repeating-linear-gradient(
+    45deg,
+    hsl(0 72% 51% / 0.28) 0,
+    hsl(0 72% 51% / 0.28) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+}
+.calendar-blocked--exception .calendar-blocked__label {
+  color: hsl(0 72% 45%);
+  background: hsl(var(--background) / 0.85);
+}
+/* Exception notes keep their original case (the label is uppercased). */
+.calendar-blocked__note {
+  text-transform: none;
+  font-weight: 500;
+}
+
+/* Month: fully-closed day cell */
+.calendar-day--blocked {
+  cursor: not-allowed;
+  opacity: 0.6;
+  background-image: repeating-linear-gradient(
+    45deg,
+    hsl(var(--muted-foreground) / 0.10) 0,
+    hsl(var(--muted-foreground) / 0.10) 6px,
+    transparent 6px,
+    transparent 12px
+  );
 }

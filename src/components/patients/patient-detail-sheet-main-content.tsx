@@ -1,14 +1,14 @@
 'use client'
 
 import * as React from 'react'
-import { CreditCard, Stethoscope } from 'lucide-react'
+import { CreditCard, Stethoscope, Users } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
 import { PatientSubTabNav } from '@/components/patients/patient-subtab-nav'
 import { VerticalTabStrip } from '@/components/ui/vertical-tab-strip'
 import type { VerticalTab } from '@/components/ui/vertical-tab-strip'
 
-export type PatientSheetMacroTab = 'clinical' | 'financial'
+export type PatientSheetMacroTab = 'info' | 'clinical' | 'financial'
 export type PatientSheetClinicalSubTab = 'anamnesis' | 'clinical-history' | 'treatment-plans' | 'documents'
 export type PatientSheetFinancialSubTab = 'quotes' | 'invoices' | 'payments'
 
@@ -20,6 +20,8 @@ interface PatientDetailSheetMainContentProps {
   activeFinancialSubTab: PatientSheetFinancialSubTab
   onFinancialSubTabChange: (tab: PatientSheetFinancialSubTab) => void
   isDoctorMode: boolean
+  /** Patient details (demographics + edit). When provided, an "info" tab is shown first. */
+  infoContent?: React.ReactNode
   anamnesisContent: React.ReactNode
   clinicalHistoryContent: React.ReactNode
   treatmentPlansContent: React.ReactNode
@@ -38,6 +40,7 @@ export function PatientDetailSheetMainContent({
   activeFinancialSubTab,
   onFinancialSubTabChange,
   isDoctorMode,
+  infoContent,
   anamnesisContent,
   clinicalHistoryContent,
   treatmentPlansContent,
@@ -49,16 +52,16 @@ export function PatientDetailSheetMainContent({
 }: PatientDetailSheetMainContentProps) {
   const t = useTranslations('UsersPage')
 
-  const macroTabs = React.useMemo<VerticalTab[]>(() => (
-    isDoctorMode
-      ? [
-          { id: 'clinical', icon: Stethoscope, label: t('tabs.clinical') },
-        ]
+  const macroTabs = React.useMemo<VerticalTab[]>(() => {
+    const infoTab: VerticalTab[] = infoContent ? [{ id: 'info', icon: Users, label: t('tabs.info') }] : []
+    return isDoctorMode
+      ? [...infoTab, { id: 'clinical', icon: Stethoscope, label: t('tabs.clinical') }]
       : [
+          ...infoTab,
           { id: 'clinical', icon: Stethoscope, label: t('tabs.clinical') },
           { id: 'financial', icon: CreditCard, label: t('tabs.financial') },
         ]
-  ), [isDoctorMode, t])
+  }, [isDoctorMode, infoContent, t])
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden min-h-0">
@@ -68,6 +71,8 @@ export function PatientDetailSheetMainContent({
         onTabClick={(tab) => onActiveTabChange(tab.id as PatientSheetMacroTab)}
       />
       <div className="flex-1 overflow-auto min-h-0 p-3">
+        {activeTab === 'info' && infoContent}
+
         {activeTab === 'clinical' && (
           <>
             <PatientSubTabNav

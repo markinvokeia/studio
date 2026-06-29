@@ -5,23 +5,40 @@ import { useTranslations } from 'next-intl';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { CalendarSettings } from '@/lib/types';
+import { CalendarSettings, Sede } from '@/lib/types';
 import api from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
+import { DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, EVENT_LABEL_FORMATS, HOUR_SLOT_HEIGHT, HOUR_SLOT_HEIGHT_OPTIONS, SLOT_DURATION_OPTIONS } from './calendar-constants';
 import { DEFAULT_CALENDAR_SETTINGS, normalizeCalendarSettings } from './calendar-settings-utils';
 
 interface CalendarSettingsFormProps {
   onSettingsChange?: (settings: CalendarSettings) => void;
   className?: string;
   showTitle?: boolean;
+  /** Branches available to pick as the default calendar scope. */
+  sedes?: Sede[];
+  /** When provided, the parent owns the settings: the form uses this value and
+   *  does NOT fetch on mount (prevents reloads from clobbering live toggles). */
+  value?: CalendarSettings;
 }
 
-export function CalendarSettingsForm({ onSettingsChange, className, showTitle = false }: CalendarSettingsFormProps) {
+const ALL_SEDES_VALUE = '__all__';
+
+export function CalendarSettingsForm({ onSettingsChange, className, showTitle = false, sedes = [], value }: CalendarSettingsFormProps) {
   const t = useTranslations('AppointmentsPage.settings');
-  const [settings, setSettings] = React.useState<CalendarSettings>(DEFAULT_CALENDAR_SETTINGS);
-  const [isLoading, setIsLoading] = React.useState(true);
+  const controlled = value !== undefined;
+  const [settings, setSettings] = React.useState<CalendarSettings>(value ?? DEFAULT_CALENDAR_SETTINGS);
+  const [isLoading, setIsLoading] = React.useState(!controlled);
+
+  // Keep the local copy in sync with the parent-owned value (controlled mode).
+  React.useEffect(() => {
+    if (value !== undefined) setSettings(value);
+  }, [value]);
 
   React.useEffect(() => {
+    // When the parent supplies the settings, don't fetch (avoids overwriting a
+    // freshly-toggled preference whenever this form remounts).
+    if (controlled) return;
     let isMounted = true;
 
     const loadSettings = async () => {
@@ -54,7 +71,7 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
     return () => {
       isMounted = false;
     };
-  }, [onSettingsChange]);
+  }, [onSettingsChange, controlled]);
 
   const updateSettings = async (updates: Partial<CalendarSettings>) => {
     const newSettings = { ...settings, ...updates };
@@ -66,6 +83,10 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
     } catch (error) {
       console.error('Failed to save calendar settings:', error);
     }
+  };
+
+  const updateHourHeight = (value: number) => {
+    updateSettings({ hour_height: value });
   };
 
   const viewOptions = ['day', '2_days', '3_days', 'week', 'month', 'agenda'];
@@ -96,6 +117,97 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
               {viewOptions.map(opt => (
                 <SelectItem key={opt} value={opt} className="text-xs">
                   {t(`options.${opt}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="hour-height" className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
+            {t('hourHeight')}
+          </Label>
+          <Select
+            value={String(settings.hour_height ?? HOUR_SLOT_HEIGHT)}
+            onValueChange={(val) => updateHourHeight(Number(val))}
+            disabled={isLoading}
+          >
+            <SelectTrigger id="hour-height" className="h-9 text-xs bg-card border-border/50 shadow-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {HOUR_SLOT_HEIGHT_OPTIONS.map((opt) => (
+                <SelectItem key={opt} value={String(opt)} className="text-xs">
+                  {t('hourHeightOption', { px: opt })}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="slot-duration" className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
+            {t('slotDuration')}
+          </Label>
+          <Select
+            value={String(settings.slot_duration ?? DEFAULT_SLOT_DURATION)}
+            onValueChange={(val) => updateSettings({ slot_duration: Number(val) })}
+            disabled={isLoading}
+          >
+            <SelectTrigger id="slot-duration" className="h-9 text-xs bg-card border-border/50 shadow-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SLOT_DURATION_OPTIONS.map((opt) => (
+                <SelectItem key={opt} value={String(opt)} className="text-xs">
+                  {opt >= 60 ? t('slotDurationHour') : t('slotDurationOption', { min: opt })}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {sedes.length > 0 && (
+          <div className="space-y-1.5">
+            <Label htmlFor="default-sede" className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
+              {t('sede')}
+            </Label>
+            <Select
+              value={settings.default_sede ? settings.default_sede : ALL_SEDES_VALUE}
+              onValueChange={(val) => updateSettings({ default_sede: val === ALL_SEDES_VALUE ? '' : val })}
+              disabled={isLoading}
+            >
+              <SelectTrigger id="default-sede" className="h-9 text-xs bg-card border-border/50 shadow-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_SEDES_VALUE} className="text-xs">{t('allSedes')}</SelectItem>
+                {sedes.map((sede) => (
+                  <SelectItem key={sede.id} value={sede.id} className="text-xs">
+                    {sede.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        <div className="space-y-1.5">
+          <Label htmlFor="event-label-format" className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
+            {t('eventLabel')}
+          </Label>
+          <Select
+            value={settings.event_label_format ?? DEFAULT_EVENT_LABEL_FORMAT}
+            onValueChange={(val) => updateSettings({ event_label_format: val })}
+            disabled={isLoading}
+          >
+            <SelectTrigger id="event-label-format" className="h-9 text-xs bg-card border-border/50 shadow-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {EVENT_LABEL_FORMATS.map((opt) => (
+                <SelectItem key={opt} value={opt} className="text-xs">
+                  {t(`eventLabelOptions.${opt}`)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -139,6 +251,19 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
       </div>
 
       <div className="flex items-center justify-between pt-4 px-1">
+        <Label htmlFor="block-unavailable" className="text-xs font-medium cursor-pointer">
+          {t('blockUnavailable')}
+        </Label>
+        <Switch
+          id="block-unavailable"
+          checked={settings.block_unavailable ?? false}
+          onCheckedChange={(checked) => updateSettings({ block_unavailable: checked })}
+          disabled={isLoading}
+          className="scale-90"
+        />
+      </div>
+
+      <div className="flex items-center justify-between pt-4 px-1">
         <Label htmlFor="filter-doctors-by-service" className="text-xs font-medium cursor-pointer">
           {t('filterDoctorsByService')}
         </Label>
@@ -146,6 +271,19 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
           id="filter-doctors-by-service"
           checked={settings.filter_doctors_by_service}
           onCheckedChange={(checked) => updateSettings({ filter_doctors_by_service: checked })}
+          disabled={isLoading}
+          className="scale-90"
+        />
+      </div>
+
+      <div className="flex items-center justify-between pt-4 px-1">
+        <Label htmlFor="inline-appointment-creation" className="text-xs font-medium cursor-pointer">
+          {t('inlineAppointmentCreation')}
+        </Label>
+        <Switch
+          id="inline-appointment-creation"
+          checked={settings.inline_appointment_creation ?? false}
+          onCheckedChange={(checked) => updateSettings({ inline_appointment_creation: checked })}
           disabled={isLoading}
           className="scale-90"
         />

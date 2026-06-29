@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { differenceInMinutes, format, parseISO } from 'date-fns';
 import {
+  AlertTriangle,
   ArrowRight,
   Calendar as CalendarIcon,
   CalendarSync,
@@ -15,8 +16,11 @@ import {
   Layers,
   Loader2,
   MapPin,
+  Palette,
   StickyNote,
   Stethoscope,
+  Trash2,
+  UserRound,
   UserSquare,
   Zap,
 } from 'lucide-react';
@@ -26,6 +30,16 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Dialog,
   DialogBody,
   DialogContent,
@@ -33,18 +47,29 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ResizableSheet, SheetDescription, SheetTitle } from '@/components/ui/resizable-sheet';
+import { GOOGLE_CALENDAR_COLORS } from '@/components/calendar/calendar-constants';
+import { getReadableTextColor } from '@/components/calendar/calendar-utils';
+import { useToast } from '@/hooks/use-toast';
 import { STATUS_ACCENT_COLOR, canReschedule } from '@/constants/appointment-status';
 import { formatDisplayDate, cn, formatServicePrice } from '@/lib/utils';
-import type { Appointment, AppointmentStatus, Invoice, Order, PatientSession } from '@/lib/types';
+import type { Appointment, AppointmentStatus, Calendar as CalendarType, Invoice, Order, PatientSession, User } from '@/lib/types';
 
 import { DoctorDetailSheet } from '@/components/appointments/DoctorDetailSheet';
-import { PatientDetailSheet } from '@/components/appointments/PatientDetailSheet';
+import { InlineEntityPicker } from '@/components/appointments/InlineEntityPicker';
 import { QuoteDetailSheet } from '@/components/appointments/QuoteDetailSheet';
 import { AppointmentStatusRail, type StatusChangeExtra } from '@/components/appointments/AppointmentStatusRail';
 import { getStatusIcon } from '@/components/appointments/status-icons';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
+import { usePatientView } from '@/stores/patient-view-store';
+import { useAccountStatement } from '@/stores/account-statement-store';
 import { fetchAppointmentBillingState } from '@/services/billing-preflight';
+import {
+  fetchReassignCalendars,
+  fetchReassignDoctors,
+  reassignAppointmentField,
+} from '@/lib/appointment-reassign';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 
@@ -137,6 +162,74 @@ function DetailRow({ icon: Icon, label, value, detail, onClick, tone = 'default'
   );
 }
 
+interface EditableDetailRowProps {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: React.ReactNode;
+  detail?: React.ReactNode;
+  onValueClick?: () => void;
+  editLabel: string;
+  isEditing: boolean;
+  onEditingChange: (open: boolean) => void;
+  /** Floating picker rendered in the popover anchored below the value. */
+  picker: React.ReactNode;
+  className?: string;
+}
+
+/**
+ * A DetailRow whose value can be quick-edited via a floating dropdown picker
+ * anchored directly below the value. Opening is toggled by a trailing pencil
+ * button; selecting an option closes the popover.
+ */
+function EditableDetailRow({
+  icon: Icon,
+  label,
+  value,
+  detail,
+  onValueClick,
+  editLabel,
+  isEditing,
+  onEditingChange,
+  picker,
+  className,
+}: EditableDetailRowProps) {
+  return (
+    <Popover open={isEditing} onOpenChange={onEditingChange}>
+      <div className={cn('flex w-full items-center gap-3 border-b border-border/70 py-3 text-left', className)}>
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-muted/60 text-muted-foreground">
+          <Icon className="h-4 w-4" />
+        </span>
+        <PopoverAnchor asChild>
+          <button
+            type="button"
+            onClick={onValueClick}
+            disabled={!onValueClick}
+            className={cn('min-w-0 flex-1 text-left', onValueClick && 'transition-colors hover:opacity-80')}
+          >
+            <span className="block text-xs font-medium text-muted-foreground">{label}</span>
+            <span className="block text-sm font-semibold leading-snug text-foreground">{value}</span>
+            {detail && <span className="mt-0.5 block text-xs text-muted-foreground">{detail}</span>}
+          </button>
+        </PopoverAnchor>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className={cn('h-8 w-8 shrink-0 text-muted-foreground', isEditing && 'bg-muted text-foreground')}
+          onClick={() => onEditingChange(!isEditing)}
+          title={editLabel}
+          aria-label={editLabel}
+        >
+          <Edit className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+      <PopoverContent align="start" sideOffset={6} className="w-72 p-0">
+        {picker}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 interface AppointmentPanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -148,16 +241,28 @@ interface AppointmentPanelProps {
   isLoadingQuoteInfo: boolean;
   doctorColor?: string;
   onEdit?: (appointment: Appointment) => void;
+  /** Soft-deletes the appointment (status → 'deleted') and removes it from the calendar. */
+  onDelete?: (appointment: Appointment) => void;
   onCancel?: (appointment: Appointment) => void;
   onOpenClinicSession?: (appointment: Appointment) => void;
   onReschedule?: (appointment: Appointment) => void;
   onBillingSuccess?: () => void;
+  hideBillingAction?: boolean;
   onStatusChange: (
     appointment: Appointment,
     newStatus: AppointmentStatus,
     extra?: StatusChangeExtra,
   ) => void;
   onRequestCustomCancellation?: (appointment: Appointment) => void;
+  /** Doctors offered in the quick-edit picker. Fetched lazily when omitted. */
+  doctors?: User[];
+  /** Rooms (calendars) offered in the quick-edit picker. Fetched lazily when omitted. */
+  calendars?: CalendarType[];
+  /** Called after a successful inline doctor/room reassignment so parents can sync state. */
+  onAppointmentUpdated?: (appointment: Appointment) => void;
+  /** Changes the appointment's color tag (Google color id), mirroring the calendar
+   *  right-click color picker. */
+  onColorChange?: (appointment: Appointment, colorId: string) => void;
 }
 
 export function AppointmentPanel({
@@ -171,30 +276,127 @@ export function AppointmentPanel({
   isLoadingQuoteInfo,
   doctorColor,
   onEdit,
+  onDelete,
   onOpenClinicSession,
   onReschedule,
   onStatusChange,
   onRequestCustomCancellation,
   onBillingSuccess,
+  hideBillingAction = false,
+  doctors: doctorsProp,
+  calendars: calendarsProp,
+  onAppointmentUpdated,
+  onColorChange,
 }: AppointmentPanelProps) {
   const locale = useLocale();
+  const { toast } = useToast();
   const t = useTranslations('AppointmentsPage');
   const tColumns = useTranslations('AppointmentsColumns');
   const tStatus = useTranslations('AppointmentStatus');
   const tReason = useTranslations('CancellationReason');
   const tReschedule = useTranslations('AppointmentReschedule');
   const tPanel = useTranslations('AppointmentPanel');
+  const tAccount = useTranslations('AccountStatement');
   const tServices = useTranslations('ServicesPage');
   const tServicesColumns = useTranslations('ServicesColumns');
   const tGeneral = useTranslations('General');
 
-  const [isPatientSheetOpen, setIsPatientSheetOpen] = React.useState(false);
   const [isDoctorSheetOpen, setIsDoctorSheetOpen] = React.useState(false);
   const [isQuoteSheetOpen, setIsQuoteSheetOpen] = React.useState(false);
   const [selectedService, setSelectedService] = React.useState<NonNullable<Appointment['services']>[number] | null>(null);
   const [isBillingLoading, setIsBillingLoading] = React.useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = React.useState(false);
+  const [isColorPickerOpen, setIsColorPickerOpen] = React.useState(false);
+  // Optimistic color so the header updates immediately on a color change.
+  const [localColor, setLocalColor] = React.useState<string | undefined>(undefined);
+  React.useEffect(() => { setLocalColor(undefined); }, [appointment?.id]);
   const canOpenDetailDeepLinks = useCanOpenDetailDeepLinks();
   const { open: openBillingWizard } = useBillingWizard();
+  const { open: openPatientView } = usePatientView();
+  const { open: openAccountStatement } = useAccountStatement();
+
+  // Outstanding-debt indicator for the appointment's patient (per currency).
+  const [patientDebt, setPatientDebt] = React.useState<{ currency: string; amount: number }[]>([]);
+  React.useEffect(() => {
+    const patientId = appointment?.patientId;
+    if (!open || !patientId) { setPatientDebt([]); return; }
+    let active = true;
+    api.get(API_ROUTES.USER_FINANCIAL, { user_id: patientId })
+      .then((raw: any) => {
+        if (!active) return;
+        const fin = Array.isArray(raw) ? raw[0] : raw;
+        const byCurrency = fin?.financial_data ?? {};
+        setPatientDebt(
+          Object.entries(byCurrency)
+            .map(([currency, d]: [string, any]) => ({ currency, amount: Number(d?.current_debt ?? 0) }))
+            .filter((d) => d.amount > 0),
+        );
+      })
+      .catch(() => { if (active) setPatientDebt([]); });
+    return () => { active = false; };
+  }, [open, appointment?.patientId]);
+
+  // ── Quick-edit doctor / room (calendar) ─────────────────────────────────────
+  // Local override so the panel reflects the reassignment immediately even if the
+  // parent doesn't sync its own copy.
+  const [localAppointment, setLocalAppointment] = React.useState<Appointment | null>(null);
+  const [editingField, setEditingField] = React.useState<'doctor' | 'calendar' | null>(null);
+  const [isReassignSaving, setIsReassignSaving] = React.useState(false);
+  const [fetchedDoctors, setFetchedDoctors] = React.useState<User[] | null>(null);
+  const [fetchedCalendars, setFetchedCalendars] = React.useState<CalendarType[] | null>(null);
+  const [isLoadingTargets, setIsLoadingTargets] = React.useState(false);
+
+  const doctors = React.useMemo(() => doctorsProp ?? fetchedDoctors ?? [], [doctorsProp, fetchedDoctors]);
+  const calendars = React.useMemo(() => calendarsProp ?? fetchedCalendars ?? [], [calendarsProp, fetchedCalendars]);
+
+  // Reset transient edit state whenever the appointment changes.
+  React.useEffect(() => {
+    setLocalAppointment(null);
+    setEditingField(null);
+  }, [appointment?.id]);
+
+  const handleEditingChange = React.useCallback(async (field: 'doctor' | 'calendar', open: boolean) => {
+    setEditingField(open ? field : null);
+    if (!open) return;
+    // Lazily load picker options the first time they're needed.
+    if (field === 'doctor' && !doctorsProp && fetchedDoctors === null) {
+      setIsLoadingTargets(true);
+      setFetchedDoctors(await fetchReassignDoctors());
+      setIsLoadingTargets(false);
+    } else if (field === 'calendar' && !calendarsProp && fetchedCalendars === null) {
+      setIsLoadingTargets(true);
+      setFetchedCalendars(await fetchReassignCalendars());
+      setIsLoadingTargets(false);
+    }
+  }, [doctorsProp, calendarsProp, fetchedDoctors, fetchedCalendars]);
+
+  const handlePickReassign = React.useCallback(async (field: 'doctor' | 'calendar', id: string) => {
+    const current = localAppointment ?? appointment;
+    if (!current) return;
+    const change = field === 'doctor'
+      ? { doctor: doctors.find((d) => String(d.id) === id) }
+      : { calendar: calendars.find((c) => String(c.id) === id) };
+    if (field === 'doctor' && !change.doctor) return;
+    if (field === 'calendar' && !change.calendar) return;
+    setIsReassignSaving(true);
+    try {
+      const updated = await reassignAppointmentField(current, change);
+      setLocalAppointment(updated);
+      setEditingField(null);
+      onAppointmentUpdated?.(updated);
+      toast({
+        title: field === 'doctor' ? t('toasts.doctorReassigned') : t('toasts.calendarReassigned'),
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: t('toasts.error'),
+        description: error instanceof Error ? error.message : t('toasts.unexpectedError'),
+      });
+    } finally {
+      setIsReassignSaving(false);
+    }
+  }, [appointment, localAppointment, doctors, calendars, onAppointmentUpdated, toast, t]);
 
   // ── Invoice payments ───────────────────────────────────────────────────────
   const [paymentsMap, setPaymentsMap] = React.useState<Record<string, any[]>>({});
@@ -324,14 +526,26 @@ export function AppointmentPanel({
           appointmentId: appointment.id,
         }, onBillingSuccess);
       } else {
-        const preloadedItems = (appointment.services || []).map((svc) => ({
-          tempId: svc.id,
-          service_id: svc.id,
-          service_name: svc.name,
-          unit_price: svc.price || 0,
-          quantity: 1,
-          total: svc.price || 0,
-        }));
+        const sessionTreatments = (linkedSession?.tratamientos ?? []).filter(
+          (t) => t.service_id && !t.is_for_next_session,
+        );
+        const preloadedItems = sessionTreatments.length > 0
+          ? sessionTreatments.map((t) => ({
+              tempId: String(t.service_id),
+              service_id: String(t.service_id),
+              service_name: t.service_name ?? t.descripcion ?? '',
+              unit_price: t.unit_price ?? 0,
+              quantity: t.quantity ?? 1,
+              total: (t.unit_price ?? 0) * (t.quantity ?? 1),
+            }))
+          : (appointment.services || []).map((svc) => ({
+              tempId: svc.id,
+              service_id: svc.id,
+              service_name: svc.name,
+              unit_price: svc.price || 0,
+              quantity: 1,
+              total: svc.price || 0,
+            }));
         openBillingWizard({
           patientId: appointment.patientId,
           patientName: appointment.patientName,
@@ -348,23 +562,29 @@ export function AppointmentPanel({
 
   const openPatientDetail = React.useCallback(() => {
     if (!appointment?.patientId) return;
-    if (canOpenDetailDeepLinks) {
-      const params = new URLSearchParams({ f: appointment.patientId });
-      openInNewTab(`/${locale}/patients?${params.toString()}`);
-      return;
-    }
-    setIsPatientSheetOpen(true);
-  }, [appointment, canOpenDetailDeepLinks, locale]);
+    openPatientView({
+      userId: appointment.patientId,
+      userName: appointment.patientName,
+      userEmail: appointment.patientEmail,
+      userPhone: appointment.patientPhone,
+    });
+  }, [appointment, openPatientView]);
+
+  const openAccountStatementForPatient = React.useCallback(() => {
+    if (!appointment?.patientId) return;
+    openAccountStatement(appointment.patientId, appointment.patientName);
+  }, [appointment, openAccountStatement]);
 
   const openDoctorDetail = React.useCallback(() => {
-    if (!appointment?.doctorId) return;
+    const doctorId = (localAppointment ?? appointment)?.doctorId;
+    if (!doctorId) return;
     if (canOpenDetailDeepLinks) {
-      const params = new URLSearchParams({ f: appointment.doctorId, t: 'Detalles' });
+      const params = new URLSearchParams({ f: doctorId, t: 'Detalles' });
       openInNewTab(`/${locale}/config/doctors?${params.toString()}`);
       return;
     }
     setIsDoctorSheetOpen(true);
-  }, [appointment, canOpenDetailDeepLinks, locale]);
+  }, [appointment, localAppointment, canOpenDetailDeepLinks, locale]);
 
   const openServiceDetail = React.useCallback((service: NonNullable<Appointment['services']>[number]) => {
     const filter = service.name || service.id;
@@ -383,6 +603,9 @@ export function AppointmentPanel({
 
   if (!appointment) return null;
 
+  // Reflect inline doctor/room reassignments without waiting for the parent to sync.
+  const displayAppointment = localAppointment ?? appointment;
+
   const serviceName = appointment.services && appointment.services.length > 0
     ? appointment.services.map((service) => service.name).join(', ')
     : appointment.service_name || appointment.summary || '';
@@ -390,6 +613,9 @@ export function AppointmentPanel({
   const endDt = parseLocalDateTime(appointment.end?.dateTime);
   const endTime = timeFromDateTime(appointment.end?.dateTime);
   const durationMin = startDt && endDt ? differenceInMinutes(endDt, startDt) : null;
+  const durationHHmm = durationMin != null && durationMin > 0
+    ? `${String(Math.floor(durationMin / 60)).padStart(2, '0')}:${String(durationMin % 60).padStart(2, '0')}`
+    : null;
   const StatusIcon = getStatusIcon(appointment.status, appointment.cancellation_reason);
   const statusColor = STATUS_ACCENT_COLOR[appointment.status];
   const appointmentCode = `#${appointment.id.slice(0, 8).toUpperCase()}`;
@@ -403,6 +629,17 @@ export function AppointmentPanel({
       : tPanel('cancellationReasonUnknown')
     : null;
 
+  // Header tint: use the appointment's assigned color (optimistic local override
+  // wins) so the panel header matches how the appointment looks on the calendar.
+  const headerColor = localColor ?? appointment.color ?? undefined;
+  const headerText = headerColor ? getReadableTextColor(headerColor) : undefined;
+  const handleColorSelect = (colorId: string) => {
+    const hex = GOOGLE_CALENDAR_COLORS.find((c) => c.id === colorId)?.hex;
+    if (hex) setLocalColor(hex);
+    setIsColorPickerOpen(false);
+    onColorChange?.(appointment, colorId);
+  };
+
   return (
     <>
       <ResizableSheet
@@ -414,53 +651,69 @@ export function AppointmentPanel({
         storageKey="appointment-panel-width"
       >
         <div className="flex h-full flex-col overflow-hidden bg-card font-body">
-          <div className="flex-none border-b border-border bg-card px-5 py-4 pr-24">
-            <div className="flex items-start gap-3">
-              <button
-                type="button"
-                onClick={openPatientDetail}
-                className="shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-ring"
-                aria-label={tPanel('openPatient')}
-                disabled={!appointment.patientId}
+          <div
+            className={cn('flex-none border-b px-5 py-4 pr-24', headerColor ? 'border-black/10' : 'border-border bg-card')}
+            style={headerColor ? { backgroundColor: headerColor, color: headerText } : undefined}
+          >
+            <div className="flex items-center gap-2.5">
+              <span
+                className={cn('grid h-9 w-9 shrink-0 place-items-center rounded-xl', headerColor ? 'bg-white/25' : 'bg-primary/10 text-primary')}
               >
-                <Avatar className="h-12 w-12">
-                  <AvatarFallback className="bg-primary/25 text-base font-semibold text-primary">
-                    {initials(appointment.patientName)}
-                  </AvatarFallback>
-                </Avatar>
-              </button>
-
+                <Info className="h-4 w-4" style={headerColor ? { color: headerText } : undefined} />
+              </span>
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <SheetTitle asChild>
-                    <button
-                      type="button"
-                      onClick={openPatientDetail}
-                      disabled={!appointment.patientId}
-                      className={cn(
-                        'truncate text-left text-lg font-semibold text-foreground',
-                        appointment.patientId && 'hover:underline underline-offset-4',
-                      )}
-                    >
-                      {appointment.patientName}
-                    </button>
-                  </SheetTitle>
-                  <span className="rounded-md bg-muted px-2 py-0.5 font-mono text-sm font-semibold text-muted-foreground">
-                    {appointmentCode}
-                  </span>
-                </div>
-                {patientMeta && (
-                  <p className="mt-1 truncate text-sm font-medium text-muted-foreground">{patientMeta}</p>
-                )}
-                {serviceName && (
-                  <SheetDescription className="mt-1 truncate text-sm text-muted-foreground">
-                    {serviceName}
-                  </SheetDescription>
-                )}
+                <SheetTitle className={cn('line-clamp-3 text-sm font-medium', !headerColor && 'text-foreground')} style={headerColor ? { color: headerText } : undefined}>
+                  {tPanel('appointmentTitleFor')}{' '}
+                  <button
+                    type="button"
+                    onClick={openPatientDetail}
+                    disabled={!appointment.patientId}
+                    className={cn('text-left font-bold', appointment.patientId && 'hover:underline underline-offset-4')}
+                  >
+                    {appointment.patientName}
+                  </button>
+                </SheetTitle>
+                <SheetDescription className="sr-only">{serviceName || appointment.patientName}</SheetDescription>
               </div>
-
-              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-sm font-semibold text-primary">
-                <StatusIcon className="h-3.5 w-3.5" style={{ color: statusColor }} />
+              {/* Change-color dropdown — same palette as the calendar right-click menu */}
+              {onColorChange && (
+                <Popover open={isColorPickerOpen} onOpenChange={setIsColorPickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className={cn('h-8 w-8 shrink-0 rounded-lg', headerColor ? 'hover:bg-white/20' : 'hover:bg-muted')}
+                      aria-label={tPanel('changeColor')}
+                      title={tPanel('changeColor')}
+                    >
+                      <Palette className="h-4 w-4" style={headerColor ? { color: headerText } : undefined} />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-auto p-2">
+                    <div className="grid grid-cols-4 gap-2">
+                      {GOOGLE_CALENDAR_COLORS.map((color) => (
+                        <button
+                          key={color.id}
+                          type="button"
+                          onClick={() => handleColorSelect(color.id)}
+                          className="h-6 w-6 rounded-full transition-transform hover:scale-110"
+                          style={{ backgroundColor: color.hex }}
+                          aria-label={color.id}
+                        />
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
+              <span className={cn('hidden shrink-0 rounded-md px-2 py-0.5 font-mono text-xs font-semibold sm:inline', headerColor ? 'bg-black/10' : 'bg-muted text-muted-foreground')} style={headerColor ? { color: headerText } : undefined}>
+                {appointmentCode}
+              </span>
+              <span
+                className={cn('inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold', headerColor ? 'bg-white/25' : 'border border-primary/20 bg-primary/10 text-primary')}
+                style={headerColor ? { color: headerText } : undefined}
+              >
+                <StatusIcon className="h-3 w-3" style={{ color: headerColor ? headerText : statusColor }} />
                 {cancellationReasonLabel ?? tStatus(appointment.status)}
               </span>
             </div>
@@ -509,12 +762,75 @@ export function AppointmentPanel({
               )}
 
               <section>
-                <div className="mb-3 flex items-center gap-2">
-                  <Info className="h-4 w-4 text-muted-foreground" />
-                  <h3 className="text-base font-semibold">{t('panelTabs.info')}</h3>
+                {/* Patient row — moved out of the header so the appointment (not the patient) leads */}
+                <div className="flex items-center gap-3 border-b border-border/70 py-3">
+                  <button
+                    type="button"
+                    onClick={openPatientDetail}
+                    disabled={!appointment.patientId}
+                    className="shrink-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-ring"
+                    aria-label={tPanel('openPatient')}
+                  >
+                    <Avatar className="h-10 w-10">
+                      <AvatarFallback className="bg-primary/15 text-sm font-semibold text-primary">
+                        {initials(appointment.patientName)}
+                      </AvatarFallback>
+                    </Avatar>
+                  </button>
+                  <div className="min-w-0 flex-1">
+                    <button
+                      type="button"
+                      onClick={openPatientDetail}
+                      disabled={!appointment.patientId}
+                      className={cn(
+                        'block max-w-full truncate text-left text-sm font-bold text-foreground',
+                        appointment.patientId && 'hover:underline underline-offset-4',
+                      )}
+                    >
+                      {appointment.patientName}
+                    </button>
+                    {patientMeta && <p className="truncate text-xs text-muted-foreground">{patientMeta}</p>}
+                    <p className={cn('truncate text-xs font-medium', patientDebt.length > 0 ? 'text-destructive' : 'text-muted-foreground')}>
+                      {patientDebt.length > 0 ? tAccount('debtAlertTitle') : tAccount('noDebt')}
+                    </p>
+                  </div>
+                  {appointment.patientId && (
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Button type="button" variant="outline" size="sm" className="h-7 gap-1.5 px-2.5 text-xs" onClick={openAccountStatementForPatient}>
+                        <FileText className="h-3.5 w-3.5" />
+                        {tAccount('viewStatement')}
+                      </Button>
+                      <Button type="button" variant="outline" size="sm" className="h-7 gap-1.5 px-2.5 text-xs" onClick={openPatientDetail}>
+                        <UserRound className="h-3.5 w-3.5" />
+                        {tPanel('openPatient')}
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
-                <div className="grid gap-x-8 md:grid-cols-2">
+                {/* Outstanding-debt alert */}
+                {patientDebt.length > 0 && (
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2.5">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-destructive">
+                      <AlertTriangle className="h-4 w-4 shrink-0" />
+                      <span>
+                        {patientDebt.map((d) => `${d.currency} ${d.amount.toLocaleString('es-UY', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`).join(' · ')}
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 gap-1.5 border-destructive/40 px-2.5 text-xs text-destructive hover:bg-destructive/10"
+                      onClick={openAccountStatementForPatient}
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      {tAccount('viewStatement')}
+                    </Button>
+                  </div>
+                )}
+
+                <div className="mt-3 grid gap-x-8 md:grid-cols-2">
                   <DetailRow
                     icon={CalendarIcon}
                     label={tColumns('date')}
@@ -523,27 +839,55 @@ export function AppointmentPanel({
                   <DetailRow
                     icon={Clock}
                     label={tColumns('time')}
-                    value={`${appointment.time}${endTime ? ` -> ${endTime}` : ''}`}
-                    detail={durationMin != null && durationMin > 0
-                      ? tPanel('durationMinutes', { minutes: durationMin })
-                      : undefined}
+                    value={`${appointment.time}${endTime ? ` → ${endTime}` : ''}`}
+                    detail={durationHHmm ? `${tPanel('duration')}: ${durationHHmm}` : undefined}
                   />
-                  <DetailRow
+                  <EditableDetailRow
                     icon={MapPin}
                     label={tColumns('calendar')}
-                    value={appointment.calendar_name || '-'}
+                    value={displayAppointment.calendar_name || tPanel('noCalendar')}
+                    editLabel={displayAppointment.calendar_source_id ? tPanel('changeCalendar') : tPanel('assignCalendar')}
+                    isEditing={editingField === 'calendar'}
+                    onEditingChange={(open) => handleEditingChange('calendar', open)}
+                    picker={
+                      <InlineEntityPicker
+                        className="border-0"
+                        items={calendars.map((c) => ({ id: String(c.id), name: c.name, color: c.color }))}
+                        selectedId={displayAppointment.calendar_source_id}
+                        onSelect={(id) => handlePickReassign('calendar', id)}
+                        isLoading={isLoadingTargets}
+                        isSaving={isReassignSaving}
+                        searchPlaceholder={tPanel('searchCalendar')}
+                        emptyText={tPanel('noCalendarFound')}
+                      />
+                    }
                   />
-                  <DetailRow
+                  <EditableDetailRow
                     icon={UserSquare}
                     label={tColumns('doctor')}
-                    value={appointment.doctorName || '-'}
+                    value={displayAppointment.doctorId ? (displayAppointment.doctorName || tPanel('noDoctor')) : tPanel('noDoctor')}
                     detail={doctorColor ? (
                       <span className="inline-flex items-center gap-1.5">
                         <span className="h-2 w-2 rounded-full" style={{ backgroundColor: doctorColor }} />
                         {tPanel('openDoctor')}
                       </span>
                     ) : undefined}
-                    onClick={appointment.doctorId ? openDoctorDetail : undefined}
+                    onValueClick={displayAppointment.doctorId ? openDoctorDetail : undefined}
+                    editLabel={displayAppointment.doctorId ? tPanel('changeDoctor') : tPanel('assignDoctor')}
+                    isEditing={editingField === 'doctor'}
+                    onEditingChange={(open) => handleEditingChange('doctor', open)}
+                    picker={
+                      <InlineEntityPicker
+                        className="border-0"
+                        items={doctors.map((d) => ({ id: String(d.id), name: d.name, color: d.color }))}
+                        selectedId={displayAppointment.doctorId}
+                        onSelect={(id) => handlePickReassign('doctor', id)}
+                        isLoading={isLoadingTargets}
+                        isSaving={isReassignSaving}
+                        searchPlaceholder={tPanel('searchDoctor')}
+                        emptyText={tPanel('noDoctorFound')}
+                      />
+                    }
                   />
                 </div>
 
@@ -589,23 +933,11 @@ export function AppointmentPanel({
                 )}
               </section>
 
-              {(linkedSession || isLoadingLinkedSession || appointment.treatment_seq_step_id != null) && (
+              {(linkedSession || isLoadingLinkedSession || appointment.treatment_seq_step_id != null || !!onOpenClinicSession) && (
                 <section className="mt-6 border-t border-border pt-4">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <HeartPulse className="h-4 w-4 text-muted-foreground" />
-                      <h3 className="text-base font-semibold">{t('linkedSession')}</h3>
-                    </div>
-                    {onOpenClinicSession && (
-                      <Button
-                        variant="link"
-                        className="h-auto px-0 text-primary"
-                        onClick={() => onOpenClinicSession(appointment)}
-                      >
-                        {linkedSession ? t('editSession') : t('createSession')}
-                        <ArrowRight className="h-4 w-4" />
-                      </Button>
-                    )}
+                  <div className="mb-3 flex items-center gap-2">
+                    <HeartPulse className="h-4 w-4 text-muted-foreground" />
+                    <h3 className="text-base font-semibold">{t('linkedSession')}</h3>
                   </div>
 
                   {isLoadingLinkedSession ? (
@@ -792,7 +1124,7 @@ export function AppointmentPanel({
 
           <div className="flex-none border-t border-border bg-muted/30 px-5 py-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
-              {appointment.patientId && (
+              {appointment.patientId && !hideBillingAction && (
                 <Button
                   variant="default"
                   className="w-full gap-2 sm:w-auto"
@@ -831,28 +1163,52 @@ export function AppointmentPanel({
                     {tColumns('edit')}
                   </Button>
                 )}
+                {onDelete && (
+                  <Button
+                    size="lg"
+                    variant="destructive"
+                    className="flex-1 gap-2 sm:flex-none"
+                    onClick={() => setIsDeleteConfirmOpen(true)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    {tPanel('delete')}
+                  </Button>
+                )}
               </div>
             </div>
           </div>
         </div>
       </ResizableSheet>
 
-      {appointment.patientId && (
-        <PatientDetailSheet
-          open={isPatientSheetOpen}
-          onOpenChange={setIsPatientSheetOpen}
-          userId={appointment.patientId}
-          userName={appointment.patientName}
-          userEmail={appointment.patientEmail}
-          userPhone={appointment.patientPhone}
-        />
-      )}
-      {appointment.doctorId && (
+      {/* Delete confirmation — soft-deletes the appointment (removed from the system) */}
+      <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{tPanel('deleteTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{tPanel('deleteDescription')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tPanel('deleteCancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                setIsDeleteConfirmOpen(false);
+                if (appointment) onDelete?.(appointment);
+                onOpenChange(false);
+              }}
+            >
+              {tPanel('deleteConfirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {displayAppointment.doctorId && (
         <DoctorDetailSheet
           open={isDoctorSheetOpen}
           onOpenChange={setIsDoctorSheetOpen}
-          doctorId={appointment.doctorId}
-          doctorName={appointment.doctorName ?? ''}
+          doctorId={displayAppointment.doctorId}
+          doctorName={displayAppointment.doctorName ?? ''}
           doctorColor={doctorColor}
         />
       )}

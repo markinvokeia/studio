@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogBody, DialogCancelButton, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -156,6 +156,32 @@ const getColumns = (t: (key: string) => string, tStatus: (key: string) => string
     },
   },
   {
+    accessorKey: 'paid_amount',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('InvoicesPage.columns.paidAmount')} />,
+    cell: ({ row }) => {
+      const amount = row.original.paid_amount != null ? Number(row.original.paid_amount) : 0;
+      return (
+        <div className="font-medium tabular-nums">
+          {new Intl.NumberFormat('en-US', { style: 'currency', currency: row.original.currency || 'USD' }).format(amount)}
+        </div>
+      );
+    },
+  },
+  {
+    id: 'remaining_amount',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('InvoicesPage.columns.remainingAmount')} />,
+    cell: ({ row }) => {
+      const total = Number(row.original.total) || 0;
+      const paid = row.original.paid_amount != null ? Number(row.original.paid_amount) : 0;
+      const remaining = Math.max(0, total - paid);
+      return (
+        <div className="font-medium tabular-nums">
+          {new Intl.NumberFormat('en-US', { style: 'currency', currency: row.original.currency || 'USD' }).format(remaining)}
+        </div>
+      );
+    },
+  },
+  {
     accessorKey: 'due_date',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('InvoicesPage.columns.dueDate')} />,
     cell: ({ row }) => {
@@ -167,6 +193,15 @@ const getColumns = (t: (key: string) => string, tStatus: (key: string) => string
     accessorKey: 'createdAt',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('InvoicesPage.columns.createdAt')} />,
     cell: ({ row }) => formatDisplayDate(row.original.createdAt),
+  },
+  {
+    accessorKey: 'external_id',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('InvoicesPage.columns.externalId')} />,
+    cell: ({ row }) => (
+      <span className="font-mono text-xs text-muted-foreground">
+        {row.original.external_id ?? '—'}
+      </span>
+    ),
   },
 ];
 
@@ -299,6 +334,7 @@ async function getInvoicesForUser(userId: string): Promise<Invoice[]> {
       is_historical: d.is_historical || false,
       due_date: d.due_date || null,
       paid_amount: d.paid_amount != null ? parseFloat(d.paid_amount) : undefined,
+      external_id: d.external_id ?? null,
     }));
 
     const needsQuoteFallback = invoices.some((invoice: Invoice) =>
@@ -841,6 +877,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
         is_sales: isSales,
       });
       toast({ title: editingItem ? 'Ítem actualizado' : 'Ítem agregado' });
+      itemForm.reset();
       setIsItemDialogOpen(false);
       loadItems(selectedInvoice.id);
       onDataChange?.();
@@ -1036,8 +1073,11 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
               total: t('InvoicesPage.columns.total'),
               status: t('InvoicesPage.columns.status'),
               payment_status: t('InvoicesPage.columns.payment'),
+              paid_amount: t('InvoicesPage.columns.paidAmount'),
+              remaining_amount: t('InvoicesPage.columns.remainingAmount'),
               due_date: t('InvoicesPage.columns.dueDate'),
               createdAt: t('InvoicesPage.columns.createdAt'),
+              external_id: t('InvoicesPage.columns.externalId'),
             }}
           />
         </CardContent>
@@ -1192,8 +1232,8 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 <TabsContent value="items" className="flex-1 overflow-hidden mt-0 px-4 py-3 data-[state=active]:flex data-[state=active]:flex-col data-[state=inactive]:hidden">
                   <DataTable
                     columns={getInvoiceItemColumns(selectedInvoice.currency, {
-                      canUpdateItem,
-                      canDeleteItem,
+                      canUpdateItem: isDraft && canUpdateItem,
+                      canDeleteItem: isDraft && canDeleteItem,
                       onEdit: (item) => { setEditingItem(item); setIsItemDialogOpen(true); loadServices(); },
                       onDelete: (item) => setDeletingItem(item),
                     })}
@@ -1323,7 +1363,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
 
       {/* ── Edit invoice dialog ── */}
       <Dialog open={isEditInvoiceOpen} onOpenChange={setIsEditInvoiceOpen}>
-        <DialogContent maxWidth="4xl">
+        <DialogContent maxWidth="4xl" confirmOnClose isDirty={invoiceEditForm.formState.isDirty}>
           <Form {...invoiceEditForm}>
             <form onSubmit={invoiceEditForm.handleSubmit(handleSubmitInvoiceEdit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) { loadServices(); appendEditInvoiceItem({ service_id: '', quantity: 1, unit_price: 0, total: 0 }); } } }}>
               <DialogHeader>
@@ -1551,7 +1591,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
 
               </DialogBody>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsEditInvoiceOpen(false)}>Cancelar</Button>
+                <DialogCancelButton disabled={isSubmittingInvoice}>Cancelar</DialogCancelButton>
                 <Button type="submit" disabled={isSubmittingInvoice}>
                   {isSubmittingInvoice && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   Guardar
@@ -1564,7 +1604,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
 
       {/* ── Item create/edit dialog ── */}
       <Dialog open={isItemDialogOpen} onOpenChange={setIsItemDialogOpen}>
-        <DialogContent className="sm:max-w-[480px]">
+        <DialogContent className="sm:max-w-[480px]" confirmOnClose isDirty={itemForm.formState.isDirty}>
           <DialogHeader>
             <DialogTitle>{editingItem ? 'Editar ítem' : 'Agregar ítem'}</DialogTitle>
             <DialogDescription>Completa los datos del ítem de la factura.</DialogDescription>
@@ -1611,7 +1651,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 <ItemTotalField form={itemForm} />
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsItemDialogOpen(false)}>Cancelar</Button>
+                <DialogCancelButton>Cancelar</DialogCancelButton>
                 <Button type="submit" disabled={isSubmittingItem}>
                   {isSubmittingItem && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   {editingItem ? 'Guardar cambios' : 'Agregar'}
@@ -1641,7 +1681,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
 
       {/* ── Credit note dialog ── */}
       <Dialog open={isCreditNoteOpen} onOpenChange={setIsCreditNoteOpen}>
-        <DialogContent maxWidth="4xl">
+        <DialogContent maxWidth="4xl" confirmOnClose isDirty={creditNoteForm.formState.isDirty}>
           <Form {...creditNoteForm}>
             <form onSubmit={creditNoteForm.handleSubmit(handleSubmitCreditNote)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) { loadServices(); appendCreditNoteItem({ service_id: '', quantity: 1, unit_price: 0, total: 0 }); } } }}>
               <DialogHeader>
@@ -1856,7 +1896,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 )} />
               </DialogBody>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsCreditNoteOpen(false)}>Cancelar</Button>
+                <DialogCancelButton disabled={isSubmittingCreditNote}>Cancelar</DialogCancelButton>
                 <Button type="submit" disabled={isSubmittingCreditNote}>
                   {isSubmittingCreditNote && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   Crear nota de crédito
@@ -1869,7 +1909,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
 
       {/* ── Email Dialog ── */}
       <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
-        <DialogContent>
+        <DialogContent confirmOnClose isDirty={emailRecipients.trim() !== ''}>
           <DialogHeader>
             <DialogTitle>{tInvoices('sendEmailDialog.title')}</DialogTitle>
             <DialogDescription>
@@ -1889,9 +1929,9 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
             </p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)}>
+            <DialogCancelButton>
               {tInvoices('sendEmailDialog.cancel')}
-            </Button>
+            </DialogCancelButton>
             <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
               {isSendingEmail ? tInvoices('sendEmailDialog.sending') : tInvoices('sendEmailDialog.send')}
             </Button>

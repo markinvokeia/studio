@@ -11,10 +11,11 @@ import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
     Dialog,
+    DialogCancelButton,
     DialogContent,
     DialogFooter,
     DialogHeader,
-    DialogTitle
+    DialogTitle,
 } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -526,7 +527,7 @@ export default function CommunicationTemplatesPage() {
                 />
             </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="max-w-4xl">
+                <DialogContent className="max-w-4xl" confirmOnClose isDirty={form.formState.isDirty}>
                     <DialogHeader>
                         <DialogTitle>{editingTemplate ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                     </DialogHeader>
@@ -668,7 +669,7 @@ export default function CommunicationTemplatesPage() {
                     </Form>
                     <DialogFooter>
                         <Button type="button" onClick={() => form.handleSubmit(onSubmit)()}>{editingTemplate ? t('dialog.save') : t('dialog.create')}</Button>
-                        <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
+                        <DialogCancelButton>{t('dialog.cancel')}</DialogCancelButton>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

@@ -9,10 +9,11 @@ import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import {
     Dialog,
+    DialogCancelButton,
     DialogContent,
     DialogFooter,
     DialogHeader,
-    DialogTitle
+    DialogTitle,
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '@/components/ui/input';
@@ -278,7 +279,7 @@ export default function MiscellaneousCategoriesPage() {
                 </CardContent>
             </Card>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent>
+                <DialogContent confirmOnClose isDirty={form.formState.isDirty}>
                     <DialogHeader>
                         <div className="flex items-start gap-3">
                             <div className="header-icon-circle mt-0.5">
@@ -368,7 +369,7 @@ export default function MiscellaneousCategoriesPage() {
                             />
                             <DialogFooter>
                                 <Button type="submit">{editingCategory ? t('dialog.save') : t('dialog.create')}</Button>
-                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
+                                <DialogCancelButton>{t('dialog.cancel')}</DialogCancelButton>
                             </DialogFooter>
                         </form>
                     </Form>

@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogBody, DialogCancelButton, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { DatePickerInput } from '@/components/ui/date-picker';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -572,7 +572,7 @@ export default function SequencesPage() {
       />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl" confirmOnClose isDirty={form.formState.isDirty}>
           <DialogHeader>
             <DialogTitle>{editingSequence ? t('createDialog.editTitle') : t('createDialog.title')}</DialogTitle>
             <DialogDescription>
@@ -748,9 +748,9 @@ export default function SequencesPage() {
                 <Button type="submit">
                   {editingSequence ? t('createDialog.editSave') : t('createDialog.save')}
                 </Button>
-                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>
+                <DialogCancelButton>
                   {t('createDialog.cancel')}
-                </Button>
+                </DialogCancelButton>
               </DialogFooter>
             </form>
           </Form>

@@ -22,9 +22,14 @@ import {
   getEventStyle,
   getEventsWithLayout,
   formatTimeSlotLabel,
+  slotTimeFromOffset,
 } from './calendar-utils';
 import { CalendarEventDay } from './calendar-event-day';
 import { TimeSlotDividers } from './calendar-time-column';
+import { CalendarGapOverlays } from './calendar-gap-overlay';
+import { CalendarBlockedOverlays } from './calendar-blocked-overlay';
+import { isSlotBlocked, type Gap, type BlockedRange } from './calendar-gaps';
+import type { InlineDraft } from './calendar-types';
 
 interface CalendarDayViewMobileProps {
   currentDate: Date;
@@ -37,8 +42,18 @@ interface CalendarDayViewMobileProps {
   dateLocale: Locale;
   onEventClick: (data: any) => void;
   onEventColorChange: (data: any, colorId: string) => void;
+  onEventDoubleClick?: (data: any) => void;
   onEventContextMenu?: (data: any) => React.ReactNode;
+  onEventContextMenuOpen?: (data: any) => void;
   onSlotClick?: CalendarSlotClickHandler;
+  hourSlotHeight?: number;
+  gaps?: Gap[];
+  selectedGapKey?: string;
+  onGapClick?: (gap: Gap) => void;
+  blockedRanges?: BlockedRange[];
+  inlineDraft?: InlineDraft | null;
+  renderInlineDraft?: () => React.ReactNode;
+  slotMinutes?: number;
 }
 
 export function CalendarDayViewMobile({
@@ -52,8 +67,18 @@ export function CalendarDayViewMobile({
   dateLocale,
   onEventClick,
   onEventColorChange,
+  onEventDoubleClick,
   onEventContextMenu,
+  onEventContextMenuOpen,
   onSlotClick,
+  hourSlotHeight = HOUR_SLOT_HEIGHT,
+  gaps,
+  selectedGapKey,
+  onGapClick,
+  blockedRanges,
+  inlineDraft,
+  renderInlineDraft,
+  slotMinutes,
 }: CalendarDayViewMobileProps) {
   const [api, setApi] = React.useState<CarouselApi>();
   const [activeIndex, setActiveIndex] = React.useState(0);
@@ -91,14 +116,14 @@ export function CalendarDayViewMobile({
     }));
   }, [isGrouped, days, groupingColumns, events, groupBy, dateLocale]);
 
-  const currentTimePosition = (currentTime.getHours() + currentTime.getMinutes() / 60) * 60;
+  const currentTimePosition = (currentTime.getHours() + currentTime.getMinutes() / 60) * hourSlotHeight;
 
   const timeGridScrollRef = React.useRef<HTMLDivElement>(null);
   React.useLayoutEffect(() => {
     if (timeGridScrollRef.current) {
-      timeGridScrollRef.current.scrollTop = DEFAULT_SCROLL_HOUR * HOUR_SLOT_HEIGHT;
+      timeGridScrollRef.current.scrollTop = DEFAULT_SCROLL_HOUR * hourSlotHeight;
     }
-  }, []);
+  }, [hourSlotHeight]);
 
   React.useEffect(() => {
     if (!api) return;
@@ -114,9 +139,9 @@ export function CalendarDayViewMobile({
     if (onSlotClick) {
       const rect = e.currentTarget.getBoundingClientRect();
       const y = e.clientY - rect.top;
-      const hour = Math.floor(y / 60);
-      const minute = Math.floor((y % 60) / 15) * 15;
+      const { hour, minute } = slotTimeFromOffset(y, hourSlotHeight, slotMinutes);
       const clickedDate = set(day, { hours: hour, minutes: minute, seconds: 0, milliseconds: 0 });
+      if (isSlotBlocked(blockedRanges, clickedDate, column?.value)) return; // no creating on blocked slots
       const context = column && groupBy !== 'none' ? { groupBy, value: column.value } : undefined;
       onSlotClick(clickedDate, context);
     }
@@ -251,11 +276,14 @@ export function CalendarDayViewMobile({
 
       {/* Scrollable time grid with carousel */}
       <div className="flex-1 overflow-y-auto" ref={timeGridScrollRef}>
-        <div className="flex min-h-[1440px]">
+        <div
+          className="flex"
+          style={{ minHeight: `${24 * hourSlotHeight}px`, '--hour-slot-height': `${hourSlotHeight}px` } as React.CSSProperties}
+        >
           {/* Sticky time column */}
           <div className="sticky left-0 z-10 bg-card w-12 shrink-0">
             {timeSlots.map((time) => (
-              <div key={time} className="h-[60px] relative">
+              <div key={time} className="relative" style={{ height: `${hourSlotHeight}px` }}>
                 <span
                   className={cn(
                     'absolute right-1 text-[10px] text-muted-foreground',
@@ -292,17 +320,46 @@ export function CalendarDayViewMobile({
                         onClick={(e) => handleSlotClick(slide.day, slide.column, e)}
                       >
                         <TimeSlotDividers keyPrefix={slide.key} />
+                        <CalendarBlockedOverlays
+                          ranges={blockedRanges}
+                          dayKey={format(slide.day, 'yyyy-MM-dd')}
+                          groupValue={slide.column?.value}
+                          hourSlotHeight={hourSlotHeight}
+                        />
+                        <CalendarGapOverlays
+                          gaps={gaps}
+                          dayKey={format(slide.day, 'yyyy-MM-dd')}
+                          groupValue={slide.column?.value}
+                          hourSlotHeight={hourSlotHeight}
+                          selectedGapKey={selectedGapKey}
+                          onGapClick={onGapClick}
+                        />
                         {slide.events.map((event) => (
                           <CalendarEventDay
                             key={event.id}
                             event={event}
-                            style={getEventStyle(event)}
+                            style={getEventStyle(event, hourSlotHeight)}
                             dateLocale={dateLocale}
                             onEventClick={onEventClick}
                             onEventColorChange={onEventColorChange}
+                            onEventDoubleClick={onEventDoubleClick}
                             onEventContextMenu={onEventContextMenu}
+                            onEventContextMenuOpen={onEventContextMenuOpen}
                           />
                         ))}
+                        {inlineDraft && renderInlineDraft && isSameDay(slide.day, inlineDraft.date) && (!isGrouped || String(slide.column?.value ?? '') === String(inlineDraft.groupValue ?? '')) && (
+                          <div
+                            className="absolute left-0.5 right-0.5 z-[12]"
+                            style={{
+                              top: `${(inlineDraft.date.getHours() + inlineDraft.date.getMinutes() / 60) * hourSlotHeight}px`,
+                              minHeight: `${Math.max((inlineDraft.durationMin / 60) * hourSlotHeight, 96)}px`,
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            onContextMenu={(e) => e.stopPropagation()}
+                          >
+                            {renderInlineDraft()}
+                          </div>
+                        )}
                         {showIndicator && (
                           <div
                             className="absolute left-0 right-0 z-20 pointer-events-none flex items-center"

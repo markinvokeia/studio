@@ -70,6 +70,17 @@ export const getColumns = (t: (key: string) => string): ColumnDef<User>[] => [
       </Badge>
     ),
   },
+  {
+    accessorKey: 'internal_id',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title={t('internal_id')} />
+    ),
+    cell: ({ row }) => (
+      <span className="font-mono text-xs text-muted-foreground">
+        {row.getValue('internal_id') ?? '—'}
+      </span>
+    ),
+  },
 ];
 
 

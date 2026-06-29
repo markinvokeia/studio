@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { formatDisplayDate } from '@/lib/utils';
+import { buildMovementConcept } from '@/lib/financial-summary';
 import type { FinancialSummaryPrintData } from '@/stores/print-document-store';
 
 interface FinancialSummaryPrintTemplateProps {
@@ -92,11 +93,7 @@ export function FinancialSummaryPrintTemplate({ data }: FinancialSummaryPrintTem
                 <tbody>
                   {section.movements.map((mov, idx) => {
                     const isDebit = mov.amount > 0;
-                    const concept = [
-                      mov.metadata.label,
-                      mov.metadata.services?.length ? mov.metadata.services.join(', ') : null,
-                      mov.metadata.payment_type ?? null,
-                    ].filter(Boolean).join(' — ');
+                    const concept = buildMovementConcept(mov, t('financialSummary.paysInvoice'));
 
                     return (
                       <tr key={`${currency}-${idx}`}>
@@ -108,7 +105,7 @@ export function FinancialSummaryPrintTemplate({ data }: FinancialSummaryPrintTem
                             <span className="text-gray-400"> · {mov.metadata.notes}</span>
                           )}
                         </td>
-                        <td className={`text-right font-mono ${isDebit ? 'text-gray-900' : 'text-gray-900'}`}>
+                        <td className={`text-right font-mono font-semibold ${isDebit ? 'text-emerald-600' : 'text-red-600'}`}>
                           {isDebit ? '' : '−'}{fmtAmount(mov.amount, currency)}
                         </td>
                         <td className="text-right font-mono">

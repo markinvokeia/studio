@@ -3,10 +3,14 @@
 
 import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
 import { CalendarCreateTypeDialog } from '@/components/appointments/CalendarCreateTypeDialog';
-import Calendar, { type CalendarGroupBy, type CalendarGroupingColumn, type CalendarView } from '@/components/calendar/Calendar';
+import Calendar, { type CalendarGroupBy, type CalendarGroupingColumn, type CalendarView, type CalendarEvent } from '@/components/calendar/Calendar';
 import { CalendarSettingsPopover } from '@/components/calendar/calendar-settings-popover';
 import { CalendarSettingsForm } from '@/components/calendar/calendar-settings-form';
 import { getCalendarSettings } from '@/components/calendar/calendar-settings-utils';
+import { CalendarGapsPanel } from '@/components/calendar/calendar-gaps-panel';
+import { computeRangeGaps, computeDayGaps, computeDayGapsForIntervals, getBusinessWindow, getAvailableIntervals, computeBlockedRanges, gapKey, DEFAULT_MIN_GAP_MINUTES, type Gap, type BlockedRange } from '@/components/calendar/calendar-gaps';
+import { filterEventsByDayAndGroup } from '@/components/calendar/calendar-utils';
+import { DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, HOUR_SLOT_HEIGHT } from '@/components/calendar/calendar-constants';
 import { ReminderFormDialog, type ReminderFormValues } from '@/components/appointments/ReminderFormDialog';
 import { ReminderPanel } from '@/components/appointments/ReminderPanel';
 import { useCalendarBreakpoint } from '@/hooks/use-calendar-breakpoint';
@@ -47,25 +51,34 @@ import {
     ContextMenuSubTrigger,
 } from "@/components/ui/context-menu";
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Separator } from '@/components/ui/separator';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
-import { Appointment, AppointmentStatus, Calendar as CalendarType, CalendarReminder, CalendarSettings, Invoice, Order, PatientSession, Quote, QuoteItem, Sede, Service, SessionPreloadedService, User as UserType } from '@/lib/types';
-import { toLocalISOString } from '@/lib/utils';
+import { Appointment, AppointmentBulkFilterParams, AppointmentDatePreset, AppointmentStatus, Calendar as CalendarType, CalendarReminder, CalendarSettings, ClinicSchedule, ClinicException, Invoice, Order, PatientSession, Quote, QuoteItem, Sede, Service, SessionPreloadedService, User as UserType } from '@/lib/types';
+import { cn, toLocalISOString } from '@/lib/utils';
 import api from '@/services/api';
 import { getQuoteItems } from '@/services/quotes';
 import { updateAppointmentStatusRequest } from '@/services/appointments';
 import { getSalesServices, getUsersServicesBatch, fetchServicesByIds } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
-import { addMinutes, format, isValid, parseISO } from 'date-fns';
-import { BellRing, Calendar as CalendarIcon, CalendarPlus, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileText, Layers, Loader2, PlusCircle, RefreshCw, Stethoscope, Trash2, Users } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { addMinutes, eachDayOfInterval, endOfMonth, endOfWeek, format, isValid, parseISO, set, startOfMonth, startOfWeek } from 'date-fns';
+import { es, enUS } from 'date-fns/locale';
+import { BellRing, Building2, Calendar as CalendarIcon, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileText, Layers, Link2, Loader2, PlusCircle, Receipt, RefreshCw, Stethoscope, Trash2, UserCog, Users, X, Zap } from 'lucide-react';
+import { useTranslations, useLocale } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
 import { AppointmentPanel } from '@/components/appointments/AppointmentPanel';
+import { BulkReassignDoctorDialog } from '@/components/appointments/BulkReassignDoctorDialog';
+import { reassignAppointmentField, type AppointmentReassignChange } from '@/lib/appointment-reassign';
+import { ContextEntityPicker } from '@/components/appointments/ContextEntityPicker';
+import { InlineAppointmentDraft } from '@/components/calendar/inline-appointment-draft';
+import { linkInvoiceToAppointment } from '@/services/billing-links';
+import { useBillingWizard } from '@/stores/billing-wizard-store';
+import { useAccountStatement } from '@/stores/account-statement-store';
 import { AppointmentStatusContextItems } from '@/components/appointments/AppointmentStatusMenu';
 import { useAppointmentStatus } from '@/hooks/use-appointment-status';
 import { canReschedule, normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
@@ -187,6 +200,21 @@ const GOOGLE_CALENDAR_COLORS = [
 ];
 
 const colorMap = new Map(GOOGLE_CALENDAR_COLORS.map(c => [c.id, c.hex]));
+
+// Builds the label shown on each appointment by concatenating its fields
+// according to the configured format (see EVENT_LABEL_FORMATS).
+function buildEventLabel(appt: Appointment, start: Date, fmt: string): string {
+    const time = format(start, 'HH:mm');
+    const patient = (appt.patientName || '').trim();
+    const treatment = (appt.summary || appt.service_name || '').trim();
+    const notes = (appt.notes || '').trim();
+    if (fmt === 'patient_treatment_time') {
+        return [patient, treatment, time].filter(Boolean).join(' ');
+    }
+    // default: time_patient_notes -> "HH:mm Patient (Notes)"
+    const base = [time, patient].filter(Boolean).join(' ');
+    return notes ? `${base} (${notes})` : base;
+}
 
 const SETTINGS_VIEW_MAP: Record<string, CalendarView> = {
     day: 'day',
@@ -449,6 +477,30 @@ async function getDoctors(): Promise<UserType[]> {
 }
 
 
+// Builds a map of doctorId -> calendars the doctor has access to, from the full
+// calendar_users association list. Used to limit the calendar picker per doctor.
+async function getDoctorCalendarMap(calendars: CalendarType[]): Promise<Map<string, CalendarType[]>> {
+    const map = new Map<string, CalendarType[]>();
+    try {
+        const data = await api.get(API_ROUTES.CALENDAR_USERS_SEARCH);
+        const raw = Array.isArray(data) ? data : (data?.calendar_users || data?.data || []);
+        const calendarById = new Map(calendars.map(c => [String(c.id), c]));
+        for (const item of raw) {
+            const userId = String(item.user_id ?? item.id ?? '');
+            const calendarId = String(item.calendar_source_id ?? '');
+            if (!userId || !calendarId) continue;
+            const calendar = calendarById.get(calendarId);
+            if (!calendar) continue;
+            const existing = map.get(userId) ?? [];
+            existing.push(calendar);
+            map.set(userId, existing);
+        }
+    } catch (error) {
+        console.error('Failed to fetch calendar users map:', error);
+    }
+    return map;
+}
+
 export default function AppointmentsPage() {
     const breakpoint = useCalendarBreakpoint();
     const isMobile = breakpoint === 'mobile';
@@ -463,9 +515,16 @@ export default function AppointmentsPage() {
     const tToasts = useTranslations('AppointmentsPage.toasts');
     const tOrderStatus = useTranslations('OrderStatus');
     const tReminders = useTranslations('Reminders');
+    const tPanel = useTranslations('AppointmentPanel');
+    const tInline = useTranslations('AppointmentsPage.inlineCreate');
+    const tGaps = useTranslations('Calendar.gaps');
+    const locale = useLocale();
+    const gapsDateLocale = locale === 'es' ? es : enUS;
 
     const { refreshNotifications: refreshReminders, markSessionAction } = useNotifications();
     const { user } = useAuth();
+    const { open: openBillingWizard } = useBillingWizard();
+    const { open: openAccountStatement } = useAccountStatement();
 
     const { toast } = useToast();
 
@@ -476,6 +535,7 @@ export default function AppointmentsPage() {
     const [services, setServices] = React.useState<Service[]>([]);
     const [doctors, setDoctors] = React.useState<UserType[]>([]);
     const [doctorServiceMap, setDoctorServiceMap] = React.useState<Map<string, Service[]>>(new Map());
+    const [doctorCalendarMap, setDoctorCalendarMap] = React.useState<Map<string, CalendarType[]>>(new Map());
     const [selectedCalendarIds, setSelectedCalendarIds] = React.useState<string[]>([]);
     const [isDataLoading, setIsDataLoading] = React.useState(true);
     const [isCreateOpen, setCreateOpen] = React.useState(false);
@@ -488,6 +548,8 @@ export default function AppointmentsPage() {
     const [isReschedulingMode, setIsReschedulingMode] = React.useState(false);
     const [deletingAppointment, setDeletingAppointment] = React.useState<Appointment | null>(null);
     const [isDeleteAlertOpen, setIsDeleteAlertOpen] = React.useState(false);
+    // Soft-delete (status → 'deleted') target for the right-click menu confirmation.
+    const [softDeleteTarget, setSoftDeleteTarget] = React.useState<Appointment | null>(null);
 
     const [selectedAppointment, setSelectedAppointment] = React.useState<Appointment | null>(null);
     const [isDetailViewOpen, setIsDetailViewOpen] = React.useState(false);
@@ -503,23 +565,220 @@ export default function AppointmentsPage() {
     const [groupBy, setGroupBy] = React.useState<CalendarGroupBy>('none');
     const [currentView, setCurrentView] = React.useState<CalendarView>('month');
 
+    // ── "Huecos" — free-slot finder ──────────────────────────────────────────
+    const [gapsActive, setGapsActive] = React.useState(false);
+    const [selectedGap, setSelectedGap] = React.useState<Gap | null>(null);
+    const [clinicSchedules, setClinicSchedules] = React.useState<ClinicSchedule[]>([]);
+
+    // ── Out-of-office blocking (schedules + exceptions), toggled in settings ──
+    const [blockUnavailable, setBlockUnavailable] = React.useState(false);
+    const [clinicExceptions, setClinicExceptions] = React.useState<ClinicException[]>([]);
+
+    // Authoritative calendar settings (single source of truth). Fed to the
+    // settings forms so they don't independently re-fetch and clobber live
+    // toggles (e.g. block_unavailable) when they remount on view/layout changes.
+    const [calendarSettings, setCalendarSettings] = React.useState<CalendarSettings | null>(null);
+
+    // ── Bulk selection mode ──────────────────────────────────────────────────
+    const [isBulkMode, setIsBulkMode] = React.useState(false);
+    const [bulkSelectedIds, setBulkSelectedIds] = React.useState<Set<string>>(new Set());
+    const [bulkDatePreset, setBulkDatePreset] = React.useState<AppointmentDatePreset>('today');
+    const [bulkDoctorIds, setBulkDoctorIds] = React.useState<string[]>([]);
+    const [bulkCalendarIds, setBulkCalendarIds] = React.useState<string[]>([]);
+    const [bulkStatuses, setBulkStatuses] = React.useState<AppointmentStatus[]>([]);
+    const [isBulkLoading, setIsBulkLoading] = React.useState(false);
+    const [isReassignDialogOpen, setIsReassignDialogOpen] = React.useState(false);
+    const [isReassignLoading, setIsReassignLoading] = React.useState(false);
+    const prevViewRef = React.useRef<CalendarView>('month');
+    const [hourSlotHeight, setHourSlotHeight] = React.useState<number>(HOUR_SLOT_HEIGHT);
+    const [slotDuration, setSlotDuration] = React.useState<number>(DEFAULT_SLOT_DURATION);
+    const [eventLabelFormat, setEventLabelFormat] = React.useState<string>(DEFAULT_EVENT_LABEL_FORMAT);
+    const [defaultSede, setDefaultSede] = React.useState<string>('');
+
+    const tBulk = useTranslations('AppointmentsPage.bulk');
+
+    const getBulkDateRange = (preset: AppointmentDatePreset) => {
+        const today = new Date();
+        if (preset === 'today') return { date_from: format(today, 'yyyy-MM-dd'), date_to: format(today, 'yyyy-MM-dd') };
+        if (preset === 'this_week') return { date_from: format(startOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd'), date_to: format(endOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd') };
+        return { date_from: format(startOfMonth(today), 'yyyy-MM-dd'), date_to: format(endOfMonth(today), 'yyyy-MM-dd') };
+    };
+
+    const handleToggleBulkMode = React.useCallback(() => {
+        setIsBulkMode((prev) => {
+            if (!prev) {
+                setGapsActive(false); // gaps and bulk modes are mutually exclusive
+                setSelectedGap(null);
+                skipNextBulkFilterRef.current = true; // entering — skip auto-trigger
+                prevViewRef.current = currentView;
+                setCurrentView('schedule');
+            } else {
+                setCurrentView(prevViewRef.current);
+            }
+            return !prev;
+        });
+        setBulkSelectedIds(new Set());
+        setBulkDoctorIds([]);
+        setBulkCalendarIds([]);
+        setBulkStatuses([]);
+        setBulkDatePreset('today');
+    }, [currentView]);
+
+    const handleApplyBulkFilter = React.useCallback(async () => {
+        setIsBulkLoading(true);
+        try {
+            const dateRange = getBulkDateRange(bulkDatePreset);
+            const params: AppointmentBulkFilterParams = { ...dateRange };
+            if (bulkDoctorIds.length > 0) params.doctor_ids = bulkDoctorIds;
+            if (bulkCalendarIds.length > 0) params.calendar_source_ids = bulkCalendarIds;
+            if (bulkStatuses.length > 0) params.statuses = bulkStatuses;
+            const response = await api.post(API_ROUTES.APPOINTMENTS_FILTER_IDS, params);
+            const ids: string[] = (response?.ids ?? []).map(String);
+            setBulkSelectedIds(new Set(ids));
+            toast({ title: tBulk('filterResult', { count: ids.length }) });
+        } catch {
+            toast({ variant: 'destructive', title: tBulk('filterError') });
+        } finally {
+            setIsBulkLoading(false);
+        }
+    }, [bulkDatePreset, bulkDoctorIds, bulkCalendarIds, bulkStatuses, tBulk]);
+
+    const handleToggleAppointmentSelect = React.useCallback((id: string) => {
+        setBulkSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id); else next.add(id);
+            return next;
+        });
+    }, []);
+
+    const handleBulkReassign = React.useCallback(async (doctorId: string, doctorName: string, doctorEmail?: string) => {
+        setIsReassignLoading(true);
+        try {
+            const response = await api.post(API_ROUTES.APPOINTMENTS_BULK_REASSIGN_DOCTOR, {
+                appointment_ids: Array.from(bulkSelectedIds),
+                doctor_id: doctorId,
+                doctor_name: doctorName,
+                doctor_email: doctorEmail,
+            });
+            const updated: number = response?.updated ?? 0;
+            const failed: number = response?.failed ?? 0;
+            if (failed > 0) {
+                toast({ title: tBulk('reassignPartial', { updated, failed }) });
+            } else {
+                toast({ title: tBulk('reassignSuccess', { count: updated }) });
+            }
+            setIsReassignDialogOpen(false);
+            setIsBulkMode(false);
+            setCurrentView(prevViewRef.current);
+            setBulkSelectedIds(new Set());
+            setBulkDoctorIds([]);
+            setBulkCalendarIds([]);
+            setBulkStatuses([]);
+            setBulkDatePreset('today');
+            refreshCalendarDataRef.current();
+        } catch {
+            toast({ variant: 'destructive', title: tBulk('reassignError') });
+        } finally {
+            setIsReassignLoading(false);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [bulkSelectedIds, tBulk]);
+
+    const BULK_SELECTABLE_STATUSES: AppointmentStatus[] = ['scheduled', 'confirmed', 'pending', 'arrived', 'no_show'];
+
+    const handleSelectAllVisible = React.useCallback((checked: boolean) => {
+        if (checked) {
+            const ids = appointments
+                .filter(a => !['completed', 'cancelled', 'in_progress'].includes(a.status))
+                .map(a => a.id);
+            setBulkSelectedIds(new Set(ids));
+        } else {
+            setBulkSelectedIds(new Set());
+        }
+    }, [appointments]);
+
+    const handleSelectBulkDoctor = React.useCallback((id: string, checked: boolean) => {
+        setBulkDoctorIds((prev) => checked ? [...prev, id] : prev.filter((x) => x !== id));
+    }, []);
+
+    const handleSelectBulkCalendar = React.useCallback((id: string, checked: boolean) => {
+        setBulkCalendarIds((prev) => checked ? [...prev, id] : prev.filter((x) => x !== id));
+    }, []);
+
+    const handleToggleBulkStatus = React.useCallback((status: AppointmentStatus, checked: boolean) => {
+        setBulkStatuses((prev) => checked ? [...prev, status] : prev.filter((s) => s !== status));
+    }, []);
+
+    // Auto-apply bulk filter when filter values change — but NOT on programmatic resets
+    // (entering/exiting bulk mode or clearing selection).
+    const isBulkModeRef = React.useRef(isBulkMode);
+    React.useEffect(() => { isBulkModeRef.current = isBulkMode; }, [isBulkMode]);
+    const skipNextBulkFilterRef = React.useRef(false);
+    const bulkFilterMountRef = React.useRef(true);
+    React.useEffect(() => {
+        if (bulkFilterMountRef.current) { bulkFilterMountRef.current = false; return; }
+        if (!isBulkModeRef.current) return;
+        if (skipNextBulkFilterRef.current) { skipNextBulkFilterRef.current = false; return; }
+        handleApplyBulkFilter();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [bulkDoctorIds, bulkCalendarIds, bulkDatePreset]);
+
+    // Compact mode: collapse filter/action buttons to icons when the viewport is narrow.
+    // Threshold 980px: sidebar (~70px) + toolbar full-label content (~900px) = ~970px needed.
+    const bulkToolbarRef = React.useRef<HTMLDivElement>(null);
+    const [isBulkToolbarCompact, setIsBulkToolbarCompact] = React.useState(false);
+    React.useEffect(() => {
+        const check = () => setIsBulkToolbarCompact(window.innerWidth < 980);
+        check();
+        window.addEventListener('resize', check);
+        return () => window.removeEventListener('resize', check);
+    }, []);
+
     const handleSettingsChange = React.useCallback((settings: CalendarSettings) => {
+        setCalendarSettings(settings);
         const mappedView = SETTINGS_VIEW_MAP[settings.default_view] || 'month';
         setCurrentView(mappedView);
         setGroupBy(settings.grouped_by as CalendarGroupBy);
         setCheckCalendarAvailability(settings.check_availability);
         setCheckDoctorAvailability(settings.filter_doctors_by_service);
+        setBlockUnavailable(settings.block_unavailable ?? false);
+        setHourSlotHeight(settings.hour_height ?? HOUR_SLOT_HEIGHT);
+        setSlotDuration(settings.slot_duration ?? DEFAULT_SLOT_DURATION);
+        setEventLabelFormat(settings.event_label_format ?? DEFAULT_EVENT_LABEL_FORMAT);
+        setDefaultSede(settings.default_sede ?? '');
     }, []);
 
     const handleSettingsEditorChange = React.useCallback((settings: CalendarSettings) => {
+        setCalendarSettings(settings);
         setCheckCalendarAvailability(settings.check_availability);
         setCheckDoctorAvailability(settings.filter_doctors_by_service);
+        setBlockUnavailable(settings.block_unavailable ?? false);
+        setHourSlotHeight(settings.hour_height ?? HOUR_SLOT_HEIGHT);
+        setSlotDuration(settings.slot_duration ?? DEFAULT_SLOT_DURATION);
+        setEventLabelFormat(settings.event_label_format ?? DEFAULT_EVENT_LABEL_FORMAT);
+        setDefaultSede(settings.default_sede ?? '');
     }, []);
+
+    // Tracks the last applied default sede so the effect below only re-scopes the
+    // calendars when the sede actually changes (preserving manual selections).
+    const prevSedeRef = React.useRef<string>('');
+    React.useEffect(() => {
+        if (calendars.length === 0) return;
+        if (prevSedeRef.current === defaultSede) return;
+        prevSedeRef.current = defaultSede;
+        const ids = (defaultSede
+            ? calendars.filter(c => String(c.sede_id) === String(defaultSede))
+            : calendars
+        ).map(c => c.id).filter(Boolean);
+        setSelectedCalendarIds(ids);
+    }, [defaultSede, calendars]);
 
     // Clinic Session Dialog state
     const [isClinicSessionOpen, setIsClinicSessionOpen] = React.useState(false);
     const [clinicSessionAppointment, setClinicSessionAppointment] = React.useState<Appointment | null>(null);
     const [linkedSession, setLinkedSession] = React.useState<PatientSession | null>(null);
+    // Tracks which appointments already have a clinic session (for the context-menu label).
+    const [sessionExistsMap, setSessionExistsMap] = React.useState<Record<string, boolean>>({});
     const [isLoadingLinkedSession, setIsLoadingLinkedSession] = React.useState(false);
     const [quoteItems, setQuoteItems] = React.useState<QuoteItem[]>([]);
     const [quoteOrder, setQuoteOrder] = React.useState<Order | null>(null);
@@ -580,7 +839,9 @@ export default function AppointmentsPage() {
         calendarId?: string;
     } | null>(null);
 
-    const handleSlotClick = React.useCallback((date: Date, context?: { groupBy: 'doctor' | 'calendar' | 'sede'; value: string }) => {
+    // Shared slot preparation: stores the slot's initial data (date/time + doctor/calendar
+    // from the grouping context) and remembers the clicked date for reminder creation.
+    const prepareSlot = React.useCallback((date: Date, context?: { groupBy: 'doctor' | 'calendar' | 'sede'; value: string }) => {
         setEditingAppointment(null);
         const base: {
             date: string;
@@ -600,8 +861,204 @@ export default function AppointmentsPage() {
         }
         setSlotInitialData(base);
         setPendingSlotDate(date);
-        setIsCreateTypeOpen(true);
     }, [doctors, calendars]);
+
+    // ── In-canvas (inline) appointment creation ─────────────────────────────
+    const [inlineDraft, setInlineDraft] = React.useState<{
+        date: Date;
+        context?: { groupBy: 'doctor' | 'calendar' | 'sede'; value: string };
+        durationMin: number;
+        patient: UserType | null;
+        services: Service[];
+        doctor: UserType | null;
+        calendar: CalendarType | null;
+        notes: string;
+        /** Set when the inline card is editing an existing appointment (vs creating). */
+        editing?: Appointment | null;
+    } | null>(null);
+    const [isSavingInline, setIsSavingInline] = React.useState(false);
+    const [inlineDebt, setInlineDebt] = React.useState<{ currency: string; amount: number }[]>([]);
+
+    // Load the inline-draft patient's debt to surface a warning inline.
+    React.useEffect(() => {
+        const patientId = inlineDraft?.patient?.id;
+        if (!patientId) { setInlineDebt([]); return; }
+        let active = true;
+        api.get(API_ROUTES.USER_FINANCIAL, { user_id: patientId })
+            .then((raw: any) => {
+                if (!active) return;
+                const fin = Array.isArray(raw) ? raw[0] : raw;
+                const byCurrency = fin?.financial_data ?? {};
+                setInlineDebt(
+                    Object.entries(byCurrency)
+                        .map(([currency, d]: [string, any]) => ({ currency, amount: Number(d?.current_debt ?? 0) }))
+                        .filter((d) => d.amount > 0),
+                );
+            })
+            .catch(() => { if (active) setInlineDebt([]); });
+        return () => { active = false; };
+    }, [inlineDraft?.patient?.id]);
+
+    const handleSaveInlineDraft = React.useCallback(async () => {
+        if (!inlineDraft?.patient) return;
+        setIsSavingInline(true);
+        try {
+            const start = inlineDraft.date;
+            const end = addMinutes(start, inlineDraft.durationMin || 30);
+            const doctor = inlineDraft.doctor ?? undefined;
+            const calendar = inlineDraft.calendar ?? undefined;
+            const patient = inlineDraft.patient;
+            const svcNames = inlineDraft.services.map((s) => s.name).join(', ');
+            // Color precedence: selected service color > doctor color > calendar color.
+            const draftColor = inlineDraft.services[inlineDraft.services.length - 1]?.color
+                || (doctor as any)?.color || (calendar as any)?.color || undefined;
+            const editing = inlineDraft.editing ?? null;
+            const payload: any = {
+                mode: editing ? 'update' : 'create',
+                start: toLocalISOString(start),
+                end: toLocalISOString(end),
+                doctor_id: doctor?.id || '',
+                doctor_name: doctor?.name || '',
+                doctor_email: doctor?.email || '',
+                patient_id: patient.id,
+                patient_name: patient.name,
+                patient_email: patient.email || '',
+                patient_phone: patient.phone_number || '',
+                summary: svcNames ? `${patient.name} - ${svcNames}` : patient.name,
+                service_ids: inlineDraft.services.map((s) => s.id),
+                service_names: svcNames,
+                notes: inlineDraft.notes || '',
+                calendar_source_id: calendar?.id ? String(calendar.id) : '',
+                color: draftColor,
+                quote_id: editing?.quote_id ?? null,
+            };
+            if (editing) {
+                payload.appointment_id = editing.id;
+                payload.google_event_id = editing.googleEventId;
+                if (editing.calendar_source_id) payload.old_calendar_source_id = editing.calendar_source_id;
+            }
+            const response = await api.post(API_ROUTES.APPOINTMENTS_UPSERT, payload);
+            const result = Array.isArray(response) ? response[0] : response;
+            if (result?.error || (result?.code && result.code >= 400)) throw new Error(result?.message || 'Failed to save appointment');
+            toast({ title: editing ? tToasts('appointmentUpdated') : tToasts('appointmentCreated') });
+            setInlineDraft(null);
+            refreshCalendarDataRef.current();
+        } catch (error) {
+            toast({ variant: 'destructive', title: tToasts('error'), description: error instanceof Error ? error.message : tToasts('unexpectedError') });
+        } finally {
+            setIsSavingInline(false);
+        }
+    }, [inlineDraft, doctors, calendars, toast, tToasts]);
+
+    const renderInlineDraft = React.useCallback(() => {
+        if (!inlineDraft) return null;
+        const draftStart = inlineDraft.date.getTime();
+        const draftEnd = addMinutes(inlineDraft.date, inlineDraft.durationMin || 30).getTime();
+        // Overlap: a non-cancelled appointment in the same column starting within the draft span.
+        const overlap = appointments.some((a) => {
+            if (a.status === 'cancelled') return false;
+            if (inlineDraft.doctor && String(a.doctorId) !== String(inlineDraft.doctor.id)) return false;
+            if (inlineDraft.calendar && String(a.calendar_source_id) !== String(inlineDraft.calendar.id)) return false;
+            const s = a.start?.dateTime ? parseISO(a.start.dateTime.replace(/Z$/, '')).getTime() : NaN;
+            return !Number.isNaN(s) && s > draftStart && s < draftEnd;
+        });
+        const isEditing = !!inlineDraft.editing;
+        // Color precedence shown on the card: service > doctor > calendar.
+        const accentColor = inlineDraft.services[inlineDraft.services.length - 1]?.color
+            || (inlineDraft.doctor as any)?.color || (inlineDraft.calendar as any)?.color || undefined;
+        return (
+            <InlineAppointmentDraft
+                date={inlineDraft.date}
+                endTime={format(addMinutes(inlineDraft.date, inlineDraft.durationMin || 30), 'HH:mm')}
+                durationMin={inlineDraft.durationMin}
+                onDurationChange={(min) => setInlineDraft((d) => (d ? { ...d, durationMin: min } : d))}
+                onStartTimeChange={(h, m) => setInlineDraft((d) => (d ? { ...d, date: set(d.date, { hours: h, minutes: m, seconds: 0, milliseconds: 0 }) } : d))}
+                calendar={inlineDraft.calendar}
+                onCalendarChange={(c) => setInlineDraft((d) => (d ? { ...d, calendar: c } : d))}
+                calendarOptions={calendars}
+                doctor={inlineDraft.doctor}
+                onDoctorChange={(doc) => setInlineDraft((d) => (d ? { ...d, doctor: doc } : d))}
+                doctorOptions={doctors}
+                patient={inlineDraft.patient}
+                onPatientChange={(u) => setInlineDraft((d) => (d ? { ...d, patient: u } : d))}
+                services={inlineDraft.services}
+                onServicesChange={(s) => setInlineDraft((d) => {
+                    if (!d) return d;
+                    // Selecting a service sets the duration to the service's time
+                    // (sum when several); falls back to the current value otherwise.
+                    const total = s.reduce((acc, svc) => acc + ((svc as any).duration_minutes || 0), 0);
+                    return { ...d, services: s, durationMin: total > 0 ? total : d.durationMin };
+                })}
+                notes={inlineDraft.notes}
+                onNotesChange={(n) => setInlineDraft((d) => (d ? { ...d, notes: n } : d))}
+                overlapWarning={overlap}
+                patientDebt={inlineDebt}
+                onViewStatement={inlineDraft.patient ? () => openAccountStatement(inlineDraft.patient!.id, inlineDraft.patient!.name) : undefined}
+                isSaving={isSavingInline}
+                onSave={handleSaveInlineDraft}
+                onCancel={() => setInlineDraft(null)}
+                accentColor={accentColor}
+                title={isEditing ? tInline('editTitle') : undefined}
+                saveLabel={isEditing ? tInline('update') : undefined}
+            />
+        );
+    }, [inlineDraft, doctors, calendars, appointments, inlineDebt, isSavingInline, handleSaveInlineDraft, openAccountStatement, tInline]);
+
+    // Left-click on an empty slot → inline draft (if enabled, desktop, time-grid view)
+    // or the modal form. Month/year/schedule always use the modal.
+    const handleSlotClick = React.useCallback((date: Date, context?: { groupBy: 'doctor' | 'calendar' | 'sede'; value: string }) => {
+        const isTimeGrid = ['day', '2-day', '3-day', 'week'].includes(currentView);
+        if (calendarSettings?.inline_appointment_creation && isTimeGrid) {
+            const draftDoctor = context?.groupBy === 'doctor' ? (doctors.find((d) => String(d.id) === String(context.value)) ?? null) : null;
+            const draftCalendar = context?.groupBy === 'calendar' ? (calendars.find((c) => String(c.id) === String(context.value)) ?? null) : null;
+            setInlineDraft({ date, context, durationMin: slotDuration, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '' });
+            return;
+        }
+        prepareSlot(date, context);
+        setIsReschedulingMode(false);
+        setCreateOpen(true);
+    }, [prepareSlot, calendarSettings?.inline_appointment_creation, currentView, doctors, calendars, slotDuration]);
+
+    // Edit an existing appointment: inline edit card when the inline-creation
+    // preference is on (and on a time-grid view), otherwise the modal form.
+    const handleEditAppointment = React.useCallback((appointment: Appointment) => {
+        const isTimeGrid = ['day', '2-day', '3-day', 'week'].includes(currentView);
+        if (calendarSettings?.inline_appointment_creation && isTimeGrid) {
+            const startStr = appointment.start?.dateTime;
+            const start = startStr ? parseISO(startStr.replace(/Z$/, '')) : new Date();
+            const endStr = appointment.end?.dateTime;
+            const end = endStr ? parseISO(endStr.replace(/Z$/, '')) : addMinutes(start, 30);
+            let durationMin = Math.round((end.getTime() - start.getTime()) / 60000);
+            if (!Number.isFinite(durationMin) || durationMin <= 0) durationMin = 30;
+            const doctor = doctors.find((d) => String(d.id) === String(appointment.doctorId)) ?? null;
+            const calendar = calendars.find((c) => String(c.id) === String(appointment.calendar_source_id)) ?? null;
+            const patient = {
+                id: appointment.patientId,
+                name: appointment.patientName,
+                email: appointment.patientEmail,
+                phone_number: appointment.patientPhone,
+            } as UserType;
+            const services: Service[] = Array.isArray(appointment.services)
+                ? appointment.services.map((s: any) => ({ id: String(s.id), name: s.name, color: s.color } as Service))
+                : [];
+            const context = groupBy === 'doctor'
+                ? { groupBy: 'doctor' as const, value: String(appointment.doctorId) }
+                : groupBy === 'calendar'
+                    ? { groupBy: 'calendar' as const, value: String(appointment.calendar_source_id) }
+                    : undefined;
+            setInlineDraft({ date: start, context, durationMin, patient, services, doctor, calendar, notes: appointment.notes || '', editing: appointment });
+            return;
+        }
+        setEditingAppointment(appointment);
+        setIsReschedulingMode(false);
+        setCreateOpen(true);
+    }, [calendarSettings?.inline_appointment_creation, currentView, doctors, calendars, groupBy]);
+
+    // Right-click on an empty slot → choose between appointment or reminder.
+    const handleSlotContextMenu = React.useCallback((date: Date, context?: { groupBy: 'doctor' | 'calendar' | 'sede'; value: string }) => {
+        prepareSlot(date, context);
+        setIsCreateTypeOpen(true);
+    }, [prepareSlot]);
 
     const handleCreateAppointmentFromSlot = React.useCallback(() => {
         setEditingAppointment(null);
@@ -639,6 +1096,8 @@ export default function AppointmentsPage() {
             if (signal?.aborted) return;
             const sessions: any[] = Array.isArray(data) ? data : (data.patient_sessions || data.data || []);
             const match = sessions.find((s: any) => s?.appointment_id?.toString() === appointment.id);
+            // Keep the context-menu session label ("Register" vs "Edit") in sync.
+            setSessionExistsMap((prev) => ({ ...prev, [appointment.id]: !!match }));
             if (match) {
                 const s = match;
                 setLinkedSession({
@@ -889,6 +1348,164 @@ export default function AppointmentsPage() {
         setCreateOpen(true);
     };
 
+    // Quick doctor/room reassignment (upsert) from the calendar context menu or
+    // the detail panel — no confirmation step, optimistic UI, then a silent refresh.
+    const handleReassign = React.useCallback(async (appointment: Appointment, change: AppointmentReassignChange) => {
+        try {
+            const updated = await reassignAppointmentField(appointment, change);
+            setAppointments((prev) => prev.map((a) => (a.id === updated.id ? { ...a, ...updated } : a)));
+            setSelectedAppointment((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev));
+            toast({
+                title: change.doctor ? tToasts('doctorReassigned') : tToasts('calendarReassigned'),
+            });
+            refreshCalendarDataRef.current();
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: tToasts('error'),
+                description: error instanceof Error ? error.message : tToasts('unexpectedError'),
+            });
+        }
+    }, [toast, tToasts]);
+
+    // ── Context-menu financial / session quick actions ───────────────────────
+    // Lazily-loaded data keyed by patient/appointment, populated the first time an
+    // appointment's context menu is opened (see requestAppointmentMenuData).
+    const [patientQuotesMap, setPatientQuotesMap] = React.useState<Record<string, Quote[]>>({});
+    const [patientInvoicesMap, setPatientInvoicesMap] = React.useState<Record<string, Invoice[]>>({});
+    const menuDataRequestedRef = React.useRef<Set<string>>(new Set());
+
+    const ensurePatientQuotes = React.useCallback(async (patientId: string) => {
+        if (!patientId || patientQuotesMap[patientId]) return;
+        try {
+            const data = await api.get(API_ROUTES.USER_QUOTES, { user_id: patientId });
+            const raw = Array.isArray(data) ? data : (data.user_quotes || data.data || data.result || []);
+            const quotes: Quote[] = raw.map((q: any) => ({
+                id: String(q.id),
+                doc_no: q.doc_no || q.quote_doc_no || '',
+                total: Number(q.total || 0),
+                currency: q.currency || 'USD',
+                status: q.status || 'draft',
+                createdAt: q.created_at || q.createdAt || '',
+            } as Quote));
+            setPatientQuotesMap((prev) => ({ ...prev, [patientId]: quotes }));
+        } catch {
+            setPatientQuotesMap((prev) => ({ ...prev, [patientId]: [] }));
+        }
+    }, [patientQuotesMap]);
+
+    const ensurePatientInvoices = React.useCallback(async (patientId: string) => {
+        if (!patientId || patientInvoicesMap[patientId]) return;
+        try {
+            const data = await api.get(API_ROUTES.USER_INVOICES, { user_id: patientId });
+            const raw = Array.isArray(data) ? data : (data.invoices || data.data || data.result || []);
+            const invoices: Invoice[] = raw.map((inv: any) => ({
+                id: String(inv.id),
+                invoice_ref: inv.invoice_ref || '',
+                doc_no: inv.doc_no || inv.invoice_doc_no || '',
+                invoice_doc_no: inv.invoice_doc_no || inv.doc_no || '',
+                order_id: String(inv.order_id || ''),
+                quote_id: String(inv.quote_id || ''),
+                user_id: String(inv.user_id || ''),
+                user_name: inv.user_name || '',
+                total: Number(inv.total || 0),
+                currency: inv.currency || 'USD',
+                status: inv.status || 'draft',
+                payment_status: inv.payment_state || inv.payment_status || 'unpaid',
+                paid_amount: Number(inv.paid_amount || 0),
+                type: inv.type || 'invoice',
+                createdAt: inv.created_at || inv.createdAt || '',
+                updatedAt: inv.updated_at || inv.updatedAt || '',
+            } as Invoice));
+            setPatientInvoicesMap((prev) => ({ ...prev, [patientId]: invoices }));
+        } catch {
+            setPatientInvoicesMap((prev) => ({ ...prev, [patientId]: [] }));
+        }
+    }, [patientInvoicesMap]);
+
+    const ensureSessionInfo = React.useCallback(async (appointment: Appointment) => {
+        if (!appointment.patientId || sessionExistsMap[appointment.id] !== undefined) return;
+        try {
+            const data = await api.get(API_ROUTES.CLINIC_HISTORY.PATIENT_SESSIONS, { user_id: appointment.patientId });
+            const sessions: any[] = Array.isArray(data) ? data : (data.patient_sessions || data.data || []);
+            // One fetch covers the patient: flag every appointment that already has a session.
+            const withSession = new Set(
+                sessions
+                    .map((s: any) => (s?.appointment_id ?? s?.appointmentId ?? s?.appointmentid)?.toString())
+                    .filter(Boolean),
+            );
+            setSessionExistsMap((prev) => {
+                const next = { ...prev };
+                withSession.forEach((id) => { next[id as string] = true; });
+                if (next[appointment.id] === undefined) next[appointment.id] = false;
+                return next;
+            });
+        } catch {
+            /* leave undefined so it can be retried */
+        }
+    }, [sessionExistsMap]);
+
+    // Called from the context menu render path (only runs when a menu actually opens,
+    // since Radix mounts the content lazily). Defers fetches to avoid setState-in-render.
+    const requestAppointmentMenuData = React.useCallback((appointment: Appointment) => {
+        if (menuDataRequestedRef.current.has(appointment.id)) return;
+        menuDataRequestedRef.current.add(appointment.id);
+        queueMicrotask(() => {
+            ensureSessionInfo(appointment);
+            if (appointment.patientId) {
+                ensurePatientQuotes(appointment.patientId);
+                ensurePatientInvoices(appointment.patientId);
+            }
+        });
+    }, [ensureSessionInfo, ensurePatientQuotes, ensurePatientInvoices]);
+
+    const handleLinkQuote = React.useCallback(async (appointment: Appointment, quote: Quote | null) => {
+        try {
+            const updated = await reassignAppointmentField(appointment, {
+                quote: quote ? { id: quote.id, doc_no: quote.doc_no } : null,
+            });
+            setAppointments((prev) => prev.map((a) => (a.id === updated.id ? { ...a, ...updated } : a)));
+            setSelectedAppointment((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev));
+            toast({ title: quote ? tToasts('quoteLinked') : tToasts('quoteUnlinked') });
+            refreshCalendarDataRef.current();
+        } catch (error) {
+            toast({ variant: 'destructive', title: tToasts('error'), description: error instanceof Error ? error.message : tToasts('unexpectedError') });
+        }
+    }, [toast, tToasts]);
+
+    const handleLinkInvoice = React.useCallback(async (appointment: Appointment, invoice: Invoice) => {
+        try {
+            await linkInvoiceToAppointment(invoice.id, appointment.id);
+            setAppointments((prev) => prev.map((a) => (a.id === appointment.id ? { ...a, invoice_id: invoice.id } : a)));
+            setSelectedAppointment((prev) => (prev && prev.id === appointment.id ? { ...prev, invoice_id: invoice.id } : prev));
+            toast({ title: tToasts('invoiceLinked') });
+            refreshCalendarDataRef.current();
+        } catch (error) {
+            toast({ variant: 'destructive', title: tToasts('error'), description: error instanceof Error ? error.message : tToasts('unexpectedError') });
+        }
+    }, [toast, tToasts]);
+
+    // Opens the global Cobro Rápido wizard with whatever the appointment already
+    // has (invoice → quote → services), mirroring the detail panel behavior.
+    const handleQuickBillFromContext = React.useCallback((appointment: Appointment) => {
+        if (!appointment.patientId) return;
+        const base = { patientId: appointment.patientId, patientName: appointment.patientName, isSales: true, appointmentId: appointment.id };
+        if (appointment.invoice_id) {
+            openBillingWizard({ ...base, invoiceId: String(appointment.invoice_id) }, () => refreshCalendarDataRef.current());
+        } else if (appointment.quote_id) {
+            openBillingWizard({ ...base, quoteId: String(appointment.quote_id) }, () => refreshCalendarDataRef.current());
+        } else {
+            const preloadedItems = (appointment.services || []).map((svc) => ({
+                tempId: svc.id,
+                service_id: svc.id,
+                service_name: svc.name,
+                unit_price: svc.price || 0,
+                quantity: 1,
+                total: svc.price || 0,
+            }));
+            openBillingWizard({ ...base, appointmentDate: appointment.date, preloadedItems: preloadedItems.length > 0 ? preloadedItems : undefined }, () => refreshCalendarDataRef.current());
+        }
+    }, [openBillingWizard]);
 
     const handleCancel = (appointment: Appointment) => {
         setDeletingAppointment(appointment);
@@ -923,6 +1540,33 @@ export default function AppointmentsPage() {
         },
         [updateStatus],
     );
+
+    // Soft-delete: flips the appointment's status to 'deleted' on the backend
+    // (excluded from future fetches) and removes it from the calendar immediately.
+    const handleSoftDelete = React.useCallback(async (appointment: Appointment) => {
+        try {
+            const response = await api.post(API_ROUTES.APPOINTMENTS_UPDATE_STATUS, {
+                appointment_id: appointment.id,
+                google_event_id: appointment.googleEventId,
+                calendar_source_id: appointment.calendar_source_id,
+                status: 'deleted',
+            });
+            const result = Array.isArray(response) ? response[0] : response;
+            if (result?.error || (result?.code && result.code >= 400)) {
+                throw new Error(result?.message || 'Failed to delete appointment');
+            }
+            setAppointments((prev) => prev.filter((a) => a.id !== appointment.id));
+            setIsDetailViewOpen(false);
+            setSelectedAppointment(null);
+            toast({ title: tToasts('appointmentDeleted'), description: tToasts('appointmentDeletedDesc') });
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: tToasts('error'),
+                description: error instanceof Error ? error.message : tToasts('failedDelete'),
+            });
+        }
+    }, [toast, tToasts]);
 
     const [pendingCancellation, setPendingCancellation] = React.useState<Appointment | null>(null);
     const handleRequestCustomCancellation = React.useCallback((appointment: Appointment) => {
@@ -1017,6 +1661,8 @@ export default function AppointmentsPage() {
                 toast({ title: t('toasts.sessionCreated'), description: t('toasts.sessionCreatedDesc') });
             }
 
+            // The appointment now has a session → next context-menu open says "Edit".
+            setSessionExistsMap((prev) => ({ ...prev, [clinicSessionAppointment.id]: true }));
             setIsClinicSessionOpen(false);
             setClinicSessionAppointment(null);
             loadLinkedSession(clinicSessionAppointment);
@@ -1045,7 +1691,8 @@ export default function AppointmentsPage() {
             getAppointments(selectedCalendarIds, fetchRange.start, fetchRange.end, calendars, services, doctors, t),
             getReminders(fetchRange.start, fetchRange.end, user?.id),
         ]);
-        setAppointments(fetchedAppointments);
+        // Defensive: exclude soft-deleted appointments (the backend also excludes them).
+        setAppointments(fetchedAppointments.filter((a) => (a.status as string) !== 'deleted'));
         setReminders(fetchedReminders);
 
         setIsRefreshing(false);
@@ -1054,6 +1701,8 @@ export default function AppointmentsPage() {
     const forceRefresh = React.useCallback(() => {
         loadAppointments();
     }, [loadAppointments]);
+
+    React.useEffect(() => { refreshCalendarDataRef.current = forceRefresh; }, [forceRefresh]);
 
     const [isQuickQuoteOpen, setIsQuickQuoteOpen] = React.useState(false);
     const [quickQuotePatient, setQuickQuotePatient] = React.useState<UserType | null>(null);
@@ -1067,6 +1716,38 @@ export default function AppointmentsPage() {
     const [pendingInvoiceNotifId, setPendingInvoiceNotifId] = React.useState<string | undefined>();
     const [pendingScheduleNotifId, setPendingScheduleNotifId] = React.useState<string | undefined>();
     const [scheduleNextResolvedServices, setScheduleNextResolvedServices] = React.useState<Service[] | undefined>();
+
+    // Quote/invoice creation dialogs preloaded with the appointment's patient +
+    // services; the freshly created document is linked back to the appointment.
+    const [quoteLinkTarget, setQuoteLinkTarget] = React.useState<Appointment | null>(null);
+    const [invoiceLinkTarget, setInvoiceLinkTarget] = React.useState<Appointment | null>(null);
+
+    const appointmentServiceItems = React.useCallback((appointment: Appointment): SessionPreloadedService[] => (
+        (appointment.services || []).map((svc) => ({
+            service_id: svc.id,
+            service_name: svc.name,
+            unit_price: svc.price || 0,
+            quantity: 1,
+            is_for_next_session: false,
+            numero_diente: null,
+        }))
+    ), []);
+
+    const handleCreateQuoteForAppointment = React.useCallback((appointment: Appointment) => {
+        if (!appointment.patientId) return;
+        setQuoteLinkTarget(appointment);
+        setQuickQuotePatient({ id: appointment.patientId, name: appointment.patientName, email: appointment.patientEmail || '', phone_number: appointment.patientPhone || '', is_active: true, avatar: '' } as UserType);
+        setQuickQuoteInitialItems(appointmentServiceItems(appointment));
+        setIsQuickQuoteOpen(true);
+    }, [appointmentServiceItems]);
+
+    const handleCreateInvoiceForAppointment = React.useCallback((appointment: Appointment) => {
+        if (!appointment.patientId) return;
+        setInvoiceLinkTarget(appointment);
+        setInvoicePatient({ id: appointment.patientId, name: appointment.patientName, email: appointment.patientEmail || '', phone_number: appointment.patientPhone || '', is_active: true, avatar: '' } as UserType);
+        setInvoiceInitialItems(appointmentServiceItems(appointment));
+        setIsInvoiceFormOpen(true);
+    }, [appointmentServiceItems]);
 
     // ── Notification deep-link handlers ───────────────────────────────────────
     /**
@@ -1183,8 +1864,19 @@ export default function AppointmentsPage() {
         const serviceMap = await getUsersServicesBatch(doctorIds);
         setDoctorServiceMap(serviceMap);
 
+        setDoctorCalendarMap(await getDoctorCalendarMap(fetchedCalendars));
+
         setSelectedDoctorIds(fetchedDoctors.map(d => d.id));
-        setSelectedCalendarIds(fetchedCalendars.map(c => c.id).filter(id => id));
+        // Honor the configured default branch (sede): show only its calendars by
+        // default. Empty = all. prevSedeRef keeps the live-change effect from
+        // re-applying this same selection right after load.
+        const defaultSedeId = fetchedSettings.default_sede || '';
+        const initialCalendarIds = (defaultSedeId
+            ? fetchedCalendars.filter(c => String(c.sede_id) === String(defaultSedeId))
+            : fetchedCalendars
+        ).map(c => c.id).filter(id => id);
+        prevSedeRef.current = defaultSedeId;
+        setSelectedCalendarIds(initialCalendarIds);
         setIsDataLoading(false);
     }, [handleSettingsChange]);
 
@@ -1267,6 +1959,7 @@ export default function AppointmentsPage() {
 
         // Optimistically update UI
         setAppointments(prev => prev.map(a => a.id === appointment.id ? { ...a, color: colorHex, colorId: colorId } : a));
+        setSelectedAppointment(prev => (prev && prev.id === appointment.id ? { ...prev, color: colorHex, colorId: colorId } : prev));
 
         // Persist change to backend using snake_case for consistency
         const payload = {
@@ -1340,11 +2033,13 @@ export default function AppointmentsPage() {
         const selectedCalendarIdSet = new Set(selectedCalendarIds.map(String));
         const events = appointments
             .filter((appt) => {
+                if (isBulkMode) return true;
                 const id = String(appt.doctorId || '');
                 if (!id) return true;
                 return selectedDoctorIdSet.has(id);
             })
             .filter((appt) => {
+                if (isBulkMode) return true;
                 const id = String(appt.calendar_source_id || appt.calendar_id || '');
                 if (!id) return true;
                 return selectedCalendarIdSet.has(id);
@@ -1367,6 +2062,7 @@ export default function AppointmentsPage() {
                 return {
                     id: String(appt.id),
                     title: appt.summary || appt.service_name || 'Cita',
+                    label: buildEventLabel(appt, start, eventLabelFormat),
                     start,
                     end,
                     doctorGroupId: appt.doctorId || undefined,
@@ -1400,8 +2096,164 @@ export default function AppointmentsPage() {
             .filter((event): event is NonNullable<typeof event> => event !== null);
 
         return [...events, ...reminderEvents];
-    }, [appointments, calendars, reminders, selectedCalendarIds, selectedDoctorIds]);
+    }, [appointments, calendars, reminders, selectedCalendarIds, selectedDoctorIds, eventLabelFormat, isBulkMode]);
 
+    // ── "Huecos"/blocking: clinic schedules. `/schedules` requires `sede_id`, so
+    // fetch the availability of every sede and combine.
+    React.useEffect(() => {
+        if (sedes.length === 0) return;
+        let cancelled = false;
+        Promise.all(
+            sedes.map((sede) =>
+                api.get(API_ROUTES.CLINIC_SCHEDULES, { sede_id: String(sede.id) })
+                    .then((data) => {
+                        const rows = Array.isArray(data) ? data : ((data as { schedules?: unknown[]; data?: unknown[]; result?: unknown[] })?.schedules || (data as { data?: unknown[] })?.data || (data as { result?: unknown[] })?.result || []);
+                        return (rows as ClinicSchedule[]).map((s) => ({
+                            id: String((s as { id: unknown }).id),
+                            day_of_week: (s as ClinicSchedule).day_of_week,
+                            start_time: (s as ClinicSchedule).start_time,
+                            end_time: (s as ClinicSchedule).end_time,
+                            sede_id: (s as ClinicSchedule).sede_id ? String((s as ClinicSchedule).sede_id) : String(sede.id),
+                        }));
+                    })
+                    .catch(() => [] as ClinicSchedule[]),
+            ),
+        ).then((all) => { if (!cancelled) setClinicSchedules(all.flat()); });
+        return () => { cancelled = true; };
+    }, [sedes]);
+
+    // Clinic exceptions (holidays / one-off openings) for out-of-office blocking.
+    React.useEffect(() => {
+        api.get(API_ROUTES.EXCEPTIONS)
+            .then((data) => {
+                const rows = Array.isArray(data) ? data : ((data as { exceptions?: unknown[]; data?: unknown[]; result?: unknown[] })?.exceptions || (data as { data?: unknown[] })?.data || (data as { result?: unknown[] })?.result || []);
+                setClinicExceptions((rows as Record<string, unknown>[]).map((e) => ({
+                    id: String(e.id ?? ''),
+                    date: String(e.date ?? ''),
+                    is_open: e.is_open as boolean,
+                    start_time: (e.start_time as string) ?? '',
+                    end_time: (e.end_time as string) ?? '',
+                    // Notes can come under a few key names depending on the flow.
+                    notes: String(e.notes ?? e.note ?? e.nota ?? e.notas ?? e.description ?? e.descripcion ?? e.motivo ?? ''),
+                })));
+            })
+            .catch(() => setClinicExceptions([]));
+    }, []);
+
+    // Schedules scoped to the selected sede (matching sede + rows with no sede).
+    const effectiveSchedules = React.useMemo(() => {
+        if (!defaultSede) return clinicSchedules;
+        const scoped = clinicSchedules.filter((s) => !s.sede_id || String(s.sede_id) === String(defaultSede));
+        // Don't over-filter: if the sede filter removes everything, fall back to all
+        // schedules so the calendar isn't accidentally blocked end-to-end.
+        return scoped.length > 0 ? scoped : clinicSchedules;
+    }, [clinicSchedules, defaultSede]);
+
+    // Visible days for the blocking overlay (independent of the Huecos toggle).
+    const blockVisibleDays = React.useMemo(() => {
+        if (!blockUnavailable || !fetchRange?.start || !fetchRange?.end) return [];
+        try {
+            return eachDayOfInterval({ start: fetchRange.start, end: fetchRange.end });
+        } catch {
+            return [];
+        }
+    }, [blockUnavailable, fetchRange]);
+
+    // Safeguard: blocking requires configured schedules (they define the working
+    // hours). Exceptions only refine them. Without schedules we can't know the
+    // hours, so nothing is blocked (avoids locking the whole calendar).
+    const blockingConfigured = effectiveSchedules.length > 0;
+
+    const blockedRanges = React.useMemo<BlockedRange[]>(() => {
+        if (!blockUnavailable || !blockingConfigured) return [];
+        const isGroupingView = ['day', '2-day', '3-day', 'week'].includes(currentView);
+        const tagDay = (day: Date, sched: ClinicSchedule[], groupValue?: string): BlockedRange[] =>
+            computeBlockedRanges(day, sched, clinicExceptions)
+                .map((r) => ({ dayKey: format(day, 'yyyy-MM-dd'), startMin: r.startMin, endMin: r.endMin, groupValue, reason: r.reason, note: r.note }));
+
+        // Grouped by consultorio: each column blocks per its calendar's SEDE schedules.
+        if (isGroupingView && groupBy === 'calendar') {
+            return calendars.flatMap((cal) => {
+                const sedeId = cal.sede_id;
+                const sched = sedeId
+                    ? clinicSchedules.filter((s) => !s.sede_id || String(s.sede_id) === String(sedeId))
+                    : effectiveSchedules;
+                return blockVisibleDays.flatMap((day) => tagDay(day, sched, String(cal.id)));
+            });
+        }
+        // Grouped by doctor: clinic-wide hours, tagged per column so each shows them.
+        if (isGroupingView && groupBy === 'doctor') {
+            return doctors.flatMap((doc) =>
+                blockVisibleDays.flatMap((day) => tagDay(day, effectiveSchedules, String(doc.id))),
+            );
+        }
+        // Non-grouped: a single clinic-wide timeline.
+        return blockVisibleDays.flatMap((day) => tagDay(day, effectiveSchedules, undefined));
+    }, [blockUnavailable, blockingConfigured, currentView, groupBy, blockVisibleDays, effectiveSchedules, clinicSchedules, clinicExceptions, calendars, doctors]);
+
+    const blockedFullDays = React.useMemo<Set<string>>(() => {
+        if (!blockUnavailable || !blockingConfigured) return new Set();
+        const set = new Set<string>();
+        for (const day of blockVisibleDays) {
+            if (getAvailableIntervals(day, effectiveSchedules, clinicExceptions).length === 0) {
+                set.add(format(day, 'yyyy-MM-dd'));
+            }
+        }
+        return set;
+    }, [blockUnavailable, blockingConfigured, blockVisibleDays, effectiveSchedules, clinicExceptions]);
+
+    const gapVisibleDays = React.useMemo(() => {
+        if (!gapsActive || !fetchRange?.start || !fetchRange?.end) return [];
+        try {
+            return eachDayOfInterval({ start: fetchRange.start, end: fetchRange.end });
+        } catch {
+            return [];
+        }
+    }, [gapsActive, fetchRange]);
+
+    const handleToggleGaps = React.useCallback(() => {
+        setGapsActive((prev) => {
+            const next = !prev;
+            if (next) setIsBulkMode(false); // gaps and bulk modes are mutually exclusive
+            if (!next) setSelectedGap(null);
+            return next;
+        });
+    }, []);
+
+    const handleCloseGaps = React.useCallback(() => {
+        setGapsActive(false);
+        setSelectedGap(null);
+    }, []);
+
+    const handleSelectGap = React.useCallback((gap: Gap) => {
+        setEditingAppointment(null);
+        setIsReschedulingMode(false);
+        const base: {
+            date: string;
+            time: string;
+            doctor?: UserType | null;
+            calendar?: CalendarType | null;
+        } = {
+            date: format(gap.start, 'yyyy-MM-dd'),
+            time: format(gap.start, 'HH:mm'),
+        };
+        // Prefill the doctor/consultorio when the gap belongs to a grouped column.
+        if (gap.groupValue) {
+            if (groupBy === 'doctor') {
+                const doctor = doctors.find((d) => String(d.id) === String(gap.groupValue));
+                if (doctor) base.doctor = doctor;
+            } else if (groupBy === 'calendar') {
+                const calendar = calendars.find((c) => String(c.id) === String(gap.groupValue));
+                if (calendar) base.calendar = calendar;
+            }
+        }
+        setSlotInitialData(base);
+        setPendingSlotDate(gap.start);
+        setCreateOpen(true);
+        // Per the requirement: selecting a proposal closes the panel and clears the effect.
+        setGapsActive(false);
+        setSelectedGap(null);
+    }, [groupBy, doctors, calendars]);
 
     const handleSelectDoctor = React.useCallback((doctorId: string, checked: boolean) => {
         setSelectedDoctorIds(prev => {
@@ -1414,6 +2266,9 @@ export default function AppointmentsPage() {
     }, []);
 
     const showGroupControls = ['day', '2-day', '3-day', 'week'].includes(currentView);
+    // The doctors filter also applies to the agenda (schedule) view, even though
+    // that view does not support column grouping.
+    const showDoctorFilter = showGroupControls || currentView === 'schedule';
 
     const handleSelectCalendar = React.useCallback((calendarId: string, checked: boolean) => {
         setSelectedCalendarIds(prev => {
@@ -1482,6 +2337,34 @@ export default function AppointmentsPage() {
         return [];
     }, [calendarGroupingColumns, doctorGroupingColumns, groupBy]);
 
+    const calendarGaps = React.useMemo<Gap[]>(() => {
+        if (!gapsActive) return [];
+        // When blocking is on, restrict gaps to the available intervals (split shifts
+        // + exceptions); otherwise keep the original single-window behavior.
+        const useIntervals = blockUnavailable && blockingConfigured;
+        const dayGapsFor = (evts: CalendarEvent[], day: Date): Gap[] =>
+            useIntervals
+                ? computeDayGapsForIntervals(evts, day, DEFAULT_MIN_GAP_MINUTES, getAvailableIntervals(day, effectiveSchedules, clinicExceptions))
+                : computeDayGaps(evts, day, DEFAULT_MIN_GAP_MINUTES, getBusinessWindow(day, clinicSchedules));
+        // Grouped (by doctor/consultorio): free slots PER column, so a consultorio's
+        // continuous free time merges across hours regardless of other columns.
+        // Only the grid views render grouped columns; month/schedule/year use union.
+        const isGroupingView = ['day', '2-day', '3-day', 'week'].includes(currentView);
+        if (isGroupingView && groupBy !== 'none' && groupingColumns.length > 0) {
+            return groupingColumns.flatMap((col) =>
+                gapVisibleDays.flatMap((day) =>
+                    dayGapsFor(filterEventsByDayAndGroup(calendarEvents, day, groupBy, col.value), day)
+                        .map((g) => ({ ...g, groupValue: col.value, groupLabel: col.label })),
+                ),
+            );
+        }
+        // Non-grouped: a single timeline (union of all visible events).
+        if (useIntervals) {
+            return gapVisibleDays.flatMap((day) => dayGapsFor(calendarEvents, day));
+        }
+        return computeRangeGaps(calendarEvents, gapVisibleDays, clinicSchedules);
+    }, [gapsActive, blockUnavailable, blockingConfigured, groupBy, groupingColumns, currentView, calendarEvents, gapVisibleDays, clinicSchedules, effectiveSchedules, clinicExceptions]);
+
     const groupByLabel = React.useMemo(() => {
         if (groupBy === 'doctor') return t('grouping.options.doctor');
         if (groupBy === 'calendar') return t('grouping.options.calendar');
@@ -1533,13 +2416,32 @@ export default function AppointmentsPage() {
         }
 
         const appointment = eventData as Appointment;
+        // Note: per-appointment session/quote/invoice data is loaded lazily when the
+        // menu actually opens (onEventContextMenuOpen), not on every render.
+        const patientQuotes = appointment.patientId ? (patientQuotesMap[appointment.patientId] ?? []) : [];
+        const patientInvoices = appointment.patientId ? (patientInvoicesMap[appointment.patientId] ?? []) : [];
+        const linkedQuote = appointment.quote_id ? patientQuotes.find((q) => String(q.id) === String(appointment.quote_id)) : undefined;
+        const linkedInvoice = appointment.invoice_id ? patientInvoices.find((i) => String(i.id) === String(appointment.invoice_id)) : undefined;
+        const fmtMoney = (amount: number, currency?: string) => new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD' }).format(amount);
+        const hasSession = sessionExistsMap[appointment.id];
         return (
             <>
             <ContextMenuSeparator />
+            <ContextMenuItem
+                key="edit-appointment"
+                onSelect={() => handleEditAppointment(appointment)}
+                className="flex items-center gap-2 cursor-pointer"
+            >
+                <Edit className="h-4 w-4 shrink-0" />
+                {t('contextMenu.editAppointment')}
+            </ContextMenuItem>
             <ContextMenuSub>
-                <ContextMenuSubTrigger className="flex items-center gap-2 cursor-pointer">
-                    <ClipboardCheck className="h-4 w-4" />
-                    {tStatusMenu('changeStatus')}
+                <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                    <ClipboardCheck className="h-4 w-4 shrink-0" />
+                    <span className="flex min-w-0 flex-col">
+                        <span>{tStatusMenu('changeStatus')}</span>
+                        <span className="truncate text-xs italic text-muted-foreground">{tStatus(appointment.status)}</span>
+                    </span>
                 </ContextMenuSubTrigger>
                 <ContextMenuSubContent>
                     <AppointmentStatusContextItems
@@ -1552,6 +2454,74 @@ export default function AppointmentsPage() {
                         SubContentComponent={ContextMenuSubContent}
                         SeparatorComponent={ContextMenuSeparator}
                     />
+                </ContextMenuSubContent>
+            </ContextMenuSub>
+            <ContextMenuSub>
+                <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                    <UserCog className="h-4 w-4 shrink-0" />
+                    <span className="flex min-w-0 flex-col">
+                        <span>{appointment.doctorId ? tPanel('changeDoctor') : tPanel('assignDoctor')}</span>
+                        {appointment.doctorId && appointment.doctorName && (
+                            <span className="truncate text-xs italic text-muted-foreground">{appointment.doctorName}</span>
+                        )}
+                    </span>
+                </ContextMenuSubTrigger>
+                <ContextMenuSubContent className="max-h-72 w-60 overflow-y-auto">
+                    {doctors.length === 0 ? (
+                        <ContextMenuItem disabled>{tPanel('noDoctorFound')}</ContextMenuItem>
+                    ) : (
+                        doctors.map((doctor) => (
+                            <ContextMenuItem
+                                key={doctor.id}
+                                onSelect={() => {
+                                    if (String(doctor.id) !== String(appointment.doctorId)) {
+                                        handleReassign(appointment, { doctor });
+                                    }
+                                }}
+                                className="flex items-center gap-2 cursor-pointer"
+                            >
+                                <Check className={cn('h-4 w-4 shrink-0', String(doctor.id) === String(appointment.doctorId) ? 'opacity-100' : 'opacity-0')} />
+                                {doctor.color && (
+                                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: doctor.color }} />
+                                )}
+                                <span className="min-w-0 flex-1 truncate">{doctor.name}</span>
+                            </ContextMenuItem>
+                        ))
+                    )}
+                </ContextMenuSubContent>
+            </ContextMenuSub>
+            <ContextMenuSub>
+                <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                    <Building2 className="h-4 w-4 shrink-0" />
+                    <span className="flex min-w-0 flex-col">
+                        <span>{appointment.calendar_source_id ? tPanel('changeCalendar') : tPanel('assignCalendar')}</span>
+                        {appointment.calendar_source_id && appointment.calendar_name && (
+                            <span className="truncate text-xs italic text-muted-foreground">{appointment.calendar_name}</span>
+                        )}
+                    </span>
+                </ContextMenuSubTrigger>
+                <ContextMenuSubContent className="max-h-72 w-60 overflow-y-auto">
+                    {calendars.length === 0 ? (
+                        <ContextMenuItem disabled>{tPanel('noCalendarFound')}</ContextMenuItem>
+                    ) : (
+                        calendars.map((calendar) => (
+                            <ContextMenuItem
+                                key={calendar.id}
+                                onSelect={() => {
+                                    if (String(calendar.id) !== String(appointment.calendar_source_id)) {
+                                        handleReassign(appointment, { calendar });
+                                    }
+                                }}
+                                className="flex items-center gap-2 cursor-pointer"
+                            >
+                                <Check className={cn('h-4 w-4 shrink-0', String(calendar.id) === String(appointment.calendar_source_id) ? 'opacity-100' : 'opacity-0')} />
+                                {calendar.color && (
+                                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: calendar.color }} />
+                                )}
+                                <span className="min-w-0 flex-1 truncate">{calendar.name}</span>
+                            </ContextMenuItem>
+                        ))
+                    )}
                 </ContextMenuSubContent>
             </ContextMenuSub>
             {canReschedule(appointment.status) && (
@@ -1576,7 +2546,93 @@ export default function AppointmentsPage() {
                 className="flex items-center gap-2 cursor-pointer"
             >
                 <Stethoscope className="h-4 w-4" />
-                {t('contextMenu.createSession')}
+                {hasSession ? t('contextMenu.editSession') : t('contextMenu.createSession')}
+            </ContextMenuItem>
+
+            <ContextMenuSeparator />
+
+            {/* Quote: link/change */}
+            <ContextMenuSub onOpenChange={(o) => { if (o && appointment.patientId) ensurePatientQuotes(appointment.patientId); }}>
+                <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                    <Link2 className="h-4 w-4 shrink-0" />
+                    <span className="flex min-w-0 flex-col">
+                        <span>{appointment.quote_id ? t('contextMenu.changeQuote') : t('contextMenu.linkQuote')}</span>
+                        {appointment.quote_id && (
+                            <span className="truncate text-xs italic text-muted-foreground">
+                                {(linkedQuote?.doc_no || appointment.quote_doc_no || appointment.quote_id)}
+                                {linkedQuote ? ` · ${fmtMoney(linkedQuote.total, linkedQuote.currency)}` : ''}
+                            </span>
+                        )}
+                    </span>
+                </ContextMenuSubTrigger>
+                <ContextMenuSubContent className="p-0">
+                    <ContextEntityPicker
+                        items={patientQuotes.map((quote) => ({
+                            id: String(quote.id),
+                            title: quote.doc_no || String(quote.id),
+                            subtitle: fmtMoney(quote.total, quote.currency),
+                        }))}
+                        selectedId={appointment.quote_id}
+                        onSelect={(id) => { const quote = patientQuotes.find((q) => String(q.id) === id); if (quote && String(id) !== String(appointment.quote_id)) handleLinkQuote(appointment, quote); }}
+                        onCreateNew={() => handleCreateQuoteForAppointment(appointment)}
+                        createLabel={t('contextMenu.newQuote')}
+                        searchPlaceholder={t('contextMenu.searchQuote')}
+                        emptyText={t('contextMenu.noQuotes')}
+                    />
+                </ContextMenuSubContent>
+            </ContextMenuSub>
+
+            {/* Invoice: bill/change */}
+            <ContextMenuSub onOpenChange={(o) => { if (o && appointment.patientId) ensurePatientInvoices(appointment.patientId); }}>
+                <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                    <Receipt className="h-4 w-4 shrink-0" />
+                    <span className="flex min-w-0 flex-col">
+                        <span>{appointment.invoice_id ? t('contextMenu.changeInvoice') : t('contextMenu.createInvoice')}</span>
+                        {appointment.invoice_id && (
+                            <span className="truncate text-xs italic text-muted-foreground">
+                                {(linkedInvoice?.doc_no || linkedInvoice?.invoice_doc_no || appointment.invoice_id)}
+                                {linkedInvoice ? ` · ${fmtMoney(linkedInvoice.total, linkedInvoice.currency)}` : ''}
+                            </span>
+                        )}
+                    </span>
+                </ContextMenuSubTrigger>
+                <ContextMenuSubContent className="p-0">
+                    <ContextEntityPicker
+                        items={patientInvoices.map((invoice) => ({
+                            id: String(invoice.id),
+                            title: invoice.doc_no || invoice.invoice_doc_no || String(invoice.id),
+                            subtitle: fmtMoney(invoice.total, invoice.currency),
+                        }))}
+                        selectedId={appointment.invoice_id}
+                        onSelect={(id) => { const invoice = patientInvoices.find((i) => String(i.id) === id); if (invoice && String(id) !== String(appointment.invoice_id)) handleLinkInvoice(appointment, invoice); }}
+                        onCreateNew={() => handleCreateInvoiceForAppointment(appointment)}
+                        createLabel={t('contextMenu.newInvoice')}
+                        searchPlaceholder={t('contextMenu.searchInvoice')}
+                        emptyText={t('contextMenu.noInvoices')}
+                    />
+                </ContextMenuSubContent>
+            </ContextMenuSub>
+
+            <ContextMenuItem
+                key="quick-bill"
+                onSelect={() => handleQuickBillFromContext(appointment)}
+                className="flex items-center gap-2 cursor-pointer font-medium text-emerald-600 focus:text-emerald-600 dark:text-emerald-400 dark:focus:text-emerald-400"
+            >
+                <Zap className="h-4 w-4" />
+                {t('contextMenu.quickBill')}
+            </ContextMenuItem>
+
+            <ContextMenuSeparator />
+            <ContextMenuItem
+                key="delete"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setSoftDeleteTarget(appointment);
+                }}
+                className="flex items-center gap-2 cursor-pointer text-destructive"
+            >
+                <Trash2 className="h-4 w-4" />
+                {tPanel('delete')}
             </ContextMenuItem>
             </>
         );
@@ -1601,23 +2657,297 @@ export default function AppointmentsPage() {
         });
     }, [quoteItems]);
 
+    // Bulk selection header computed values
+    const visibleSelectableIds = React.useMemo(
+        () => appointments.filter(a => !['completed', 'cancelled', 'in_progress'].includes(a.status)).map(a => a.id),
+        [appointments],
+    );
+    const bulkAllSelected = visibleSelectableIds.length > 0 && visibleSelectableIds.every(id => bulkSelectedIds.has(id));
+    const bulkSomeSelected = !bulkAllSelected && visibleSelectableIds.some(id => bulkSelectedIds.has(id));
+
+    // Desktop-only contextual header rendered when bulk mode is active
+    const bulkModeHeaderContent = (isBulkMode && breakpoint === 'desktop') ? (
+        <TooltipProvider delayDuration={300}>
+        <div ref={bulkToolbarRef} className="flex items-center gap-2 w-full min-w-0">
+            {/* Left: selection counter — always visible */}
+            <div className="flex items-center gap-2 shrink-0">
+                <Checkbox
+                    checked={bulkSomeSelected ? 'indeterminate' : bulkAllSelected}
+                    onCheckedChange={(c) => handleSelectAllVisible(!!c)}
+                />
+                <span className="text-sm font-medium whitespace-nowrap">
+                    {bulkSelectedIds.size > 0
+                        ? tBulk('selectedCount', { count: bulkSelectedIds.size })
+                        : tBulk('selectHint')}
+                </span>
+                {bulkSelectedIds.size > 0 && (
+                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => {
+                        skipNextBulkFilterRef.current = true;
+                        setBulkSelectedIds(new Set());
+                        setBulkDoctorIds([]);
+                        setBulkCalendarIds([]);
+                    }}>
+                        <X className="h-3.5 w-3.5 mr-1" />
+                        {!isBulkToolbarCompact && tBulk('clearSelection')}
+                    </Button>
+                )}
+            </div>
+
+            {/* Middle: filters */}
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+                {/* Date preset selector */}
+                <Select value={bulkDatePreset} onValueChange={(v) => setBulkDatePreset(v as AppointmentDatePreset)}>
+                    <SelectTrigger className={cn('h-8 text-xs shrink-0', isBulkToolbarCompact ? 'w-28' : 'w-36')}>
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {(['today', 'this_week', 'this_month'] as AppointmentDatePreset[]).map((preset) => (
+                            <SelectItem key={preset} value={preset} className="text-xs">
+                                {tBulk(preset)}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+
+                {/* Doctor filter */}
+                <Popover>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs shrink-0">
+                                    <Users className="h-3.5 w-3.5 shrink-0" />
+                                    {!isBulkToolbarCompact && tBulk('doctorFilter')}
+                                    {bulkDoctorIds.length > 0 && <Badge variant="secondary" className="h-4 px-1 text-[10px]">{bulkDoctorIds.length}</Badge>}
+                                    {isBulkLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+                                </Button>
+                            </PopoverTrigger>
+                        </TooltipTrigger>
+                        {isBulkToolbarCompact && <TooltipContent>{tBulk('doctorFilter')}</TooltipContent>}
+                    </Tooltip>
+                    <PopoverContent className="w-52 p-2" align="start">
+                        <div className="space-y-0.5">
+                            {(() => {
+                                const activeDoctors = doctors.filter(d => d.is_active);
+                                const allSelected = activeDoctors.length > 0 && activeDoctors.every(d => bulkDoctorIds.includes(d.id));
+                                const someSelected = !allSelected && activeDoctors.some(d => bulkDoctorIds.includes(d.id));
+                                return (
+                                    <>
+                                        <label className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer border-b pb-2 mb-1">
+                                            <Checkbox
+                                                checked={someSelected ? 'indeterminate' : allSelected}
+                                                onCheckedChange={(c) => setBulkDoctorIds(c ? activeDoctors.map(d => d.id) : [])}
+                                            />
+                                            <span className="text-sm font-medium">{t('selectAll')}</span>
+                                        </label>
+                                        {activeDoctors.map((doctor) => (
+                                            <label key={doctor.id} className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer">
+                                                <Checkbox checked={bulkDoctorIds.includes(doctor.id)} onCheckedChange={(c) => handleSelectBulkDoctor(doctor.id, !!c)} />
+                                                <span className="text-sm">{doctor.name}</span>
+                                            </label>
+                                        ))}
+                                    </>
+                                );
+                            })()}
+                        </div>
+                    </PopoverContent>
+                </Popover>
+
+                {/* Calendar filter */}
+                <Popover>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs shrink-0">
+                                    <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
+                                    {!isBulkToolbarCompact && tBulk('calendarFilter')}
+                                    {bulkCalendarIds.length > 0 && <Badge variant="secondary" className="h-4 px-1 text-[10px]">{bulkCalendarIds.length}</Badge>}
+                                    {isBulkLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+                                </Button>
+                            </PopoverTrigger>
+                        </TooltipTrigger>
+                        {isBulkToolbarCompact && <TooltipContent>{tBulk('calendarFilter')}</TooltipContent>}
+                    </Tooltip>
+                    <PopoverContent className="w-52 p-2" align="start">
+                        <div className="space-y-0.5">
+                            {(() => {
+                                const allSelected = calendars.length > 0 && calendars.every(c => bulkCalendarIds.includes(c.id));
+                                const someSelected = !allSelected && calendars.some(c => bulkCalendarIds.includes(c.id));
+                                return (
+                                    <>
+                                        <label className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer border-b pb-2 mb-1">
+                                            <Checkbox
+                                                checked={someSelected ? 'indeterminate' : allSelected}
+                                                onCheckedChange={(c) => setBulkCalendarIds(c ? calendars.map(c => c.id) : [])}
+                                            />
+                                            <span className="text-sm font-medium">{t('selectAll')}</span>
+                                        </label>
+                                        {calendars.map((cal) => (
+                                            <label key={cal.id} className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer">
+                                                <Checkbox checked={bulkCalendarIds.includes(cal.id)} onCheckedChange={(c) => handleSelectBulkCalendar(cal.id, !!c)} />
+                                                <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: cal.color }} />
+                                                <span className="text-sm truncate">{cal.name}</span>
+                                            </label>
+                                        ))}
+                                    </>
+                                );
+                            })()}
+                        </div>
+                    </PopoverContent>
+                </Popover>
+            </div>
+
+            {/* Right: action buttons — always visible */}
+            <div className="flex items-center gap-2 shrink-0">
+                <Separator orientation="vertical" className="h-5" />
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            size="sm"
+                            className="h-8 gap-1.5 text-xs"
+                            disabled={bulkSelectedIds.size === 0}
+                            onClick={() => setIsReassignDialogOpen(true)}
+                        >
+                            <Stethoscope className="h-3.5 w-3.5 shrink-0" />
+                            {!isBulkToolbarCompact && tBulk('reassignDoctor')}
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{tBulk('reassignDoctor')}</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleToggleBulkMode}>
+                            <X className="h-3.5 w-3.5 shrink-0" />
+                            {!isBulkToolbarCompact && tBulk('exitBulkMode')}
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{tBulk('exitBulkMode')}</TooltipContent>
+                </Tooltip>
+            </div>
+        </div>
+        </TooltipProvider>
+    ) : undefined;
+
     return (
         <Card className="border-none shadow-none h-full">
-            <CardContent className="p-0 h-[calc(100vh-6rem)] min-h-[600px]">
+            <CardContent className="relative p-0 h-[calc(100vh-6rem)] min-h-[600px]">
+                {gapsActive && (
+                    <CalendarGapsPanel
+                        gaps={calendarGaps}
+                        selectedGapKey={selectedGap ? gapKey(selectedGap) : undefined}
+                        dateLocale={gapsDateLocale}
+                        onSelect={handleSelectGap}
+                        onClose={handleCloseGaps}
+                    />
+                )}
                 <Calendar
                     view={currentView}
+                    hourSlotHeight={hourSlotHeight}
+                    slotMinutes={slotDuration}
                     events={calendarEvents}
                     onDateChange={onDateChange}
                     isLoading={isRefreshing}
                     onEventClick={handleEventClick}
                     onEventColorChange={handleEventColorChange}
-                    onEventContextMenu={renderEventContextMenu}
+                    onEventDoubleClick={isBulkMode ? undefined : (data) => { if (data?.kind !== 'reminder') handleEditAppointment(data as Appointment); }}
+                    onEventContextMenu={isBulkMode ? undefined : renderEventContextMenu}
+                    onEventContextMenuOpen={isBulkMode ? undefined : (data) => { if (data?.kind !== 'reminder') requestAppointmentMenuData(data as Appointment); }}
+                    inlineDraft={inlineDraft ? { date: inlineDraft.date, durationMin: inlineDraft.durationMin, groupValue: inlineDraft.context?.value } : null}
+                    renderInlineDraft={renderInlineDraft}
                     groupBy={groupBy}
                     groupingColumns={groupingColumns}
-                    onViewChange={setCurrentView}
+                    onViewChange={(v) => { setCurrentView(v); setInlineDraft(null); }}
+                    selectedAppointmentIds={isBulkMode ? bulkSelectedIds : undefined}
+                    onToggleAppointmentSelect={isBulkMode ? handleToggleAppointmentSelect : undefined}
+                    bulkModeContent={bulkModeHeaderContent}
                     onSlotClick={handleSlotClick}
+                    onCreateClick={() => { setInlineDraft(null); prepareSlot(new Date()); setIsReschedulingMode(false); setCreateOpen(true); }}
+                    onSlotContextMenu={handleSlotContextMenu}
+                    gaps={gapsActive ? calendarGaps : undefined}
+                    selectedGapKey={selectedGap ? gapKey(selectedGap) : undefined}
+                    onGapClick={handleSelectGap}
+                    blockedRanges={blockedRanges}
+                    blockedFullDays={blockedFullDays}
                     filterSheet={
                         <div className="space-y-6">
+                            {/* Bulk selection filters (mobile) */}
+                            {isBulkMode && (
+                                <>
+                                    <div>
+                                        <h4 className="text-sm font-semibold mb-3">{tBulk('panelTitle')}</h4>
+                                        <Select value={bulkDatePreset} onValueChange={(v) => setBulkDatePreset(v as AppointmentDatePreset)}>
+                                            <SelectTrigger className="h-8 w-full text-xs mb-3">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {(['today', 'this_week', 'this_month'] as AppointmentDatePreset[]).map((preset) => (
+                                                    <SelectItem key={preset} value={preset} className="text-xs">
+                                                        {tBulk(preset)}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <div className="space-y-1 mb-3">
+                                            <p className="text-xs text-muted-foreground font-medium mb-1">{tBulk('doctorFilter')}</p>
+                                            {(() => {
+                                                const activeDoctors = doctors.filter(d => d.is_active);
+                                                const allSelected = activeDoctors.length > 0 && activeDoctors.every(d => bulkDoctorIds.includes(d.id));
+                                                const someSelected = !allSelected && activeDoctors.some(d => bulkDoctorIds.includes(d.id));
+                                                return (
+                                                    <>
+                                                        <label className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer border-b pb-2 mb-1">
+                                                            <Checkbox
+                                                                checked={someSelected ? 'indeterminate' : allSelected}
+                                                                onCheckedChange={(c) => setBulkDoctorIds(c ? activeDoctors.map(d => d.id) : [])}
+                                                            />
+                                                            <span className="text-sm font-medium">{t('selectAll')}</span>
+                                                        </label>
+                                                        {activeDoctors.map((doctor) => (
+                                                            <label key={doctor.id} className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer">
+                                                                <Checkbox checked={bulkDoctorIds.includes(doctor.id)} onCheckedChange={(c) => handleSelectBulkDoctor(doctor.id, !!c)} />
+                                                                <span className="text-sm">{doctor.name}</span>
+                                                            </label>
+                                                        ))}
+                                                    </>
+                                                );
+                                            })()}
+                                        </div>
+                                        <div className="space-y-1 mb-3">
+                                            <p className="text-xs text-muted-foreground font-medium mb-1">{tBulk('calendarFilter')}</p>
+                                            {(() => {
+                                                const allSelected = calendars.length > 0 && calendars.every(c => bulkCalendarIds.includes(c.id));
+                                                const someSelected = !allSelected && calendars.some(c => bulkCalendarIds.includes(c.id));
+                                                return (
+                                                    <>
+                                                        <label className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer border-b pb-2 mb-1">
+                                                            <Checkbox
+                                                                checked={someSelected ? 'indeterminate' : allSelected}
+                                                                onCheckedChange={(c) => setBulkCalendarIds(c ? calendars.map(cal => cal.id) : [])}
+                                                            />
+                                                            <span className="text-sm font-medium">{t('selectAll')}</span>
+                                                        </label>
+                                                        {calendars.map((cal) => (
+                                                            <label key={cal.id} className="flex items-center justify-between py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer">
+                                                                <div className="flex items-center gap-2">
+                                                                    <Checkbox checked={bulkCalendarIds.includes(cal.id)} onCheckedChange={(c) => handleSelectBulkCalendar(cal.id, !!c)} />
+                                                                    <span className="text-sm">{cal.name}</span>
+                                                                </div>
+                                                                <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: cal.color }} />
+                                                            </label>
+                                                        ))}
+                                                    </>
+                                                );
+                                            })()}
+                                        </div>
+                                        {isBulkLoading && (
+                                            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-1">
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                {tBulk('applying')}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <Separator />
+                                </>
+                            )}
                             {/* Calendars section */}
                             <div>
                                 <h4 className="text-sm font-semibold mb-3">{t('calendars')}</h4>
@@ -1666,7 +2996,7 @@ export default function AppointmentsPage() {
                             <Separator />
 
                             {/* Doctors section */}
-                            {showGroupControls && (
+                            {showDoctorFilter && (
                                 <>
                                     <div>
                                         <h4 className="text-sm font-semibold mb-3">{t('doctors')}</h4>
@@ -1713,13 +3043,47 @@ export default function AppointmentsPage() {
 
                             {/* Settings section */}
                             <div className="pt-2">
-                                <CalendarSettingsForm onSettingsChange={handleSettingsEditorChange} showTitle={true} />
+                                <CalendarSettingsForm onSettingsChange={handleSettingsEditorChange} showTitle={true} sedes={sedes} value={calendarSettings ?? undefined} />
                             </div>
                         </div>
                     }
                     extraActions={
                         <TooltipProvider>
-                            <DropdownMenu>
+                            <div className="flex items-center gap-1.5">
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant={gapsActive ? 'default' : 'outline'}
+                                        size={isMobile ? 'icon' : 'sm'}
+                                        className={isMobile ? 'h-8 w-8' : 'h-9 gap-1.5'}
+                                        onClick={handleToggleGaps}
+                                    >
+                                        <CalendarSearch className="h-4 w-4" />
+                                        {!isMobile && tGaps('button')}
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>{tGaps('button')}</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant={isBulkMode ? 'default' : 'outline'}
+                                        size={isMobile ? 'icon' : 'sm'}
+                                        className={isMobile ? 'h-8 w-8' : 'h-9 gap-1.5'}
+                                        onClick={handleToggleBulkMode}
+                                    >
+                                        <Layers className="h-4 w-4" />
+                                        {!isMobile && tBulk('toggleButton')}
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>{tBulk('toggleButton')}</TooltipContent>
+                            </Tooltip>
+                            </div>
+                        </TooltipProvider>
+                    }
+                    primaryActions={
+                        <DropdownMenu>
+                            <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <DropdownMenuTrigger asChild>
@@ -1742,38 +3106,38 @@ export default function AppointmentsPage() {
                                         {tGeneral('create')}
                                     </TooltipContent>
                                 </Tooltip>
-                                <DropdownMenuContent align="end" className="w-64 p-1.5">
-                                    <DropdownMenuItem
-                                        className="cursor-pointer items-start gap-3 rounded-md p-3"
-                                        onSelect={handleNewAppointmentClick}
-                                    >
-                                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
-                                            <CalendarPlus className="h-4 w-4" />
+                            </TooltipProvider>
+                            <DropdownMenuContent align="end" className="w-64 p-1.5">
+                                <DropdownMenuItem
+                                    className="cursor-pointer items-start gap-3 rounded-md p-3"
+                                    onSelect={handleNewAppointmentClick}
+                                >
+                                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
+                                        <CalendarPlus className="h-4 w-4" />
+                                    </span>
+                                    <span className="min-w-0">
+                                        <span className="block font-medium">{tReminders('createType.appointment')}</span>
+                                        <span className="block text-xs leading-snug text-muted-foreground">
+                                            {tReminders('createType.appointmentDescription')}
                                         </span>
-                                        <span className="min-w-0">
-                                            <span className="block font-medium">{tReminders('createType.appointment')}</span>
-                                            <span className="block text-xs leading-snug text-muted-foreground">
-                                                {tReminders('createType.appointmentDescription')}
-                                            </span>
+                                    </span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    className="cursor-pointer items-start gap-3 rounded-md p-3"
+                                    onSelect={handleNewReminderClick}
+                                >
+                                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-violet-100 text-violet-700">
+                                        <BellRing className="h-4 w-4" />
+                                    </span>
+                                    <span className="min-w-0">
+                                        <span className="block font-medium">{tReminders('createType.reminder')}</span>
+                                        <span className="block text-xs leading-snug text-muted-foreground">
+                                            {tReminders('createType.reminderDescription')}
                                         </span>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        className="cursor-pointer items-start gap-3 rounded-md p-3"
-                                        onSelect={handleNewReminderClick}
-                                    >
-                                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-violet-100 text-violet-700">
-                                            <BellRing className="h-4 w-4" />
-                                        </span>
-                                        <span className="min-w-0">
-                                            <span className="block font-medium">{tReminders('createType.reminder')}</span>
-                                            <span className="block text-xs leading-snug text-muted-foreground">
-                                                {tReminders('createType.reminderDescription')}
-                                            </span>
-                                        </span>
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </TooltipProvider>
+                                    </span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     }
                     extraActionsAfterToday={
                         <TooltipProvider>
@@ -1790,12 +3154,44 @@ export default function AppointmentsPage() {
                         </TooltipProvider>
                     }
                     trailingActions={
-                        breakpoint === 'desktop' ? (
-                            <CalendarSettingsPopover onSettingsChange={handleSettingsEditorChange} />
+                        !isMobile ? (
+                            <CalendarSettingsPopover onSettingsChange={handleSettingsEditorChange} sedes={sedes} value={calendarSettings ?? undefined} />
                         ) : null
                     }
                 >
                     <div className="flex items-center gap-2">
+                        {/* Mobile/tablet bulk mode bar — compact row shown below the normal header */}
+                        {isBulkMode && breakpoint !== 'desktop' && (
+                            <div className="flex items-center gap-1.5 w-full py-0.5">
+                                <Checkbox
+                                    checked={bulkSomeSelected ? 'indeterminate' : bulkAllSelected}
+                                    onCheckedChange={(c) => handleSelectAllVisible(!!c)}
+                                    className="shrink-0"
+                                />
+                                <span className="text-xs font-medium flex-1 min-w-0 truncate">
+                                    {bulkSelectedIds.size > 0
+                                        ? tBulk('selectedCount', { count: bulkSelectedIds.size })
+                                        : tBulk('selectHint')}
+                                </span>
+                                {bulkSelectedIds.size > 0 && (
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setBulkSelectedIds(new Set())}>
+                                        <X className="h-3.5 w-3.5" />
+                                    </Button>
+                                )}
+                                <Button
+                                    size="sm"
+                                    className="h-7 shrink-0 gap-1.5"
+                                    disabled={bulkSelectedIds.size === 0}
+                                    onClick={() => setIsReassignDialogOpen(true)}
+                                >
+                                    <Stethoscope className="h-3.5 w-3.5" />
+                                    {breakpoint === 'tablet' && <span className="text-xs">{tBulk('reassignDoctor')}</span>}
+                                </Button>
+                                <Button variant="outline" size="icon" className="h-7 w-7 shrink-0" onClick={handleToggleBulkMode}>
+                                    <X className="h-3.5 w-3.5" />
+                                </Button>
+                            </div>
+                        )}
                         {breakpoint === 'desktop' && (
                             <div className="flex items-center gap-2">
                                 <Popover>
@@ -1867,8 +3263,7 @@ export default function AppointmentsPage() {
                                         </Command>
                                     </PopoverContent>
                                 </Popover>
-                                {showGroupControls && (
-                                    <>
+                                {showDoctorFilter && (
                                         <Popover>
                                             <PopoverTrigger asChild>
                                                 <Button variant="outline" className="flex items-center gap-2">
@@ -1900,6 +3295,8 @@ export default function AppointmentsPage() {
                                                 </Command>
                                             </PopoverContent>
                                         </Popover>
+                                )}
+                                {showGroupControls && (
                                         <Popover>
                                             <PopoverTrigger asChild>
                                                 <Button variant="outline" className="flex items-center gap-2">
@@ -1950,7 +3347,6 @@ export default function AppointmentsPage() {
                                                 </Command>
                                             </PopoverContent>
                                         </Popover>
-                                    </>
                                 )}
                             </div>
                         )}
@@ -1958,6 +3354,16 @@ export default function AppointmentsPage() {
 
                 </Calendar>
             </CardContent>
+
+            <BulkReassignDoctorDialog
+                open={isReassignDialogOpen}
+                onOpenChange={setIsReassignDialogOpen}
+                doctors={doctors.filter(d => d.is_active)}
+                selectedCount={bulkSelectedIds.size}
+                onReassign={handleBulkReassign}
+                isLoading={isReassignLoading}
+            />
+
             <CalendarCreateTypeDialog
                 open={isCreateTypeOpen}
                 onOpenChange={setIsCreateTypeOpen}
@@ -1975,6 +3381,7 @@ export default function AppointmentsPage() {
                 calendars={calendars}
                 doctors={doctors}
                 doctorServiceMap={doctorServiceMap}
+                doctorCalendarMap={doctorCalendarMap}
                 checkCalendarAvailability={checkCalendarAvailability}
                 checkDoctorAvailability={checkDoctorAvailability}
             />
@@ -2032,6 +3439,29 @@ export default function AppointmentsPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* Soft-delete confirmation for the right-click menu (same as the detail panel button) */}
+            <AlertDialog open={!!softDeleteTarget} onOpenChange={(v) => !v && setSoftDeleteTarget(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{tPanel('deleteTitle')}</AlertDialogTitle>
+                        <AlertDialogDescription>{tPanel('deleteDescription')}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>{tPanel('deleteCancel')}</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={() => {
+                                const target = softDeleteTarget;
+                                setSoftDeleteTarget(null);
+                                if (target) handleSoftDelete(target);
+                            }}
+                        >
+                            {tPanel('deleteConfirm')}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
             <AppointmentPanel
                 open={isDetailViewOpen}
                 onOpenChange={setIsDetailViewOpen}
@@ -2042,13 +3472,22 @@ export default function AppointmentsPage() {
                 quoteInvoices={quoteInvoices}
                 isLoadingQuoteInfo={isLoadingQuoteInfo}
                 doctorColor={selectedAppointment?.doctorId ? (doctors.find(d => d.id === selectedAppointment.doctorId)?.color ?? undefined) : undefined}
-                onEdit={handleEdit}
+                onEdit={handleEditAppointment}
+                onColorChange={handleEventColorChange}
+                onDelete={handleSoftDelete}
                 onCancel={handleCancel}
                 onReschedule={handleReschedule}
                 onOpenClinicSession={handleOpenClinicSession}
                 onStatusChange={handleStatusChange}
                 onRequestCustomCancellation={handleRequestCustomCancellation}
                 onBillingSuccess={loadAppointments}
+                doctors={doctors}
+                calendars={calendars}
+                onAppointmentUpdated={(updated) => {
+                    setAppointments((prev) => prev.map((a) => (a.id === updated.id ? { ...a, ...updated } : a)));
+                    setSelectedAppointment((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev));
+                    refreshCalendarDataRef.current();
+                }}
             />
             <ReminderPanel
                 open={isReminderPanelOpen}
@@ -2067,15 +3506,20 @@ export default function AppointmentsPage() {
                 open={isQuickQuoteOpen}
                 onOpenChange={(open) => {
                     setIsQuickQuoteOpen(open);
-                    if (!open) { setQuickQuotePatient(null); setQuickQuoteInitialItems(undefined); setPendingQuoteNotifId(undefined); }
+                    if (!open) { setQuickQuotePatient(null); setQuickQuoteInitialItems(undefined); setPendingQuoteNotifId(undefined); setQuoteLinkTarget(null); }
                 }}
                 initialData={{ user: quickQuotePatient }}
                 initialItems={quickQuoteInitialItems}
                 onSaveSuccess={() => setIsQuickQuoteOpen(false)}
-                onQuoteCreated={() => {
+                onQuoteCreated={(quote) => {
                     if (pendingQuoteNotifId) {
                         markSessionAction(pendingQuoteNotifId, 'quote');
                         setPendingQuoteNotifId(undefined);
+                    }
+                    // Link the freshly created quote to the originating appointment.
+                    if (quoteLinkTarget && quote?.id) {
+                        handleLinkQuote(quoteLinkTarget, quote);
+                        setQuoteLinkTarget(null);
                     }
                 }}
             />
@@ -2083,12 +3527,20 @@ export default function AppointmentsPage() {
                 isOpen={isInvoiceFormOpen}
                 onOpenChange={(open) => {
                     setIsInvoiceFormOpen(open);
-                    if (!open) { setInvoicePatient(null); setInvoiceInitialItems(undefined); setPendingInvoiceNotifId(undefined); }
+                    if (!open) { setInvoicePatient(null); setInvoiceInitialItems(undefined); setPendingInvoiceNotifId(undefined); setInvoiceLinkTarget(null); }
                 }}
-                onInvoiceCreated={() => {
+                onInvoiceCreated={(invoiceId) => {
                     if (pendingInvoiceNotifId) {
                         markSessionAction(pendingInvoiceNotifId, 'invoice');
                         setPendingInvoiceNotifId(undefined);
+                    }
+                    // Link the freshly created invoice to the originating appointment.
+                    if (invoiceLinkTarget && invoiceId) {
+                        linkInvoiceToAppointment(invoiceId, invoiceLinkTarget.id).then(() => {
+                            setAppointments((prev) => prev.map((a) => (a.id === invoiceLinkTarget.id ? { ...a, invoice_id: invoiceId } : a)));
+                            refreshCalendarDataRef.current();
+                        });
+                        setInvoiceLinkTarget(null);
                     }
                     setIsInvoiceFormOpen(false);
                 }}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useToast } from '@/hooks/use-toast';
-import { Payment, PaymentListResponse, PaymentSearchParams } from '@/services/payments-service';
+import { Payment, PaymentListResponse, PaymentSearchParams, PaymentTypeFilter } from '@/services/payments-service';
 import { PaginationState } from '@tanstack/react-table';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -20,6 +20,7 @@ interface UsePaymentsPaginationReturn {
   loadPayments: (pageIndex?: number, pageSize?: number, search?: string) => Promise<void>;
   handlePaginationChange: (updater: any) => void;
   handleSearchChange: (search: string) => void;
+  handleTypeFilterChange: (type: PaymentTypeFilter) => void;
   refreshPayments: () => Promise<void>;
 }
 
@@ -49,6 +50,9 @@ export function usePaymentsPagination({
   // re-send it to the backend instead of dropping it.
   const searchRef = useRef('');
 
+  // Same for the active transaction-type filter.
+  const typeFilterRef = useRef<PaymentTypeFilter>('all');
+
   const loadPayments = useCallback(async (
     pageIndex?: number,
     pageSize?: number,
@@ -64,7 +68,8 @@ export function usePaymentsPagination({
       const result = await fetchFunction({
         page: currentPage,
         limit: currentPageSize,
-        search: currentSearch
+        search: currentSearch,
+        type: typeFilterRef.current
       });
 
       setPayments(result.payments);
@@ -104,6 +109,13 @@ export function usePaymentsPagination({
     loadPayments(0, paginationRef.current.pageSize, search);
   }, [loadPayments]);
 
+  // Apply a new transaction-type filter: reset to the first page and re-query the backend.
+  const handleTypeFilterChange = useCallback((type: PaymentTypeFilter) => {
+    typeFilterRef.current = type;
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+    loadPayments(0, paginationRef.current.pageSize, searchRef.current);
+  }, [loadPayments]);
+
   const refreshPayments = useCallback(async () => {
     await loadPayments(paginationRef.current.pageIndex, paginationRef.current.pageSize, searchRef.current);
   }, [loadPayments]);
@@ -122,6 +134,7 @@ export function usePaymentsPagination({
     loadPayments,
     handlePaginationChange,
     handleSearchChange,
+    handleTypeFilterChange,
     refreshPayments
   };
 }

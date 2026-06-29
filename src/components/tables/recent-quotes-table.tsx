@@ -13,6 +13,7 @@ import {
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
   Dialog,
+  DialogCancelButton,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -343,6 +344,18 @@ const getColumns = (
       enableHiding: !isCompact,
     },
     {
+      accessorKey: 'external_id',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('QuoteColumns.externalId')} />
+      ),
+      cell: ({ row }) => (
+        <span className="font-mono text-xs text-muted-foreground">
+          {row.original.external_id ?? '—'}
+        </span>
+      ),
+      enableHiding: !isCompact,
+    },
+    {
       id: 'actions',
       cell: ({ row }) => {
         const quote = row.original;
@@ -640,6 +653,7 @@ export function RecentQuotesTable({
     status: t('UserColumns.status'),
     billing_status: t('QuoteColumns.billingStatus'),
     payment_status: t('Navigation.Payments'),
+    external_id: t('QuoteColumns.externalId'),
   };
 
   return (
@@ -845,7 +859,7 @@ export function RecentQuotesTable({
       </Card>
 
       <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
-        <DialogContent>
+        <DialogContent confirmOnClose isDirty={emailRecipients.trim() !== ''}>
           <DialogHeader>
             <DialogTitle>{t('QuotesPage.sendEmailDialog.title')}</DialogTitle>
             <DialogDescription>{t('QuotesPage.sendEmailDialog.description', { id: selectedQuoteForEmail?.doc_no || selectedQuoteForEmail?.id })}</DialogDescription>
@@ -861,7 +875,7 @@ export function RecentQuotesTable({
             <p className="text-sm text-muted-foreground mt-1">{t('QuotesPage.sendEmailDialog.helperText')}</p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)} disabled={isSendingEmail}>{t('QuotesPage.quoteDialog.cancel')}</Button>
+            <DialogCancelButton variant="outline" disabled={isSendingEmail}>{t('QuotesPage.quoteDialog.cancel')}</DialogCancelButton>
             <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
               {isSendingEmail ? (
                 <>

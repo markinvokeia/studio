@@ -3,7 +3,7 @@
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 import { UserFinancial } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Eye, EyeOff, Printer } from 'lucide-react';
+import { Eye, EyeOff, FileText, Printer } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 interface UserFinancialSummaryStatsProps {
@@ -11,6 +11,8 @@ interface UserFinancialSummaryStatsProps {
   isOpen: boolean;
   onToggle: () => void;
   onPrint: () => void;
+  /** When provided, shows a "View account statement" action that opens the on-screen statement. */
+  onViewStatement?: () => void;
   variant?: 'patient' | 'provider';
 }
 
@@ -19,6 +21,7 @@ export function UserFinancialSummaryStats({
   isOpen,
   onToggle,
   onPrint,
+  onViewStatement,
   variant = 'patient',
 }: UserFinancialSummaryStatsProps) {
   const tPatient = useTranslations('UsersPage');
@@ -88,6 +91,16 @@ export function UserFinancialSummaryStats({
               {isOpen ? t('stats.hideStats') : t('stats.showStats')}
             </span>
           </button>
+          {onViewStatement && (
+            <button
+              type="button"
+              className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              onClick={onViewStatement}
+            >
+              <FileText className="h-3.5 w-3.5" />
+              <span className="hidden sm:block text-[9px] font-medium leading-tight">{t('stats.statement')}</span>
+            </button>
+          )}
           <button
             type="button"
             className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"

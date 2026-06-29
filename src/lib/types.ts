@@ -9,6 +9,7 @@ export type User = {
   phone_number: string;
   is_active: boolean;
   avatar: string;
+  internal_id?: string | number | null;
   identity_document?: string;
   birth_date?: string;
   color?: string;
@@ -27,6 +28,8 @@ export type User = {
   responsible_contact_id?: string;
   responsible_contact_name?: string;
   calendar_source_id?: string;
+  /** Doctor flag: enables browsing appointments of calendars they have access to in the workspace. */
+  can_browse_calendars?: boolean;
 };
 
 export type CurrencyFinancialData = {
@@ -87,6 +90,41 @@ export type FinancialSummaryReport = {
   history_by_currency: Record<string, FinancialSummaryByCurrency>;
 };
 
+/** A single row in the interactive account-statement timeline (one currency). */
+export type StatementEntry = {
+  /** Stable key, e.g. `${currency}-${internal_id}`. */
+  id: string;
+  kind: 'invoice' | 'payment' | 'credit_note';
+  /** ISO date of the movement (created_at). */
+  date: string;
+  docNo: string;
+  /** Composed concept line (label — services — payment type — pays invoice X). */
+  concept: string;
+  notes?: string | null;
+  /** Signed amount as in the movement (>0 invoice/debit = green, <0 payment = red). */
+  amount: number;
+  currency: string;
+  runningBalance: number;
+  // Invoice-only fields (populated by joining USER_INVOICES):
+  /** Real invoice id, required to register a payment against it. */
+  invoiceId?: string;
+  /** Outstanding amount; >0 means the invoice is a collectable candidate. */
+  pending?: number;
+  paymentStatus?: string;
+};
+
+/** A selected unpaid-invoice line in the quick "Cobrar" (settle) flow. */
+export type CobrarLineState = {
+  invoiceId: string;
+  docNo: string;
+  currency: string;
+  pending: number;
+  /** Amount to collect for this line (≤ pending). */
+  amount: number;
+  /** Per-line payment-method override; falls back to the shared method. */
+  methodId?: string;
+};
+
 export type UserPermission = {
   permission: string;
   action: string;
@@ -107,6 +145,8 @@ export type AuthUser = {
   internal_id?: string | null;
   is_active: boolean;
   roles_and_permissions: UserRoleAndPermission[];
+  /** Doctor flag: enables the "view calendar agendas" switch in the workspace. */
+  can_browse_calendars?: boolean;
 };
 
 export type PatientDischarge = {
@@ -198,6 +238,7 @@ export type Quote = {
   amount_pending_invoice?: number;
   amount_paid?: number;
   amount_pending_payment?: number;
+  external_id?: string | number | null;
 };
 
 export type QuoteItem = {
@@ -265,8 +306,10 @@ export type Invoice = {
   paid_amount?: number;
   type?: string;
   invoice_id?: string | null;
+  parent_id?: string;
   is_historical?: boolean;
   due_date?: string;
+  external_id?: string | number | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -323,6 +366,7 @@ export type Payment = {
   notes?: string;
   status: 'pending' | 'completed' | 'failed';
   is_historical?: boolean;
+  external_id?: string | number | null;
   createdAt: string;
   updatedAt: string;
   amount: number;
@@ -333,6 +377,7 @@ export type Payment = {
 
 export type InvoiceAllocation = {
   allocation_id: number;
+  doc_no?: string;
   origen_doc_no: string;
   origen_tipo: 'credit_note';
   destino_doc_no: string;
@@ -346,6 +391,7 @@ export type InvoiceAllocation = {
 
 export type PaymentAllocation = {
   allocation_id: number;
+  doc_no?: string;
   pago_doc_no: string;
   medio_pago: string;
   moneda_pago: string;
@@ -573,6 +619,34 @@ export type Appointment = {
   cancellation_note?: string | null;
 };
 
+export type AppointmentDatePreset = 'today' | 'this_week' | 'this_month';
+
+export interface AppointmentBulkFilterParams {
+  date_from: string;
+  date_to: string;
+  doctor_ids?: string[];
+  calendar_source_ids?: string[];
+  statuses?: AppointmentStatus[];
+}
+
+export interface AppointmentBulkFilterResponse {
+  ids: string[];
+  total: number;
+}
+
+export interface AppointmentBulkReassignRequest {
+  appointment_ids: string[];
+  doctor_id: string;
+  doctor_name: string;
+  doctor_email?: string;
+}
+
+export interface AppointmentBulkReassignResponse {
+  updated: number;
+  failed: number;
+  errors: Array<{ appointment_id: string; reason: string }>;
+}
+
 export type CalendarReminderPriority = 'LOW' | 'MEDIUM' | 'HIGH';
 
 export type CalendarReminderStatus = 'pending' | 'done' | 'dismissed' | 'cancelled';
@@ -707,6 +781,22 @@ export type CalendarSettings = {
   grouped_by: string;
   check_availability: boolean;
   filter_doctors_by_service: boolean;
+  /** When true, blocks (greys out + prevents clicks on) time outside clinic
+   *  business hours, honoring schedules and exceptions. Default false. */
+  block_unavailable?: boolean;
+  /** Height in px of one hour slot in day/week views. */
+  hour_height?: number;
+  /** Default slot duration in minutes (10/15/20/30/60). Defines how many slots
+   *  fit in an hour and floors the row height so titles stay readable. Default 15. */
+  slot_duration?: number;
+  /** How each appointment's label is composed. See EVENT_LABEL_FORMATS. */
+  event_label_format?: string;
+  /** Default branch (sede) id to show. Empty string = all branches. */
+  default_sede?: string;
+  /** When true, clicking a slot creates the appointment inline on the calendar
+   *  (a draft card) instead of opening the modal. The "Create" button always
+   *  opens the modal regardless. Default false. */
+  inline_appointment_creation?: boolean;
 };
 
 export type Sede = {
@@ -729,6 +819,12 @@ export type Calendar = {
   color?: string;
   sede_id?: string;
   sede_name?: string;
+};
+
+export type CalendarUserAccess = {
+  calendar_source_id: string;
+  user_id: string;
+  user_name?: string;
 };
 
 export type Ailment = {

@@ -15,6 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogBody,
+  DialogCancelButton,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -418,7 +419,7 @@ export function InvoicePaymentDialog({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent maxWidth="2xl">
+        <DialogContent maxWidth="2xl" confirmOnClose isDirty={form.formState.isDirty}>
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit(handleSubmit)}
@@ -832,9 +833,9 @@ export function InvoicePaymentDialog({
               </DialogBody>
 
               <DialogFooter>
-                <Button variant="outline" type="button" onClick={onClose}>
+                <DialogCancelButton variant="outline">
                   {t('paymentDialog.cancel')}
-                </Button>
+                </DialogCancelButton>
                 <Button type="submit" disabled={isSubmitting}>
                   {t('paymentDialog.add')}
                 </Button>

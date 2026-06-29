@@ -319,6 +319,7 @@ export function DoctorAgentChat({
 }: DoctorAgentChatProps) {
   const t = useTranslations('DoctorWorkspace.focus.ai');
   const [isClient, setIsClient] = React.useState(false);
+  const portalContainerRef = React.useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = React.useState(false);
   const [isMinimized, setIsMinimized] = React.useState(false);
   const [isSending, setIsSending] = React.useState(false);
@@ -336,7 +337,29 @@ export function DoctorAgentChat({
   );
 
   React.useEffect(() => {
+    const div = document.createElement('div');
+    // Mount outside <body> so Radix's aria-hidden/inert sweep (hideOthers) never
+    // targets this container — it only operates on document.body children.
+    document.documentElement.appendChild(div);
+    portalContainerRef.current = div;
     setIsClient(true);
+
+    // Registered in capture phase BEFORE any Radix DismissableLayer listener
+    // (those are added when a modal opens, always after this effect runs).
+    // stopImmediatePropagation prevents Radix from seeing clicks originating
+    // inside this portal, so no open modal/sheet closes when the agent is used.
+    const handlePointerDown = (e: PointerEvent) => {
+      if (div.contains(e.target as Node)) {
+        e.stopImmediatePropagation();
+      }
+    };
+    document.addEventListener('pointerdown', handlePointerDown, { capture: true });
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown, { capture: true });
+      document.documentElement.removeChild(div);
+      portalContainerRef.current = null;
+    };
   }, []);
 
   React.useEffect(() => {
@@ -604,46 +627,48 @@ export function DoctorAgentChat({
 
   return (
     <>
-      {isOpen && isMinimized ? (
-        <div className="fixed bottom-5 right-5 z-[80]">
-          <Button
-            type="button"
-            onClick={() => setIsMinimized(false)}
-            size="icon"
-            className="h-14 w-14 rounded-full shadow-2xl"
-            title={t('restoreChat')}
-          >
-            <MessageSquare className="h-5 w-5" />
-          </Button>
-        </div>
-      ) : !isOpen ? (
-        <div className="fixed bottom-24 left-1/2 z-[80] -translate-x-1/2 flex flex-col items-center gap-2.5 sm:bottom-10">
-          <span className="rounded-full border border-border/50 bg-background/90 px-3.5 py-1.5 text-xs font-medium text-foreground shadow-sm backdrop-blur-sm">
-            {t('openAgentChat')}
-          </span>
-          <div className="relative">
-            <span className="absolute inset-0 animate-ping rounded-full bg-primary/30" />
-            <Button
-              type="button"
-              onClick={openChat}
-              size="icon"
-              className="relative h-14 w-14 rounded-full shadow-2xl bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              <Bot className="h-5 w-5" />
-            </Button>
-          </div>
-        </div>
-      ) : null}
+      {isClient && portalContainerRef.current && createPortal(
+        <>
+          {isOpen && isMinimized ? (
+            <div className="fixed bottom-5 right-5 z-[9990]">
+              <Button
+                type="button"
+                onClick={() => setIsMinimized(false)}
+                size="icon"
+                className="h-14 w-14 rounded-full shadow-2xl"
+                title={t('restoreChat')}
+              >
+                <MessageSquare className="h-5 w-5" />
+              </Button>
+            </div>
+          ) : !isOpen ? (
+            <div className="fixed bottom-24 left-1/2 z-[9990] -translate-x-1/2 flex flex-col items-center gap-2.5 sm:bottom-10">
+              <span className="rounded-full border border-border/50 bg-background/90 px-3.5 py-1.5 text-xs font-medium text-foreground shadow-sm backdrop-blur-sm">
+                {t('openAgentChat')}
+              </span>
+              <div className="relative">
+                <span className="absolute inset-0 animate-ping rounded-full bg-primary/30" />
+                <Button
+                  type="button"
+                  onClick={openChat}
+                  size="icon"
+                  className="relative h-14 w-14 rounded-full shadow-2xl bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  <Bot className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+          ) : null}
 
-      {isClient && isOpen && createPortal(
-        <div className="pointer-events-none fixed bottom-0 right-0 z-[9990] flex w-full justify-end p-0 sm:bottom-4 sm:right-4 sm:w-auto">
-          {isMinimized ? null : (
-            <div className="pointer-events-auto w-full px-0 md:w-[24rem] lg:w-[26rem]">
-              {chatCard}
+          {isOpen && !isMinimized && (
+            <div className="pointer-events-none fixed bottom-0 right-0 z-[9990] flex w-full justify-end p-0 sm:bottom-4 sm:right-4 sm:w-auto">
+              <div className="pointer-events-auto w-full px-0 md:w-[24rem] lg:w-[26rem]">
+                {chatCard}
+              </div>
             </div>
           )}
-        </div>,
-        document.body,
+        </>,
+        portalContainerRef.current,
       )}
     </>
   );

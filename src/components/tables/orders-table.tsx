@@ -37,7 +37,7 @@ import { Checkbox } from '../ui/checkbox';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
 import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
 import { DatePicker, DatePickerInput } from '../ui/date-picker';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Dialog, DialogCancelButton, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -497,7 +497,7 @@ export function CreateOrderDialog({ isOpen, onOpenChange, onOrderCreated, isSale
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent confirmOnClose isDirty={form.formState.isDirty}>
         <DialogHeader>
           <DialogTitle>{t('createTitle')}</DialogTitle>
           <DialogDescription>{t('createDescription')}</DialogDescription>
@@ -615,7 +615,7 @@ export function CreateOrderDialog({ isOpen, onOpenChange, onOrderCreated, isSale
             />
             <DialogFooter>
               <Button type="submit">{t('create')}</Button>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
+              <DialogCancelButton>{t('cancel')}</DialogCancelButton>
             </DialogFooter>
           </form>
         </Form>

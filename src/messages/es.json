@@ -1,4 +1,62 @@
 {
+  "AccountStatement": {
+    "title": "Estado de cuenta",
+    "print": "Imprimir",
+    "close": "Cerrar",
+    "loading": "Cargando estado de cuenta…",
+    "noData": "Este paciente no tiene movimientos financieros.",
+    "error": "No se pudo cargar el estado de cuenta.",
+    "printError": "No se pudo imprimir",
+    "printErrorGeneric": "Ocurrió un error al generar el documento.",
+    "viewStatement": "Ver estado de cuenta",
+    "debtAlertTitle": "Este paciente tiene deuda pendiente",
+    "noDebt": "Sin deuda pendiente",
+    "paysInvoice": "Paga Factura",
+    "addDebt": "Agregar deuda",
+    "collect": "Cobrar",
+    "collectSave": "Guardar",
+    "cancel": "Cancelar",
+    "selectInvoicesToCollect": "Seleccione las facturas a cobrar",
+    "pending": "Pendiente",
+    "amountToCollect": "Monto",
+    "paymentMethod": "Método de pago",
+    "sharedMethod": "Método compartido",
+    "overpayError": "El monto no puede superar lo pendiente.",
+    "noSelection": "Seleccione al menos una factura.",
+    "saving": "Guardando {current}/{total}…",
+    "collectSuccess": "Cobro registrado",
+    "collectPartialError": "No se pudieron cobrar algunas facturas: {failed}",
+    "filterOnlyUnpaid": "Solo impagas",
+    "docTypeAll": "Todos",
+    "docTypeInvoices": "Facturas",
+    "docTypePayments": "Pagos",
+    "docTypeCreditNotes": "Notas de crédito",
+    "noEntriesMatch": "No hay movimientos que coincidan con los filtros.",
+    "balance": "Saldo",
+    "invoiced": "Facturado",
+    "paid": "Pagado",
+    "selectedCount": "{count} facturas seleccionadas",
+    "defaultPaymentMethod": "Método de pago por defecto",
+    "totalToPay": "Monto total a pagar",
+    "collectSelection": "Cobrar selección",
+    "confirmCollectTitle": "Confirmar cobro",
+    "confirmCollectBody": "Se realizarán {count} pagos por un total de {total} para las {count} facturas seleccionadas. ¿Desea confirmar?",
+    "confirm": "Confirmar"
+  },
+  "QuickPatientSearch": {
+    "title": "Buscar paciente",
+    "placeholder": "Buscar paciente por nombre o teléfono…",
+    "searching": "Buscando…",
+    "noResults": "No se encontraron pacientes.",
+    "hint": "Escribe para buscar un paciente."
+  },
+  "ConfirmCloseDialog": {
+    "title": "¿Descartar cambios?",
+    "description": "Tiene cambios sin guardar. Si cierra ahora, se perderán.",
+    "confirm": "Descartar cambios",
+    "cancel": "Seguir editando",
+    "closeLabel": "Cerrar"
+  },
   "Navigation": {
     "Dashboard": "Panel de Control",
     "Appointments": "Citas",
@@ -46,6 +104,7 @@
     "Sequences": "Secuencias",
     "MutualSocieties": "Sociedades Mutuales",
     "PrintTemplates": "Plantillas de Documentos",
+    "Templates": "Plantillas",
     "System": "Sistema",
     "SystemUsers": "Usuarios",
     "Roles": "Roles",
@@ -68,7 +127,6 @@
     "Marketing": "Marketing",
     "Campaigns": "Campañas",
     "Audiences": "Audiencias",
-    "Templates": "Plantillas",
     "Finance": "Finanzas",
     "FinancialSummary": "Resumen Financiero",
     "CashFlow": "Flujo de Caja",
@@ -528,9 +586,22 @@
     "settings": {
       "title": "Configuración del Calendario",
       "defaultView": "Vista predeterminada",
+      "hourHeight": "Altura de la hora",
+      "hourHeightOption": "{px} px",
+      "slotDuration": "Duración del slot",
+      "slotDurationOption": "{min} min",
+      "slotDurationHour": "1 hora",
+      "sede": "Sede",
+      "allSedes": "Todas las sedes",
+      "eventLabel": "Formato de la cita",
+      "eventLabelOptions": {
+        "time_patient_notes": "Hora - Paciente - (Notas)",
+        "patient_treatment_time": "Paciente - Tratamiento - Hora"
+      },
       "groupBy": "Agrupar por",
       "checkAvailability": "Verificar disponibilidad",
       "filterDoctorsByService": "Filtrar doctores por servicio",
+      "inlineAppointmentCreation": "Crear cita en el calendario (sin modal)",
       "options": {
         "day": "Día",
         "2_days": "2 Días",
@@ -542,7 +613,8 @@
         "calendar": "Consultorios",
         "none": "Sin agrupar",
         "sede": "Sedes"
-      }
+      },
+      "blockUnavailable": "Bloquear horarios fuera de atención"
     },
     "newAppointment": "Nueva Cita",
     "calendarView": "Vista de Calendario",
@@ -550,6 +622,39 @@
     "refresh": "Actualizar",
     "calendars": "Calendarios",
     "selectAll": "Seleccionar Todo",
+    "bulk": {
+      "toggleButton": "Selección masiva",
+      "panelTitle": "Filtros de selección",
+      "datePreset": "Rango de fechas",
+      "today": "Hoy",
+      "this_week": "Esta semana",
+      "this_month": "Este mes",
+      "thisWeek": "Esta semana",
+      "thisMonth": "Este mes",
+      "doctorFilter": "Doctores",
+      "calendarFilter": "Calendarios",
+      "statusFilter": "Estados",
+      "allStatuses": "Todos los estados",
+      "selectHint": "Selecciona citas del calendario",
+      "applyFilter": "Buscar y seleccionar",
+      "applying": "Buscando...",
+      "filterResult": "{count} citas seleccionadas",
+      "filterError": "Error al buscar citas",
+      "clearSelection": "Limpiar selección",
+      "selectedCount": "{count} citas seleccionadas",
+      "reassignDoctor": "Reasignar doctor",
+      "exitBulkMode": "Salir",
+      "reassignTitle": "Reasignar {count} citas",
+      "reassignDescription": "Selecciona el doctor al que se asignarán las {count} citas seleccionadas.",
+      "selectDoctor": "Seleccionar doctor...",
+      "searchDoctor": "Buscar doctor...",
+      "noDoctor": "No se encontraron doctores.",
+      "cancel": "Cancelar",
+      "confirmReassign": "Confirmar reasignación",
+      "reassignSuccess": "{count} citas reasignadas correctamente",
+      "reassignPartial": "{updated} citas reasignadas, {failed} no se pudieron actualizar",
+      "reassignError": "Error al reasignar las citas"
+    },
     "appointmentsFor": "Citas para el {date}",
     "noAppointments": "No hay citas para este día.",
     "today": "Hoy",
@@ -582,6 +687,9 @@
       "none": "Ninguno",
       "allCalendars": "Seleccionar Calendario",
       "endTime": "Hora de Fin",
+      "duration": "Duración",
+      "durationMinutes": "Duración (minutos)",
+      "durationMinutesPlaceholder": "Ej: 20",
       "descriptionLabel": "Descripción",
       "cancelAppointmentDescription": "Está seguro que desea cancelar la cita?",
       "close": "Cerrar",
@@ -663,7 +771,39 @@
       "errorCreatingSessionDesc": "Ocurrió un error al guardar la sesión clínica.",
       "patientIdRequired": "Se requiere el ID del paciente",
       "errorLoadingQuoteItems": "Error al cargar tratamientos",
-      "errorLoadingQuoteItemsDesc": "No se pudieron cargar los tratamientos del presupuesto."
+      "errorLoadingQuoteItemsDesc": "No se pudieron cargar los tratamientos del presupuesto.",
+      "appointmentDeleted": "Cita eliminada",
+      "appointmentDeletedDesc": "La cita fue eliminada del sistema.",
+      "doctorReassigned": "Doctor actualizado",
+      "calendarReassigned": "Consultorio actualizado",
+      "quoteLinked": "Presupuesto enlazado",
+      "quoteUnlinked": "Presupuesto desvinculado",
+      "invoiceLinked": "Factura enlazada"
+    },
+    "inlineCreate": {
+      "title": "Nueva cita",
+      "editTitle": "Editar cita",
+      "update": "Actualizar",
+      "createService": "Crear \"{name}\"",
+      "overlapWarning": "Cuidado: se solapa con otra cita",
+      "cancel": "Cancelar",
+      "save": "Guardar",
+      "selectPatient": "¿Quién se atiende?",
+      "searchPatient": "Buscar paciente…",
+      "duration": "Duración",
+      "whatWillBeDone": "¿Qué se va a realizar?",
+      "selectService": "¿Qué se realiza?",
+      "searchService": "Buscar servicio…",
+      "noServices": "Sin servicios",
+      "servicesSelected": "{count} seleccionado(s)",
+      "notePlaceholder": "Nota…",
+      "selectRoom": "Consultorio",
+      "searchRoom": "Buscar consultorio…",
+      "noRooms": "Sin consultorios",
+      "selectDoctor": "Doctor",
+      "searchDoctor": "Buscar doctor…",
+      "noDoctors": "Sin doctores",
+      "viewStatement": "Ver estado de cuenta"
     },
     "linkedSession": "Sesión Clínica Enlazada",
     "noLinkedSession": "No hay sesión clínica enlazada a esta cita",
@@ -673,9 +813,23 @@
     "createSessionOnSave": "Crear sesión clínica al guardar",
     "clinicSession": "Sesión Clínica",
     "contextMenu": {
+      "editAppointment": "Editar cita",
       "createSession": "Registrar sesión clínica",
+      "editSession": "Editar sesión clínica",
       "services": "Servicios",
-      "notes": "Notas"
+      "notes": "Notas",
+      "linkQuote": "Enlazar presupuesto",
+      "changeQuote": "Cambiar presupuesto",
+      "unlinkQuote": "Quitar presupuesto",
+      "newQuote": "Crear nuevo presupuesto",
+      "searchQuote": "Buscar presupuesto…",
+      "noQuotes": "Sin presupuestos",
+      "createInvoice": "Facturar",
+      "changeInvoice": "Cambiar factura",
+      "newInvoice": "Crear nueva factura",
+      "searchInvoice": "Buscar factura…",
+      "noInvoices": "Sin facturas",
+      "quickBill": "Cobro rápido"
     },
     "linkedInvoice": "Factura",
     "notInvoiced": "Sin facturar",
@@ -752,6 +906,18 @@
   "AppointmentPanel": {
     "openPatient": "Ver paciente",
     "openDoctor": "Ver doctor",
+    "appointmentTitleFor": "Detalles de la cita para",
+    "noDoctor": "Sin Doctor asignado",
+    "noCalendar": "Sin consultorio asignado",
+    "changeDoctor": "Cambiar doctor",
+    "assignDoctor": "Asignar doctor",
+    "changeColor": "Cambiar color",
+    "changeCalendar": "Cambiar consultorio",
+    "assignCalendar": "Asignar consultorio",
+    "searchDoctor": "Buscar doctor…",
+    "searchCalendar": "Buscar consultorio…",
+    "noDoctorFound": "No se encontraron doctores.",
+    "noCalendarFound": "No se encontraron consultorios.",
     "openQuote": "Ver presupuesto",
     "servicesLabel": "Servicios",
     "servicesCount": "{count, plural, one {# servicio} other {# servicios}}",
@@ -764,7 +930,11 @@
     "treatmentPlanGoTo": "Ir al plan",
     "noNotes": "Sin notas",
     "delete": "Eliminar",
-    "deleteBlocked": "Sólo se puede eliminar una cita en estado programada, pendiente, cancelada o no asistió."
+    "deleteBlocked": "Sólo se puede eliminar una cita en estado programada, pendiente, cancelada o no asistió.",
+    "deleteTitle": "Eliminar cita",
+    "deleteDescription": "Esta acción eliminará la cita por completo del sistema y no se podrá volver a ver. ¿Deseas continuar?",
+    "deleteConfirm": "Sí, eliminar",
+    "deleteCancel": "Cancelar"
   },
   "AppointmentReschedule": {
     "action": "Reagendar",
@@ -949,6 +1119,15 @@
         "sessionConfirmSaving": "Guardando...",
         "sessionConfirmSavedOk": "Sesión guardada correctamente."
       }
+    },
+    "calendarSwitch": {
+      "myAppointments": "Mis citas",
+      "ariaLabel": "Ver citas de",
+      "assignedToMe": "Asignadas a mí",
+      "fromCalendar": "Del calendario",
+      "selectCalendar": "Seleccionar calendario...",
+      "viewingCalendar": "Del calendario: {name}",
+      "myCalendars": "Mis calendarios"
     }
   },
   "AilmentsPage": {
@@ -1158,7 +1337,8 @@
       "printFinancialSummary": "Imprimir Resumen Financiero",
       "print": "Imprimir",
       "showStats": "VER",
-      "hideStats": "OCULTAR"
+      "hideStats": "OCULTAR",
+      "statement": "ESTADO"
     },
     "financialSummaryDialog": {
       "title": "Imprimir Resumen Financiero",
@@ -1338,6 +1518,7 @@
     "activate": "Activar",
     "deactivate": "Desactivar",
     "identity_document": "Documento de Identidad",
+    "internal_id": "ID Interno",
     "currentDebt": "Deuda Actual",
     "openMenu": "Abrir menú",
     "active": "Activo",
@@ -1423,7 +1604,8 @@
     "createdAt": "Creado En",
     "currency": "Moneda",
     "exchangeRate": "Tasa de Cambio",
-    "quoteDocNo": "Presupuesto Doc No."
+    "quoteDocNo": "Presupuesto Doc No.",
+    "externalId": "ID Externo"
   },
   "QuoteBillingDialog": {
     "title": "Facturar presupuesto",
@@ -1954,6 +2136,7 @@
       "currency": "Moneda",
       "type": "Tipo",
       "paidAmount": "Monto Pagado",
+      "remainingAmount": "Saldo Pendiente",
       "invoiceRef": "Referencia de Factura",
       "docNo": "Doc No.",
       "orderDocNo": "Orden Doc No.",
@@ -1962,7 +2145,8 @@
       "isCreditNote": "Nota de Crédito",
       "creditNote": "Nota de Crédito",
       "invoice": "Factura",
-      "isHistorical": "Histórico"
+      "isHistorical": "Histórico",
+      "externalId": "ID Externo"
     },
     "invoiceDialog": {
       "isHistorical": "Histórico",
@@ -2087,6 +2271,7 @@
     "AllocationsTable": {
       "title": "Movimientos de Nota de Crédito",
       "empty": "No hay movimientos asociados a esta nota de crédito",
+      "doc_no": "Nro. Doc.",
       "destino_doc_no": "Documento Destino",
       "destino_tipo": "Tipo",
       "monto_asignado": "Monto Asignado",
@@ -2439,6 +2624,7 @@
     "openingDenominations": "Denominaciones de Apertura",
     "closingDenominations": "Denominaciones de Cierre",
     "noDetails": "Sin detalles disponibles",
+    "movementsLimitWarning": "Se están mostrando los primeros 100 movimientos. Es posible que existan más registros no visibles.",
     "movements": "Movimientos",
     "reconciliationSummary": "Resumen de Conciliación",
     "reconciliation": {
@@ -2610,6 +2796,14 @@
     "title": "Pagos",
     "description": "Una visión general de los pagos.",
     "filterPlaceholder": "Filtrar aquí...",
+    "typeFilter": {
+      "label": "Tipo de transacción"
+    },
+    "allocationFlow": {
+      "sourcePayment": "Pago origen",
+      "sourceCreditNote": "Nota de crédito origen",
+      "targetInvoice": "Factura destino"
+    },
     "export": "Exportar",
     "exportError": "Error al exportar los datos",
     "exportCols": {
@@ -2651,7 +2845,6 @@
       "type": "Tipo",
       "paymentTypes": {
         "direct_payment": "Pago Directo",
-        "direct_payment": "Pago Directo",
         "payment": "Pago",
         "prepaid": "Prepago",
         "payment_allocation": "Asignación de Pago",
@@ -2661,6 +2854,7 @@
       "credit_note": "Nota de Crédito",
       "invoice": "Factura",
       "isHistorical": "Histórico",
+      "external_id": "ID Externo",
       "paymentMethods": {
         "efectivo": "Efectivo",
         "tarjeta_de_debito": "Tarjeta de Débito",
@@ -2738,6 +2932,7 @@
     "PaymentAllocationsTable": {
       "title": "Asignaciones de Pago",
       "empty": "No se encontraron asignaciones de pago.",
+      "doc_no": "Nro. Doc.",
       "factura_doc_no": "No. Factura",
       "factura_tipo": "Tipo",
       "moneda_factura": "Moneda Factura",
@@ -3328,6 +3523,23 @@
       "sedeRequired": "La sede es obligatoria.",
       "emailInvalid": "Correo electrónico de Google Calendar inválido.",
       "colorInvalid": "Color hexadecimal inválido (ej. #FFFFFF)."
+    },
+    "tabs": {
+      "details": "Detalle",
+      "access": "Doctores con acceso"
+    },
+    "access": {
+      "title": "Doctores con acceso",
+      "description": "Selecciona los doctores que podrán ver las citas de este calendario desde su workspace.",
+      "selectPlaceholder": "Seleccionar doctores...",
+      "search": "Buscar doctor...",
+      "noDoctors": "No hay doctores disponibles",
+      "empty": "Ningún doctor con acceso",
+      "count": "{count} con acceso",
+      "save": "Guardar accesos",
+      "saved": "Accesos actualizados",
+      "saveError": "No se pudieron guardar los accesos",
+      "selectCalendarFirst": "Selecciona un calendario para gestionar sus accesos."
     }
   },
   "DoctorsPage": {
@@ -3393,7 +3605,9 @@
       "defaultCalendar": "Consultorio por defecto",
       "selectCalendar": "Seleccionar consultorio...",
       "searchCalendarPlaceholder": "Buscar consultorio...",
-      "noCalendar": "Sin consultorio por defecto"
+      "noCalendar": "Sin consultorio por defecto",
+      "canBrowseCalendars": "Puede ver agendas de calendarios",
+      "canBrowseCalendarsHint": "Permite a este doctor alternar en su workspace entre sus citas asignadas y las de los calendarios a los que tiene acceso."
     },
     "filters": {
       "showOnlyActive": "Mostrar solo activos"
@@ -3401,7 +3615,20 @@
     "tabs": {
       "details": "Detalles",
       "availability": "Disponibilidad",
-      "exceptions": "Excepciones"
+      "exceptions": "Excepciones",
+      "calendars": "Calendarios con acceso"
+    },
+    "calendarAccess": {
+      "title": "Calendarios con acceso",
+      "description": "Selecciona los calendarios cuyas citas podrá ver este doctor desde su workspace.",
+      "selectPlaceholder": "Seleccionar calendarios...",
+      "search": "Buscar calendario...",
+      "noItems": "No hay calendarios disponibles",
+      "empty": "Sin acceso a calendarios",
+      "count": "{count} con acceso",
+      "save": "Guardar accesos",
+      "saved": "Accesos actualizados",
+      "saveError": "No se pudieron guardar los accesos"
     }
   },
   "UserLogsPage": {
@@ -4186,6 +4413,7 @@
       "sessionTypeOdontogram": "Odontograma",
       "sessionTypeClinical": "Sesión Clínica",
       "sessionTypeAppointment": "Cita",
+      "upcomingAppointment": "Próxima",
       "quote": "Presupuesto",
       "addFirstSession": "Agregar primera sesión",
       "toast": {
@@ -4325,7 +4553,8 @@
           "reasonPlaceholder": "Razon de la medicación",
           "startDatePlaceholder": "Seleccionar fecha de inicio",
           "endDatePlaceholder": "Seleccionar fecha de fin",
-          "endDateBeforeStartDate": "La fecha de fin no puede ser menor que la fecha de inicio"
+          "endDateBeforeStartDate": "La fecha de fin no puede ser menor que la fecha de inicio",
+          "createMedication": "Crear \"{name}\""
         },
         "allergy": {
           "addTitle": "Agregar Alergia",
@@ -4338,7 +4567,8 @@
           "reactionPlaceholder": "Describa la reacción alérgica..."
         },
         "searchAilment": "Buscar Padecimiento",
-        "noAilmentFound": "No se encontró el padecimiento"
+        "noAilmentFound": "No se encontró el padecimiento",
+        "createAilment": "Crear \"{name}\""
       },
       "toast": {
         "success": "Éxito",
@@ -4617,7 +4847,18 @@
     },
     "weekShort": "Sem",
     "filterTitle": "Filtrar Agenda",
-    "noAppointments": "Sin citas"
+    "noAppointments": "Sin citas",
+    "gaps": {
+      "button": "Huecos",
+      "panelTitle": "Huecos disponibles",
+      "duration": "{min} min",
+      "empty": "No hay huecos en el horario de atención.",
+      "maxBadge": "Mayor",
+      "close": "Cerrar"
+    },
+    "blocked": {
+      "label": "No disponible"
+    }
   },
   "Reminders": {
     "recordatorio": "Recordatorio",
@@ -5537,6 +5778,59 @@
         "clinic": "Clínica",
         "tables": "Tablas"
       }
+    },
+    "Templates": {
+      "title": "Plantillas",
+      "sections": {
+        "document": "Documentos",
+        "email": "Email",
+        "whatsapp": "WhatsApp"
+      },
+      "tabs": {
+        "invoice": "Factura",
+        "quote": "Presupuesto",
+        "payment": "Pago",
+        "credit_note": "Nota de Crédito",
+        "prepayment": "Prepago",
+        "financial_summary": "Resumen Financiero",
+        "email_patient_general": "Mensaje general",
+        "email_alert_followup": "Seguimiento de alerta",
+        "email_invoice": "Factura",
+        "email_quote": "Presupuesto",
+        "email_quote_approved": "Presupuesto aprobado",
+        "email_quote_rejected": "Presupuesto rechazado",
+        "email_payment": "Recibo de Pago",
+        "email_appointment_reminder": "Recordatorio de Cita",
+        "email_appointment_confirmation": "Confirmación de Cita",
+        "email_financial_summary": "Estado de Cuenta",
+        "email_treatment_update": "Actualización de Tratamiento",
+        "email_password_reset": "Restablecer Contraseña",
+        "whatsapp_patient_general": "Mensaje general",
+        "whatsapp_alert_followup": "Seguimiento de alerta",
+        "whatsapp_appointment_reminder": "Recordatorio de cita",
+        "whatsapp_treatment_interrupted": "Tratamiento interrumpido"
+      },
+      "subject": "Asunto",
+      "subjectPlaceholder": "Asunto del email (admite variables)",
+      "preview": "Vista previa",
+      "insertVariable": "Insertar variable",
+      "expandEditor": "Expandir editor",
+      "splitView": "Vista dividida",
+      "save": "Guardar",
+      "resetDefault": "Restaurar predeterminado",
+      "saveSuccess": "Plantilla guardada exitosamente",
+      "saveError": "Error al guardar la plantilla",
+      "resetSuccess": "Plantilla restaurada al valor predeterminado",
+      "groups": {
+        "document": "Documento",
+        "patient": "Paciente",
+        "clinic": "Clínica",
+        "tables": "Tablas",
+        "appointment": "Cita",
+        "alert": "Alerta",
+        "treatment": "Tratamiento",
+        "cash": "Caja"
+      }
     }
   },
   "MutualSocietiesColumns": {
@@ -5945,6 +6239,8 @@
     "missingEmail": "Esta alerta no tiene correo del paciente.",
     "missingUserId": "Esta alerta no tiene identificador de paciente para enviar el correo.",
     "unknownPatient": "paciente",
+    "preview": "Vista previa",
+    "editMode": "Editar",
     "cancel": "Cancelar",
     "send": "Enviar correo",
     "sending": "Enviando...",
@@ -6005,7 +6301,10 @@
       "underline": "Subrayado",
       "list": "Lista",
       "insertLink": "Insertar enlace",
-      "linkPrompt": "URL del enlace:"
+      "linkPrompt": "URL del enlace:",
+      "modeEdit": "Editar",
+      "modeSource": "Código HTML",
+      "modePreview": "Vista previa"
     },
     "toast": {
       "sendSuccessTitle": "Correo enviado",
@@ -6774,7 +7073,8 @@
       "phone": "Teléfono",
       "concept": "Concepto",
       "balance": "Saldo",
-      "finalBalance": "Saldo Final"
+      "finalBalance": "Saldo Final",
+      "paysInvoice": "Paga"
     }
   },
   "License": {

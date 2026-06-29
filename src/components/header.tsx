@@ -2,11 +2,12 @@
 
 import { OpenCashSessionWidget } from '@/components/cash-session-widget';
 import { TVDisplayWidget } from '@/components/tv-display-widget';
+import { QuickPatientSearch } from '@/components/patients/QuickPatientSearch';
 import { NotificationsBell } from '@/components/notifications/notifications-bell';
 import { NotificationsPanel } from '@/components/notifications/notifications-panel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CASHIER_PERMISSIONS, GLOBAL_PERMISSIONS, SALES_PERMISSIONS, STICKY_NOTES_PERMISSIONS } from '@/constants/permissions';
+import { CASHIER_PERMISSIONS, GLOBAL_PERMISSIONS, SALES_PERMISSIONS, STICKY_NOTES_PERMISSIONS, TV_DISPLAY_PERMISSIONS } from '@/constants/permissions';
 import { useAlertNotifications } from '@/context/alert-notifications-context';
 import { useNotifications } from '@/context/notifications-context';
 import { useAuth } from '@/context/AuthContext';
@@ -445,15 +446,21 @@ export function Header() {
                             <ChevronRight className="h-4 w-4" />
                         </Button>
 
+                        <PanelItem label="Paciente">
+                            <QuickPatientSearch />
+                        </PanelItem>
+
                         {hasPermission(CASHIER_PERMISSIONS.VIEW_WIDGET) && (
                             <PanelItem label="Caja">
                                 <OpenCashSessionWidget />
                             </PanelItem>
                         )}
 
-                        <PanelItem label="TV">
-                            <TVDisplayWidget />
-                        </PanelItem>
+                        {hasPermission(TV_DISPLAY_PERMISSIONS.VIEW_MENU) && (
+                            <PanelItem label="TV">
+                                <TVDisplayWidget />
+                            </PanelItem>
+                        )}
 
                         {hasPermission(SALES_PERMISSIONS.INVOICES_CREATE) && (
                             <PanelItem label="Cobrar">
@@ -576,12 +583,13 @@ export function Header() {
                     </button>
                 ) : (
                     <div className={cn(
-                        'flex flex-row items-center justify-evenly px-3 py-2 gap-1',
+                        'flex flex-row flex-wrap items-center justify-evenly px-1.5 py-2 gap-0.5',
                         'bg-[hsl(var(--floating-header-bg)/0.95)] backdrop-blur-md border-b border-border shadow-md w-full',
                         'animate-in fade-in slide-in-from-top-2 duration-200',
                     )}>
+                        <QuickPatientSearch />
                         <OpenCashSessionWidget />
-                        <TVDisplayWidget />
+                        {hasPermission(TV_DISPLAY_PERMISSIONS.VIEW_MENU) && <TVDisplayWidget />}
 
                         {hasPermission(SALES_PERMISSIONS.INVOICES_CREATE) && (
                             <Button

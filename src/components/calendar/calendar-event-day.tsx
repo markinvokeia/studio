@@ -28,7 +28,9 @@ interface CalendarEventDayProps {
   dateLocale: Locale;
   onEventClick: (data: any) => void;
   onEventColorChange: (data: any, colorId: string) => void;
+  onEventDoubleClick?: (data: any) => void;
   onEventContextMenu?: (data: any) => React.ReactNode;
+  onEventContextMenuOpen?: (data: any) => void;
 }
 
 export const CalendarEventDay = React.memo(function CalendarEventDay({
@@ -37,8 +39,14 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
   dateLocale,
   onEventClick,
   onEventColorChange,
+  onEventDoubleClick,
   onEventContextMenu,
+  onEventContextMenuOpen,
 }: CalendarEventDayProps) {
+  // Distinguish single vs double click: delay the single-click action briefly so a
+  // double-click (inline edit) can cancel it. Only delays when a dbl handler exists.
+  const clickTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  React.useEffect(() => () => { if (clickTimer.current) clearTimeout(clickTimer.current); }, []);
   const start = typeof event.start === 'string' ? parseISO(event.start) : event.start;
   const end = typeof event.end === 'string' ? parseISO(event.end) : event.end;
   const durationMinutes = Math.max(0, (end.getTime() - start.getTime()) / (1000 * 60));
@@ -57,10 +65,11 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
   const reminderCardStyle = isReminder ? getReminderCardStyle(event.color, reminderIsDone) : {};
 
   return (
-    <ContextMenu>
+    <ContextMenu onOpenChange={(o) => { if (o) onEventContextMenuOpen?.(event.data); }}>
       <ContextMenuTrigger>
         <div
           data-testid="calendar-day-event"
+          title={event.label ?? event.title}
           className={cn(
             'event-in-day-view',
             isShortEvent && 'event-in-day-view-compact',
@@ -79,15 +88,30 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
           onClick={(e) => {
             if (e.button !== 0) return;
             e.stopPropagation();
-            onEventClick(event.data);
+            if (!onEventDoubleClick) { onEventClick(event.data); return; }
+            if (e.detail > 1) return; // part of a double-click; ignore
+            if (clickTimer.current) clearTimeout(clickTimer.current);
+            clickTimer.current = setTimeout(() => onEventClick(event.data), 220);
+          }}
+          onDoubleClick={(e) => {
+            if (!onEventDoubleClick) return;
+            e.stopPropagation();
+            if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null; }
+            onEventDoubleClick(event.data);
           }}
         >
-          <span className="event-day-title">{event.title}</span>
-          <span className="event-day-time whitespace-nowrap">
-            {isShortEvent
-              ? `, ${formatEventTime(event.start, dateLocale)} - ${formatEventTime(event.end, dateLocale)}`
-              : `${formatEventTime(event.start, dateLocale)} - ${formatEventTime(event.end, dateLocale)}`}
-          </span>
+          {event.label ? (
+            <span className="event-day-title">{event.label}</span>
+          ) : (
+            <>
+              <span className="event-day-title">{event.title}</span>
+              <span className="event-day-time whitespace-nowrap">
+                {isShortEvent
+                  ? `, ${formatEventTime(event.start, dateLocale)} - ${formatEventTime(event.end, dateLocale)}`
+                  : `${formatEventTime(event.start, dateLocale)} - ${formatEventTime(event.end, dateLocale)}`}
+              </span>
+            </>
+          )}
           {isReminder && (
             <span
               aria-hidden

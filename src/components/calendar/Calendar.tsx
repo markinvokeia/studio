@@ -8,6 +8,8 @@ import React from 'react';
 import './Calendar.css';
 
 import type { CalendarProps, CalendarView } from './calendar-types';
+import { DEFAULT_SLOT_DURATION, HOUR_SLOT_HEIGHT, MIN_SLOT_HEIGHT } from './calendar-constants';
+import { CalendarZoomControl } from './calendar-zoom-control';
 import { useCalendarBreakpoint } from '@/hooks/use-calendar-breakpoint';
 import { useCalendarNavigation } from '@/hooks/use-calendar-navigation';
 
@@ -42,16 +44,33 @@ const Calendar: React.FC<CalendarProps> = ({
   onEventClick,
   view: propsView,
   defaultView,
+  hourSlotHeight,
+  slotMinutes,
   onViewChange,
   groupBy = 'none',
   groupingColumns = [],
   onEventColorChange,
+  onEventDoubleClick,
   onSlotClick,
+  onCreateClick,
+  onSlotContextMenu,
   onEventContextMenu,
+  onEventContextMenuOpen,
+  inlineDraft,
+  renderInlineDraft,
   filterSheet,
   extraActions,
   extraActionsAfterToday,
+  primaryActions,
   trailingActions,
+  selectedAppointmentIds,
+  onToggleAppointmentSelect,
+  bulkModeContent,
+  gaps,
+  selectedGapKey,
+  onGapClick,
+  blockedRanges,
+  blockedFullDays,
 }) => {
   const t = useTranslations('Calendar');
   const breakpoint = useCalendarBreakpoint();
@@ -60,6 +79,51 @@ const Calendar: React.FC<CalendarProps> = ({
 
   const [filterSheetOpen, setFilterSheetOpen] = React.useState(false);
   const [monthCollapsed, setMonthCollapsed] = React.useState(false);
+
+  // Calendar zoom (slider) — scales slot height AND font together so the slot:font
+  // ratio is kept. Persisted across sessions.
+  const [zoom, setZoom] = React.useState(0.9);
+  React.useEffect(() => {
+    const saved = typeof window !== 'undefined' ? window.localStorage.getItem('calendar-zoom') : null;
+    if (saved) {
+      const v = parseFloat(saved);
+      if (!Number.isNaN(v) && v >= 0.7 && v <= 2.5) setZoom(v);
+    }
+  }, []);
+  const handleZoomChange = React.useCallback((v: number) => {
+    setZoom(v);
+    try { window.localStorage.setItem('calendar-zoom', String(v)); } catch { /* ignore */ }
+  }, []);
+
+  // When an inline-creation draft opens, temporarily zoom in so the whole form is
+  // readable; restore the user's zoom when the draft is saved/cancelled.
+  const prevZoomRef = React.useRef<number | null>(null);
+  const draftActive = !!inlineDraft;
+  React.useEffect(() => {
+    if (draftActive) {
+      if (prevZoomRef.current === null) {
+        prevZoomRef.current = zoom;
+        if (zoom < 1.5) setZoom(1.5);
+      }
+    } else if (prevZoomRef.current !== null) {
+      setZoom(prevZoomRef.current);
+      prevZoomRef.current = null;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftActive]);
+
+  const heightSetting = hourSlotHeight ?? HOUR_SLOT_HEIGHT;
+  // Slot density: how many slots fit per hour (e.g. 6 for 10-min slots). The hour
+  // row is floored at slotsPerHour * MIN_SLOT_HEIGHT so every slot can show a
+  // readable title, even on tight agendas. Taller rows simply make day/week views
+  // longer (and month scroll), keeping titles legible.
+  const slotsPerHour = Math.max(1, Math.round(60 / (slotMinutes ?? DEFAULT_SLOT_DURATION)));
+  const baseSlotHeight = Math.max(heightSetting, slotsPerHour * MIN_SLOT_HEIGHT);
+  // Zoom enlarges only the slot height...
+  const effectiveSlotHeight = Math.round(baseSlotHeight * zoom);
+  // ...while the font scales only with the configured slot size (px setting),
+  // dampened so larger slots don't blow up the text. Zoom does NOT change fonts.
+  const fontScale = Math.pow(heightSetting / HOUR_SLOT_HEIGHT, 0.7);
 
   const {
     currentDate,
@@ -83,9 +147,17 @@ const Calendar: React.FC<CalendarProps> = ({
   const eventHandlers = {
     onEventClick,
     onEventColorChange,
+    onEventDoubleClick,
     onEventContextMenu,
+    onEventContextMenuOpen,
     onSlotClick,
+    onSlotContextMenu,
   };
+
+  // Free-slot ("Huecos") overlay props, threaded into the grid/month views.
+  const gapProps = { gaps, selectedGapKey, onGapClick };
+  // Out-of-office blocking overlay props (independent of Huecos).
+  const blockProps = { blockedRanges };
 
   const renderView = () => {
     switch (effectiveView) {
@@ -107,7 +179,13 @@ const Calendar: React.FC<CalendarProps> = ({
               groupingColumns={groupingColumns}
               currentTime={currentTime}
               dateLocale={dateLocale}
+              hourSlotHeight={effectiveSlotHeight}
+              slotMinutes={slotMinutes}
+              inlineDraft={inlineDraft}
+              renderInlineDraft={renderInlineDraft}
               {...eventHandlers}
+              {...gapProps}
+              {...blockProps}
             />
           );
         }
@@ -126,7 +204,13 @@ const Calendar: React.FC<CalendarProps> = ({
               dateLocale={dateLocale}
               timeZoneLabel={timeZoneLabel}
               breakpoint={breakpoint}
+              hourSlotHeight={effectiveSlotHeight}
+              slotMinutes={slotMinutes}
+              inlineDraft={inlineDraft}
+              renderInlineDraft={renderInlineDraft}
               {...eventHandlers}
+              {...gapProps}
+              {...blockProps}
             />
           );
         }
@@ -140,7 +224,13 @@ const Calendar: React.FC<CalendarProps> = ({
             currentTime={currentTime}
             dateLocale={dateLocale}
             timeZoneLabel={timeZoneLabel}
+            hourSlotHeight={effectiveSlotHeight}
+            slotMinutes={slotMinutes}
+            inlineDraft={inlineDraft}
+            renderInlineDraft={renderInlineDraft}
             {...eventHandlers}
+            {...gapProps}
+            {...blockProps}
           />
         );
       }
@@ -161,6 +251,8 @@ const Calendar: React.FC<CalendarProps> = ({
             dateLocale={dateLocale}
             breakpoint={breakpoint}
             onEventClick={onEventClick}
+            selectedAppointmentIds={selectedAppointmentIds}
+            onToggleAppointmentSelect={onToggleAppointmentSelect}
           />
         );
 
@@ -175,6 +267,8 @@ const Calendar: React.FC<CalendarProps> = ({
               collapsed={monthCollapsed}
               onEventClick={onEventClick}
               onSlotClick={onSlotClick}
+              {...gapProps}
+              blockedFullDays={blockedFullDays}
             />
           );
         }
@@ -188,6 +282,8 @@ const Calendar: React.FC<CalendarProps> = ({
             onEventColorChange={onEventColorChange}
             onEventContextMenu={onEventContextMenu}
             onSlotClick={onSlotClick}
+            {...gapProps}
+            blockedFullDays={blockedFullDays}
           />
         );
     }
@@ -207,7 +303,9 @@ const Calendar: React.FC<CalendarProps> = ({
         onOpenFilterSheet={isCompactHeader && filterSheet ? () => setFilterSheetOpen(true) : undefined}
         extraActions={extraActions}
         extraActionsAfterToday={extraActionsAfterToday}
+        primaryActions={primaryActions}
         trailingActions={trailingActions}
+        bulkModeContent={bulkModeContent}
       >
         {children}
       </CalendarHeader>
@@ -230,8 +328,15 @@ const Calendar: React.FC<CalendarProps> = ({
         </div>
       )}
 
-      <div className="calendar-body">
+      <div
+        className="calendar-body relative"
+        style={{ '--cal-font-scale': fontScale, '--cal-slots-per-hour': slotsPerHour } as React.CSSProperties}
+      >
         {renderView()}
+        {/* Zoom slider — only on time-grid views where slot height applies */}
+        {!isMobile && (effectiveView === 'day' || isMultiDayView) && (
+          <CalendarZoomControl zoom={zoom} onZoomChange={handleZoomChange} />
+        )}
       </div>
 
       {/* Mobile: bottom view tabs */}
@@ -241,7 +346,7 @@ const Calendar: React.FC<CalendarProps> = ({
 
       {/* Mobile: FAB for creating appointments */}
       {isMobile && onSlotClick && (
-        <CalendarFab label={t('create')} onClick={() => onSlotClick(new Date())} />
+        <CalendarFab label={t('create')} onClick={onCreateClick ?? (() => onSlotClick(new Date()))} />
       )}
 
       {/* Mobile: filter bottom sheet */}

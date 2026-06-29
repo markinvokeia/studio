@@ -22,6 +22,16 @@ interface PaymentAllocationsTableProps {
 const getColumns = (t: (key: string) => string): ColumnDef<PaymentAllocation>[] => {
   const columns: ColumnDef<PaymentAllocation>[] = [
     {
+      accessorKey: 'doc_no',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('doc_no')} />
+      ),
+      cell: ({ row }) => {
+        const docNo = row.getValue('doc_no') as string;
+        return docNo || 'N/A';
+      },
+    },
+    {
       accessorKey: 'factura_doc_no',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('factura_doc_no')} />
@@ -124,10 +134,11 @@ export function PaymentAllocationsTable({ allocations, isLoading }: PaymentAlloc
     if (asRow) {
       return (
         <DataListRow
-          title={`#${alloc.factura_doc_no || 'N/A'}`}
+          title={`#${alloc.doc_no || alloc.factura_doc_no || 'N/A'}`}
           badge={badge}
           meta={(
             <>
+              {alloc.doc_no && <span>{tMain('factura_doc_no')}: #{alloc.factura_doc_no || 'N/A'}</span>}
               <span>{formatDateTime(alloc.fecha_aplicacion)}</span>
               <span className="font-medium text-foreground">{tMain('monto_aplicado_a_factura')}: {aplicado}</span>
               <span>{tMain('monto_desde_pago')}: {desdePago}</span>
@@ -138,9 +149,10 @@ export function PaymentAllocationsTable({ allocations, isLoading }: PaymentAlloc
     }
     return (
       <DataCard
-        title={`#${alloc.factura_doc_no || 'N/A'}`}
+        title={`#${alloc.doc_no || alloc.factura_doc_no || 'N/A'}`}
         badge={badge}
         fields={[
+          ...(alloc.doc_no ? [{ label: tMain('factura_doc_no'), value: `#${alloc.factura_doc_no || 'N/A'}` }] : []),
           { label: tMain('monto_aplicado_a_factura'), value: aplicado, primary: true },
           { label: tMain('monto_desde_pago'), value: desdePago },
           { label: tMain('fecha_aplicacion'), value: formatDateTime(alloc.fecha_aplicacion) },

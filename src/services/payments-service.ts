@@ -11,10 +11,13 @@ export interface PaymentListResponse {
   totalItems: number;
 }
 
+export type PaymentTypeFilter = 'all' | 'prepaid' | 'direct_payment' | 'payment_allocation' | 'credit_note_allocation';
+
 export interface PaymentSearchParams {
   page?: number;
   limit?: number;
   search?: string;
+  type?: PaymentTypeFilter;
 }
 
 function hasValidPayments(paymentsData: any[]): boolean {
@@ -108,9 +111,12 @@ export function mapApiPaymentToPayment(apiPayment: any): Payment {
     transaction_type: apiPayment.transaction_type || 'direct_payment',
     transaction_id: apiPayment.transaction_id ? String(apiPayment.transaction_id) : 'N/A',
     reference_doc_id: apiPayment.reference_doc_id,
+    // Source document of an allocation row (the prepaid payment or the credit note being applied)
+    payment_doc_no: apiPayment.payment_doc_no || apiPayment.source_doc_no || apiPayment.origin_doc_no || apiPayment.credit_note_doc_no || undefined,
     type: paymentType,
     notes: apiPayment.notes || '',
     is_historical: apiPayment.is_historical || false,
+    external_id: apiPayment.external_id ?? null,
   };
 }
 
@@ -120,12 +126,13 @@ export function isPaymentEditable(payment: Payment | null | undefined): payment 
 
 export async function getSalesPayments(params: PaymentSearchParams = {}): Promise<PaymentListResponse> {
   try {
-    const { page = 1, limit = 10, search = '' } = params;
+    const { page = 1, limit = 10, search = '', type = 'all' } = params;
 
     const requestParams = {
       is_sales: 'true',
       page: page.toString(),
       limit: limit.toString(),
+      type,
       ...(search && { search })
     };
 
@@ -152,12 +159,13 @@ export async function getSalesPayments(params: PaymentSearchParams = {}): Promis
 
 export async function getPurchasePayments(params: PaymentSearchParams = {}): Promise<PaymentListResponse> {
   try {
-    const { page = 1, limit = 10, search = '' } = params;
+    const { page = 1, limit = 10, search = '', type = 'all' } = params;
 
     const requestParams = {
       is_sales: 'false',
       page: page.toString(),
       limit: limit.toString(),
+      type,
       ...(search && { search })
     };
 

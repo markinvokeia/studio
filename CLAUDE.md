@@ -46,7 +46,7 @@ src/
 
 ### API layer
 
-`src/services/api.ts` wraps all HTTP calls with Bearer token auth (from localStorage). Base URL comes from `src/lib/runtime-config.ts`, which reads `window.__INVOKEIA_RUNTIME_CONFIG__` in the browser and falls back to `NEXT_PUBLIC_API_URL` for local development/tests. Route constants live in `src/constants/routes.ts` — never hardcode API routes inline.
+`src/services/api.ts` wraps all HTTP calls with Bearer token auth (from localStorage). Base URL and all env-derived values come from `src/lib/runtime-config.ts` — **never read `process.env` or `NEXT_PUBLIC_*` directly**. Route constants live in `src/constants/routes.ts` — never hardcode API routes inline.
 
 ### Auth & permissions
 
@@ -108,8 +108,6 @@ React Hook Form + Zod only. Define the schema first, then derive the TypeScript 
 
 ## Environment variables
 
-```
-NEXT_PUBLIC_API_URL            # Runtime backend base URL (n8n webhooks)
-NEXT_PUBLIC_LICENSE_KEY        # Runtime public license encryption key
-NEXT_PUBLIC_MASTER_SEC         # Runtime public license admin gate
-```
+> **IMPORTANT:** See [`docs/runtime-config.md`](docs/runtime-config.md) before working with env vars.
+
+Variables are injected at **runtime** (not build time) via `window.__INVOKEIA_RUNTIME_CONFIG__` — a `<script>` tag written by the Server Component `src/app/[locale]/layout.tsx`. Always access them through the getters in `src/lib/runtime-config.ts`, never via `process.env` directly.

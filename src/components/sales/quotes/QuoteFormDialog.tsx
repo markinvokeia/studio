@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogBody,
+    DialogCancelButton,
     DialogContent,
     DialogDescription,
     DialogFooter,
@@ -283,7 +284,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
 
     return (
         <Dialog open={open} onOpenChange={(o) => { if (!isSubmitting) onOpenChange(o); }}>
-            <DialogContent showMaximize={true} maxWidth="6xl">
+            <DialogContent showMaximize={true} maxWidth="6xl" confirmOnClose isDirty={form.formState.isDirty}>
                 <DialogHeader>
                     <DialogTitle>{t('quoteDialog.createTitle')}</DialogTitle>
                     <DialogDescription>{t('quoteDialog.description')}</DialogDescription>
@@ -700,9 +701,9 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                             />
                         </DialogBody>
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+                            <DialogCancelButton variant="outline" disabled={isSubmitting}>
                                 {t('quoteDialog.cancel')}
-                            </Button>
+                            </DialogCancelButton>
                             <Button type="submit" disabled={isSubmitting}>
                                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 {isSubmitting ? t('quoteDialog.saving') : t('quoteDialog.save')}

@@ -114,14 +114,18 @@ export function formatEventTime(value: Date | string, dateLocale: Locale): strin
 // Event positioning in time grid
 // ---------------------------------------------------------------------------
 
-export function getEventStyle(event: CalendarEvent): React.CSSProperties {
+export function getEventStyle(
+  event: CalendarEvent,
+  hourSlotHeight: number = HOUR_SLOT_HEIGHT
+): React.CSSProperties {
   const start = typeof event.start === 'string' ? parseISO(event.start) : event.start;
   const end = typeof event.end === 'string' ? parseISO(event.end) : event.end;
-  const top = (getHours(start) + getMinutes(start) / 60) * HOUR_SLOT_HEIGHT;
-  const duration = (end.getTime() - start.getTime()) / (1000 * 60);
+  const top = (getHours(start) + getMinutes(start) / 60) * hourSlotHeight;
+  const durationMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
+  const height = (durationMinutes / 60) * hourSlotHeight;
   return {
     top: `${top}px`,
-    height: `${duration}px`,
+    height: `${height}px`,
     backgroundColor: event.color || 'hsl(var(--primary))',
   };
 }
@@ -267,6 +271,25 @@ export function filterEventsByDayAndGroup(
 
 export function generateTimeSlots(count = 24): string[] {
   return Array.from({ length: count }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
+}
+
+/**
+ * Snap a vertical click offset (px from the top of the time grid) to the start of
+ * the slot it falls in, based on the configured slot duration. With 10-min slots
+ * (6 per hour) clicking the 13:00 hour yields 13:00/13:10/.../13:50; with 20-min
+ * slots (3 per hour) it yields 13:00/13:20/13:40.
+ */
+export function slotTimeFromOffset(
+  y: number,
+  hourSlotHeight: number,
+  slotMinutes = 15,
+): { hour: number; minute: number } {
+  const safeSlot = slotMinutes > 0 ? slotMinutes : 15;
+  const slotsPerHour = Math.max(1, Math.round(60 / safeSlot));
+  const hour = Math.floor(y / hourSlotHeight);
+  const slotPx = hourSlotHeight / slotsPerHour;
+  const idx = Math.max(0, Math.min(slotsPerHour - 1, Math.floor((y % hourSlotHeight) / slotPx)));
+  return { hour, minute: idx * safeSlot };
 }
 
 // ---------------------------------------------------------------------------

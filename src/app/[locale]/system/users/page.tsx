@@ -12,6 +12,7 @@ import { DataTableAdvancedToolbar, FilterOption } from '@/components/ui/data-tab
 import {
   Dialog,
   DialogBody,
+  DialogCancelButton,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -44,6 +45,7 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { SystemUserColumnsWrapper } from './columns';
 import { useDeepLink } from '@/hooks/use-deep-link';
+import { useCheckFirstPassword } from '@/hooks/use-check-first-password';
 
 
 const userFormSchema = (t: (key: string) => string) => z.object({
@@ -264,8 +266,6 @@ export default function SystemUsersPage() {
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
   const [detailError, setDetailError] = React.useState<string | null>(null);
   const [isSavingDetail, setIsSavingDetail] = React.useState(false);
-  const [hasPasswordPermission, setHasPasswordPermission] = React.useState(false);
-
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [pagination, setPagination] = React.useState<PaginationState>({
@@ -303,6 +303,7 @@ export default function SystemUsersPage() {
   const canUpdate = hasPermission(SYSTEM_PERMISSIONS.USERS_UPDATE);
   const canToggleStatus = hasPermission(SYSTEM_PERMISSIONS.USERS_TOGGLE_STATUS);
   const canSetInitialPassword = hasPermission(SYSTEM_PERMISSIONS.USERS_SET_INITIAL_PASSWORD);
+  const hasPasswordPermission = useCheckFirstPassword(selectedUser, canSetInitialPassword);
   const canViewDetail = hasPermission(SYSTEM_PERMISSIONS.USERS_VIEW_DETAIL);
   const canViewRoles = hasPermission(SYSTEM_PERMISSIONS.USERS_VIEW_ROLES);
   const canAssignRole = hasPermission(SYSTEM_PERMISSIONS.USERS_ASSIGN_ROLE);
@@ -417,35 +418,12 @@ export default function SystemUsersPage() {
   };
 
   React.useEffect(() => {
-    const checkFirstPasswordRequirements = async () => {
-      if (!selectedUser || !canSetInitialPassword) {
-        setHasPasswordPermission(false);
-        return;
-      }
-
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setHasPasswordPermission(false);
-        return;
-      }
-
-      try {
-        await api.get(API_ROUTES.SYSTEM.API_AUTH_CHECK_FIRST_PASSWORD, { user_id: selectedUser.id });
-        setHasPasswordPermission(true);
-      } catch (error) {
-        console.error("Failed to check first password requirements:", error);
-        setHasPasswordPermission(false);
-      }
-    };
-
     if (selectedUser) {
       loadUserRoles(selectedUser.id);
-      checkFirstPasswordRequirements();
     } else {
       setSelectedUserRoles([]);
-      setHasPasswordPermission(false);
     }
-  }, [selectedUser, loadUserRoles, canSetInitialPassword]);
+  }, [selectedUser, loadUserRoles]);
 
   const handleCloseDetails = () => {
     setSelectedUser(null);
@@ -739,7 +717,7 @@ export default function SystemUsersPage() {
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent confirmOnClose isDirty={form.formState.isDirty}>
           <DialogHeader>
             <DialogTitle>{t('SystemUsersPage.createDialog.title')}</DialogTitle>
             <DialogDescription>{t('SystemUsersPage.createDialog.description')}</DialogDescription>
@@ -827,7 +805,7 @@ export default function SystemUsersPage() {
               </DialogBody>
               <DialogFooter>
                 <Button type="submit">{t('SystemUsersPage.createDialog.save')}</Button>
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('SystemUsersPage.createDialog.cancel')}</Button>
+                <DialogCancelButton>{t('SystemUsersPage.createDialog.cancel')}</DialogCancelButton>
               </DialogFooter>
             </form>
           </Form>

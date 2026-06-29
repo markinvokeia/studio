@@ -13,7 +13,7 @@ import { ViewModeToggle } from '@/components/ui/view-mode-toggle';
 import { useTableViewMode } from '@/hooks/use-table-view-mode';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogCancelButton, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -133,6 +133,15 @@ const getColumns = (t: (key: string) => string): ColumnDef<Payment>[] => [
     accessorKey: 'payment_date',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('PaymentsPage.columns.date')} />,
     cell: ({ row }) => formatDisplayDate(row.original.payment_date || row.original.createdAt),
+  },
+  {
+    accessorKey: 'external_id',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('PaymentsPage.columns.external_id')} />,
+    cell: ({ row }) => (
+      <span className="font-mono text-xs text-muted-foreground">
+        {row.original.external_id ?? '—'}
+      </span>
+    ),
   },
 ];
 
@@ -487,6 +496,7 @@ export function UserPayments({ userId, mode = 'sales', refreshTrigger }: UserPay
               method: t('PaymentsPage.columns.method'),
               type: t('PaymentsPage.columns.type'),
               payment_date: t('PaymentsPage.columns.date'),
+              external_id: t('PaymentsPage.columns.external_id'),
             }}
           />
         </CardContent>
@@ -643,11 +653,17 @@ export function UserPayments({ userId, mode = 'sales', refreshTrigger }: UserPay
             {selectedPayment.invoice_id && (
               <div className="flex-1 flex flex-col overflow-hidden px-4 py-4">
                 <p className="text-sm font-semibold mb-2">Documentos relacionados</p>
-                {(selectedPayment.invoice_doc_no || selectedPayment.payment_doc_no) ? (
+                {(selectedPayment.invoice_doc_no || (isAllocationPayment(selectedPayment) && selectedPayment.payment_doc_no)) ? (
                   <DataCard
                     fields={[
                       ...(selectedPayment.invoice_doc_no ? [{ label: 'Factura', value: `#${selectedPayment.invoice_doc_no}` }] : []),
-                      ...(selectedPayment.payment_doc_no ? [{ label: 'Pago origen', value: `#${selectedPayment.payment_doc_no}` }] : []),
+                      // Source document only makes sense for allocation rows
+                      ...(isAllocationPayment(selectedPayment) && selectedPayment.payment_doc_no
+                        ? [{
+                            label: selectedPayment.transaction_type === 'credit_note_allocation' ? 'Nota de crédito origen' : 'Pago origen',
+                            value: `#${selectedPayment.payment_doc_no}`,
+                          }]
+                        : []),
                     ]}
                   />
                 ) : (
@@ -671,7 +687,7 @@ export function UserPayments({ userId, mode = 'sales', refreshTrigger }: UserPay
 
       {/* Email Dialog */}
       <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
-        <DialogContent>
+        <DialogContent confirmOnClose isDirty={emailRecipients.trim() !== ''}>
           <DialogHeader>
             <DialogTitle>{tPayments('sendEmailDialog.title')}</DialogTitle>
             <DialogDescription>
@@ -691,9 +707,9 @@ export function UserPayments({ userId, mode = 'sales', refreshTrigger }: UserPay
             </p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)}>
+            <DialogCancelButton>
               {tPayments('sendEmailDialog.cancel')}
-            </Button>
+            </DialogCancelButton>
             <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
               {isSendingEmail ? tPayments('sendEmailDialog.sending') : tPayments('sendEmailDialog.send')}
             </Button>

@@ -1,4 +1,62 @@
 {
+  "AccountStatement": {
+    "title": "Account statement",
+    "print": "Print",
+    "close": "Close",
+    "loading": "Loading account statement…",
+    "noData": "This patient has no financial movements.",
+    "error": "Could not load the account statement.",
+    "printError": "Could not print",
+    "printErrorGeneric": "An error occurred generating the document.",
+    "viewStatement": "View account statement",
+    "debtAlertTitle": "This patient has outstanding debt",
+    "noDebt": "No outstanding debt",
+    "paysInvoice": "Pays Invoice",
+    "addDebt": "Add debt",
+    "collect": "Collect",
+    "collectSave": "Save",
+    "cancel": "Cancel",
+    "selectInvoicesToCollect": "Select the invoices to collect",
+    "pending": "Pending",
+    "amountToCollect": "Amount",
+    "paymentMethod": "Payment method",
+    "sharedMethod": "Shared method",
+    "overpayError": "Amount cannot exceed the pending balance.",
+    "noSelection": "Select at least one invoice.",
+    "saving": "Saving {current}/{total}…",
+    "collectSuccess": "Payment recorded",
+    "collectPartialError": "Some invoices could not be collected: {failed}",
+    "filterOnlyUnpaid": "Unpaid only",
+    "docTypeAll": "All",
+    "docTypeInvoices": "Invoices",
+    "docTypePayments": "Payments",
+    "docTypeCreditNotes": "Credit notes",
+    "noEntriesMatch": "No movements match the filters.",
+    "balance": "Balance",
+    "invoiced": "Invoiced",
+    "paid": "Paid",
+    "selectedCount": "{count} invoices selected",
+    "defaultPaymentMethod": "Default payment method",
+    "totalToPay": "Total to pay",
+    "collectSelection": "Collect selection",
+    "confirmCollectTitle": "Confirm collection",
+    "confirmCollectBody": "{count} payments will be made for a total of {total} for the {count} selected invoices. Do you want to confirm?",
+    "confirm": "Confirm"
+  },
+  "QuickPatientSearch": {
+    "title": "Search patient",
+    "placeholder": "Search patient by name or phone…",
+    "searching": "Searching…",
+    "noResults": "No patients found.",
+    "hint": "Type to search for a patient."
+  },
+  "ConfirmCloseDialog": {
+    "title": "Discard changes?",
+    "description": "You have unsaved changes. If you close now, they will be lost.",
+    "confirm": "Discard changes",
+    "cancel": "Keep editing",
+    "closeLabel": "Close"
+  },
   "Navigation": {
     "Dashboard": "Dashboard",
     "Appointments": "Appointments",
@@ -46,6 +104,7 @@
     "Sequences": "Sequences",
     "MutualSocieties": "Mutual Societies",
     "PrintTemplates": "Document Templates",
+    "Templates": "Templates",
     "System": "System",
     "SystemUsers": "Users",
     "Roles": "Roles",
@@ -68,7 +127,6 @@
     "Marketing": "Marketing",
     "Campaigns": "Campaigns",
     "Audiences": "Audiences",
-    "Templates": "Templates",
     "Finance": "Finance",
     "FinancialSummary": "Financial Summary",
     "CashFlow": "Cash Flow",
@@ -528,9 +586,22 @@
     "settings": {
       "title": "Calendar Settings",
       "defaultView": "Default view",
+      "hourHeight": "Hour height",
+      "hourHeightOption": "{px} px",
+      "slotDuration": "Slot duration",
+      "slotDurationOption": "{min} min",
+      "slotDurationHour": "1 hour",
+      "sede": "Branch",
+      "allSedes": "All branches",
+      "eventLabel": "Appointment label",
+      "eventLabelOptions": {
+        "time_patient_notes": "Time - Patient - (Notes)",
+        "patient_treatment_time": "Patient - Treatment - Time"
+      },
       "groupBy": "Group by",
       "checkAvailability": "Check availability",
       "filterDoctorsByService": "Filter doctors by service",
+      "inlineAppointmentCreation": "Create appointment on the calendar (no modal)",
       "options": {
         "day": "Day",
         "2_days": "2 Days",
@@ -542,7 +613,8 @@
         "calendar": "Consulting rooms",
         "none": "No grouping",
         "sede": "Branches"
-      }
+      },
+      "blockUnavailable": "Block out-of-office hours"
     },
     "newAppointment": "New Appointment",
     "calendarView": "Calendar View",
@@ -550,6 +622,39 @@
     "refresh": "Refresh",
     "calendars": "Calendars",
     "selectAll": "Select All",
+    "bulk": {
+      "toggleButton": "Bulk selection",
+      "panelTitle": "Selection filters",
+      "datePreset": "Date range",
+      "today": "Today",
+      "this_week": "This week",
+      "this_month": "This month",
+      "thisWeek": "This week",
+      "thisMonth": "This month",
+      "doctorFilter": "Doctors",
+      "calendarFilter": "Calendars",
+      "statusFilter": "Statuses",
+      "allStatuses": "All statuses",
+      "selectHint": "Select appointments from the calendar",
+      "applyFilter": "Search & select",
+      "applying": "Searching...",
+      "filterResult": "{count} appointments selected",
+      "filterError": "Error searching appointments",
+      "clearSelection": "Clear selection",
+      "selectedCount": "{count} appointments selected",
+      "reassignDoctor": "Reassign doctor",
+      "exitBulkMode": "Exit",
+      "reassignTitle": "Reassign {count} appointments",
+      "reassignDescription": "Select the doctor to assign the {count} selected appointments to.",
+      "selectDoctor": "Select doctor...",
+      "searchDoctor": "Search doctor...",
+      "noDoctor": "No doctors found.",
+      "cancel": "Cancel",
+      "confirmReassign": "Confirm reassignment",
+      "reassignSuccess": "{count} appointments reassigned successfully",
+      "reassignPartial": "{updated} appointments reassigned, {failed} could not be updated",
+      "reassignError": "Error reassigning appointments"
+    },
     "appointmentsFor": "Appointments for {date}",
     "noAppointments": "No appointments for this day.",
     "today": "Today",
@@ -582,6 +687,9 @@
       "none": "None",
       "allCalendars": "Select Calendar",
       "endTime": "End Time",
+      "duration": "Duration",
+      "durationMinutes": "Duration (minutes)",
+      "durationMinutesPlaceholder": "e.g. 20",
       "descriptionLabel": "Description",
       "cancelAppointmentDescription": "Are you sure you want to cancel the appointment?",
       "close": "Close",
@@ -663,7 +771,39 @@
       "errorCreatingSessionDesc": "An error occurred while saving the clinic session.",
       "patientIdRequired": "Patient ID is required",
       "errorLoadingQuoteItems": "Error loading treatments",
-      "errorLoadingQuoteItemsDesc": "Could not load treatments from quote."
+      "errorLoadingQuoteItemsDesc": "Could not load treatments from quote.",
+      "appointmentDeleted": "Appointment deleted",
+      "appointmentDeletedDesc": "The appointment was removed from the system.",
+      "doctorReassigned": "Doctor updated",
+      "calendarReassigned": "Room updated",
+      "quoteLinked": "Quote linked",
+      "quoteUnlinked": "Quote unlinked",
+      "invoiceLinked": "Invoice linked"
+    },
+    "inlineCreate": {
+      "title": "New appointment",
+      "editTitle": "Edit appointment",
+      "update": "Update",
+      "createService": "Create \"{name}\"",
+      "overlapWarning": "Careful: overlaps another appointment",
+      "cancel": "Cancel",
+      "save": "Save",
+      "selectPatient": "Who is being seen?",
+      "searchPatient": "Search patient…",
+      "duration": "Duration",
+      "whatWillBeDone": "What will be done?",
+      "selectService": "What will be done?",
+      "searchService": "Search service…",
+      "noServices": "No services",
+      "servicesSelected": "{count} selected",
+      "notePlaceholder": "Note…",
+      "selectRoom": "Room",
+      "searchRoom": "Search room…",
+      "noRooms": "No rooms",
+      "selectDoctor": "Doctor",
+      "searchDoctor": "Search doctor…",
+      "noDoctors": "No doctors",
+      "viewStatement": "View account statement"
     },
     "linkedSession": "Linked Clinic Session",
     "noLinkedSession": "No clinic session linked to this appointment",
@@ -673,9 +813,23 @@
     "createSessionOnSave": "Create clinic session after saving",
     "clinicSession": "Clinic Session",
     "contextMenu": {
+      "editAppointment": "Edit appointment",
       "createSession": "Create clinic session",
+      "editSession": "Edit clinic session",
       "services": "Services",
-      "notes": "Notes"
+      "notes": "Notes",
+      "linkQuote": "Link quote",
+      "changeQuote": "Change quote",
+      "unlinkQuote": "Remove quote",
+      "newQuote": "Create new quote",
+      "searchQuote": "Search quote…",
+      "noQuotes": "No quotes",
+      "createInvoice": "Create invoice",
+      "changeInvoice": "Change invoice",
+      "newInvoice": "Create new invoice",
+      "searchInvoice": "Search invoice…",
+      "noInvoices": "No invoices",
+      "quickBill": "Quick charge"
     },
     "linkedInvoice": "Invoice",
     "notInvoiced": "Not invoiced",
@@ -752,6 +906,18 @@
   "AppointmentPanel": {
     "openPatient": "View patient",
     "openDoctor": "View doctor",
+    "appointmentTitleFor": "Appointment details for",
+    "noDoctor": "No doctor assigned",
+    "noCalendar": "No room assigned",
+    "changeDoctor": "Change doctor",
+    "assignDoctor": "Assign doctor",
+    "changeColor": "Change color",
+    "changeCalendar": "Change room",
+    "assignCalendar": "Assign room",
+    "searchDoctor": "Search doctor…",
+    "searchCalendar": "Search room…",
+    "noDoctorFound": "No doctors found.",
+    "noCalendarFound": "No rooms found.",
     "openQuote": "View quote",
     "servicesLabel": "Services",
     "servicesCount": "{count, plural, one {# service} other {# services}}",
@@ -764,7 +930,11 @@
     "treatmentPlanGoTo": "Go to plan",
     "noNotes": "No notes",
     "delete": "Delete",
-    "deleteBlocked": "Only appointments in scheduled, pending, cancelled or no-show state can be deleted."
+    "deleteBlocked": "Only appointments in scheduled, pending, cancelled or no-show state can be deleted.",
+    "deleteTitle": "Delete appointment",
+    "deleteDescription": "This will completely remove the appointment from the system and it can no longer be viewed. Do you want to continue?",
+    "deleteConfirm": "Yes, delete",
+    "deleteCancel": "Cancel"
   },
   "AppointmentReschedule": {
     "action": "Reschedule",
@@ -949,6 +1119,15 @@
         "sessionConfirmSaving": "Saving...",
         "sessionConfirmSavedOk": "Session saved successfully."
       }
+    },
+    "calendarSwitch": {
+      "myAppointments": "My appointments",
+      "ariaLabel": "View appointments for",
+      "assignedToMe": "Assigned to me",
+      "fromCalendar": "From calendar",
+      "selectCalendar": "Select calendar...",
+      "viewingCalendar": "From calendar: {name}",
+      "myCalendars": "My calendars"
     }
   },
   "AilmentsPage": {
@@ -1158,7 +1337,8 @@
       "printFinancialSummary": "Print Financial Summary",
       "print": "Print",
       "showStats": "SHOW",
-      "hideStats": "HIDE"
+      "hideStats": "HIDE",
+      "statement": "STATEMENT"
     },
     "financialSummaryDialog": {
       "title": "Print Financial Summary",
@@ -1338,6 +1518,7 @@
     "activate": "Activate",
     "deactivate": "Deactivate",
     "identity_document": "Identity Document",
+    "internal_id": "Internal ID",
     "currentDebt": "Current Debt",
     "openMenu": "Open menu",
     "active": "Active",
@@ -1423,7 +1604,8 @@
     "createdAt": "Created At",
     "currency": "Currency",
     "exchangeRate": "Exchange Rate",
-    "quoteDocNo": "Quote Doc No."
+    "quoteDocNo": "Quote Doc No.",
+    "externalId": "External ID"
   },
   "QuoteBillingDialog": {
     "title": "Invoice quote",
@@ -1954,6 +2136,7 @@
       "currency": "Currency",
       "type": "Type",
       "paidAmount": "Paid Amount",
+      "remainingAmount": "Remaining Balance",
       "invoiceRef": "Invoice Reference",
       "docNo": "Doc No.",
       "orderDocNo": "Order Doc No.",
@@ -1962,7 +2145,8 @@
       "isCreditNote": "Credit Note",
       "creditNote": "Credit Note",
       "invoice": "Invoice",
-      "isHistorical": "Historical"
+      "isHistorical": "Historical",
+      "externalId": "External ID"
     },
     "invoiceDialog": {
       "isHistorical": "Historical",
@@ -2087,6 +2271,7 @@
     "AllocationsTable": {
       "title": "Credit Note Allocations",
       "empty": "There are no allocations associated with this credit note",
+      "doc_no": "Doc No.",
       "destino_doc_no": "Destination Document",
       "destino_tipo": "Type",
       "monto_asignado": "Allocated Amount",
@@ -2462,6 +2647,7 @@
     "openingDenominations": "Opening Denominations",
     "closingDenominations": "Closing Denominations",
     "noDetails": "No details available",
+    "movementsLimitWarning": "Showing the first 100 movements. There may be additional records not displayed.",
     "movements": "Movements",
     "reconciliationSummary": "Reconciliation Summary",
     "reconciliation": {
@@ -2633,6 +2819,14 @@
     "title": "Payments",
     "description": "An overview of payments.",
     "filterPlaceholder": "Filter here...",
+    "typeFilter": {
+      "label": "Transaction type"
+    },
+    "allocationFlow": {
+      "sourcePayment": "Source payment",
+      "sourceCreditNote": "Source credit note",
+      "targetInvoice": "Target invoice"
+    },
     "export": "Export",
     "exportError": "Error exporting data",
     "exportCols": {
@@ -2683,6 +2877,7 @@
       "credit_note": "Credit Note",
       "invoice": "Invoice",
       "isHistorical": "Historical",
+      "external_id": "External ID",
       "paymentMethods": {
         "efectivo": "Cash",
         "tarjeta_de_debito": "Debit Card",
@@ -2760,6 +2955,7 @@
     "PaymentAllocationsTable": {
       "title": "Payment Allocations",
       "empty": "No payment allocations found.",
+      "doc_no": "Doc No.",
       "factura_doc_no": "Invoice Doc No.",
       "factura_tipo": "Type",
       "moneda_factura": "Invoice Currency",
@@ -3350,6 +3546,23 @@
       "sedeRequired": "Branch is required.",
       "emailInvalid": "Invalid Google Calendar email.",
       "colorInvalid": "Invalid hex color (e.g. #FFFFFF)."
+    },
+    "tabs": {
+      "details": "Details",
+      "access": "Doctors with access"
+    },
+    "access": {
+      "title": "Doctors with access",
+      "description": "Select the doctors who can see this calendar’s appointments from their workspace.",
+      "selectPlaceholder": "Select doctors...",
+      "search": "Search doctor...",
+      "noDoctors": "No doctors available",
+      "empty": "No doctors with access",
+      "count": "{count} with access",
+      "save": "Save access",
+      "saved": "Access updated",
+      "saveError": "Failed to save access",
+      "selectCalendarFirst": "Select a calendar to manage its access."
     }
   },
   "DoctorsPage": {
@@ -3415,7 +3628,9 @@
       "defaultCalendar": "Default Consultorio",
       "selectCalendar": "Select consultorio...",
       "searchCalendarPlaceholder": "Search consultorio...",
-      "noCalendar": "No default consultorio"
+      "noCalendar": "No default consultorio",
+      "canBrowseCalendars": "Can view calendar agendas",
+      "canBrowseCalendarsHint": "Lets this doctor switch in their workspace between their assigned appointments and those of the calendars they have access to."
     },
     "filters": {
       "showOnlyActive": "Show only active"
@@ -3423,7 +3638,20 @@
     "tabs": {
       "details": "Detalles",
       "availability": "Availability",
-      "exceptions": "Exceptions"
+      "exceptions": "Exceptions",
+      "calendars": "Calendars with access"
+    },
+    "calendarAccess": {
+      "title": "Calendars with access",
+      "description": "Select the calendars whose appointments this doctor can see from their workspace.",
+      "selectPlaceholder": "Select calendars...",
+      "search": "Search calendar...",
+      "noItems": "No calendars available",
+      "empty": "No calendar access",
+      "count": "{count} with access",
+      "save": "Save access",
+      "saved": "Access updated",
+      "saveError": "Failed to save access"
     }
   },
   "UserLogsPage": {
@@ -4208,6 +4436,7 @@
       "sessionTypeOdontogram": "Odontogram",
       "sessionTypeClinical": "Clinical Session",
       "sessionTypeAppointment": "Appointment",
+      "upcomingAppointment": "Upcoming",
       "quote": "Quote",
       "addFirstSession": "Add first session",
       "toast": {
@@ -4347,7 +4576,8 @@
           "reasonPlaceholder": "Reason for medication",
           "startDatePlaceholder": "Select start date",
           "endDatePlaceholder": "Select end date",
-          "endDateBeforeStartDate": "End date cannot be earlier than start date"
+          "endDateBeforeStartDate": "End date cannot be earlier than start date",
+          "createMedication": "Create \"{name}\""
         },
         "allergy": {
           "addTitle": "Add Allergy",
@@ -4361,6 +4591,7 @@
         },
         "searchAilment": "Search Ailment",
         "noAilmentFound": "No ailment found",
+        "createAilment": "Create \"{name}\"",
         "common": {
           "delete": "Delete",
           "confirmDelete": "Are you sure you want to delete this item? This action cannot be undone."
@@ -4638,7 +4869,18 @@
     },
     "weekShort": "Wk",
     "filterTitle": "Filter Schedule",
-    "noAppointments": "No appointments"
+    "noAppointments": "No appointments",
+    "gaps": {
+      "button": "Free slots",
+      "panelTitle": "Available slots",
+      "duration": "{min} min",
+      "empty": "No free slots within business hours.",
+      "maxBadge": "Largest",
+      "close": "Close"
+    },
+    "blocked": {
+      "label": "Unavailable"
+    }
   },
   "Reminders": {
     "recordatorio": "Reminder",
@@ -5556,6 +5798,59 @@
         "clinic": "Clinic",
         "tables": "Tables"
       }
+    },
+    "Templates": {
+      "title": "Templates",
+      "sections": {
+        "document": "Documents",
+        "email": "Email",
+        "whatsapp": "WhatsApp"
+      },
+      "tabs": {
+        "invoice": "Invoice",
+        "quote": "Quote",
+        "payment": "Payment",
+        "credit_note": "Credit Note",
+        "prepayment": "Prepayment",
+        "financial_summary": "Financial Summary",
+        "email_patient_general": "General message",
+        "email_alert_followup": "Alert follow-up",
+        "email_invoice": "Invoice",
+        "email_quote": "Quote",
+        "email_quote_approved": "Approved quote",
+        "email_quote_rejected": "Rejected quote",
+        "email_payment": "Payment Receipt",
+        "email_appointment_reminder": "Appointment Reminder",
+        "email_appointment_confirmation": "Appointment Confirmation",
+        "email_financial_summary": "Account Statement",
+        "email_treatment_update": "Treatment Update",
+        "email_password_reset": "Password Reset",
+        "whatsapp_patient_general": "General message",
+        "whatsapp_alert_followup": "Alert follow-up",
+        "whatsapp_appointment_reminder": "Appointment reminder",
+        "whatsapp_treatment_interrupted": "Interrupted treatment"
+      },
+      "subject": "Subject",
+      "subjectPlaceholder": "Email subject (supports variables)",
+      "preview": "Preview",
+      "insertVariable": "Insert variable",
+      "expandEditor": "Expand editor",
+      "splitView": "Split view",
+      "save": "Save",
+      "resetDefault": "Restore default",
+      "saveSuccess": "Template saved successfully",
+      "saveError": "Error saving template",
+      "resetSuccess": "Template restored to default",
+      "groups": {
+        "document": "Document",
+        "patient": "Patient",
+        "clinic": "Clinic",
+        "tables": "Tables",
+        "appointment": "Appointment",
+        "alert": "Alert",
+        "treatment": "Treatment",
+        "cash": "Cash"
+      }
     }
   },
   "MutualSocietiesColumns": {
@@ -5964,6 +6259,8 @@
     "missingEmail": "This alert has no patient email.",
     "missingUserId": "This alert has no patient identifier to send the email.",
     "unknownPatient": "patient",
+    "preview": "Preview",
+    "editMode": "Edit",
     "cancel": "Cancel",
     "send": "Send email",
     "sending": "Sending...",
@@ -6024,7 +6321,10 @@
       "underline": "Underline",
       "list": "List",
       "insertLink": "Insert link",
-      "linkPrompt": "Link URL:"
+      "linkPrompt": "Link URL:",
+      "modeEdit": "Edit",
+      "modeSource": "HTML source",
+      "modePreview": "Preview"
     },
     "toast": {
       "sendSuccessTitle": "Email sent",
@@ -6793,7 +7093,8 @@
       "phone": "Phone",
       "concept": "Concept",
       "balance": "Balance",
-      "finalBalance": "Final Balance"
+      "finalBalance": "Final Balance",
+      "paysInvoice": "Pays"
     }
   },
   "License": {

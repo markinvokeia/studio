@@ -13,6 +13,7 @@ import { UserSelector } from '@/components/ui/user-selector';
 import {
     Dialog,
     DialogBody,
+    DialogCancelButton,
     DialogContent,
     DialogDescription,
     DialogFooter,
@@ -36,8 +37,11 @@ import { markLocallyCreated } from '@/hooks/use-appointment-status';
 import { getSalesServices } from '@/services/services';
 import { TreatmentPlanReviewDialog } from '@/components/appointments/TreatmentPlanReviewDialog';
 import { getServicesByQuoteId, getQuoteItems } from '@/services/quotes';
-import { addMinutes, format, isValid, parse, parseISO } from 'date-fns';
-import { CalendarDays, Check, ChevronsUpDown, ClipboardList, Clock, FilePlus, Link2, Loader2, MapPin, Plus, Stethoscope, UserRound, X } from 'lucide-react';
+import { addMinutes, differenceInMinutes, format, isValid, parse, parseISO } from 'date-fns';
+import { AlertTriangle, CalendarDays, Check, ChevronsUpDown, ClipboardList, Clock, FileText, FilePlus, Link2, Loader2, MapPin, Plus, Stethoscope, UserRound, X } from 'lucide-react';
+
+import { useAccountStatement } from '@/stores/account-statement-store';
+import { usePatientView } from '@/stores/patient-view-store';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -80,11 +84,14 @@ interface AppointmentFormDialogProps {
         date?: boolean;
     };
     onSaveSuccess?: (savedAppointment: any, selectedDate: Date) => void;
-    calendars: CalendarType[];
-    doctors: UserType[];
-    doctorServiceMap: Map<string, Service[]>;
-    checkCalendarAvailability: boolean;
-    checkDoctorAvailability: boolean;
+    calendars?: CalendarType[];
+    doctors?: UserType[];
+    doctorServiceMap?: Map<string, Service[]>;
+    /** Calendars each doctor is granted access to (by doctor id). When provided,
+     *  the calendar picker is limited to the selected doctor's accessible calendars. */
+    doctorCalendarMap?: Map<string, CalendarType[]>;
+    checkCalendarAvailability?: boolean;
+    checkDoctorAvailability?: boolean;
     userQuotes?: Quote[];
 }
 
@@ -96,11 +103,12 @@ export function AppointmentFormDialog({
     initialData,
     readOnlyFields,
     onSaveSuccess,
-    calendars,
-    doctors: allDoctors,
-    doctorServiceMap,
-    checkCalendarAvailability,
-    checkDoctorAvailability,
+    calendars = [],
+    doctors: allDoctors = [],
+    doctorServiceMap = new Map(),
+    doctorCalendarMap = new Map(),
+    checkCalendarAvailability = false,
+    checkDoctorAvailability = false,
     userQuotes: externalUserQuotes,
 }: AppointmentFormDialogProps) {
     const t = useTranslations('AppointmentsPage');
@@ -112,7 +120,15 @@ export function AppointmentFormDialog({
     const { user: currentUser } = useAuth();
     const { toast } = useToast();
     const { reschedule } = useAppointmentReschedule();
+    const { open: openAccountStatement } = useAccountStatement();
+    const { open: openPatientView } = usePatientView();
+    const tAccount = useTranslations('AccountStatement');
+    const tPanelAccount = useTranslations('AppointmentPanel');
     const isReschedule = mode === 'reschedule';
+    const [hasBeenEdited, setHasBeenEdited] = React.useState(false);
+
+    // Outstanding-debt indicator for the selected patient (per currency).
+    const [patientDebt, setPatientDebt] = React.useState<{ currency: string; amount: number }[]>([]);
 
     // Form State
     const [appointment, setAppointment] = React.useState({
@@ -273,7 +289,7 @@ export function AppointmentFormDialog({
                     id: q.id ? String(q.id) : `qt_${Math.random().toString(36).substr(2, 9)}`,
                     doc_no: q.doc_no || 'N/A',
                     user_id: q.user_id || appointment.user!.id,
-                    total: q.total || 0,
+                    total: Number(q.total_presupuesto ?? q.total ?? 0),
                     status: q.status || 'draft',
                     payment_status: q.payment_status || 'unpaid',
                     billing_status: q.billing_status || 'not_invoiced',
@@ -302,10 +318,30 @@ export function AppointmentFormDialog({
         loadUserQuotes();
     }, [appointment.user?.id, externalUserQuotes]);
 
+    // Load the selected patient's outstanding debt to surface it inline.
+    React.useEffect(() => {
+        const userId = appointment.user?.id;
+        if (!userId) { setPatientDebt([]); return; }
+        let active = true;
+        api.get(API_ROUTES.USER_FINANCIAL, { user_id: userId })
+            .then((raw: any) => {
+                if (!active) return;
+                const fin = Array.isArray(raw) ? raw[0] : raw;
+                const byCurrency = fin?.financial_data ?? {};
+                const debts = Object.entries(byCurrency)
+                    .map(([currency, d]: [string, any]) => ({ currency, amount: Number(d?.current_debt ?? 0) }))
+                    .filter((d) => d.amount > 0);
+                setPatientDebt(debts);
+            })
+            .catch(() => { if (active) setPatientDebt([]); });
+        return () => { active = false; };
+    }, [appointment.user?.id]);
+
     // Initialize/Reset form
     React.useEffect(() => {
         if (open) {
             setErrors([]);
+            setHasBeenEdited(false);
             setCreateSessionOnSave(false);
             setPendingSaveResult(null);
             setHasPendingSession(false);
@@ -580,6 +616,11 @@ export function AppointmentFormDialog({
                 }
             }
 
+            // New appointment with no service-derived duration → default to 30 min.
+            if (!editingAppointment && totalDuration === 0) {
+                totalDuration = 30;
+            }
+
             return format(addMinutes(startDateTime, totalDuration), 'HH:mm');
         } catch {
             return null;
@@ -591,6 +632,48 @@ export function AppointmentFormDialog({
             setAppointment(prev => ({ ...prev, endTime: calculatedEndTime }));
         }
     }, [calculatedEndTime, editingAppointment]);
+
+    // Current appointment duration in minutes (derived from start/end). Allows 0
+    // (end == start); a save-time validation blocks zero-length appointments.
+    const derivedDurationMinutes = React.useMemo(() => {
+        const { date, time, endTime } = appointment;
+        if (!date || !time || !endTime) return '';
+        try {
+            const start = parse(`${date} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
+            const end = parse(`${date} ${endTime}`, 'yyyy-MM-dd HH:mm', new Date());
+            if (!isValid(start) || !isValid(end) || end < start) return '';
+            return String(differenceInMinutes(end, start));
+        } catch {
+            return '';
+        }
+    }, [appointment.date, appointment.time, appointment.endTime]);
+
+    // Local state for the duration input so the user can type/clear it freely. It
+    // syncs from the derived value whenever the field is not being edited.
+    const [durationInput, setDurationInput] = React.useState('');
+    const durationFocusedRef = React.useRef(false);
+    React.useEffect(() => {
+        if (!durationFocusedRef.current) setDurationInput(derivedDurationMinutes);
+    }, [derivedDurationMinutes]);
+
+    // When the user types a duration in minutes, recompute the end time from the
+    // start time + duration. Empty/0 -> end equals start.
+    const handleDurationMinutesChange = (raw: string) => {
+        setHasBeenEdited(true);
+        setDurationInput(raw);
+        if (!appointment.date || !appointment.time) return;
+        const start = parse(`${appointment.date} ${appointment.time}`, 'yyyy-MM-dd HH:mm', new Date());
+        if (!isValid(start)) return;
+        const minutes = raw.trim() === '' ? 0 : parseInt(raw, 10);
+        if (Number.isNaN(minutes) || minutes < 0) return;
+        setAppointment(prev => ({ ...prev, endTime: format(addMinutes(start, minutes), 'HH:mm') }));
+    };
+
+    const handleDurationBlur = () => {
+        durationFocusedRef.current = false;
+        setDurationInput(derivedDurationMinutes || '0');
+    };
+
 
     const handleSave = async () => {
         const isEditing = !!editingAppointment;
@@ -997,10 +1080,27 @@ export function AppointmentFormDialog({
         });
     }, [allDoctors, appointment.services, doctorServiceMap, checkDoctorAvailability]);
 
+    // When a doctor is selected and we know their calendar access, limit the calendar
+    // picker to those calendars (plus the doctor's own calendar). Otherwise show all.
+    const availableCalendars = React.useMemo(() => {
+        const doctorId = appointment.doctor?.id ? String(appointment.doctor.id) : null;
+        if (!doctorId) return calendars;
+        const granted = doctorCalendarMap.get(doctorId);
+        if (!granted || granted.length === 0) {
+            // No explicit access map for this doctor: fall back to all calendars.
+            if (doctorCalendarMap.size === 0) return calendars;
+        }
+        const allowedIds = new Set((granted ?? []).map(c => String(c.id)));
+        const ownCalendarId = appointment.doctor?.calendar_source_id;
+        if (ownCalendarId) allowedIds.add(String(ownCalendarId));
+        if (allowedIds.size === 0) return calendars;
+        return calendars.filter(c => allowedIds.has(String(c.id)));
+    }, [appointment.doctor, doctorCalendarMap, calendars]);
+
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent maxWidth="4xl">
+                <DialogContent maxWidth="4xl" confirmOnClose isDirty={hasBeenEdited}>
                     <DialogHeader>
                         <DialogTitle>
                             {isReschedule ? tReschedule('dialogTitle')
@@ -1023,6 +1123,7 @@ export function AppointmentFormDialog({
                                         selectedUserName={appointment.user?.name}
                                         onValueChange={(_, user) => {
                                             if (user) {
+                                                setHasBeenEdited(true);
                                                 setAppointment(prev => ({ ...prev, user }));
                                                 setErrors(prev => prev.filter(err => err !== 'user'));
                                             }
@@ -1032,9 +1133,46 @@ export function AppointmentFormDialog({
                                         placeholder={t('createDialog.searchUserPlaceholder')}
                                         className={errors.includes('user') ? 'border-destructive text-destructive' : undefined}
                                     />
+                                    {appointment.user && (
+                                        <div className="space-y-2">
+                                            {patientDebt.length > 0 && (
+                                                <Alert variant="destructive" className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200 [&>svg]:text-amber-600 dark:[&>svg]:text-amber-400">
+                                                    <AlertTriangle className="h-4 w-4" />
+                                                    <AlertTitle>{tAccount('debtAlertTitle')}</AlertTitle>
+                                                    <AlertDescription className="font-semibold">
+                                                        {patientDebt.map((d) => `${d.currency} ${d.amount.toLocaleString('es-UY', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`).join(' · ')}
+                                                    </AlertDescription>
+                                                </Alert>
+                                            )}
+                                            <div className="flex flex-wrap gap-2">
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="flex-1 gap-1.5"
+                                                    onClick={() => appointment.user && openPatientView({ userId: appointment.user.id, userName: appointment.user.name, userEmail: appointment.user.email || undefined, userPhone: appointment.user.phone_number || undefined })}
+                                                >
+                                                    <UserRound className="h-3.5 w-3.5" />
+                                                    {tPanelAccount('openPatient')}
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="flex-1 gap-1.5"
+                                                    onClick={() => appointment.user && openAccountStatement(appointment.user.id, appointment.user.name)}
+                                                >
+                                                    <FileText className="h-3.5 w-3.5" />
+                                                    {tAccount('viewStatement')}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
-                                {/* Quote Selection */}
+                                {/* Quote Selection — hidden when creating a lean brand-new appointment,
+                                    but kept when editing or when a quote is preloaded (e.g. "schedule next"). */}
+                                {(editingAppointment || appointment.quote || readOnlyFields?.quote) && (
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between">
                                         <Label className="flex items-center gap-1">
@@ -1136,10 +1274,11 @@ export function AppointmentFormDialog({
                                         <p className="text-xs text-muted-foreground">{t('createDialog.selectUserFirst')}</p>
                                     )}
                                 </div>
+                                )}
 
                                 <div className="space-y-2">
                                     <Label>{t('createDialog.serviceName')}</Label>
-                                    <Popover open={isServiceSearchOpen} onOpenChange={(o) => { if (!o) setIsCreatingService(false); setServiceSearchOpen(o); }}>
+                                    <Popover open={isServiceSearchOpen} onOpenChange={(o) => { if (!o) { setIsCreatingService(false); setServiceSearchQuery(''); } setServiceSearchOpen(o); }}>
                                         <PopoverTrigger asChild>
                                             <Button variant="outline" className="w-full justify-start" disabled={readOnlyFields?.services || isLoadingQuoteServices}>
                                                 {isLoadingQuoteServices ? (
@@ -1318,7 +1457,7 @@ export function AppointmentFormDialog({
                                                             <Check className={cn("mr-2 h-4 w-4", !appointment.calendar ? "opacity-100" : "opacity-0")} />
                                                             {t('createDialog.allCalendars')}
                                                         </CommandItem>
-                                                        {calendars.map(calendar => (
+                                                        {availableCalendars.map(calendar => (
                                                             <CommandItem key={calendar.id} value={calendar.name} onSelect={() => { setAppointment(prev => ({ ...prev, calendar })); setCalendarSearchOpen(false); setErrors(prev => prev.filter(err => err !== 'calendar')); }}>
                                                                 <Check className={cn("mr-2 h-4 w-4", appointment.calendar?.id === calendar.id ? "opacity-100" : "opacity-0")} />
                                                                 {calendar.name}
@@ -1334,70 +1473,74 @@ export function AppointmentFormDialog({
                             <div className="space-y-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="date" className={errors.includes('date') ? "text-destructive" : ""}>{t('createDialog.date')}</Label>
-                                    <DatePickerInput value={appointment.date} onChange={value => { setAppointment(prev => ({ ...prev, date: value })); setErrors(prev => prev.filter(err => err !== 'date')); }} className={errors.includes('date') ? "border-destructive" : ""} />
+                                    <DatePickerInput value={appointment.date} onChange={value => { setHasBeenEdited(true); setAppointment(prev => ({ ...prev, date: value })); setErrors(prev => prev.filter(err => err !== 'date')); }} className={errors.includes('date') ? "border-destructive" : ""} />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="time" className={errors.includes('time') ? "text-destructive" : ""}>{t('createDialog.time')}</Label>
-                                    <Input id="time" type="time" value={appointment.time} onChange={e => { setAppointment(prev => ({ ...prev, time: e.target.value })); setErrors(prev => prev.filter(err => err !== 'time')); }} className={errors.includes('time') ? "border-destructive" : ""} />
+                                    <Input id="time" type="time" value={appointment.time} onChange={e => { setHasBeenEdited(true); setAppointment(prev => ({ ...prev, time: e.target.value })); setErrors(prev => prev.filter(err => err !== 'time')); }} className={errors.includes('time') ? "border-destructive" : ""} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="durationMinutes">{t('createDialog.durationMinutes')}</Label>
+                                    <Input
+                                        id="durationMinutes"
+                                        type="number"
+                                        min={0}
+                                        step={5}
+                                        inputMode="numeric"
+                                        placeholder={t('createDialog.durationMinutesPlaceholder')}
+                                        value={durationInput}
+                                        onFocus={() => { durationFocusedRef.current = true; }}
+                                        onChange={e => handleDurationMinutesChange(e.target.value)}
+                                        onBlur={handleDurationBlur}
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="endTime">{t('createDialog.endTime')}</Label>
-                                    <Input id="endTime" type="time" value={appointment.endTime} onChange={e => setAppointment(prev => ({ ...prev, endTime: e.target.value }))} />
+                                    <Input id="endTime" type="time" value={appointment.endTime} readOnly tabIndex={-1} className="bg-muted/50 text-muted-foreground cursor-default" />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="notes">{t('createDialog.notes')}</Label>
-                                    <Textarea id="notes" value={appointment.notes} onChange={e => setAppointment(prev => ({ ...prev, notes: e.target.value }))} />
+                                    <Textarea id="notes" value={appointment.notes} onChange={e => { setHasBeenEdited(true); setAppointment(prev => ({ ...prev, notes: e.target.value })); }} />
                                 </div>
                             </div>
                         </div>
 
-                        {/* Clinic Session Section */}
+                        {/* Clinic Session Section — only when editing; hidden for brand-new appointments */}
+                        {editingAppointment && (
                         <div className="border-t px-6 pt-4 pb-2">
                             <div className="flex items-center gap-2 mb-3">
                                 <Stethoscope className="h-4 w-4 text-muted-foreground" />
                                 <span className="text-sm font-medium">{t('clinicSession')}</span>
                             </div>
-                            {editingAppointment ? (
-                                <div className="space-y-2">
-                                    {isLoadingLinkedSession ? (
-                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                            <span>{t('checking')}</span>
+                            <div className="space-y-2">
+                                {isLoadingLinkedSession ? (
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        <span>{t('checking')}</span>
+                                    </div>
+                                ) : linkedSession ? (
+                                    <div className="flex items-center justify-between rounded-md border p-3">
+                                        <div className="space-y-0.5">
+                                            <p className="text-sm font-medium">{linkedSession.procedimiento_realizado || '—'}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {linkedSession.fecha_sesion} · {linkedSession.doctor_name}
+                                            </p>
                                         </div>
-                                    ) : linkedSession ? (
-                                        <div className="flex items-center justify-between rounded-md border p-3">
-                                            <div className="space-y-0.5">
-                                                <p className="text-sm font-medium">{linkedSession.procedimiento_realizado || '—'}</p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {linkedSession.fecha_sesion} · {linkedSession.doctor_name}
-                                                </p>
-                                            </div>
-                                            <Button type="button" variant="outline" size="sm" onClick={() => setIsSessionDialogOpen(true)}>
-                                                {t('editSession')}
-                                            </Button>
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center justify-between">
-                                            <p className="text-sm text-muted-foreground">{t('noLinkedSession')}</p>
-                                            <Button type="button" variant="outline" size="sm" onClick={() => setIsSessionDialogOpen(true)}>
-                                                {t('createSession')}
-                                            </Button>
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="flex items-center space-x-2">
-                                    <Checkbox
-                                        id="createSessionOnSave"
-                                        checked={createSessionOnSave}
-                                        onCheckedChange={(checked) => setCreateSessionOnSave(checked === true)}
-                                    />
-                                    <Label htmlFor="createSessionOnSave" className="text-sm font-normal cursor-pointer">
-                                        {t('createSessionOnSave')}
-                                    </Label>
-                                </div>
-                            )}
+                                        <Button type="button" variant="outline" size="sm" onClick={() => setIsSessionDialogOpen(true)}>
+                                            {t('editSession')}
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-sm text-muted-foreground">{t('noLinkedSession')}</p>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => setIsSessionDialogOpen(true)}>
+                                            {t('createSession')}
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
+                        )}
 
                         {!editingAppointment && (availabilityStatus === 'unavailable' || availabilityStatus === 'checking') && (
                             <div className="border-t pt-4 px-6 mb-4">
@@ -1468,7 +1611,7 @@ export function AppointmentFormDialog({
                         )}
                     </DialogBody>
                     <DialogFooter className="flex-row justify-end gap-2 space-x-0">
-                        <Button variant="outline" onClick={() => onOpenChange(false)}>{t('createDialog.cancel')}</Button>
+                        <DialogCancelButton variant="outline">{t('createDialog.cancel')}</DialogCancelButton>
                         <Button onClick={handleSave} disabled={isSessionDialogOpen}>
                             {isReschedule ? tReschedule('submit') : t('createDialog.save')}
                         </Button>

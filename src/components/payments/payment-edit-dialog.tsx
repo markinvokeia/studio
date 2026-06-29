@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogBody, DialogCancelButton, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { API_ROUTES } from '@/constants/routes';
@@ -175,7 +175,7 @@ export function PaymentEditDialog({ open, onOpenChange, payment, onSuccess }: Pa
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
+            <DialogContent confirmOnClose isDirty={paymentMethodId !== (payment?.payment_method_id ?? '')}>
                 <DialogHeader>
                     <DialogTitle>{t('editDialog.title')}</DialogTitle>
                     <DialogDescription>
@@ -237,9 +237,9 @@ export function PaymentEditDialog({ open, onOpenChange, payment, onSuccess }: Pa
                 </DialogBody>
 
                 <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
+                    <DialogCancelButton variant="outline" disabled={isSaving}>
                         {t('editDialog.cancel')}
-                    </Button>
+                    </DialogCancelButton>
                     <Button type="button" onClick={handleSave} disabled={!isPaymentEditable(payment) || !paymentMethodId || isLoadingMethods || isSaving}>
                         {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {t('editDialog.save')}

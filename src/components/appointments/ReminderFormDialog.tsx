@@ -10,6 +10,7 @@ import { getPriorityColor } from '@/lib/reminders';
 import {
   Dialog,
   DialogBody,
+  DialogCancelButton,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -132,7 +133,7 @@ export function ReminderFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent maxWidth="md">
+      <DialogContent maxWidth="md" confirmOnClose isDirty={title.trim() !== ''}>
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -217,9 +218,9 @@ export function ReminderFormDialog({
               <span />
             )}
             <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <DialogCancelButton variant="outline">
                 {tGeneral('cancel')}
-              </Button>
+              </DialogCancelButton>
               <Button type="submit">{editingReminder ? t('saveEdit') : t('saveCreate')}</Button>
             </div>
           </DialogFooter>

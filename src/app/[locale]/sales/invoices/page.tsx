@@ -80,12 +80,15 @@ async function getInvoices(params: { page: number; limit: number; search: string
             payment_status: apiInvoice.payment_state || apiInvoice.paymentState || 'unpaid',
             paid_amount: apiInvoice.paid_amount || 0,
             type: apiInvoice.type,
+            invoice_id: apiInvoice.invoice_id ? String(apiInvoice.invoice_id) : undefined,
+            parent_id: apiInvoice.parent_id ? String(apiInvoice.parent_id) : undefined,
             createdAt: apiInvoice.created_at || new Date().toISOString().split('T')[0],
             updatedAt: apiInvoice.updatedAt || new Date().toISOString().split('T')[0],
             due_date: apiInvoice.due_date || null,
             currency: apiInvoice.currency || 'USD',
             notes: apiInvoice.notes || '',
             is_historical: apiInvoice.is_historical || false,
+            external_id: apiInvoice.external_id ?? null,
         }));
         return { items, total: normalized.total };
     } catch (error) {
@@ -175,6 +178,7 @@ async function getPaymentsForInvoice(invoiceId: string): Promise<Payment[]> {
             reference_doc_id: apiPayment.reference_doc_id,
             notes: apiPayment.notes || '',
             is_historical: apiPayment.is_historical || false,
+            external_id: apiPayment.external_id ?? null,
         }));
     } catch (error) {
         console.error("Failed to fetch payments for invoice:", error);
@@ -688,8 +692,22 @@ export default function InvoicesPage() {
                                                     <h2 className="truncate text-xl font-bold text-card-foreground sm:text-2xl">
                                                         {selectedInvoice.doc_no || `INV-${selectedInvoice.id}`}
                                                     </h2>
-                                                    <p className="mt-0.5 truncate text-sm text-muted-foreground">
-                                                        {selectedInvoice.type === 'credit_note' ? t('creditNote') : t('invoice')}
+                                                    <p className="mt-0.5 text-sm text-muted-foreground">
+                                                        {selectedInvoice.type === 'credit_note' ? (
+                                                            <>
+                                                                {t('creditNote')}
+                                                                {allocations.length > 0 && (
+                                                                    <> · Relacionada a: <span className="font-medium text-foreground">{allocations.map(a => a.destino_doc_no).join(', ')}</span></>
+                                                                )}
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                {t('invoice')}
+                                                                {creditNotes[0]?.doc_no && (
+                                                                    <> · Relacionada a: <span className="font-medium text-foreground">Nota de crédito {creditNotes[0].doc_no}</span></>
+                                                                )}
+                                                            </>
+                                                        )}
                                                     </p>
                                                 </div>
                                             </div>

@@ -15,6 +15,7 @@ import { DatePickerInput } from '@/components/ui/date-picker';
 import {
     Dialog,
     DialogBody,
+    DialogCancelButton,
     DialogContent,
     DialogDescription,
     DialogFooter,
@@ -695,7 +696,7 @@ export function TreatmentPlanReviewDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent maxWidth="xl">
+            <DialogContent maxWidth="xl" confirmOnClose isDirty={wizardStep > 0 || steps.some(s => s.scheduled_date !== undefined)}>
                 <DialogHeader>
                     <div className="flex items-center justify-between gap-3">
                         <DialogTitle className="flex items-center gap-2">
@@ -743,13 +744,18 @@ export function TreatmentPlanReviewDialog({
                         {t('wizard.stepLabel', { current: wizardStep + 1, total: WIZARD_STEPS })}
                     </p>
 
-                    <Button
+                    <DialogCancelButton
                         variant="outline"
-                        onClick={wizardStep === 0 ? () => onOpenChange(false) : handleBack}
                         disabled={isCreating || isChecking}
+                        onClick={(e) => {
+                            if (wizardStep > 0) {
+                                e.preventDefault()
+                                handleBack()
+                            }
+                        }}
                     >
                         {wizardStep === 0 ? t('wizard.cancel') : t('wizard.back')}
-                    </Button>
+                    </DialogCancelButton>
 
                     <Button
                         onClick={handleNext}

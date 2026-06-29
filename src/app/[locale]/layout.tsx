@@ -13,6 +13,8 @@ import { PrivateRoute } from '@/components/auth/PrivateRoute';
 import { NotificationsProvider } from '@/context/notifications-context';
 import { BillingWizardModal } from '@/components/billing-wizard';
 import { PrintDocumentContainer } from '@/components/print-templates';
+import { AccountStatementSheet } from '@/components/financial/AccountStatementSheet';
+import { PatientQuickViewHost } from '@/components/patients/PatientQuickViewHost';
 import { LicenseInitializer } from '@/components/license/LicenseInitializer';
 import type { RuntimeConfig } from '@/lib/runtime-config';
 
@@ -41,6 +43,8 @@ export default async function LocaleLayout({
     apiUrl: process.env.NEXT_PUBLIC_API_URL ?? '',
     licenseKey: process.env.NEXT_PUBLIC_LICENSE_KEY ?? '',
     masterSec: process.env.NEXT_PUBLIC_MASTER_SEC ?? '',
+    clientId: process.env.NEXT_PUBLIC_CLIENT_ID ?? '',
+    eventPusherKey: process.env.NEXT_PUBLIC_EVENT_PUSHER_KEY ?? '',
   };
 
   return (
@@ -72,6 +76,8 @@ export default async function LocaleLayout({
                 {children}
                 <BillingWizardModal />
                 <PrintDocumentContainer />
+                <AccountStatementSheet />
+                <PatientQuickViewHost />
               </PrivateRoute>
             </NotificationsProvider>
           </TVDisplayProvider>

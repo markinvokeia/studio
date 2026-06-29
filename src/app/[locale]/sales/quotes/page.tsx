@@ -350,6 +350,7 @@ async function getQuotes(params: { page: number; limit: number; search: string }
             amount_paid: Number(apiQuote.monto_pagado ?? apiQuote.amount_paid ?? 0),
             amount_pending_invoice: Number(apiQuote.pendiente_facturar ?? apiQuote.amount_pending_invoice ?? 0),
             amount_pending_payment: Number(apiQuote.pendiente_pago_facturado ?? apiQuote.amount_pending_payment ?? 0),
+            external_id: apiQuote.external_id ?? null,
         }));
         return { items, total: normalized.total };
     } catch (error) {
@@ -472,6 +473,7 @@ async function getInvoices(quoteId: string, t: (key: string) => string): Promise
             type: apiInvoice.type || 'invoice',
             updatedAt: apiInvoice.updated_at || apiInvoice.updatedAt || new Date().toISOString(),
             is_historical: apiInvoice.is_historical || false,
+            external_id: apiInvoice.external_id ?? null,
         }));
     } catch (error) {
         console.error("Failed to fetch invoices:", error);
@@ -556,6 +558,7 @@ async function getPayments(quoteId: string, t: (key: string) => string): Promise
             transaction_id: apiPayment.transaction_id ? String(apiPayment.transaction_id) : String(apiPayment.id),
             updatedAt: apiPayment.payment_date || apiPayment.updated_at || apiPayment.created_at,
             is_historical: apiPayment.is_historical || false,
+            external_id: apiPayment.external_id ?? null,
         }));
     } catch (error) {
         console.error("Failed to fetch payments:", error);

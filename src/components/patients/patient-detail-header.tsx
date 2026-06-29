@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { AlertTriangle, Cake, CheckCircle, CreditCard, Heart, Mail, Users } from 'lucide-react'
+import { AlertTriangle, Cake, CheckCircle, CreditCard, Hash, Heart, Mail, Users } from 'lucide-react'
 import { differenceInYears, parseISO } from 'date-fns'
 import { useTranslations } from 'next-intl'
 
@@ -158,6 +158,19 @@ export function PatientDetailHeader({
       </div>
 
       <div className="flex items-center gap-x-3 gap-y-1 mt-1 ml-10 flex-wrap text-xs text-muted-foreground">
+        {user.internal_id != null && user.internal_id !== '' && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="flex items-center gap-1 font-mono">
+                  <Hash className="h-3 w-3" />
+                  {user.internal_id}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{t('UserColumns.internal_id')}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
         {user.birth_date && (
           <span className="flex items-center gap-1">
             <Cake className="h-3 w-3" />

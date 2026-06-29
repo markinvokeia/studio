@@ -33,8 +33,11 @@ interface CalendarHeaderProps {
   onOpenFilterSheet?: () => void;
   extraActions?: React.ReactNode;
   extraActionsAfterToday?: React.ReactNode;
+  primaryActions?: React.ReactNode;
   trailingActions?: React.ReactNode;
   children?: React.ReactNode;
+  /** When provided, replaces the entire desktop header with this content */
+  bulkModeContent?: React.ReactNode;
 }
 
 interface ViewMenuItemsProps {
@@ -72,8 +75,10 @@ export function CalendarHeader({
   onOpenFilterSheet,
   extraActions,
   extraActionsAfterToday,
+  primaryActions,
   trailingActions,
   children,
+  bulkModeContent,
 }: CalendarHeaderProps) {
   const t = useTranslations('Calendar');
 
@@ -103,6 +108,7 @@ export function CalendarHeader({
               <ChevronRight className="h-4 w-4" />
             </Button>
             {extraActions}
+            {primaryActions}
             {extraActionsAfterToday}
             {breakpoint === 'tablet' && (
               <DropdownMenu>
@@ -118,6 +124,7 @@ export function CalendarHeader({
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
+            {breakpoint === 'tablet' && trailingActions}
           </div>
         </div>
         {children ? (
@@ -129,9 +136,22 @@ export function CalendarHeader({
     );
   }
 
-  // Desktop / Tablet: full header
+  // Desktop / Tablet: full header — replaced entirely when in bulk mode
+  if (bulkModeContent) {
+    return (
+      <div className="calendar-header flex-wrap gap-2">
+        {bulkModeContent}
+      </div>
+    );
+  }
+
   return (
-    <div className="calendar-header flex-wrap gap-2">
+    <div className="calendar-header calendar-header--actions relative pr-14">
+      {/* Settings: pinned to the top-right of row 1; view buttons wrap below it. */}
+      {trailingActions && (
+        <div className="absolute right-3 top-2.5 z-10">{trailingActions}</div>
+      )}
+      {/* Row-1 cluster: title + date navigation */}
       <div className="flex items-center gap-2 min-w-0">
         <h2 className="text-xl font-bold whitespace-nowrap">{t('title')}</h2>
         <Button variant="outline" size="sm" onClick={onToday}>
@@ -147,9 +167,17 @@ export function CalendarHeader({
         </div>
         <h3 className="font-semibold text-sm whitespace-nowrap">{headerTitle}</h3>
       </div>
-      <div className="flex items-center gap-2 flex-wrap ml-auto">
-        {extraActions}
+
+      {/* Primary cluster: Refresh + Create — stays on row 1 (after the date) */}
+      <div className="flex items-center gap-2">
         {extraActionsAfterToday}
+        {primaryActions}
+      </div>
+
+      {/* Secondary cluster: Huecos, bulk, filters, views, preferences.
+          Wraps to a second row (left-aligned) when space is tight. */}
+      <div className="calendar-header__secondary flex items-center gap-2 flex-wrap">
+        {extraActions}
         {children}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -163,7 +191,6 @@ export function CalendarHeader({
             <ViewMenuItems onViewChange={onViewChange} t={t} />
           </DropdownMenuContent>
         </DropdownMenu>
-        {trailingActions}
       </div>
     </div>
   );

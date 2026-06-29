@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
@@ -17,7 +16,6 @@ import { useAlertNotifications, AlertNotificationsProvider } from '@/context/ale
 import { API_ROUTES } from '@/constants/routes';
 import { ALERT_CENTER_PERMISSIONS } from '@/constants/permissions';
 import { toast } from '@/hooks/use-toast';
-import { checkPreferencesByUserId } from '@/hooks/use-communication-preferences';
 import { usePermissions } from '@/hooks/usePermissions';
 import { AlertInstance, AlertAction, AlertCategory } from '@/lib/types';
 import { api } from '@/services/api';
@@ -256,7 +254,7 @@ function AlertsCenterPageContent() {
     const [snoozeDate, setSnoozeDate] = React.useState<string>('');
     const [page, setPage] = React.useState<number>(1);
     const [limit, setLimit] = React.useState<number>(50);
-    const [bulkActionLoading, setBulkActionLoading] = React.useState<'complete' | 'email' | 'sms' | 'whatsapp' | 'ignore' | 'snooze' | null>(null);
+    const [bulkActionLoading, setBulkActionLoading] = React.useState<'complete' | 'email' | 'snooze' | null>(null);
     const [totalPages, setTotalPages] = React.useState<number>(1);
     const [alertsPage, setAlertsPage] = React.useState<number>(1);
     const [alertsLimit, setAlertsLimit] = React.useState<number>(50);
@@ -268,9 +266,6 @@ function AlertsCenterPageContent() {
     const [addNoteDialogOpen, setAddNoteDialogOpen] = React.useState(false);
     const [noteContent, setNoteContent] = React.useState<string>('');
     const [alertsForNote, setAlertsForNote] = React.useState<string[]>([]);
-    const [isWarningDialogOpen, setIsWarningDialogOpen] = React.useState(false);
-    const [disabledItems, setDisabledItems] = React.useState<string[]>([]);
-    const [pendingAlertIds, setPendingAlertIds] = React.useState<string[]>([]);
     const [isAlertEmailDialogOpen, setIsAlertEmailDialogOpen] = React.useState(false);
     const [alertForEmailComposer, setAlertForEmailComposer] = React.useState<AlertInstance | null>(null);
     const [isAlertWhatsAppDialogOpen, setIsAlertWhatsAppDialogOpen] = React.useState(false);
@@ -338,7 +333,6 @@ function AlertsCenterPageContent() {
     }, [loadAlerts]);
 
     const markAsIgnored = async (alertIds: string[], reason: string) => {
-        setBulkActionLoading('ignore');
         try {
             await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_IGNORE, { ids: alertIds, reason });
             setSelectedAlerts([]);
@@ -348,8 +342,6 @@ function AlertsCenterPageContent() {
         } catch (error) {
             console.error('Failed to mark alerts as ignored:', error);
             toast({ title: t('toast.markIgnoredFailed'), description: t('toast.markIgnoredFailedDescription'), variant: 'destructive' });
-        } finally {
-            setBulkActionLoading(null);
         }
     };
 
@@ -364,82 +356,6 @@ function AlertsCenterPageContent() {
         } catch (error) {
             console.error('Failed to snooze alerts:', error);
             toast({ title: t('toast.snoozeFailed'), description: t('toast.snoozeFailedDescription'), variant: 'destructive' });
-        } finally {
-            setBulkActionLoading(null);
-        }
-    };
-
-    const sendEmail = React.useCallback(async (alertIds: string[]) => {
-        const alertsToCheck = alerts.filter(a => alertIds.includes(a.id));
-        const userIds = alertsToCheck.map(a => a.patient_id).filter(Boolean) as string[];
-
-        const uniqueUserIds = [...new Set(userIds)];
-
-        if (uniqueUserIds.length > 0) {
-            const disabledIds: string[] = [];
-            for (const userId of uniqueUserIds) {
-                const hasEnabled = await checkPreferencesByUserId(userId, 'email', 'billing');
-                if (!hasEnabled) {
-                    disabledIds.push(userId);
-                }
-            }
-
-            if (disabledIds.length > 0) {
-                setDisabledItems(disabledIds);
-                setPendingAlertIds(alertIds);
-                setIsWarningDialogOpen(true);
-                return;
-            }
-        }
-
-        await doSendEmail(alertIds);
-    }, [alerts, loadAlerts]);
-
-    const doSendEmail = async (alertIds: string[]) => {
-        setBulkActionLoading('email');
-        try {
-            await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_SEND_EMAIL, { ids: alertIds });
-            refreshAlerts();
-            await loadAlerts();
-            toast({ title: t('toast.emailSent'), description: t('toast.emailSentDescription', { count: alertIds.length }) });
-        } catch (error) {
-            console.error('Failed to send email:', error);
-            toast({ title: t('toast.emailSendFailed'), description: t('toast.emailSendFailedDescription'), variant: 'destructive' });
-        } finally {
-            setBulkActionLoading(null);
-        }
-    };
-
-    const handleWarningConfirm = async () => {
-        await doSendEmail(pendingAlertIds);
-        setIsWarningDialogOpen(false);
-    };
-
-    const sendWhatsApp = async (alertIds: string[]) => {
-        setBulkActionLoading('whatsapp');
-        try {
-            await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_SEND_WHATSAPP, { ids: alertIds });
-            refreshAlerts();
-            await loadAlerts();
-            toast({ title: t('toast.whatsappSent'), description: t('toast.whatsappSentDescription', { count: alertIds.length }) });
-        } catch (error) {
-            console.error('Failed to send WhatsApp message:', error);
-            toast({ title: t('toast.whatsappSendFailed'), description: t('toast.whatsappSendFailedDescription'), variant: 'destructive' });
-        } finally {
-            setBulkActionLoading(null);
-        }
-    };
-
-    const sendSms = async (alertIds: string[]) => {
-        setBulkActionLoading('sms');
-        try {
-            await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_SEND_SMS, { ids: alertIds });
-            refreshAlerts();
-            await loadAlerts();
-            toast({ title: t('toast.smsSent'), description: t('toast.smsSentDescription', { count: alertIds.length }) });
-        } catch (error) {
-            console.error('Failed to send SMS:', error);
-            toast({ title: t('toast.smsSendFailed'), description: t('toast.smsSendFailedDescription'), variant: 'destructive' });
         } finally {
             setBulkActionLoading(null);
         }
@@ -1013,32 +929,21 @@ function AlertsCenterPageContent() {
                 alert={alertForWhatsAppComposer}
             />
 
-            <CommunicationWarningDialog
-                open={isWarningDialogOpen}
-                onOpenChange={setIsWarningDialogOpen}
-                disabledItems={disabledItems}
-                itemLabel="User ID"
-                onConfirm={handleWarningConfirm}
-            />
-
             {/* Floating Bulk Actions Bar */}
             <Can permission={ALERT_CENTER_PERMISSIONS.BULK_ACTIONS}>
                 <BulkActionsFloatingBar
                     selectedCount={selectedAlerts.length}
                     loadingAction={bulkActionLoading}
                     onMarkAsCompleted={() => markAsCompleted(selectedAlerts)}
-                    onSendEmail={() => sendEmail(selectedAlerts)}
-                    onSendSms={() => sendSms(selectedAlerts)}
-                    onSendWhatsApp={() => sendWhatsApp(selectedAlerts)}
-                    onIgnore={() => { if (!bulkActionLoading) { setAlertsToIgnore(selectedAlerts); setIgnoreDialogOpen(true); } }}
+                    onSendEmail={() => {
+                        const alert = alerts.find(a => a.id === selectedAlerts[0]);
+                        if (alert) openAlertEmailComposer(alert);
+                    }}
                     onSnooze={() => { if (!bulkActionLoading) { setAlertsToSnooze(selectedAlerts); setSnoozeDialogOpen(true); } }}
                     onDeselectAll={() => setSelectedAlerts([])}
                     canComplete={hasPermission(ALERT_CENTER_PERMISSIONS.COMPLETE)}
                     canSendEmail={hasPermission(ALERT_CENTER_PERMISSIONS.SEND_EMAIL)}
-                    canSendSms={hasPermission(ALERT_CENTER_PERMISSIONS.SEND_SMS)}
-                    canSendWhatsApp={hasPermission(ALERT_CENTER_PERMISSIONS.SEND_WHATSAPP)}
                     canSnooze={hasPermission(ALERT_CENTER_PERMISSIONS.SNOOZE)}
-                    canIgnore={hasPermission(ALERT_CENTER_PERMISSIONS.IGNORE)}
                 />
             </Can>
 

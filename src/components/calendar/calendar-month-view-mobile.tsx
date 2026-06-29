@@ -14,6 +14,7 @@ import type { AppointmentStatus, CalendarReminderPriority, CalendarReminderStatu
 
 import type { CalendarEvent, CalendarSlotClickHandler } from './calendar-types';
 import { formatEventTime } from './calendar-utils';
+import { type Gap, gapKey } from './calendar-gaps';
 import { getReminderCardStyle, getReminderPriorityColor, isReminderDone } from './reminder-visuals';
 
 interface CalendarMonthViewMobileProps {
@@ -23,6 +24,10 @@ interface CalendarMonthViewMobileProps {
   collapsed?: boolean;
   onEventClick: (data: any) => void;
   onSlotClick?: CalendarSlotClickHandler;
+  gaps?: Gap[];
+  selectedGapKey?: string;
+  onGapClick?: (gap: Gap) => void;
+  blockedFullDays?: Set<string>;
 }
 
 export function CalendarMonthViewMobile({
@@ -32,6 +37,10 @@ export function CalendarMonthViewMobile({
   collapsed = false,
   onEventClick,
   onSlotClick,
+  gaps,
+  selectedGapKey,
+  onGapClick,
+  blockedFullDays,
 }: CalendarMonthViewMobileProps) {
   const t = useTranslations('Calendar');
   // Initialize stable for SSR; set real "today" after mount.
@@ -76,6 +85,7 @@ export function CalendarMonthViewMobile({
   // Events for the selected day
   const selectedDayKey = format(selectedDay, 'yyyy-MM-dd');
   const selectedDayEvents = eventsByDate.get(selectedDayKey) || [];
+  const selectedDayGaps = (gaps ?? []).filter((g) => g.dayKey === selectedDayKey);
 
   const handleDayTap = (date: Date) => {
     setSelectedDay(date);
@@ -96,6 +106,7 @@ export function CalendarMonthViewMobile({
     const dayEvents = eventsByDate.get(dateKey) || [];
     const isSelected = isSameDay(date, selectedDay);
     const isToday = isSameDay(date, new Date());
+    const isBlocked = blockedFullDays?.has(dateKey) ?? false;
 
     cells.push(
       <button
@@ -105,6 +116,7 @@ export function CalendarMonthViewMobile({
           'transition-colors active:bg-muted',
           isSelected && 'bg-primary text-primary-foreground',
           isToday && !isSelected && 'ring-1 ring-primary',
+          isBlocked && !isSelected && 'calendar-day--blocked',
         )}
         onClick={() => handleDayTap(date)}
       >
@@ -168,7 +180,7 @@ export function CalendarMonthViewMobile({
               {format(selectedDay, 'EEEE', { locale: dateLocale })}
             </span>
           </h3>
-          {onSlotClick && (
+          {onSlotClick && !(blockedFullDays?.has(selectedDayKey) ?? false) && (
             <button
               className="text-xs font-medium text-primary px-2 py-1 rounded-md hover:bg-primary/10"
               onClick={() => onSlotClick(selectedDay)}
@@ -177,6 +189,28 @@ export function CalendarMonthViewMobile({
             </button>
           )}
         </div>
+
+        {/* Free slots ("Huecos") for the selected day */}
+        {gaps && selectedDayGaps.length > 0 && (
+          <div className="mb-3">
+            <p className="text-xs font-medium text-muted-foreground mb-1.5">{t('gaps.panelTitle')}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {selectedDayGaps.map((gap) => {
+                const key = gapKey(gap);
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    className={cn('calendar-gap-badge', selectedGapKey === key && 'calendar-gap-badge--selected')}
+                    onClick={() => onGapClick?.(gap)}
+                  >
+                    {format(gap.start, 'HH:mm')}–{format(gap.end, 'HH:mm')}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {selectedDayEvents.length === 0 ? (
           <div className="text-sm text-muted-foreground text-center py-8">

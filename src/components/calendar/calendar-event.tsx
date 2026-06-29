@@ -27,6 +27,7 @@ interface CalendarEventChipProps {
   onEventClick: (data: any) => void;
   onEventColorChange: (data: any, colorId: string) => void;
   onEventContextMenu?: (data: any) => React.ReactNode;
+  onEventContextMenuOpen?: (data: any) => void;
 }
 
 export const CalendarEventChip = React.memo(function CalendarEventChip({
@@ -35,6 +36,7 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
   onEventClick,
   onEventColorChange,
   onEventContextMenu,
+  onEventContextMenuOpen,
 }: CalendarEventChipProps) {
   const rawStatus = event.data?.status as string | undefined;
   const isReminder = event.data?.kind === 'reminder';
@@ -54,10 +56,11 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
     : { backgroundColor: isCancelled ? undefined : bg, color: textColor };
 
   return (
-    <ContextMenu>
+    <ContextMenu onOpenChange={(o) => { if (o) onEventContextMenuOpen?.(event.data); }}>
       <ContextMenuTrigger>
         <div
           data-testid="calendar-event"
+          title={event.label ?? event.title}
           className={cn(
             'event',
             isCancelled && 'event-cancelled',
@@ -71,8 +74,14 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
             onEventClick(event.data);
           }}
         >
-          <span className="event-time">{formatEventTime(event.start, dateLocale)}</span>
-          <span className="event-title">{event.title}</span>
+          {event.label ? (
+            <span className="event-title">{event.label}</span>
+          ) : (
+            <>
+              <span className="event-time">{formatEventTime(event.start, dateLocale)}</span>
+              <span className="event-title">{event.title}</span>
+            </>
+          )}
           {isReminder && (
             <span
               aria-hidden

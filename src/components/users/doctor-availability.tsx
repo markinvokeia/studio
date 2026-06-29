@@ -7,10 +7,11 @@ import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogBody,
+    DialogCancelButton,
     DialogContent,
     DialogFooter,
     DialogHeader,
-    DialogTitle
+    DialogTitle,
 } from "@/components/ui/dialog";
 import { DatePickerInput } from '@/components/ui/date-picker';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -240,7 +241,7 @@ export function DoctorAvailability({ userId }: { userId: string }) {
             )}
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent>
+                <DialogContent confirmOnClose isDirty={form.formState.isDirty}>
                     <DialogHeader>
                         <DialogTitle>{editingRule ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                     </DialogHeader>
@@ -307,7 +308,7 @@ export function DoctorAvailability({ userId }: { userId: string }) {
                             </DialogBody>
                             <DialogFooter>
                                 <Button type="submit">{editingRule ? t('dialog.save') : t('dialog.create')}</Button>
-                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
+                                <DialogCancelButton variant="outline">{t('dialog.cancel')}</DialogCancelButton>
                             </DialogFooter>
                         </form>
                     </Form>

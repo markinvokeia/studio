@@ -6,6 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogBody,
+    DialogCancelButton,
     DialogContent,
     DialogDescription,
     DialogFooter,
@@ -211,7 +212,7 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent maxWidth="5xl">
+      <DialogContent maxWidth="5xl" confirmOnClose isDirty={items.length > 0 || notes.trim() !== ''}>
         <DialogHeader>
           <DialogTitle>{t('QuotesPage.quickQuote.title')}</DialogTitle>
           <DialogDescription>
@@ -389,9 +390,9 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
           </div>
         </DialogBody>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <DialogCancelButton variant="outline">
             {t('General.cancel')}
-          </Button>
+          </DialogCancelButton>
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting || items.length === 0 || !user}
