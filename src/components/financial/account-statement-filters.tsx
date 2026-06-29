@@ -32,7 +32,7 @@ export function AccountStatementFilters({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <DateRangePresets value={dateRange} onChange={onDateRange} />
+      <DateRangePresets value={dateRange} onChange={onDateRange} allowAllTime />
 
       <Select value={docType} onValueChange={(v) => onDocType(v as DocTypeFilter)}>
         <SelectTrigger className="h-8 w-auto gap-1.5 text-xs">

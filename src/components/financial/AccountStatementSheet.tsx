@@ -267,6 +267,7 @@ export function AccountStatementSheet() {
               <AccountStatementTimeline
                 entries={inCobrar ? allEntries : applyFilters(allEntries)}
                 cobrarMode={inCobrar}
+                showPending={inCobrar || onlyUnpaid}
                 selected={cobrar.selected}
                 onToggle={cobrar.toggle}
                 onLineChange={cobrar.updateLine}

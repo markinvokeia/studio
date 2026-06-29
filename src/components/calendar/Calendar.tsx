@@ -130,6 +130,7 @@ const Calendar: React.FC<CalendarProps> = ({
     view,
     headerTitle,
     currentTime,
+    setCurrentDate,
     handlePrev,
     handleNext,
     handleToday,
@@ -295,11 +296,13 @@ const Calendar: React.FC<CalendarProps> = ({
       <CalendarHeader
         headerTitle={headerTitle}
         view={view}
+        currentDate={currentDate}
         breakpoint={breakpoint}
         onPrev={handlePrev}
         onNext={handleNext}
         onToday={handleToday}
         onViewChange={handleViewChange}
+        onDateSelect={setCurrentDate}
         onOpenFilterSheet={isCompactHeader && filterSheet ? () => setFilterSheetOpen(true) : undefined}
         extraActions={extraActions}
         extraActionsAfterToday={extraActionsAfterToday}

@@ -24,14 +24,16 @@ interface DateRangePresetsProps {
   value: DateRange | undefined;
   onChange: (range: DateRange | undefined) => void;
   className?: string;
+  /** When true, adds an "All time" option (no filter) and makes it the default. */
+  allowAllTime?: boolean;
 }
 
-type Preset = 'today' | 'week' | 'month' | 'prevMonth' | 'year' | 'custom';
+type Preset = 'all' | 'today' | 'week' | 'month' | 'prevMonth' | 'year' | 'custom';
 
-export function DateRangePresets({ value, onChange, className }: DateRangePresetsProps) {
+export function DateRangePresets({ value, onChange, className, allowAllTime = false }: DateRangePresetsProps) {
   const t = useTranslations('DateRangePresets');
   const [open, setOpen] = useState(false);
-  const [active, setActive] = useState<Preset>('month');
+  const [active, setActive] = useState<Preset>(allowAllTime ? 'all' : 'month');
   const [customFrom, setCustomFrom] = useState<string>('');
   const [customTo, setCustomTo] = useState<string>('');
 
@@ -39,7 +41,10 @@ export function DateRangePresets({ value, onChange, className }: DateRangePreset
 
   const applyPreset = (preset: Preset) => {
     setActive(preset);
-    if (preset === 'today') {
+    if (preset === 'all') {
+      onChange(undefined);
+      setOpen(false);
+    } else if (preset === 'today') {
       onChange({ from: today, to: today });
       setOpen(false);
     } else if (preset === 'week') {
@@ -77,6 +82,7 @@ export function DateRangePresets({ value, onChange, className }: DateRangePreset
   };
 
   const presets: { key: Preset; label: string }[] = [
+    ...(allowAllTime ? [{ key: 'all' as Preset, label: t('all') }] : []),
     { key: 'today',     label: t('today')     },
     { key: 'week',      label: t('week')       },
     { key: 'month',     label: t('month')      },

@@ -25,8 +25,9 @@
   justify-content: flex-start;
 }
 .calendar-header--actions .calendar-header__secondary {
-  /* Don't shrink: when it can't fit next to Create it drops to row 2 as a block. */
-  flex: 0 0 auto;
+  /* Fill the remaining row-1 space; its buttons wrap to a second row when tight. */
+  flex: 1 1 auto;
+  min-width: 0;
   justify-content: flex-start;
 }
 
@@ -240,9 +241,14 @@
 
 .day-view-date-cell {
   text-align: center;
-  padding: 0.5rem;
+  padding: 0.35rem 0.5rem;
   border-right: 1px solid hsl(var(--border));
   background-color: hsl(var(--card));
+  /* Day name + day number on a single line to save vertical space. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
 }
 
 .day-view-date-cell:last-child {
@@ -257,11 +263,16 @@
 
 .day-view-date-block {
   text-align: center;
-  padding: 0.5rem;
+  padding: 0.35rem 0.5rem;
   background-color: hsl(var(--card));
   border-right: 1px solid hsl(var(--border));
   border-bottom: 1px solid hsl(var(--border));
   box-sizing: border-box;
+  /* Day name + day number on a single line to save vertical space. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
 }
 
 .day-view-date-block:last-child {
@@ -272,15 +283,35 @@
 .day-view-date-block .day-name {
   font-size: 0.75rem;
   color: hsl(var(--muted-foreground));
-  margin-bottom: 0.25rem;
-  display: block;
+  display: inline-block;
 }
 
-.day-view-date-cell .day-number,
+/* Single-line cell: day name beside the day number (no stacked rows). */
+.day-view-date-cell .day-name {
+  margin-bottom: 0;
+}
+
+.day-view-date-cell .day-number {
+  font-size: 0.9rem;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+}
+
+.day-view-date-block .day-name {
+  margin-bottom: 0;
+  display: inline-block;
+}
+
 .day-view-date-block .day-number {
-  font-size: 1.25rem;
-  width: 2rem;
-  height: 2rem;
+  font-size: 0.9rem;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.35rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;

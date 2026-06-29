@@ -25,6 +25,9 @@ interface AccountStatementTimelineProps {
   entries: StatementEntry[];
   /** When true, only collectable invoice rows are shown and rows are selectable. */
   cobrarMode: boolean;
+  /** When true, the right column shows the outstanding (Pending) amount instead of
+   *  the running Balance — used while collecting or filtering unpaid invoices. */
+  showPending?: boolean;
   selected: Record<string, CobrarLineState>;
   onToggle: (entry: StatementEntry) => void;
   onLineChange: (invoiceId: string, patch: Partial<CobrarLineState>) => void;
@@ -53,6 +56,7 @@ const AMOUNT_LABEL_KEY = {
 export function AccountStatementTimeline({
   entries,
   cobrarMode,
+  showPending = false,
   selected,
   onToggle,
   onLineChange,
@@ -106,7 +110,7 @@ export function AccountStatementTimeline({
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span className="text-sm font-semibold text-foreground">{entry.docNo}</span>
-                        {(entry.pending ?? 0) > 0 && (
+                        {!showPending && (entry.pending ?? 0) > 0 && (
                           <Badge variant="outline" className="border-amber-500/40 px-1.5 py-0 text-[10px] font-medium text-amber-600 dark:text-amber-400">
                             {t('pending')}: {fmtAmount(entry.pending!, entry.currency)}
                           </Badge>
@@ -134,8 +138,19 @@ export function AccountStatementTimeline({
                       </div>
                     </div>
                     <div className="min-w-[7.5rem]">
-                      <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t('balance')}</div>
-                      <div className="text-sm font-semibold text-foreground">{fmtBalance(entry.runningBalance, entry.currency)}</div>
+                      {showPending ? (
+                        <>
+                          <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t('pending')}</div>
+                          <div className="text-sm font-semibold text-amber-600 dark:text-amber-400">
+                            {(entry.pending ?? 0) > 0 ? fmtAmount(entry.pending!, entry.currency) : '—'}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t('balance')}</div>
+                          <div className="text-sm font-semibold text-foreground">{fmtBalance(entry.runningBalance, entry.currency)}</div>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>

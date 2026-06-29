@@ -614,13 +614,27 @@
         "none": "Sin agrupar",
         "sede": "Sedes"
       },
-      "blockUnavailable": "Bloquear horarios fuera de atención"
+      "blockUnavailable": "Bloquear horarios fuera de atención",
+      "help": {
+        "defaultView": "Define qué vista se muestra al abrir el calendario (día, semana, mes, agenda…). Cambiarla aplica la vista al instante.",
+        "groupBy": "Divide el calendario en columnas por doctor o por consultorio. 'Sin agrupar' muestra una sola columna combinada.",
+        "hourHeight": "Altura en píxeles de cada hora en las vistas de día y semana. Más alto = filas más grandes y eventos más fáciles de leer.",
+        "slotDuration": "Duración de cada slot (10, 15, 20, 30 min o 1 h). Define cuántos slots entran por hora; agendas apretadas muestran más slots y la fila se hace más alta para que siempre se lea el título de la cita.",
+        "sede": "Limita el calendario a los consultorios de una sede. 'Todas las sedes' muestra todos los consultorios.",
+        "eventLabel": "Define cómo se compone el texto que se ve en cada cita (hora, paciente, tratamiento, notas).",
+        "checkAvailability": "Al crear/editar una cita valida que el horario esté disponible para el doctor o consultorio elegido.",
+        "blockUnavailable": "Atenúa y bloquea en el calendario los horarios fuera de atención (según horarios y excepciones), impidiendo crear citas ahí.",
+        "filterDoctorsByService": "Al crear una cita, filtra la lista de doctores para mostrar solo los que prestan el servicio seleccionado.",
+        "inlineAppointmentCreation": "Al hacer clic en un slot crea la cita directamente en el calendario con un card, sin abrir el modal. El botón Crear siempre abre el modal."
+      }
     },
     "newAppointment": "Nueva Cita",
     "calendarView": "Vista de Calendario",
     "listView": "Vista de Lista",
     "refresh": "Actualizar",
     "calendars": "Calendarios",
+    "toggleCalendars": "Mostrar/Ocultar Calendarios",
+    "toggleDoctors": "Mostrar/Ocultar Doctores",
     "selectAll": "Seleccionar Todo",
     "bulk": {
       "toggleButton": "Selección masiva",
@@ -6492,6 +6506,7 @@
     "actionNewPurchase": "Nueva compra"
   },
   "DateRangePresets": {
+    "all": "Todo el tiempo",
     "today": "Hoy",
     "week": "Esta semana",
     "month": "Este mes",

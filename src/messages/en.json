@@ -614,13 +614,27 @@
         "none": "No grouping",
         "sede": "Branches"
       },
-      "blockUnavailable": "Block out-of-office hours"
+      "blockUnavailable": "Block out-of-office hours",
+      "help": {
+        "defaultView": "Sets which view opens by default (day, week, month, agenda…). Changing it applies the view immediately.",
+        "groupBy": "Splits the calendar into columns per doctor or per consulting room. 'No grouping' shows a single combined column.",
+        "hourHeight": "Pixel height of each hour in the day/week views. Taller = bigger rows and easier-to-read events.",
+        "slotDuration": "Duration of each slot (10, 15, 20, 30 min or 1 h). Sets how many slots fit per hour; tight agendas show more slots and the row grows taller so the appointment title is always readable.",
+        "sede": "Limits the calendar to a branch's consulting rooms. 'All branches' shows every room.",
+        "eventLabel": "Sets how the text shown on each appointment is composed (time, patient, treatment, notes).",
+        "checkAvailability": "When creating/editing an appointment, validates the slot is free for the chosen doctor or room.",
+        "blockUnavailable": "Greys out and blocks out-of-office hours on the calendar (per schedules and exceptions), preventing appointments there.",
+        "filterDoctorsByService": "When creating an appointment, filters the doctor list to only those who provide the selected service.",
+        "inlineAppointmentCreation": "Clicking a slot creates the appointment inline on the calendar with a card, without opening the modal. The Create button always opens the modal."
+      }
     },
     "newAppointment": "New Appointment",
     "calendarView": "Calendar View",
     "listView": "List View",
     "refresh": "Refresh",
     "calendars": "Calendars",
+    "toggleCalendars": "Show/Hide Calendars",
+    "toggleDoctors": "Show/Hide Doctors",
     "selectAll": "Select All",
     "bulk": {
       "toggleButton": "Bulk selection",
@@ -6512,6 +6526,7 @@
     "actionNewPurchase": "New purchase"
   },
   "DateRangePresets": {
+    "all": "All time",
     "today": "Today",
     "week": "This week",
     "month": "This month",

@@ -750,6 +750,17 @@ export default function AppointmentsPage() {
 
     const handleSettingsEditorChange = React.useCallback((settings: CalendarSettings) => {
         setCalendarSettings(settings);
+        // The settings popover is now the single source for view and grouping —
+        // apply both live so the calendar updates as the user changes them.
+        setCurrentView(SETTINGS_VIEW_MAP[settings.default_view] || 'month');
+        setInlineDraft(null);
+        const nextGroupBy = settings.grouped_by as CalendarGroupBy;
+        setGroupBy(nextGroupBy);
+        // When switching to doctor grouping with nothing selected, show all doctors
+        // so the columns are immediately visible.
+        if (nextGroupBy === 'doctor') {
+            setSelectedDoctorIds((prev) => (prev.length === 0 ? doctors.map((d) => d.id) : prev));
+        }
         setCheckCalendarAvailability(settings.check_availability);
         setCheckDoctorAvailability(settings.filter_doctors_by_service);
         setBlockUnavailable(settings.block_unavailable ?? false);
@@ -757,7 +768,7 @@ export default function AppointmentsPage() {
         setSlotDuration(settings.slot_duration ?? DEFAULT_SLOT_DURATION);
         setEventLabelFormat(settings.event_label_format ?? DEFAULT_EVENT_LABEL_FORMAT);
         setDefaultSede(settings.default_sede ?? '');
-    }, []);
+    }, [doctors]);
 
     // Tracks the last applied default sede so the effect below only re-scopes the
     // calendars when the sede actually changes (preserving manual selections).
@@ -2381,12 +2392,6 @@ export default function AppointmentsPage() {
         return computeRangeGaps(calendarEvents, gapVisibleDays, clinicSchedules);
     }, [gapsActive, blockUnavailable, blockingConfigured, groupBy, groupingColumns, currentView, calendarEvents, gapVisibleDays, clinicSchedules, effectiveSchedules, clinicExceptions]);
 
-    const groupByLabel = React.useMemo(() => {
-        if (groupBy === 'doctor') return t('grouping.options.doctor');
-        if (groupBy === 'calendar') return t('grouping.options.calendar');
-        return t('grouping.options.none');
-    }, [groupBy, t]);
-
     // Render additional context menu items for the calendar event:
     // status submenu + clinic session shortcut.
     const renderEventContextMenu = (eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' })) => {
@@ -3065,7 +3070,7 @@ export default function AppointmentsPage() {
                     }
                     extraActions={
                         <TooltipProvider>
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex flex-wrap items-center gap-1.5">
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Button
@@ -3209,12 +3214,12 @@ export default function AppointmentsPage() {
                             </div>
                         )}
                         {breakpoint === 'desktop' && (
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
                                 <Popover>
                                     <PopoverTrigger asChild>
                                         <Button variant="outline" className="flex items-center gap-2">
                                             <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                                            {t('calendars')}
+                                            {t('toggleCalendars')}
                                             <ChevronDown className="h-4 w-4 text-muted-foreground" />
                                         </Button>
                                     </PopoverTrigger>
@@ -3284,7 +3289,7 @@ export default function AppointmentsPage() {
                                             <PopoverTrigger asChild>
                                                 <Button variant="outline" className="flex items-center gap-2">
                                                     <Users className="h-4 w-4 text-muted-foreground" />
-                                                    {t('doctors')}
+                                                    {t('toggleDoctors')}
                                                     <ChevronDown className="h-4 w-4 text-muted-foreground" />
                                                 </Button>
                                             </PopoverTrigger>
@@ -3306,58 +3311,6 @@ export default function AppointmentsPage() {
                                                                 </CommandItem>
                                                             );
                                                             })}
-                                                        </CommandGroup>
-                                                    </CommandList>
-                                                </Command>
-                                            </PopoverContent>
-                                        </Popover>
-                                )}
-                                {showGroupControls && (
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button variant="outline" className="flex items-center gap-2">
-                                                    <Layers className="h-4 w-4 text-muted-foreground" />
-                                                    {t('grouping.label')}: {groupByLabel}
-                                                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-56 p-2">
-                                                <Command>
-                                                    <CommandList>
-                                                        <CommandGroup>
-                                                            <CommandItem onSelect={() => setGroupBy('none')}>
-                                                                <div className="flex items-center justify-between w-full">
-                                                                    <span>{t('grouping.options.none')}</span>
-                                                                    {groupBy === 'none' && <Check className="h-4 w-4" />}
-                                                                </div>
-                                                            </CommandItem>
-                                                            <CommandItem
-                                                                onSelect={() => {
-                                                                    // Auto-select all doctors so columns are immediately visible
-                                                                    if (selectedDoctorIds.length === 0 && doctors.length > 0) {
-                                                                        setSelectedDoctorIds(doctors.map(d => d.id));
-                                                                    }
-                                                                    setGroupBy('doctor');
-                                                                }}
-                                                            >
-                                                                <div className="flex items-center justify-between w-full">
-                                                                    <span>{t('grouping.options.doctor')}</span>
-                                                                    {groupBy === 'doctor' && <Check className="h-4 w-4" />}
-                                                                </div>
-                                                            </CommandItem>
-                                                            <CommandItem
-                                                                onSelect={() => {
-                                                                    if (calendarGroupingColumns.length > 0) {
-                                                                        setGroupBy('calendar');
-                                                                    }
-                                                                }}
-                                                                disabled={calendarGroupingColumns.length === 0}
-                                                            >
-                                                                <div className="flex items-center justify-between w-full">
-                                                                    <span>{t('grouping.options.calendar')}</span>
-                                                                    {groupBy === 'calendar' && <Check className="h-4 w-4" />}
-                                                                </div>
-                                                            </CommandItem>
                                                         </CommandGroup>
                                                     </CommandList>
                                                 </Command>
