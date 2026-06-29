@@ -43,6 +43,8 @@ export default async function LocaleLayout({
     apiUrl: process.env.NEXT_PUBLIC_API_URL ?? '',
     licenseKey: process.env.NEXT_PUBLIC_LICENSE_KEY ?? '',
     masterSec: process.env.NEXT_PUBLIC_MASTER_SEC ?? '',
+    clientId: process.env.NEXT_PUBLIC_CLIENT_ID ?? '',
+    eventPusherKey: process.env.NEXT_PUBLIC_EVENT_PUSHER_KEY ?? '',
   };
 
   return (

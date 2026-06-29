@@ -1,14 +1,15 @@
 import { fetchEventSource } from '@microsoft/fetch-event-source';
+import { getClientId, getEventPusherKey } from '@/lib/runtime-config';
 
 export type EventHandler = (eventType: string, data: unknown) => void;
 
 export function connectEventStream(userId: string, onEvent: EventHandler): () => void {
-  const clientId = process.env.NEXT_PUBLIC_CLIENT_ID;
-  const apiKey = process.env.NEXT_PUBLIC_EVENT_PUSHER_KEY;
+  const clientId = getClientId();
+  const apiKey = getEventPusherKey();
 
   if (!clientId || !apiKey) {
     console.warn('[event-stream] NEXT_PUBLIC_CLIENT_ID or NEXT_PUBLIC_EVENT_PUSHER_KEY not set — SSE disabled');
-    return () => {};
+    return () => { };
   }
 
   const ctrl = new AbortController();

@@ -2,6 +2,8 @@ export interface RuntimeConfig {
   apiUrl: string;
   licenseKey: string;
   masterSec: string;
+  clientId: string;
+  eventPusherKey: string;
 }
 
 declare global {
@@ -21,6 +23,8 @@ function getRuntimeConfig(): Partial<RuntimeConfig> {
     apiUrl: process.env.NEXT_PUBLIC_API_URL,
     licenseKey: process.env.NEXT_PUBLIC_LICENSE_KEY,
     masterSec: process.env.NEXT_PUBLIC_MASTER_SEC,
+    clientId: process.env.NEXT_PUBLIC_CLIENT_ID,
+    eventPusherKey: process.env.NEXT_PUBLIC_EVENT_PUSHER_KEY,
   };
 }
 
@@ -38,5 +42,13 @@ export function getLicenseKey(): string {
 
 export function getMasterSec(): string {
   return getRuntimeConfig().masterSec || process.env.NEXT_PUBLIC_MASTER_SEC || '';
+}
+
+export function getClientId(): string {
+  return getRuntimeConfig().clientId || process.env.NEXT_PUBLIC_CLIENT_ID || '';
+}
+
+export function getEventPusherKey(): string {
+  return getRuntimeConfig().eventPusherKey || process.env.NEXT_PUBLIC_EVENT_PUSHER_KEY || '';
 }
 
