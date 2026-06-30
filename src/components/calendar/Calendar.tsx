@@ -95,22 +95,6 @@ const Calendar: React.FC<CalendarProps> = ({
     try { window.localStorage.setItem('calendar-zoom', String(v)); } catch { /* ignore */ }
   }, []);
 
-  // When an inline-creation draft opens, temporarily zoom in so the whole form is
-  // readable; restore the user's zoom when the draft is saved/cancelled.
-  const prevZoomRef = React.useRef<number | null>(null);
-  const draftActive = !!inlineDraft;
-  React.useEffect(() => {
-    if (draftActive) {
-      if (prevZoomRef.current === null) {
-        prevZoomRef.current = zoom;
-        if (zoom < 1.5) setZoom(1.5);
-      }
-    } else if (prevZoomRef.current !== null) {
-      setZoom(prevZoomRef.current);
-      prevZoomRef.current = null;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draftActive]);
 
   const heightSetting = hourSlotHeight ?? HOUR_SLOT_HEIGHT;
   // Slot density: how many slots fit per hour (e.g. 6 for 10-min slots). The hour

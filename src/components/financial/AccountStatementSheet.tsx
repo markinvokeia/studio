@@ -17,6 +17,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ResizableSheet, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AccountStatementFilters, type DocTypeFilter } from '@/components/financial/account-statement-filters';
@@ -32,12 +33,19 @@ import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 import type { StatementEntry } from '@/lib/types';
 
+/** Round to 2 decimals and collapse -0 to 0 so tiny drift never shows as "−0". */
+function round2(n: number) {
+  const r = Math.round(n * 100) / 100;
+  return Object.is(r, -0) ? 0 : r;
+}
+
 function fmtAmount(amount: number, currency: string) {
-  return `${currency} ${Math.abs(amount).toLocaleString('es-UY', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  return `${currency} ${Math.abs(round2(amount)).toLocaleString('es-UY', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 }
 
 function fmtBalance(balance: number, currency: string) {
-  return `${balance < 0 ? '−' : ''}${fmtAmount(balance, currency)}`;
+  const b = round2(balance);
+  return `${b < 0 ? '−' : ''}${fmtAmount(b, currency)}`;
 }
 
 function sortCurrencies(currencies: string[]) {
@@ -175,6 +183,12 @@ export function AccountStatementSheet() {
   const balance = (selectedCurrency && report?.history_by_currency[selectedCurrency]?.final_balance) || 0;
   const currencyHasDebt = allEntries.some((e) => e.kind === 'invoice' && (e.pending ?? 0) > 0 && e.invoiceId);
 
+  // Collect-mode helpers (select-all + shared method name shown per line).
+  const cobrarCandidates = inCobrar ? allEntries.filter((e) => e.kind === 'invoice' && (e.pending ?? 0) > 0 && e.invoiceId) : [];
+  const allCandidatesSelected = cobrarCandidates.length > 0 && cobrarCandidates.every((e) => !!cobrar.selected[e.invoiceId!]);
+  const someCandidatesSelected = !allCandidatesSelected && cobrarCandidates.some((e) => !!cobrar.selected[e.invoiceId!]);
+  const sharedMethodName = paymentMethods.find((m) => m.id === cobrar.sharedMethodId)?.name;
+
   return (
     <ResizableSheet
       open={isOpen}
@@ -263,7 +277,18 @@ export function AccountStatementSheet() {
 
           {status === 'idle' && selectedCurrency && (
             <>
-              {inCobrar && <p className="mb-2 text-xs text-muted-foreground">{t('selectInvoicesToCollect')}</p>}
+              {inCobrar && (
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
+                    <Checkbox
+                      checked={allCandidatesSelected ? true : someCandidatesSelected ? 'indeterminate' : false}
+                      onCheckedChange={(c) => (c ? cobrar.selectAll(cobrarCandidates) : cobrar.clearAll())}
+                    />
+                    {t('selectAllInvoices')}
+                  </label>
+                  <span className="text-xs text-muted-foreground">{t('selectInvoicesToCollect')}</span>
+                </div>
+              )}
               <AccountStatementTimeline
                 entries={inCobrar ? allEntries : applyFilters(allEntries)}
                 cobrarMode={inCobrar}
@@ -272,6 +297,7 @@ export function AccountStatementSheet() {
                 onToggle={cobrar.toggle}
                 onLineChange={cobrar.updateLine}
                 paymentMethods={paymentMethods}
+                sharedMethodName={sharedMethodName}
               />
             </>
           )}

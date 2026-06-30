@@ -40,11 +40,13 @@ interface CalendarHeaderProps {
  *  day moves the calendar to that day (and thus its week/month, per the view). */
 function HeaderDatePicker({
   headerTitle,
+  viewLabel,
   currentDate,
   onDateSelect,
   className,
 }: {
   headerTitle: string;
+  viewLabel: string;
   currentDate: Date;
   onDateSelect: (date: Date) => void;
   className?: string;
@@ -57,9 +59,10 @@ function HeaderDatePicker({
       <PopoverTrigger asChild>
         <button
           type="button"
-          className={`rounded-md px-1.5 py-0.5 font-semibold whitespace-nowrap transition-colors hover:bg-muted ${className ?? ''}`}
+          className={`flex flex-col items-start whitespace-nowrap rounded-md px-1.5 py-0.5 leading-tight transition-colors hover:bg-muted ${className ?? ''}`}
         >
-          {headerTitle}
+          <span className="font-semibold">{headerTitle}</span>
+          <span className="text-[10px] font-normal text-muted-foreground">{viewLabel}</span>
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
@@ -78,6 +81,7 @@ function HeaderDatePicker({
 
 export function CalendarHeader({
   headerTitle,
+  view,
   currentDate,
   breakpoint,
   onPrev,
@@ -93,6 +97,8 @@ export function CalendarHeader({
   bulkModeContent,
 }: CalendarHeaderProps) {
   const t = useTranslations('Calendar');
+  const viewKey = view.includes('-') ? view.replace('-', '') : view;
+  const viewLabel = t('showingView', { view: t(`views.${viewKey}`) });
 
   // Mobile / tablet: compact header
   if (breakpoint === 'mobile' || breakpoint === 'tablet') {
@@ -150,7 +156,7 @@ export function CalendarHeader({
       {/* Row-1 cluster: title + date navigation (date is clickable to jump) */}
       <div className="flex items-center gap-2 min-w-0">
         <h2 className="text-xl font-bold whitespace-nowrap">{t('title')}</h2>
-        <Button variant="outline" size="sm" onClick={onToday}>
+        <Button variant="outline" size="sm" className="h-11" onClick={onToday}>
           {t('today')}
         </Button>
         <div className="flex items-center gap-0.5 shrink-0">
@@ -161,7 +167,7 @@ export function CalendarHeader({
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        <HeaderDatePicker headerTitle={headerTitle} currentDate={currentDate} onDateSelect={onDateSelect} className="text-sm" />
+        <HeaderDatePicker headerTitle={headerTitle} viewLabel={viewLabel} currentDate={currentDate} onDateSelect={onDateSelect} className="text-sm" />
       </div>
 
       {/* Primary cluster: Refresh + Create — stays on row 1 (after the date) */}

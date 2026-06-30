@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { format } from 'date-fns';
-import { AlertTriangle, Building2, ChevronsUpDown, Clock, FileText, Loader2, StickyNote, Stethoscope, UserCog, UserRound, X } from 'lucide-react';
+import { AlertTriangle, Building2, CalendarX2, ChevronsUpDown, Clock, FileText, Loader2, StickyNote, Stethoscope, UserCog, UserRound, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
@@ -36,6 +36,8 @@ interface InlineAppointmentDraftProps {
   onNotesChange: (notes: string) => void;
   overlapWarning?: boolean;
   patientDebt?: { currency: string; amount: number }[];
+  /** Number of cancelled appointments the patient has (shown next to the debt). */
+  cancelledCount?: number;
   onViewStatement?: () => void;
   isSaving?: boolean;
   onSave: () => void;
@@ -129,6 +131,7 @@ export function InlineAppointmentDraft({
   onNotesChange,
   overlapWarning,
   patientDebt,
+  cancelledCount,
   onViewStatement,
   isSaving,
   onSave,
@@ -265,6 +268,14 @@ export function InlineAppointmentDraft({
             </button>
           )}
         </div>
+      )}
+
+      {/* Cancelled appointments count */}
+      {patient && (cancelledCount ?? 0) > 0 && (
+        <span className="flex items-center gap-1 pl-1.5 text-[11px] font-medium text-amber-700 dark:text-amber-400">
+          <CalendarX2 className="h-3 w-3 shrink-0" />
+          {t('cancelledAppointments', { count: cancelledCount! })}
+        </span>
       )}
 
       {/* Service */}

@@ -13,12 +13,19 @@ import type { CobrarLineState, StatementEntry } from '@/lib/types';
 
 const SHARED = '__shared__';
 
+/** Round to 2 decimals and collapse -0 to 0 so tiny drift never shows as "−0". */
+function round2(n: number) {
+  const r = Math.round(n * 100) / 100;
+  return Object.is(r, -0) ? 0 : r;
+}
+
 function fmtAmount(amount: number, currency: string) {
-  return `${currency} ${Math.abs(amount).toLocaleString('es-UY', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  return `${currency} ${Math.abs(round2(amount)).toLocaleString('es-UY', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 }
 
 function fmtBalance(balance: number, currency: string) {
-  return `${balance < 0 ? '−' : ''}${fmtAmount(balance, currency)}`;
+  const b = round2(balance);
+  return `${b < 0 ? '−' : ''}${fmtAmount(b, currency)}`;
 }
 
 interface AccountStatementTimelineProps {
@@ -32,6 +39,8 @@ interface AccountStatementTimelineProps {
   onToggle: (entry: StatementEntry) => void;
   onLineChange: (invoiceId: string, patch: Partial<CobrarLineState>) => void;
   paymentMethods: { id: string; name: string }[];
+  /** Name of the shared/default payment method, shown in the per-line option. */
+  sharedMethodName?: string;
 }
 
 const ICON_BY_KIND = {
@@ -61,6 +70,7 @@ export function AccountStatementTimeline({
   onToggle,
   onLineChange,
   paymentMethods,
+  sharedMethodName,
 }: AccountStatementTimelineProps) {
   const t = useTranslations('AccountStatement');
 
@@ -130,10 +140,10 @@ export function AccountStatementTimeline({
                       <div
                         className={cn(
                           'text-sm font-semibold',
-                          entry.amount > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400',
+                          round2(entry.amount) < 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400',
                         )}
                       >
-                        {entry.amount > 0 ? '' : '−'}
+                        {round2(entry.amount) < 0 ? '−' : ''}
                         {fmtAmount(entry.amount, entry.currency)}
                       </div>
                     </div>
@@ -184,7 +194,9 @@ export function AccountStatementTimeline({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value={SHARED} className="text-xs">{t('sharedMethod')}</SelectItem>
+                          <SelectItem value={SHARED} className="text-xs">
+                            {sharedMethodName ? t('defaultMethodNamed', { name: sharedMethodName }) : t('defaultMethod')}
+                          </SelectItem>
                           {paymentMethods.map((m) => (
                             <SelectItem key={m.id} value={m.id} className="text-xs">{m.name}</SelectItem>
                           ))}

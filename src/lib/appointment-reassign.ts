@@ -1,6 +1,6 @@
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
-import type { Appointment, Calendar as CalendarType, User } from '@/lib/types';
+import type { Appointment, Calendar as CalendarType, Service, User } from '@/lib/types';
 
 const CALENDAR_COLORS = [
   'hsl(210, 80%, 55%)',
@@ -18,6 +18,14 @@ export interface AppointmentReassignChange {
   calendar?: CalendarType;
   /** Quote to link, or `null` to unlink. Omit to leave the current quote untouched. */
   quote?: { id: string; doc_no?: string } | null;
+  /** New start datetime as a local ISO string (no timezone). */
+  start?: string;
+  /** New end datetime as a local ISO string (no timezone). */
+  end?: string;
+  /** New notes; omit to leave the current notes untouched. */
+  notes?: string;
+  /** New service list; omit to leave the current services untouched. */
+  services?: Service[];
 }
 
 // Backend stores datetimes as local ISO strings (no timezone). Strip any trailing
@@ -35,8 +43,8 @@ export function buildReassignPayload(appointment: Appointment, change: Appointme
     mode: 'update' as const,
     appointment_id: appointment.id,
     google_event_id: appointment.googleEventId,
-    start: stripZ(appointment.start?.dateTime),
-    end: stripZ(appointment.end?.dateTime),
+    start: change.start ?? stripZ(appointment.start?.dateTime),
+    end: change.end ?? stripZ(appointment.end?.dateTime),
     old_calendar_source_id: appointment.calendar_source_id,
     calendar_source_id: calendar ? String(calendar.id) : appointment.calendar_source_id,
     doctor_id: doctor ? String(doctor.id) : appointment.doctorId,
@@ -46,10 +54,12 @@ export function buildReassignPayload(appointment: Appointment, change: Appointme
     patient_name: appointment.patientName,
     patient_email: appointment.patientEmail,
     patient_phone: appointment.patientPhone,
-    summary: appointment.summary,
-    service_ids: (appointment.services ?? []).filter((s) => s.id).map((s) => s.id),
-    service_names: (appointment.services ?? []).map((s) => s.name).join(', '),
-    notes: appointment.notes ?? '',
+    summary: change.services
+      ? (change.services.length ? `${appointment.patientName} - ${change.services.map((s) => s.name).join(', ')}` : appointment.patientName)
+      : appointment.summary,
+    service_ids: (change.services ?? appointment.services ?? []).filter((s) => s.id).map((s) => s.id),
+    service_names: (change.services ?? appointment.services ?? []).map((s) => s.name).join(', '),
+    notes: change.notes !== undefined ? change.notes : (appointment.notes ?? ''),
     quote_id: change.quote !== undefined
       ? (change.quote ? String(change.quote.id) : null)
       : (appointment.quote_id ?? null),
@@ -84,6 +94,23 @@ export async function reassignAppointmentField(
   if (change.quote !== undefined) {
     updated.quote_id = change.quote ? String(change.quote.id) : undefined;
     updated.quote_doc_no = change.quote?.doc_no;
+  }
+  if (change.start) {
+    updated.start = { dateTime: change.start };
+    updated.date = change.start.slice(0, 10);
+    updated.time = change.start.slice(11, 16);
+  }
+  if (change.end) {
+    updated.end = { dateTime: change.end };
+  }
+  if (change.notes !== undefined) {
+    updated.notes = change.notes;
+  }
+  if (change.services) {
+    updated.services = change.services;
+    updated.summary = change.services.length
+      ? `${appointment.patientName} - ${change.services.map((s) => s.name).join(', ')}`
+      : appointment.patientName;
   }
   return updated;
 }

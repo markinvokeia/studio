@@ -13,6 +13,7 @@ export const API_ROUTES = {
     USER_CREDIT: '/user_credit',
     USER_FINANCIAL_SUMMARY_PRINT: '/user/financial-summary/print',
     USER_FINANCIAL: '/user_financial',
+    USER_CANCELLED_APPOINTMENTS_COUNT: '/user_cancelled_appointments_count',
     CALENDARS: '/calendars',
     CALENDARS_UPSERT: '/calendarios/upsert',
     CALENDARS_DELETE: '/calendarios/delete',
