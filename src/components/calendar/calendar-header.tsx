@@ -1,35 +1,31 @@
 'use client';
 
+import * as React from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Calendar as DatePickerCalendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 import {
-  CalendarClock,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   SlidersHorizontal,
 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
+import { enUS, es } from 'date-fns/locale';
 
 import type { CalendarBreakpoint, CalendarView } from './calendar-types';
 
 interface CalendarHeaderProps {
   headerTitle: string;
   view: CalendarView;
+  currentDate: Date;
   breakpoint: CalendarBreakpoint;
   onPrev: () => void;
   onNext: () => void;
   onToday: () => void;
   onViewChange: (view: CalendarView) => void;
+  /** Jump the calendar to a date picked from the header date picker. */
+  onDateSelect: (date: Date) => void;
   onOpenFilterSheet?: () => void;
   extraActions?: React.ReactNode;
   extraActionsAfterToday?: React.ReactNode;
@@ -40,38 +36,58 @@ interface CalendarHeaderProps {
   bulkModeContent?: React.ReactNode;
 }
 
-interface ViewMenuItemsProps {
-  onViewChange: (view: CalendarView) => void;
-  t: ReturnType<typeof useTranslations>;
-}
-
-function ViewMenuItems({ onViewChange, t }: ViewMenuItemsProps) {
+/** Clickable header date that opens a date picker to jump to any day. Selecting a
+ *  day moves the calendar to that day (and thus its week/month, per the view). */
+function HeaderDatePicker({
+  headerTitle,
+  viewLabel,
+  currentDate,
+  onDateSelect,
+  className,
+}: {
+  headerTitle: string;
+  viewLabel: string;
+  currentDate: Date;
+  onDateSelect: (date: Date) => void;
+  className?: string;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const locale = useLocale();
+  const dateLocale = locale === 'es' ? es : enUS;
   return (
-    <>
-      <DropdownMenuSub>
-        <DropdownMenuSubTrigger>{t('views.day')}</DropdownMenuSubTrigger>
-        <DropdownMenuSubContent>
-          <DropdownMenuItem onSelect={() => onViewChange('day')}>{t('views.day')}</DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => onViewChange('2-day')}>{t('views.2day')}</DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => onViewChange('3-day')}>{t('views.3day')}</DropdownMenuItem>
-        </DropdownMenuSubContent>
-      </DropdownMenuSub>
-      <DropdownMenuItem onSelect={() => onViewChange('week')}>{t('views.week')}</DropdownMenuItem>
-      <DropdownMenuItem onSelect={() => onViewChange('month')}>{t('views.month')}</DropdownMenuItem>
-      <DropdownMenuItem onSelect={() => onViewChange('year')}>{t('views.year')}</DropdownMenuItem>
-      <DropdownMenuItem onSelect={() => onViewChange('schedule')}>{t('views.schedule')}</DropdownMenuItem>
-    </>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={`flex flex-col items-start whitespace-nowrap rounded-md px-1.5 py-0.5 leading-tight transition-colors hover:bg-muted ${className ?? ''}`}
+        >
+          <span className="font-semibold">{headerTitle}</span>
+          <span className="text-[10px] font-normal text-muted-foreground">{viewLabel}</span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <DatePickerCalendar
+          mode="single"
+          selected={currentDate}
+          defaultMonth={currentDate}
+          locale={dateLocale}
+          onSelect={(d) => { if (d) { onDateSelect(d); setOpen(false); } }}
+          initialFocus
+        />
+      </PopoverContent>
+    </Popover>
   );
 }
 
 export function CalendarHeader({
   headerTitle,
   view,
+  currentDate,
   breakpoint,
   onPrev,
   onNext,
   onToday,
-  onViewChange,
+  onDateSelect,
   onOpenFilterSheet,
   extraActions,
   extraActionsAfterToday,
@@ -81,8 +97,8 @@ export function CalendarHeader({
   bulkModeContent,
 }: CalendarHeaderProps) {
   const t = useTranslations('Calendar');
-
   const viewKey = view.includes('-') ? view.replace('-', '') : view;
+  const viewLabel = t('showingView', { view: t(`views.${viewKey}`) });
 
   // Mobile / tablet: compact header
   if (breakpoint === 'mobile' || breakpoint === 'tablet') {
@@ -110,20 +126,6 @@ export function CalendarHeader({
             {extraActions}
             {primaryActions}
             {extraActionsAfterToday}
-            {breakpoint === 'tablet' && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-8 gap-1 text-xs">
-                    <CalendarClock className="h-3.5 w-3.5" />
-                    {t(`views.${viewKey}`)}
-                    <ChevronDown className="h-3.5 w-3.5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <ViewMenuItems onViewChange={onViewChange} t={t} />
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
             {breakpoint === 'tablet' && trailingActions}
           </div>
         </div>
@@ -136,7 +138,7 @@ export function CalendarHeader({
     );
   }
 
-  // Desktop / Tablet: full header — replaced entirely when in bulk mode
+  // Desktop: full header — replaced entirely when in bulk mode
   if (bulkModeContent) {
     return (
       <div className="calendar-header flex-wrap gap-2">
@@ -147,14 +149,14 @@ export function CalendarHeader({
 
   return (
     <div className="calendar-header calendar-header--actions relative pr-14">
-      {/* Settings: pinned to the top-right of row 1; view buttons wrap below it. */}
+      {/* Settings: pinned to the top-right of row 1; action buttons wrap below it. */}
       {trailingActions && (
         <div className="absolute right-3 top-2.5 z-10">{trailingActions}</div>
       )}
-      {/* Row-1 cluster: title + date navigation */}
+      {/* Row-1 cluster: title + date navigation (date is clickable to jump) */}
       <div className="flex items-center gap-2 min-w-0">
         <h2 className="text-xl font-bold whitespace-nowrap">{t('title')}</h2>
-        <Button variant="outline" size="sm" onClick={onToday}>
+        <Button variant="outline" size="sm" className="h-11" onClick={onToday}>
           {t('today')}
         </Button>
         <div className="flex items-center gap-0.5 shrink-0">
@@ -165,7 +167,7 @@ export function CalendarHeader({
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        <h3 className="font-semibold text-sm whitespace-nowrap">{headerTitle}</h3>
+        <HeaderDatePicker headerTitle={headerTitle} viewLabel={viewLabel} currentDate={currentDate} onDateSelect={onDateSelect} className="text-sm" />
       </div>
 
       {/* Primary cluster: Refresh + Create — stays on row 1 (after the date) */}
@@ -174,23 +176,11 @@ export function CalendarHeader({
         {primaryActions}
       </div>
 
-      {/* Secondary cluster: Huecos, bulk, filters, views, preferences.
-          Wraps to a second row (left-aligned) when space is tight. */}
-      <div className="calendar-header__secondary flex items-center gap-2 flex-wrap">
+      {/* Secondary cluster: Huecos, bulk selection, calendars, doctors. Fills the
+          rest of row 1 and wraps to a second row when space is tight. */}
+      <div className="calendar-header__secondary flex flex-wrap items-center gap-2">
         {extraActions}
         {children}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="flex items-center gap-2">
-              <CalendarClock className="h-4 w-4 text-muted-foreground" />
-              {t(`views.${viewKey}`)}
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <ViewMenuItems onViewChange={onViewChange} t={t} />
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
     </div>
   );

@@ -750,6 +750,17 @@ export default function AppointmentsPage() {
 
     const handleSettingsEditorChange = React.useCallback((settings: CalendarSettings) => {
         setCalendarSettings(settings);
+        // The settings popover is now the single source for view and grouping —
+        // apply both live so the calendar updates as the user changes them.
+        setCurrentView(SETTINGS_VIEW_MAP[settings.default_view] || 'month');
+        setInlineDraft(null);
+        const nextGroupBy = settings.grouped_by as CalendarGroupBy;
+        setGroupBy(nextGroupBy);
+        // When switching to doctor grouping with nothing selected, show all doctors
+        // so the columns are immediately visible.
+        if (nextGroupBy === 'doctor') {
+            setSelectedDoctorIds((prev) => (prev.length === 0 ? doctors.map((d) => d.id) : prev));
+        }
         setCheckCalendarAvailability(settings.check_availability);
         setCheckDoctorAvailability(settings.filter_doctors_by_service);
         setBlockUnavailable(settings.block_unavailable ?? false);
@@ -757,7 +768,7 @@ export default function AppointmentsPage() {
         setSlotDuration(settings.slot_duration ?? DEFAULT_SLOT_DURATION);
         setEventLabelFormat(settings.event_label_format ?? DEFAULT_EVENT_LABEL_FORMAT);
         setDefaultSede(settings.default_sede ?? '');
-    }, []);
+    }, [doctors]);
 
     // Tracks the last applied default sede so the effect below only re-scopes the
     // calendars when the sede actually changes (preserving manual selections).
@@ -878,11 +889,13 @@ export default function AppointmentsPage() {
     } | null>(null);
     const [isSavingInline, setIsSavingInline] = React.useState(false);
     const [inlineDebt, setInlineDebt] = React.useState<{ currency: string; amount: number }[]>([]);
+    const [inlineCancelledCount, setInlineCancelledCount] = React.useState(0);
 
-    // Load the inline-draft patient's debt to surface a warning inline.
+    // Load the inline-draft patient's debt + cancelled-appointment count to surface
+    // them inline next to the patient.
     React.useEffect(() => {
         const patientId = inlineDraft?.patient?.id;
-        if (!patientId) { setInlineDebt([]); return; }
+        if (!patientId) { setInlineDebt([]); setInlineCancelledCount(0); return; }
         let active = true;
         api.get(API_ROUTES.USER_FINANCIAL, { user_id: patientId })
             .then((raw: any) => {
@@ -896,6 +909,13 @@ export default function AppointmentsPage() {
                 );
             })
             .catch(() => { if (active) setInlineDebt([]); });
+        api.get(API_ROUTES.USER_CANCELLED_APPOINTMENTS_COUNT, { user_id: patientId })
+            .then((raw: any) => {
+                if (!active) return;
+                const row = Array.isArray(raw) ? raw[0] : raw;
+                setInlineCancelledCount(Number(row?.cancelled_count ?? row?.count ?? 0) || 0);
+            })
+            .catch(() => { if (active) setInlineCancelledCount(0); });
         return () => { active = false; };
     }, [inlineDraft?.patient?.id]);
 
@@ -993,6 +1013,7 @@ export default function AppointmentsPage() {
                 onNotesChange={(n) => setInlineDraft((d) => (d ? { ...d, notes: n } : d))}
                 overlapWarning={overlap}
                 patientDebt={inlineDebt}
+                cancelledCount={inlineCancelledCount}
                 onViewStatement={inlineDraft.patient ? () => openAccountStatement(inlineDraft.patient!.id, inlineDraft.patient!.name) : undefined}
                 isSaving={isSavingInline}
                 onSave={handleSaveInlineDraft}
@@ -1002,7 +1023,7 @@ export default function AppointmentsPage() {
                 saveLabel={isEditing ? tInline('update') : undefined}
             />
         );
-    }, [inlineDraft, doctors, calendars, appointments, inlineDebt, isSavingInline, handleSaveInlineDraft, openAccountStatement, tInline]);
+    }, [inlineDraft, doctors, calendars, appointments, inlineDebt, inlineCancelledCount, isSavingInline, handleSaveInlineDraft, openAccountStatement, tInline]);
 
     // Left-click on an empty slot → inline draft (if enabled, desktop, time-grid view)
     // or the modal form. Month/year/schedule always use the modal.
@@ -1075,17 +1096,15 @@ export default function AppointmentsPage() {
     }, [pendingSlotDate]);
 
 
+    // Keep grouping in sync with the saved calendar settings whenever the
+    // Show/Hide calendar or doctor selection changes. Previously, hiding all
+    // calendars/doctors forced groupBy='none' and the grouping was lost when they
+    // were shown again; now we re-apply the configured grouping so it persists.
     React.useEffect(() => {
-        if (groupBy === 'doctor' && selectedDoctorIds.length === 0) {
-            setGroupBy('none');
-        }
-    }, [groupBy, selectedDoctorIds]);
-
-    React.useEffect(() => {
-        if (groupBy === 'calendar' && selectedCalendarIds.length === 0) {
-            setGroupBy('none');
-        }
-    }, [groupBy, selectedCalendarIds]);
+        if (!calendarSettings) return;
+        const desired = calendarSettings.grouped_by as CalendarGroupBy;
+        setGroupBy((prev) => (prev === desired ? prev : desired));
+    }, [selectedDoctorIds, selectedCalendarIds, calendarSettings]);
 
     const loadLinkedSession = React.useCallback(async (appointment: Appointment, signal?: AbortSignal) => {
         const patientId = appointment.patientId;
@@ -1206,6 +1225,19 @@ export default function AppointmentsPage() {
         if (appointment.quote_id) tasks.push(loadQuoteInfo(appointment.quote_id, controller.signal));
         Promise.all(tasks);
     };
+
+    // Keep the panel's quote/invoice section in sync when the selected appointment's
+    // quote changes (inline change/associate/create a quote, or quick bill).
+    const selectedQuoteId = selectedAppointment?.quote_id;
+    React.useEffect(() => {
+        if (!isDetailViewOpen) return;
+        if (selectedQuoteId) {
+            loadQuoteInfo(selectedQuoteId);
+        } else {
+            setQuoteOrder(null);
+            setQuoteInvoices([]);
+        }
+    }, [selectedQuoteId, isDetailViewOpen, loadQuoteInfo]);
 
     const handleSaveReminder = React.useCallback(async (values: ReminderFormValues) => {
         const now = toLocalISOString(new Date());
@@ -2226,6 +2258,22 @@ export default function AppointmentsPage() {
     }, []);
 
     const handleSelectGap = React.useCallback((gap: Gap) => {
+        const context = (gap.groupValue && groupBy !== 'none')
+            ? { groupBy: groupBy as 'doctor' | 'calendar' | 'sede', value: gap.groupValue }
+            : undefined;
+
+        // When inline creation is on (and on a time-grid view), draft the appointment
+        // in-place on the calendar instead of opening the modal — same as a slot click.
+        const isTimeGrid = ['day', '2-day', '3-day', 'week'].includes(currentView);
+        if (calendarSettings?.inline_appointment_creation && isTimeGrid) {
+            const draftDoctor = context?.groupBy === 'doctor' ? (doctors.find((d) => String(d.id) === String(context.value)) ?? null) : null;
+            const draftCalendar = context?.groupBy === 'calendar' ? (calendars.find((c) => String(c.id) === String(context.value)) ?? null) : null;
+            setInlineDraft({ date: gap.start, context, durationMin: slotDuration, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '' });
+            setGapsActive(false);
+            setSelectedGap(null);
+            return;
+        }
+
         setEditingAppointment(null);
         setIsReschedulingMode(false);
         const base: {
@@ -2253,7 +2301,7 @@ export default function AppointmentsPage() {
         // Per the requirement: selecting a proposal closes the panel and clears the effect.
         setGapsActive(false);
         setSelectedGap(null);
-    }, [groupBy, doctors, calendars]);
+    }, [groupBy, doctors, calendars, calendarSettings?.inline_appointment_creation, currentView, slotDuration]);
 
     const handleSelectDoctor = React.useCallback((doctorId: string, checked: boolean) => {
         setSelectedDoctorIds(prev => {
@@ -2322,6 +2370,33 @@ export default function AppointmentsPage() {
         return { sedeGroups: Array.from(groups.values()), noSede };
     }, [calendars, sedes]);
 
+    // Subtitle for the "Mostrar/Ocultar Calendarios" button: "all", "all of a sede",
+    // or "X of Y".
+    const calendarsSubtitle = React.useMemo(() => {
+        const total = calendars.length;
+        if (total === 0) return '';
+        const selected = selectedCalendarIds.filter((id) => calendars.some((c) => c.id === id));
+        const count = selected.length;
+        if (count === total) return t('showingAllCalendars');
+        const selectedSet = new Set(selected);
+        for (const group of calendarSedeGroups.sedeGroups) {
+            const gids = group.calendars.map((c) => c.id);
+            if (gids.length === count && gids.every((id) => selectedSet.has(id))) {
+                return t('showingAllOfSede', { sede: group.name });
+            }
+        }
+        return t('showingCountCalendars', { count, total });
+    }, [calendars, selectedCalendarIds, calendarSedeGroups, t]);
+
+    // Subtitle for the "Mostrar/Ocultar Doctores" button: "all" or "X of Y".
+    const doctorsSubtitle = React.useMemo(() => {
+        const total = doctors.length;
+        if (total === 0) return '';
+        const count = selectedDoctorIds.filter((id) => doctors.some((d) => d.id === id)).length;
+        if (count === total) return t('showingAllDoctors');
+        return t('showingCountDoctors', { count, total });
+    }, [doctors, selectedDoctorIds, t]);
+
     const handleSelectSede = React.useCallback((calendarIds: string[], checked: boolean) => {
         setSelectedCalendarIds(prev => {
             if (checked) {
@@ -2364,12 +2439,6 @@ export default function AppointmentsPage() {
         }
         return computeRangeGaps(calendarEvents, gapVisibleDays, clinicSchedules);
     }, [gapsActive, blockUnavailable, blockingConfigured, groupBy, groupingColumns, currentView, calendarEvents, gapVisibleDays, clinicSchedules, effectiveSchedules, clinicExceptions]);
-
-    const groupByLabel = React.useMemo(() => {
-        if (groupBy === 'doctor') return t('grouping.options.doctor');
-        if (groupBy === 'calendar') return t('grouping.options.calendar');
-        return t('grouping.options.none');
-    }, [groupBy, t]);
 
     // Render additional context menu items for the calendar event:
     // status submenu + clinic session shortcut.
@@ -3049,17 +3118,22 @@ export default function AppointmentsPage() {
                     }
                     extraActions={
                         <TooltipProvider>
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex flex-wrap items-center gap-1.5">
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Button
                                         variant={gapsActive ? 'default' : 'outline'}
                                         size={isMobile ? 'icon' : 'sm'}
-                                        className={isMobile ? 'h-8 w-8' : 'h-9 gap-1.5'}
+                                        className={isMobile ? 'h-8 w-8' : 'h-11 gap-1.5'}
                                         onClick={handleToggleGaps}
                                     >
-                                        <CalendarSearch className="h-4 w-4" />
-                                        {!isMobile && tGaps('button')}
+                                        <CalendarSearch className="h-4 w-4 shrink-0" />
+                                        {!isMobile && (
+                                            <span className="flex flex-col items-start leading-tight">
+                                                <span>{tGaps('button')}</span>
+                                                <span className="text-[10px] font-normal opacity-70">{tGaps('buttonSubtitle')}</span>
+                                            </span>
+                                        )}
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>{tGaps('button')}</TooltipContent>
@@ -3069,11 +3143,16 @@ export default function AppointmentsPage() {
                                     <Button
                                         variant={isBulkMode ? 'default' : 'outline'}
                                         size={isMobile ? 'icon' : 'sm'}
-                                        className={isMobile ? 'h-8 w-8' : 'h-9 gap-1.5'}
+                                        className={isMobile ? 'h-8 w-8' : 'h-11 gap-1.5'}
                                         onClick={handleToggleBulkMode}
                                     >
-                                        <Layers className="h-4 w-4" />
-                                        {!isMobile && tBulk('toggleButton')}
+                                        <Layers className="h-4 w-4 shrink-0" />
+                                        {!isMobile && (
+                                            <span className="flex flex-col items-start leading-tight">
+                                                <span>{tBulk('toggleButton')}</span>
+                                                <span className="text-[10px] font-normal opacity-70">{tBulk('toggleSubtitle')}</span>
+                                            </span>
+                                        )}
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>{tBulk('toggleButton')}</TooltipContent>
@@ -3090,12 +3169,15 @@ export default function AppointmentsPage() {
                                             <Button
                                                 variant={isMobile ? "ghost" : "default"}
                                                 size={isMobile ? "icon" : "sm"}
-                                                className={isMobile ? "h-8 w-8" : "h-9 gap-1.5"}
+                                                className={isMobile ? "h-8 w-8" : "h-11 gap-1.5"}
                                             >
-                                                <PlusCircle className="h-4 w-4" />
+                                                <PlusCircle className="h-4 w-4 shrink-0" />
                                                 {!isMobile && (
                                                     <>
-                                                        {tGeneral('create')}
+                                                        <span className="flex flex-col items-start leading-tight">
+                                                            <span>{tGeneral('create')}</span>
+                                                            <span className="text-[10px] font-normal opacity-80">{t('createSubtitle')}</span>
+                                                        </span>
                                                         <ChevronDown className="h-3.5 w-3.5 opacity-80" />
                                                     </>
                                                 )}
@@ -3143,7 +3225,7 @@ export default function AppointmentsPage() {
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <Button onClick={forceRefresh} variant="ghost" size="icon" disabled={isRefreshing} className={isMobile ? "h-8 w-8" : "h-9 w-9"}>
+                                    <Button onClick={forceRefresh} variant="ghost" size="icon" disabled={isRefreshing} className={isMobile ? "h-8 w-8" : "h-11 w-11"}>
                                         <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                                     </Button>
                                 </TooltipTrigger>
@@ -3193,13 +3275,18 @@ export default function AppointmentsPage() {
                             </div>
                         )}
                         {breakpoint === 'desktop' && (
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
                                 <Popover>
                                     <PopoverTrigger asChild>
-                                        <Button variant="outline" className="flex items-center gap-2">
-                                            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                                            {t('calendars')}
-                                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                        <Button variant="outline" className="flex h-11 items-center gap-2">
+                                            <CalendarIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                            <span className="flex flex-col items-start leading-tight">
+                                                <span>{t('toggleCalendars')}</span>
+                                                {calendarsSubtitle && (
+                                                    <span className="text-[10px] font-normal text-muted-foreground">{calendarsSubtitle}</span>
+                                                )}
+                                            </span>
+                                            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
                                         </Button>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-64 p-2">
@@ -3266,10 +3353,15 @@ export default function AppointmentsPage() {
                                 {showDoctorFilter && (
                                         <Popover>
                                             <PopoverTrigger asChild>
-                                                <Button variant="outline" className="flex items-center gap-2">
-                                                    <Users className="h-4 w-4 text-muted-foreground" />
-                                                    {t('doctors')}
-                                                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                                <Button variant="outline" className="flex h-11 items-center gap-2">
+                                                    <Users className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                                    <span className="flex flex-col items-start leading-tight">
+                                                        <span>{t('toggleDoctors')}</span>
+                                                        {doctorsSubtitle && (
+                                                            <span className="text-[10px] font-normal text-muted-foreground">{doctorsSubtitle}</span>
+                                                        )}
+                                                    </span>
+                                                    <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
                                                 </Button>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-56 p-2">
@@ -3290,58 +3382,6 @@ export default function AppointmentsPage() {
                                                                 </CommandItem>
                                                             );
                                                             })}
-                                                        </CommandGroup>
-                                                    </CommandList>
-                                                </Command>
-                                            </PopoverContent>
-                                        </Popover>
-                                )}
-                                {showGroupControls && (
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button variant="outline" className="flex items-center gap-2">
-                                                    <Layers className="h-4 w-4 text-muted-foreground" />
-                                                    {t('grouping.label')}: {groupByLabel}
-                                                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-56 p-2">
-                                                <Command>
-                                                    <CommandList>
-                                                        <CommandGroup>
-                                                            <CommandItem onSelect={() => setGroupBy('none')}>
-                                                                <div className="flex items-center justify-between w-full">
-                                                                    <span>{t('grouping.options.none')}</span>
-                                                                    {groupBy === 'none' && <Check className="h-4 w-4" />}
-                                                                </div>
-                                                            </CommandItem>
-                                                            <CommandItem
-                                                                onSelect={() => {
-                                                                    // Auto-select all doctors so columns are immediately visible
-                                                                    if (selectedDoctorIds.length === 0 && doctors.length > 0) {
-                                                                        setSelectedDoctorIds(doctors.map(d => d.id));
-                                                                    }
-                                                                    setGroupBy('doctor');
-                                                                }}
-                                                            >
-                                                                <div className="flex items-center justify-between w-full">
-                                                                    <span>{t('grouping.options.doctor')}</span>
-                                                                    {groupBy === 'doctor' && <Check className="h-4 w-4" />}
-                                                                </div>
-                                                            </CommandItem>
-                                                            <CommandItem
-                                                                onSelect={() => {
-                                                                    if (calendarGroupingColumns.length > 0) {
-                                                                        setGroupBy('calendar');
-                                                                    }
-                                                                }}
-                                                                disabled={calendarGroupingColumns.length === 0}
-                                                            >
-                                                                <div className="flex items-center justify-between w-full">
-                                                                    <span>{t('grouping.options.calendar')}</span>
-                                                                    {groupBy === 'calendar' && <Check className="h-4 w-4" />}
-                                                                </div>
-                                                            </CommandItem>
                                                         </CommandGroup>
                                                     </CommandList>
                                                 </Command>
@@ -3474,13 +3514,14 @@ export default function AppointmentsPage() {
                 doctorColor={selectedAppointment?.doctorId ? (doctors.find(d => d.id === selectedAppointment.doctorId)?.color ?? undefined) : undefined}
                 onEdit={handleEditAppointment}
                 onColorChange={handleEventColorChange}
+                onCreateQuote={handleCreateQuoteForAppointment}
                 onDelete={handleSoftDelete}
                 onCancel={handleCancel}
                 onReschedule={handleReschedule}
                 onOpenClinicSession={handleOpenClinicSession}
                 onStatusChange={handleStatusChange}
                 onRequestCustomCancellation={handleRequestCustomCancellation}
-                onBillingSuccess={loadAppointments}
+                onBillingSuccess={() => { loadAppointments(); if (selectedAppointment?.quote_id) loadQuoteInfo(selectedAppointment.quote_id); }}
                 doctors={doctors}
                 calendars={calendars}
                 onAppointmentUpdated={(updated) => {

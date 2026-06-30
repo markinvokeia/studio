@@ -73,6 +73,27 @@ export function useCobrarFlow(paymentMethods: { id: string; name: string }[], on
     setSelected((prev) => (prev[invoiceId] ? { ...prev, [invoiceId]: { ...prev[invoiceId], ...patch } } : prev));
   }, []);
 
+  /** Select every collectable invoice line at once (full pending amount each). */
+  const selectAll = React.useCallback((entries: StatementEntry[]) => {
+    setSelected(() => {
+      const next: Record<string, CobrarLineState> = {};
+      for (const e of entries) {
+        if (e.invoiceId && (e.pending ?? 0) > 0) {
+          next[e.invoiceId] = {
+            invoiceId: e.invoiceId,
+            docNo: e.docNo,
+            currency: e.currency,
+            pending: e.pending ?? 0,
+            amount: e.pending ?? 0,
+          };
+        }
+      }
+      return next;
+    });
+  }, []);
+
+  const clearAll = React.useCallback(() => setSelected({}), []);
+
   const lines = React.useMemo(() => Object.values(selected), [selected]);
   const totalToCollect = React.useMemo(() => lines.reduce((s, l) => s + (l.amount || 0), 0), [lines]);
 
@@ -95,9 +116,14 @@ export function useCobrarFlow(paymentMethods: { id: string; name: string }[], on
 
     setIsSaving(true);
     const failed: string[] = [];
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      setProgress({ current: i + 1, total: lines.length });
+    // Only post lines with a positive amount; round to 2 decimals so float drift
+    // never produces a tiny (or negative-zero) payment in the statement.
+    const payable = lines
+      .map((l) => ({ ...l, amount: Math.round(l.amount * 100) / 100 }))
+      .filter((l) => l.amount > 0);
+    for (let i = 0; i < payable.length; i++) {
+      const line = payable[i];
+      setProgress({ current: i + 1, total: payable.length });
       const methodId = line.methodId || sharedMethodId;
       const method = paymentMethods.find((m) => m.id === methodId);
       try {
@@ -155,6 +181,8 @@ export function useCobrarFlow(paymentMethods: { id: string; name: string }[], on
     cancel,
     toggle,
     updateLine,
+    selectAll,
+    clearAll,
     save,
   };
 }

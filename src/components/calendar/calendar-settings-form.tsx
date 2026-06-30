@@ -2,7 +2,21 @@
 
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
+import {
+  Ban,
+  Building2,
+  CalendarCheck,
+  CalendarDays,
+  Clock,
+  HelpCircle,
+  Layers,
+  MousePointerClick,
+  Ruler,
+  Stethoscope,
+  Tag,
+} from 'lucide-react';
 import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { CalendarSettings, Sede } from '@/lib/types';
@@ -23,6 +37,47 @@ interface CalendarSettingsFormProps {
 }
 
 const ALL_SEDES_VALUE = '__all__';
+
+/** Label row with a representative icon and a clickable "?" help hint. */
+function SettingHeader({
+  icon: Icon,
+  label,
+  help,
+  htmlFor,
+  variant = 'field',
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  help: string;
+  htmlFor?: string;
+  variant?: 'field' | 'toggle';
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+      <Label
+        htmlFor={htmlFor}
+        className={
+          variant === 'field'
+            ? 'text-[10px] font-bold uppercase tracking-widest text-muted-foreground'
+            : 'cursor-pointer text-xs font-medium'
+        }
+      >
+        {label}
+      </Label>
+      <Popover>
+        <PopoverTrigger asChild>
+          <button type="button" className="text-muted-foreground/60 transition-colors hover:text-foreground" aria-label={`${label} ?`}>
+            <HelpCircle className="h-3.5 w-3.5" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent side="left" align="start" className="w-64 text-xs leading-relaxed text-muted-foreground">
+          {help}
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
 
 export function CalendarSettingsForm({ onSettingsChange, className, showTitle = false, sedes = [], value }: CalendarSettingsFormProps) {
   const t = useTranslations('AppointmentsPage.settings');
@@ -99,14 +154,12 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
           <h4 className="font-semibold text-sm tracking-tight">{t('title')}</h4>
         </div>
       )}
-      
+
       <div className="bg-muted/30 p-2.5 rounded-xl border border-border/40 space-y-3.5">
         <div className="space-y-1.5">
-          <Label htmlFor="default-view" className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
-            {t('defaultView')}
-          </Label>
-          <Select 
-            value={settings.default_view} 
+          <SettingHeader icon={CalendarDays} label={t('defaultView')} help={t('help.defaultView')} htmlFor="default-view" />
+          <Select
+            value={settings.default_view}
             onValueChange={(val) => updateSettings({ default_view: val })}
             disabled={isLoading}
           >
@@ -124,9 +177,27 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="hour-height" className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
-            {t('hourHeight')}
-          </Label>
+          <SettingHeader icon={Layers} label={t('groupBy')} help={t('help.groupBy')} htmlFor="grouped-by" />
+          <Select
+            value={settings.grouped_by}
+            onValueChange={(val) => updateSettings({ grouped_by: val })}
+            disabled={isLoading}
+          >
+            <SelectTrigger id="grouped-by" className="h-9 text-xs bg-card border-border/50 shadow-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {groupOptions.map(opt => (
+                <SelectItem key={opt} value={opt} className="text-xs">
+                  {t(`options.${opt}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <SettingHeader icon={Ruler} label={t('hourHeight')} help={t('help.hourHeight')} htmlFor="hour-height" />
           <Select
             value={String(settings.hour_height ?? HOUR_SLOT_HEIGHT)}
             onValueChange={(val) => updateHourHeight(Number(val))}
@@ -146,9 +217,7 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="slot-duration" className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
-            {t('slotDuration')}
-          </Label>
+          <SettingHeader icon={Clock} label={t('slotDuration')} help={t('help.slotDuration')} htmlFor="slot-duration" />
           <Select
             value={String(settings.slot_duration ?? DEFAULT_SLOT_DURATION)}
             onValueChange={(val) => updateSettings({ slot_duration: Number(val) })}
@@ -169,9 +238,7 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
 
         {sedes.length > 0 && (
           <div className="space-y-1.5">
-            <Label htmlFor="default-sede" className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
-              {t('sede')}
-            </Label>
+            <SettingHeader icon={Building2} label={t('sede')} help={t('help.sede')} htmlFor="default-sede" />
             <Select
               value={settings.default_sede ? settings.default_sede : ALL_SEDES_VALUE}
               onValueChange={(val) => updateSettings({ default_sede: val === ALL_SEDES_VALUE ? '' : val })}
@@ -193,9 +260,7 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
         )}
 
         <div className="space-y-1.5">
-          <Label htmlFor="event-label-format" className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
-            {t('eventLabel')}
-          </Label>
+          <SettingHeader icon={Tag} label={t('eventLabel')} help={t('help.eventLabel')} htmlFor="event-label-format" />
           <Select
             value={settings.event_label_format ?? DEFAULT_EVENT_LABEL_FORMAT}
             onValueChange={(val) => updateSettings({ event_label_format: val })}
@@ -213,37 +278,13 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
             </SelectContent>
           </Select>
         </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="grouped-by" className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
-            {t('groupBy')}
-          </Label>
-          <Select 
-            value={settings.grouped_by} 
-            onValueChange={(val) => updateSettings({ grouped_by: val })}
-            disabled={isLoading}
-          >
-            <SelectTrigger id="grouped-by" className="h-9 text-xs bg-card border-border/50 shadow-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {groupOptions.map(opt => (
-                <SelectItem key={opt} value={opt} className="text-xs">
-                  {t(`options.${opt}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
       </div>
 
       <div className="flex items-center justify-between pt-4 px-1">
-        <Label htmlFor="check-availability" className="text-xs font-medium cursor-pointer">
-          {t('checkAvailability')}
-        </Label>
-        <Switch 
-          id="check-availability" 
-          checked={settings.check_availability} 
+        <SettingHeader icon={CalendarCheck} label={t('checkAvailability')} help={t('help.checkAvailability')} htmlFor="check-availability" variant="toggle" />
+        <Switch
+          id="check-availability"
+          checked={settings.check_availability}
           onCheckedChange={(checked) => updateSettings({ check_availability: checked })}
           disabled={isLoading}
           className="scale-90"
@@ -251,9 +292,7 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
       </div>
 
       <div className="flex items-center justify-between pt-4 px-1">
-        <Label htmlFor="block-unavailable" className="text-xs font-medium cursor-pointer">
-          {t('blockUnavailable')}
-        </Label>
+        <SettingHeader icon={Ban} label={t('blockUnavailable')} help={t('help.blockUnavailable')} htmlFor="block-unavailable" variant="toggle" />
         <Switch
           id="block-unavailable"
           checked={settings.block_unavailable ?? false}
@@ -264,9 +303,7 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
       </div>
 
       <div className="flex items-center justify-between pt-4 px-1">
-        <Label htmlFor="filter-doctors-by-service" className="text-xs font-medium cursor-pointer">
-          {t('filterDoctorsByService')}
-        </Label>
+        <SettingHeader icon={Stethoscope} label={t('filterDoctorsByService')} help={t('help.filterDoctorsByService')} htmlFor="filter-doctors-by-service" variant="toggle" />
         <Switch
           id="filter-doctors-by-service"
           checked={settings.filter_doctors_by_service}
@@ -277,9 +314,7 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
       </div>
 
       <div className="flex items-center justify-between pt-4 px-1">
-        <Label htmlFor="inline-appointment-creation" className="text-xs font-medium cursor-pointer">
-          {t('inlineAppointmentCreation')}
-        </Label>
+        <SettingHeader icon={MousePointerClick} label={t('inlineAppointmentCreation')} help={t('help.inlineAppointmentCreation')} htmlFor="inline-appointment-creation" variant="toggle" />
         <Switch
           id="inline-appointment-creation"
           checked={settings.inline_appointment_creation ?? false}

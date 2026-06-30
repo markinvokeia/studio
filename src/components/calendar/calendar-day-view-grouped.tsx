@@ -108,33 +108,27 @@ export function CalendarDayViewGrouped({
     prevHourRef.current = hourSlotHeight;
   }, [hourSlotHeight]);
 
-  // Center the clicked point when an inline draft opens (and scroll its column
-  // into view); restore the previous scroll position when it closes.
+  // Center the clicked point vertically when an inline draft opens; restore the
+  // previous vertical scroll when it closes. We intentionally do NOT scroll
+  // horizontally to the column (no left/right jump) — only up/down.
   const draftKey = inlineDraft ? inlineDraft.date.getTime() : null;
-  const draftGroup = inlineDraft?.groupValue ?? null;
   const savedScrollMinRef = React.useRef<number | null>(null);
-  const savedScrollLeftRef = React.useRef(0);
   React.useEffect(() => {
     const c = scrollContainerRef.current;
     if (!c) return;
     if (draftKey !== null) {
       if (savedScrollMinRef.current === null) {
         savedScrollMinRef.current = (c.scrollTop / hourSlotHeight) * 60;
-        savedScrollLeftRef.current = c.scrollLeft;
       }
       const d = new Date(draftKey);
       const clickMin = d.getHours() * 60 + d.getMinutes();
       const top = (clickMin / 60) * hourSlotHeight;
       c.scrollTo({ top: Math.max(0, top - c.clientHeight / 2), behavior: 'smooth' });
-      if (draftGroup != null) {
-        const colEl = c.querySelector(`[data-group-col="${CSS.escape(String(draftGroup))}"]`) as HTMLElement | null;
-        colEl?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-      }
     } else if (savedScrollMinRef.current !== null) {
-      c.scrollTo({ top: Math.max(0, (savedScrollMinRef.current / 60) * hourSlotHeight), left: savedScrollLeftRef.current, behavior: 'smooth' });
+      c.scrollTo({ top: Math.max(0, (savedScrollMinRef.current / 60) * hourSlotHeight), behavior: 'smooth' });
       savedScrollMinRef.current = null;
     }
-  }, [draftKey, draftGroup, hourSlotHeight]);
+  }, [draftKey, hourSlotHeight]);
 
   const slotDateFromEvent = (day: Date, e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -274,7 +268,7 @@ export function CalendarDayViewGrouped({
                     ))}
                     {inlineDraft && renderInlineDraft && isSameDay(day, inlineDraft.date) && String(inlineDraft.groupValue ?? '') === String(col.value) && (
                       <div
-                        className="absolute left-0.5 right-0.5 z-[12]"
+                        className="absolute left-0.5 z-[12] w-[300px] max-w-[calc(100vw-2rem)]"
                         style={{
                           top: `${(inlineDraft.date.getHours() + inlineDraft.date.getMinutes() / 60) * hourSlotHeight}px`,
                           minHeight: `${Math.max((inlineDraft.durationMin / 60) * hourSlotHeight, 96)}px`,

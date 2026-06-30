@@ -1,12 +1,14 @@
 'use client';
 
 import * as React from 'react';
-import { differenceInMinutes, format, parseISO } from 'date-fns';
+import { addMinutes, differenceInMinutes, format, parseISO, set } from 'date-fns';
+import { enUS, es } from 'date-fns/locale';
 import {
   AlertTriangle,
   ArrowRight,
   Calendar as CalendarIcon,
   CalendarSync,
+  ChevronDown,
   Clock,
   CreditCard,
   Edit,
@@ -17,12 +19,14 @@ import {
   Loader2,
   MapPin,
   Palette,
+  Plus,
+  RefreshCw,
   StickyNote,
   Stethoscope,
   Trash2,
   UserRound,
   UserSquare,
-  Zap,
+  X,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -49,26 +53,29 @@ import {
 } from '@/components/ui/dialog';
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ResizableSheet, SheetDescription, SheetTitle } from '@/components/ui/resizable-sheet';
+import { Calendar as DatePickerCalendar } from '@/components/ui/calendar';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { GOOGLE_CALENDAR_COLORS } from '@/components/calendar/calendar-constants';
 import { getReadableTextColor } from '@/components/calendar/calendar-utils';
 import { useToast } from '@/hooks/use-toast';
 import { STATUS_ACCENT_COLOR, canReschedule } from '@/constants/appointment-status';
-import { formatDisplayDate, cn, formatServicePrice } from '@/lib/utils';
-import type { Appointment, AppointmentStatus, Calendar as CalendarType, Invoice, Order, PatientSession, User } from '@/lib/types';
+import { formatDisplayDate, cn, formatServicePrice, toLocalISOString } from '@/lib/utils';
+import type { Appointment, AppointmentStatus, Calendar as CalendarType, Invoice, Order, PatientSession, Service, User } from '@/lib/types';
 
 import { DoctorDetailSheet } from '@/components/appointments/DoctorDetailSheet';
 import { InlineEntityPicker } from '@/components/appointments/InlineEntityPicker';
+import { InlineServicePicker } from '@/components/calendar/inline-service-picker';
 import { QuoteDetailSheet } from '@/components/appointments/QuoteDetailSheet';
 import { AppointmentStatusRail, type StatusChangeExtra } from '@/components/appointments/AppointmentStatusRail';
 import { getStatusIcon } from '@/components/appointments/status-icons';
-import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { usePatientView } from '@/stores/patient-view-store';
 import { useAccountStatement } from '@/stores/account-statement-store';
-import { fetchAppointmentBillingState } from '@/services/billing-preflight';
 import {
   fetchReassignCalendars,
   fetchReassignDoctors,
   reassignAppointmentField,
+  type AppointmentReassignChange,
 } from '@/lib/appointment-reassign';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
@@ -230,6 +237,183 @@ function EditableDetailRow({
   );
 }
 
+/** Inline time editor: pick a start time + duration; the end is recomputed and
+ *  read-only. Each change calls onApply so the appointment is upserted. */
+function TimeEditor({
+  startDate,
+  durationMin,
+  isSaving,
+  labels,
+  onApply,
+}: {
+  startDate: Date;
+  durationMin: number;
+  isSaving?: boolean;
+  labels: { start: string; duration: string; end: string };
+  onApply: (start: Date, end: Date) => void;
+}) {
+  const [time, setTime] = React.useState(format(startDate, 'HH:mm'));
+  const [dur, setDur] = React.useState(durationMin);
+  React.useEffect(() => { setTime(format(startDate, 'HH:mm')); setDur(durationMin); }, [startDate, durationMin]);
+
+  const startFromTime = (hhmm: string) => {
+    const [h, m] = hhmm.split(':').map((n) => parseInt(n, 10));
+    if (Number.isNaN(h) || Number.isNaN(m)) return startDate;
+    return set(startDate, { hours: h, minutes: m, seconds: 0, milliseconds: 0 });
+  };
+  const currentStart = startFromTime(time);
+  const currentEnd = addMinutes(currentStart, dur > 0 ? dur : 0);
+
+  return (
+    <div className="space-y-2 p-3 text-xs">
+      <label className="flex items-center justify-between gap-2">
+        <span className="text-muted-foreground">{labels.start}</span>
+        <Input
+          type="time"
+          value={time}
+          disabled={isSaving}
+          onChange={(e) => {
+            setTime(e.target.value);
+            const s = startFromTime(e.target.value);
+            onApply(s, addMinutes(s, dur > 0 ? dur : 0));
+          }}
+          className="h-8 w-28"
+        />
+      </label>
+      <label className="flex items-center justify-between gap-2">
+        <span className="text-muted-foreground">{labels.duration}</span>
+        <Input
+          type="number"
+          min={5}
+          step={5}
+          value={dur || ''}
+          disabled={isSaving}
+          onChange={(e) => setDur(Math.max(0, parseInt(e.target.value, 10) || 0))}
+          onBlur={() => { if (dur > 0) onApply(currentStart, addMinutes(currentStart, dur)); }}
+          className="h-8 w-20"
+        />
+      </label>
+      <div className="flex items-center justify-between gap-2 border-t border-dashed pt-2">
+        <span className="text-muted-foreground">{labels.end}</span>
+        <span className="font-semibold">{format(currentEnd, 'HH:mm')}</span>
+      </div>
+    </div>
+  );
+}
+
+/** Inline notes editor: a textarea + Save that upserts the appointment. */
+function NotesEditor({
+  value,
+  isSaving,
+  saveLabel,
+  placeholder,
+  onSave,
+}: {
+  value: string;
+  isSaving?: boolean;
+  saveLabel: string;
+  placeholder: string;
+  onSave: (notes: string) => void;
+}) {
+  const [text, setText] = React.useState(value);
+  React.useEffect(() => setText(value), [value]);
+  return (
+    <div className="space-y-2 p-3">
+      <Textarea value={text} onChange={(e) => setText(e.target.value)} placeholder={placeholder} rows={4} className="text-xs" />
+      <div className="flex justify-end">
+        <Button size="sm" className="h-7 text-xs" disabled={isSaving || text === value} onClick={() => onSave(text)}>
+          {saveLabel}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/** A collapsible invoice card with its payments. Collapsed by default when a quote
+ *  has several invoices; only real (non-zero) payments are listed, otherwise a
+ *  "no payments" line is shown instead of an empty row. */
+function InvoiceCard({
+  inv,
+  payments,
+  defaultExpanded,
+  noPaymentsLabel,
+  paidLabel,
+  unpaidLabel,
+  pendingLabel,
+  totalLabel,
+}: {
+  inv: Invoice;
+  payments: any[];
+  defaultExpanded: boolean;
+  noPaymentsLabel: string;
+  paidLabel: string;
+  unpaidLabel: string;
+  pendingLabel: string;
+  totalLabel: string;
+}) {
+  const [expanded, setExpanded] = React.useState(defaultExpanded);
+  React.useEffect(() => setExpanded(defaultExpanded), [defaultExpanded]);
+  // Ignore zero-amount allocations so an unpaid invoice doesn't render an empty "0" row.
+  const realPayments = payments.filter((p) => Math.abs(Number(p.amount_applied ?? p.amount ?? 0)) > 0.005);
+  const isPaid = inv.payment_status === 'paid';
+  const pendingAmt = Math.max(0, (inv.total || 0) - (inv.paid_amount || 0));
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-border">
+      <button
+        type="button"
+        onClick={() => setExpanded((e) => !e)}
+        className="flex w-full items-center gap-3 bg-muted/30 px-4 py-3 text-left transition-colors hover:bg-muted/50"
+      >
+        <CreditCard className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="truncate font-mono text-xs font-semibold">{inv.doc_no || inv.invoice_doc_no || `#${inv.id}`}</span>
+            <span className={cn(
+              'rounded-full px-1.5 py-0.5 text-xs font-medium',
+              isPaid
+                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'
+                : 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400',
+            )}>
+              {isPaid ? paidLabel : pendingAmt > 0 ? `${pendingLabel} ${inv.currency} ${pendingAmt.toLocaleString()}` : unpaidLabel}
+            </span>
+          </div>
+          <span className="mt-0.5 block text-xs text-muted-foreground">
+            {totalLabel}: {inv.currency} {(inv.total || 0).toLocaleString()}
+          </span>
+        </div>
+        <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', expanded && 'rotate-180')} />
+      </button>
+      {expanded && (
+        realPayments.length > 0 ? (
+          <div className="divide-y divide-border/50 border-t border-border/50">
+            {realPayments.map((p: any, i: number) => {
+              const amt = Math.abs(Number(p.amount_applied ?? p.amount ?? 0));
+              const cur = p.invoice_currency || p.source_currency || p.currency || inv.currency;
+              const method = p.payment_method_name || p.method || p.payment_method || '';
+              const date = p.payment_date || p.created_at || '';
+              const docNo = p.doc_no || p.payment_doc_no || '';
+              return (
+                <div key={i} className="flex items-center gap-2 px-4 py-2 text-xs">
+                  <CreditCard className="h-3 w-3 shrink-0 text-muted-foreground" />
+                  <span className="flex-1 truncate text-muted-foreground">
+                    {method && <span className="font-medium text-foreground">{method}</span>}
+                    {docNo && <span className="ml-1 font-mono opacity-70">· {docNo}</span>}
+                    {date && <span className="ml-1 opacity-60">· {format(new Date(date), 'dd/MM/yy')}</span>}
+                  </span>
+                  <span className="shrink-0 font-semibold text-foreground">{cur} {amt.toLocaleString()}</span>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="border-t border-border/50 px-4 py-2 text-xs text-muted-foreground">{noPaymentsLabel}</div>
+        )
+      )}
+    </div>
+  );
+}
+
 interface AppointmentPanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -263,6 +447,8 @@ interface AppointmentPanelProps {
   /** Changes the appointment's color tag (Google color id), mirroring the calendar
    *  right-click color picker. */
   onColorChange?: (appointment: Appointment, colorId: string) => void;
+  /** Opens the create-quote flow for this appointment (and links it on success). */
+  onCreateQuote?: (appointment: Appointment) => void;
 }
 
 export function AppointmentPanel({
@@ -275,20 +461,20 @@ export function AppointmentPanel({
   quoteInvoices,
   isLoadingQuoteInfo,
   doctorColor,
-  onEdit,
   onDelete,
   onOpenClinicSession,
   onReschedule,
   onStatusChange,
   onRequestCustomCancellation,
   onBillingSuccess,
-  hideBillingAction = false,
   doctors: doctorsProp,
   calendars: calendarsProp,
   onAppointmentUpdated,
   onColorChange,
+  onCreateQuote,
 }: AppointmentPanelProps) {
   const locale = useLocale();
+  const dateLocale = locale === 'es' ? es : enUS;
   const { toast } = useToast();
   const t = useTranslations('AppointmentsPage');
   const tColumns = useTranslations('AppointmentsColumns');
@@ -296,6 +482,7 @@ export function AppointmentPanel({
   const tReason = useTranslations('CancellationReason');
   const tReschedule = useTranslations('AppointmentReschedule');
   const tPanel = useTranslations('AppointmentPanel');
+  const tInline = useTranslations('AppointmentsPage.inlineCreate');
   const tAccount = useTranslations('AccountStatement');
   const tServices = useTranslations('ServicesPage');
   const tServicesColumns = useTranslations('ServicesColumns');
@@ -304,22 +491,24 @@ export function AppointmentPanel({
   const [isDoctorSheetOpen, setIsDoctorSheetOpen] = React.useState(false);
   const [isQuoteSheetOpen, setIsQuoteSheetOpen] = React.useState(false);
   const [selectedService, setSelectedService] = React.useState<NonNullable<Appointment['services']>[number] | null>(null);
-  const [isBillingLoading, setIsBillingLoading] = React.useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = React.useState(false);
   const [isColorPickerOpen, setIsColorPickerOpen] = React.useState(false);
   // Optimistic color so the header updates immediately on a color change.
   const [localColor, setLocalColor] = React.useState<string | undefined>(undefined);
   React.useEffect(() => { setLocalColor(undefined); }, [appointment?.id]);
   const canOpenDetailDeepLinks = useCanOpenDetailDeepLinks();
-  const { open: openBillingWizard } = useBillingWizard();
   const { open: openPatientView } = usePatientView();
   const { open: openAccountStatement } = useAccountStatement();
 
-  // Outstanding-debt indicator for the appointment's patient (per currency).
+  // Outstanding-debt indicator + cancelled-appointment count for the patient.
   const [patientDebt, setPatientDebt] = React.useState<{ currency: string; amount: number }[]>([]);
+  const [cancelledCount, setCancelledCount] = React.useState(0);
+  // Bumped after a successful Cobro Rápido so the panel re-fetches debt, cancelled
+  // count and invoice payments (the patient may have paid / the quote may have changed).
+  const [billingRefreshKey, setBillingRefreshKey] = React.useState(0);
   React.useEffect(() => {
     const patientId = appointment?.patientId;
-    if (!open || !patientId) { setPatientDebt([]); return; }
+    if (!open || !patientId) { setPatientDebt([]); setCancelledCount(0); return; }
     let active = true;
     api.get(API_ROUTES.USER_FINANCIAL, { user_id: patientId })
       .then((raw: any) => {
@@ -333,14 +522,52 @@ export function AppointmentPanel({
         );
       })
       .catch(() => { if (active) setPatientDebt([]); });
+    api.get(API_ROUTES.USER_CANCELLED_APPOINTMENTS_COUNT, { user_id: patientId })
+      .then((raw: any) => {
+        if (!active) return;
+        const row = Array.isArray(raw) ? raw[0] : raw;
+        setCancelledCount(Number(row?.cancelled_count ?? row?.count ?? 0) || 0);
+      })
+      .catch(() => { if (active) setCancelledCount(0); });
     return () => { active = false; };
-  }, [open, appointment?.patientId]);
+  }, [open, appointment?.patientId, billingRefreshKey]);
 
   // ── Quick-edit doctor / room (calendar) ─────────────────────────────────────
   // Local override so the panel reflects the reassignment immediately even if the
   // parent doesn't sync its own copy.
   const [localAppointment, setLocalAppointment] = React.useState<Appointment | null>(null);
-  const [editingField, setEditingField] = React.useState<'doctor' | 'calendar' | null>(null);
+  const [editingField, setEditingField] = React.useState<'doctor' | 'calendar' | 'date' | 'time' | 'notes' | 'quote' | 'services' | null>(null);
+  // Patient quotes for the inline "associate quote" picker (loaded lazily).
+  const [patientQuotes, setPatientQuotes] = React.useState<{
+    id: string; doc_no?: string; total: number; currency: string;
+    paymentStatus?: string; billingStatus?: string; amountInvoiced: number; amountPaid: number;
+  }[]>([]);
+  const [isLoadingQuotes, setIsLoadingQuotes] = React.useState(false);
+  const loadPatientQuotes = React.useCallback(async () => {
+    const patientId = appointment?.patientId;
+    if (!patientId) return;
+    setIsLoadingQuotes(true);
+    try {
+      const data = await api.get(API_ROUTES.USER_QUOTES, { user_id: patientId });
+      const raw = Array.isArray(data) ? data : (data.user_quotes || data.data || data.result || []);
+      // Same fields the patient "Financiero" tab reads, so totals and the
+      // invoiced/paid state are correct here too.
+      setPatientQuotes(raw.filter((q: any) => q && q.id != null).map((q: any) => ({
+        id: String(q.id),
+        doc_no: q.doc_no || q.quote_doc_no || '',
+        total: Number(q.total_presupuesto ?? q.total ?? 0),
+        currency: q.currency || 'USD',
+        paymentStatus: String(q.payment_status ?? '').toLowerCase(),
+        billingStatus: String(q.billing_status ?? '').toLowerCase(),
+        amountInvoiced: Number(q.monto_facturado ?? q.amount_invoiced ?? 0),
+        amountPaid: Number(q.monto_pagado ?? q.amount_paid ?? 0),
+      })));
+    } catch {
+      setPatientQuotes([]);
+    } finally {
+      setIsLoadingQuotes(false);
+    }
+  }, [appointment?.patientId]);
   const [isReassignSaving, setIsReassignSaving] = React.useState(false);
   const [fetchedDoctors, setFetchedDoctors] = React.useState<User[] | null>(null);
   const [fetchedCalendars, setFetchedCalendars] = React.useState<CalendarType[] | null>(null);
@@ -369,6 +596,32 @@ export function AppointmentPanel({
       setIsLoadingTargets(false);
     }
   }, [doctorsProp, calendarsProp, fetchedDoctors, fetchedCalendars]);
+
+  // Generic inline change (date/time/notes/quote): upserts the appointment with
+  // all data unchanged except the modified field — same as the doctor/room edit.
+  const applyChange = React.useCallback(async (change: AppointmentReassignChange, toastTitle?: string) => {
+    const current = localAppointment ?? appointment;
+    if (!current) return;
+    setIsReassignSaving(true);
+    try {
+      const updated = await reassignAppointmentField(current, change);
+      setLocalAppointment(updated);
+      onAppointmentUpdated?.(updated);
+      // Quote/service changes affect the financial section — refresh panel data.
+      if (change.quote !== undefined || change.services !== undefined) {
+        setBillingRefreshKey((k) => k + 1);
+      }
+      if (toastTitle) toast({ title: toastTitle });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: t('toasts.error'),
+        description: error instanceof Error ? error.message : t('toasts.unexpectedError'),
+      });
+    } finally {
+      setIsReassignSaving(false);
+    }
+  }, [appointment, localAppointment, onAppointmentUpdated, toast, t]);
 
   const handlePickReassign = React.useCallback(async (field: 'doctor' | 'calendar', id: string) => {
     const current = localAppointment ?? appointment;
@@ -428,7 +681,7 @@ export function AppointmentPanel({
       setPaymentsMap(map);
     }).finally(() => { if (!cancelled) setIsLoadingPayments(false); });
     return () => { cancelled = true; };
-  }, [quoteInvoices]);
+  }, [quoteInvoices, billingRefreshKey]);
 
   // When there is only invoice_id (no quote), load the invoice directly
   React.useEffect(() => {
@@ -478,87 +731,12 @@ export function AppointmentPanel({
       .finally(() => { if (!cancelled) setIsLoadingPayments(false); });
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appointment?.invoice_id, appointment?.patientId, quoteInvoices.length]);
+  }, [appointment?.invoice_id, appointment?.patientId, quoteInvoices.length, billingRefreshKey]);
 
-  const handleOpenBillingWizard = React.useCallback(async () => {
-    if (!appointment?.patientId) return;
-    setIsBillingLoading(true);
-    try {
-      // Fetch fresh billing state to avoid opening a freeform wizard when the
-      // appointment was already invoiced in a previous Cobro Rápido that the
-      // current UI hasn't reflected yet.
-      const fresh = await fetchAppointmentBillingState(
-        appointment.patientId,
-        appointment.id,
-        appointment.date,
-      );
-
-      const freshInvoiceId = fresh.invoice_id ?? appointment.invoice_id ?? null;
-      const freshQuoteId = fresh.quote_id ?? appointment.quote_id ?? null;
-
-      const firstUnpaidInvoice = quoteInvoices.find(
-        (inv) => inv.payment_status !== 'paid' && inv.type !== 'credit_note',
-      );
-      if (firstUnpaidInvoice) {
-        openBillingWizard({
-          invoiceId: firstUnpaidInvoice.id,
-          invoice: firstUnpaidInvoice,
-          patientId: appointment.patientId,
-          patientName: appointment.patientName,
-          isSales: true,
-          appointmentId: appointment.id,
-        }, onBillingSuccess);
-      } else if (freshInvoiceId) {
-        openBillingWizard({
-          invoiceId: String(freshInvoiceId),
-          ...(fresh.invoice ? { invoice: fresh.invoice } : {}),
-          patientId: appointment.patientId,
-          patientName: appointment.patientName,
-          isSales: true,
-          appointmentId: appointment.id,
-        }, onBillingSuccess);
-      } else if (freshQuoteId) {
-        openBillingWizard({
-          quoteId: String(freshQuoteId),
-          patientId: appointment.patientId,
-          patientName: appointment.patientName,
-          isSales: true,
-          appointmentId: appointment.id,
-        }, onBillingSuccess);
-      } else {
-        const sessionTreatments = (linkedSession?.tratamientos ?? []).filter(
-          (t) => t.service_id && !t.is_for_next_session,
-        );
-        const preloadedItems = sessionTreatments.length > 0
-          ? sessionTreatments.map((t) => ({
-              tempId: String(t.service_id),
-              service_id: String(t.service_id),
-              service_name: t.service_name ?? t.descripcion ?? '',
-              unit_price: t.unit_price ?? 0,
-              quantity: t.quantity ?? 1,
-              total: (t.unit_price ?? 0) * (t.quantity ?? 1),
-            }))
-          : (appointment.services || []).map((svc) => ({
-              tempId: svc.id,
-              service_id: svc.id,
-              service_name: svc.name,
-              unit_price: svc.price || 0,
-              quantity: 1,
-              total: svc.price || 0,
-            }));
-        openBillingWizard({
-          patientId: appointment.patientId,
-          patientName: appointment.patientName,
-          isSales: true,
-          appointmentId: appointment.id,
-          appointmentDate: appointment.date,
-          preloadedItems: preloadedItems.length > 0 ? preloadedItems : undefined,
-        }, onBillingSuccess);
-      }
-    } finally {
-      setIsBillingLoading(false);
-    }
-  }, [appointment, quoteInvoices, openBillingWizard, onBillingSuccess]);
+  const handleBillingSuccess = React.useCallback(() => {
+    onBillingSuccess?.();
+    setBillingRefreshKey((k) => k + 1);
+  }, [onBillingSuccess]);
 
   const openPatientDetail = React.useCallback(() => {
     if (!appointment?.patientId) return;
@@ -606,12 +784,25 @@ export function AppointmentPanel({
   // Reflect inline doctor/room reassignments without waiting for the parent to sync.
   const displayAppointment = localAppointment ?? appointment;
 
+  // Editable services: add/remove/swap, each persisted via the same upsert.
+  const apptServices = displayAppointment.services ?? [];
+  const handleToggleService = (svc: Service) => {
+    const exists = apptServices.some((s) => String(s.id) === String(svc.id));
+    const next = exists
+      ? apptServices.filter((s) => String(s.id) !== String(svc.id))
+      : [...apptServices, svc];
+    applyChange({ services: next }, t('toasts.appointmentUpdated'));
+  };
+  const handleRemoveService = (svc: Service) => {
+    applyChange({ services: apptServices.filter((s) => String(s.id) !== String(svc.id)) }, t('toasts.appointmentUpdated'));
+  };
+
   const serviceName = appointment.services && appointment.services.length > 0
     ? appointment.services.map((service) => service.name).join(', ')
     : appointment.service_name || appointment.summary || '';
-  const startDt = parseLocalDateTime(appointment.start?.dateTime);
-  const endDt = parseLocalDateTime(appointment.end?.dateTime);
-  const endTime = timeFromDateTime(appointment.end?.dateTime);
+  const startDt = parseLocalDateTime(displayAppointment.start?.dateTime);
+  const endDt = parseLocalDateTime(displayAppointment.end?.dateTime);
+  const endTime = timeFromDateTime(displayAppointment.end?.dateTime);
   const durationMin = startDt && endDt ? differenceInMinutes(endDt, startDt) : null;
   const durationHHmm = durationMin != null && durationMin > 0
     ? `${String(Math.floor(durationMin / 60)).padStart(2, '0')}:${String(durationMin % 60).padStart(2, '0')}`
@@ -620,7 +811,6 @@ export function AppointmentPanel({
   const statusColor = STATUS_ACCENT_COLOR[appointment.status];
   const appointmentCode = `#${appointment.id.slice(0, 8).toUpperCase()}`;
   const patientMeta = [appointment.patientPhone].filter(Boolean).join(' · ');
-  const hasServices = appointment.services && appointment.services.length > 0;
   const invoiceCount = quoteInvoices.length;
   const isCancelled = appointment.status === 'cancelled';
   const cancellationReasonLabel = isCancelled
@@ -675,6 +865,18 @@ export function AppointmentPanel({
                 </SheetTitle>
                 <SheetDescription className="sr-only">{serviceName || appointment.patientName}</SheetDescription>
               </div>
+              {/* Manual refresh — re-fetches debt, payments and quote/invoice state */}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className={cn('h-8 w-8 shrink-0 rounded-lg', headerColor ? 'hover:bg-white/20' : 'hover:bg-muted')}
+                aria-label={t('refresh')}
+                title={t('refresh')}
+                onClick={handleBillingSuccess}
+              >
+                <RefreshCw className={cn('h-4 w-4', isLoadingPayments && 'animate-spin')} style={headerColor ? { color: headerText } : undefined} />
+              </Button>
               {/* Change-color dropdown — same palette as the calendar right-click menu */}
               {onColorChange && (
                 <Popover open={isColorPickerOpen} onOpenChange={setIsColorPickerOpen}>
@@ -793,6 +995,11 @@ export function AppointmentPanel({
                     <p className={cn('truncate text-xs font-medium', patientDebt.length > 0 ? 'text-destructive' : 'text-muted-foreground')}>
                       {patientDebt.length > 0 ? tAccount('debtAlertTitle') : tAccount('noDebt')}
                     </p>
+                    {cancelledCount > 0 && (
+                      <p className="truncate text-xs font-medium text-amber-600 dark:text-amber-400">
+                        {tPanel('cancelledAppointments', { count: cancelledCount })}
+                      </p>
+                    )}
                   </div>
                   {appointment.patientId && (
                     <div className="flex shrink-0 items-center gap-2">
@@ -831,16 +1038,49 @@ export function AppointmentPanel({
                 )}
 
                 <div className="mt-3 grid gap-x-8 md:grid-cols-2">
-                  <DetailRow
+                  <EditableDetailRow
                     icon={CalendarIcon}
                     label={tColumns('date')}
-                    value={formatDisplayDate(appointment.date)}
+                    value={formatDisplayDate(displayAppointment.date)}
+                    editLabel={tColumns('date')}
+                    isEditing={editingField === 'date'}
+                    onEditingChange={(o) => setEditingField(o ? 'date' : null)}
+                    picker={
+                      <DatePickerCalendar
+                        mode="single"
+                        selected={startDt ?? undefined}
+                        defaultMonth={startDt ?? undefined}
+                        locale={dateLocale}
+                        onSelect={(d) => {
+                          if (!d) return;
+                          const base = startDt ?? new Date();
+                          const dur = durationMin && durationMin > 0 ? durationMin : 30;
+                          const newStart = set(base, { year: d.getFullYear(), month: d.getMonth(), date: d.getDate() });
+                          const newEnd = addMinutes(newStart, dur);
+                          applyChange({ start: toLocalISOString(newStart), end: toLocalISOString(newEnd) }, t('toasts.appointmentUpdated'));
+                          setEditingField(null);
+                        }}
+                        initialFocus
+                      />
+                    }
                   />
-                  <DetailRow
+                  <EditableDetailRow
                     icon={Clock}
                     label={tColumns('time')}
-                    value={`${appointment.time}${endTime ? ` → ${endTime}` : ''}`}
+                    value={`${displayAppointment.time}${endTime ? ` → ${endTime}` : ''}`}
                     detail={durationHHmm ? `${tPanel('duration')}: ${durationHHmm}` : undefined}
+                    editLabel={tColumns('time')}
+                    isEditing={editingField === 'time'}
+                    onEditingChange={(o) => setEditingField(o ? 'time' : null)}
+                    picker={
+                      <TimeEditor
+                        startDate={startDt ?? new Date()}
+                        durationMin={durationMin && durationMin > 0 ? durationMin : 30}
+                        isSaving={isReassignSaving}
+                        labels={{ start: tColumns('time'), duration: tPanel('duration'), end: tPanel('endTime') }}
+                        onApply={(s, e) => applyChange({ start: toLocalISOString(s), end: toLocalISOString(e) }, t('toasts.appointmentUpdated'))}
+                      />
+                    }
                   />
                   <EditableDetailRow
                     icon={MapPin}
@@ -891,46 +1131,97 @@ export function AppointmentPanel({
                   />
                 </div>
 
-                {hasServices && (
-                  <DetailRow
-                    icon={Layers}
-                    label={tPanel('servicesCount', { count: appointment.services?.length ?? 0 })}
-                    value={
-                      <span className="flex flex-col">
-                        {appointment.services?.map((service) => (
-                          <button
+                {/* Services — editable inline: add / remove / swap */}
+                <div className="flex w-full items-start gap-3 border-b border-border/70 py-3 text-left md:col-span-2">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-muted/60 text-muted-foreground">
+                    <Layers className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-medium text-muted-foreground">
+                        {tPanel('servicesCount', { count: apptServices.length })}
+                      </span>
+                      <Popover open={editingField === 'services'} onOpenChange={(o) => setEditingField(o ? 'services' : null)}>
+                        <PopoverTrigger asChild>
+                          <Button type="button" variant="ghost" size="sm" className="h-7 gap-1.5 px-2 text-xs text-muted-foreground">
+                            <Plus className="h-3.5 w-3.5" />
+                            {tPanel('addService')}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent align="end" className="w-72 p-0">
+                          <InlineServicePicker
+                            selected={apptServices}
+                            onToggle={handleToggleService}
+                            searchPlaceholder={tInline('searchService')}
+                            emptyText={tInline('noServices')}
+                            createLabel={(name) => tInline('createService', { name })}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    {apptServices.length === 0 ? (
+                      <p className="mt-1 text-sm text-muted-foreground">{tPanel('noServices')}</p>
+                    ) : (
+                      <div className="mt-1 flex flex-col">
+                        {apptServices.map((service) => (
+                          <div
                             key={service.id}
-                            type="button"
-                            className="flex w-full items-center gap-2 border-b border-dashed border-border/70 py-2 text-left transition-colors hover:bg-muted/20 last:border-b-0"
-                            onClick={() => openServiceDetail(service)}
+                            className="flex w-full items-center gap-2 border-b border-dashed border-border/70 py-2 last:border-b-0"
                           >
                             <span
-                              className="h-2.5 w-2.5 rounded-full"
+                              className="h-2.5 w-2.5 shrink-0 rounded-full"
                               style={{ backgroundColor: service.color || STATUS_ACCENT_COLOR.confirmed }}
                             />
-                            <span className="min-w-0 flex-1 truncate underline-offset-4 hover:underline">{service.name}</span>
+                            <button
+                              type="button"
+                              onClick={() => openServiceDetail(service)}
+                              className="min-w-0 flex-1 truncate text-left text-sm font-semibold text-foreground underline-offset-4 hover:underline"
+                            >
+                              {service.name}
+                            </button>
                             {service.duration_minutes ? (
                               <span className="shrink-0 text-xs font-medium text-muted-foreground">
                                 {tPanel('durationMinutes', { minutes: service.duration_minutes })}
                               </span>
                             ) : null}
-                          </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveService(service)}
+                              className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-destructive"
+                              aria-label={tPanel('removeService')}
+                              title={tPanel('removeService')}
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         ))}
-                      </span>
-                    }
-                    className="md:col-span-2"
-                  />
-                )}
+                      </div>
+                    )}
+                  </div>
+                </div>
 
-                {appointment.notes && (
-                  <DetailRow
-                    icon={StickyNote}
-                    label={t('contextMenu.notes')}
-                    value={<span className="whitespace-pre-wrap font-medium">{appointment.notes}</span>}
-                    tone="warning"
-                    className="md:col-span-2"
-                  />
-                )}
+                <EditableDetailRow
+                  icon={StickyNote}
+                  label={t('contextMenu.notes')}
+                  value={
+                    displayAppointment.notes
+                      ? <span className="whitespace-pre-wrap font-medium">{displayAppointment.notes}</span>
+                      : <span className="text-muted-foreground">{tPanel('addNotes')}</span>
+                  }
+                  editLabel={t('contextMenu.notes')}
+                  isEditing={editingField === 'notes'}
+                  onEditingChange={(o) => setEditingField(o ? 'notes' : null)}
+                  className="md:col-span-2"
+                  picker={
+                    <NotesEditor
+                      value={displayAppointment.notes ?? ''}
+                      isSaving={isReassignSaving}
+                      saveLabel={tPanel('save')}
+                      placeholder={tPanel('addNotes')}
+                      onSave={(notes) => { applyChange({ notes }, t('toasts.appointmentUpdated')); setEditingField(null); }}
+                    />
+                  }
+                />
               </section>
 
               {(linkedSession || isLoadingLinkedSession || appointment.treatment_seq_step_id != null || !!onOpenClinicSession) && (
@@ -1002,15 +1293,60 @@ export function AppointmentPanel({
                 </section>
               )}
 
-              {(appointment.quote_id || appointment.invoice_id || quoteOrder || invoiceCount > 0 || isLoadingQuoteInfo) && (
+              {/* Quote section — always visible so a quote can be associated/created */}
+              {(
                 <section className="mt-6 border-t border-border pt-4 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <h3 className="text-base font-semibold">{tColumns('quoteDocNo')}</h3>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <h3 className="text-base font-semibold">{tColumns('quoteDocNo')}</h3>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Popover open={editingField === 'quote'} onOpenChange={(o) => { setEditingField(o ? 'quote' : null); if (o) void loadPatientQuotes(); }}>
+                        <PopoverTrigger asChild>
+                          <Button type="button" variant="outline" size="sm" className="h-7 gap-1.5 px-2.5 text-xs">
+                            <Layers className="h-3.5 w-3.5" />
+                            {displayAppointment.quote_id ? t('contextMenu.changeQuote') : t('contextMenu.linkQuote')}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent align="end" className="w-[26rem] max-w-[calc(100vw-2rem)] p-0">
+                          <InlineEntityPicker
+                            className="border-0"
+                            items={[
+                              { id: '__none__', name: t('contextMenu.unlinkQuote') },
+                              ...patientQuotes.map((q) => {
+                                const statusLabel = q.paymentStatus === 'paid'
+                                  ? tPanel('paid')
+                                  : (q.amountInvoiced > 0 || (q.billingStatus && q.billingStatus !== 'not invoiced'))
+                                    ? tPanel('invoiced')
+                                    : t('notInvoiced');
+                                return { id: q.id, name: `${q.doc_no || q.id} · ${q.currency} ${q.total.toLocaleString()} — ${statusLabel}` };
+                              }),
+                            ]}
+                            selectedId={displayAppointment.quote_id}
+                            onSelect={(id) => {
+                              const q = id === '__none__' ? null : patientQuotes.find((x) => x.id === id);
+                              applyChange({ quote: q ? { id: q.id, doc_no: q.doc_no } : null }, t('toasts.appointmentUpdated'));
+                              setEditingField(null);
+                            }}
+                            isLoading={isLoadingQuotes}
+                            isSaving={isReassignSaving}
+                            searchPlaceholder={t('contextMenu.searchQuote')}
+                            emptyText={t('contextMenu.noQuotes')}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      {onCreateQuote && (
+                        <Button type="button" size="sm" className="h-7 gap-1.5 px-2.5 text-xs" onClick={() => onCreateQuote(displayAppointment)}>
+                          <FileText className="h-3.5 w-3.5" />
+                          {t('contextMenu.newQuote')}
+                        </Button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Quote row */}
-                  {appointment.quote_id && (
+                  {displayAppointment.quote_id && (
                     <button
                       type="button"
                       onClick={() => setIsQuoteSheetOpen(true)}
@@ -1019,7 +1355,7 @@ export function AppointmentPanel({
                       <FileText className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
                       <span className="flex-1 min-w-0">
                         <span className="block font-mono text-xs font-semibold">
-                          {appointment.quote_doc_no || appointment.quote_id}
+                          {displayAppointment.quote_doc_no || displayAppointment.quote_id}
                         </span>
                         <span className="block text-xs text-muted-foreground">
                           {isLoadingQuoteInfo ? '…' : invoiceCount > 0 ? `${t('linkedInvoice')} · ${invoiceCount}` : t('notInvoiced')}
@@ -1039,72 +1375,24 @@ export function AppointmentPanel({
                     if (isLoadingQuoteInfo || (isLoadingPayments && invoicesToShow.length === 0)) {
                       return <div className="h-8 rounded-lg bg-muted/50 animate-pulse" />;
                     }
-                    return invoicesToShow.map((inv) => {
-                      const payments: any[] = paymentsMap[inv.id] ?? [];
-                      const isPaid = inv.payment_status === 'paid';
-                      const pendingAmt = Math.max(0, (inv.total || 0) - (inv.paid_amount || 0));
-                      return (
-                        <div key={inv.id} className="rounded-xl border border-border overflow-hidden">
-                          {/* Invoice header */}
-                          <div className="flex items-center gap-3 px-4 py-3 bg-muted/30">
-                            <CreditCard className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-mono text-xs font-semibold truncate">
-                                  {inv.doc_no || inv.invoice_doc_no || `#${inv.id}`}
-                                </span>
-                                <span className={cn(
-                                  'text-xs font-medium px-1.5 py-0.5 rounded-full',
-                                  isPaid
-                                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'
-                                    : 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400',
-                                )}>
-                                  {isPaid ? 'Pagado' : pendingAmt > 0 ? `Pendiente ${inv.currency} ${pendingAmt.toLocaleString()}` : 'Sin pagar'}
-                                </span>
-                              </div>
-                              <span className="block text-xs text-muted-foreground mt-0.5">
-                                Total: {inv.currency} {(inv.total || 0).toLocaleString()}
-                              </span>
-                            </div>
-                          </div>
-                          {/* Payments list */}
-                          {payments.length > 0 && (
-                            <div className="divide-y divide-border/50 border-t border-border/50">
-                              {payments.map((p: any, i: number) => {
-                                const amt = Math.abs(Number(p.amount_applied ?? p.amount ?? 0));
-                                const cur = p.invoice_currency || p.source_currency || p.currency || inv.currency;
-                                const method = p.payment_method_name || p.method || p.payment_method || '';
-                                const date = p.payment_date || p.created_at || '';
-                                const docNo = p.doc_no || p.payment_doc_no || '';
-                                return (
-                                  <div key={i} className="flex items-center gap-2 px-4 py-2 text-xs">
-                                    <CreditCard className="h-3 w-3 text-muted-foreground shrink-0" />
-                                    <span className="flex-1 truncate text-muted-foreground">
-                                      {method && <span className="font-medium text-foreground">{method}</span>}
-                                      {docNo && <span className="font-mono ml-1 opacity-70">· {docNo}</span>}
-                                      {date && <span className="ml-1 opacity-60">· {format(new Date(date), 'dd/MM/yy')}</span>}
-                                    </span>
-                                    <span className="font-semibold text-foreground shrink-0">
-                                      {cur} {amt.toLocaleString()}
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                          {payments.length === 0 && !isLoadingPayments && (
-                            <div className="px-4 py-2 text-xs text-muted-foreground border-t border-border/50">
-                              Sin pagos registrados
-                            </div>
-                          )}
-                        </div>
-                      );
-                    });
+                    return invoicesToShow.map((inv) => (
+                      <InvoiceCard
+                        key={inv.id}
+                        inv={inv}
+                        payments={paymentsMap[inv.id] ?? []}
+                        defaultExpanded={invoicesToShow.length === 1}
+                        noPaymentsLabel={tPanel('noPaymentsRecorded')}
+                        paidLabel={tPanel('paid')}
+                        unpaidLabel={tPanel('unpaid')}
+                        pendingLabel={tAccount('pending')}
+                        totalLabel={tPanel('total')}
+                      />
+                    ));
                   })()}
 
                   {/* No financial info at all */}
-                  {!appointment.quote_id && !appointment.invoice_id && !directInvoice && !isLoadingQuoteInfo && (
-                    <p className="text-xs text-muted-foreground">{t('notInvoiced')}</p>
+                  {!displayAppointment.quote_id && !appointment.invoice_id && !directInvoice && !isLoadingQuoteInfo && (
+                    <p className="text-xs text-muted-foreground">{tPanel('noQuoteLinked')}</p>
                   )}
                 </section>
               )}
@@ -1124,19 +1412,6 @@ export function AppointmentPanel({
 
           <div className="flex-none border-t border-border bg-muted/30 px-5 py-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
-              {appointment.patientId && !hideBillingAction && (
-                <Button
-                  variant="default"
-                  className="w-full gap-2 sm:w-auto"
-                  onClick={handleOpenBillingWizard}
-                  disabled={isBillingLoading}
-                >
-                  {isBillingLoading
-                    ? <Loader2 className="h-4 w-4 animate-spin" />
-                    : <Zap className="h-4 w-4" />}
-                  Cobro Rápido
-                </Button>
-              )}
               <div className="flex items-center gap-2 sm:ml-auto sm:gap-3">
                 {onReschedule && (
                   <Button
@@ -1151,16 +1426,6 @@ export function AppointmentPanel({
                   >
                     <CalendarSync className="h-4 w-4" />
                     {tReschedule('action')}
-                  </Button>
-                )}
-                {onEdit && (
-                  <Button
-                    size="lg"
-                    className="flex-1 gap-2 sm:flex-none"
-                    onClick={() => { onEdit(appointment); onOpenChange(false); }}
-                  >
-                    <Edit className="h-4 w-4" />
-                    {tColumns('edit')}
                   </Button>
                 )}
                 {onDelete && (
@@ -1212,12 +1477,12 @@ export function AppointmentPanel({
           doctorColor={doctorColor}
         />
       )}
-      {appointment.quote_id && (
+      {displayAppointment.quote_id && (
         <QuoteDetailSheet
           open={isQuoteSheetOpen}
           onOpenChange={setIsQuoteSheetOpen}
-          quoteId={appointment.quote_id}
-          quoteDocNo={appointment.quote_doc_no}
+          quoteId={displayAppointment.quote_id}
+          quoteDocNo={displayAppointment.quote_doc_no}
           patientName={appointment.patientName}
         />
       )}

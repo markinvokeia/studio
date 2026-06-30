@@ -202,7 +202,7 @@ export function CalendarDayView({
               ))}
               {inlineDraft && renderInlineDraft && isSameDay(day, inlineDraft.date) && (
                 <div
-                  className="absolute left-0.5 right-0.5 z-[12]"
+                  className="absolute left-0.5 z-[12] w-[300px] max-w-[calc(100vw-2rem)]"
                   style={{
                     top: `${((inlineDraft.date.getHours() + inlineDraft.date.getMinutes() / 60) / 1) * hourSlotHeight}px`,
                     minHeight: `${Math.max((inlineDraft.durationMin / 60) * hourSlotHeight, 96)}px`,

@@ -60,6 +60,32 @@ async function loadQuoteItems(quoteId: string, isSales: boolean): Promise<QuoteI
   }
 }
 
+/**
+ * Resolves the full quote object from just a quote id (e.g. when Cobro Rápido is
+ * launched from an appointment, which only carries `quote_id`). Looks the quote up
+ * among the patient's quotes so the wizard can confirm/invoice it without the
+ * caller having to pass the whole object.
+ */
+async function loadQuoteById(quoteId: string, patientId: string | undefined): Promise<Quote | null> {
+  if (!quoteId || !patientId) return null;
+  try {
+    const data = await api.get(API_ROUTES.USER_QUOTES, { user_id: patientId });
+    const raw: any[] = Array.isArray(data) ? data : (data.user_quotes || data.data || data.result || []);
+    const found = raw.find((q: any) => String(q.id) === String(quoteId));
+    if (!found) return null;
+    return {
+      id: String(found.id),
+      doc_no: found.doc_no || found.quote_doc_no || '',
+      user_id: String(found.user_id || patientId),
+      total: Number(found.total || 0),
+      currency: found.currency || 'UYU',
+      status: found.status || 'confirmed',
+    } as Quote;
+  } catch {
+    return null;
+  }
+}
+
 async function loadOrderId(quoteId: string, isSales: boolean): Promise<string | null> {
   try {
     const endpoint = isSales ? API_ROUTES.SALES.QUOTES_ORDERS : API_ROUTES.PURCHASES.QUOTES_ORDERS;
@@ -485,15 +511,18 @@ export function BillingWizardModal() {
         loadQuoteItems(quoteId, isSales),
         loadOrderId(quoteId, isSales),
         fetchQuoteInvoicesForFinancials(quoteId, isSales),
+        // Resolve the quote object from its id when the caller didn't pass one
+        // (e.g. Cobro Rápido from an appointment that only has quote_id).
+        existingQuote ? Promise.resolve(existingQuote) : loadQuoteById(quoteId, context.patientId),
       ])
-        .then(([items, oid, fetchedInvoices]) => {
+        .then(([items, oid, fetchedInvoices, resolvedQuote]) => {
           setQuoteItems(items);
           setOrderId(oid);
-          const finSummary = existingQuote
-            ? calculateQuoteFinancialSummary(Number(existingQuote.total || 0), fetchedInvoices)
+          const finSummary = resolvedQuote
+            ? calculateQuoteFinancialSummary(Number(resolvedQuote.total || 0), fetchedInvoices)
             : null;
           setFinancialSummary(finSummary);
-          if (existingQuote) setQuote(existingQuote);
+          if (resolvedQuote) setQuote(resolvedQuote);
 
           // All invoices (including paid) for per-service invoiced amount calculation
           setAllQuoteInvoices(fetchedInvoices);

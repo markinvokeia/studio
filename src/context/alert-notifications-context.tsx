@@ -102,15 +102,9 @@ const response = await api.get(API_ROUTES.SYSTEM.ALERT_INSTANCES, { status: 'PEN
   }, [fetchAlerts])
 
   React.useEffect(() => {
-    let interval: NodeJS.Timeout | null = null
-
     const setupAlerts = () => {
       const token = localStorage.getItem('token')
       if (!token) {
-        if (interval) {
-          clearInterval(interval)
-          interval = null
-        }
         // Reset state when logged out
         setState({
           pendingCount: 0,
@@ -123,7 +117,6 @@ const response = await api.get(API_ROUTES.SYSTEM.ALERT_INSTANCES, { status: 'PEN
       }
 
       fetchAlerts()
-      interval = setInterval(fetchAlerts, 600000)
     }
 
     // Initial setup
@@ -139,9 +132,6 @@ const response = await api.get(API_ROUTES.SYSTEM.ALERT_INSTANCES, { status: 'PEN
     window.addEventListener('storage', handleStorageChange)
 
     return () => {
-      if (interval) {
-        clearInterval(interval)
-      }
       window.removeEventListener('storage', handleStorageChange)
     }
   }, [fetchAlerts])
