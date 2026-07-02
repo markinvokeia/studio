@@ -8420,6 +8420,10 @@
         "bank": "Bank",
         "account": "Account"
       },
+      "jornadas": {
+        "myWorklog": "My worklog",
+        "myWorklogDesc": "Log the days you worked. You can prepopulate from your clinical sessions and add or edit days manually."
+      },
       "subtitle": "View your employment information and submit requests to administration."
     },
     "settings": {

@@ -214,7 +214,7 @@ export function ReportsPanel() {
       {/* Grouped list (scrolls; rows stack on mobile) */}
       <div className="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col gap-4">
         {CATEGORY_ORDER.map((cat) => {
-          const defs = PAYROLL_REPORT_DEFS.filter((d) => d.category === cat);
+          const defs = PAYROLL_REPORT_DEFS.filter((d) => d.category === cat && !d.hidden);
           if (!defs.length) return null;
           return (
             <Card key={cat} className="shrink-0">

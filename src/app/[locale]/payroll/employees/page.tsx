@@ -125,22 +125,9 @@ export default function PayrollEmployeesPage() {
     // Always fetch fresh — exclude users already linked as employees
     const linkedUserIds = new Set(employees.map((e) => e.user_id).filter(Boolean));
     setLoadingUsers(true);
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    const base = process.env.NEXT_PUBLIC_API_URL
-      ? `${process.env.NEXT_PUBLIC_API_URL}/webhook`
-      : 'https://n8n-project-n8n.7ig1i3.easypanel.host/webhook';
-    fetch(`${base}${API_ROUTES.PAYROLL.USERS}`, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      mode: 'cors',
-      cache: 'no-store',
-    })
-      .then((r) => r.json())
+    api.get(API_ROUTES.PAYROLL.USERS)
       .then((data) => {
-        const raw = Array.isArray(data) ? data : (data?.data ?? []);
+        const raw = Array.isArray(data) ? data : ((data as { data?: PayrollUser[] })?.data ?? []);
         const mapped = (raw as PayrollUser[]).map((u) => ({ ...u, id: String(u.id), name: u.name || '—' }));
         setAllUsers(mapped.filter((u) => !linkedUserIds.has(u.id)));
       })

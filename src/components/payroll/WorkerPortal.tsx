@@ -24,6 +24,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { formatCurrency, formatDate, getMonthName } from '@/components/payroll/payroll-utils';
 import { ClinicalSessionsList } from '@/components/payroll/ClinicalSessionsList';
+import { WorkLogPanel } from '@/components/payroll/WorkLogPanel';
 import { AusenciasList } from '@/components/payroll/AusenciasList';
 import { VacationBalanceCard } from '@/components/payroll/VacationBalanceCard';
 import type { PayrollAusencia, PayrollClinicalSession, PayrollEmployee, PayrollEntry, PortalRequest, PortalRequestMotivo, VacationBalance } from '@/lib/types';
@@ -38,6 +39,7 @@ import {
   AlertCircle,
   CalendarOff,
   CheckCircle2,
+  ClipboardList,
   Clock,
   Download,
   FileText,
@@ -317,6 +319,10 @@ export function WorkerPortal() {
                 <Clock className="h-3.5 w-3.5" />
                 {tLic('tabs.jornadas')}
               </TabsTrigger>
+              <TabsTrigger value="worklog" className="text-xs gap-1.5">
+                <ClipboardList className="h-3.5 w-3.5" />
+                {t('jornadas.myWorklog')}
+              </TabsTrigger>
               <TabsTrigger value="certificados" className="text-xs gap-1.5">
                 <FileText className="h-3.5 w-3.5" />
                 {t('certificates.title')}
@@ -484,7 +490,7 @@ export function WorkerPortal() {
               </div>
             </TabsContent>
 
-            {/* Jornadas tab */}
+            {/* Jornadas tab (sesiones clínicas) */}
             <TabsContent value="jornadas" className="mt-4">
               <div className="rounded-lg border overflow-hidden h-[60vh]">
                 <ClinicalSessionsList
@@ -493,6 +499,14 @@ export function WorkerPortal() {
                   dateRange={clinicalRange}
                   onDateRangeChange={setClinicalRange}
                 />
+              </div>
+            </TabsContent>
+
+            {/* Mis jornadas tab (worklog self-service) */}
+            <TabsContent value="worklog" className="mt-4">
+              <p className="text-xs text-muted-foreground mb-2">{t('jornadas.myWorklogDesc')}</p>
+              <div className="rounded-lg border overflow-hidden h-[60vh]">
+                <WorkLogPanel userId={user?.id ?? ''} />
               </div>
             </TabsContent>
 

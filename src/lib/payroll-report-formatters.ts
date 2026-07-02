@@ -23,20 +23,22 @@ export interface ReportDef {
   available: boolean;
   /** dgi is annual (uses year instead of period_id). */
   annual?: boolean;
+  /** Temporarily hidden from /payroll/reports (not yet ready to expose to users). */
+  hidden?: boolean;
 }
 
 const ALL: ReportFormat[] = ['pdf', 'excel', 'csv'];
 
 export const PAYROLL_REPORT_DEFS: ReportDef[] = [
-  { tipo: 'planilla_sueldos', category: 'interno', source: 'period',   formats: ALL,      available: true },
+  { tipo: 'planilla_sueldos', category: 'interno', source: 'period',   formats: ALL,      available: true, hidden: true },
   { tipo: 'receipts',         category: 'interno', source: 'receipts', formats: ['pdf'],  available: true },
-  { tipo: 'accounting',       category: 'interno', source: 'data', endpoint: API_ROUTES.PAYROLL.REPORTS_ACCOUNTING,  formats: ALL, available: true },
-  { tipo: 'cost_center',      category: 'interno', source: 'data', endpoint: API_ROUTES.PAYROLL.REPORTS_COST_CENTER, formats: ALL, available: true },
-  { tipo: 'bps_nomina',       category: 'bps',     source: 'data', endpoint: API_ROUTES.PAYROLL.REPORTS_BPS_NOMINA,  formats: ALL, available: true },
-  { tipo: 'bps_gafi',         category: 'bps',     source: 'none',  formats: [],          available: false },
-  { tipo: 'dgi_irpf',         category: 'dgi',     source: 'data', endpoint: API_ROUTES.PAYROLL.REPORTS_DGI_IRPF,    formats: ALL, available: true, annual: true },
-  { tipo: 'bank_file',        category: 'bank',    source: 'data', endpoint: API_ROUTES.PAYROLL.REPORTS_BANK_FILE,   formats: ALL, available: true },
-  { tipo: 'mtss',             category: 'otros',   source: 'data', endpoint: API_ROUTES.PAYROLL.REPORTS_MTSS,       formats: ALL, available: true },
+  { tipo: 'accounting',       category: 'interno', source: 'data', endpoint: API_ROUTES.PAYROLL.REPORTS_ACCOUNTING,  formats: ALL, available: true, hidden: true },
+  { tipo: 'cost_center',      category: 'interno', source: 'data', endpoint: API_ROUTES.PAYROLL.REPORTS_COST_CENTER, formats: ALL, available: true, hidden: true },
+  { tipo: 'bps_nomina',       category: 'bps',     source: 'data', endpoint: API_ROUTES.PAYROLL.REPORTS_BPS_NOMINA,  formats: ALL, available: true, hidden: true },
+  { tipo: 'bps_gafi',         category: 'bps',     source: 'none',  formats: [],          available: false, hidden: true },
+  { tipo: 'dgi_irpf',         category: 'dgi',     source: 'data', endpoint: API_ROUTES.PAYROLL.REPORTS_DGI_IRPF,    formats: ALL, available: true, annual: true, hidden: true },
+  { tipo: 'bank_file',        category: 'bank',    source: 'data', endpoint: API_ROUTES.PAYROLL.REPORTS_BANK_FILE,   formats: ALL, available: true, hidden: true },
+  { tipo: 'mtss',             category: 'otros',   source: 'data', endpoint: API_ROUTES.PAYROLL.REPORTS_MTSS,       formats: ALL, available: true, hidden: true },
 ];
 
 // ── Data helpers ────────────────────────────────────────────────────────────────
