@@ -9,6 +9,8 @@ import { CalendarSettingsForm } from '@/components/calendar/calendar-settings-fo
 import { getCalendarSettings } from '@/components/calendar/calendar-settings-utils';
 import { CalendarGapsPanel } from '@/components/calendar/calendar-gaps-panel';
 import { CalendarAgendasPanel } from '@/components/calendar/calendar-agendas-panel';
+import { CalendarViewMenu } from '@/components/calendar/calendar-view-menu';
+import { CalendarZoomMenu } from '@/components/calendar/calendar-zoom-menu';
 import { computeRangeGaps, computeDayGaps, computeDayGapsForIntervals, getBusinessWindow, getAvailableIntervals, computeBlockedRanges, gapKey, DEFAULT_MIN_GAP_MINUTES, type Gap, type BlockedRange } from '@/components/calendar/calendar-gaps';
 import { filterEventsByDayAndGroup } from '@/components/calendar/calendar-utils';
 import { DEFAULT_CALENDAR_MODE, DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, HOUR_SLOT_HEIGHT } from '@/components/calendar/calendar-constants';
@@ -67,7 +69,7 @@ import { getSalesServices, getUsersServicesBatch, fetchServicesByIds } from '@/s
 import { ColumnDef } from '@tanstack/react-table';
 import { addMinutes, eachDayOfInterval, endOfMonth, endOfWeek, format, isValid, parseISO, set, startOfMonth, startOfWeek } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
-import { BellRing, Building2, Calendar as CalendarIcon, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileText, Layers, Link2, Loader2, PanelLeft, PlusCircle, Receipt, RefreshCw, Stethoscope, Trash2, UserCog, Users, X, Zap } from 'lucide-react';
+import { BellRing, Building2, Calendar as CalendarIcon, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ChevronLeft, ClipboardCheck, Edit, FileText, Layers, Link2, Loader2, PlusCircle, Receipt, RefreshCw, Stethoscope, Trash2, UserCog, Users, X, Zap } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
@@ -507,6 +509,7 @@ export default function AppointmentsPage() {
     const isMobile = breakpoint === 'mobile';
 
     const t = useTranslations('AppointmentsPage');
+    const tCalendar = useTranslations('Calendar');
     const tColumns = useTranslations('AppointmentsColumns');
     const tStatus = useTranslations('AppointmentStatus');
     const tStatusMenu = useTranslations('AppointmentStatusMenu');
@@ -602,6 +605,42 @@ export default function AppointmentsPage() {
     const [calendarMode, setCalendarMode] = React.useState<string>(DEFAULT_CALENDAR_MODE);
     const [personalizedCalendarId, setPersonalizedCalendarId] = React.useState<string | null>(null);
     const [agendasPanelOpen, setAgendasPanelOpen] = React.useState(false);
+    // Zoom is controlled here in custom mode (a dropdown replaces the floating slider).
+    // Persisted in the same localStorage key the Calendar uses internally.
+    const [calendarZoom, setCalendarZoom] = React.useState<number>(0.9);
+    React.useEffect(() => {
+        const saved = typeof window !== 'undefined' ? window.localStorage.getItem('calendar-zoom') : null;
+        if (saved) {
+            const v = parseFloat(saved);
+            if (!Number.isNaN(v) && v >= 0.7 && v <= 2.5) setCalendarZoom(v);
+        }
+    }, []);
+    const applyCalendarZoom = React.useCallback((v: number) => {
+        const clamped = Math.min(2.5, Math.max(0.7, Math.round(v * 10) / 10));
+        setCalendarZoom(clamped);
+        try { window.localStorage.setItem('calendar-zoom', String(clamped)); } catch { /* ignore */ }
+    }, []);
+    // Ctrl/Cmd +/- zoom shortcuts (custom mode, time-grid views only). Ctrl 0 resets.
+    React.useEffect(() => {
+        if (calendarMode !== 'custom') return;
+        const isTimeGrid = ['day', '2-day', '3-day', '4-day', '5-day', '6-day', 'week'].includes(currentView);
+        if (!isTimeGrid) return;
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (!(e.ctrlKey || e.metaKey)) return;
+            if (e.key === '+' || e.key === '=') {
+                e.preventDefault();
+                applyCalendarZoom(calendarZoom + 0.1);
+            } else if (e.key === '-' || e.key === '_') {
+                e.preventDefault();
+                applyCalendarZoom(calendarZoom - 0.1);
+            } else if (e.key === '0') {
+                e.preventDefault();
+                applyCalendarZoom(1);
+            }
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [calendarMode, currentView, calendarZoom, applyCalendarZoom]);
 
     const tBulk = useTranslations('AppointmentsPage.bulk');
 
@@ -1052,7 +1091,7 @@ export default function AppointmentsPage() {
     // Left-click on an empty slot → inline draft (if enabled, desktop, time-grid view)
     // or the modal form. Month/year/schedule always use the modal.
     const handleSlotClick = React.useCallback((date: Date, context?: { groupBy: 'doctor' | 'calendar' | 'sede'; value: string }) => {
-        const isTimeGrid = ['day', '2-day', '3-day', 'week'].includes(currentView);
+        const isTimeGrid = ['day', '2-day', '3-day', '4-day', '5-day', '6-day', 'week'].includes(currentView);
         if (calendarSettings?.inline_appointment_creation && isTimeGrid) {
             const draftDoctor = context?.groupBy === 'doctor' ? (doctors.find((d) => String(d.id) === String(context.value)) ?? null) : null;
             const draftCalendar = context?.groupBy === 'calendar' ? (calendars.find((c) => String(c.id) === String(context.value)) ?? null) : null;
@@ -1067,7 +1106,7 @@ export default function AppointmentsPage() {
     // Edit an existing appointment: inline edit card when the inline-creation
     // preference is on (and on a time-grid view), otherwise the modal form.
     const handleEditAppointment = React.useCallback((appointment: Appointment) => {
-        const isTimeGrid = ['day', '2-day', '3-day', 'week'].includes(currentView);
+        const isTimeGrid = ['day', '2-day', '3-day', '4-day', '5-day', '6-day', 'week'].includes(currentView);
         if (calendarSettings?.inline_appointment_creation && isTimeGrid) {
             const startStr = appointment.start?.dateTime;
             const start = startStr ? parseISO(startStr.replace(/Z$/, '')) : new Date();
@@ -2226,7 +2265,7 @@ export default function AppointmentsPage() {
 
     const blockedRanges = React.useMemo<BlockedRange[]>(() => {
         if (!blockUnavailable || !blockingConfigured) return [];
-        const isGroupingView = ['day', '2-day', '3-day', 'week'].includes(currentView);
+        const isGroupingView = ['day', '2-day', '3-day', '4-day', '5-day', '6-day', 'week'].includes(currentView);
         const tagDay = (day: Date, sched: ClinicSchedule[], groupValue?: string): BlockedRange[] =>
             computeBlockedRanges(day, sched, clinicExceptions)
                 .map((r) => ({ dayKey: format(day, 'yyyy-MM-dd'), startMin: r.startMin, endMin: r.endMin, groupValue, reason: r.reason, note: r.note }));
@@ -2292,7 +2331,7 @@ export default function AppointmentsPage() {
 
         // When inline creation is on (and on a time-grid view), draft the appointment
         // in-place on the calendar instead of opening the modal — same as a slot click.
-        const isTimeGrid = ['day', '2-day', '3-day', 'week'].includes(currentView);
+        const isTimeGrid = ['day', '2-day', '3-day', '4-day', '5-day', '6-day', 'week'].includes(currentView);
         if (calendarSettings?.inline_appointment_creation && isTimeGrid) {
             const draftDoctor = context?.groupBy === 'doctor' ? (doctors.find((d) => String(d.id) === String(context.value)) ?? null) : null;
             const draftCalendar = context?.groupBy === 'calendar' ? (calendars.find((c) => String(c.id) === String(context.value)) ?? null) : null;
@@ -2341,7 +2380,7 @@ export default function AppointmentsPage() {
         });
     }, []);
 
-    const showGroupControls = ['day', '2-day', '3-day', 'week'].includes(currentView);
+    const showGroupControls = ['day', '2-day', '3-day', '4-day', '5-day', '6-day', 'week'].includes(currentView);
     // The doctors filter also applies to the agenda (schedule) view, even though
     // that view does not support column grouping.
     const showDoctorFilter = showGroupControls || currentView === 'schedule';
@@ -2454,6 +2493,11 @@ export default function AppointmentsPage() {
             prev && selectedCalendarIds.includes(prev) ? prev : firstVisibleCalendarId,
         );
     }, [isCustomMode, selectedCalendarIds, firstVisibleCalendarId]);
+    // On entering custom mode, open the Agendas panel first so the user picks an
+    // agenda before seeing its appointments; closing it on leaving the mode.
+    React.useEffect(() => {
+        setAgendasPanelOpen(isCustomMode);
+    }, [isCustomMode]);
 
     // In custom mode force calendar grouping with a single column, and filter
     // events to that one agenda (so month/agenda views also show only it).
@@ -2481,7 +2525,7 @@ export default function AppointmentsPage() {
         // Grouped (by doctor/consultorio): free slots PER column, so a consultorio's
         // continuous free time merges across hours regardless of other columns.
         // Only the grid views render grouped columns; month/schedule/year use union.
-        const isGroupingView = ['day', '2-day', '3-day', 'week'].includes(currentView);
+        const isGroupingView = ['day', '2-day', '3-day', '4-day', '5-day', '6-day', 'week'].includes(currentView);
         if (isGroupingView && groupBy !== 'none' && groupingColumns.length > 0) {
             return groupingColumns.flatMap((col) =>
                 gapVisibleDays.flatMap((day) =>
@@ -2991,15 +3035,21 @@ export default function AppointmentsPage() {
                     renderInlineDraft={renderInlineDraft}
                     groupBy={effectiveGroupBy}
                     groupingColumns={effectiveGroupingColumns}
-                    leadingActions={isCustomMode ? (
+                    hideTitle={isCustomMode}
+                    arrowsBeforeToday={isCustomMode}
+                    hideTimeGutter={isCustomMode}
+                    zoom={isCustomMode ? calendarZoom : undefined}
+                    onZoomChange={applyCalendarZoom}
+                    showZoomSlider={!isCustomMode}
+                    leadingActions={isCustomMode && !agendasPanelOpen ? (
                         <Button
-                            variant={agendasPanelOpen ? 'default' : 'outline'}
+                            variant="outline"
                             size="sm"
                             className="h-11 gap-1.5"
-                            onClick={() => setAgendasPanelOpen((v) => !v)}
+                            onClick={() => setAgendasPanelOpen(true)}
                         >
-                            <PanelLeft className="h-4 w-4" />
-                            {t('agendas')}
+                            <ChevronLeft className="h-4 w-4" />
+                            {tCalendar('back')}
                         </Button>
                     ) : undefined}
                     onViewChange={(v) => { setCurrentView(v); setInlineDraft(null); }}
@@ -3243,6 +3293,7 @@ export default function AppointmentsPage() {
                         </TooltipProvider>
                     }
                     primaryActions={
+                        <>
                         <DropdownMenu>
                             <TooltipProvider>
                                 <Tooltip>
@@ -3302,6 +3353,20 @@ export default function AppointmentsPage() {
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
+                        {isCustomMode && !isMobile && (
+                            <>
+                                <CalendarViewMenu
+                                    view={currentView}
+                                    onViewChange={(v) => { setCurrentView(v); setInlineDraft(null); }}
+                                    sedeGroups={calendarSedeGroups.sedeGroups}
+                                    noSede={calendarSedeGroups.noSede}
+                                    selectedCalendarIds={selectedCalendarIds}
+                                    onToggleCalendar={handleSelectCalendar}
+                                />
+                                <CalendarZoomMenu zoom={calendarZoom} onZoomChange={applyCalendarZoom} />
+                            </>
+                        )}
+                        </>
                     }
                     extraActionsAfterToday={
                         <TooltipProvider>

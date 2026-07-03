@@ -1,4 +1,4 @@
-export type CalendarView = 'day' | 'week' | 'month' | 'year' | '2-day' | '3-day' | 'schedule';
+export type CalendarView = 'day' | 'week' | 'month' | 'year' | '2-day' | '3-day' | '4-day' | '5-day' | '6-day' | 'schedule';
 
 export type CalendarGroupBy = 'none' | 'doctor' | 'calendar';
 
@@ -79,6 +79,18 @@ export interface CalendarProps {
   renderInlineDraft?: () => React.ReactNode;
   /** Content rendered inside the mobile bottom sheet for filters */
   filterSheet?: React.ReactNode;
+  /** Hide the static "Calendar" header title (custom mode). */
+  hideTitle?: boolean;
+  /** Render the prev/next arrows before the "Today" button (custom mode). */
+  arrowsBeforeToday?: boolean;
+  /** Hide the 60px main hour gutter (and its GMT checkbox) on grid views (custom mode). */
+  hideTimeGutter?: boolean;
+  /** Controlled zoom value (slot-height scale). When provided, overrides internal state. */
+  zoom?: number;
+  /** Called when zoom changes (controlled mode). */
+  onZoomChange?: (zoom: number) => void;
+  /** Whether to render the floating zoom slider. Default true. */
+  showZoomSlider?: boolean;
   /** Content rendered at the very top-left of the header, before the title
    *  (e.g. the "Agendas" toggle button in custom mode). */
   leadingActions?: React.ReactNode;

@@ -56,6 +56,8 @@ interface CalendarDayViewGroupedProps {
   /** Whether the main hour gutter shows the hour labels (toggled via GMT checkbox). */
   showTimeColumn?: boolean;
   onToggleTimeColumn?: (value: boolean) => void;
+  /** Hide the 60px hour gutter entirely (custom mode) — hours stay on each column rail. */
+  hideTimeGutter?: boolean;
 }
 
 export function CalendarDayViewGrouped({
@@ -86,10 +88,13 @@ export function CalendarDayViewGrouped({
   blockedRanges,
   showTimeColumn = false,
   onToggleTimeColumn,
+  hideTimeGutter = false,
 }: CalendarDayViewGroupedProps) {
   const t = useTranslations('Calendar');
   const startDay = view === 'week' ? startOfWeek(currentDate, { weekStartsOn: 1 }) : currentDate;
   const days = Array.from({ length: numDays }, (_, i) => addDays(startDay, i));
+  // Custom mode hides the 60px gutter; the leading grid track collapses to 0.
+  const gutterTrack = hideTimeGutter ? '' : '60px ';
 
   const columns = groupingColumns;
   const isTablet = breakpoint === 'tablet';
@@ -162,18 +167,20 @@ export function CalendarDayViewGrouped({
         <div className="day-view-header-wrapper">
           <div
             className="day-view-header-dates-grouped"
-            style={{ gridTemplateColumns: `60px repeat(${days.length}, minmax(${groupedDayMinWidth}px, 1fr))` }}
+            style={{ gridTemplateColumns: `${gutterTrack}repeat(${days.length}, minmax(${groupedDayMinWidth}px, 1fr))` }}
           >
-            <div className="time-zone-label">
-              <Checkbox
-                className="time-zone-toggle"
-                checked={showTimeColumn}
-                onCheckedChange={(v) => onToggleTimeColumn?.(v === true)}
-                aria-label={t('showHours')}
-                title={t('showHours')}
-              />
-              <span>{timeZoneLabel}</span>
-            </div>
+            {!hideTimeGutter && (
+              <div className="time-zone-label">
+                <Checkbox
+                  className="time-zone-toggle"
+                  checked={showTimeColumn}
+                  onCheckedChange={(v) => onToggleTimeColumn?.(v === true)}
+                  aria-label={t('showHours')}
+                  title={t('showHours')}
+                />
+                <span>{timeZoneLabel}</span>
+              </div>
+            )}
             {days.map((day) => (
               <div key={`date-${format(day, 'yyyy-MM-dd')}`} className="day-view-date-block">
                 <span className="day-name">{format(day, 'EEE', { locale: dateLocale }).toUpperCase()}</span>
@@ -187,9 +194,9 @@ export function CalendarDayViewGrouped({
           {/* Header: group columns per day */}
           <div
             className="day-view-header-groups-by-day"
-            style={{ gridTemplateColumns: `60px repeat(${days.length}, minmax(${groupedDayMinWidth}px, 1fr))` }}
+            style={{ gridTemplateColumns: `${gutterTrack}repeat(${days.length}, minmax(${groupedDayMinWidth}px, 1fr))` }}
           >
-            <div className="day-view-header-spacer" />
+            {!hideTimeGutter && <div className="day-view-header-spacer" />}
             {days.map((day) => (
               <div
                 key={`group-block-${format(day, 'yyyy-MM-dd')}`}
@@ -215,9 +222,9 @@ export function CalendarDayViewGrouped({
         {/* Body: time grid with grouped columns */}
         <div
           className="day-view-body-grouped"
-          style={{ gridTemplateColumns: `60px repeat(${days.length}, minmax(${groupedDayMinWidth}px, 1fr))`, '--hour-slot-height': `${hourSlotHeight}px` } as React.CSSProperties}
+          style={{ gridTemplateColumns: `${gutterTrack}repeat(${days.length}, minmax(${groupedDayMinWidth}px, 1fr))`, '--hour-slot-height': `${hourSlotHeight}px` } as React.CSSProperties}
         >
-          <CalendarTimeColumn visible={showTimeColumn} />
+          {!hideTimeGutter && <CalendarTimeColumn visible={showTimeColumn} />}
           {days.map((day) => (
             <div
               key={`day-block-${format(day, 'yyyy-MM-dd')}`}

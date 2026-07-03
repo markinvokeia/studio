@@ -147,6 +147,9 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
 
   const viewOptions = ['day', '2_days', '3_days', 'week', 'month', 'agenda'];
   const groupOptions = ['none', 'doctor', 'calendar'];
+  // Custom mode forces calendar grouping (one agenda at a time), a single sede scope
+  // and the default event label — so those selectors are hidden.
+  const isCustomMode = (settings.mode ?? DEFAULT_CALENDAR_MODE) === 'custom';
 
   return (
     <div className={className}>
@@ -197,25 +200,27 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
           </Select>
         </div>
 
-        <div className="space-y-1.5">
-          <SettingHeader icon={Layers} label={t('groupBy')} help={t('help.groupBy')} htmlFor="grouped-by" />
-          <Select
-            value={settings.grouped_by}
-            onValueChange={(val) => updateSettings({ grouped_by: val })}
-            disabled={isLoading}
-          >
-            <SelectTrigger id="grouped-by" className="h-9 text-xs bg-card border-border/50 shadow-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {groupOptions.map(opt => (
-                <SelectItem key={opt} value={opt} className="text-xs">
-                  {t(`options.${opt}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {!isCustomMode && (
+          <div className="space-y-1.5">
+            <SettingHeader icon={Layers} label={t('groupBy')} help={t('help.groupBy')} htmlFor="grouped-by" />
+            <Select
+              value={settings.grouped_by}
+              onValueChange={(val) => updateSettings({ grouped_by: val })}
+              disabled={isLoading}
+            >
+              <SelectTrigger id="grouped-by" className="h-9 text-xs bg-card border-border/50 shadow-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {groupOptions.map(opt => (
+                  <SelectItem key={opt} value={opt} className="text-xs">
+                    {t(`options.${opt}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         <div className="space-y-1.5">
           <SettingHeader icon={Ruler} label={t('hourHeight')} help={t('help.hourHeight')} htmlFor="hour-height" />
@@ -257,7 +262,7 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
           </Select>
         </div>
 
-        {sedes.length > 0 && (
+        {sedes.length > 0 && !isCustomMode && (
           <div className="space-y-1.5">
             <SettingHeader icon={Building2} label={t('sede')} help={t('help.sede')} htmlFor="default-sede" />
             <Select
@@ -280,25 +285,27 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
           </div>
         )}
 
-        <div className="space-y-1.5">
-          <SettingHeader icon={Tag} label={t('eventLabel')} help={t('help.eventLabel')} htmlFor="event-label-format" />
-          <Select
-            value={settings.event_label_format ?? DEFAULT_EVENT_LABEL_FORMAT}
-            onValueChange={(val) => updateSettings({ event_label_format: val })}
-            disabled={isLoading}
-          >
-            <SelectTrigger id="event-label-format" className="h-9 text-xs bg-card border-border/50 shadow-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {EVENT_LABEL_FORMATS.map((opt) => (
-                <SelectItem key={opt} value={opt} className="text-xs">
-                  {t(`eventLabelOptions.${opt}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {!isCustomMode && (
+          <div className="space-y-1.5">
+            <SettingHeader icon={Tag} label={t('eventLabel')} help={t('help.eventLabel')} htmlFor="event-label-format" />
+            <Select
+              value={settings.event_label_format ?? DEFAULT_EVENT_LABEL_FORMAT}
+              onValueChange={(val) => updateSettings({ event_label_format: val })}
+              disabled={isLoading}
+            >
+              <SelectTrigger id="event-label-format" className="h-9 text-xs bg-card border-border/50 shadow-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {EVENT_LABEL_FORMATS.map((opt) => (
+                  <SelectItem key={opt} value={opt} className="text-xs">
+                    {t(`eventLabelOptions.${opt}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center justify-between pt-4 px-1">

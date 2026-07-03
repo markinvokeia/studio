@@ -37,6 +37,12 @@ export function computeDateRange(
       return { start: startOfDay(currentDate), end: endOfDay(addDays(currentDate, 1)) };
     case '3-day':
       return { start: startOfDay(currentDate), end: endOfDay(addDays(currentDate, 2)) };
+    case '4-day':
+      return { start: startOfDay(currentDate), end: endOfDay(addDays(currentDate, 3)) };
+    case '5-day':
+      return { start: startOfDay(currentDate), end: endOfDay(addDays(currentDate, 4)) };
+    case '6-day':
+      return { start: startOfDay(currentDate), end: endOfDay(addDays(currentDate, 5)) };
     case 'week':
       return {
         start: startOfWeek(currentDate, { weekStartsOn: 1 }),
@@ -67,6 +73,9 @@ export function navigateDate(
     case 'day': return addDays(currentDate, delta);
     case '2-day': return addDays(currentDate, 2 * delta);
     case '3-day': return addDays(currentDate, 3 * delta);
+    case '4-day': return addDays(currentDate, 4 * delta);
+    case '5-day': return addDays(currentDate, 5 * delta);
+    case '6-day': return addDays(currentDate, 6 * delta);
     case 'week': return addWeeks(currentDate, delta);
     case 'year': return addYears(currentDate, delta);
     case 'month':
@@ -88,6 +97,12 @@ export function computeHeaderTitle(
       return `${format(start, 'MMMM d', { locale: dateLocale })} - ${format(addDays(start, 1), 'd, yyyy', { locale: dateLocale })}`;
     case '3-day':
       return `${format(start, 'MMMM d', { locale: dateLocale })} - ${format(addDays(start, 2), 'd, yyyy', { locale: dateLocale })}`;
+    case '4-day':
+      return `${format(start, 'MMMM d', { locale: dateLocale })} - ${format(addDays(start, 3), 'd, yyyy', { locale: dateLocale })}`;
+    case '5-day':
+      return `${format(start, 'MMMM d', { locale: dateLocale })} - ${format(addDays(start, 4), 'd, yyyy', { locale: dateLocale })}`;
+    case '6-day':
+      return `${format(start, 'MMMM d', { locale: dateLocale })} - ${format(addDays(start, 5), 'd, yyyy', { locale: dateLocale })}`;
     case 'week': {
       const end = endOfWeek(currentDate, { weekStartsOn: 1 });
       return `${format(start, 'MMMM d', { locale: dateLocale })} - ${format(end, 'd, yyyy', { locale: dateLocale })}`;

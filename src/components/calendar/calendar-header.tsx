@@ -27,6 +27,10 @@ interface CalendarHeaderProps {
   /** Jump the calendar to a date picked from the header date picker. */
   onDateSelect: (date: Date) => void;
   onOpenFilterSheet?: () => void;
+  /** Hide the static "Calendar" title (custom mode). */
+  hideTitle?: boolean;
+  /** Render the prev/next arrows before the "Today" button (custom mode). */
+  arrowsBeforeToday?: boolean;
   /** Rendered at the very top-left, before the title (e.g. the "Agendas" toggle). */
   leadingActions?: React.ReactNode;
   extraActions?: React.ReactNode;
@@ -91,6 +95,8 @@ export function CalendarHeader({
   onToday,
   onDateSelect,
   onOpenFilterSheet,
+  hideTitle,
+  arrowsBeforeToday,
   leadingActions,
   extraActions,
   extraActionsAfterToday,
@@ -115,7 +121,7 @@ export function CalendarHeader({
                 <SlidersHorizontal className="h-4 w-4" />
               </Button>
             )}
-            <h2 className="text-base font-bold tracking-tight">{t('title')}</h2>
+            {!hideTitle && <h2 className="text-base font-bold tracking-tight">{t('title')}</h2>}
           </div>
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="sm" onClick={onToday} className="text-xs px-2">
@@ -160,18 +166,30 @@ export function CalendarHeader({
       {/* Row-1 cluster: title + date navigation (date is clickable to jump) */}
       <div className="flex items-center gap-2 min-w-0">
         {leadingActions}
-        <h2 className="text-xl font-bold whitespace-nowrap">{t('title')}</h2>
+        {!hideTitle && <h2 className="text-xl font-bold whitespace-nowrap">{t('title')}</h2>}
+        {arrowsBeforeToday && (
+          <div className="flex items-center gap-0.5 shrink-0">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onPrev}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onNext}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
         <Button variant="outline" size="sm" className="h-11" onClick={onToday}>
           {t('today')}
         </Button>
-        <div className="flex items-center gap-0.5 shrink-0">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onPrev}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onNext}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+        {!arrowsBeforeToday && (
+          <div className="flex items-center gap-0.5 shrink-0">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onPrev}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onNext}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
         <HeaderDatePicker headerTitle={headerTitle} viewLabel={viewLabel} currentDate={currentDate} onDateSelect={onDateSelect} className="text-sm" />
       </div>
 

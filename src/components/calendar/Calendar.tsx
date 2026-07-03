@@ -59,6 +59,12 @@ const Calendar: React.FC<CalendarProps> = ({
   inlineDraft,
   renderInlineDraft,
   filterSheet,
+  hideTitle,
+  arrowsBeforeToday,
+  hideTimeGutter,
+  zoom: controlledZoom,
+  onZoomChange: controlledOnZoomChange,
+  showZoomSlider = true,
   leadingActions,
   extraActions,
   extraActionsAfterToday,
@@ -81,20 +87,26 @@ const Calendar: React.FC<CalendarProps> = ({
   const [filterSheetOpen, setFilterSheetOpen] = React.useState(false);
   const [monthCollapsed, setMonthCollapsed] = React.useState(false);
 
-  // Calendar zoom (slider) — scales slot height AND font together so the slot:font
-  // ratio is kept. Persisted across sessions.
-  const [zoom, setZoom] = React.useState(0.9);
+  // Calendar zoom (slider) — scales slot height. Persisted across sessions. Can be
+  // overridden by a controlled `zoom`/`onZoomChange` pair (custom mode uses a dropdown).
+  const [internalZoom, setInternalZoom] = React.useState(0.9);
   React.useEffect(() => {
     const saved = typeof window !== 'undefined' ? window.localStorage.getItem('calendar-zoom') : null;
     if (saved) {
       const v = parseFloat(saved);
-      if (!Number.isNaN(v) && v >= 0.7 && v <= 2.5) setZoom(v);
+      if (!Number.isNaN(v) && v >= 0.7 && v <= 2.5) setInternalZoom(v);
     }
   }, []);
+  const isZoomControlled = controlledZoom !== undefined;
+  const zoom = isZoomControlled ? (controlledZoom as number) : internalZoom;
   const handleZoomChange = React.useCallback((v: number) => {
-    setZoom(v);
+    if (controlledOnZoomChange) {
+      controlledOnZoomChange(v);
+      return;
+    }
+    setInternalZoom(v);
     try { window.localStorage.setItem('calendar-zoom', String(v)); } catch { /* ignore */ }
-  }, []);
+  }, [controlledOnZoomChange]);
 
   // Whether the main hour gutter shows the hour labels. Off by default since each
   // day/resource column now shows the hours in its own left rail. Persisted.
@@ -138,7 +150,7 @@ const Calendar: React.FC<CalendarProps> = ({
   const effectiveView = resolveViewForBreakpoint(view, isMobile);
   const timeZoneLabel = t('timeZone');
   const isGrouped = groupBy !== 'none' && groupingColumns.length > 0;
-  const isMultiDayView = effectiveView === 'week' || effectiveView === '2-day' || effectiveView === '3-day';
+  const isMultiDayView = effectiveView === 'week' || effectiveView === '2-day' || effectiveView === '3-day' || effectiveView === '4-day' || effectiveView === '5-day' || effectiveView === '6-day';
   const useMobileDayLayout = (isMobile && (isGrouped || !isMultiDayView)) || (breakpoint === 'tablet' && isGrouped);
 
   // Shared event handler props
@@ -162,8 +174,18 @@ const Calendar: React.FC<CalendarProps> = ({
       case 'day':
       case '2-day':
       case '3-day':
+      case '4-day':
+      case '5-day':
+      case '6-day':
       case 'week': {
-        const numDays = effectiveView === 'week' ? 7 : effectiveView === '3-day' ? 3 : effectiveView === '2-day' ? 2 : 1;
+        const numDays =
+          effectiveView === 'week' ? 7
+          : effectiveView === '6-day' ? 6
+          : effectiveView === '5-day' ? 5
+          : effectiveView === '4-day' ? 4
+          : effectiveView === '3-day' ? 3
+          : effectiveView === '2-day' ? 2
+          : 1;
 
         // Mobile grouped/single-day, and grouped tablet: carousel-based view
         if (useMobileDayLayout) {
@@ -208,6 +230,7 @@ const Calendar: React.FC<CalendarProps> = ({
               renderInlineDraft={renderInlineDraft}
               showTimeColumn={showTimeColumn}
               onToggleTimeColumn={handleToggleTimeColumn}
+              hideTimeGutter={hideTimeGutter}
               {...eventHandlers}
               {...gapProps}
               {...blockProps}
@@ -305,6 +328,8 @@ const Calendar: React.FC<CalendarProps> = ({
         onViewChange={handleViewChange}
         onDateSelect={setCurrentDate}
         onOpenFilterSheet={isCompactHeader && filterSheet ? () => setFilterSheetOpen(true) : undefined}
+        hideTitle={hideTitle}
+        arrowsBeforeToday={arrowsBeforeToday}
         leadingActions={leadingActions}
         extraActions={extraActions}
         extraActionsAfterToday={extraActionsAfterToday}
@@ -339,7 +364,7 @@ const Calendar: React.FC<CalendarProps> = ({
       >
         {renderView()}
         {/* Zoom slider — only on time-grid views where slot height applies */}
-        {!isMobile && (effectiveView === 'day' || isMultiDayView) && (
+        {showZoomSlider && !isMobile && (effectiveView === 'day' || isMultiDayView) && (
           <CalendarZoomControl zoom={zoom} onZoomChange={handleZoomChange} />
         )}
       </div>

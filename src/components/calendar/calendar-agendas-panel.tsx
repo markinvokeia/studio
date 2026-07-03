@@ -74,33 +74,37 @@ export function CalendarAgendasPanel({ sedeGroups, noSede, visibleIds, selectedI
   };
 
   return (
-    <div className="absolute left-3 top-3 bottom-3 z-30 w-72 max-w-[85vw] flex flex-col rounded-xl border border-border bg-card shadow-xl">
-      <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2.5 shrink-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <CalendarDays className="h-4 w-4 text-primary shrink-0" />
-          <span className="text-sm font-semibold truncate">{t('agendasPanelTitle')}</span>
+    // Full-area overlay: covers the calendar so the user sees the agenda LIST or the
+    // calendar, not both. A fixed panel is docked flush-left.
+    <div className="absolute inset-0 z-30 bg-background/95 backdrop-blur-sm">
+      <div className="flex h-full w-80 max-w-[90vw] flex-col border-r border-border bg-card shadow-xl">
+        <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2.5 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <CalendarDays className="h-4 w-4 text-primary shrink-0" />
+            <span className="text-sm font-semibold truncate">{t('agendasPanelTitle')}</span>
+          </div>
+          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={onClose} title={t('gaps.close')}>
+            <X className="h-4 w-4" />
+          </Button>
         </div>
-        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={onClose} title={t('gaps.close')}>
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
 
-      <div className="flex-1 overflow-y-auto p-2 space-y-3">
-        {isEmpty ? (
-          <p className="text-sm text-muted-foreground text-center py-8">{t('agendasEmpty')}</p>
-        ) : (
-          <>
-            {groups.withSede.map((group) => (
-              <div key={group.id}>
-                <p className="px-1 pb-1 text-xs font-medium text-muted-foreground truncate">{group.name}</p>
-                <div className="space-y-1">{group.calendars.map(renderItem)}</div>
-              </div>
-            ))}
-            {groups.orphan.length > 0 && (
-              <div className="space-y-1">{groups.orphan.map(renderItem)}</div>
-            )}
-          </>
-        )}
+        <div className="flex-1 overflow-y-auto p-2 space-y-3">
+          {isEmpty ? (
+            <p className="text-sm text-muted-foreground text-center py-8">{t('agendasEmpty')}</p>
+          ) : (
+            <>
+              {groups.withSede.map((group) => (
+                <div key={group.id}>
+                  <p className="px-1 pb-1 text-xs font-medium text-muted-foreground truncate">{group.name}</p>
+                  <div className="space-y-1">{group.calendars.map(renderItem)}</div>
+                </div>
+              ))}
+              {groups.orphan.length > 0 && (
+                <div className="space-y-1">{groups.orphan.map(renderItem)}</div>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
