@@ -218,6 +218,7 @@ export const navItems: NavItem[] = [
       BUSINESS_CONFIG_PERMISSIONS.SEQUENCES_VIEW_LIST,
       BUSINESS_CONFIG_PERMISSIONS.MUTUAL_SOC_VIEW_LIST,
       BUSINESS_CONFIG_PERMISSIONS.PRINT_TEMPLATES_VIEW,
+      BUSINESS_CONFIG_PERMISSIONS.MEDICAL_INSTRUCTION_TEMPLATES_VIEW,
       SYSTEM_PERMISSIONS.STAFF_VIEW_MENU,
     ],
     items: [
@@ -234,6 +235,7 @@ export const navItems: NavItem[] = [
       { title: 'Sequences', href: '/config/sequences', icon: List, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.SEQUENCES_VIEW_LIST },
       { title: 'MutualSocieties', href: '/config/mutual-societies', icon: Handshake, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.MUTUAL_SOC_VIEW_MENU },
       { title: 'Templates', href: '/config/templates', icon: FileText, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.PRINT_TEMPLATES_VIEW },
+      { title: 'MedicalInstructionTemplates', href: '/config/medical-instruction-templates', icon: ClipboardList, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.MEDICAL_INSTRUCTION_TEMPLATES_VIEW },
     ],
   },
   {

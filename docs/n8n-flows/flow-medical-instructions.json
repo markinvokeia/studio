@@ -1,0 +1,509 @@
+{
+  "name": "Medical Instructions — Templates & Patient Instructions",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Medical Instruction Templates — List\n\n**GET** `/webhook/medical-instruction-templates`\n\n**Query params:**\n- `search`: optional, filters by name (ILIKE)\n- `page`: optional, default 1\n- `limit`: optional, default 25\n\n**Response 200:** array of `MedicalInstructionTemplate`.",
+        "height": 300,
+        "width": 420,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-140, 20],
+      "typeVersion": 1,
+      "id": "mit-list-note",
+      "name": "TPL List — Docs"
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "medical-instruction-templates",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [360, 260],
+      "id": "mit-list-wh",
+      "name": "TPL List — Webhook",
+      "webhookId": "mit-list"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst query = input.query ?? input;\n\nconst esc = (value) => String(value).replace(/'/g, `''`);\nconst search = query.search ? String(query.search).trim() : null;\nconst page = parseInt(query.page, 10) || 1;\nconst limit = parseInt(query.limit, 10) || 25;\nconst offset = (page - 1) * limit;\n\nreturn [{ json: {\n  search_sql: search ? `'%${esc(search)}%'` : 'NULL',\n  limit,\n  offset,\n} }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, 260],
+      "id": "mit-list-parse",
+      "name": "TPL List — Parse Query"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  id::text AS id,\n  name,\n  description,\n  content_html,\n  is_active,\n  created_at::text AS created_at,\n  updated_at::text AS updated_at\nFROM medical_instruction_templates\nWHERE ({{ $json.search_sql }}::text IS NULL OR name ILIKE {{ $json.search_sql }}::text)\nORDER BY name ASC\nLIMIT {{ $json.limit }} OFFSET {{ $json.offset }};",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [840, 260],
+      "id": "mit-list-query",
+      "name": "TPL List — Query",
+      "credentials": {
+        "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nreturn [{ json: rows }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1080, 260],
+      "id": "mit-list-format",
+      "name": "TPL List — Format Array"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": { "responseCode": 200 }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1320, 260],
+      "id": "mit-list-respond",
+      "name": "TPL List — Respond 200"
+    },
+
+    {
+      "parameters": {
+        "content": "## Medical Instruction Templates — Upsert\n\n**POST** `/webhook/medical-instruction-templates/upsert`\n\nCrea o actualiza una plantilla de indicación médica.\n\n**Request body:**\n```json\n{\n  \"id\": \"uuid (opcional)\",\n  \"name\": \"Post-extracción\",\n  \"description\": \"opcional\",\n  \"content_html\": \"<p>...{{patient_name}}...</p>\",\n  \"is_active\": true\n}\n```\n\n**Response 200:** la plantilla completa guardada.",
+        "height": 340,
+        "width": 460,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-140, 560],
+      "typeVersion": 1,
+      "id": "mit-upsert-note",
+      "name": "TPL Upsert — Docs"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "medical-instruction-templates/upsert",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [360, 800],
+      "id": "mit-upsert-wh",
+      "name": "TPL Upsert — Webhook",
+      "webhookId": "mit-upsert"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body ?? $input.first().json;\n\nconst esc = (value) => String(value).replace(/'/g, `''`);\nconst sqlText = (value) => (value == null || value === '' ? 'NULL' : `'${esc(value)}'`);\nconst assertUuid = (value, field) => {\n  const text = String(value ?? '').trim();\n  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text)) {\n    throw new Error(`Invalid ${field}: ${value}`);\n  }\n  return text;\n};\nconst makeUuid = () => {\n  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {\n    const rand = (Math.random() * 16) | 0;\n    const value = char === 'x' ? rand : (rand & 0x3) | 0x8;\n    return value.toString(16);\n  });\n};\n\nconst name = String(body.name ?? '').trim();\nif (!name) throw new Error('name is required');\nconst contentHtml = String(body.content_html ?? '').trim();\nif (!contentHtml) throw new Error('content_html is required');\n\nconst id = body.id ? assertUuid(body.id, 'id') : makeUuid();\nconst isActive = body.is_active === false ? false : true;\n\nreturn [{ json: {\n  id,\n  id_sql: `'${esc(id)}'::uuid`,\n  name_sql: sqlText(name),\n  description_sql: sqlText(body.description),\n  content_html_sql: sqlText(contentHtml),\n  is_active_sql: isActive ? 'TRUE' : 'FALSE',\n} }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, 800],
+      "id": "mit-upsert-parse",
+      "name": "TPL Upsert — Parse Input"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO medical_instruction_templates (\n  id, name, description, content_html, is_active, created_at, updated_at\n) VALUES (\n  {{ $json.id_sql }},\n  {{ $json.name_sql }},\n  {{ $json.description_sql }},\n  {{ $json.content_html_sql }},\n  {{ $json.is_active_sql }},\n  NOW(),\n  NOW()\n)\nON CONFLICT (id) DO UPDATE\nSET name         = EXCLUDED.name,\n    description  = EXCLUDED.description,\n    content_html = EXCLUDED.content_html,\n    is_active    = EXCLUDED.is_active,\n    updated_at   = NOW();",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [840, 800],
+      "id": "mit-upsert-save",
+      "name": "TPL Upsert — Save",
+      "credentials": {
+        "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  id::text AS id,\n  name,\n  description,\n  content_html,\n  is_active,\n  created_at::text AS created_at,\n  updated_at::text AS updated_at\nFROM medical_instruction_templates\nWHERE id = '{{ $node[\"TPL Upsert — Parse Input\"].json[\"id\"] }}'::uuid\nLIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1080, 800],
+      "id": "mit-upsert-fetch",
+      "name": "TPL Upsert — Fetch",
+      "credentials": {
+        "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($input.first().json) }}",
+        "options": { "responseCode": 200 }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1320, 800],
+      "id": "mit-upsert-respond",
+      "name": "TPL Upsert — Respond 200"
+    },
+
+    {
+      "parameters": {
+        "content": "## Medical Instruction Templates — Delete\n\n**DELETE** `/webhook/medical-instruction-templates/delete`\n\n**Request body:** `{ \"id\": \"uuid\" }`\n\n**Response 200:** `{ \"success\": true, \"code\": 200, \"id\": \"...\" }`",
+        "height": 220,
+        "width": 400,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-140, 1100],
+      "typeVersion": 1,
+      "id": "mit-delete-note",
+      "name": "TPL Delete — Docs"
+    },
+    {
+      "parameters": {
+        "httpMethod": "DELETE",
+        "path": "medical-instruction-templates/delete",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [360, 1180],
+      "id": "mit-delete-wh",
+      "name": "TPL Delete — Webhook",
+      "webhookId": "mit-delete"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body ?? $input.first().json;\nconst id = String(body.id ?? '').trim();\nif (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {\n  throw new Error('Valid id is required');\n}\nreturn [{ json: { id } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, 1180],
+      "id": "mit-delete-parse",
+      "name": "TPL Delete — Parse Input"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM medical_instruction_templates\nWHERE id = '{{ $json.id }}'::uuid\nRETURNING id::text AS id;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [840, 1180],
+      "id": "mit-delete-query",
+      "name": "TPL Delete — Delete",
+      "credentials": {
+        "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(item => item.json).filter(row => row.id);\nconst parsedId = $('TPL Delete — Parse Input').first().json.id;\nreturn [{ json: { success: true, code: 200, id: rows[0]?.id || parsedId } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1080, 1180],
+      "id": "mit-delete-build",
+      "name": "TPL Delete — Build Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": { "responseCode": "={{ $json.code }}" }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1320, 1180],
+      "id": "mit-delete-respond",
+      "name": "TPL Delete — Respond"
+    },
+
+    {
+      "parameters": {
+        "content": "## Patient Medical Instructions — List\n\n**GET** `/webhook/patient-medical-instructions`\n\n**Query params:**\n- `patient_id`: required (uuid)\n\n**Response 200:** array of `PatientMedicalInstruction` for that patient, más recientes primero.",
+        "height": 260,
+        "width": 420,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-140, 1520],
+      "typeVersion": 1,
+      "id": "pmi-list-note",
+      "name": "PMI List — Docs"
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "patient-medical-instructions",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [360, 1760],
+      "id": "pmi-list-wh",
+      "name": "PMI List — Webhook",
+      "webhookId": "pmi-list"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst query = input.query ?? input;\n\nconst esc = (value) => String(value).replace(/'/g, `''`);\nconst assertUuid = (value, field) => {\n  const text = String(value ?? '').trim();\n  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text)) {\n    throw new Error(`Invalid ${field}: ${value}`);\n  }\n  return text;\n};\n\nif (!query.patient_id) throw new Error('patient_id is required');\nconst patientId = assertUuid(query.patient_id, 'patient_id');\n\nreturn [{ json: { patient_id_sql: `'${esc(patientId)}'::uuid` } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, 1760],
+      "id": "pmi-list-parse",
+      "name": "PMI List — Parse Query"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  id::text AS id,\n  patient_id::text AS patient_id,\n  fecha::text AS fecha,\n  numero_diente,\n  doctor_id::text AS doctor_id,\n  doctor_name,\n  template_id::text AS template_id,\n  template_name,\n  content_html,\n  created_at::text AS created_at,\n  updated_at::text AS updated_at\nFROM patient_medical_instructions\nWHERE patient_id = {{ $json.patient_id_sql }}\nORDER BY fecha DESC, created_at DESC;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [840, 1760],
+      "id": "pmi-list-query",
+      "name": "PMI List — Query",
+      "credentials": {
+        "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nreturn [{ json: rows }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1080, 1760],
+      "id": "pmi-list-format",
+      "name": "PMI List — Format Array"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": { "responseCode": 200 }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1320, 1760],
+      "id": "pmi-list-respond",
+      "name": "PMI List — Respond 200"
+    },
+
+    {
+      "parameters": {
+        "content": "## Patient Medical Instructions — Upsert\n\n**POST** `/webhook/patient-medical-instructions/upsert`\n\nCrea o actualiza una indicación médica ya resuelta (con variables inyectadas) para un paciente.\n\n**Request body:**\n```json\n{\n  \"id\": \"uuid (opcional)\",\n  \"patient_id\": \"uuid\",\n  \"fecha\": \"2026-07-03\",\n  \"numero_diente\": 36,\n  \"doctor_id\": \"uuid\",\n  \"doctor_name\": \"Dr. Pérez\",\n  \"template_id\": \"uuid (opcional)\",\n  \"template_name\": \"Post-extracción\",\n  \"content_html\": \"<p>...</p>\"\n}\n```\n\n**Response 200:** la indicación completa guardada.",
+        "height": 420,
+        "width": 480,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-140, 2100],
+      "typeVersion": 1,
+      "id": "pmi-upsert-note",
+      "name": "PMI Upsert — Docs"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "patient-medical-instructions/upsert",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [360, 2340],
+      "id": "pmi-upsert-wh",
+      "name": "PMI Upsert — Webhook",
+      "webhookId": "pmi-upsert"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body ?? $input.first().json;\n\nconst esc = (value) => String(value).replace(/'/g, `''`);\nconst sqlText = (value) => (value == null || value === '' ? 'NULL' : `'${esc(value)}'`);\nconst assertUuid = (value, field) => {\n  const text = String(value ?? '').trim();\n  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text)) {\n    throw new Error(`Invalid ${field}: ${value}`);\n  }\n  return text;\n};\nconst sqlUuid = (value, field) => (value ? `'${esc(assertUuid(value, field))}'` : 'NULL');\nconst makeUuid = () => {\n  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {\n    const rand = (Math.random() * 16) | 0;\n    const value = char === 'x' ? rand : (rand & 0x3) | 0x8;\n    return value.toString(16);\n  });\n};\n\nconst patientId = assertUuid(body.patient_id, 'patient_id');\nconst doctorId = assertUuid(body.doctor_id, 'doctor_id');\nconst contentHtml = String(body.content_html ?? '').trim();\nif (!contentHtml) throw new Error('content_html is required');\nif (!body.fecha) throw new Error('fecha is required');\n\nconst id = body.id ? assertUuid(body.id, 'id') : makeUuid();\nconst toothNumber = body.numero_diente != null && body.numero_diente !== '' ? parseInt(body.numero_diente, 10) : null;\n\nreturn [{ json: {\n  id,\n  id_sql: `'${esc(id)}'::uuid`,\n  patient_id_sql: `'${esc(patientId)}'::uuid`,\n  fecha_sql: `'${esc(body.fecha)}'`,\n  numero_diente_sql: toothNumber != null ? String(toothNumber) : 'NULL',\n  doctor_id_sql: `'${esc(doctorId)}'::uuid`,\n  doctor_name_sql: sqlText(body.doctor_name),\n  template_id_sql: sqlUuid(body.template_id, 'template_id'),\n  template_name_sql: sqlText(body.template_name),\n  content_html_sql: sqlText(contentHtml),\n} }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, 2340],
+      "id": "pmi-upsert-parse",
+      "name": "PMI Upsert — Parse Input"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO patient_medical_instructions (\n  id, patient_id, fecha, numero_diente, doctor_id, doctor_name, template_id, template_name, content_html, created_at, updated_at\n) VALUES (\n  {{ $json.id_sql }},\n  {{ $json.patient_id_sql }},\n  {{ $json.fecha_sql }}::date,\n  {{ $json.numero_diente_sql }},\n  {{ $json.doctor_id_sql }},\n  {{ $json.doctor_name_sql }},\n  {{ $json.template_id_sql }},\n  {{ $json.template_name_sql }},\n  {{ $json.content_html_sql }},\n  NOW(),\n  NOW()\n)\nON CONFLICT (id) DO UPDATE\nSET fecha         = EXCLUDED.fecha,\n    numero_diente = EXCLUDED.numero_diente,\n    doctor_id     = EXCLUDED.doctor_id,\n    doctor_name   = EXCLUDED.doctor_name,\n    template_id   = EXCLUDED.template_id,\n    template_name = EXCLUDED.template_name,\n    content_html  = EXCLUDED.content_html,\n    updated_at    = NOW();",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [840, 2340],
+      "id": "pmi-upsert-save",
+      "name": "PMI Upsert — Save",
+      "credentials": {
+        "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  id::text AS id,\n  patient_id::text AS patient_id,\n  fecha::text AS fecha,\n  numero_diente,\n  doctor_id::text AS doctor_id,\n  doctor_name,\n  template_id::text AS template_id,\n  template_name,\n  content_html,\n  created_at::text AS created_at,\n  updated_at::text AS updated_at\nFROM patient_medical_instructions\nWHERE id = '{{ $node[\"PMI Upsert — Parse Input\"].json[\"id\"] }}'::uuid\nLIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1080, 2340],
+      "id": "pmi-upsert-fetch",
+      "name": "PMI Upsert — Fetch",
+      "credentials": {
+        "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($input.first().json) }}",
+        "options": { "responseCode": 200 }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1320, 2340],
+      "id": "pmi-upsert-respond",
+      "name": "PMI Upsert — Respond 200"
+    },
+
+    {
+      "parameters": {
+        "content": "## Patient Medical Instructions — Delete\n\n**DELETE** `/webhook/patient-medical-instructions/delete`\n\n**Request body:** `{ \"id\": \"uuid\" }`\n\n**Response 200:** `{ \"success\": true, \"code\": 200, \"id\": \"...\" }`",
+        "height": 220,
+        "width": 400,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-140, 2660],
+      "typeVersion": 1,
+      "id": "pmi-delete-note",
+      "name": "PMI Delete — Docs"
+    },
+    {
+      "parameters": {
+        "httpMethod": "DELETE",
+        "path": "patient-medical-instructions/delete",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [360, 2740],
+      "id": "pmi-delete-wh",
+      "name": "PMI Delete — Webhook",
+      "webhookId": "pmi-delete"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body ?? $input.first().json;\nconst id = String(body.id ?? '').trim();\nif (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {\n  throw new Error('Valid id is required');\n}\nreturn [{ json: { id } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, 2740],
+      "id": "pmi-delete-parse",
+      "name": "PMI Delete — Parse Input"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM patient_medical_instructions\nWHERE id = '{{ $json.id }}'::uuid\nRETURNING id::text AS id;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [840, 2740],
+      "id": "pmi-delete-query",
+      "name": "PMI Delete — Delete",
+      "credentials": {
+        "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(item => item.json).filter(row => row.id);\nconst parsedId = $('PMI Delete — Parse Input').first().json.id;\nreturn [{ json: { success: true, code: 200, id: rows[0]?.id || parsedId } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1080, 2740],
+      "id": "pmi-delete-build",
+      "name": "PMI Delete — Build Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": { "responseCode": "={{ $json.code }}" }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1320, 2740],
+      "id": "pmi-delete-respond",
+      "name": "PMI Delete — Respond"
+    }
+  ],
+  "connections": {
+    "TPL List — Webhook":      { "main": [[{ "node": "TPL List — Parse Query", "type": "main", "index": 0 }]] },
+    "TPL List — Parse Query":  { "main": [[{ "node": "TPL List — Query",       "type": "main", "index": 0 }]] },
+    "TPL List — Query":        { "main": [[{ "node": "TPL List — Format Array","type": "main", "index": 0 }]] },
+    "TPL List — Format Array": { "main": [[{ "node": "TPL List — Respond 200","type": "main", "index": 0 }]] },
+
+    "TPL Upsert — Webhook":     { "main": [[{ "node": "TPL Upsert — Parse Input", "type": "main", "index": 0 }]] },
+    "TPL Upsert — Parse Input": { "main": [[{ "node": "TPL Upsert — Save",        "type": "main", "index": 0 }]] },
+    "TPL Upsert — Save":        { "main": [[{ "node": "TPL Upsert — Fetch",       "type": "main", "index": 0 }]] },
+    "TPL Upsert — Fetch":       { "main": [[{ "node": "TPL Upsert — Respond 200","type": "main", "index": 0 }]] },
+
+    "TPL Delete — Webhook":     { "main": [[{ "node": "TPL Delete — Parse Input", "type": "main", "index": 0 }]] },
+    "TPL Delete — Parse Input": { "main": [[{ "node": "TPL Delete — Delete",      "type": "main", "index": 0 }]] },
+    "TPL Delete — Delete":      { "main": [[{ "node": "TPL Delete — Build Response", "type": "main", "index": 0 }]] },
+    "TPL Delete — Build Response": { "main": [[{ "node": "TPL Delete — Respond", "type": "main", "index": 0 }]] },
+
+    "PMI List — Webhook":      { "main": [[{ "node": "PMI List — Parse Query", "type": "main", "index": 0 }]] },
+    "PMI List — Parse Query":  { "main": [[{ "node": "PMI List — Query",       "type": "main", "index": 0 }]] },
+    "PMI List — Query":        { "main": [[{ "node": "PMI List — Format Array","type": "main", "index": 0 }]] },
+    "PMI List — Format Array": { "main": [[{ "node": "PMI List — Respond 200","type": "main", "index": 0 }]] },
+
+    "PMI Upsert — Webhook":     { "main": [[{ "node": "PMI Upsert — Parse Input", "type": "main", "index": 0 }]] },
+    "PMI Upsert — Parse Input": { "main": [[{ "node": "PMI Upsert — Save",        "type": "main", "index": 0 }]] },
+    "PMI Upsert — Save":        { "main": [[{ "node": "PMI Upsert — Fetch",       "type": "main", "index": 0 }]] },
+    "PMI Upsert — Fetch":       { "main": [[{ "node": "PMI Upsert — Respond 200","type": "main", "index": 0 }]] },
+
+    "PMI Delete — Webhook":     { "main": [[{ "node": "PMI Delete — Parse Input", "type": "main", "index": 0 }]] },
+    "PMI Delete — Parse Input": { "main": [[{ "node": "PMI Delete — Delete",      "type": "main", "index": 0 }]] },
+    "PMI Delete — Delete":      { "main": [[{ "node": "PMI Delete — Build Response", "type": "main", "index": 0 }]] },
+    "PMI Delete — Build Response": { "main": [[{ "node": "PMI Delete — Respond", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1", "errorWorkflow": "" },
+  "meta": { "templateCredsSetupCompleted": false },
+  "tags": ["medical-instructions", "clinic"]
+}

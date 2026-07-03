@@ -108,6 +108,7 @@
     "MutualSocieties": "Mutual Societies",
     "PrintTemplates": "Document Templates",
     "Templates": "Templates",
+    "MedicalInstructionTemplates": "Medical Instruction Templates",
     "System": "System",
     "SystemUsers": "Users",
     "Roles": "Roles",
@@ -1435,7 +1436,8 @@
       "info": "Info",
       "anamnesis": "Anamnesis",
       "summary": "Summary",
-      "history": "Timeline"
+      "history": "Timeline",
+      "medicalInstructions": "Medical Instructions"
     },
     "createDialog": {
       "title": "Create New Patient",
@@ -5426,6 +5428,125 @@
       },
       "badRequest": "Validation error. Please check the entered data."
     }
+  },
+  "MedicalInstructionTemplatesPage": {
+    "title": "Medical Instruction Templates",
+    "description": "Manage reusable medical instruction templates for patients.",
+    "filterPlaceholder": "Filter by template name...",
+    "noAccess": "You don't have access to view this section.",
+    "columns": {
+      "name": "Name",
+      "description": "Description",
+      "isActive": "Active",
+      "yes": "Yes",
+      "no": "No",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "dialog": {
+      "createTitle": "Create Instruction Template",
+      "editTitle": "Edit Instruction Template",
+      "name": "Name",
+      "namePlaceholder": "e.g. Post-extraction",
+      "descriptionLabel": "Description",
+      "content": "Content",
+      "legend": "Use the \"Variables\" button to insert data that will be filled in automatically when this template is used with a patient, such as patient name, clinic, date, or tooth number.",
+      "preview": "Preview",
+      "isActive": "Is Active",
+      "cancel": "Cancel",
+      "create": "Create Template",
+      "save": "Save Changes"
+    },
+    "variables": {
+      "title": "Variables",
+      "groups": {
+        "patient": "Patient",
+        "clinic": "Clinic",
+        "document": "Document",
+        "tables": "Tables"
+      }
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "createSuccessTitle": "Template Created",
+      "editSuccessTitle": "Template Updated",
+      "successDescription": "Template \"{name}\" was saved successfully.",
+      "deleteSuccessTitle": "Template Deleted",
+      "deleteSuccessDescription": "Template \"{name}\" has been deleted."
+    },
+    "deleteDialog": {
+      "title": "Delete Template",
+      "description": "Are you sure you want to delete the template \"{name}\"?",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "validation": {
+      "nameRequired": "Name is required.",
+      "contentRequired": "Content is required."
+    }
+  },
+  "PatientInstructionDialog": {
+    "createTitle": "New Medical Instruction",
+    "editTitle": "Edit Medical Instruction",
+    "date": "Date",
+    "tooth": "Tooth",
+    "toothPlaceholder": "Optional",
+    "doctor": "Doctor",
+    "selectDoctor": "Select a doctor",
+    "searchDoctor": "Search doctor...",
+    "noDoctor": "No doctors found.",
+    "template": "Template",
+    "selectTemplate": "Select a template",
+    "content": "Content",
+    "refreshVariables": "Refresh variables",
+    "preview": "Preview",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving...",
+    "variables": {
+      "title": "Variables",
+      "groups": {
+        "patient": "Patient",
+        "clinic": "Clinic",
+        "document": "Document",
+        "tables": "Tables"
+      }
+    },
+    "validation": {
+      "doctorRequired": "You must select a doctor.",
+      "contentRequired": "Content is required."
+    },
+    "toast": {
+      "createSuccess": "Medical instruction created.",
+      "editSuccess": "Medical instruction updated.",
+      "error": "An error occurred while saving the medical instruction."
+    }
+  },
+  "PatientInstructionsSection": {
+    "title": "Medical Instructions",
+    "newInstruction": "New instruction",
+    "noData": "No medical instructions recorded.",
+    "tooth": "Tooth",
+    "print": "Print",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deleteDialog": {
+      "title": "Delete Medical Instruction",
+      "description": "Are you sure you want to delete this medical instruction?",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "deleteSuccess": "Medical instruction deleted.",
+      "error": "An error occurred."
+    }
+  },
+  "PatientInstructionPrint": {
+    "patient": "Patient",
+    "date": "Date",
+    "doctor": "Doctor",
+    "tooth": "Tooth"
   },
   "CommunicationHistoryPage": {
     "title": "Communication History",
