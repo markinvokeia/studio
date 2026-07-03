@@ -1,7 +1,7 @@
 import { CalendarSettings } from '@/lib/types';
 import api from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
-import { DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, EVENT_LABEL_FORMATS, HOUR_SLOT_HEIGHT, SLOT_DURATION_OPTIONS } from './calendar-constants';
+import { CALENDAR_MODES, DEFAULT_CALENDAR_MODE, DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, EVENT_LABEL_FORMATS, HOUR_SLOT_HEIGHT, SLOT_DURATION_OPTIONS } from './calendar-constants';
 
 export const DEFAULT_CALENDAR_SETTINGS: CalendarSettings = {
   default_view: 'month',
@@ -13,6 +13,7 @@ export const DEFAULT_CALENDAR_SETTINGS: CalendarSettings = {
   slot_duration: DEFAULT_SLOT_DURATION,
   event_label_format: DEFAULT_EVENT_LABEL_FORMAT,
   default_sede: '',
+  mode: DEFAULT_CALENDAR_MODE,
 };
 
 const normalizeBoolean = (value: unknown, defaultValue: boolean): boolean => {
@@ -66,6 +67,10 @@ export const normalizeCalendarSettings = (data: unknown): CalendarSettings | nul
         ? rawSettings.event_label_format
         : DEFAULT_CALENDAR_SETTINGS.event_label_format,
     default_sede: typeof rawSettings.default_sede === 'string' ? rawSettings.default_sede : DEFAULT_CALENDAR_SETTINGS.default_sede,
+    mode:
+      typeof rawSettings.mode === 'string' && (CALENDAR_MODES as readonly string[]).includes(rawSettings.mode)
+        ? rawSettings.mode
+        : DEFAULT_CALENDAR_SETTINGS.mode,
   };
 };
 

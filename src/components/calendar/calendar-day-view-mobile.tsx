@@ -26,6 +26,7 @@ import {
 } from './calendar-utils';
 import { CalendarEventDay } from './calendar-event-day';
 import { TimeSlotDividers } from './calendar-time-column';
+import { CalendarInlineDraftOverlay } from './inline-draft-overlay';
 import { CalendarGapOverlays } from './calendar-gap-overlay';
 import { CalendarBlockedOverlays } from './calendar-blocked-overlay';
 import { isSlotBlocked, type Gap, type BlockedRange } from './calendar-gaps';
@@ -348,17 +349,7 @@ export function CalendarDayViewMobile({
                           />
                         ))}
                         {inlineDraft && renderInlineDraft && isSameDay(slide.day, inlineDraft.date) && (!isGrouped || String(slide.column?.value ?? '') === String(inlineDraft.groupValue ?? '')) && (
-                          <div
-                            className="absolute left-0.5 right-0.5 z-[12]"
-                            style={{
-                              top: `${(inlineDraft.date.getHours() + inlineDraft.date.getMinutes() / 60) * hourSlotHeight}px`,
-                              minHeight: `${Math.max((inlineDraft.durationMin / 60) * hourSlotHeight, 96)}px`,
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                            onContextMenu={(e) => e.stopPropagation()}
-                          >
-                            {renderInlineDraft()}
-                          </div>
+                          <CalendarInlineDraftOverlay>{renderInlineDraft()}</CalendarInlineDraftOverlay>
                         )}
                         {showIndicator && (
                           <div

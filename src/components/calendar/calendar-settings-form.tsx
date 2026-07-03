@@ -10,6 +10,7 @@ import {
   Clock,
   HelpCircle,
   Layers,
+  LayoutGrid,
   MousePointerClick,
   Ruler,
   Stethoscope,
@@ -22,7 +23,7 @@ import { Switch } from '@/components/ui/switch';
 import { CalendarSettings, Sede } from '@/lib/types';
 import api from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
-import { DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, EVENT_LABEL_FORMATS, HOUR_SLOT_HEIGHT, HOUR_SLOT_HEIGHT_OPTIONS, SLOT_DURATION_OPTIONS } from './calendar-constants';
+import { CALENDAR_MODES, DEFAULT_CALENDAR_MODE, DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, EVENT_LABEL_FORMATS, HOUR_SLOT_HEIGHT, HOUR_SLOT_HEIGHT_OPTIONS, SLOT_DURATION_OPTIONS } from './calendar-constants';
 import { DEFAULT_CALENDAR_SETTINGS, normalizeCalendarSettings } from './calendar-settings-utils';
 
 interface CalendarSettingsFormProps {
@@ -156,6 +157,26 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
       )}
 
       <div className="bg-muted/30 p-2.5 rounded-xl border border-border/40 space-y-3.5">
+        <div className="space-y-1.5">
+          <SettingHeader icon={LayoutGrid} label={t('mode')} help={t('help.mode')} htmlFor="calendar-mode" />
+          <Select
+            value={settings.mode ?? DEFAULT_CALENDAR_MODE}
+            onValueChange={(val) => updateSettings({ mode: val })}
+            disabled={isLoading}
+          >
+            <SelectTrigger id="calendar-mode" className="h-9 text-xs bg-card border-border/50 shadow-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CALENDAR_MODES.map((opt) => (
+                <SelectItem key={opt} value={opt} className="text-xs">
+                  {t(`modeOptions.${opt}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         <div className="space-y-1.5">
           <SettingHeader icon={CalendarDays} label={t('defaultView')} help={t('help.defaultView')} htmlFor="default-view" />
           <Select

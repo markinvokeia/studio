@@ -588,6 +588,11 @@
     "description": "Manage all appointments.",
     "settings": {
       "title": "Calendar Settings",
+      "mode": "View (Mode)",
+      "modeOptions": {
+        "invoke": "Invoke",
+        "custom": "Custom"
+      },
       "defaultView": "Default view",
       "hourHeight": "Hour height",
       "hourHeightOption": "{px} px",
@@ -619,6 +624,7 @@
       },
       "blockUnavailable": "Block out-of-office hours",
       "help": {
+        "mode": "Invoke shows the calendar as usual. Custom shows one agenda at a time full-screen; use the 'Agendas' button (top-left) to pick which one to view.",
         "defaultView": "Sets which view opens by default (day, week, month, agenda…). Changing it applies the view immediately.",
         "groupBy": "Splits the calendar into columns per doctor or per consulting room. 'No grouping' shows a single combined column.",
         "hourHeight": "Pixel height of each hour in the day/week views. Taller = bigger rows and easier-to-read events.",
@@ -638,6 +644,7 @@
     "calendars": "Calendars",
     "toggleCalendars": "Show/Hide Calendars",
     "toggleDoctors": "Show/Hide Doctors",
+    "agendas": "Agendas",
     "createSubtitle": "Appointment or reminder",
     "showingAllCalendars": "Showing all calendars",
     "showingAllOfSede": "Showing all from: {sede}",
@@ -4896,6 +4903,11 @@
     "showingView": "Showing view: {view}",
     "collapseMonth": "Collapse month",
     "expandMonth": "Expand month",
+    "showHours": "Show hours column",
+    "createAppointment": "Create appointment",
+    "agendas": "Agendas",
+    "agendasPanelTitle": "Agendas",
+    "agendasEmpty": "No visible agendas.",
     "timeZone": "GMT-03",
     "views": {
       "2day": "2 Days",

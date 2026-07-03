@@ -797,6 +797,9 @@ export type CalendarSettings = {
    *  (a draft card) instead of opening the modal. The "Create" button always
    *  opens the modal regardless. Default false. */
   inline_appointment_creation?: boolean;
+  /** Display mode. 'invoke' = current behavior; 'custom' = a single agenda shown
+   *  at a time, chosen from the "Agendas" side panel. See CALENDAR_MODES. */
+  mode?: string;
 };
 
 export type Sede = {

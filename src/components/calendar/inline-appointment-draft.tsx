@@ -154,7 +154,7 @@ export function InlineAppointmentDraft({
 
   return (
     <div
-      className="flex h-full max-w-[300px] flex-col gap-1.5 overflow-auto rounded-lg border border-l-4 border-primary/40 bg-violet-50 p-2 text-xs shadow-lg ring-1 ring-primary/20 dark:bg-violet-950"
+      className="flex max-h-[85vh] w-full flex-col gap-1.5 overflow-auto rounded-lg border border-l-4 border-primary/40 bg-violet-50 p-2 text-xs shadow-lg ring-1 ring-primary/20 dark:bg-violet-950"
       style={accentColor ? { borderLeftColor: accentColor } : undefined}
     >
       {/* Header: title + close */}

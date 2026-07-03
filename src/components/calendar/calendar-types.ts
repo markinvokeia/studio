@@ -79,6 +79,9 @@ export interface CalendarProps {
   renderInlineDraft?: () => React.ReactNode;
   /** Content rendered inside the mobile bottom sheet for filters */
   filterSheet?: React.ReactNode;
+  /** Content rendered at the very top-left of the header, before the title
+   *  (e.g. the "Agendas" toggle button in custom mode). */
+  leadingActions?: React.ReactNode;
   /** Content rendered in the header next to navigation controls (mobile) or alongside children (desktop) */
   extraActions?: React.ReactNode;
   /** Content rendered in the header after the Today button */

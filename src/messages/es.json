@@ -588,6 +588,11 @@
     "description": "Gestionar todas las citas.",
     "settings": {
       "title": "Configuración del Calendario",
+      "mode": "Vista (Modo)",
+      "modeOptions": {
+        "invoke": "Invoke",
+        "custom": "Personalizado"
+      },
       "defaultView": "Vista predeterminada",
       "hourHeight": "Altura de la hora",
       "hourHeightOption": "{px} px",
@@ -619,6 +624,7 @@
       },
       "blockUnavailable": "Bloquear horarios fuera de atención",
       "help": {
+        "mode": "Invoke muestra el calendario como siempre. Personalizado muestra una sola agenda a la vez a pantalla completa; usa el botón 'Agendas' (arriba a la izquierda) para elegir cuál ver.",
         "defaultView": "Define qué vista se muestra al abrir el calendario (día, semana, mes, agenda…). Cambiarla aplica la vista al instante.",
         "groupBy": "Divide el calendario en columnas por doctor o por consultorio. 'Sin agrupar' muestra una sola columna combinada.",
         "hourHeight": "Altura en píxeles de cada hora en las vistas de día y semana. Más alto = filas más grandes y eventos más fáciles de leer.",
@@ -638,6 +644,7 @@
     "calendars": "Calendarios",
     "toggleCalendars": "Mostrar/Ocultar Calendarios",
     "toggleDoctors": "Mostrar/Ocultar Doctores",
+    "agendas": "Agendas",
     "createSubtitle": "Cita o recordatorio",
     "showingAllCalendars": "Mostrando todos los calendarios",
     "showingAllOfSede": "Mostrando todos de: {sede}",
@@ -4874,6 +4881,11 @@
     "showingView": "Mostrando vista: {view}",
     "collapseMonth": "Colapsar mes",
     "expandMonth": "Expandir mes",
+    "showHours": "Mostrar columna de horas",
+    "createAppointment": "Crear cita",
+    "agendas": "Agendas",
+    "agendasPanelTitle": "Agendas",
+    "agendasEmpty": "No hay agendas visibles.",
     "timeZone": "GMT-03",
     "views": {
       "2day": "2 Días",

@@ -59,6 +59,7 @@ const Calendar: React.FC<CalendarProps> = ({
   inlineDraft,
   renderInlineDraft,
   filterSheet,
+  leadingActions,
   extraActions,
   extraActionsAfterToday,
   primaryActions,
@@ -93,6 +94,18 @@ const Calendar: React.FC<CalendarProps> = ({
   const handleZoomChange = React.useCallback((v: number) => {
     setZoom(v);
     try { window.localStorage.setItem('calendar-zoom', String(v)); } catch { /* ignore */ }
+  }, []);
+
+  // Whether the main hour gutter shows the hour labels. Off by default since each
+  // day/resource column now shows the hours in its own left rail. Persisted.
+  const [showTimeColumn, setShowTimeColumn] = React.useState(false);
+  React.useEffect(() => {
+    const saved = typeof window !== 'undefined' ? window.localStorage.getItem('calendar-show-time-column') : null;
+    if (saved !== null) setShowTimeColumn(saved === 'true');
+  }, []);
+  const handleToggleTimeColumn = React.useCallback((v: boolean) => {
+    setShowTimeColumn(v);
+    try { window.localStorage.setItem('calendar-show-time-column', String(v)); } catch { /* ignore */ }
   }, []);
 
 
@@ -193,6 +206,8 @@ const Calendar: React.FC<CalendarProps> = ({
               slotMinutes={slotMinutes}
               inlineDraft={inlineDraft}
               renderInlineDraft={renderInlineDraft}
+              showTimeColumn={showTimeColumn}
+              onToggleTimeColumn={handleToggleTimeColumn}
               {...eventHandlers}
               {...gapProps}
               {...blockProps}
@@ -213,6 +228,8 @@ const Calendar: React.FC<CalendarProps> = ({
             slotMinutes={slotMinutes}
             inlineDraft={inlineDraft}
             renderInlineDraft={renderInlineDraft}
+            showTimeColumn={showTimeColumn}
+            onToggleTimeColumn={handleToggleTimeColumn}
             {...eventHandlers}
             {...gapProps}
             {...blockProps}
@@ -288,6 +305,7 @@ const Calendar: React.FC<CalendarProps> = ({
         onViewChange={handleViewChange}
         onDateSelect={setCurrentDate}
         onOpenFilterSheet={isCompactHeader && filterSheet ? () => setFilterSheetOpen(true) : undefined}
+        leadingActions={leadingActions}
         extraActions={extraActions}
         extraActionsAfterToday={extraActionsAfterToday}
         primaryActions={primaryActions}

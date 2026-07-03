@@ -396,8 +396,13 @@
 }
 
 .time-zone-label {
-  padding: 0.5rem;
-  font-size: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.25rem;
+  font-size: 0.7rem;
   color: hsl(var(--muted-foreground));
   text-align: center;
   border-bottom: 1px solid hsl(var(--border));
@@ -406,6 +411,11 @@
   left: 0;
   z-index: 16;
   background-color: hsl(var(--card));
+}
+
+.time-zone-toggle {
+  height: 0.85rem;
+  width: 0.85rem;
 }
 
 .time-slot {
@@ -448,10 +458,70 @@
   border-right: 1px solid hsl(var(--border));
   position: relative;
   box-sizing: border-box;
+  display: flex;
+  align-items: stretch;
 }
 
 .day-column:last-child {
   border-right: none;
+}
+
+/* Events/overlays are positioned within this inner area so that appointments sit
+   to the right of the clickable hour rail. */
+.day-column-content {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* Thin clickable rail at the left edge of each column: shows the hour numbers and,
+   sitting beside (not under) the events area, always creates an appointment on
+   click — even when an event already occupies that time. */
+.column-hour-rail {
+  position: relative;
+  flex: 0 0 auto;
+  width: 22px;
+  box-sizing: border-box;
+  border-right: 1px solid hsl(var(--border));
+  background-color: hsl(var(--muted) / 0.25);
+  cursor: pointer;
+  user-select: none;
+}
+
+.column-hour-rail:hover {
+  background-color: hsl(var(--muted) / 0.5);
+}
+
+.column-hour-rail-slot {
+  height: var(--hour-slot-height, 60px);
+  position: relative;
+  border-bottom: 1px solid hsl(var(--border) / 0.5);
+  /* Same sub-hour slot lines as the events area (see .time-slot-divider). */
+  background-image:
+    repeating-linear-gradient(
+      to bottom,
+      hsl(var(--border) / 0.4) 0,
+      hsl(var(--border) / 0.4) 1px,
+      transparent 1px,
+      transparent calc(var(--hour-slot-height, 60px) / var(--cal-slots-per-hour, 4))
+    );
+}
+
+.column-hour-rail-slot:last-child {
+  border-bottom: none;
+}
+
+.column-hour-rail-label {
+  position: absolute;
+  top: 2px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: calc(0.625rem * var(--cal-font-scale, 1));
+  line-height: 1;
+  color: hsl(var(--muted-foreground));
+  pointer-events: none;
 }
 
 .day-block {
@@ -474,7 +544,7 @@
   border-right: 1px solid hsl(var(--border));
 }
 
-.day-column>.time-slot {
+.day-column-content>.time-slot {
   border-bottom: 1px solid hsl(var(--border) / 0.5);
 }
 

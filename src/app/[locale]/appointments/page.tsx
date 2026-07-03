@@ -8,9 +8,10 @@ import { CalendarSettingsPopover } from '@/components/calendar/calendar-settings
 import { CalendarSettingsForm } from '@/components/calendar/calendar-settings-form';
 import { getCalendarSettings } from '@/components/calendar/calendar-settings-utils';
 import { CalendarGapsPanel } from '@/components/calendar/calendar-gaps-panel';
+import { CalendarAgendasPanel } from '@/components/calendar/calendar-agendas-panel';
 import { computeRangeGaps, computeDayGaps, computeDayGapsForIntervals, getBusinessWindow, getAvailableIntervals, computeBlockedRanges, gapKey, DEFAULT_MIN_GAP_MINUTES, type Gap, type BlockedRange } from '@/components/calendar/calendar-gaps';
 import { filterEventsByDayAndGroup } from '@/components/calendar/calendar-utils';
-import { DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, HOUR_SLOT_HEIGHT } from '@/components/calendar/calendar-constants';
+import { DEFAULT_CALENDAR_MODE, DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, HOUR_SLOT_HEIGHT } from '@/components/calendar/calendar-constants';
 import { ReminderFormDialog, type ReminderFormValues } from '@/components/appointments/ReminderFormDialog';
 import { ReminderPanel } from '@/components/appointments/ReminderPanel';
 import { useCalendarBreakpoint } from '@/hooks/use-calendar-breakpoint';
@@ -66,7 +67,7 @@ import { getSalesServices, getUsersServicesBatch, fetchServicesByIds } from '@/s
 import { ColumnDef } from '@tanstack/react-table';
 import { addMinutes, eachDayOfInterval, endOfMonth, endOfWeek, format, isValid, parseISO, set, startOfMonth, startOfWeek } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
-import { BellRing, Building2, Calendar as CalendarIcon, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileText, Layers, Link2, Loader2, PlusCircle, Receipt, RefreshCw, Stethoscope, Trash2, UserCog, Users, X, Zap } from 'lucide-react';
+import { BellRing, Building2, Calendar as CalendarIcon, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileText, Layers, Link2, Loader2, PanelLeft, PlusCircle, Receipt, RefreshCw, Stethoscope, Trash2, UserCog, Users, X, Zap } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
@@ -595,6 +596,13 @@ export default function AppointmentsPage() {
     const [eventLabelFormat, setEventLabelFormat] = React.useState<string>(DEFAULT_EVENT_LABEL_FORMAT);
     const [defaultSede, setDefaultSede] = React.useState<string>('');
 
+    // ── Calendar display mode (invoke | custom) ──────────────────────────────
+    // In 'custom' mode a single agenda is shown at a time, chosen from the
+    // "Agendas" side panel.
+    const [calendarMode, setCalendarMode] = React.useState<string>(DEFAULT_CALENDAR_MODE);
+    const [personalizedCalendarId, setPersonalizedCalendarId] = React.useState<string | null>(null);
+    const [agendasPanelOpen, setAgendasPanelOpen] = React.useState(false);
+
     const tBulk = useTranslations('AppointmentsPage.bulk');
 
     const getBulkDateRange = (preset: AppointmentDatePreset) => {
@@ -746,6 +754,7 @@ export default function AppointmentsPage() {
         setSlotDuration(settings.slot_duration ?? DEFAULT_SLOT_DURATION);
         setEventLabelFormat(settings.event_label_format ?? DEFAULT_EVENT_LABEL_FORMAT);
         setDefaultSede(settings.default_sede ?? '');
+        setCalendarMode(settings.mode ?? DEFAULT_CALENDAR_MODE);
     }, []);
 
     const handleSettingsEditorChange = React.useCallback((settings: CalendarSettings) => {
@@ -768,6 +777,7 @@ export default function AppointmentsPage() {
         setSlotDuration(settings.slot_duration ?? DEFAULT_SLOT_DURATION);
         setEventLabelFormat(settings.event_label_format ?? DEFAULT_EVENT_LABEL_FORMAT);
         setDefaultSede(settings.default_sede ?? '');
+        setCalendarMode(settings.mode ?? DEFAULT_CALENDAR_MODE);
     }, [doctors]);
 
     // Tracks the last applied default sede so the effect below only re-scopes the
@@ -1025,6 +1035,20 @@ export default function AppointmentsPage() {
         );
     }, [inlineDraft, doctors, calendars, appointments, inlineDebt, inlineCancelledCount, isSavingInline, handleSaveInlineDraft, openAccountStatement, tInline]);
 
+    // Esc closes the inline draft only when it is still empty (untouched) — no
+    // patient, no services and no notes — so accidental opens dismiss without
+    // losing any data the user has entered.
+    React.useEffect(() => {
+        if (!inlineDraft) return;
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key !== 'Escape' || isSavingInline) return;
+            const isEmpty = !inlineDraft.patient && inlineDraft.services.length === 0 && !inlineDraft.notes.trim();
+            if (isEmpty) setInlineDraft(null);
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [inlineDraft, isSavingInline]);
+
     // Left-click on an empty slot → inline draft (if enabled, desktop, time-grid view)
     // or the modal form. Month/year/schedule always use the modal.
     const handleSlotClick = React.useCallback((date: Date, context?: { groupBy: 'doctor' | 'calendar' | 'sede'; value: string }) => {
@@ -1062,18 +1086,22 @@ export default function AppointmentsPage() {
             const services: Service[] = Array.isArray(appointment.services)
                 ? appointment.services.map((s: any) => ({ id: String(s.id), name: s.name, color: s.color } as Service))
                 : [];
-            const context = groupBy === 'doctor'
-                ? { groupBy: 'doctor' as const, value: String(appointment.doctorId) }
-                : groupBy === 'calendar'
-                    ? { groupBy: 'calendar' as const, value: String(appointment.calendar_source_id) }
-                    : undefined;
+            // In custom mode the grid is a single calendar column, so the inline
+            // draft must carry the calendar context to render in that column.
+            const context = calendarMode === 'custom'
+                ? { groupBy: 'calendar' as const, value: String(appointment.calendar_source_id) }
+                : groupBy === 'doctor'
+                    ? { groupBy: 'doctor' as const, value: String(appointment.doctorId) }
+                    : groupBy === 'calendar'
+                        ? { groupBy: 'calendar' as const, value: String(appointment.calendar_source_id) }
+                        : undefined;
             setInlineDraft({ date: start, context, durationMin, patient, services, doctor, calendar, notes: appointment.notes || '', editing: appointment });
             return;
         }
         setEditingAppointment(appointment);
         setIsReschedulingMode(false);
         setCreateOpen(true);
-    }, [calendarSettings?.inline_appointment_creation, currentView, doctors, calendars, groupBy]);
+    }, [calendarSettings?.inline_appointment_creation, currentView, doctors, calendars, groupBy, calendarMode]);
 
     // Right-click on an empty slot → choose between appointment or reminder.
     const handleSlotContextMenu = React.useCallback((date: Date, context?: { groupBy: 'doctor' | 'calendar' | 'sede'; value: string }) => {
@@ -2412,6 +2440,35 @@ export default function AppointmentsPage() {
         return [];
     }, [calendarGroupingColumns, doctorGroupingColumns, groupBy]);
 
+    // ── Custom mode: show a single agenda at a time ──────────────────────────
+    const isCustomMode = calendarMode === 'custom';
+    const firstVisibleCalendarId = React.useMemo(
+        () => calendars.find((c) => selectedCalendarIds.includes(c.id))?.id ?? null,
+        [calendars, selectedCalendarIds],
+    );
+    // Keep the shown agenda valid: default to the first visible one, and fall
+    // back to it if the current selection gets hidden.
+    React.useEffect(() => {
+        if (!isCustomMode) return;
+        setPersonalizedCalendarId((prev) =>
+            prev && selectedCalendarIds.includes(prev) ? prev : firstVisibleCalendarId,
+        );
+    }, [isCustomMode, selectedCalendarIds, firstVisibleCalendarId]);
+
+    // In custom mode force calendar grouping with a single column, and filter
+    // events to that one agenda (so month/agenda views also show only it).
+    const effectiveGroupBy: CalendarGroupBy = isCustomMode ? 'calendar' : groupBy;
+    const effectiveGroupingColumns = React.useMemo<CalendarGroupingColumn[]>(() => {
+        if (!isCustomMode) return groupingColumns;
+        const cal = calendars.find((c) => c.id === personalizedCalendarId);
+        return cal ? [{ id: cal.id, label: cal.name, value: cal.id, color: (cal as any).color ?? undefined }] : [];
+    }, [isCustomMode, groupingColumns, calendars, personalizedCalendarId]);
+    const effectiveEvents = React.useMemo<CalendarEvent[]>(() => {
+        if (!isCustomMode || !personalizedCalendarId) return calendarEvents;
+        // Reminders carry no calendarGroupId, so they're excluded in custom mode.
+        return calendarEvents.filter((e) => (e as { calendarGroupId?: string }).calendarGroupId === personalizedCalendarId);
+    }, [isCustomMode, personalizedCalendarId, calendarEvents]);
+
     const calendarGaps = React.useMemo<Gap[]>(() => {
         if (!gapsActive) return [];
         // When blocking is on, restrict gaps to the available intervals (split shifts
@@ -2908,11 +2965,21 @@ export default function AppointmentsPage() {
                         onClose={handleCloseGaps}
                     />
                 )}
+                {isCustomMode && agendasPanelOpen && (
+                    <CalendarAgendasPanel
+                        sedeGroups={calendarSedeGroups.sedeGroups}
+                        noSede={calendarSedeGroups.noSede}
+                        visibleIds={selectedCalendarIds}
+                        selectedId={personalizedCalendarId}
+                        onSelect={(id) => { setPersonalizedCalendarId(id); setAgendasPanelOpen(false); }}
+                        onClose={() => setAgendasPanelOpen(false)}
+                    />
+                )}
                 <Calendar
                     view={currentView}
                     hourSlotHeight={hourSlotHeight}
                     slotMinutes={slotDuration}
-                    events={calendarEvents}
+                    events={effectiveEvents}
                     onDateChange={onDateChange}
                     isLoading={isRefreshing}
                     onEventClick={handleEventClick}
@@ -2922,8 +2989,19 @@ export default function AppointmentsPage() {
                     onEventContextMenuOpen={isBulkMode ? undefined : (data) => { if (data?.kind !== 'reminder') requestAppointmentMenuData(data as Appointment); }}
                     inlineDraft={inlineDraft ? { date: inlineDraft.date, durationMin: inlineDraft.durationMin, groupValue: inlineDraft.context?.value } : null}
                     renderInlineDraft={renderInlineDraft}
-                    groupBy={groupBy}
-                    groupingColumns={groupingColumns}
+                    groupBy={effectiveGroupBy}
+                    groupingColumns={effectiveGroupingColumns}
+                    leadingActions={isCustomMode ? (
+                        <Button
+                            variant={agendasPanelOpen ? 'default' : 'outline'}
+                            size="sm"
+                            className="h-11 gap-1.5"
+                            onClick={() => setAgendasPanelOpen((v) => !v)}
+                        >
+                            <PanelLeft className="h-4 w-4" />
+                            {t('agendas')}
+                        </Button>
+                    ) : undefined}
                     onViewChange={(v) => { setCurrentView(v); setInlineDraft(null); }}
                     selectedAppointmentIds={isBulkMode ? bulkSelectedIds : undefined}
                     onToggleAppointmentSelect={isBulkMode ? handleToggleAppointmentSelect : undefined}
@@ -3018,6 +3096,8 @@ export default function AppointmentsPage() {
                                 </>
                             )}
                             {/* Calendars section */}
+                            {!isCustomMode && (
+                            <>
                             <div>
                                 <h4 className="text-sm font-semibold mb-3">{t('calendars')}</h4>
                                 <div className="flex gap-2 mb-3">
@@ -3063,9 +3143,11 @@ export default function AppointmentsPage() {
                             </div>
 
                             <Separator />
+                            </>
+                            )}
 
                             {/* Doctors section */}
-                            {showDoctorFilter && (
+                            {showDoctorFilter && !isCustomMode && (
                                 <>
                                     <div>
                                         <h4 className="text-sm font-semibold mb-3">{t('doctors')}</h4>
@@ -3276,6 +3358,7 @@ export default function AppointmentsPage() {
                         )}
                         {breakpoint === 'desktop' && (
                             <div className="flex flex-wrap items-center gap-2">
+                                {!isCustomMode && (
                                 <Popover>
                                     <PopoverTrigger asChild>
                                         <Button variant="outline" className="flex h-11 items-center gap-2">
@@ -3350,7 +3433,8 @@ export default function AppointmentsPage() {
                                         </Command>
                                     </PopoverContent>
                                 </Popover>
-                                {showDoctorFilter && (
+                                )}
+                                {showDoctorFilter && !isCustomMode && (
                                         <Popover>
                                             <PopoverTrigger asChild>
                                                 <Button variant="outline" className="flex h-11 items-center gap-2">

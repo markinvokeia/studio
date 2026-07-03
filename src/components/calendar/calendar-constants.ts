@@ -56,3 +56,11 @@ export const DEFAULT_EVENT_LABEL_FORMAT: EventLabelFormat = 'time_patient_notes'
 
 /** Hour to auto-scroll to on initial day/week view render (working day start) */
 export const DEFAULT_SCROLL_HOUR = 8;
+
+/** Calendar display modes.
+ *  - invoke: the calendar as it works today (multi-column when grouped).
+ *  - custom: one agenda/calendar shown at a time, full-width, chosen from the
+ *    "Agendas" side panel. */
+export const CALENDAR_MODES = ['invoke', 'custom'] as const;
+export type CalendarMode = (typeof CALENDAR_MODES)[number];
+export const DEFAULT_CALENDAR_MODE: CalendarMode = 'invoke';

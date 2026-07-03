@@ -1,7 +1,10 @@
 'use client';
 
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
+
+import { Checkbox } from '@/components/ui/checkbox';
 
 import type { Locale } from 'date-fns';
 import { addDays, format, isSameDay, set, startOfWeek } from 'date-fns';
@@ -18,6 +21,8 @@ import {
 import { CalendarEventDay } from './calendar-event-day';
 import { CalendarTimeColumn } from './calendar-time-column';
 import { TimeSlotDividers } from './calendar-time-column';
+import { CalendarHourRail } from './calendar-hour-rail';
+import { CalendarInlineDraftOverlay } from './inline-draft-overlay';
 import { CalendarGapOverlays } from './calendar-gap-overlay';
 import { CalendarBlockedOverlays } from './calendar-blocked-overlay';
 import { isSlotBlocked } from './calendar-gaps';
@@ -46,6 +51,9 @@ interface CalendarDayViewProps {
   selectedGapKey?: string;
   onGapClick?: (gap: Gap) => void;
   blockedRanges?: BlockedRange[];
+  /** Whether the main hour gutter shows the hour labels (toggled via GMT checkbox). */
+  showTimeColumn?: boolean;
+  onToggleTimeColumn?: (value: boolean) => void;
 }
 
 export function CalendarDayView({
@@ -71,7 +79,10 @@ export function CalendarDayView({
   selectedGapKey,
   onGapClick,
   blockedRanges,
+  showTimeColumn = false,
+  onToggleTimeColumn,
 }: CalendarDayViewProps) {
+  const t = useTranslations('Calendar');
   const startDay = view === 'week' ? startOfWeek(currentDate, { weekStartsOn: 1 }) : currentDate;
   const days = Array.from({ length: numDays }, (_, i) => addDays(startDay, i));
   const timeSlots = generateTimeSlots();
@@ -95,25 +106,6 @@ export function CalendarDayView({
     }
     prevHourRef.current = hourSlotHeight;
   }, [hourSlotHeight]);
-
-  // Center the clicked point when an inline draft opens; restore the previous
-  // scroll position (zoom-independent, time-based) when it closes.
-  const draftKey = inlineDraft ? inlineDraft.date.getTime() : null;
-  const savedScrollMinRef = React.useRef<number | null>(null);
-  React.useEffect(() => {
-    const c = scrollContainerRef.current;
-    if (!c) return;
-    if (draftKey !== null) {
-      if (savedScrollMinRef.current === null) savedScrollMinRef.current = (c.scrollTop / hourSlotHeight) * 60;
-      const d = new Date(draftKey);
-      const clickMin = d.getHours() * 60 + d.getMinutes();
-      const top = (clickMin / 60) * hourSlotHeight;
-      c.scrollTo({ top: Math.max(0, top - c.clientHeight / 2), behavior: 'smooth' });
-    } else if (savedScrollMinRef.current !== null) {
-      c.scrollTo({ top: Math.max(0, (savedScrollMinRef.current / 60) * hourSlotHeight), behavior: 'smooth' });
-      savedScrollMinRef.current = null;
-    }
-  }, [draftKey, hourSlotHeight]);
 
   const slotDateFromEvent = (day: Date, e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -154,7 +146,16 @@ export function CalendarDayView({
             className="day-view-header-dates"
             style={{ gridTemplateColumns: `60px repeat(${days.length}, 1fr)` }}
           >
-            <div className="time-zone-label">{timeZoneLabel}</div>
+            <div className="time-zone-label">
+              <Checkbox
+                className="time-zone-toggle"
+                checked={showTimeColumn}
+                onCheckedChange={(v) => onToggleTimeColumn?.(v === true)}
+                aria-label={t('showHours')}
+                title={t('showHours')}
+              />
+              <span>{timeZoneLabel}</span>
+            </div>
             {days.map((day) => (
               <div key={`date-${format(day, 'yyyy-MM-dd')}`} className="day-view-date-cell">
                 <span className="day-name">{format(day, 'EEE', { locale: dateLocale }).toUpperCase()}</span>
@@ -166,53 +167,49 @@ export function CalendarDayView({
           </div>
         </div>
         <div className="day-view-body" style={{ '--num-days': days.length, '--hour-slot-height': `${hourSlotHeight}px` } as any}>
-          <CalendarTimeColumn />
+          <CalendarTimeColumn visible={showTimeColumn} />
           {days.map((day) => (
-            <div
-              key={format(day, 'yyyy-MM-dd')}
-              className="day-column"
-              onClick={(e) => handleSlotClick(day, e)}
-              onContextMenu={(e) => handleSlotContextMenu(day, e)}
-            >
-              <TimeSlotDividers />
-              <CalendarBlockedOverlays
-                ranges={blockedRanges}
-                dayKey={format(day, 'yyyy-MM-dd')}
-                hourSlotHeight={hourSlotHeight}
+            <div key={format(day, 'yyyy-MM-dd')} className="day-column">
+              <CalendarHourRail
+                ariaLabel={t('createAppointment')}
+                onClick={(e) => handleSlotClick(day, e)}
+                onContextMenu={(e) => handleSlotContextMenu(day, e)}
               />
-              <CalendarGapOverlays
-                gaps={gaps}
-                dayKey={format(day, 'yyyy-MM-dd')}
-                hourSlotHeight={hourSlotHeight}
-                selectedGapKey={selectedGapKey}
-                onGapClick={onGapClick}
-              />
-              {getEventsWithLayout(filterEventsByDay(events, day)).map((event) => (
-                <CalendarEventDay
-                  key={event.id}
-                  event={event}
-                  style={getEventStyle(event, hourSlotHeight)}
-                  dateLocale={dateLocale}
-                  onEventClick={onEventClick}
-                  onEventColorChange={onEventColorChange}
-                  onEventDoubleClick={onEventDoubleClick}
-                  onEventContextMenu={onEventContextMenu}
-                  onEventContextMenuOpen={onEventContextMenuOpen}
+              <div
+                className="day-column-content"
+                onClick={(e) => handleSlotClick(day, e)}
+                onContextMenu={(e) => handleSlotContextMenu(day, e)}
+              >
+                <TimeSlotDividers />
+                <CalendarBlockedOverlays
+                  ranges={blockedRanges}
+                  dayKey={format(day, 'yyyy-MM-dd')}
+                  hourSlotHeight={hourSlotHeight}
                 />
-              ))}
-              {inlineDraft && renderInlineDraft && isSameDay(day, inlineDraft.date) && (
-                <div
-                  className="absolute left-0.5 z-[12] w-[300px] max-w-[calc(100vw-2rem)]"
-                  style={{
-                    top: `${((inlineDraft.date.getHours() + inlineDraft.date.getMinutes() / 60) / 1) * hourSlotHeight}px`,
-                    minHeight: `${Math.max((inlineDraft.durationMin / 60) * hourSlotHeight, 96)}px`,
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                  onContextMenu={(e) => e.stopPropagation()}
-                >
-                  {renderInlineDraft()}
-                </div>
-              )}
+                <CalendarGapOverlays
+                  gaps={gaps}
+                  dayKey={format(day, 'yyyy-MM-dd')}
+                  hourSlotHeight={hourSlotHeight}
+                  selectedGapKey={selectedGapKey}
+                  onGapClick={onGapClick}
+                />
+                {getEventsWithLayout(filterEventsByDay(events, day)).map((event) => (
+                  <CalendarEventDay
+                    key={event.id}
+                    event={event}
+                    style={getEventStyle(event, hourSlotHeight)}
+                    dateLocale={dateLocale}
+                    onEventClick={onEventClick}
+                    onEventColorChange={onEventColorChange}
+                    onEventDoubleClick={onEventDoubleClick}
+                    onEventContextMenu={onEventContextMenu}
+                    onEventContextMenuOpen={onEventContextMenuOpen}
+                  />
+                ))}
+                {inlineDraft && renderInlineDraft && isSameDay(day, inlineDraft.date) && (
+                  <CalendarInlineDraftOverlay>{renderInlineDraft()}</CalendarInlineDraftOverlay>
+                )}
+              </div>
             </div>
           ))}
           {showTimeIndicator && (

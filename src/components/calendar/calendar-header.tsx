@@ -27,6 +27,8 @@ interface CalendarHeaderProps {
   /** Jump the calendar to a date picked from the header date picker. */
   onDateSelect: (date: Date) => void;
   onOpenFilterSheet?: () => void;
+  /** Rendered at the very top-left, before the title (e.g. the "Agendas" toggle). */
+  leadingActions?: React.ReactNode;
   extraActions?: React.ReactNode;
   extraActionsAfterToday?: React.ReactNode;
   primaryActions?: React.ReactNode;
@@ -89,6 +91,7 @@ export function CalendarHeader({
   onToday,
   onDateSelect,
   onOpenFilterSheet,
+  leadingActions,
   extraActions,
   extraActionsAfterToday,
   primaryActions,
@@ -106,6 +109,7 @@ export function CalendarHeader({
       <div className="calendar-header-mobile">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
+            {leadingActions}
             {onOpenFilterSheet && (
               <Button variant="ghost" size="icon" onClick={onOpenFilterSheet}>
                 <SlidersHorizontal className="h-4 w-4" />
@@ -155,6 +159,7 @@ export function CalendarHeader({
       )}
       {/* Row-1 cluster: title + date navigation (date is clickable to jump) */}
       <div className="flex items-center gap-2 min-w-0">
+        {leadingActions}
         <h2 className="text-xl font-bold whitespace-nowrap">{t('title')}</h2>
         <Button variant="outline" size="sm" className="h-11" onClick={onToday}>
           {t('today')}
