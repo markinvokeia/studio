@@ -63,6 +63,7 @@ import { InvoiceFormDialog } from '@/components/tables/invoices-table';
 import { PrepaidFormDialog } from '@/components/sales/payments/PrepaidFormDialog';
 import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
 import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/components/users/clinic-history-viewer';
+import { PatientInstructionsSection } from '@/components/medical-instructions/patient-instructions-section';
 import { UserCommunicationPreferences } from '@/components/users/user-communication-preferences';
 import { UserFinancialSummaryStats } from '@/components/users/user-financial-summary-stats';
 import { UserInvoices } from '@/components/users/user-invoices';
@@ -1524,6 +1525,12 @@ export default function UsersPage() {
                               setActiveClinicalSubTab('clinical-history')
                             }}
                             onContact={(ctx) => { setTreatmentContactCtx(ctx); setIsWhatsAppDialogOpen(true); }}
+                          />
+                        }
+                        medicalInstructionsContent={
+                          <PatientInstructionsSection
+                            userId={selectedUser.id}
+                            userName={selectedUser.name}
                           />
                         }
                         documentsContent={<DocumentsViewer userId={selectedUser.id} createTrigger={createDocumentTrigger} />}

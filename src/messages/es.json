@@ -108,6 +108,7 @@
     "MutualSocieties": "Sociedades Mutuales",
     "PrintTemplates": "Plantillas de Documentos",
     "Templates": "Plantillas",
+    "MedicalInstructionTemplates": "Plantillas de Indicaciones Médicas",
     "System": "Sistema",
     "SystemUsers": "Usuarios",
     "Roles": "Roles",
@@ -1435,7 +1436,8 @@
       "info": "Información",
       "anamnesis": "Anamnesis",
       "summary": "Resumen",
-      "history": "Línea de tiempo"
+      "history": "Línea de tiempo",
+      "medicalInstructions": "Indicaciones Médicas"
     },
     "createDialog": {
       "title": "Crear Nuevo Paciente",
@@ -5394,6 +5396,125 @@
       },
       "badRequest": "Error de validación. Por favor verifique los datos ingresados."
     }
+  },
+  "MedicalInstructionTemplatesPage": {
+    "title": "Plantillas de Indicaciones Médicas",
+    "description": "Gestionar plantillas reutilizables de indicaciones médicas para pacientes.",
+    "filterPlaceholder": "Filtrar por nombre de plantilla...",
+    "noAccess": "No tiene acceso para ver esta sección.",
+    "columns": {
+      "name": "Nombre",
+      "description": "Descripción",
+      "isActive": "Activo",
+      "yes": "Sí",
+      "no": "No",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "delete": "Eliminar"
+    },
+    "dialog": {
+      "createTitle": "Crear Plantilla de Indicación",
+      "editTitle": "Editar Plantilla de Indicación",
+      "name": "Nombre",
+      "namePlaceholder": "ej. Post-extracción",
+      "descriptionLabel": "Descripción",
+      "content": "Contenido",
+      "legend": "Use el botón \"Variables\" para insertar datos que se completarán automáticamente al usar esta plantilla con un paciente, como el nombre del paciente, la clínica, la fecha o la pieza dental.",
+      "preview": "Vista previa",
+      "isActive": "Está Activa",
+      "cancel": "Cancelar",
+      "create": "Crear Plantilla",
+      "save": "Guardar Cambios"
+    },
+    "variables": {
+      "title": "Variables",
+      "groups": {
+        "patient": "Paciente",
+        "clinic": "Clínica",
+        "document": "Documento",
+        "tables": "Tablas"
+      }
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "createSuccessTitle": "Plantilla Creada",
+      "editSuccessTitle": "Plantilla Actualizada",
+      "successDescription": "La plantilla \"{name}\" se ha guardado exitosamente.",
+      "deleteSuccessTitle": "Plantilla Eliminada",
+      "deleteSuccessDescription": "La plantilla \"{name}\" ha sido eliminada."
+    },
+    "deleteDialog": {
+      "title": "Eliminar Plantilla",
+      "description": "¿Está seguro de que desea eliminar la plantilla \"{name}\"?",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "validation": {
+      "nameRequired": "El nombre es obligatorio.",
+      "contentRequired": "El contenido es obligatorio."
+    }
+  },
+  "PatientInstructionDialog": {
+    "createTitle": "Nueva Indicación Médica",
+    "editTitle": "Editar Indicación Médica",
+    "date": "Fecha",
+    "tooth": "Pieza dental",
+    "toothPlaceholder": "Opcional",
+    "doctor": "Doctor",
+    "selectDoctor": "Seleccione un doctor",
+    "searchDoctor": "Buscar doctor...",
+    "noDoctor": "No se encontraron doctores.",
+    "template": "Plantilla",
+    "selectTemplate": "Seleccione una plantilla",
+    "content": "Contenido",
+    "refreshVariables": "Actualizar variables",
+    "preview": "Vista previa",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "saving": "Guardando...",
+    "variables": {
+      "title": "Variables",
+      "groups": {
+        "patient": "Paciente",
+        "clinic": "Clínica",
+        "document": "Documento",
+        "tables": "Tablas"
+      }
+    },
+    "validation": {
+      "doctorRequired": "Debe seleccionar un doctor.",
+      "contentRequired": "El contenido es obligatorio."
+    },
+    "toast": {
+      "createSuccess": "Indicación médica creada.",
+      "editSuccess": "Indicación médica actualizada.",
+      "error": "Ocurrió un error al guardar la indicación médica."
+    }
+  },
+  "PatientInstructionsSection": {
+    "title": "Indicaciones Médicas",
+    "newInstruction": "Nueva indicación",
+    "noData": "No hay indicaciones médicas registradas.",
+    "tooth": "Pieza",
+    "print": "Imprimir",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "deleteDialog": {
+      "title": "Eliminar Indicación Médica",
+      "description": "¿Está seguro de que desea eliminar esta indicación médica?",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "deleteSuccess": "Indicación médica eliminada.",
+      "error": "Ocurrió un error."
+    }
+  },
+  "PatientInstructionPrint": {
+    "patient": "Paciente",
+    "date": "Fecha",
+    "doctor": "Doctor",
+    "tooth": "Pieza dental"
   },
   "CommunicationHistoryPage": {
     "title": "Historial de Comunicaciones",

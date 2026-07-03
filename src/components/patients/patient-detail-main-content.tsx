@@ -10,7 +10,7 @@ import { PatientSubTabNav } from '@/components/patients/patient-subtab-nav'
 
 export type PatientMacroTab = 'info' | 'clinical' | 'financial'
 export type InfoSubTab = 'details' | 'notes'
-export type ClinicalSubTab = 'anamnesis' | 'clinical-history' | 'treatment-plans' | 'documents'
+export type ClinicalSubTab = 'anamnesis' | 'clinical-history' | 'treatment-plans' | 'medical-instructions' | 'documents'
 export type FinancialSubTab = 'quotes' | 'invoices' | 'payments'
 
 interface PatientDetailMainContentProps {
@@ -29,6 +29,7 @@ interface PatientDetailMainContentProps {
   anamnesisContent: React.ReactNode
   clinicalHistoryContent: React.ReactNode
   treatmentPlansContent: React.ReactNode
+  medicalInstructionsContent: React.ReactNode
   documentsContent?: React.ReactNode
   financialSummaryContent: React.ReactNode
   quotesContent: React.ReactNode
@@ -52,6 +53,7 @@ export function PatientDetailMainContent({
   anamnesisContent,
   clinicalHistoryContent,
   treatmentPlansContent,
+  medicalInstructionsContent,
   documentsContent,
   financialSummaryContent,
   quotesContent,
@@ -75,6 +77,7 @@ export function PatientDetailMainContent({
     { id: 'anamnesis', label: t('tabs.anamnesis') },
     { id: 'clinical-history', label: t('tabs.history') },
     { id: 'treatment-plans', label: t('tabs.treatmentPlans'), desktopLabel: 'Planes de Tratamiento' },
+    { id: 'medical-instructions', label: t('tabs.medicalInstructions') },
     ...(showDocuments ? [{ id: 'documents', label: t('tabs.documents') }] : []),
   ], [showDocuments, t])
 
@@ -114,6 +117,7 @@ export function PatientDetailMainContent({
             {activeClinicalSubTab === 'anamnesis' && anamnesisContent}
             {activeClinicalSubTab === 'clinical-history' && clinicalHistoryContent}
             {activeClinicalSubTab === 'treatment-plans' && treatmentPlansContent}
+            {activeClinicalSubTab === 'medical-instructions' && medicalInstructionsContent}
             {activeClinicalSubTab === 'documents' && documentsContent}
           </>
         )}

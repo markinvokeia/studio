@@ -12,6 +12,7 @@ import { UserFinancialSummaryStats } from '@/components/users/user-financial-sum
 import { PatientInfoTab } from '@/components/patients/patient-info-tab';
 import { PatientQuickActions } from '@/components/patients/patient-quick-actions';
 import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/components/users/clinic-history-viewer';
+import { PatientInstructionsSection } from '@/components/medical-instructions/patient-instructions-section';
 import { UserTreatmentPlans } from '@/components/users/user-treatment-plans';
 import { UserQuotes } from '@/components/users/user-quotes';
 import { UserInvoices } from '@/components/users/user-invoices';
@@ -242,6 +243,7 @@ export function PatientDetailSheet({
           anamnesisContent={<AnamnesisViewer userId={userId} />}
           clinicalHistoryContent={<ClinicHistoryViewer userId={userId} userName={userName} deepLinkView={clinicalHistoryDefaultView} isDoctorMode={isDoctorMode} createSessionTrigger={createSessionTrigger} createOdontogramTrigger={createOdontogramTrigger} />}
           treatmentPlansContent={<UserTreatmentPlans userId={userId} userName={userName} />}
+          medicalInstructionsContent={<PatientInstructionsSection userId={userId} userName={userName} />}
           documentsContent={<DocumentsViewer userId={userId} createTrigger={createDocumentTrigger} />}
           financialSummaryContent={
             !isDoctorMode ? (

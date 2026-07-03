@@ -2397,6 +2397,30 @@ export interface LicensePayload {
   notes?: string;
 }
 
+export type MedicalInstructionTemplate = {
+  id?: string;
+  name: string;
+  description?: string;
+  content_html: string;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type PatientMedicalInstruction = {
+  id?: string;
+  patient_id: string;
+  fecha: string;
+  numero_diente?: number | null;
+  doctor_id: string | null;
+  doctor_name?: string;
+  template_id?: string;
+  template_name?: string;
+  content_html: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
 export type CreateLicenseInput = Omit<LicensePayload, 'licenseId' | 'version' | 'issuedAt'>;
 
 export interface Subscription {
