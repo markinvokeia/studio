@@ -10,6 +10,7 @@ import {
   BarChart2,
   Banknote,
   BellRing,
+  CalendarRange,
   BookCopy,
   BookHeart,
   BotMessageSquare,
@@ -300,6 +301,7 @@ export const navItems: NavItem[] = [
       { title: '', href: '', icon: BarChart2, isSeparator: true },
       { title: 'ReportEstadoRes',     href: '/reports/estado-resultados',      icon: LayoutDashboard,   isChidren: true, requiredPermission: REPORTS_PERMISSIONS.GESTION_VIEW },
       { title: 'ReportKPIs',          href: '/reports/kpis',                   icon: Gauge,             isChidren: true, requiredPermission: REPORTS_PERMISSIONS.GESTION_VIEW },
+      { title: 'ReportBalanceMensual',href: '/reports/balance-mensual',        icon: CalendarRange,     isChidren: true, requiredPermission: REPORTS_PERMISSIONS.BALANCE_MENSUAL_VIEW },
     ],
   },
 ];

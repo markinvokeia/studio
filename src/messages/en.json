@@ -170,6 +170,7 @@
     "ReportGastos": "Operating Expenses",
     "ReportEstadoRes": "Income Statement",
     "ReportKPIs": "Clinic KPIs",
+    "ReportBalanceMensual": "Monthly Balance",
     "Sedes": "Branches"
   },
   "TVDisplayPage": {
@@ -7053,6 +7054,34 @@
     "col_cobrado": "Collected",
     "col_pendiente": "Pending",
     "col_pct": "% Collected"
+  },
+  "ReportBalanceMensualPage": {
+    "title": "Monthly Balance",
+    "description": "Month close: what was produced and what was collected, by doctor and period",
+    "all_doctors": "All doctors",
+    "all_currencies": "All",
+    "kpi_producido": "Produced",
+    "kpi_cobrado": "Collected",
+    "kpi_pendiente": "Pending",
+    "block_producido": "Produced (issued invoices)",
+    "block_cobrado": "Collected (payments received)",
+    "block_pendiente": "Pending by doctor",
+    "empty_block": "No activity in the period",
+    "subtotal_dia": "Day subtotal",
+    "total_periodo": "Period total",
+    "col_bloque": "Block",
+    "col_fecha": "Date",
+    "col_medico": "Doctor",
+    "col_paciente": "Patient",
+    "col_servicio": "Service",
+    "col_factura": "Invoice",
+    "col_forma_pago": "Payment Method",
+    "col_moneda": "Currency",
+    "col_importe": "Amount",
+    "col_detalle": "Detail",
+    "col_facturado": "Invoiced",
+    "col_cobrado": "Collected",
+    "col_saldo": "Balance"
   },
   "ReportDeudoresPage": {
     "title": "Debtors",

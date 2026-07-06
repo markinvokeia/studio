@@ -239,6 +239,8 @@ export type Quote = {
   amount_paid?: number;
   amount_pending_payment?: number;
   external_id?: string | number | null;
+  doctor_id?: string;
+  doctor_name?: string;
 };
 
 export type QuoteItem = {
@@ -310,6 +312,8 @@ export type Invoice = {
   is_historical?: boolean;
   due_date?: string;
   external_id?: string | number | null;
+  doctor_id?: string;
+  doctor_name?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -367,6 +371,8 @@ export type Payment = {
   status: 'pending' | 'completed' | 'failed';
   is_historical?: boolean;
   external_id?: string | number | null;
+  doctor_id?: string;
+  doctor_name?: string;
   createdAt: string;
   updatedAt: string;
   amount: number;
@@ -2374,6 +2380,48 @@ export interface ReportKPIsResponse {
   tasa_ocupacion: number;
   ticket_promedio: number;
   total_gastos: number;
+}
+
+// R-21: Balance Mensual (Producido / Cobrado / Pendiente por médico)
+export interface ReportBalanceMensualProducidoRow {
+  fecha: string;
+  doctor_id: string;
+  doctor_name: string;
+  patient_name: string;
+  service_name: string;
+  invoice_doc_no: string;
+  currency: string;
+  importe: number;
+}
+export interface ReportBalanceMensualCobradoRow {
+  fecha: string;
+  doctor_id: string;
+  doctor_name: string;
+  patient_name: string;
+  invoice_doc_no: string;
+  payment_method: string;
+  currency: string;
+  importe: number;
+}
+export interface ReportBalanceMensualPendienteRow {
+  doctor_id: string;
+  doctor_name: string;
+  currency: string;
+  total_facturado: number;
+  total_cobrado: number;
+  saldo: number;
+}
+export interface ReportBalanceMensualSummary {
+  total_producido: number;
+  total_cobrado: number;
+  total_pendiente: number;
+  num_doctores: number;
+}
+export interface ReportBalanceMensualResponse {
+  summary: ReportBalanceMensualSummary;
+  producido: ReportBalanceMensualProducidoRow[];
+  cobrado: ReportBalanceMensualCobradoRow[];
+  pendiente: ReportBalanceMensualPendienteRow[];
 }
 
 // ── Licensing ────────────────────────────────────────────────────────────────

@@ -1,0 +1,132 @@
+{
+  "name": "Reportes - Balance Mensual",
+  "nodes": [
+    {
+      "id": "wh-balance-mensual",
+      "name": "GET /reports/balance-mensual",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 300],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "reports/balance-mensual",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-balance-producido",
+      "name": "Query Balance Producido",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [340, 180],
+      "alwaysOutputData": true,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  TO_CHAR(i.created_at, 'YYYY-MM-DD') AS fecha,\n  i.doctor_id,\n  COALESCE(doc.name, 'Sin médico') AS doctor_name,\n  COALESCE(pat.name, '')          AS patient_name,\n  COALESCE(sc.name, 'Servicio')   AS service_name,\n  i.doc_no                        AS invoice_doc_no,\n  i.currency,\n  ii.total                        AS importe\nFROM invoice_items ii\nJOIN invoices i        ON i.id = ii.invoice_id\nLEFT JOIN users pat    ON pat.id = i.user_id\nLEFT JOIN users doc    ON doc.id = i.doctor_id\nLEFT JOIN service_catalog sc ON sc.id = ii.service_id\nWHERE i.is_sales = true\n  AND i.type   = 'invoice'\n  AND i.status = 'booked'\n  AND i.created_at::date BETWEEN $1::date AND $2::date\n  AND ($3::varchar IS NULL OR i.currency = $3::varchar)\n  AND ($4::uuid    IS NULL OR i.doctor_id = $4::uuid)\nORDER BY fecha ASC, doctor_name ASC, i.doc_no ASC",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $input.first().json.query?.date_from,\n  $input.first().json.query?.date_to,\n  $input.first().json.query?.currency || null,\n  $input.first().json.query?.doctor_id || null\n] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "pg-balance-cobrado",
+      "name": "Query Balance Cobrado",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [340, 300],
+      "alwaysOutputData": true,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  TO_CHAR(p.created_at, 'YYYY-MM-DD') AS fecha,\n  p.doctor_id,\n  COALESCE(doc.name, 'Sin médico')       AS doctor_name,\n  COALESCE(pat.name, '')                 AS patient_name,\n  inv.doc_no                             AS invoice_doc_no,\n  COALESCE(pm.name, p.method, 'N/D')     AS payment_method,\n  p.currency,\n  p.amount                               AS importe\nFROM payments p\nLEFT JOIN users pat            ON pat.id = p.user_id\nLEFT JOIN users doc            ON doc.id = p.doctor_id\nLEFT JOIN invoices inv         ON inv.id = p.invoice_id\nLEFT JOIN payment_methods pm   ON pm.id = p.payment_method_id\nWHERE p.is_sales = true\n  AND p.created_at::date BETWEEN $1::date AND $2::date\n  AND ($3::varchar IS NULL OR p.currency = $3::varchar)\n  AND ($4::uuid    IS NULL OR p.doctor_id = $4::uuid)\nORDER BY fecha ASC, doctor_name ASC",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $input.first().json.query?.date_from,\n  $input.first().json.query?.date_to,\n  $input.first().json.query?.currency || null,\n  $input.first().json.query?.doctor_id || null\n] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "pg-balance-pendiente",
+      "name": "Query Balance Pendiente",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [340, 420],
+      "alwaysOutputData": true,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  i.doctor_id,\n  COALESCE(doc.name, 'Sin médico')            AS doctor_name,\n  i.currency,\n  COALESCE(SUM(i.total), 0)                   AS total_facturado,\n  COALESCE(SUM(i.paid_amount), 0)             AS total_cobrado,\n  COALESCE(SUM(i.total - i.paid_amount), 0)   AS saldo\nFROM invoices i\nLEFT JOIN users doc ON doc.id = i.doctor_id\nWHERE i.is_sales = true\n  AND i.type   = 'invoice'\n  AND i.status = 'booked'\n  AND i.created_at::date BETWEEN $1::date AND $2::date\n  AND ($3::varchar IS NULL OR i.currency = $3::varchar)\n  AND ($4::uuid    IS NULL OR i.doctor_id = $4::uuid)\nGROUP BY i.doctor_id, doc.name, i.currency\nORDER BY doctor_name ASC, i.currency ASC",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $input.first().json.query?.date_from,\n  $input.first().json.query?.date_to,\n  $input.first().json.query?.currency || null,\n  $input.first().json.query?.doctor_id || null\n] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "code-balance-build",
+      "name": "Build Balance Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [620, 300],
+      "parameters": {
+        "jsCode": "const producido = $('Query Balance Producido').all()\n  .map(i => i.json)\n  .filter(r => r && r.fecha)\n  .map(r => ({\n    fecha: r.fecha,\n    doctor_id: r.doctor_id || null,\n    doctor_name: r.doctor_name,\n    patient_name: r.patient_name || '',\n    service_name: r.service_name,\n    invoice_doc_no: r.invoice_doc_no,\n    currency: r.currency,\n    importe: Number(r.importe || 0),\n  }));\n\nconst cobrado = $('Query Balance Cobrado').all()\n  .map(i => i.json)\n  .filter(r => r && r.fecha)\n  .map(r => ({\n    fecha: r.fecha,\n    doctor_id: r.doctor_id || null,\n    doctor_name: r.doctor_name,\n    patient_name: r.patient_name || '',\n    invoice_doc_no: r.invoice_doc_no || '',\n    payment_method: r.payment_method || 'N/D',\n    currency: r.currency,\n    importe: Number(r.importe || 0),\n  }));\n\nconst pendiente = $('Query Balance Pendiente').all()\n  .map(i => i.json)\n  .filter(r => r && r.currency)\n  .map(r => ({\n    doctor_id: r.doctor_id || null,\n    doctor_name: r.doctor_name,\n    currency: r.currency,\n    total_facturado: Number(r.total_facturado || 0),\n    total_cobrado: Number(r.total_cobrado || 0),\n    saldo: Number(r.saldo || 0),\n  }));\n\nconst total_producido = producido.reduce((s, r) => s + r.importe, 0);\nconst total_cobrado   = cobrado.reduce((s, r) => s + r.importe, 0);\nconst total_pendiente = pendiente.reduce((s, r) => s + r.saldo, 0);\nconst num_doctores = new Set(pendiente.map(r => r.doctor_id).filter(Boolean)).size;\n\nreturn [{ json: {\n  summary: { total_producido, total_cobrado, total_pendiente, num_doctores },\n  producido,\n  cobrado,\n  pendiente\n} }];"
+      }
+    },
+    {
+      "id": "resp-balance-mensual",
+      "name": "Respond Balance Mensual",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [860, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    }
+  ],
+  "connections": {
+    "GET /reports/balance-mensual": {
+      "main": [
+        [
+          { "node": "Query Balance Producido", "type": "main", "index": 0 },
+          { "node": "Query Balance Cobrado", "type": "main", "index": 0 },
+          { "node": "Query Balance Pendiente", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Query Balance Producido": {
+      "main": [[{ "node": "Build Balance Response", "type": "main", "index": 0 }]]
+    },
+    "Query Balance Cobrado": {
+      "main": [[{ "node": "Build Balance Response", "type": "main", "index": 0 }]]
+    },
+    "Query Balance Pendiente": {
+      "main": [[{ "node": "Build Balance Response", "type": "main", "index": 0 }]]
+    },
+    "Build Balance Response": {
+      "main": [[{ "node": "Respond Balance Mensual", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null
+}

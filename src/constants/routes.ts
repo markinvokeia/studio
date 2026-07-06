@@ -412,6 +412,7 @@ export const API_ROUTES = {
         ESTADO_RESULTADOS:    '/reports/estado-resultados',
         KPIS:                 '/reports/kpis',
         USERS_BY_ROLE:        '/reports/users-by-role',
+        BALANCE_MENSUAL:      '/reports/balance-mensual',
     },
     SERVICE: '/service',
     LICENSE: {

@@ -170,6 +170,7 @@
     "ReportGastos": "Gastos Operativos",
     "ReportEstadoRes": "Estado de Resultados",
     "ReportKPIs": "KPIs Clínica",
+    "ReportBalanceMensual": "Balance Mensual",
     "Sedes": "Sedes"
   },
   "TVDisplayPage": {
@@ -7033,6 +7034,34 @@
     "col_cobrado": "Cobrado",
     "col_pendiente": "Pendiente",
     "col_pct": "% Cobrado"
+  },
+  "ReportBalanceMensualPage": {
+    "title": "Balance Mensual",
+    "description": "Cierre del mes: lo producido y lo cobrado, por médico y período",
+    "all_doctors": "Todos los médicos",
+    "all_currencies": "Todas",
+    "kpi_producido": "Producido",
+    "kpi_cobrado": "Cobrado",
+    "kpi_pendiente": "Pendiente",
+    "block_producido": "Producido (facturas emitidas)",
+    "block_cobrado": "Cobrado (pagos recibidos)",
+    "block_pendiente": "Pendiente por médico",
+    "empty_block": "Sin movimientos en el período",
+    "subtotal_dia": "Subtotal del día",
+    "total_periodo": "Total del período",
+    "col_bloque": "Bloque",
+    "col_fecha": "Fecha",
+    "col_medico": "Médico",
+    "col_paciente": "Paciente",
+    "col_servicio": "Servicio",
+    "col_factura": "Factura",
+    "col_forma_pago": "Forma de Pago",
+    "col_moneda": "Moneda",
+    "col_importe": "Importe",
+    "col_detalle": "Detalle",
+    "col_facturado": "Facturado",
+    "col_cobrado": "Cobrado",
+    "col_saldo": "Saldo"
   },
   "ReportDeudoresPage": {
     "title": "Deudores",
