@@ -1,5 +1,11 @@
 import { getWebhookBaseUrl } from '@/lib/runtime-config';
 
+interface ApiRequestError extends Error {
+    status?: number;
+    data?: unknown;
+    isHttpError?: boolean;
+}
+
 const getToken = (): string | null => {
     if (typeof window !== 'undefined') {
         return localStorage.getItem('token');
@@ -20,6 +26,14 @@ const buildUrl = (endpoint: string, params?: Record<string, string>, query?: Rec
         url += '?' + searchParams.toString();
     }
     return url;
+};
+
+const createApiRequestError = (message: string, status: number, data: unknown): ApiRequestError => {
+    const error = new Error(message) as ApiRequestError;
+    error.status = status;
+    error.data = data;
+    error.isHttpError = true;
+    return error;
 };
 
 const apiRequest = async (
@@ -69,10 +83,7 @@ const apiRequest = async (
                 } catch {
                     errorData = {};
                 }
-                const error = new Error(errorData?.message || errorData?.error || 'Validation error');
-                (error as any).status = response.status;
-                (error as any).data = errorData;
-                throw error;
+                throw createApiRequestError(errorData?.message || errorData?.error || 'Validation error', response.status, errorData);
             }
             // For other status codes (401, 403, 404, 500+), throw errors as before
             const text = await response.text();
@@ -98,10 +109,7 @@ const apiRequest = async (
             }
 
             // Create error object with additional context
-            const error = new Error(errorMessage);
-            (error as any).status = response.status;
-            (error as any).data = errorData;
-            throw error;
+            throw createApiRequestError(errorMessage, response.status, errorData);
         }
         if (responseType === 'blob') {
             return await response.blob();
@@ -118,7 +126,10 @@ const apiRequest = async (
             throw new Error('Invalid JSON response from server');
         }
     } catch (error) {
-        console.error('API request failed:', error);
+        const apiError = error as ApiRequestError;
+        if (!apiError.isHttpError || (apiError.status !== undefined && apiError.status >= 500)) {
+            console.error('API request failed:', error);
+        }
         throw error;
     }
 };

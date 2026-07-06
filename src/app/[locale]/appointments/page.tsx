@@ -3000,6 +3000,12 @@ export default function AppointmentsPage() {
     return (
         <Card className="border-none shadow-none h-full">
             <CardContent className="relative p-0 h-[calc(100vh-6rem)] min-h-[600px]">
+                {!calendarSettings ? (
+                    <div className="flex h-full w-full items-center justify-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                ) : (
+                  <>
                 {gapsActive && (
                     <CalendarGapsPanel
                         gaps={calendarGaps}
@@ -3542,6 +3548,8 @@ export default function AppointmentsPage() {
                     </div>
 
                 </Calendar>
+                  </>
+                )}
             </CardContent>
 
             <BulkReassignDoctorDialog

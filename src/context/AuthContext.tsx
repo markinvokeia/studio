@@ -1,9 +1,10 @@
 'use client';
 
+import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+
 import { API_ROUTES } from '@/constants/routes';
 import { AuthUser } from '@/lib/types';
 import api from '@/services/api';
-import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -121,30 +122,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    try {
-      const data = await api.post(API_ROUTES.LOGIN, { email, password });
-      const { user: loggedInUser, token } = data;
+    const data = await api.post(API_ROUTES.LOGIN, { email, password });
+    const { user: loggedInUser, token } = data;
 
-      localStorage.setItem('token', token);
+    localStorage.setItem('token', token);
 
-      const authUser = await fetchAuthUser();
-      if (authUser) {
-        const basicUser = {
-          id: authUser.id,
-          name: authUser.name,
-          email: authUser.email,
-        };
-        setUser(authUser);
-        localStorage.setItem('user', JSON.stringify(basicUser));
-      } else {
-        setUser(loggedInUser);
-        localStorage.setItem('user', JSON.stringify(loggedInUser));
-      }
-
-      await checkActiveSession();
-    } catch (error: any) {
-      throw new Error(error.message || 'Failed to login');
+    const authUser = await fetchAuthUser();
+    if (authUser) {
+      const basicUser = {
+        id: authUser.id,
+        name: authUser.name,
+        email: authUser.email,
+      };
+      setUser(authUser);
+      localStorage.setItem('user', JSON.stringify(basicUser));
+    } else {
+      setUser(loggedInUser);
+      localStorage.setItem('user', JSON.stringify(loggedInUser));
     }
+
+    await checkActiveSession();
   };
 
   const logout = async () => {

@@ -27,6 +27,10 @@ import { FormEvent, useEffect, useState } from 'react';
 
 type View = 'login' | 'forgotPassword';
 
+interface RequestError extends Error {
+  status?: number;
+}
+
 export default function LoginPage() {
   const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState('');
@@ -68,8 +72,10 @@ export default function LoginPage() {
     try {
       await login(email, password);
       router.push(`/${locale}`);
-    } catch (err: any) {
-      if (err.message.includes('401') || err.message.includes('Invalid credentials')) {
+    } catch (err: unknown) {
+      const error = err as Partial<RequestError>;
+      const message = err instanceof Error ? err.message : tLogin('errors.unexpected');
+      if (error.status === 401 || message.includes('Invalid credentials')) {
         toast({
           variant: "destructive",
           title: tLogin('errors.title'),
@@ -79,7 +85,7 @@ export default function LoginPage() {
         toast({
           variant: "destructive",
           title: tLogin('errors.title'),
-          description: err.message || tLogin('errors.unexpected'),
+          description: message,
         });
       }
     } finally {
@@ -98,9 +104,10 @@ export default function LoginPage() {
         description: tLogin('recoverSuccessDescription'),
       });
       setView('login');
-    } catch (err: any) {
-      let errorMessage = err.message || tLogin('errors.unexpected');
-      if (err.message.includes('401')) {
+    } catch (err: unknown) {
+      const error = err as Partial<RequestError>;
+      let errorMessage = err instanceof Error ? err.message : tLogin('errors.unexpected');
+      if (error.status === 401 || errorMessage.includes('401')) {
         errorMessage = tLogin('errors.emailNotFound');
       }
 
