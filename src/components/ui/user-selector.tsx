@@ -21,6 +21,7 @@ interface UserSelectorProps {
     triggerText?: string;
     className?: string;
     disabled?: boolean;
+    openCreateToken?: number;
 }
 
 export function UserSelector({
@@ -33,6 +34,7 @@ export function UserSelector({
     triggerText = 'Seleccionar',
     className,
     disabled = false,
+    openCreateToken,
 }: UserSelectorProps) {
     const [open, setOpen] = React.useState(false);
     const [searchQuery, setSearchQuery] = React.useState('');
@@ -45,10 +47,25 @@ export function UserSelector({
     const [createPhone, setCreatePhone] = React.useState('');
     const [createEmail, setCreateEmail] = React.useState('');
     const [createError, setCreateError] = React.useState<string | null>(null);
+    const searchQueryRef = React.useRef(searchQuery);
+    const lastOpenCreateTokenRef = React.useRef(openCreateToken);
 
     React.useEffect(() => {
+        searchQueryRef.current = searchQuery;
         setIsCreating(false);
     }, [searchQuery]);
+
+    React.useEffect(() => {
+        if (openCreateToken === undefined) return;
+        if (lastOpenCreateTokenRef.current === openCreateToken) return;
+        lastOpenCreateTokenRef.current = openCreateToken;
+        setOpen(true);
+        setCreateName(searchQueryRef.current.trim());
+        setCreatePhone('');
+        setCreateEmail('');
+        setCreateError(null);
+        setIsCreating(true);
+    }, [openCreateToken]);
 
     const handleOpenChange = (nextOpen: boolean) => {
         if (!nextOpen) {
@@ -248,7 +265,7 @@ export function UserSelector({
                                     </p>
                                 )}
 
-                                {searchQuery.trim() && (
+                                {(searchQuery.trim() || isCreating) && (
                                     <div className={cn('border-t', users.length === 0 && 'border-t-0')}>
                                         {isCreating ? (
                                             <div className="p-2 space-y-1.5">

@@ -58,7 +58,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
 import { API_ROUTES } from '@/constants/routes';
+import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
 import { Appointment, AppointmentBulkFilterParams, AppointmentDatePreset, AppointmentStatus, Calendar as CalendarType, CalendarReminder, CalendarSettings, ClinicSchedule, ClinicException, Invoice, Order, PatientSession, Quote, QuoteItem, Sede, Service, SessionPreloadedService, User as UserType } from '@/lib/types';
 import { cn, toLocalISOString } from '@/lib/utils';
@@ -82,6 +84,7 @@ import { InlineAppointmentDraft } from '@/components/calendar/inline-appointment
 import { linkInvoiceToAppointment } from '@/services/billing-links';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { useAccountStatement } from '@/stores/account-statement-store';
+import { usePatientView } from '@/stores/patient-view-store';
 import { AppointmentStatusContextItems } from '@/components/appointments/AppointmentStatusMenu';
 import { useAppointmentStatus } from '@/hooks/use-appointment-status';
 import { canReschedule, normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
@@ -203,6 +206,24 @@ const GOOGLE_CALENDAR_COLORS = [
 ];
 
 const colorMap = new Map(GOOGLE_CALENDAR_COLORS.map(c => [c.id, c.hex]));
+const colorIdByHex = new Map(GOOGLE_CALENDAR_COLORS.map(c => [c.hex.toLowerCase(), c.id]));
+
+function getGoogleCalendarColorId(value?: string | null): string | undefined {
+    const rawColor = (value || '').trim();
+    if (!rawColor) return undefined;
+    if (colorMap.has(rawColor)) return rawColor;
+    return colorIdByHex.get(rawColor.toLowerCase());
+}
+
+function getGoogleCalendarColorHex(value?: string | null): string | undefined {
+    const colorId = getGoogleCalendarColorId(value);
+    return colorId ? colorMap.get(colorId) : value || undefined;
+}
+
+function getInitialDraftColor(calendar?: CalendarType | null): { color?: string } {
+    const color = getGoogleCalendarColorId(calendar?.color);
+    return color ? { color } : {};
+}
 
 // Builds the label shown on each appointment by concatenating its fields
 // according to the configured format (see EVENT_LABEL_FORMATS).
@@ -304,21 +325,16 @@ async function getAppointments(
                 apiApptServices.some((as: any) => String(as.id) === String(s.id))
             );
 
-            const appointmentColorId = String(apiAppt.color_id || apiAppt.colorId || apiAppt.colorid || '');
-            let finalColor = apiAppt.color;
-
-            // If the color field contains a Google Color ID, map it to hex
-            if (finalColor && colorMap.has(String(finalColor))) {
-                finalColor = colorMap.get(String(finalColor));
-            }
+            const appointmentColorId = getGoogleCalendarColorId(apiAppt.color) || '';
+            let finalColor = appointmentColorId ? colorMap.get(appointmentColorId) : apiAppt.color;
 
             // Fallback algorithm: Appointment Color Tag > Service Color > Doctor Color > Calendar Color
             // We skip white colors (255, 255, 255) as they are considered "no color"
             if (!finalColor || (typeof finalColor === 'string' && !finalColor.startsWith('#') && !finalColor.startsWith('hsl'))) {
-                const tagColor = colorMap.get(appointmentColorId);
+                const tagColor = appointmentColorId ? colorMap.get(appointmentColorId) : undefined;
                 const sColor = service?.color;
                 const dColor = doctor?.color;
-                const cColor = calendar?.color;
+                const cColor = getGoogleCalendarColorHex(calendar?.color);
 
                 finalColor = (!isWhite(tagColor) ? tagColor : null) ||
                     (!isWhite(sColor) ? sColor : null) ||
@@ -529,6 +545,10 @@ export default function AppointmentsPage() {
     const { user } = useAuth();
     const { open: openBillingWizard } = useBillingWizard();
     const { open: openAccountStatement } = useAccountStatement();
+    const { open: openPatientView } = usePatientView();
+    const { hasPermission } = usePermissions();
+    const canCreateInlinePatient = hasPermission(PATIENTS_PERMISSIONS.CREATE);
+    const canEditInlinePatient = hasPermission(PATIENTS_PERMISSIONS.UPDATE);
 
     const { toast } = useToast();
 
@@ -933,6 +953,8 @@ export default function AppointmentsPage() {
         doctor: UserType | null;
         calendar: CalendarType | null;
         notes: string;
+        color?: string;
+        colorTouched?: boolean;
         /** Set when the inline card is editing an existing appointment (vs creating). */
         editing?: Appointment | null;
     } | null>(null);
@@ -978,9 +1000,7 @@ export default function AppointmentsPage() {
             const calendar = inlineDraft.calendar ?? undefined;
             const patient = inlineDraft.patient;
             const svcNames = inlineDraft.services.map((s) => s.name).join(', ');
-            // Color precedence: selected service color > doctor color > calendar color.
-            const draftColor = inlineDraft.services[inlineDraft.services.length - 1]?.color
-                || (doctor as any)?.color || (calendar as any)?.color || undefined;
+            const draftColor = inlineDraft.colorTouched ? inlineDraft.color : inlineDraft.color || getGoogleCalendarColorId(calendar?.color);
             const editing = inlineDraft.editing ?? null;
             const payload: any = {
                 mode: editing ? 'update' : 'create',
@@ -1017,7 +1037,7 @@ export default function AppointmentsPage() {
         } finally {
             setIsSavingInline(false);
         }
-    }, [inlineDraft, doctors, calendars, toast, tToasts]);
+    }, [inlineDraft, toast, tToasts]);
 
     const renderInlineDraft = React.useCallback(() => {
         if (!inlineDraft) return null;
@@ -1032,18 +1052,29 @@ export default function AppointmentsPage() {
             return !Number.isNaN(s) && s > draftStart && s < draftEnd;
         });
         const isEditing = !!inlineDraft.editing;
-        // Color precedence shown on the card: service > doctor > calendar.
-        const accentColor = inlineDraft.services[inlineDraft.services.length - 1]?.color
-            || (inlineDraft.doctor as any)?.color || (inlineDraft.calendar as any)?.color || undefined;
+        const selectedColor = inlineDraft.color ? colorMap.get(inlineDraft.color) : undefined;
+        // Color precedence shown on the card: explicit background > service > doctor > calendar.
+        const accentColor = selectedColor || inlineDraft.services[inlineDraft.services.length - 1]?.color
+            || (inlineDraft.doctor as any)?.color || getGoogleCalendarColorHex((inlineDraft.calendar as any)?.color) || undefined;
         return (
             <InlineAppointmentDraft
+                variant={calendarMode === 'custom' ? 'custom' : 'default'}
                 date={inlineDraft.date}
                 endTime={format(addMinutes(inlineDraft.date, inlineDraft.durationMin || 30), 'HH:mm')}
                 durationMin={inlineDraft.durationMin}
+                timeStepMinutes={slotDuration}
                 onDurationChange={(min) => setInlineDraft((d) => (d ? { ...d, durationMin: min } : d))}
+                onDateChange={(nextDate) => setInlineDraft((d) => (d ? { ...d, date: nextDate } : d))}
                 onStartTimeChange={(h, m) => setInlineDraft((d) => (d ? { ...d, date: set(d.date, { hours: h, minutes: m, seconds: 0, milliseconds: 0 }) } : d))}
+                color={inlineDraft.color}
+                colorOptions={GOOGLE_CALENDAR_COLORS.map((color) => ({ id: color.id, hex: color.hex, label: color.id }))}
+                onColorChange={(color) => setInlineDraft((d) => (d ? { ...d, color: color || undefined, colorTouched: true } : d))}
                 calendar={inlineDraft.calendar}
-                onCalendarChange={(c) => setInlineDraft((d) => (d ? { ...d, calendar: c } : d))}
+                onCalendarChange={(c) => setInlineDraft((d) => {
+                    if (!d) return d;
+                    const nextColor = d.colorTouched ? {} : getInitialDraftColor(c);
+                    return { ...d, calendar: c, ...nextColor };
+                })}
                 calendarOptions={calendars}
                 doctor={inlineDraft.doctor}
                 onDoctorChange={(doc) => setInlineDraft((d) => (d ? { ...d, doctor: doc } : d))}
@@ -1068,11 +1099,20 @@ export default function AppointmentsPage() {
                 onSave={handleSaveInlineDraft}
                 onCancel={() => setInlineDraft(null)}
                 accentColor={accentColor}
+                canCreatePatient={canCreateInlinePatient}
+                canEditPatient={canEditInlinePatient}
+                onEditPatient={inlineDraft.patient ? () => openPatientView({
+                    userId: inlineDraft.patient!.id,
+                    userName: inlineDraft.patient!.name,
+                    userEmail: inlineDraft.patient!.email || undefined,
+                    userPhone: inlineDraft.patient!.phone_number || undefined,
+                    initialTab: 'info',
+                }) : undefined}
                 title={isEditing ? tInline('editTitle') : undefined}
                 saveLabel={isEditing ? tInline('update') : undefined}
             />
         );
-    }, [inlineDraft, doctors, calendars, appointments, inlineDebt, inlineCancelledCount, isSavingInline, handleSaveInlineDraft, openAccountStatement, tInline]);
+    }, [inlineDraft, doctors, calendars, appointments, inlineDebt, inlineCancelledCount, isSavingInline, handleSaveInlineDraft, openAccountStatement, openPatientView, canCreateInlinePatient, canEditInlinePatient, calendarMode, slotDuration, tInline]);
 
     // Esc closes the inline draft only when it is still empty (untouched) — no
     // patient, no services and no notes — so accidental opens dismiss without
@@ -1095,7 +1135,7 @@ export default function AppointmentsPage() {
         if (calendarSettings?.inline_appointment_creation && isTimeGrid) {
             const draftDoctor = context?.groupBy === 'doctor' ? (doctors.find((d) => String(d.id) === String(context.value)) ?? null) : null;
             const draftCalendar = context?.groupBy === 'calendar' ? (calendars.find((c) => String(c.id) === String(context.value)) ?? null) : null;
-            setInlineDraft({ date, context, durationMin: slotDuration, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '' });
+            setInlineDraft({ date, context, durationMin: slotDuration, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '', ...getInitialDraftColor(draftCalendar) });
             return;
         }
         prepareSlot(date, context);
@@ -1134,7 +1174,19 @@ export default function AppointmentsPage() {
                     : groupBy === 'calendar'
                         ? { groupBy: 'calendar' as const, value: String(appointment.calendar_source_id) }
                         : undefined;
-            setInlineDraft({ date: start, context, durationMin, patient, services, doctor, calendar, notes: appointment.notes || '', editing: appointment });
+            setInlineDraft({
+                date: start,
+                context,
+                durationMin,
+                patient,
+                services,
+                doctor,
+                calendar,
+                notes: appointment.notes || '',
+                color: appointment.colorId || getGoogleCalendarColorId(appointment.color),
+                colorTouched: true,
+                editing: appointment,
+            });
             return;
         }
         setEditingAppointment(appointment);
@@ -1277,6 +1329,12 @@ export default function AppointmentsPage() {
         }
 
         const appointment = eventData as Appointment;
+        if (calendarMode === 'custom') {
+            setSelectedAppointment(null);
+            setIsDetailViewOpen(false);
+            eventClickAbortRef.current?.abort();
+            return;
+        }
         eventClickAbortRef.current?.abort();
         const controller = new AbortController();
         eventClickAbortRef.current = controller;
@@ -2060,12 +2118,11 @@ export default function AppointmentsPage() {
         setAppointments(prev => prev.map(a => a.id === appointment.id ? { ...a, color: colorHex, colorId: colorId } : a));
         setSelectedAppointment(prev => (prev && prev.id === appointment.id ? { ...prev, color: colorHex, colorId: colorId } : prev));
 
-        // Persist change to backend using snake_case for consistency
         const payload = {
             appointment_id: appointment.id,
             google_event_id: appointment.googleEventId,
             calendar_source_id: appointment.calendar_source_id,
-            color_id: colorId
+            color: colorId,
         };
 
         try {
@@ -2335,7 +2392,7 @@ export default function AppointmentsPage() {
         if (calendarSettings?.inline_appointment_creation && isTimeGrid) {
             const draftDoctor = context?.groupBy === 'doctor' ? (doctors.find((d) => String(d.id) === String(context.value)) ?? null) : null;
             const draftCalendar = context?.groupBy === 'calendar' ? (calendars.find((c) => String(c.id) === String(context.value)) ?? null) : null;
-            setInlineDraft({ date: gap.start, context, durationMin: slotDuration, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '' });
+            setInlineDraft({ date: gap.start, context, durationMin: slotDuration, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '', ...getInitialDraftColor(draftCalendar) });
             setGapsActive(false);
             setSelectedGap(null);
             return;
@@ -3660,7 +3717,7 @@ export default function AppointmentsPage() {
                 </AlertDialogContent>
             </AlertDialog>
             <AppointmentPanel
-                open={isDetailViewOpen}
+                open={calendarMode !== 'custom' && isDetailViewOpen}
                 onOpenChange={setIsDetailViewOpen}
                 appointment={selectedAppointment}
                 linkedSession={linkedSession}
