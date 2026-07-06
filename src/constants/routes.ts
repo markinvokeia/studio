@@ -416,4 +416,7 @@ export const API_ROUTES = {
         LIST:   '/subscriptions',
         CREATE: '/subscriptions',
     },
+    WHATSAPP: {
+        SEND: '/whatsapp/send',
+    },
 };

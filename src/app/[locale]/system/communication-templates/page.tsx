@@ -36,7 +36,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Separator } from '@/components/ui/separator';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, Bold, BookCopy, Code2, Copy, Eye, Italic, List, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { AlertTriangle, Bold, BookCopy, Code2, Copy, Eye, Italic, List, MoreHorizontal, Pencil, Strikethrough, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -58,6 +58,10 @@ const templateFormSchema = (t: (key: string) => string) => z.object({
     version: z.coerce.number().optional(),
     created_at: z.string().optional(),
     updated_at: z.string().optional(),
+    meta_template_name: z.string().optional(),
+    meta_language: z.string().optional(),
+    meta_category: z.enum(['MARKETING', 'UTILITY', 'AUTHENTICATION']).optional(),
+    meta_status: z.enum(['PENDING', 'APPROVED', 'REJECTED']).optional(),
 });
 
 type TemplateFormValues = z.infer<ReturnType<typeof templateFormSchema>>;
@@ -177,7 +181,11 @@ export default function CommunicationTemplatesPage() {
         resolver: zodResolver(templateFormSchema(t)),
     });
 
-    const watchedBodyHtml = form.watch('body_html');
+    const watchedType = form.watch('type');
+    const isWhatsApp = watchedType === 'WHATSAPP';
+    const bodyFieldName = isWhatsApp ? 'body_text' : 'body_html';
+    const watchedBody = form.watch(bodyFieldName);
+    const watchedMetaStatus = form.watch('meta_status');
     const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
     const insertText = (text: string) => {
@@ -189,7 +197,7 @@ export default function CommunicationTemplatesPage() {
         const currentText = textarea.value;
         const newText = currentText.substring(0, start) + text + currentText.substring(end);
 
-        form.setValue('body_html', newText, { shouldValidate: true });
+        form.setValue(bodyFieldName, newText, { shouldValidate: true });
 
         setTimeout(() => {
             textarea.selectionStart = textarea.selectionEnd = start + text.length;
@@ -206,7 +214,7 @@ export default function CommunicationTemplatesPage() {
         const selectedText = textarea.value.substring(start, end);
         const newText = `${textarea.value.substring(0, start)}${wrapper[0]}${selectedText}${wrapper[1]}${textarea.value.substring(end)}`;
 
-        form.setValue('body_html', newText, { shouldValidate: true });
+        form.setValue(bodyFieldName, newText, { shouldValidate: true });
 
         setTimeout(() => {
             textarea.selectionStart = start + wrapper[0].length;
@@ -214,6 +222,15 @@ export default function CommunicationTemplatesPage() {
             textarea.focus();
         }, 0);
     };
+
+    const renderTokenHighlights = (text: string) =>
+        text.split(/({{.*?}})/g).map((part, i) => {
+            const match = part.match(/^{{(.*?)}}$/);
+            if (match) {
+                return <span key={i} className="bg-primary/20 text-primary-foreground rounded px-1">{match[1].trim()}</span>;
+            }
+            return <React.Fragment key={i}>{part}</React.Fragment>;
+        });
 
     const loadData = React.useCallback(async () => {
         setIsRefreshing(true);
@@ -266,7 +283,8 @@ export default function CommunicationTemplatesPage() {
             default_sender: '',
             variables_schema: {},
             attachments_config: {},
-            version: 1
+            version: 1,
+            meta_status: 'PENDING'
         });
         setSubmissionError(null);
         setIsDialogOpen(true);
@@ -503,7 +521,35 @@ export default function CommunicationTemplatesPage() {
                             <dd className="text-foreground text-xs">{selectedTemplate.default_sender}</dd>
                         </div>
                     )}
-                    {selectedTemplate.body_html && (
+                    {selectedTemplate.type === 'WHATSAPP' && (
+                        <>
+                            <div>
+                                <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('dialog.metaStatus')}</dt>
+                                <dd>
+                                    <Badge variant={selectedTemplate.meta_status === 'APPROVED' ? 'success' : selectedTemplate.meta_status === 'REJECTED' ? 'destructive' : 'outline'}>
+                                        {t(`dialog.metaStatusValues.${selectedTemplate.meta_status || 'PENDING'}`)}
+                                    </Badge>
+                                </dd>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('dialog.metaTemplateName')}</dt>
+                                    <dd className="text-foreground text-xs font-mono">{selectedTemplate.meta_template_name || '-'}</dd>
+                                </div>
+                                <div>
+                                    <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('dialog.metaLanguage')}</dt>
+                                    <dd className="text-foreground text-xs">{selectedTemplate.meta_language || '-'}</dd>
+                                </div>
+                            </div>
+                            {selectedTemplate.body_text && (
+                                <div>
+                                    <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1">{t('dialog.body')}</dt>
+                                    <dd><pre className="text-xs whitespace-pre-wrap break-all bg-muted/50 rounded p-2 max-h-48 overflow-auto">{selectedTemplate.body_text}</pre></dd>
+                                </div>
+                            )}
+                        </>
+                    )}
+                    {selectedTemplate.type !== 'WHATSAPP' && selectedTemplate.body_html && (
                         <div>
                             <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1">Cuerpo HTML</dt>
                             <dd><pre className="text-xs whitespace-pre-wrap break-all bg-muted/50 rounded p-2 max-h-48 overflow-auto">{selectedTemplate.body_html}</pre></dd>
@@ -605,6 +651,56 @@ export default function CommunicationTemplatesPage() {
                                 </FormItem>
                             )} />
 
+                            {isWhatsApp && (
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <FormField control={form.control} name="meta_template_name" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('dialog.metaTemplateName')}</FormLabel>
+                                            <FormControl><Input {...field} placeholder={t('dialog.metaTemplateNamePlaceholder')} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="meta_language" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('dialog.metaLanguage')}</FormLabel>
+                                            <FormControl><Input {...field} placeholder={t('dialog.metaLanguagePlaceholder')} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="meta_category" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('dialog.metaCategory')}</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectMetaCategory')} /></SelectTrigger></FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="MARKETING">{t('dialog.metaCategories.MARKETING')}</SelectItem>
+                                                    <SelectItem value="UTILITY">{t('dialog.metaCategories.UTILITY')}</SelectItem>
+                                                    <SelectItem value="AUTHENTICATION">{t('dialog.metaCategories.AUTHENTICATION')}</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                </div>
+                            )}
+
+                            {isWhatsApp && (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">{t('dialog.metaStatus')}</span>
+                                    <Badge variant={watchedMetaStatus === 'APPROVED' ? 'success' : watchedMetaStatus === 'REJECTED' ? 'destructive' : 'outline'}>
+                                        {t(`dialog.metaStatusValues.${watchedMetaStatus || 'PENDING'}`)}
+                                    </Badge>
+                                </div>
+                            )}
+
+                            {isWhatsApp && watchedMetaStatus !== 'APPROVED' && (
+                                <Alert>
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <AlertTitle>{t('dialog.metaPendingWarningTitle')}</AlertTitle>
+                                    <AlertDescription>{t('dialog.metaPendingWarningDescription')}</AlertDescription>
+                                </Alert>
+                            )}
+
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
                                     <FormLabel>{t('dialog.body')}</FormLabel>
@@ -630,9 +726,19 @@ export default function CommunicationTemplatesPage() {
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                         <div className="flex items-center space-x-1 border rounded-md p-1">
-                                            <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => wrapText(['<strong>', '</strong>'])}><Bold className="h-4 w-4" /></Button>
-                                            <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => wrapText(['<em>', '</em>'])}><Italic className="h-4 w-4" /></Button>
-                                            <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => insertText('<ul>\n  <li>Item 1</li>\n</ul>')}><List className="h-4 w-4" /></Button>
+                                            {isWhatsApp ? (
+                                                <>
+                                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => wrapText(['*', '*'])}><Bold className="h-4 w-4" /></Button>
+                                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => wrapText(['_', '_'])}><Italic className="h-4 w-4" /></Button>
+                                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => wrapText(['~', '~'])}><Strikethrough className="h-4 w-4" /></Button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => wrapText(['<strong>', '</strong>'])}><Bold className="h-4 w-4" /></Button>
+                                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => wrapText(['<em>', '</em>'])}><Italic className="h-4 w-4" /></Button>
+                                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => insertText('<ul>\n  <li>Item 1</li>\n</ul>')}><List className="h-4 w-4" /></Button>
+                                                </>
+                                            )}
                                         </div>
                                         <div className="flex items-center space-x-2">
                                             <Switch id="preview-mode" checked={showPreview} onCheckedChange={setShowPreview} />
@@ -641,9 +747,15 @@ export default function CommunicationTemplatesPage() {
                                     </div>
                                 </div>
                                 {showPreview ? (
-                                    <div className="h-64 rounded-md border bg-muted p-4 overflow-y-auto" dangerouslySetInnerHTML={{ __html: watchedBodyHtml?.replace(/{{(.*?)}}/g, (match, p1) => `<span class="bg-primary/20 text-primary-foreground rounded px-1">${p1.trim()}</span>`) || '' }} />
+                                    isWhatsApp ? (
+                                        <div className="h-64 rounded-md border bg-muted p-4 overflow-y-auto whitespace-pre-wrap text-sm">
+                                            {renderTokenHighlights(watchedBody || '')}
+                                        </div>
+                                    ) : (
+                                        <div className="h-64 rounded-md border bg-muted p-4 overflow-y-auto" dangerouslySetInnerHTML={{ __html: watchedBody?.replace(/{{(.*?)}}/g, (match, p1) => `<span class="bg-primary/20 text-primary-foreground rounded px-1">${p1.trim()}</span>`) || '' }} />
+                                    )
                                 ) : (
-                                    <FormField control={form.control} name="body_html" render={({ field }) => (
+                                    <FormField control={form.control} name={bodyFieldName} render={({ field }) => (
                                         <FormItem>
                                             <FormControl>
                                                 <Textarea
@@ -679,6 +791,11 @@ export default function CommunicationTemplatesPage() {
                         <div className="flex items-center gap-3">
                             <DialogTitle>{previewingTemplate?.name}</DialogTitle>
                             <Badge variant="secondary">{previewingTemplate?.type}</Badge>
+                            {previewingTemplate?.type === 'WHATSAPP' && (
+                                <Badge variant={previewingTemplate.meta_status === 'APPROVED' ? 'success' : previewingTemplate.meta_status === 'REJECTED' ? 'destructive' : 'outline'}>
+                                    {t(`dialog.metaStatusValues.${previewingTemplate.meta_status || 'PENDING'}`)}
+                                </Badge>
+                            )}
                         </div>
                     </DialogHeader>
                     <div className="flex-1 overflow-y-auto space-y-4 px-6 py-4">
@@ -695,15 +812,21 @@ export default function CommunicationTemplatesPage() {
                         )}
                         <div className="space-y-1">
                             <Label className="text-muted-foreground">{t('dialog.body')}</Label>
-                            <div
-                                className="p-4 bg-background border rounded-md min-h-[200px] text-foreground"
-                                dangerouslySetInnerHTML={{
-                                    __html: previewingTemplate?.body_html?.replace(
-                                        /{{(.*?)}}/g,
-                                        (match, p1) => `<span class="bg-primary/20 text-primary-foreground rounded px-1">${p1.trim()}</span>`
-                                    ) || ''
-                                }}
-                            />
+                            {previewingTemplate?.type === 'WHATSAPP' ? (
+                                <div className="p-4 bg-background border rounded-md min-h-[200px] text-foreground whitespace-pre-wrap text-sm">
+                                    {renderTokenHighlights(previewingTemplate.body_text || '')}
+                                </div>
+                            ) : (
+                                <div
+                                    className="p-4 bg-background border rounded-md min-h-[200px] text-foreground"
+                                    dangerouslySetInnerHTML={{
+                                        __html: previewingTemplate?.body_html?.replace(
+                                            /{{(.*?)}}/g,
+                                            (match, p1) => `<span class="bg-primary/20 text-primary-foreground rounded px-1">${p1.trim()}</span>`
+                                        ) || ''
+                                    }}
+                                />
+                            )}
                         </div>
                     </div>
                     <DialogFooter>

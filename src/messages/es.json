@@ -5356,7 +5356,26 @@
       "version": "Versión",
       "defaultSender": "Enviador por defecto",
       "close": "Cerrar",
-      "namePlaceholder": "ej. Nombre template"
+      "namePlaceholder": "ej. Nombre template",
+      "metaTemplateName": "Nombre en Meta",
+      "metaTemplateNamePlaceholder": "ej. appointment_reminder",
+      "metaLanguage": "Idioma (Meta)",
+      "metaLanguagePlaceholder": "ej. es_MX",
+      "metaCategory": "Categoría (Meta)",
+      "selectMetaCategory": "Seleccione una categoría",
+      "metaCategories": {
+        "MARKETING": "Marketing",
+        "UTILITY": "Utilidad",
+        "AUTHENTICATION": "Autenticación"
+      },
+      "metaStatus": "Estado de aprobación",
+      "metaStatusValues": {
+        "PENDING": "Pendiente",
+        "APPROVED": "Aprobada",
+        "REJECTED": "Rechazada"
+      },
+      "metaPendingWarningTitle": "Plantilla pendiente de aprobación en Meta",
+      "metaPendingWarningDescription": "Esta plantilla aún no está aprobada y no puede usarse para enviar mensajes por WhatsApp."
     },
     "deleteDialog": {
       "title": "Eliminar Plantilla",
@@ -6303,15 +6322,20 @@
   },
   "AlertWhatsAppComposerDialog": {
     "title": "Mensaje de WhatsApp de alerta",
-    "description": "Revisa el contenido y ábrelo en WhatsApp.",
+    "description": "Completa las variables y envía la plantilla aprobada por WhatsApp.",
     "phone": "Teléfono",
-    "message": "Mensaje",
-    "messagePlaceholder": "Escribe tu mensaje aquí...",
+    "preview": "Vista previa del mensaje",
+    "variablesTitle": "Variables",
     "missingPhone": "Esta alerta no tiene teléfono del paciente.",
     "unknownPatient": "paciente",
     "cancel": "Cancelar",
-    "open": "Abrir WhatsApp",
-    "opening": "Abriendo...",
+    "send": "Enviar mensaje",
+    "sending": "Enviando...",
+    "notApprovedTitle": "Plantilla pendiente de aprobación",
+    "notApprovedDescription": "Esta plantilla aún no está aprobada por Meta y no puede usarse para enviar.",
+    "noTemplateTitle": "Plantilla no configurada",
+    "noTemplateDescription": "No se encontró una plantilla de WhatsApp para este tipo de mensaje.",
+    "invalidPhoneError": "Número de teléfono inválido. Debe incluir el código de país, ej. +5215512345678.",
     "template": {
       "greeting": "Hola {name}.",
       "intro": "Nos comunicamos contigo por esta alerta:",
@@ -6322,8 +6346,9 @@
       "closing": "Si necesitas más información, no dudes en contactarnos."
     },
     "toast": {
-      "openErrorTitle": "No se pudo abrir WhatsApp",
-      "openErrorDescription": "Permite las ventanas emergentes e inténtalo nuevamente."
+      "sendSuccessTitle": "Mensaje enviado",
+      "sendSuccessDescription": "El mensaje de WhatsApp se envió correctamente.",
+      "sendErrorTitle": "Error al enviar mensaje"
     }
   },
   "EmailComposerDialog": {
@@ -6355,16 +6380,22 @@
   },
   "WhatsAppComposerDialog": {
     "title": "Nuevo mensaje de WhatsApp",
-    "description": "Escribe un mensaje y ábrelo en WhatsApp.",
+    "description": "Completa las variables y envía la plantilla aprobada por WhatsApp.",
     "phone": "Teléfono",
-    "message": "Mensaje",
-    "messagePlaceholder": "Escribe tu mensaje aquí...",
+    "preview": "Vista previa del mensaje",
+    "variablesTitle": "Variables",
     "cancel": "Cancelar",
-    "open": "Abrir WhatsApp",
-    "opening": "Abriendo...",
+    "send": "Enviar mensaje",
+    "sending": "Enviando...",
+    "notApprovedTitle": "Plantilla pendiente de aprobación",
+    "notApprovedDescription": "Esta plantilla aún no está aprobada por Meta y no puede usarse para enviar.",
+    "noTemplateTitle": "Plantilla no configurada",
+    "noTemplateDescription": "No se encontró una plantilla de WhatsApp para este tipo de mensaje.",
+    "invalidPhoneError": "Número de teléfono inválido. Debe incluir el código de país, ej. +5215512345678.",
     "toast": {
-      "openErrorTitle": "No se pudo abrir WhatsApp",
-      "openErrorDescription": "Permite las ventanas emergentes e inténtalo nuevamente."
+      "sendSuccessTitle": "Mensaje enviado",
+      "sendSuccessDescription": "El mensaje de WhatsApp se envió correctamente.",
+      "sendErrorTitle": "Error al enviar mensaje"
     }
   },
   "DentalRecord": {

@@ -5377,7 +5377,26 @@
       },
       "defaultSender": "Default Sender",
       "close": "Close",
-      "namePlaceholder": "e.g. Template name"
+      "namePlaceholder": "e.g. Template name",
+      "metaTemplateName": "Meta Template Name",
+      "metaTemplateNamePlaceholder": "e.g. appointment_reminder",
+      "metaLanguage": "Language (Meta)",
+      "metaLanguagePlaceholder": "e.g. es_MX",
+      "metaCategory": "Category (Meta)",
+      "selectMetaCategory": "Select a category",
+      "metaCategories": {
+        "MARKETING": "Marketing",
+        "UTILITY": "Utility",
+        "AUTHENTICATION": "Authentication"
+      },
+      "metaStatus": "Approval Status",
+      "metaStatusValues": {
+        "PENDING": "Pending",
+        "APPROVED": "Approved",
+        "REJECTED": "Rejected"
+      },
+      "metaPendingWarningTitle": "Template pending Meta approval",
+      "metaPendingWarningDescription": "This template is not yet approved and cannot be used to send WhatsApp messages."
     },
     "deleteDialog": {
       "title": "Delete Template",
@@ -6323,15 +6342,20 @@
   },
   "AlertWhatsAppComposerDialog": {
     "title": "Alert WhatsApp message",
-    "description": "Review the message and open it in WhatsApp.",
+    "description": "Fill in the variables and send the approved WhatsApp template.",
     "phone": "Phone",
-    "message": "Message",
-    "messagePlaceholder": "Write your message here...",
+    "preview": "Message preview",
+    "variablesTitle": "Variables",
     "missingPhone": "This alert has no patient phone.",
     "unknownPatient": "patient",
     "cancel": "Cancel",
-    "open": "Open WhatsApp",
-    "opening": "Opening...",
+    "send": "Send message",
+    "sending": "Sending...",
+    "notApprovedTitle": "Template pending approval",
+    "notApprovedDescription": "This template is not yet approved by Meta and cannot be used to send.",
+    "noTemplateTitle": "Template not configured",
+    "noTemplateDescription": "No WhatsApp template was found for this message type.",
+    "invalidPhoneError": "Invalid phone number. It must include the country code, e.g. +5215512345678.",
     "template": {
       "greeting": "Hi {name}.",
       "intro": "We are contacting you about this alert:",
@@ -6342,8 +6366,9 @@
       "closing": "Please contact us if you need more information."
     },
     "toast": {
-      "openErrorTitle": "Could not open WhatsApp",
-      "openErrorDescription": "Please allow pop-ups and try again."
+      "sendSuccessTitle": "Message sent",
+      "sendSuccessDescription": "The WhatsApp message was sent successfully.",
+      "sendErrorTitle": "Error sending message"
     }
   },
   "EmailComposerDialog": {
@@ -6375,16 +6400,22 @@
   },
   "WhatsAppComposerDialog": {
     "title": "New WhatsApp message",
-    "description": "Write a message and open it in WhatsApp.",
+    "description": "Fill in the variables and send the approved WhatsApp template.",
     "phone": "Phone",
-    "message": "Message",
-    "messagePlaceholder": "Write your message here...",
+    "preview": "Message preview",
+    "variablesTitle": "Variables",
     "cancel": "Cancel",
-    "open": "Open WhatsApp",
-    "opening": "Opening...",
+    "send": "Send message",
+    "sending": "Sending...",
+    "notApprovedTitle": "Template pending approval",
+    "notApprovedDescription": "This template is not yet approved by Meta and cannot be used to send.",
+    "noTemplateTitle": "Template not configured",
+    "noTemplateDescription": "No WhatsApp template was found for this message type.",
+    "invalidPhoneError": "Invalid phone number. It must include the country code, e.g. +5215512345678.",
     "toast": {
-      "openErrorTitle": "Could not open WhatsApp",
-      "openErrorDescription": "Please allow pop-ups and try again."
+      "sendSuccessTitle": "Message sent",
+      "sendSuccessDescription": "The WhatsApp message was sent successfully.",
+      "sendErrorTitle": "Error sending message"
     }
   },
   "DentalRecord": {

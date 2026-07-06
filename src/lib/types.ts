@@ -1423,6 +1423,11 @@ export type CommunicationTemplate = {
   version?: number;
   created_at?: string;
   updated_at?: string;
+  // Solo aplican cuando type === 'WHATSAPP'
+  meta_template_name?: string;
+  meta_language?: string;
+  meta_category?: 'MARKETING' | 'UTILITY' | 'AUTHENTICATION';
+  meta_status?: 'PENDING' | 'APPROVED' | 'REJECTED';
 };
 
 export type AlertAction = {

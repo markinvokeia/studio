@@ -1,0 +1,263 @@
+{
+  "name": "WhatsApp - Send Template Message",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## WhatsApp – Send Template Message\n\n**POST** `/webhook/whatsapp/send`\n\nSends a WhatsApp message via the official Meta Cloud API through **YCloud**. Unlike the legacy `wa.me` flow, this always sends an **approved template** — free text is not supported here (Meta requires an approved template to open a conversation outside the 24h session window).\n\nThe workflow independently re-validates against `communication_templates` (type = WHATSAPP) that the requested template is `meta_status = APPROVED`, even if the frontend already blocked sending from the UI — this is the actual enforcement point, the UI check is just a convenience.\n\n**⚠️ Verify before activating:** this flow assumes YCloud mirrors Meta's Cloud API template-message shape (`POST https://api.ycloud.com/v2/whatsapp/messages`, header `X-API-Key`). Confirm the exact endpoint/auth/body against the current YCloud docs for this account and adjust the `Send via YCloud` node if needed.\n\n**Credentials required:**\n- `Clinic Postgres` (Postgres) — same as other flows.\n- `YCloud API` (Header Auth) — header `X-API-Key: <YCLOUD_API_KEY>`.\n\n**Env var required:**\n- `YCLOUD_WHATSAPP_FROM` — the WhatsApp Business phone number registered in YCloud (used as `from`).\n\n**Request body:**\n```json\n{\n  \"phone\": \"+5215512345678\",\n  \"meta_template_name\": \"appointment_reminder\",\n  \"meta_language\": \"es_MX\",\n  \"parameters\": [\"Juana Pérez\", \"10/07/2026\", \"10:30\", \"Dr. Gómez\"],\n  \"alert_instance_id\": 123,       // optional — if set, logs a SEND_WHATSAPP row in alert_actions\n  \"performed_by\": \"user-uuid\"     // required when alert_instance_id is set\n}\n```\n\n**Response 200:**\n```json\n{\n  \"success\": true,\n  \"code\": 200,\n  \"message_id\": \"wamid.XXXX\",\n  \"status\": \"sent\",\n  \"to\": \"+5215512345678\",\n  \"meta_template_name\": \"appointment_reminder\",\n  \"template_code\": \"APPOINTMENT_REMINDER_WHATSAPP\"\n}\n```\n\n**Response 400:** invalid phone / missing fields / parameter count mismatch with `variables_schema`.\n**Response 404:** no WHATSAPP template matches `meta_template_name` + `meta_language`.\n**Response 409:** template found but not yet `APPROVED`.\n**Response 502:** YCloud rejected or failed to process the send.\n\nDoes **not** touch `meta_status` — syncing approval state from Meta/YCloud is out of scope here (see migration plan, section 5).",
+        "height": 780,
+        "width": 620,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-160, -80],
+      "typeVersion": 1,
+      "id": "wa-send-note",
+      "name": "Flow Documentation"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp/send",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "id": "wa-send-wh",
+      "name": "Webhook",
+      "webhookId": "whatsapp-send"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body ?? $input.first().json;\nconst { phone, meta_template_name, meta_language, parameters, alert_instance_id, performed_by } = body || {};\n\nif (!meta_template_name || typeof meta_template_name !== 'string') throw new Error('meta_template_name is required');\nif (!meta_language || typeof meta_language !== 'string') throw new Error('meta_language is required');\nif (parameters !== undefined && !Array.isArray(parameters)) throw new Error('parameters must be an array');\nif (alert_instance_id !== undefined && alert_instance_id !== null && !performed_by) throw new Error('performed_by is required when alert_instance_id is provided');\n\nconst rawPhone = String(phone ?? '').trim();\nconst E164 = /^\\+[1-9]\\d{7,14}$/;\nif (!E164.test(rawPhone)) {\n  return [{ json: { __error: true, code: 400, message: `Invalid phone number (expected E.164, e.g. +5215512345678): ${phone}` } }];\n}\n\nconst esc = (value) => String(value).replace(/'/g, \"''\");\nconst params = (parameters || []).map((p) => String(p ?? ''));\n\nreturn [{ json: {\n  phone: rawPhone,\n  meta_template_name: String(meta_template_name).trim(),\n  meta_language: String(meta_language).trim(),\n  meta_template_name_sql: esc(String(meta_template_name).trim()),\n  meta_language_sql: esc(String(meta_language).trim()),\n  parameters: params,\n  alert_instance_id: (alert_instance_id !== undefined && alert_instance_id !== null) ? Number(alert_instance_id) : null,\n  performed_by: performed_by ? String(performed_by) : null,\n} }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300],
+      "id": "wa-send-parse",
+      "name": "Parse & Validate Input"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  id::text AS id,\n  code,\n  meta_status,\n  variables_schema\nFROM communication_templates\nWHERE type = 'WHATSAPP'\n  AND meta_template_name = '{{ $json.meta_template_name_sql }}'\n  AND meta_language = '{{ $json.meta_language_sql }}'\nLIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [900, 300],
+      "id": "wa-send-pg-lookup",
+      "name": "Lookup Template",
+      "credentials": {
+        "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Parse & Validate Input').first().json;\nconst rows = $input.all().map(i => i.json).filter(r => r.id);\n\nif (rows.length === 0) {\n  return [{ json: { __error: true, code: 404, message: `No WHATSAPP template found for meta_template_name=\"${input.meta_template_name}\" and meta_language=\"${input.meta_language}\"` } }];\n}\n\nconst template = rows[0];\n\nif (template.meta_status !== 'APPROVED') {\n  return [{ json: { __error: true, code: 409, message: `Template \"${input.meta_template_name}\" is not approved yet (status: ${template.meta_status || 'PENDING'})` } }];\n}\n\nlet expectedCount = null;\ntry {\n  const schema = typeof template.variables_schema === 'string' ? JSON.parse(template.variables_schema) : template.variables_schema;\n  if (Array.isArray(schema)) expectedCount = schema.length;\n} catch {\n  expectedCount = null;\n}\n\nif (expectedCount !== null && input.parameters.length !== expectedCount) {\n  return [{ json: { __error: true, code: 400, message: `Expected ${expectedCount} template parameters, received ${input.parameters.length}` } }];\n}\n\nreturn [{ json: {\n  ...input,\n  template_code: template.code,\n} }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300],
+      "id": "wa-send-check",
+      "name": "Validate Template & Params"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.__error }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1340, 300],
+      "id": "wa-send-if-error1",
+      "name": "Has Error? (Template)"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ error: true, code: $json.code, message: $json.message }) }}",
+        "options": { "responseCode": "={{ $json.code }}" }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1560, 60],
+      "id": "wa-send-respond-error",
+      "name": "Respond Error"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.ycloud.com/v2/whatsapp/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ from: $env.YCLOUD_WHATSAPP_FROM, to: $json.phone, type: 'template', template: { name: $json.meta_template_name, language: { code: $json.meta_language }, components: $json.parameters.length ? [{ type: 'body', parameters: $json.parameters.map(p => ({ type: 'text', text: p })) }] : [] } }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 420],
+      "id": "wa-send-http",
+      "name": "Send via YCloud",
+      "credentials": {
+        "httpHeaderAuth": { "id": "ycloud-api", "name": "YCloud API" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Validate Template & Params').first().json;\nconst res = $input.first().json;\nconst statusCode = res.statusCode;\nconst respBody = res.body || {};\n\nif (statusCode >= 200 && statusCode < 300) {\n  const messageId = respBody?.messages?.[0]?.id || respBody?.id || null;\n  const actionData = {\n    phone: input.phone,\n    meta_template_name: input.meta_template_name,\n    template_code: input.template_code,\n    parameters: input.parameters,\n    message_id: messageId,\n  };\n  const esc = (value) => String(value).replace(/'/g, \"''\");\n  return [{ json: {\n    ...input,\n    success: true,\n    message_id: messageId,\n    ycloud_status: respBody?.messages?.[0]?.status || 'sent',\n    action_data_sql: esc(JSON.stringify(actionData)),\n  } }];\n}\n\nconst errMessage = respBody?.error?.message || respBody?.message || JSON.stringify(respBody);\nreturn [{ json: { __error: true, code: 502, message: `YCloud rejected the message: ${errMessage}` } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 420],
+      "id": "wa-send-ycloud-check",
+      "name": "Check YCloud Response"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.__error }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2000, 420],
+      "id": "wa-send-if-error2",
+      "name": "Has Error? (YCloud)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.alert_instance_id != null }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2220, 500],
+      "id": "wa-send-if-alert",
+      "name": "Has Alert Instance?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO alert_actions (alert_instance_id, action_type, action_data, result_status, result_message, performed_by, performed_at)\nVALUES (\n  {{ $json.alert_instance_id }},\n  'SEND_WHATSAPP',\n  '{{ $json.action_data_sql }}'::jsonb,\n  'SUCCESS',\n  'WhatsApp message sent via YCloud (id: {{ $json.message_id }})',\n  '{{ $json.performed_by }}'::uuid,\n  NOW()\n)\nRETURNING id::text AS id;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [2440, 600],
+      "id": "wa-send-pg-log",
+      "name": "Log Alert Action",
+      "credentials": {
+        "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nreturn [{ json: {\n  success: true,\n  code: 200,\n  message_id: d.message_id,\n  status: d.ycloud_status,\n  to: d.phone,\n  meta_template_name: d.meta_template_name,\n  template_code: d.template_code,\n} }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2660, 420],
+      "id": "wa-send-build-response",
+      "name": "Build Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": { "responseCode": 200 }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2880, 420],
+      "id": "wa-send-respond-ok",
+      "name": "Respond 200"
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Parse & Validate Input", "type": "main", "index": 0 }]] },
+    "Parse & Validate Input": { "main": [[{ "node": "Lookup Template", "type": "main", "index": 0 }]] },
+    "Lookup Template": { "main": [[{ "node": "Validate Template & Params", "type": "main", "index": 0 }]] },
+    "Validate Template & Params": { "main": [[{ "node": "Has Error? (Template)", "type": "main", "index": 0 }]] },
+    "Has Error? (Template)": {
+      "main": [
+        [{ "node": "Respond Error", "type": "main", "index": 0 }],
+        [{ "node": "Send via YCloud", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send via YCloud": { "main": [[{ "node": "Check YCloud Response", "type": "main", "index": 0 }]] },
+    "Check YCloud Response": { "main": [[{ "node": "Has Error? (YCloud)", "type": "main", "index": 0 }]] },
+    "Has Error? (YCloud)": {
+      "main": [
+        [{ "node": "Respond Error", "type": "main", "index": 0 }],
+        [{ "node": "Has Alert Instance?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Has Alert Instance?": {
+      "main": [
+        [{ "node": "Log Alert Action", "type": "main", "index": 0 }],
+        [{ "node": "Build Response", "type": "main", "index": 0 }]
+      ]
+    },
+    "Log Alert Action": { "main": [[{ "node": "Build Response", "type": "main", "index": 0 }]] },
+    "Build Response": { "main": [[{ "node": "Respond 200", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": ""
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": ["whatsapp", "communications", "clinic"]
+}
