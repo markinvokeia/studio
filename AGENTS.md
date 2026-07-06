@@ -22,17 +22,27 @@ This file contains guidelines and conventions for agentic coding agents working 
 
 ## Tech Stack & Architecture
 
+Healthcare/dental clinic management SaaS.
+
 **Framework:** Next.js 15 with App Router, TypeScript (strict mode), Tailwind CSS with Shadcn/ui
-**Key Libraries:** React Hook Form + Zod, next-intl, Google Genkit, Recharts, Radix UI, next-themes
+**Key Libraries:** React Hook Form + Zod, next-intl, Google Genkit, Recharts, Radix UI, next-themes, date-fns, Firebase
 
 **Directory Structure:**
 
-- `src/app/[locale]/` - Next.js App Router with i18n
-- `src/components/ui/` - Shadcn/ui reusable components
+- `src/app/[locale]/` - i18n-routed Next.js App Router pages
+- `src/components/ui/` - Shadcn/ui primitives and reusable components
 - `src/components/[feature]/` - Feature-specific components
-- `src/lib/types.ts` - Centralized type definitions
-- `src/hooks/`, `src/services/`, `src/context/` - Custom hooks, API services, React contexts
-- `src/ai/` - Google Genkit AI integration
+- `src/context/` - AuthContext, AlertNotificationsContext, and other React contexts
+- `src/hooks/` - Custom hooks (`useAuth`, `usePermissions`, etc.)
+- `src/services/api.ts` - Centralized API client
+- `src/lib/types.ts` - Centralized shared type definitions
+- `src/lib/permissions.ts` - Permission filtering utilities
+- `src/lib/runtime-config.ts` - Runtime environment configuration getters
+- `src/constants/routes.ts` - API endpoint definitions
+- `src/constants/permissions.ts` - Permission code constants
+- `src/config/nav.ts` - Navigation menu with permission guards
+- `src/ai/flows/` - Google Genkit AI flows
+- `src/messages/{en,es}.json` - i18n translation files
 
 ## Code Style Guidelines
 
@@ -108,10 +118,11 @@ Always use React Hook Form with Zod validation. Define schemas and use `z.infer<
 
 ### API Integration
 
-- Use `@/services/api` for all API calls
+- Use `@/services/api` for all API calls. It wraps HTTP calls with Bearer token auth from localStorage.
 - Define API response types in `@/lib/types.ts`
 - Implement proper error handling and loading states
-- **CRITICAL:** Never hardcode API routes - use constants from config files
+- **CRITICAL:** Never hardcode API routes inline - use constants from `src/constants/routes.ts`
+- Base URL and all environment-derived values come from `src/lib/runtime-config.ts` - never read `process.env` or `NEXT_PUBLIC_*` directly in application code
 
 ### Internationalization
 
@@ -140,7 +151,7 @@ Always use React Hook Form with Zod validation. Define schemas and use `z.infer<
 
 - Never expose API keys, tokens, or sensitive data in client code
 - Validate all user inputs with Zod schemas before API calls
-- Use environment variables for configuration (NEXT_PUBLIC_ prefix for client)
+- Use runtime configuration getters from `src/lib/runtime-config.ts` for environment-derived values
 - Implement proper authentication checks and role-based access
 - Sanitize data before rendering to prevent XSS attacks
 - Use HTTPS for all external API calls
@@ -164,6 +175,15 @@ Always use React Hook Form with Zod validation. Define schemas and use `z.infer<
 - Theme provider wraps the app in `src/components/theme-provider.tsx`
 - Use CSS custom properties for theme values
 - Support both system preference and manual theme selection
+
+### Environment Variables
+
+**IMPORTANT:** See [`docs/runtime-config.md`](docs/runtime-config.md) before working with environment variables.
+
+Variables are injected at runtime, not build time, via `window.__INVOKEIA_RUNTIME_CONFIG__` from the script written by the Server Component `src/app/[locale]/layout.tsx`.
+
+- Always access runtime configuration through getters in `src/lib/runtime-config.ts`
+- Never read `process.env` or `NEXT_PUBLIC_*` directly in application code
 
 ### Charts and Data Visualization
 
@@ -206,6 +226,16 @@ Usa el skill `permissions-protection` cuando:
 - `src/components/auth/PrivateRoute.tsx` - Protección de rutas
 - `src/lib/permissions.ts` - Utilitarios para filtrar menú
 - `src/config/nav.ts` - Configuración del menú con permisos
+- `src/constants/permissions.ts` - Constantes de códigos de permisos
+
+### Autenticación y Estado
+
+`AuthContext` gestiona el token JWT, datos del usuario, roles y estado de sesión de caja, persistidos en localStorage. El sistema de permisos está basado en roles.
+
+- `usePermissions()` expone `hasPermission(code)`, `hasAnyPermission([])` y `hasAllPermissions([])`
+- `<Can>` controla renderizado condicional de UI
+- `<PrivateRoute>` protege rutas
+- `src/config/nav.ts` se filtra por permisos en runtime
 
 ### Códigos de Permiso
 
