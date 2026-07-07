@@ -5,19 +5,19 @@ import { ColumnDef } from '@tanstack/react-table';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Banknote, CheckCircle2, FileMinus, FilePlus2, FileText, Loader2, Pencil, Printer, Receipt, ScrollText, Trash2, Undo2 } from 'lucide-react';
+import { Banknote, CheckCircle2, FileMinus, FilePlus2, FileText, Loader2, MoreHorizontal, Pencil, Printer, Receipt, ScrollText, Trash2, Undo2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuSeparator,
-  ContextMenuTrigger,
-} from '@/components/ui/context-menu';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Dialog, DialogBody, DialogCancelButton, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -96,7 +96,7 @@ const creditNoteSchema = z.object({
 });
 type CreditNoteFormValues = z.infer<typeof creditNoteSchema>;
 
-interface RowContextMenuProps {
+interface RowActionsMenuProps {
   row: LedgerRow;
   canEdit: boolean;
   canInvoice: boolean;
@@ -118,13 +118,12 @@ interface RowContextMenuProps {
   onDeletePayment: (row: LedgerRow) => void;
   onDeleteCreditNote: (row: LedgerRow) => void;
   t: (key: string) => string;
-  children: React.ReactNode;
 }
 
 const INVOICEABLE_QUOTE_STATUSES = ['accepted', 'confirmed'];
 const CONFIRMABLE_QUOTE_STATUSES = ['draft', 'pending', 'sent'];
 
-function RowContextMenu({ row, canEdit, canInvoice, canConfirmQuote, canPay, canCreateCreditNote, canRevertInvoice, canDeleteQuote, canDeletePayment, canDeleteCreditNote, getMaxCreditable, onEdit, onInvoice, onConfirmQuote, onPay, onCreditNote, onRevertInvoice, onDeleteQuote, onDeletePayment, onDeleteCreditNote, t, children }: RowContextMenuProps) {
+function RowActionsMenu({ row, canEdit, canInvoice, canConfirmQuote, canPay, canCreateCreditNote, canRevertInvoice, canDeleteQuote, canDeletePayment, canDeleteCreditNote, getMaxCreditable, onEdit, onInvoice, onConfirmQuote, onPay, onCreditNote, onRevertInvoice, onDeleteQuote, onDeletePayment, onDeleteCreditNote, t }: RowActionsMenuProps) {
   const isUnbilledQuoteItem = row.kind === 'item' && row.status === 'presupuestado';
   const isInvoiceItem = row.kind === 'item' && !!row.status && row.status !== 'presupuestado' && row.status !== 'notaCredito';
   const isPayment = row.kind === 'payment';
@@ -139,61 +138,70 @@ function RowContextMenu({ row, canEdit, canInvoice, canConfirmQuote, canPay, can
   const showDeleteCreditNote = isCreditNote;
   const showCreateCreditNote = isInvoiceItem && !!row.invoiceId && getMaxCreditable(row.invoiceId) > 0.005;
   const hasDestructiveAction = (showRevert && canRevertInvoice) || (showDeleteQuote && canDeleteQuote) || (showDeletePayment && canDeletePayment) || (showDeleteCreditNote && canDeleteCreditNote);
+  const showEdit = isUnbilledQuoteItem && canEdit;
+  const hasAnyAction = showEdit || (showConfirmQuote && canConfirmQuote) || (showInvoice && canInvoice) || (showPay && canPay) || (showCreateCreditNote && canCreateCreditNote) || hasDestructiveAction;
+
+  if (!hasAnyAction) return <div className="h-8 w-8" />;
 
   return (
-    <ContextMenu>
-      <ContextMenuTrigger asChild>
-        <div className="contents">{children}</div>
-      </ContextMenuTrigger>
-      <ContextMenuContent>
-        {isUnbilledQuoteItem && canEdit && (
-          <ContextMenuItem onClick={() => onEdit(row)}>
-            <Pencil className="mr-2 h-4 w-4" />{t('actions.edit')}
-          </ContextMenuItem>
-        )}
-        {showConfirmQuote && canConfirmQuote && (
-          <ContextMenuItem onClick={() => onConfirmQuote(row)}>
-            <CheckCircle2 className="mr-2 h-4 w-4" />{t('actions.confirmQuote')}
-          </ContextMenuItem>
-        )}
-        {showInvoice && canInvoice && (
-          <ContextMenuItem onClick={() => onInvoice(row)}>
-            <FileText className="mr-2 h-4 w-4" />{t('actions.invoice')}
-          </ContextMenuItem>
-        )}
-        {showPay && canPay && (
-          <ContextMenuItem onClick={() => onPay(row)}>
-            <Receipt className="mr-2 h-4 w-4" />{t('actions.pay')}
-          </ContextMenuItem>
-        )}
-        {showCreateCreditNote && canCreateCreditNote && (
-          <ContextMenuItem onClick={() => onCreditNote(row)}>
-            <FileMinus className="mr-2 h-4 w-4" />{t('actions.creditNote')}
-          </ContextMenuItem>
-        )}
-        {hasDestructiveAction && <ContextMenuSeparator />}
-        {showRevert && canRevertInvoice && (
-          <ContextMenuItem onClick={() => onRevertInvoice(row)}>
-            <Undo2 className="mr-2 h-4 w-4" />{t('actions.revertToQuote')}
-          </ContextMenuItem>
-        )}
-        {showDeleteQuote && canDeleteQuote && (
-          <ContextMenuItem onClick={() => onDeleteQuote(row)} className="text-destructive focus:text-destructive">
-            <Trash2 className="mr-2 h-4 w-4" />{t('actions.deleteQuote')}
-          </ContextMenuItem>
-        )}
-        {showDeletePayment && canDeletePayment && (
-          <ContextMenuItem onClick={() => onDeletePayment(row)} className="text-destructive focus:text-destructive">
-            <Trash2 className="mr-2 h-4 w-4" />{t('actions.deletePayment')}
-          </ContextMenuItem>
-        )}
-        {showDeleteCreditNote && canDeleteCreditNote && (
-          <ContextMenuItem onClick={() => onDeleteCreditNote(row)} className="text-destructive focus:text-destructive">
-            <Trash2 className="mr-2 h-4 w-4" />{t('actions.deleteCreditNote')}
-          </ContextMenuItem>
-        )}
-      </ContextMenuContent>
-    </ContextMenu>
+    <div onClick={(e) => e.stopPropagation()}>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="h-8 w-8 p-0">
+            <span className="sr-only">{t('actions.openMenu')}</span>
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {showEdit && (
+            <DropdownMenuItem onClick={() => onEdit(row)}>
+              <Pencil className="mr-2 h-4 w-4" />{t('actions.edit')}
+            </DropdownMenuItem>
+          )}
+          {showConfirmQuote && canConfirmQuote && (
+            <DropdownMenuItem onClick={() => onConfirmQuote(row)}>
+              <CheckCircle2 className="mr-2 h-4 w-4" />{t('actions.confirmQuote')}
+            </DropdownMenuItem>
+          )}
+          {showInvoice && canInvoice && (
+            <DropdownMenuItem onClick={() => onInvoice(row)}>
+              <FileText className="mr-2 h-4 w-4" />{t('actions.invoice')}
+            </DropdownMenuItem>
+          )}
+          {showPay && canPay && (
+            <DropdownMenuItem onClick={() => onPay(row)}>
+              <Receipt className="mr-2 h-4 w-4" />{t('actions.pay')}
+            </DropdownMenuItem>
+          )}
+          {showCreateCreditNote && canCreateCreditNote && (
+            <DropdownMenuItem onClick={() => onCreditNote(row)}>
+              <FileMinus className="mr-2 h-4 w-4" />{t('actions.creditNote')}
+            </DropdownMenuItem>
+          )}
+          {hasDestructiveAction && <DropdownMenuSeparator />}
+          {showRevert && canRevertInvoice && (
+            <DropdownMenuItem onClick={() => onRevertInvoice(row)}>
+              <Undo2 className="mr-2 h-4 w-4" />{t('actions.revertToQuote')}
+            </DropdownMenuItem>
+          )}
+          {showDeleteQuote && canDeleteQuote && (
+            <DropdownMenuItem onClick={() => onDeleteQuote(row)} className="text-destructive focus:text-destructive">
+              <Trash2 className="mr-2 h-4 w-4" />{t('actions.deleteQuote')}
+            </DropdownMenuItem>
+          )}
+          {showDeletePayment && canDeletePayment && (
+            <DropdownMenuItem onClick={() => onDeletePayment(row)} className="text-destructive focus:text-destructive">
+              <Trash2 className="mr-2 h-4 w-4" />{t('actions.deletePayment')}
+            </DropdownMenuItem>
+          )}
+          {showDeleteCreditNote && canDeleteCreditNote && (
+            <DropdownMenuItem onClick={() => onDeleteCreditNote(row)} className="text-destructive focus:text-destructive">
+              <Trash2 className="mr-2 h-4 w-4" />{t('actions.deleteCreditNote')}
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }
 
@@ -530,36 +538,38 @@ export function PatientLedger({ userId, refreshTrigger, onCreateQuote, onCreateT
     },
   ], [t]);
 
-  const columns = React.useMemo<ColumnDef<LedgerRow>[]>(() => baseColumns.map((col) => ({
-    ...col,
-    cell: (ctx) => (
-      <RowContextMenu
-        row={ctx.row.original}
-        canEdit={canEditItem}
-        canInvoice={canInvoiceQuote}
-        canConfirmQuote={canConfirmQuote}
-        canPay={canCreatePaymentPerm}
-        canCreateCreditNote={canCreateCreditNote}
-        canRevertInvoice={canRevertInvoice}
-        canDeleteQuote={canDeleteQuote}
-        canDeletePayment={canDeletePayment}
-        canDeleteCreditNote={canDeleteCreditNote}
-        getMaxCreditable={getMaxCreditableForInvoice}
-        onEdit={handleEdit}
-        onInvoice={handleInvoice}
-        onConfirmQuote={handleConfirmQuote}
-        onPay={handlePay}
-        onCreditNote={handleCreditNote}
-        onRevertInvoice={handleRevertInvoice}
-        onDeleteQuote={handleDeleteQuote}
-        onDeletePayment={handleDeletePayment}
-        onDeleteCreditNote={handleDeleteCreditNote}
-        t={t}
-      >
-        {col.cell ? (col.cell as (ctx: any) => React.ReactNode)(ctx) : String(ctx.getValue() ?? '')}
-      </RowContextMenu>
-    ),
-  })), [baseColumns, canEditItem, canInvoiceQuote, canConfirmQuote, canCreatePaymentPerm, canCreateCreditNote, canRevertInvoice, canDeleteQuote, canDeletePayment, canDeleteCreditNote, getMaxCreditableForInvoice, handleEdit, handleInvoice, handleConfirmQuote, handlePay, handleCreditNote, handleRevertInvoice, handleDeleteQuote, handleDeletePayment, handleDeleteCreditNote, t]);
+  const columns = React.useMemo<ColumnDef<LedgerRow>[]>(() => [
+    ...baseColumns,
+    {
+      id: 'actions',
+      header: () => null,
+      cell: ({ row }) => (
+        <RowActionsMenu
+          row={row.original}
+          canEdit={canEditItem}
+          canInvoice={canInvoiceQuote}
+          canConfirmQuote={canConfirmQuote}
+          canPay={canCreatePaymentPerm}
+          canCreateCreditNote={canCreateCreditNote}
+          canRevertInvoice={canRevertInvoice}
+          canDeleteQuote={canDeleteQuote}
+          canDeletePayment={canDeletePayment}
+          canDeleteCreditNote={canDeleteCreditNote}
+          getMaxCreditable={getMaxCreditableForInvoice}
+          onEdit={handleEdit}
+          onInvoice={handleInvoice}
+          onConfirmQuote={handleConfirmQuote}
+          onPay={handlePay}
+          onCreditNote={handleCreditNote}
+          onRevertInvoice={handleRevertInvoice}
+          onDeleteQuote={handleDeleteQuote}
+          onDeletePayment={handleDeletePayment}
+          onDeleteCreditNote={handleDeleteCreditNote}
+          t={t}
+        />
+      ),
+    },
+  ], [baseColumns, canEditItem, canInvoiceQuote, canConfirmQuote, canCreatePaymentPerm, canCreateCreditNote, canRevertInvoice, canDeleteQuote, canDeletePayment, canDeleteCreditNote, getMaxCreditableForInvoice, handleEdit, handleInvoice, handleConfirmQuote, handlePay, handleCreditNote, handleRevertInvoice, handleDeleteQuote, handleDeletePayment, handleDeleteCreditNote, t]);
 
   const toolbar = (
     <div className="flex flex-wrap items-center gap-2">

@@ -24,6 +24,7 @@
     "loading": "Loading account…",
     "noPendingInvoices": "No pending invoices to pay",
     "actions": {
+      "openMenu": "Open menu",
       "edit": "Edit",
       "invoice": "Invoice",
       "confirmQuote": "Confirm quote",

@@ -24,6 +24,7 @@
     "loading": "Cargando cuenta…",
     "noPendingInvoices": "No hay facturas pendientes de pago",
     "actions": {
+      "openMenu": "Abrir menú",
       "edit": "Editar",
       "invoice": "Facturar",
       "confirmQuote": "Confirmar presupuesto",
