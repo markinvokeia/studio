@@ -221,6 +221,8 @@ export type Quote = {
   doc_no?: string;
   quote_doc_no?: string;
   user_id: string;
+  doctor_id?: string;
+  doctor_name?: string;
   total: number;
   status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'pending' | 'confirmed';
   payment_status: 'unpaid' | 'paid' | 'partial' | 'partially_paid';
@@ -300,6 +302,8 @@ export type Invoice = {
   user_name: string;
   userEmail?: string;
   user_id: string;
+  doctor_id?: string;
+  doctor_name?: string;
   total: number;
   currency?: 'UYU' | 'USD';
   notes?: string;
@@ -1550,8 +1554,12 @@ export type GlobalNotificationSetting = {
 
 export type DoctorAlertStyle = 'modal' | 'toast';
 
+/** `unified` = single account ledger (Debe/Haber/Saldo). `tabs` = separate Quotes/Invoices/Payments tabs. */
+export type PatientFinanceView = 'unified' | 'tabs';
+
 export type UserPreferences = {
   alert_style?: DoctorAlertStyle;
+  finance_view?: PatientFinanceView;
 };
 
 export type UserPreferencesResponse = {

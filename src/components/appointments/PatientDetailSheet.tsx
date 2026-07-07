@@ -5,22 +5,19 @@ import { ResizableSheet, SheetTitle, SheetDescription } from '@/components/ui/re
 import {
   PatientDetailSheetMainContent,
   type PatientSheetClinicalSubTab,
-  type PatientSheetFinancialSubTab,
   type PatientSheetMacroTab,
 } from '@/components/patients/patient-detail-sheet-main-content';
-import { UserFinancialSummaryStats } from '@/components/users/user-financial-summary-stats';
 import { PatientInfoTab } from '@/components/patients/patient-info-tab';
 import { PatientQuickActions } from '@/components/patients/patient-quick-actions';
 import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/components/users/clinic-history-viewer';
 import { PatientInstructionsSection } from '@/components/medical-instructions/patient-instructions-section';
 import { UserTreatmentPlans } from '@/components/users/user-treatment-plans';
-import { UserQuotes } from '@/components/users/user-quotes';
-import { UserInvoices } from '@/components/users/user-invoices';
-import { UserPayments } from '@/components/users/user-payments';
+import { PatientFinanceSection } from '@/components/users/patient-finance-section';
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
-import { useAccountStatement } from '@/stores/account-statement-store';
-import { UserFinancial } from '@/lib/types';
+import { useAuth } from '@/context/AuthContext';
+import { useFinanceViewPreference } from '@/hooks/use-finance-view-preference';
+import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
 import {
   AlertTriangle, Mail, Phone, Users,
 } from 'lucide-react';
@@ -80,10 +77,10 @@ export function PatientDetailSheet({
   initialTab = 'clinical',
 }: PatientDetailSheetProps) {
   const t = useTranslations('UsersPage');
-  const { open: openAccountStatement } = useAccountStatement();
+  const { user: currentUser } = useAuth();
+  const [financeView] = useFinanceViewPreference(currentUser?.id);
+  const { open: openAccountStatement } = usePatientLedgerSheet();
   const isDoctorMode = mode === 'doctor';
-  const [financialData, setFinancialData] = React.useState<UserFinancial | null>(null);
-  const [isStatsOpen, setIsStatsOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<PatientSheetMacroTab>(
     isDoctorMode ? 'clinical' : mapInitialTabToMacroTab(initialTab)
   );
@@ -92,27 +89,7 @@ export function PatientDetailSheet({
   const [createSessionTrigger, setCreateSessionTrigger] = React.useState(0);
   const [createOdontogramTrigger, setCreateOdontogramTrigger] = React.useState(0);
   const [createDocumentTrigger, setCreateDocumentTrigger] = React.useState(0);
-  const [activeFinancialSubTab, setActiveFinancialSubTab] = React.useState<PatientSheetFinancialSubTab>(
-    initialTab === 'invoices' ? 'invoices' : initialTab === 'payments' ? 'payments' : 'quotes'
-  );
   const [allergies, setAllergies] = React.useState<AllergySummaryItem[]>([]);
-
-  React.useEffect(() => {
-    if (isDoctorMode) {
-      setFinancialData(null);
-      return;
-    }
-    if (!open || !userId) return;
-    let active = true;
-    api.get(API_ROUTES.USER_FINANCIAL, { user_id: userId })
-      .then((data: any) => {
-        if (!active) return;
-        if (Array.isArray(data) && data.length > 0) setFinancialData(data[0] as UserFinancial);
-        else setFinancialData(null);
-      })
-      .catch(() => { if (active) setFinancialData(null); });
-    return () => { active = false; };
-  }, [isDoctorMode, open, userId]);
 
   React.useEffect(() => {
     if (!isDoctorMode || !open || !userId) return;
@@ -142,7 +119,6 @@ export function PatientDetailSheet({
     if (open) {
       setActiveTab(isDoctorMode ? 'clinical' : mapInitialTabToMacroTab(initialTab));
       setActiveClinicalSubTab(clinicalHistoryDefaultView === 'anamnesis' ? 'anamnesis' : 'clinical-history');
-      setActiveFinancialSubTab(initialTab === 'invoices' ? 'invoices' : initialTab === 'payments' ? 'payments' : 'quotes');
     }
   }, [clinicalHistoryDefaultView, initialTab, isDoctorMode, open, userId]);
 
@@ -236,8 +212,6 @@ export function PatientDetailSheet({
           onActiveTabChange={setActiveTab}
           activeClinicalSubTab={activeClinicalSubTab}
           onClinicalSubTabChange={setActiveClinicalSubTab}
-          activeFinancialSubTab={activeFinancialSubTab}
-          onFinancialSubTabChange={setActiveFinancialSubTab}
           isDoctorMode={isDoctorMode}
           infoContent={!isDoctorMode ? <PatientInfoTab userId={userId} /> : undefined}
           anamnesisContent={<AnamnesisViewer userId={userId} />}
@@ -245,20 +219,13 @@ export function PatientDetailSheet({
           treatmentPlansContent={<UserTreatmentPlans userId={userId} userName={userName} />}
           medicalInstructionsContent={<PatientInstructionsSection userId={userId} userName={userName} />}
           documentsContent={<DocumentsViewer userId={userId} createTrigger={createDocumentTrigger} />}
-          financialSummaryContent={
-            !isDoctorMode ? (
-              <UserFinancialSummaryStats
-                financialData={financialData}
-                isOpen={isStatsOpen}
-                onToggle={() => setIsStatsOpen(v => !v)}
-                onPrint={() => {}}
-                onViewStatement={() => openAccountStatement(userId, userName)}
-              />
-            ) : undefined
+          ledgerContent={
+            <PatientFinanceSection
+              userId={userId}
+              viewMode={financeView}
+              onViewStatement={() => openAccountStatement(userId, userName)}
+            />
           }
-          quotesContent={<UserQuotes userId={userId} />}
-          invoicesContent={<UserInvoices userId={userId} />}
-          paymentsContent={<UserPayments userId={userId} />}
         />
       </div>
     </ResizableSheet>

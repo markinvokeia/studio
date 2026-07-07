@@ -40,7 +40,7 @@ import { getServicesByQuoteId, getQuoteItems } from '@/services/quotes';
 import { addMinutes, differenceInMinutes, format, isValid, parse, parseISO } from 'date-fns';
 import { AlertTriangle, CalendarDays, Check, ChevronsUpDown, ClipboardList, Clock, FileText, FilePlus, Link2, Loader2, MapPin, Plus, Stethoscope, UserRound, X } from 'lucide-react';
 
-import { useAccountStatement } from '@/stores/account-statement-store';
+import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
 import { usePatientView } from '@/stores/patient-view-store';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -120,7 +120,7 @@ export function AppointmentFormDialog({
     const { user: currentUser } = useAuth();
     const { toast } = useToast();
     const { reschedule } = useAppointmentReschedule();
-    const { open: openAccountStatement } = useAccountStatement();
+    const { open: openAccountStatement } = usePatientLedgerSheet();
     const { open: openPatientView } = usePatientView();
     const tAccount = useTranslations('AccountStatement');
     const tPanelAccount = useTranslations('AppointmentPanel');

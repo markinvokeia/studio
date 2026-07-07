@@ -4,7 +4,6 @@ import * as React from 'react'
 
 import type {
   ClinicalSubTab,
-  FinancialSubTab,
   InfoSubTab,
   PatientMacroTab,
 } from '@/components/patients/patient-detail-main-content'
@@ -18,14 +17,12 @@ export function usePatientDetailNavigation({ deepLinkView, selectedUserId }: Use
   const [activeTab, setActiveTab] = React.useState<PatientMacroTab>('info')
   const [activeInfoSubTab, setActiveInfoSubTab] = React.useState<InfoSubTab>('details')
   const [activeClinicalSubTab, setActiveClinicalSubTab] = React.useState<ClinicalSubTab>('clinical-history')
-  const [activeFinancialSubTab, setActiveFinancialSubTab] = React.useState<FinancialSubTab>('quotes')
 
   React.useEffect(() => {
     if (!selectedUserId) return
     setActiveTab('info')
     setActiveInfoSubTab('details')
     setActiveClinicalSubTab('clinical-history')
-    setActiveFinancialSubTab('quotes')
   }, [selectedUserId])
 
   React.useEffect(() => {
@@ -68,19 +65,8 @@ export function usePatientDetailNavigation({ deepLinkView, selectedUserId }: Use
     setActiveClinicalSubTab('documents')
   }, [])
 
-  const openFinancialQuotes = React.useCallback(() => {
+  const openFinancial = React.useCallback(() => {
     setActiveTab('financial')
-    setActiveFinancialSubTab('quotes')
-  }, [])
-
-  const openFinancialInvoices = React.useCallback(() => {
-    setActiveTab('financial')
-    setActiveFinancialSubTab('invoices')
-  }, [])
-
-  const openFinancialPayments = React.useCallback(() => {
-    setActiveTab('financial')
-    setActiveFinancialSubTab('payments')
   }, [])
 
   return {
@@ -90,15 +76,11 @@ export function usePatientDetailNavigation({ deepLinkView, selectedUserId }: Use
     setActiveInfoSubTab,
     activeClinicalSubTab,
     setActiveClinicalSubTab,
-    activeFinancialSubTab,
-    setActiveFinancialSubTab,
     openInfo,
     openClinicalAnamnesis,
     openClinicalHistory,
     openClinicalTreatmentPlans,
     openClinicalDocuments,
-    openFinancialQuotes,
-    openFinancialInvoices,
-    openFinancialPayments,
+    openFinancial,
   }
 }

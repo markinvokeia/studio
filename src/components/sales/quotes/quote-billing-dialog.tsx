@@ -112,6 +112,8 @@ interface QuoteBillingDialogProps {
   orderId?: string | null;
   isSales?: boolean;
   onSuccess?: () => void | Promise<void>;
+  /** When set, restricts the dialog to billing only this quote item instead of every pending item. */
+  onlyQuoteItemId?: string;
 }
 
 function roundCurrency(value: number): number {
@@ -178,6 +180,7 @@ export function QuoteBillingDialog({
   orderId,
   isSales = true,
   onSuccess,
+  onlyQuoteItemId,
 }: QuoteBillingDialogProps) {
   const t = useTranslations('QuoteBillingDialog');
   const tQuotes = useTranslations('QuotesPage');
@@ -252,20 +255,22 @@ export function QuoteBillingDialog({
         }
       });
 
-      const options = sourceQuoteItems.map((item) => {
-        const billedByItem = billedAmountByQuoteItem.get(String(item.id));
-        const billedFallback = billedByItem == null ? billedAmountByService.get(String(item.service_id)) || 0 : billedByItem;
-        const pendingAmount = roundCurrency(Math.max(Number(item.total || 0) - billedFallback, 0));
+      const options = sourceQuoteItems
+        .filter((item) => !onlyQuoteItemId || String(item.id) === onlyQuoteItemId)
+        .map((item) => {
+          const billedByItem = billedAmountByQuoteItem.get(String(item.id));
+          const billedFallback = billedByItem == null ? billedAmountByService.get(String(item.service_id)) || 0 : billedByItem;
+          const pendingAmount = roundCurrency(Math.max(Number(item.total || 0) - billedFallback, 0));
 
-        return {
-          quote_item_id: String(item.id),
-          service_id: String(item.service_id),
-          service_name: item.service_name,
-          quote_item_total: Number(item.total || 0),
-          billed_amount: roundCurrency(billedFallback),
-          pending_amount: pendingAmount,
-        };
-      });
+          return {
+            quote_item_id: String(item.id),
+            service_id: String(item.service_id),
+            service_name: item.service_name,
+            quote_item_total: Number(item.total || 0),
+            billed_amount: roundCurrency(billedFallback),
+            pending_amount: pendingAmount,
+          };
+        });
 
       const summary = calculateQuoteFinancialSummary(Number(quote.total || 0), invoices);
       const defaultItems = options
@@ -301,7 +306,7 @@ export function QuoteBillingDialog({
     return () => {
       isCurrent = false;
     };
-  }, [open, orderId, quote, quoteItems, isSales, form, replace]);
+  }, [open, orderId, quote, quoteItems, isSales, form, replace, onlyQuoteItemId]);
 
   React.useEffect(() => {
     selectedItems.forEach((item, index) => {

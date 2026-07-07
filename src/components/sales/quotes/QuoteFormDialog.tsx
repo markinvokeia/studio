@@ -24,6 +24,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { DatePickerInput } from '@/components/ui/date-picker';
+import { DoctorSelector } from '@/components/ui/doctor-selector';
 import { ServiceSelector } from '@/components/ui/service-selector';
 import { UserSelector } from '@/components/ui/user-selector';
 import { Textarea } from '@/components/ui/textarea';
@@ -44,6 +45,7 @@ import * as z from 'zod';
 const quoteFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
     user_id: z.string().min(1, t('validation.userRequired')),
+    doctor_id: z.string().optional(),
     total: z.coerce.number().min(0, t('validation.totalPositive')),
     currency: z.enum(['UYU', 'USD', 'URU']).default('USD'),
     status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'pending', 'confirmed',
@@ -119,6 +121,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
     const [clinic, setClinic] = React.useState<Clinic | null>(null);
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = React.useState(false);
+    const [doctorName, setDoctorName] = React.useState('');
 
     const form = useForm<QuoteFormValues>({
         resolver: zodResolver(quoteFormSchema(t)),
@@ -157,6 +160,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
         form.reset(
             {
                 user_id: initialData?.user?.id || '',
+                doctor_id: '',
                 total: 0,
                 currency: defaultCurrency as any,
                 status: 'draft',
@@ -177,6 +181,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
         if (defaultCurrency !== (clinic?.currency || 'UYU')) {
             form.setValue('exchange_rate', sessionRate);
         }
+        setDoctorName('');
         setSubmissionError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open]);
@@ -371,6 +376,32 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                                     <SelectItem value="UYU">UYU</SelectItem>
                                                 </SelectContent>
                                             </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
+                            {/* Doctor field */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="doctor_id"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('quoteDialog.doctor')}</FormLabel>
+                                            <FormControl>
+                                                <DoctorSelector
+                                                    value={field.value}
+                                                    selectedDoctorName={doctorName}
+                                                    onValueChange={(doctorId, doctor) => {
+                                                        field.onChange(doctorId);
+                                                        setDoctorName(doctor?.name || '');
+                                                    }}
+                                                    placeholder={t('quoteDialog.searchDoctor')}
+                                                    triggerText={t('quoteDialog.selectDoctor')}
+                                                />
+                                            </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}

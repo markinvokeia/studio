@@ -61,23 +61,23 @@ import { AppointmentFormDialog } from '@/components/appointments/AppointmentForm
 import { getCalendarSettings } from '@/components/calendar/calendar-settings-utils';
 import { InvoiceFormDialog } from '@/components/tables/invoices-table';
 import { PrepaidFormDialog } from '@/components/sales/payments/PrepaidFormDialog';
+import { SmartPaymentFormDialog } from '@/components/sales/payments/SmartPaymentFormDialog';
 import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
 import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/components/users/clinic-history-viewer';
 import { PatientInstructionsSection } from '@/components/medical-instructions/patient-instructions-section';
 import { UserCommunicationPreferences } from '@/components/users/user-communication-preferences';
-import { UserFinancialSummaryStats } from '@/components/users/user-financial-summary-stats';
-import { UserInvoices } from '@/components/users/user-invoices';
+import { PatientFinanceSection } from '@/components/users/patient-finance-section';
 import { UserTreatmentPlans, type TreatmentContactContext } from '@/components/users/user-treatment-plans';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import { UserOrders } from '@/components/users/user-orders';
-import { UserPayments } from '@/components/users/user-payments';
-import { UserQuotes } from '@/components/users/user-quotes';
 import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
+import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useFinanceViewPreference } from '@/hooks/use-finance-view-preference';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
-import { Appointment, Calendar as CalendarType, PatientDischarge, Quote, Service, SessionPrefillData, User, UserFinancial, UserRole, MutualSociety } from '@/lib/types';
+import { Appointment, Calendar as CalendarType, PatientDischarge, Service, SessionPrefillData, User, UserRole, MutualSociety } from '@/lib/types';
 import { getSalesServices, getUsersServicesBatch } from '@/services/services';
 import { cn, formatDisplayDate } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -99,7 +99,7 @@ import { UserColumnsWrapper } from './columns';
 import { useDeepLink } from '@/hooks/use-deep-link';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
-import { useAccountStatement } from '@/stores/account-statement-store';
+import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
 import { useLicenseStore } from '@/stores/license-store';
 import { usePatientDetailNavigation } from '@/hooks/patients/use-patient-detail-navigation';
 
@@ -448,10 +448,12 @@ function UsersTableWithCards({
 
 export default function UsersPage() {
   const t = useTranslations();
+  const { user: currentUser } = useAuth();
   const { hasPermission } = usePermissions();
+  const [financeView] = useFinanceViewPreference(currentUser?.id);
   const { toast } = useToast();
   const { open: openBillingWizard } = useBillingWizard();
-  const { open: openAccountStatement } = useAccountStatement();
+  const { open: openAccountStatement } = usePatientLedgerSheet();
   const { printFinancialSummary } = usePrintDocument();
   const searchParams = useSearchParams();
   const initialQ = searchParams.get('q') ?? '';
@@ -459,7 +461,6 @@ export default function UsersPage() {
   const [userCount, setUserCount] = React.useState(0);
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
   const [selectedUserRoles, setSelectedUserRoles] = React.useState<UserRole[]>([]);
-  const [selectedQuote, setSelectedQuote] = React.useState<Quote | null>(null);
   const [isRolesLoading, setIsRolesLoading] = React.useState(false);
   const [editingUser, setEditingUser] = React.useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
@@ -475,8 +476,6 @@ export default function UsersPage() {
     to: '',
   });
   const [isPrintingFinancialSummary, setIsPrintingFinancialSummary] = React.useState(false);
-  const [userFinancialData, setUserFinancialData] = React.useState<UserFinancial | null>(null);
-  const [isLoadingFinancialData, setIsLoadingFinancialData] = React.useState(false);
 
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const latestUsersRequestRef = React.useRef(0);
@@ -522,14 +521,9 @@ export default function UsersPage() {
     setActiveInfoSubTab,
     activeClinicalSubTab,
     setActiveClinicalSubTab,
-    activeFinancialSubTab,
-    setActiveFinancialSubTab,
     openClinicalAnamnesis,
     openClinicalHistory,
     openClinicalDocuments,
-    openFinancialQuotes,
-    openFinancialInvoices,
-    openFinancialPayments,
   } = usePatientDetailNavigation({
     deepLinkView,
     selectedUserId: selectedUser?.id,
@@ -551,7 +545,7 @@ export default function UsersPage() {
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = React.useState(false);
   const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = React.useState(false);
   const [isPrepaidDialogOpen, setIsPrepaidDialogOpen] = React.useState(false);
-  const [isStatsOpen, setIsStatsOpen] = React.useState(true);
+  const [isSmartPaymentDialogOpen, setIsSmartPaymentDialogOpen] = React.useState(false);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = React.useState(false);
   const [isWhatsAppDialogOpen, setIsWhatsAppDialogOpen] = React.useState(false);
   const [treatmentContactCtx, setTreatmentContactCtx] = React.useState<TreatmentContactContext | null>(null);
@@ -791,23 +785,6 @@ export default function UsersPage() {
     } catch (error) {
       console.error("Failed to fetch patient discharge:", error);
       setCurrentDischarge(null);
-    }
-  }, []);
-
-  const fetchUserFinancialData = React.useCallback(async (userId: string) => {
-    setIsLoadingFinancialData(true);
-    try {
-      const data = await api.get(API_ROUTES.USER_FINANCIAL, { user_id: userId });
-      if (data && Array.isArray(data) && data.length > 0) {
-        setUserFinancialData(data[0] as UserFinancial);
-      } else {
-        setUserFinancialData(null);
-      }
-    } catch (error) {
-      console.error("Failed to fetch user financial data:", error);
-      setUserFinancialData(null);
-    } finally {
-      setIsLoadingFinancialData(false);
     }
   }, []);
 
@@ -1097,14 +1074,12 @@ export default function UsersPage() {
     if (selectedUser) {
       loadUserRoles(selectedUser.id);
       fetchPatientDischarge(selectedUser.id);
-      fetchUserFinancialData(selectedUser.id);
       loadMutualSocieties();
       fetchPatientAllergies(selectedUser.id);
       fetchPatientConditions(selectedUser.id);
     } else {
       setSelectedUserRoles([]);
       setCurrentDischarge(null);
-      setUserFinancialData(null);
       setPatientAllergies([]);
       setPatientConditions([]);
       setIsPreferencesOpen(false);
@@ -1112,11 +1087,10 @@ export default function UsersPage() {
       setCreateOdontogramTrigger(0);
       setCreateDocumentTrigger(0);
     }
-  }, [selectedUser, loadUserRoles, fetchPatientDischarge, fetchUserFinancialData, loadMutualSocieties, fetchPatientAllergies, fetchPatientConditions]);
+  }, [selectedUser, loadUserRoles, fetchPatientDischarge, loadMutualSocieties, fetchPatientAllergies, fetchPatientConditions]);
 
   const handleCloseDetails = () => {
     setSelectedUser(null);
-    setSelectedQuote(null);
     setRowSelection({});
   };
 
@@ -1450,8 +1424,6 @@ export default function UsersPage() {
                         onActiveTabChange={setActiveTab}
                         activeClinicalSubTab={activeClinicalSubTab}
                         onClinicalSubTabChange={setActiveClinicalSubTab}
-                        activeFinancialSubTab={activeFinancialSubTab}
-                        onFinancialSubTabChange={setActiveFinancialSubTab}
                         showDocuments={canViewHistory}
                         showNotes={canViewNotes}
                         activeInfoSubTab={activeInfoSubTab}
@@ -1534,37 +1506,21 @@ export default function UsersPage() {
                           />
                         }
                         documentsContent={<DocumentsViewer userId={selectedUser.id} createTrigger={createDocumentTrigger} />}
-                        financialSummaryContent={
-                          <UserFinancialSummaryStats
-                            financialData={userFinancialData}
-                            isOpen={isStatsOpen}
-                            onToggle={() => setIsStatsOpen(v => !v)}
-                            onPrint={handlePrintFinancialSummary}
-                            onViewStatement={selectedUser ? () => openAccountStatement(selectedUser.id, selectedUser.name) : undefined}
-                          />
-                        }
-                        quotesContent={
-                          <UserQuotes
+                        ledgerContent={
+                          <PatientFinanceSection
                             userId={selectedUser.id}
-                            onQuoteSelect={setSelectedQuote}
-                            refreshTrigger={refreshQuotesTrigger}
-                            onDataChange={() => {
-                              fetchUserFinancialData(selectedUser.id)
-                              loadUsers()
-                            }}
+                            viewMode={financeView}
+                            refreshQuotesTrigger={refreshQuotesTrigger}
+                            refreshInvoicesTrigger={refreshInvoicesTrigger}
+                            refreshPaymentsTrigger={refreshPaymentsTrigger}
+                            onCreateQuote={() => setIsQuoteDialogOpen(true)}
+                            onCreateTreatment={() => setIsInvoiceDialogOpen(true)}
+                            onCreatePayment={() => setIsSmartPaymentDialogOpen(true)}
+                            onPrintSummary={handlePrintFinancialSummary}
+                            onViewStatement={() => openAccountStatement(selectedUser.id, selectedUser.name)}
+                            onDataChange={() => loadUsers()}
                           />
                         }
-                        invoicesContent={
-                          <UserInvoices
-                            userId={selectedUser.id}
-                            refreshTrigger={refreshInvoicesTrigger}
-                            onDataChange={() => {
-                              fetchUserFinancialData(selectedUser.id)
-                              loadUsers()
-                            }}
-                          />
-                        }
-                        paymentsContent={<UserPayments userId={selectedUser.id} selectedQuote={selectedQuote} refreshTrigger={refreshPaymentsTrigger} />}
                       />
                     </>
                   ) : (<></>)}
@@ -1887,9 +1843,22 @@ export default function UsersPage() {
           onSaveSuccess={() => {
             setIsPrepaidDialogOpen(false);
             setActiveTab('financial');
-            setActiveFinancialSubTab('payments');
             setRefreshPaymentsTrigger(t => t + 1);
-            fetchUserFinancialData(selectedUser.id);
+            loadUsers();
+          }}
+        />
+      )}
+
+      {selectedUser && (
+        <SmartPaymentFormDialog
+          open={isSmartPaymentDialogOpen}
+          onOpenChange={setIsSmartPaymentDialogOpen}
+          initialUser={selectedUser}
+          onSaveSuccess={() => {
+            setIsSmartPaymentDialogOpen(false);
+            setActiveTab('financial');
+            setRefreshInvoicesTrigger(t => t + 1);
+            setRefreshPaymentsTrigger(t => t + 1);
             loadUsers();
           }}
         />
@@ -1904,9 +1873,7 @@ export default function UsersPage() {
           onInvoiceCreated={() => {
             setIsInvoiceDialogOpen(false);
             setActiveTab('financial');
-            setActiveFinancialSubTab('invoices');
             setRefreshInvoicesTrigger(t => t + 1);
-            fetchUserFinancialData(selectedUser.id);
             loadUsers();
           }}
         />
@@ -1920,9 +1887,7 @@ export default function UsersPage() {
           onSaveSuccess={() => {
             setIsQuoteDialogOpen(false);
             setActiveTab('financial');
-            setActiveFinancialSubTab('quotes');
             setRefreshQuotesTrigger(t => t + 1);
-            fetchUserFinancialData(selectedUser.id);
             loadUsers();
           }}
         />
@@ -1946,7 +1911,6 @@ export default function UsersPage() {
           onSaveSuccess={() => {
             setIsAppointmentDialogOpen(false);
             setEditingAppointmentForPlan(null);
-            fetchUserFinancialData(selectedUser.id);
             loadUsers();
           }}
         />

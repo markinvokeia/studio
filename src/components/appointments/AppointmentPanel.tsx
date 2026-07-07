@@ -70,7 +70,7 @@ import { QuoteDetailSheet } from '@/components/appointments/QuoteDetailSheet';
 import { AppointmentStatusRail, type StatusChangeExtra } from '@/components/appointments/AppointmentStatusRail';
 import { getStatusIcon } from '@/components/appointments/status-icons';
 import { usePatientView } from '@/stores/patient-view-store';
-import { useAccountStatement } from '@/stores/account-statement-store';
+import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
 import {
   fetchReassignCalendars,
   fetchReassignDoctors,
@@ -498,7 +498,7 @@ export function AppointmentPanel({
   React.useEffect(() => { setLocalColor(undefined); }, [appointment?.id]);
   const canOpenDetailDeepLinks = useCanOpenDetailDeepLinks();
   const { open: openPatientView } = usePatientView();
-  const { open: openAccountStatement } = useAccountStatement();
+  const { open: openAccountStatement } = usePatientLedgerSheet();
 
   // Outstanding-debt indicator + cancelled-appointment count for the patient.
   const [patientDebt, setPatientDebt] = React.useState<{ currency: string; amount: number }[]>([]);
