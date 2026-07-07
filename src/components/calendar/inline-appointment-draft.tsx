@@ -2,9 +2,10 @@
 
 import * as React from 'react';
 import { format } from 'date-fns';
-import { AlertTriangle, Building2, CalendarDays, CalendarX2, ChevronsUpDown, Clock, FileText, Loader2, Palette, Pencil, Plus, StickyNote, Stethoscope, UserCog, UserRound, X } from 'lucide-react';
+import { AlertTriangle, Building2, CalendarDays, CalendarX2, Check, ChevronsUpDown, Clock, FileText, Loader2, Palette, Pencil, Plus, StickyNote, Stethoscope, UserCog, UserRound, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -206,6 +207,17 @@ function TimeScrollSelect({
   onSelect: (value: string) => void;
 }) {
   const [open, setOpen] = React.useState(false);
+  const selectedRef = React.useRef<HTMLButtonElement>(null);
+
+  // When the list opens, scroll the currently-selected option into view (and
+  // centered) so it's visible/marked instead of the list starting at 00:00.
+  React.useEffect(() => {
+    if (!open) return;
+    const id = requestAnimationFrame(() => {
+      selectedRef.current?.scrollIntoView({ block: 'center' });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [open]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -217,16 +229,24 @@ function TimeScrollSelect({
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
         <div className="max-h-48 overflow-y-auto py-1">
-          {options.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              className="flex h-7 w-full items-center px-2 text-left text-xs hover:bg-accent"
-              onClick={() => { onSelect(option.value); setOpen(false); }}
-            >
-              {option.label}
-            </button>
-          ))}
+          {options.map((option) => {
+            const isSelected = option.value === value;
+            return (
+              <button
+                key={option.value}
+                ref={isSelected ? selectedRef : undefined}
+                type="button"
+                className={cn(
+                  'flex h-7 w-full items-center gap-1.5 px-2 text-left text-xs hover:bg-accent',
+                  isSelected && 'bg-accent font-semibold',
+                )}
+                onClick={() => { onSelect(option.value); setOpen(false); }}
+              >
+                <Check className={cn('h-3 w-3 shrink-0', isSelected ? 'opacity-100' : 'opacity-0')} />
+                <span>{option.label}</span>
+              </button>
+            );
+          })}
         </div>
       </PopoverContent>
     </Popover>

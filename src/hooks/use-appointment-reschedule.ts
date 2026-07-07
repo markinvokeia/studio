@@ -30,6 +30,8 @@ export interface ReschedulePayload {
   start: string;
   end: string;
   changed_by?: string;
+  /** Status to set on the original appointment when rescheduling (e.g. 'deleted'). */
+  status?: string;
 }
 
 export function useAppointmentReschedule(options: UseAppointmentRescheduleOptions = {}) {

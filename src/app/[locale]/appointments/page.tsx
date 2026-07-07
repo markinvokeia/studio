@@ -88,6 +88,7 @@ import { usePatientView } from '@/stores/patient-view-store';
 import { AppointmentStatusContextItems } from '@/components/appointments/AppointmentStatusMenu';
 import { useAppointmentStatus } from '@/hooks/use-appointment-status';
 import { canReschedule, normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
+import { useAppointmentReschedule } from '@/hooks/use-appointment-reschedule';
 import { CancellationNoteDialog } from '@/components/appointments/CancellationNoteDialog';
 import { getAppointmentColumns } from './columns';
 import { useNotifications } from '@/context/notifications-context';
@@ -551,6 +552,7 @@ export default function AppointmentsPage() {
     const canEditInlinePatient = hasPermission(PATIENTS_PERMISSIONS.UPDATE);
 
     const { toast } = useToast();
+    const { reschedule: rescheduleAppointment } = useAppointmentReschedule();
 
     const [appointments, setAppointments] = React.useState<Appointment[]>([]);
     const [reminders, setReminders] = React.useState<CalendarReminder[]>([]);
@@ -887,6 +889,26 @@ export default function AppointmentsPage() {
 
     const handleNewAppointmentClick = () => {
         setEditingAppointment(null);
+        setInlineDraft(null);
+        // In custom mode, "Crear cita" opens the simplified inline card (the same
+        // window used to edit/reschedule) instead of the modal form.
+        const isTimeGrid = ['day', '2-day', '3-day', '4-day', '5-day', '6-day', 'week'].includes(currentView);
+        if (isCustomMode && isTimeGrid) {
+            const calId = personalizedCalendarId ?? firstVisibleCalendarId ?? null;
+            const calendar = calId ? (calendars.find((c) => String(c.id) === String(calId)) ?? null) : null;
+            setInlineDraft({
+                date: new Date(),
+                context: calId ? { groupBy: 'calendar', value: String(calId) } : undefined,
+                durationMin: slotDuration,
+                patient: null,
+                services: [],
+                doctor: null,
+                calendar,
+                notes: '',
+                ...getInitialDraftColor(calendar),
+            });
+            return;
+        }
         setIsReschedulingMode(false);
         setSlotInitialData(null);
         setCreateOpen(true);
@@ -957,6 +979,9 @@ export default function AppointmentsPage() {
         colorTouched?: boolean;
         /** Set when the inline card is editing an existing appointment (vs creating). */
         editing?: Appointment | null;
+        /** When true (with `editing` set), saving reschedules (cancel old + create new)
+         *  instead of updating in place. Used by custom mode's reschedule flow. */
+        rescheduling?: boolean;
     } | null>(null);
     const [isSavingInline, setIsSavingInline] = React.useState(false);
     const [inlineDebt, setInlineDebt] = React.useState<{ currency: string; amount: number }[]>([]);
@@ -1002,6 +1027,35 @@ export default function AppointmentsPage() {
             const svcNames = inlineDraft.services.map((s) => s.name).join(', ');
             const draftColor = inlineDraft.colorTouched ? inlineDraft.color : inlineDraft.color || getGoogleCalendarColorId(calendar?.color);
             const editing = inlineDraft.editing ?? null;
+
+            // Reschedule flow (custom mode): cancel the original + create a new
+            // appointment via the reschedule endpoint, reusing the inline card.
+            if (editing && inlineDraft.rescheduling) {
+                const newId = await rescheduleAppointment(editing, {
+                    patient_id: patient.id,
+                    patient_name: patient.name,
+                    patient_email: patient.email || '',
+                    patient_phone: patient.phone_number || '',
+                    doctor_id: doctor?.id || '',
+                    doctor_name: doctor?.name || '',
+                    doctor_email: doctor?.email || '',
+                    calendar_source_id: calendar?.id ? String(calendar.id) : '',
+                    summary: svcNames ? `${patient.name} - ${svcNames}` : patient.name,
+                    notes: inlineDraft.notes || '',
+                    service_ids: inlineDraft.services.map((s) => s.id),
+                    service_names: svcNames,
+                    start: toLocalISOString(start),
+                    end: toLocalISOString(end),
+                    changed_by: user?.id ? String(user.id) : undefined,
+                    status: 'deleted',
+                });
+                if (newId) {
+                    setInlineDraft(null);
+                    refreshCalendarDataRef.current();
+                }
+                return;
+            }
+
             const payload: any = {
                 mode: editing ? 'update' : 'create',
                 start: toLocalISOString(start),
@@ -1037,7 +1091,7 @@ export default function AppointmentsPage() {
         } finally {
             setIsSavingInline(false);
         }
-    }, [inlineDraft, toast, tToasts]);
+    }, [inlineDraft, toast, tToasts, rescheduleAppointment, user?.id]);
 
     const renderInlineDraft = React.useCallback(() => {
         if (!inlineDraft) return null;
@@ -1052,6 +1106,7 @@ export default function AppointmentsPage() {
             return !Number.isNaN(s) && s > draftStart && s < draftEnd;
         });
         const isEditing = !!inlineDraft.editing;
+        const isRescheduling = isEditing && !!inlineDraft.rescheduling;
         const selectedColor = inlineDraft.color ? colorMap.get(inlineDraft.color) : undefined;
         // Color precedence shown on the card: explicit background > service > doctor > calendar.
         const accentColor = selectedColor || inlineDraft.services[inlineDraft.services.length - 1]?.color
@@ -1108,11 +1163,11 @@ export default function AppointmentsPage() {
                     userPhone: inlineDraft.patient!.phone_number || undefined,
                     initialTab: 'info',
                 }) : undefined}
-                title={isEditing ? tInline('editTitle') : undefined}
-                saveLabel={isEditing ? tInline('update') : undefined}
+                title={isRescheduling ? tReschedule('dialogTitle') : isEditing ? tInline('editTitle') : undefined}
+                saveLabel={isRescheduling ? tReschedule('submit') : isEditing ? tInline('update') : undefined}
             />
         );
-    }, [inlineDraft, doctors, calendars, appointments, inlineDebt, inlineCancelledCount, isSavingInline, handleSaveInlineDraft, openAccountStatement, openPatientView, canCreateInlinePatient, canEditInlinePatient, calendarMode, slotDuration, tInline]);
+    }, [inlineDraft, doctors, calendars, appointments, inlineDebt, inlineCancelledCount, isSavingInline, handleSaveInlineDraft, openAccountStatement, openPatientView, canCreateInlinePatient, canEditInlinePatient, calendarMode, slotDuration, tInline, tReschedule]);
 
     // Esc closes the inline draft only when it is still empty (untouched) — no
     // patient, no services and no notes — so accidental opens dismiss without
@@ -1143,56 +1198,67 @@ export default function AppointmentsPage() {
         setCreateOpen(true);
     }, [prepareSlot, calendarSettings?.inline_appointment_creation, currentView, doctors, calendars, slotDuration]);
 
+    // Opens the inline edit/reschedule card for an existing appointment when the
+    // inline-creation preference is on and the current view is a time grid.
+    // Returns true when it handled the request inline (so callers can fall back
+    // to the modal form otherwise). Pass `rescheduling` to submit via the
+    // reschedule endpoint (cancel old + create new) instead of an in-place update.
+    const openInlineDraftForAppointment = React.useCallback((appointment: Appointment, rescheduling: boolean): boolean => {
+        const isTimeGrid = ['day', '2-day', '3-day', '4-day', '5-day', '6-day', 'week'].includes(currentView);
+        if (!calendarSettings?.inline_appointment_creation || !isTimeGrid) return false;
+        const startStr = appointment.start?.dateTime;
+        const start = startStr ? parseISO(startStr.replace(/Z$/, '')) : new Date();
+        const endStr = appointment.end?.dateTime;
+        const end = endStr ? parseISO(endStr.replace(/Z$/, '')) : addMinutes(start, 30);
+        let durationMin = Math.round((end.getTime() - start.getTime()) / 60000);
+        if (!Number.isFinite(durationMin) || durationMin <= 0) durationMin = 30;
+        const doctor = doctors.find((d) => String(d.id) === String(appointment.doctorId)) ?? null;
+        const calendar = calendars.find((c) => String(c.id) === String(appointment.calendar_source_id)) ?? null;
+        const patient = {
+            id: appointment.patientId,
+            name: appointment.patientName,
+            email: appointment.patientEmail,
+            phone_number: appointment.patientPhone,
+        } as UserType;
+        const services: Service[] = Array.isArray(appointment.services)
+            ? appointment.services.map((s: any) => ({ id: String(s.id), name: s.name, color: s.color } as Service))
+            : [];
+        // In custom mode the grid is a single calendar column, so the inline
+        // draft must carry the calendar context to render in that column.
+        const context = calendarMode === 'custom'
+            ? { groupBy: 'calendar' as const, value: String(appointment.calendar_source_id) }
+            : groupBy === 'doctor'
+                ? { groupBy: 'doctor' as const, value: String(appointment.doctorId) }
+                : groupBy === 'calendar'
+                    ? { groupBy: 'calendar' as const, value: String(appointment.calendar_source_id) }
+                    : undefined;
+        setInlineDraft({
+            date: start,
+            context,
+            durationMin,
+            patient,
+            services,
+            doctor,
+            calendar,
+            notes: appointment.notes || '',
+            color: appointment.colorId || getGoogleCalendarColorId(appointment.color),
+            colorTouched: true,
+            editing: appointment,
+            rescheduling,
+        });
+        return true;
+    }, [calendarSettings?.inline_appointment_creation, currentView, doctors, calendars, groupBy, calendarMode]);
+
     // Edit an existing appointment: inline edit card when the inline-creation
     // preference is on (and on a time-grid view), otherwise the modal form.
     const handleEditAppointment = React.useCallback((appointment: Appointment) => {
-        const isTimeGrid = ['day', '2-day', '3-day', '4-day', '5-day', '6-day', 'week'].includes(currentView);
-        if (calendarSettings?.inline_appointment_creation && isTimeGrid) {
-            const startStr = appointment.start?.dateTime;
-            const start = startStr ? parseISO(startStr.replace(/Z$/, '')) : new Date();
-            const endStr = appointment.end?.dateTime;
-            const end = endStr ? parseISO(endStr.replace(/Z$/, '')) : addMinutes(start, 30);
-            let durationMin = Math.round((end.getTime() - start.getTime()) / 60000);
-            if (!Number.isFinite(durationMin) || durationMin <= 0) durationMin = 30;
-            const doctor = doctors.find((d) => String(d.id) === String(appointment.doctorId)) ?? null;
-            const calendar = calendars.find((c) => String(c.id) === String(appointment.calendar_source_id)) ?? null;
-            const patient = {
-                id: appointment.patientId,
-                name: appointment.patientName,
-                email: appointment.patientEmail,
-                phone_number: appointment.patientPhone,
-            } as UserType;
-            const services: Service[] = Array.isArray(appointment.services)
-                ? appointment.services.map((s: any) => ({ id: String(s.id), name: s.name, color: s.color } as Service))
-                : [];
-            // In custom mode the grid is a single calendar column, so the inline
-            // draft must carry the calendar context to render in that column.
-            const context = calendarMode === 'custom'
-                ? { groupBy: 'calendar' as const, value: String(appointment.calendar_source_id) }
-                : groupBy === 'doctor'
-                    ? { groupBy: 'doctor' as const, value: String(appointment.doctorId) }
-                    : groupBy === 'calendar'
-                        ? { groupBy: 'calendar' as const, value: String(appointment.calendar_source_id) }
-                        : undefined;
-            setInlineDraft({
-                date: start,
-                context,
-                durationMin,
-                patient,
-                services,
-                doctor,
-                calendar,
-                notes: appointment.notes || '',
-                color: appointment.colorId || getGoogleCalendarColorId(appointment.color),
-                colorTouched: true,
-                editing: appointment,
-            });
+        if (openInlineDraftForAppointment(appointment, false)) {
             return;
         }
         setEditingAppointment(appointment);
         setIsReschedulingMode(false);
         setCreateOpen(true);
-    }, [calendarSettings?.inline_appointment_creation, currentView, doctors, calendars, groupBy, calendarMode]);
+    }, [openInlineDraftForAppointment]);
 
     // Right-click on an empty slot → choose between appointment or reminder.
     const handleSlotContextMenu = React.useCallback((date: Date, context?: { groupBy: 'doctor' | 'calendar' | 'sede'; value: string }) => {
@@ -1500,6 +1566,11 @@ export default function AppointmentsPage() {
     };
 
     const handleReschedule = (appointment: Appointment) => {
+        // In custom mode, reschedule reuses the same inline card that create/edit
+        // use, submitting via the reschedule endpoint on save.
+        if (calendarMode === 'custom' && openInlineDraftForAppointment(appointment, true)) {
+            return;
+        }
         setEditingAppointment(appointment);
         setIsReschedulingMode(true);
         setCreateOpen(true);
@@ -3120,7 +3191,7 @@ export default function AppointmentsPage() {
                     onToggleAppointmentSelect={isBulkMode ? handleToggleAppointmentSelect : undefined}
                     bulkModeContent={bulkModeHeaderContent}
                     onSlotClick={handleSlotClick}
-                    onCreateClick={() => { setInlineDraft(null); prepareSlot(new Date()); setIsReschedulingMode(false); setCreateOpen(true); }}
+                    onCreateClick={handleNewAppointmentClick}
                     onSlotContextMenu={handleSlotContextMenu}
                     gaps={gapsActive ? calendarGaps : undefined}
                     selectedGapKey={selectedGap ? gapKey(selectedGap) : undefined}
