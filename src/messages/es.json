@@ -200,6 +200,7 @@
     "Currencies": "Monedas y Tipos de Cambio",
     "Sequences": "Secuencias",
     "MutualSocieties": "Sociedades Mutuales",
+    "PatientGroups": "Grupos de Pacientes",
     "PrintTemplates": "Plantillas de Documentos",
     "Templates": "Plantillas",
     "MedicalInstructionTemplates": "Plantillas de Indicaciones Médicas",
@@ -1569,6 +1570,14 @@
       "searchGuardianPlaceholder": "Buscar por nombre...",
       "noGuardianResults": "No se encontraron pacientes",
       "clearResponsibleContact": "Limpiar",
+      "doctor": "Doctor por defecto",
+      "searchDoctor": "Buscar doctor...",
+      "selectDoctor": "Seleccionar doctor",
+      "clearDoctor": "Limpiar",
+      "sex": "Sexo",
+      "sexNone": "No especificado",
+      "sexMale": "Masculino",
+      "sexFemale": "Femenino",
       "identity_document": "Documento de Identidad",
       "identity_document_placeholder": "ej., 12345678",
       "isActive": "Está Activo",
@@ -1622,6 +1631,10 @@
         "success": "Sociedad mutual actualizada",
         "error": "Error al actualizar la sociedad mutual"
       }
+    },
+    "patientGroup": {
+      "select": "Seleccionar grupo",
+      "none": "Sin asignar"
     },
     "filters": {
       "type": {
@@ -6085,6 +6098,43 @@
       "codeRequired": "El código es obligatorio."
     }
   },
+  "PatientGroupsPage": {
+    "title": "Grupos de Pacientes",
+    "description": "Gestione el catálogo de grupos de pacientes.",
+    "filterPlaceholder": "Filtrar por nombre...",
+    "createDialog": {
+      "title": "Crear Grupo de Pacientes",
+      "description": "Complete los detalles a continuación para agregar un nuevo grupo de pacientes.",
+      "editTitle": "Editar Grupo de Pacientes",
+      "editDescription": "Actualice los detalles de este grupo de pacientes.",
+      "name": "Nombre",
+      "namePlaceholder": "ej., Ortodoncia",
+      "descriptionPlaceholder": "Ingrese una descripción opcional",
+      "isActive": "Activo",
+      "cancel": "Cancelar",
+      "save": "Crear Grupo",
+      "editSave": "Guardar Cambios"
+    },
+    "deleteDialog": {
+      "title": "¿Está seguro?",
+      "description": "Esto eliminará permanentemente el grupo de pacientes \"{name}\". Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "Ocurrió un error inesperado.",
+      "createSuccessTitle": "Grupo de Pacientes Creado",
+      "editSuccessTitle": "Grupo de Pacientes Actualizado",
+      "successDescription": "El grupo de pacientes \"{name}\" se ha guardado exitosamente.",
+      "deleteSuccessTitle": "Grupo de Pacientes Eliminado",
+      "deleteSuccessDescription": "El grupo de pacientes \"{name}\" ha sido eliminado.",
+      "deleteErrorDescription": "No se pudo eliminar el grupo de pacientes."
+    },
+    "validation": {
+      "nameRequired": "El nombre es obligatorio."
+    }
+  },
   "Config": {
     "PrintTemplates": {
       "title": "Plantillas de Documentos",
@@ -6171,6 +6221,17 @@
     "name": "Nombre",
     "description": "Descripción",
     "code": "Código",
+    "isActive": "Activo",
+    "createdAt": "Fecha de Creación",
+    "updatedAt": "Fecha de Actualización",
+    "actions": "Acciones",
+    "edit": "Editar",
+    "delete": "Eliminar"
+  },
+  "PatientGroupsColumns": {
+    "id": "ID",
+    "name": "Nombre",
+    "description": "Descripción",
     "isActive": "Activo",
     "createdAt": "Fecha de Creación",
     "updatedAt": "Fecha de Actualización",

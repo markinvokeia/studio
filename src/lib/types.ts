@@ -30,6 +30,13 @@ export type User = {
   calendar_source_id?: string;
   /** Doctor flag: enables browsing appointments of calendars they have access to in the workspace. */
   can_browse_calendars?: boolean;
+  /** Default doctor assigned to this patient. Nullable. */
+  doctor_id?: string | null;
+  doctor_name?: string;
+  sex?: 'male' | 'female' | null;
+  /** Patient group this user belongs to. Nullable. */
+  group_id?: string | null;
+  group_name?: string;
 };
 
 export type CurrencyFinancialData = {
@@ -1338,6 +1345,15 @@ export type MutualSociety = {
   name: string;
   description?: string;
   code: string;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type PatientGroup = {
+  id: string | number;
+  name: string;
+  description?: string;
   is_active: boolean;
   created_at?: string;
   updated_at?: string;

@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { DatePickerInput } from '@/components/ui/date-picker';
+import { DoctorSelector } from '@/components/ui/doctor-selector';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { PhoneInput } from '@/components/ui/phone-input';
@@ -19,10 +20,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import type { MutualSociety, User } from '@/lib/types';
+import type { MutualSociety, PatientGroup, User } from '@/lib/types';
 import {
   fetchPatientById,
   getMutualSocietiesList,
+  getPatientGroupsList,
   searchGuardianPatients,
   upsertUser,
   userFormSchema,
@@ -143,28 +145,33 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
   const { toast } = useToast();
   const [user, setUser] = React.useState<User | null>(userProp ?? null);
   const [mutualSocieties, setMutualSocieties] = React.useState<MutualSociety[]>(mutualSocietiesProp ?? []);
+  const [patientGroups, setPatientGroups] = React.useState<PatientGroup[]>([]);
   const [isLoading, setIsLoading] = React.useState(!userProp);
   const [isSaving, setIsSaving] = React.useState(false);
   const [saveError, setSaveError] = React.useState<string | null>(null);
   const [responsibleContactName, setResponsibleContactName] = React.useState('');
+  const [doctorDisplayName, setDoctorDisplayName] = React.useState('');
 
   const infoForm = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema(t)),
     defaultValues: {
       id: '', name: '', email: '', phone: '', identity_document: '', birth_date: '',
       notes: '', is_active: true, mutual_society_id: '', is_dependent: false, responsible_contact_id: null,
+      doctor_id: null, sex: null, group_id: null,
     },
   });
   const isDependent = infoForm.watch('is_dependent');
 
   React.useEffect(() => {
     let active = true;
-    const applyUser = (u: User | null, societies: MutualSociety[]) => {
+    const applyUser = (u: User | null, societies: MutualSociety[], groups: PatientGroup[]) => {
       if (!active) return;
       setMutualSocieties(societies);
+      setPatientGroups(groups);
       if (u) {
         setUser(u);
         setResponsibleContactName(u.responsible_contact_name || '');
+        setDoctorDisplayName(u.doctor_name || '');
         infoForm.reset({
           id: u.id,
           name: u.name,
@@ -177,6 +184,9 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
           mutual_society_id: u.mutual_society_id ? String(u.mutual_society_id) : '',
           is_dependent: u.is_dependent ?? false,
           responsible_contact_id: u.responsible_contact_id || null,
+          doctor_id: u.doctor_id || null,
+          sex: u.sex ?? null,
+          group_id: u.group_id || null,
         });
       }
       setIsLoading(false);
@@ -184,11 +194,11 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
 
     if (userProp) {
       // Preloaded: only fetch societies if they weren't provided.
-      if (mutualSocietiesProp) applyUser(userProp, mutualSocietiesProp);
-      else getMutualSocietiesList().then((soc) => applyUser(userProp, soc));
+      const societiesPromise = mutualSocietiesProp ? Promise.resolve(mutualSocietiesProp) : getMutualSocietiesList();
+      Promise.all([societiesPromise, getPatientGroupsList()]).then(([soc, groups]) => applyUser(userProp, soc, groups));
     } else {
       setIsLoading(true);
-      Promise.all([fetchPatientById(userId), getMutualSocietiesList()]).then(([fetchedUser, soc]) => applyUser(fetchedUser, soc));
+      Promise.all([fetchPatientById(userId), getMutualSocietiesList(), getPatientGroupsList()]).then(([fetchedUser, soc, groups]) => applyUser(fetchedUser, soc, groups));
     }
     return () => { active = false; };
   }, [userId, userProp, mutualSocietiesProp, infoForm]);
@@ -218,6 +228,11 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
         is_dependent: data.is_dependent,
         responsible_contact_id: data.responsible_contact_id || undefined,
         responsible_contact_name: data.is_dependent ? responsibleContactName || undefined : undefined,
+        doctor_id: data.doctor_id || null,
+        doctor_name: doctorDisplayName || undefined,
+        sex: data.sex ?? null,
+        group_id: data.group_id || null,
+        group_name: patientGroups.find((g) => String(g.id) === data.group_id)?.name || undefined,
       };
       setUser(updated);
       onSaved?.(updated);
@@ -285,6 +300,22 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
               <FormMessage />
             </FormItem>
           )} />
+          <FormField control={infoForm.control} name="sex" render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('UsersPage.createDialog.sex')}</FormLabel>
+              <Select onValueChange={(value) => field.onChange(value === 'none' ? null : value)} value={field.value || 'none'}>
+                <FormControl>
+                  <SelectTrigger><SelectValue placeholder={t('UsersPage.createDialog.sex')} /></SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="none">{t('UsersPage.createDialog.sexNone')}</SelectItem>
+                  <SelectItem value="male">{t('UsersPage.createDialog.sexMale')}</SelectItem>
+                  <SelectItem value="female">{t('UsersPage.createDialog.sexFemale')}</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )} />
           <FormField control={infoForm.control} name="mutual_society_id" render={({ field }) => (
             <FormItem>
               <FormLabel>{t('UsersPage.mutualSociety.select')}</FormLabel>
@@ -299,6 +330,46 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
                   ))}
                 </SelectContent>
               </Select>
+              <FormMessage />
+            </FormItem>
+          )} />
+          <FormField control={infoForm.control} name="group_id" render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('UsersPage.patientGroup.select')}</FormLabel>
+              <Select onValueChange={(value) => field.onChange(value === 'none' ? null : value)} value={field.value || 'none'}>
+                <FormControl>
+                  <SelectTrigger><SelectValue placeholder={t('UsersPage.patientGroup.select')} /></SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="none">{t('UsersPage.patientGroup.none')}</SelectItem>
+                  {patientGroups.map((g) => (
+                    <SelectItem key={g.id} value={String(g.id)}>{g.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )} />
+          <FormField control={infoForm.control} name="doctor_id" render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('UsersPage.createDialog.doctor')}</FormLabel>
+              <FormControl>
+                <DoctorSelector
+                  value={field.value || undefined}
+                  selectedDoctorName={doctorDisplayName}
+                  onValueChange={(doctorId, doctor) => {
+                    field.onChange(doctorId || null);
+                    setDoctorDisplayName(doctor?.name || '');
+                  }}
+                  placeholder={t('UsersPage.createDialog.searchDoctor')}
+                  triggerText={t('UsersPage.createDialog.selectDoctor')}
+                />
+              </FormControl>
+              {field.value && (
+                <Button type="button" variant="ghost" size="sm" className="h-auto px-2 py-1 text-xs" onClick={() => { field.onChange(null); setDoctorDisplayName(''); }}>
+                  {t('UsersPage.createDialog.clearDoctor')}
+                </Button>
+              )}
               <FormMessage />
             </FormItem>
           )} />

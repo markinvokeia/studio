@@ -200,6 +200,7 @@
     "Currencies": "Currencies & Exchange Rates",
     "Sequences": "Sequences",
     "MutualSocieties": "Mutual Societies",
+    "PatientGroups": "Patient Groups",
     "PrintTemplates": "Document Templates",
     "Templates": "Templates",
     "MedicalInstructionTemplates": "Medical Instruction Templates",
@@ -1569,6 +1570,14 @@
       "searchGuardianPlaceholder": "Search by name...",
       "noGuardianResults": "No patients found",
       "clearResponsibleContact": "Clear",
+      "doctor": "Default doctor",
+      "searchDoctor": "Search doctor...",
+      "selectDoctor": "Select doctor",
+      "clearDoctor": "Clear",
+      "sex": "Sex",
+      "sexNone": "Not specified",
+      "sexMale": "Male",
+      "sexFemale": "Female",
       "identity_document": "Identity Document",
       "identity_document_placeholder": "e.g., 12345678",
       "isActive": "Is Active",
@@ -1622,6 +1631,10 @@
         "success": "Mutual society updated",
         "error": "Error updating mutual society"
       }
+    },
+    "patientGroup": {
+      "select": "Select group",
+      "none": "Not assigned"
     },
     "filters": {
       "type": {
@@ -6105,6 +6118,43 @@
       "codeRequired": "Code is required."
     }
   },
+  "PatientGroupsPage": {
+    "title": "Patient Groups",
+    "description": "Manage the catalog of patient groups.",
+    "filterPlaceholder": "Filter by name...",
+    "createDialog": {
+      "title": "Create Patient Group",
+      "description": "Complete the details below to add a new patient group.",
+      "editTitle": "Edit Patient Group",
+      "editDescription": "Update the details of this patient group.",
+      "name": "Name",
+      "namePlaceholder": "e.g., Orthodontics",
+      "descriptionPlaceholder": "Enter an optional description",
+      "isActive": "Active",
+      "cancel": "Cancel",
+      "save": "Create Group",
+      "editSave": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the patient group \"{name}\". This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createSuccessTitle": "Patient Group Created",
+      "editSuccessTitle": "Patient Group Updated",
+      "successDescription": "The patient group \"{name}\" has been saved successfully.",
+      "deleteSuccessTitle": "Patient Group Deleted",
+      "deleteSuccessDescription": "The patient group \"{name}\" has been deleted.",
+      "deleteErrorDescription": "Could not delete the patient group."
+    },
+    "validation": {
+      "nameRequired": "Name is required."
+    }
+  },
   "Config": {
     "PrintTemplates": {
       "title": "Document Templates",
@@ -6191,6 +6241,17 @@
     "name": "Name",
     "description": "Description",
     "code": "Code",
+    "isActive": "Active",
+    "createdAt": "Created At",
+    "updatedAt": "Updated At",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "PatientGroupsColumns": {
+    "id": "ID",
+    "name": "Name",
+    "description": "Description",
     "isActive": "Active",
     "createdAt": "Created At",
     "updatedAt": "Updated At",
