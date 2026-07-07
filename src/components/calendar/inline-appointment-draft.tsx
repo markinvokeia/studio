@@ -199,10 +199,14 @@ function formatMinutesLabel(minutes: number, hourLabel: string, minuteLabel: str
 
 function TimeScrollSelect({
   value,
+  displayValue,
   options,
   onSelect,
 }: {
+  /** The option value to match against (drives the check mark + scroll-into-view). */
   value: string;
+  /** Optional label shown in the closed trigger when it differs from `value`. */
+  displayValue?: string;
   options: { value: string; label: string }[];
   onSelect: (value: string) => void;
 }) {
@@ -223,7 +227,7 @@ function TimeScrollSelect({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="h-7 w-full justify-between px-2 text-xs font-semibold">
-          <span>{value}</span>
+          <span>{displayValue ?? value}</span>
           <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -510,7 +514,8 @@ export function InlineAppointmentDraft({
 
             <CustomField label={t('to')}>
               <TimeScrollSelect
-                value={`${endTime} (${formatDurationLabel(durationMin || 0)})`}
+                value={String(durationMin || 0)}
+                displayValue={`${endTime} (${formatDurationLabel(durationMin || 0)})`}
                 options={endTimeOptions}
                 onSelect={(value) => onDurationChange(Math.max(0, parseInt(value, 10) || 0))}
               />

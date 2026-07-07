@@ -17,7 +17,6 @@ import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
 import type { AppointmentStatus, CalendarReminderPriority, CalendarReminderStatus, CancellationReason } from '@/lib/types';
 import { getStatusIcon } from '@/components/appointments/status-icons';
 
-import { GOOGLE_CALENDAR_COLORS } from './calendar-constants';
 import type { CalendarEvent } from './calendar-types';
 import { formatEventTime, getReadableTextColor } from './calendar-utils';
 import { getReminderCardStyle, getReminderPriorityColor, isReminderDone } from './reminder-visuals';
@@ -27,7 +26,8 @@ interface CalendarEventDayProps {
   style: React.CSSProperties;
   dateLocale: Locale;
   onEventClick: (data: any) => void;
-  onEventColorChange: (data: any, colorId: string) => void;
+  /** @deprecated Color swatches are now rendered by the `onEventContextMenu` render prop. Kept for prop compatibility with the view components. */
+  onEventColorChange?: (data: any, colorId: string) => void;
   onEventDoubleClick?: (data: any) => void;
   onEventContextMenu?: (data: any) => React.ReactNode;
   onEventContextMenuOpen?: (data: any) => void;
@@ -38,7 +38,6 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
   style,
   dateLocale,
   onEventClick,
-  onEventColorChange,
   onEventDoubleClick,
   onEventContextMenu,
   onEventContextMenuOpen,
@@ -139,19 +138,9 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent>
-        <div className="grid grid-cols-4 gap-2 p-2">
-          {GOOGLE_CALENDAR_COLORS.map((color) => (
-            <div
-              key={color.id}
-              className="w-6 h-6 rounded-full cursor-pointer hover:opacity-80"
-              style={{ backgroundColor: color.hex }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onEventColorChange(event.data, color.id);
-              }}
-            />
-          ))}
-        </div>
+        {/* The whole menu body (including color swatches) is supplied by the
+            consumer's render prop so it can place the color picker inline or in
+            a submenu depending on the calendar mode. */}
         {onEventContextMenu && onEventContextMenu(event.data)}
       </ContextMenuContent>
     </ContextMenu>

@@ -36,12 +36,13 @@ interface AppointmentStatusRailProps {
 }
 
 const STATUS_FLOW: AppointmentStatus[] = [
-  'pending',
   'scheduled',
   'confirmed',
   'arrived',
+  'arrived_late',
   'in_progress',
   'completed',
+  'attended_late',
   'no_show',
   'cancelled',
 ];

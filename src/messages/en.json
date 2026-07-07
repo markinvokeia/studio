@@ -875,7 +875,10 @@
       "newInvoice": "Create new invoice",
       "searchInvoice": "Search invoice…",
       "noInvoices": "No invoices",
-      "quickBill": "Quick charge"
+      "quickBill": "Quick charge",
+      "accounts": "Accounts",
+      "patientData": "Patient details",
+      "deleteAppointment": "Delete appointment"
     },
     "linkedInvoice": "Invoice",
     "notInvoiced": "Not invoiced",
@@ -912,13 +915,15 @@
     "quoteDocNo": "Budget"
   },
   "AppointmentStatus": {
-    "completed": "Completed",
+    "completed": "Attended",
     "confirmed": "Confirmed",
     "pending": "Pending",
     "cancelled": "Cancelled",
     "scheduled": "Scheduled",
-    "arrived": "Arrived",
+    "arrived": "In waiting room",
+    "arrived_late": "Arrived late",
     "in_progress": "In progress",
+    "attended_late": "Attended late",
     "no_show": "No-show"
   },
   "AppointmentStatusMenu": {

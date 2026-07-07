@@ -4,8 +4,10 @@ export const APPOINTMENT_STATUSES: AppointmentStatus[] = [
   'scheduled',
   'confirmed',
   'arrived',
+  'arrived_late',
   'in_progress',
   'completed',
+  'attended_late',
   'no_show',
   'cancelled',
   'pending',
@@ -20,14 +22,16 @@ export const ALLOWED_STATUS_TRANSITIONS: Record<AppointmentStatus, AppointmentSt
   ) as Record<AppointmentStatus, AppointmentStatus[]>;
 
 export const STATUS_BADGE_VARIANT: Record<AppointmentStatus, string> = {
-  pending:     'info',
-  scheduled:   'info',
-  confirmed:   'default',
-  arrived:     'warning',
-  in_progress: 'warning',
-  completed:   'success',
-  no_show:     'destructive',
-  cancelled:   'destructive',
+  pending:       'info',
+  scheduled:     'info',
+  confirmed:     'default',
+  arrived:       'warning',
+  arrived_late:  'warning',
+  in_progress:   'warning',
+  completed:     'success',
+  attended_late: 'success',
+  no_show:       'destructive',
+  cancelled:     'destructive',
 };
 
 /**
@@ -36,14 +40,16 @@ export const STATUS_BADGE_VARIANT: Record<AppointmentStatus, string> = {
  * with a striped overlay (see Calendar.css `.event-cancelled`).
  */
 export const STATUS_ACCENT_COLOR: Record<AppointmentStatus, string> = {
-  pending:     '#9ca3af', // gray-400
-  scheduled:   '#3b82f6', // blue-500
-  confirmed:   '#10b981', // emerald-500
-  arrived:     '#f59e0b', // amber-500
-  in_progress: '#f97316', // orange-500
-  completed:   '#16a34a', // green-600
-  no_show:     '#ef4444', // red-500
-  cancelled:   '#6b7280', // gray-500 (used for the stripe pattern)
+  pending:       '#9ca3af', // gray-400
+  scheduled:     '#3b82f6', // blue-500
+  confirmed:     '#10b981', // emerald-500
+  arrived:       '#f59e0b', // amber-500
+  arrived_late:  '#d97706', // amber-600 (arrived, but late)
+  in_progress:   '#f97316', // orange-500
+  completed:     '#16a34a', // green-600
+  attended_late: '#0d9488', // teal-600 (attended, but late)
+  no_show:       '#ef4444', // red-500
+  cancelled:     '#6b7280', // gray-500 (used for the stripe pattern)
 };
 
 export function canTransition(from: AppointmentStatus, to: AppointmentStatus): boolean {
@@ -92,6 +98,42 @@ export const CANCELLATION_REASONS_QUICK: CancellationReason[] = [
 export const CANCELLATION_REASON_OTHER: CancellationReason = 'other';
 
 /**
+ * Ordered layout for the status pickers (badge dropdown + calendar context menu).
+ * Some cancellation reasons are surfaced as direct actions; the rest live in the
+ * trailing "Cancelar…" submenu. `pending` is intentionally omitted — it stays a
+ * valid backend/normalized status (badges still render it) but is no longer
+ * offered as a selectable option.
+ */
+export type StatusMenuEntry =
+  | { kind: 'status'; status: AppointmentStatus }
+  | { kind: 'cancelReason'; reason: CancellationReason }
+  | { kind: 'cancelSubmenu' };
+
+export const STATUS_MENU_LAYOUT: StatusMenuEntry[] = [
+  { kind: 'status', status: 'scheduled' },
+  { kind: 'status', status: 'confirmed' },
+  { kind: 'status', status: 'arrived' },
+  { kind: 'status', status: 'in_progress' },
+  { kind: 'status', status: 'completed' },
+  { kind: 'status', status: 'arrived_late' },
+  { kind: 'status', status: 'no_show' },
+  { kind: 'cancelReason', reason: 'in_time' },
+  { kind: 'cancelReason', reason: 'late' },
+  { kind: 'cancelReason', reason: 'by_doctor' },
+  { kind: 'status', status: 'attended_late' },
+  { kind: 'cancelSubmenu' },
+];
+
+/**
+ * Cancellation reasons shown inside the trailing "Cancelar…" submenu — i.e. the
+ * ones NOT already promoted to direct actions in STATUS_MENU_LAYOUT.
+ */
+export const CANCELLATION_REASONS_SUBMENU: CancellationReason[] = [
+  'no_notice',
+  'by_clinic',
+];
+
+/**
  * Statuses from which a user is allowed to reschedule. Terminal states
  * (completed, cancelled, no_show) are excluded.
  */
@@ -100,6 +142,7 @@ export const RESCHEDULABLE_STATUSES: AppointmentStatus[] = [
   'scheduled',
   'confirmed',
   'arrived',
+  'arrived_late',
   'in_progress',
 ];
 

@@ -571,8 +571,10 @@ export type AppointmentStatus =
   | 'scheduled'
   | 'confirmed'
   | 'arrived'
+  | 'arrived_late'
   | 'in_progress'
   | 'completed'
+  | 'attended_late'
   | 'no_show'
   | 'cancelled'
   | 'pending';

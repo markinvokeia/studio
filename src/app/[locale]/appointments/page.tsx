@@ -71,7 +71,7 @@ import { getSalesServices, getUsersServicesBatch, fetchServicesByIds } from '@/s
 import { ColumnDef } from '@tanstack/react-table';
 import { addMinutes, eachDayOfInterval, endOfMonth, endOfWeek, format, isValid, parseISO, set, startOfMonth, startOfWeek } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
-import { BellRing, Building2, Calendar as CalendarIcon, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ChevronLeft, ClipboardCheck, Edit, FileText, Layers, Link2, Loader2, PlusCircle, Receipt, RefreshCw, Stethoscope, Trash2, UserCog, Users, X, Zap } from 'lucide-react';
+import { BellRing, Building2, Calendar as CalendarIcon, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ChevronLeft, ClipboardCheck, Edit, FileText, Layers, Link2, Loader2, Palette, PlusCircle, Receipt, RefreshCw, Stethoscope, Trash2, UserCog, UserRound, Users, X, Zap } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
@@ -2672,10 +2672,29 @@ export default function AppointmentsPage() {
     // Render additional context menu items for the calendar event:
     // status submenu + clinic session shortcut.
     const renderEventContextMenu = (eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' })) => {
+        // Google-color swatch grid. Rendered inline at the top of the menu in the
+        // default layout; in custom mode it moves into a "Cambiar color" submenu.
+        const colorSwatchGrid = (
+            <div className="grid grid-cols-4 gap-2 p-2">
+                {GOOGLE_CALENDAR_COLORS.map((color) => (
+                    <div
+                        key={color.id}
+                        className="w-6 h-6 rounded-full cursor-pointer hover:opacity-80"
+                        style={{ backgroundColor: color.hex }}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleEventColorChange(eventData, color.id);
+                        }}
+                    />
+                ))}
+            </div>
+        );
+
         if (eventData.kind === 'reminder') {
             const reminder = eventData as CalendarReminder;
             return (
                 <>
+                    {colorSwatchGrid}
                     <ContextMenuSeparator />
                     {reminder.status !== 'done' && (
                         <ContextMenuItem
@@ -2722,17 +2741,9 @@ export default function AppointmentsPage() {
         const linkedInvoice = appointment.invoice_id ? patientInvoices.find((i) => String(i.id) === String(appointment.invoice_id)) : undefined;
         const fmtMoney = (amount: number, currency?: string) => new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD' }).format(amount);
         const hasSession = sessionExistsMap[appointment.id];
-        return (
-            <>
-            <ContextMenuSeparator />
-            <ContextMenuItem
-                key="edit-appointment"
-                onSelect={() => handleEditAppointment(appointment)}
-                className="flex items-center gap-2 cursor-pointer"
-            >
-                <Edit className="h-4 w-4 shrink-0" />
-                {t('contextMenu.editAppointment')}
-            </ContextMenuItem>
+
+        // Shared building blocks reused across the "invoke" and "custom" layouts.
+        const statusSubmenu = (
             <ContextMenuSub>
                 <ContextMenuSubTrigger className="cursor-pointer gap-2">
                     <ClipboardCheck className="h-4 w-4 shrink-0" />
@@ -2754,6 +2765,8 @@ export default function AppointmentsPage() {
                     />
                 </ContextMenuSubContent>
             </ContextMenuSub>
+        );
+        const doctorSubmenu = (
             <ContextMenuSub>
                 <ContextMenuSubTrigger className="cursor-pointer gap-2">
                     <UserCog className="h-4 w-4 shrink-0" />
@@ -2788,6 +2801,8 @@ export default function AppointmentsPage() {
                     )}
                 </ContextMenuSubContent>
             </ContextMenuSub>
+        );
+        const calendarSubmenu = (
             <ContextMenuSub>
                 <ContextMenuSubTrigger className="cursor-pointer gap-2">
                     <Building2 className="h-4 w-4 shrink-0" />
@@ -2822,19 +2837,121 @@ export default function AppointmentsPage() {
                     )}
                 </ContextMenuSubContent>
             </ContextMenuSub>
-            {canReschedule(appointment.status) && (
-                <ContextMenuItem
-                    key="reschedule"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleReschedule(appointment);
-                    }}
-                    className="flex items-center gap-2 cursor-pointer"
-                >
-                    <CalendarSync className="h-4 w-4" />
-                    {tReschedule('action')}
-                </ContextMenuItem>
-            )}
+        );
+        const rescheduleItem = canReschedule(appointment.status) ? (
+            <ContextMenuItem
+                key="reschedule"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    handleReschedule(appointment);
+                }}
+                className="flex items-center gap-2 cursor-pointer"
+            >
+                <CalendarSync className="h-4 w-4" />
+                {tReschedule('action')}
+            </ContextMenuItem>
+        ) : null;
+        const editItem = (
+            <ContextMenuItem
+                key="edit-appointment"
+                onSelect={() => handleEditAppointment(appointment)}
+                className="flex items-center gap-2 cursor-pointer"
+            >
+                <Edit className="h-4 w-4 shrink-0" />
+                {t('contextMenu.editAppointment')}
+            </ContextMenuItem>
+        );
+
+        // ── "custom" mode layout ──────────────────────────────────────────────
+        // Patient submenu first, then the appointment statuses, then edit/delete,
+        // then the reassignment actions (reschedule / doctor / room).
+        if (calendarMode === 'custom') {
+            return (
+                <>
+                    <ContextMenuSeparator />
+                    <ContextMenuSub>
+                        <ContextMenuSubTrigger className="cursor-pointer gap-2 font-medium">
+                            <UserRound className="h-4 w-4 shrink-0" />
+                            <span className="min-w-0 flex-1 truncate">{appointment.patientName}</span>
+                        </ContextMenuSubTrigger>
+                        <ContextMenuSubContent className="w-56">
+                            <ContextMenuItem
+                                key="patient-accounts"
+                                onSelect={() => openAccountStatement(appointment.patientId, appointment.patientName)}
+                                className="flex items-center gap-2 cursor-pointer"
+                            >
+                                <FileText className="h-4 w-4 shrink-0" />
+                                {t('contextMenu.accounts')}
+                            </ContextMenuItem>
+                            <ContextMenuItem
+                                key="patient-data"
+                                onSelect={() => openPatientView({
+                                    userId: appointment.patientId,
+                                    userName: appointment.patientName,
+                                    userEmail: appointment.patientEmail || undefined,
+                                    userPhone: appointment.patientPhone || undefined,
+                                    initialTab: 'info',
+                                })}
+                                className="flex items-center gap-2 cursor-pointer"
+                            >
+                                <Users className="h-4 w-4 shrink-0" />
+                                {t('contextMenu.patientData')}
+                            </ContextMenuItem>
+                        </ContextMenuSubContent>
+                    </ContextMenuSub>
+
+                    <ContextMenuSeparator />
+                    <AppointmentStatusContextItems
+                        appointment={appointment}
+                        onChange={(s, extra) => handleStatusChange(appointment, s, extra)}
+                        onRequestCustomCancellation={() => handleRequestCustomCancellation(appointment)}
+                        ItemComponent={ContextMenuItem}
+                        SubComponent={ContextMenuSub}
+                        SubTriggerComponent={ContextMenuSubTrigger}
+                        SubContentComponent={ContextMenuSubContent}
+                        SeparatorComponent={ContextMenuSeparator}
+                    />
+
+                    <ContextMenuSeparator />
+                    {editItem}
+                    <ContextMenuItem
+                        key="delete"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setSoftDeleteTarget(appointment);
+                        }}
+                        className="flex items-center gap-2 cursor-pointer text-destructive"
+                    >
+                        <Trash2 className="h-4 w-4 shrink-0" />
+                        {t('contextMenu.deleteAppointment')}
+                    </ContextMenuItem>
+
+                    <ContextMenuSeparator />
+                    <ContextMenuSub>
+                        <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                            <Palette className="h-4 w-4 shrink-0" />
+                            {tPanel('changeColor')}
+                        </ContextMenuSubTrigger>
+                        <ContextMenuSubContent>
+                            {colorSwatchGrid}
+                        </ContextMenuSubContent>
+                    </ContextMenuSub>
+                    {rescheduleItem}
+                    {doctorSubmenu}
+                    {calendarSubmenu}
+                </>
+            );
+        }
+
+        return (
+            <>
+            {colorSwatchGrid}
+            <ContextMenuSeparator />
+            {editItem}
+            {statusSubmenu}
+            {doctorSubmenu}
+            {calendarSubmenu}
+            {rescheduleItem}
             <ContextMenuItem
                 key="clinic-session"
                 onClick={(e) => {

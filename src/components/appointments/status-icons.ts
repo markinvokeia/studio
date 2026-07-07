@@ -13,6 +13,8 @@ import {
   OctagonX,
   RotateCw,
   Stethoscope,
+  Timer,
+  TimerReset,
   UserMinus,
   type LucideIcon,
 } from 'lucide-react';
@@ -31,8 +33,10 @@ export const STATUS_ICONS: Record<AppointmentStatus, LucideIcon> = {
   scheduled: Calendar,
   confirmed: Check,
   arrived: LogIn,
+  arrived_late: Timer,
   in_progress: Activity,
   completed: CheckCheck,
+  attended_late: TimerReset,
   no_show: UserMinus,
   cancelled: OctagonX,
 };
