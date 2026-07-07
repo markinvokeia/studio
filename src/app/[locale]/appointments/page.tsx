@@ -83,7 +83,7 @@ import { ContextEntityPicker } from '@/components/appointments/ContextEntityPick
 import { InlineAppointmentDraft } from '@/components/calendar/inline-appointment-draft';
 import { linkInvoiceToAppointment } from '@/services/billing-links';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
-import { useAccountStatement } from '@/stores/account-statement-store';
+import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
 import { usePatientView } from '@/stores/patient-view-store';
 import { AppointmentStatusContextItems } from '@/components/appointments/AppointmentStatusMenu';
 import { useAppointmentStatus } from '@/hooks/use-appointment-status';
@@ -105,79 +105,79 @@ import { InvoiceFormDialog } from '@/components/tables/invoices-table';
 
 
 interface NotifActCallbacks {
-  onQuote: (patientId: string, patientName: string, items?: SessionPreloadedService[], notifId?: string) => void | Promise<void>;
-  onSchedule: (
-    patientId: string,
-    patientName: string,
-    date?: string,
-    doctorId?: string,
-    doctorName?: string,
-    items?: SessionPreloadedService[],
-    quoteId?: string,
-    calendarId?: string,
-    notifId?: string,
-  ) => void;
-  onInvoice: (patientId: string, patientName: string, items?: SessionPreloadedService[], notifId?: string) => void | Promise<void>;
+    onQuote: (patientId: string, patientName: string, items?: SessionPreloadedService[], notifId?: string) => void | Promise<void>;
+    onSchedule: (
+        patientId: string,
+        patientName: string,
+        date?: string,
+        doctorId?: string,
+        doctorName?: string,
+        items?: SessionPreloadedService[],
+        quoteId?: string,
+        calendarId?: string,
+        notifId?: string,
+    ) => void;
+    onInvoice: (patientId: string, patientName: string, items?: SessionPreloadedService[], notifId?: string) => void | Promise<void>;
 }
 
 function NotificationActDeepLink({ onQuote, onSchedule, onInvoice }: NotifActCallbacks) {
-  const searchParams = useSearchParams();
-  // Keep callbacks in a ref so they don't need to be listed as deps.
-  const cbRef = React.useRef({ onQuote, onSchedule, onInvoice });
-  React.useEffect(() => { cbRef.current = { onQuote, onSchedule, onInvoice }; });
+    const searchParams = useSearchParams();
+    // Keep callbacks in a ref so they don't need to be listed as deps.
+    const cbRef = React.useRef({ onQuote, onSchedule, onInvoice });
+    React.useEffect(() => { cbRef.current = { onQuote, onSchedule, onInvoice }; });
 
-  React.useEffect(() => {
-    const act = searchParams.get('act');
-    const patientId = searchParams.get('patientId');
-    if (!act || !patientId) return;
+    React.useEffect(() => {
+        const act = searchParams.get('act');
+        const patientId = searchParams.get('patientId');
+        if (!act || !patientId) return;
 
-    const patientName = searchParams.get('patientName') ?? '';
-    const sessionRef = searchParams.get('sessionRef');
-    const { onQuote, onSchedule, onInvoice } = cbRef.current;
+        const patientName = searchParams.get('patientName') ?? '';
+        const sessionRef = searchParams.get('sessionRef');
+        const { onQuote, onSchedule, onInvoice } = cbRef.current;
 
-    // Limpiar la URL inmediatamente para que un segundo click en la misma
-    // notificación vuelva a disparar el efecto (searchParams cambia → vacío → params).
-    // Usar replaceState evita una re-navegación/re-render de Next.js.
-    try {
-      window.history.replaceState(null, '', window.location.pathname);
-    } catch { /* no-op */ }
+        // Limpiar la URL inmediatamente para que un segundo click en la misma
+        // notificación vuelva a disparar el efecto (searchParams cambia → vacío → params).
+        // Usar replaceState evita una re-navegación/re-render de Next.js.
+        try {
+            window.history.replaceState(null, '', window.location.pathname);
+        } catch { /* no-op */ }
 
-    // Leer servicios pre-cargados por IA desde sessionStorage
-    let preloadedItems: SessionPreloadedService[] | undefined;
-    if (sessionRef) {
-      try {
-        const raw = sessionStorage.getItem(`notif-services:${sessionRef}`);
-        if (raw) {
-          preloadedItems = JSON.parse(raw) as SessionPreloadedService[];
-          sessionStorage.removeItem(`notif-services:${sessionRef}`);
+        // Leer servicios pre-cargados por IA desde sessionStorage
+        let preloadedItems: SessionPreloadedService[] | undefined;
+        if (sessionRef) {
+            try {
+                const raw = sessionStorage.getItem(`notif-services:${sessionRef}`);
+                if (raw) {
+                    preloadedItems = JSON.parse(raw) as SessionPreloadedService[];
+                    sessionStorage.removeItem(`notif-services:${sessionRef}`);
+                }
+            } catch {
+                // sessionStorage no disponible — continuar sin pre-carga
+            }
         }
-      } catch {
-        // sessionStorage no disponible — continuar sin pre-carga
-      }
-    }
 
-    const notifId = searchParams.get('notifId') ?? undefined;
+        const notifId = searchParams.get('notifId') ?? undefined;
 
-    if (act === 'quote') {
-      onQuote(patientId, patientName, preloadedItems, notifId);
-    } else if (act === 'schedule') {
-      onSchedule(
-        patientId,
-        patientName,
-        searchParams.get('date') ?? undefined,
-        searchParams.get('doctorId') ?? undefined,
-        searchParams.get('doctorName') ?? undefined,
-        preloadedItems,
-        searchParams.get('quoteId') ?? undefined,
-        searchParams.get('calendarId') ?? undefined,
-        notifId,
-      );
-    } else if (act === 'invoice') {
-      onInvoice(patientId, patientName, preloadedItems, notifId);
-    }
-  }, [searchParams]);
+        if (act === 'quote') {
+            onQuote(patientId, patientName, preloadedItems, notifId);
+        } else if (act === 'schedule') {
+            onSchedule(
+                patientId,
+                patientName,
+                searchParams.get('date') ?? undefined,
+                searchParams.get('doctorId') ?? undefined,
+                searchParams.get('doctorName') ?? undefined,
+                preloadedItems,
+                searchParams.get('quoteId') ?? undefined,
+                searchParams.get('calendarId') ?? undefined,
+                notifId,
+            );
+        } else if (act === 'invoice') {
+            onInvoice(patientId, patientName, preloadedItems, notifId);
+        }
+    }, [searchParams]);
 
-  return null;
+    return null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -545,7 +545,7 @@ export default function AppointmentsPage() {
     const { refreshNotifications: refreshReminders, markSessionAction } = useNotifications();
     const { user } = useAuth();
     const { open: openBillingWizard } = useBillingWizard();
-    const { open: openAccountStatement } = useAccountStatement();
+    const { open: openAccountStatement } = usePatientLedgerSheet();
     const { open: openPatientView } = usePatientView();
     const { hasPermission } = usePermissions();
     const canCreateInlinePatient = hasPermission(PATIENTS_PERMISSIONS.CREATE);
@@ -750,7 +750,7 @@ export default function AppointmentsPage() {
         } finally {
             setIsReassignLoading(false);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [bulkSelectedIds, tBulk]);
 
     const BULK_SELECTABLE_STATUSES: AppointmentStatus[] = ['scheduled', 'confirmed', 'pending', 'arrived', 'no_show'];
@@ -789,7 +789,7 @@ export default function AppointmentsPage() {
         if (!isBulkModeRef.current) return;
         if (skipNextBulkFilterRef.current) { skipNextBulkFilterRef.current = false; return; }
         handleApplyBulkFilter();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [bulkDoctorIds, bulkCalendarIds, bulkDatePreset]);
 
     // Compact mode: collapse filter/action buttons to icons when the viewport is narrow.
@@ -2272,37 +2272,37 @@ export default function AppointmentsPage() {
                 return selectedCalendarIdSet.has(id);
             })
             .map(appt => {
-            if (!appt.start?.dateTime || !appt.end?.dateTime) {
-                console.warn("Appointment missing start or end dateTime:", appt);
-                return null;
-            }
-            try {
-                const start = parseISO(appt.start.dateTime.replace(/Z$/, ''));
-                const end = parseISO(appt.end.dateTime.replace(/Z$/, ''));
-
-                if (!isValid(start) || !isValid(end)) {
-                    console.error("Invalid start/end date for appointment", appt);
+                if (!appt.start?.dateTime || !appt.end?.dateTime) {
+                    console.warn("Appointment missing start or end dateTime:", appt);
                     return null;
                 }
+                try {
+                    const start = parseISO(appt.start.dateTime.replace(/Z$/, ''));
+                    const end = parseISO(appt.end.dateTime.replace(/Z$/, ''));
 
-                const matchedCalendar = calendars.find((calendar) => String(calendar.id) === String(appt.calendar_source_id));
-                return {
-                    id: String(appt.id),
-                    title: appt.summary || appt.service_name || 'Cita',
-                    label: buildEventLabel(appt, start, eventLabelFormat),
-                    start,
-                    end,
-                    doctorGroupId: appt.doctorId || undefined,
-                    calendarGroupId: matchedCalendar?.id || appt.calendar_source_id || undefined,
-                    data: { ...appt, kind: 'appointment' as const },
-                    color: appt.color,
-                    colorId: appt.colorId,
-                };
-            } catch (e) {
-                console.error("Error parsing date/time for appointment", appt, e);
-                return null;
-            }
-        }).filter((event): event is NonNullable<typeof event> => event !== null);
+                    if (!isValid(start) || !isValid(end)) {
+                        console.error("Invalid start/end date for appointment", appt);
+                        return null;
+                    }
+
+                    const matchedCalendar = calendars.find((calendar) => String(calendar.id) === String(appt.calendar_source_id));
+                    return {
+                        id: String(appt.id),
+                        title: appt.summary || appt.service_name || 'Cita',
+                        label: buildEventLabel(appt, start, eventLabelFormat),
+                        start,
+                        end,
+                        doctorGroupId: appt.doctorId || undefined,
+                        calendarGroupId: matchedCalendar?.id || appt.calendar_source_id || undefined,
+                        data: { ...appt, kind: 'appointment' as const },
+                        color: appt.color,
+                        colorId: appt.colorId,
+                    };
+                } catch (e) {
+                    console.error("Error parsing date/time for appointment", appt, e);
+                    return null;
+                }
+            }).filter((event): event is NonNullable<typeof event> => event !== null);
 
         const reminderEvents = reminders
             .filter((reminder) => reminder.status !== 'cancelled')
@@ -2964,91 +2964,91 @@ export default function AppointmentsPage() {
                 {hasSession ? t('contextMenu.editSession') : t('contextMenu.createSession')}
             </ContextMenuItem>
 
-            <ContextMenuSeparator />
+                <ContextMenuSeparator />
 
-            {/* Quote: link/change */}
-            <ContextMenuSub onOpenChange={(o) => { if (o && appointment.patientId) ensurePatientQuotes(appointment.patientId); }}>
-                <ContextMenuSubTrigger className="cursor-pointer gap-2">
-                    <Link2 className="h-4 w-4 shrink-0" />
-                    <span className="flex min-w-0 flex-col">
-                        <span>{appointment.quote_id ? t('contextMenu.changeQuote') : t('contextMenu.linkQuote')}</span>
-                        {appointment.quote_id && (
-                            <span className="truncate text-xs italic text-muted-foreground">
-                                {(linkedQuote?.doc_no || appointment.quote_doc_no || appointment.quote_id)}
-                                {linkedQuote ? ` · ${fmtMoney(linkedQuote.total, linkedQuote.currency)}` : ''}
-                            </span>
-                        )}
-                    </span>
-                </ContextMenuSubTrigger>
-                <ContextMenuSubContent className="p-0">
-                    <ContextEntityPicker
-                        items={patientQuotes.map((quote) => ({
-                            id: String(quote.id),
-                            title: quote.doc_no || String(quote.id),
-                            subtitle: fmtMoney(quote.total, quote.currency),
-                        }))}
-                        selectedId={appointment.quote_id}
-                        onSelect={(id) => { const quote = patientQuotes.find((q) => String(q.id) === id); if (quote && String(id) !== String(appointment.quote_id)) handleLinkQuote(appointment, quote); }}
-                        onCreateNew={() => handleCreateQuoteForAppointment(appointment)}
-                        createLabel={t('contextMenu.newQuote')}
-                        searchPlaceholder={t('contextMenu.searchQuote')}
-                        emptyText={t('contextMenu.noQuotes')}
-                    />
-                </ContextMenuSubContent>
-            </ContextMenuSub>
+                {/* Quote: link/change */}
+                <ContextMenuSub onOpenChange={(o) => { if (o && appointment.patientId) ensurePatientQuotes(appointment.patientId); }}>
+                    <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                        <Link2 className="h-4 w-4 shrink-0" />
+                        <span className="flex min-w-0 flex-col">
+                            <span>{appointment.quote_id ? t('contextMenu.changeQuote') : t('contextMenu.linkQuote')}</span>
+                            {appointment.quote_id && (
+                                <span className="truncate text-xs italic text-muted-foreground">
+                                    {(linkedQuote?.doc_no || appointment.quote_doc_no || appointment.quote_id)}
+                                    {linkedQuote ? ` · ${fmtMoney(linkedQuote.total, linkedQuote.currency)}` : ''}
+                                </span>
+                            )}
+                        </span>
+                    </ContextMenuSubTrigger>
+                    <ContextMenuSubContent className="p-0">
+                        <ContextEntityPicker
+                            items={patientQuotes.map((quote) => ({
+                                id: String(quote.id),
+                                title: quote.doc_no || String(quote.id),
+                                subtitle: fmtMoney(quote.total, quote.currency),
+                            }))}
+                            selectedId={appointment.quote_id}
+                            onSelect={(id) => { const quote = patientQuotes.find((q) => String(q.id) === id); if (quote && String(id) !== String(appointment.quote_id)) handleLinkQuote(appointment, quote); }}
+                            onCreateNew={() => handleCreateQuoteForAppointment(appointment)}
+                            createLabel={t('contextMenu.newQuote')}
+                            searchPlaceholder={t('contextMenu.searchQuote')}
+                            emptyText={t('contextMenu.noQuotes')}
+                        />
+                    </ContextMenuSubContent>
+                </ContextMenuSub>
 
-            {/* Invoice: bill/change */}
-            <ContextMenuSub onOpenChange={(o) => { if (o && appointment.patientId) ensurePatientInvoices(appointment.patientId); }}>
-                <ContextMenuSubTrigger className="cursor-pointer gap-2">
-                    <Receipt className="h-4 w-4 shrink-0" />
-                    <span className="flex min-w-0 flex-col">
-                        <span>{appointment.invoice_id ? t('contextMenu.changeInvoice') : t('contextMenu.createInvoice')}</span>
-                        {appointment.invoice_id && (
-                            <span className="truncate text-xs italic text-muted-foreground">
-                                {(linkedInvoice?.doc_no || linkedInvoice?.invoice_doc_no || appointment.invoice_id)}
-                                {linkedInvoice ? ` · ${fmtMoney(linkedInvoice.total, linkedInvoice.currency)}` : ''}
-                            </span>
-                        )}
-                    </span>
-                </ContextMenuSubTrigger>
-                <ContextMenuSubContent className="p-0">
-                    <ContextEntityPicker
-                        items={patientInvoices.map((invoice) => ({
-                            id: String(invoice.id),
-                            title: invoice.doc_no || invoice.invoice_doc_no || String(invoice.id),
-                            subtitle: fmtMoney(invoice.total, invoice.currency),
-                        }))}
-                        selectedId={appointment.invoice_id}
-                        onSelect={(id) => { const invoice = patientInvoices.find((i) => String(i.id) === id); if (invoice && String(id) !== String(appointment.invoice_id)) handleLinkInvoice(appointment, invoice); }}
-                        onCreateNew={() => handleCreateInvoiceForAppointment(appointment)}
-                        createLabel={t('contextMenu.newInvoice')}
-                        searchPlaceholder={t('contextMenu.searchInvoice')}
-                        emptyText={t('contextMenu.noInvoices')}
-                    />
-                </ContextMenuSubContent>
-            </ContextMenuSub>
+                {/* Invoice: bill/change */}
+                <ContextMenuSub onOpenChange={(o) => { if (o && appointment.patientId) ensurePatientInvoices(appointment.patientId); }}>
+                    <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                        <Receipt className="h-4 w-4 shrink-0" />
+                        <span className="flex min-w-0 flex-col">
+                            <span>{appointment.invoice_id ? t('contextMenu.changeInvoice') : t('contextMenu.createInvoice')}</span>
+                            {appointment.invoice_id && (
+                                <span className="truncate text-xs italic text-muted-foreground">
+                                    {(linkedInvoice?.doc_no || linkedInvoice?.invoice_doc_no || appointment.invoice_id)}
+                                    {linkedInvoice ? ` · ${fmtMoney(linkedInvoice.total, linkedInvoice.currency)}` : ''}
+                                </span>
+                            )}
+                        </span>
+                    </ContextMenuSubTrigger>
+                    <ContextMenuSubContent className="p-0">
+                        <ContextEntityPicker
+                            items={patientInvoices.map((invoice) => ({
+                                id: String(invoice.id),
+                                title: invoice.doc_no || invoice.invoice_doc_no || String(invoice.id),
+                                subtitle: fmtMoney(invoice.total, invoice.currency),
+                            }))}
+                            selectedId={appointment.invoice_id}
+                            onSelect={(id) => { const invoice = patientInvoices.find((i) => String(i.id) === id); if (invoice && String(id) !== String(appointment.invoice_id)) handleLinkInvoice(appointment, invoice); }}
+                            onCreateNew={() => handleCreateInvoiceForAppointment(appointment)}
+                            createLabel={t('contextMenu.newInvoice')}
+                            searchPlaceholder={t('contextMenu.searchInvoice')}
+                            emptyText={t('contextMenu.noInvoices')}
+                        />
+                    </ContextMenuSubContent>
+                </ContextMenuSub>
 
-            <ContextMenuItem
-                key="quick-bill"
-                onSelect={() => handleQuickBillFromContext(appointment)}
-                className="flex items-center gap-2 cursor-pointer font-medium text-emerald-600 focus:text-emerald-600 dark:text-emerald-400 dark:focus:text-emerald-400"
-            >
-                <Zap className="h-4 w-4" />
-                {t('contextMenu.quickBill')}
-            </ContextMenuItem>
+                <ContextMenuItem
+                    key="quick-bill"
+                    onSelect={() => handleQuickBillFromContext(appointment)}
+                    className="flex items-center gap-2 cursor-pointer font-medium text-emerald-600 focus:text-emerald-600 dark:text-emerald-400 dark:focus:text-emerald-400"
+                >
+                    <Zap className="h-4 w-4" />
+                    {t('contextMenu.quickBill')}
+                </ContextMenuItem>
 
-            <ContextMenuSeparator />
-            <ContextMenuItem
-                key="delete"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    setSoftDeleteTarget(appointment);
-                }}
-                className="flex items-center gap-2 cursor-pointer text-destructive"
-            >
-                <Trash2 className="h-4 w-4" />
-                {tPanel('delete')}
-            </ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem
+                    key="delete"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setSoftDeleteTarget(appointment);
+                    }}
+                    className="flex items-center gap-2 cursor-pointer text-destructive"
+                >
+                    <Trash2 className="h-4 w-4" />
+                    {tPanel('delete')}
+                </ContextMenuItem>
             </>
         );
     };
@@ -3083,162 +3083,162 @@ export default function AppointmentsPage() {
     // Desktop-only contextual header rendered when bulk mode is active
     const bulkModeHeaderContent = (isBulkMode && breakpoint === 'desktop') ? (
         <TooltipProvider delayDuration={300}>
-        <div ref={bulkToolbarRef} className="flex items-center gap-2 w-full min-w-0">
-            {/* Left: selection counter — always visible */}
-            <div className="flex items-center gap-2 shrink-0">
-                <Checkbox
-                    checked={bulkSomeSelected ? 'indeterminate' : bulkAllSelected}
-                    onCheckedChange={(c) => handleSelectAllVisible(!!c)}
-                />
-                <span className="text-sm font-medium whitespace-nowrap">
-                    {bulkSelectedIds.size > 0
-                        ? tBulk('selectedCount', { count: bulkSelectedIds.size })
-                        : tBulk('selectHint')}
-                </span>
-                {bulkSelectedIds.size > 0 && (
-                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => {
-                        skipNextBulkFilterRef.current = true;
-                        setBulkSelectedIds(new Set());
-                        setBulkDoctorIds([]);
-                        setBulkCalendarIds([]);
-                    }}>
-                        <X className="h-3.5 w-3.5 mr-1" />
-                        {!isBulkToolbarCompact && tBulk('clearSelection')}
-                    </Button>
-                )}
-            </div>
+            <div ref={bulkToolbarRef} className="flex items-center gap-2 w-full min-w-0">
+                {/* Left: selection counter — always visible */}
+                <div className="flex items-center gap-2 shrink-0">
+                    <Checkbox
+                        checked={bulkSomeSelected ? 'indeterminate' : bulkAllSelected}
+                        onCheckedChange={(c) => handleSelectAllVisible(!!c)}
+                    />
+                    <span className="text-sm font-medium whitespace-nowrap">
+                        {bulkSelectedIds.size > 0
+                            ? tBulk('selectedCount', { count: bulkSelectedIds.size })
+                            : tBulk('selectHint')}
+                    </span>
+                    {bulkSelectedIds.size > 0 && (
+                        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => {
+                            skipNextBulkFilterRef.current = true;
+                            setBulkSelectedIds(new Set());
+                            setBulkDoctorIds([]);
+                            setBulkCalendarIds([]);
+                        }}>
+                            <X className="h-3.5 w-3.5 mr-1" />
+                            {!isBulkToolbarCompact && tBulk('clearSelection')}
+                        </Button>
+                    )}
+                </div>
 
-            {/* Middle: filters */}
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-                {/* Date preset selector */}
-                <Select value={bulkDatePreset} onValueChange={(v) => setBulkDatePreset(v as AppointmentDatePreset)}>
-                    <SelectTrigger className={cn('h-8 text-xs shrink-0', isBulkToolbarCompact ? 'w-28' : 'w-36')}>
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {(['today', 'this_week', 'this_month'] as AppointmentDatePreset[]).map((preset) => (
-                            <SelectItem key={preset} value={preset} className="text-xs">
-                                {tBulk(preset)}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                {/* Middle: filters */}
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                    {/* Date preset selector */}
+                    <Select value={bulkDatePreset} onValueChange={(v) => setBulkDatePreset(v as AppointmentDatePreset)}>
+                        <SelectTrigger className={cn('h-8 text-xs shrink-0', isBulkToolbarCompact ? 'w-28' : 'w-36')}>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {(['today', 'this_week', 'this_month'] as AppointmentDatePreset[]).map((preset) => (
+                                <SelectItem key={preset} value={preset} className="text-xs">
+                                    {tBulk(preset)}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
 
-                {/* Doctor filter */}
-                <Popover>
+                    {/* Doctor filter */}
+                    <Popover>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs shrink-0">
+                                        <Users className="h-3.5 w-3.5 shrink-0" />
+                                        {!isBulkToolbarCompact && tBulk('doctorFilter')}
+                                        {bulkDoctorIds.length > 0 && <Badge variant="secondary" className="h-4 px-1 text-[10px]">{bulkDoctorIds.length}</Badge>}
+                                        {isBulkLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+                                    </Button>
+                                </PopoverTrigger>
+                            </TooltipTrigger>
+                            {isBulkToolbarCompact && <TooltipContent>{tBulk('doctorFilter')}</TooltipContent>}
+                        </Tooltip>
+                        <PopoverContent className="w-52 p-2" align="start">
+                            <div className="space-y-0.5">
+                                {(() => {
+                                    const activeDoctors = doctors.filter(d => d.is_active);
+                                    const allSelected = activeDoctors.length > 0 && activeDoctors.every(d => bulkDoctorIds.includes(d.id));
+                                    const someSelected = !allSelected && activeDoctors.some(d => bulkDoctorIds.includes(d.id));
+                                    return (
+                                        <>
+                                            <label className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer border-b pb-2 mb-1">
+                                                <Checkbox
+                                                    checked={someSelected ? 'indeterminate' : allSelected}
+                                                    onCheckedChange={(c) => setBulkDoctorIds(c ? activeDoctors.map(d => d.id) : [])}
+                                                />
+                                                <span className="text-sm font-medium">{t('selectAll')}</span>
+                                            </label>
+                                            {activeDoctors.map((doctor) => (
+                                                <label key={doctor.id} className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer">
+                                                    <Checkbox checked={bulkDoctorIds.includes(doctor.id)} onCheckedChange={(c) => handleSelectBulkDoctor(doctor.id, !!c)} />
+                                                    <span className="text-sm">{doctor.name}</span>
+                                                </label>
+                                            ))}
+                                        </>
+                                    );
+                                })()}
+                            </div>
+                        </PopoverContent>
+                    </Popover>
+
+                    {/* Calendar filter */}
+                    <Popover>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs shrink-0">
+                                        <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
+                                        {!isBulkToolbarCompact && tBulk('calendarFilter')}
+                                        {bulkCalendarIds.length > 0 && <Badge variant="secondary" className="h-4 px-1 text-[10px]">{bulkCalendarIds.length}</Badge>}
+                                        {isBulkLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+                                    </Button>
+                                </PopoverTrigger>
+                            </TooltipTrigger>
+                            {isBulkToolbarCompact && <TooltipContent>{tBulk('calendarFilter')}</TooltipContent>}
+                        </Tooltip>
+                        <PopoverContent className="w-52 p-2" align="start">
+                            <div className="space-y-0.5">
+                                {(() => {
+                                    const allSelected = calendars.length > 0 && calendars.every(c => bulkCalendarIds.includes(c.id));
+                                    const someSelected = !allSelected && calendars.some(c => bulkCalendarIds.includes(c.id));
+                                    return (
+                                        <>
+                                            <label className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer border-b pb-2 mb-1">
+                                                <Checkbox
+                                                    checked={someSelected ? 'indeterminate' : allSelected}
+                                                    onCheckedChange={(c) => setBulkCalendarIds(c ? calendars.map(c => c.id) : [])}
+                                                />
+                                                <span className="text-sm font-medium">{t('selectAll')}</span>
+                                            </label>
+                                            {calendars.map((cal) => (
+                                                <label key={cal.id} className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer">
+                                                    <Checkbox checked={bulkCalendarIds.includes(cal.id)} onCheckedChange={(c) => handleSelectBulkCalendar(cal.id, !!c)} />
+                                                    <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: cal.color }} />
+                                                    <span className="text-sm truncate">{cal.name}</span>
+                                                </label>
+                                            ))}
+                                        </>
+                                    );
+                                })()}
+                            </div>
+                        </PopoverContent>
+                    </Popover>
+                </div>
+
+                {/* Right: action buttons — always visible */}
+                <div className="flex items-center gap-2 shrink-0">
+                    <Separator orientation="vertical" className="h-5" />
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs shrink-0">
-                                    <Users className="h-3.5 w-3.5 shrink-0" />
-                                    {!isBulkToolbarCompact && tBulk('doctorFilter')}
-                                    {bulkDoctorIds.length > 0 && <Badge variant="secondary" className="h-4 px-1 text-[10px]">{bulkDoctorIds.length}</Badge>}
-                                    {isBulkLoading && <Loader2 className="h-3 w-3 animate-spin" />}
-                                </Button>
-                            </PopoverTrigger>
+                            <Button
+                                size="sm"
+                                className="h-8 gap-1.5 text-xs"
+                                disabled={bulkSelectedIds.size === 0}
+                                onClick={() => setIsReassignDialogOpen(true)}
+                            >
+                                <Stethoscope className="h-3.5 w-3.5 shrink-0" />
+                                {!isBulkToolbarCompact && tBulk('reassignDoctor')}
+                            </Button>
                         </TooltipTrigger>
-                        {isBulkToolbarCompact && <TooltipContent>{tBulk('doctorFilter')}</TooltipContent>}
+                        <TooltipContent>{tBulk('reassignDoctor')}</TooltipContent>
                     </Tooltip>
-                    <PopoverContent className="w-52 p-2" align="start">
-                        <div className="space-y-0.5">
-                            {(() => {
-                                const activeDoctors = doctors.filter(d => d.is_active);
-                                const allSelected = activeDoctors.length > 0 && activeDoctors.every(d => bulkDoctorIds.includes(d.id));
-                                const someSelected = !allSelected && activeDoctors.some(d => bulkDoctorIds.includes(d.id));
-                                return (
-                                    <>
-                                        <label className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer border-b pb-2 mb-1">
-                                            <Checkbox
-                                                checked={someSelected ? 'indeterminate' : allSelected}
-                                                onCheckedChange={(c) => setBulkDoctorIds(c ? activeDoctors.map(d => d.id) : [])}
-                                            />
-                                            <span className="text-sm font-medium">{t('selectAll')}</span>
-                                        </label>
-                                        {activeDoctors.map((doctor) => (
-                                            <label key={doctor.id} className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer">
-                                                <Checkbox checked={bulkDoctorIds.includes(doctor.id)} onCheckedChange={(c) => handleSelectBulkDoctor(doctor.id, !!c)} />
-                                                <span className="text-sm">{doctor.name}</span>
-                                            </label>
-                                        ))}
-                                    </>
-                                );
-                            })()}
-                        </div>
-                    </PopoverContent>
-                </Popover>
-
-                {/* Calendar filter */}
-                <Popover>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs shrink-0">
-                                    <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
-                                    {!isBulkToolbarCompact && tBulk('calendarFilter')}
-                                    {bulkCalendarIds.length > 0 && <Badge variant="secondary" className="h-4 px-1 text-[10px]">{bulkCalendarIds.length}</Badge>}
-                                    {isBulkLoading && <Loader2 className="h-3 w-3 animate-spin" />}
-                                </Button>
-                            </PopoverTrigger>
+                            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleToggleBulkMode}>
+                                <X className="h-3.5 w-3.5 shrink-0" />
+                                {!isBulkToolbarCompact && tBulk('exitBulkMode')}
+                            </Button>
                         </TooltipTrigger>
-                        {isBulkToolbarCompact && <TooltipContent>{tBulk('calendarFilter')}</TooltipContent>}
+                        <TooltipContent>{tBulk('exitBulkMode')}</TooltipContent>
                     </Tooltip>
-                    <PopoverContent className="w-52 p-2" align="start">
-                        <div className="space-y-0.5">
-                            {(() => {
-                                const allSelected = calendars.length > 0 && calendars.every(c => bulkCalendarIds.includes(c.id));
-                                const someSelected = !allSelected && calendars.some(c => bulkCalendarIds.includes(c.id));
-                                return (
-                                    <>
-                                        <label className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer border-b pb-2 mb-1">
-                                            <Checkbox
-                                                checked={someSelected ? 'indeterminate' : allSelected}
-                                                onCheckedChange={(c) => setBulkCalendarIds(c ? calendars.map(c => c.id) : [])}
-                                            />
-                                            <span className="text-sm font-medium">{t('selectAll')}</span>
-                                        </label>
-                                        {calendars.map((cal) => (
-                                            <label key={cal.id} className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer">
-                                                <Checkbox checked={bulkCalendarIds.includes(cal.id)} onCheckedChange={(c) => handleSelectBulkCalendar(cal.id, !!c)} />
-                                                <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: cal.color }} />
-                                                <span className="text-sm truncate">{cal.name}</span>
-                                            </label>
-                                        ))}
-                                    </>
-                                );
-                            })()}
-                        </div>
-                    </PopoverContent>
-                </Popover>
+                </div>
             </div>
-
-            {/* Right: action buttons — always visible */}
-            <div className="flex items-center gap-2 shrink-0">
-                <Separator orientation="vertical" className="h-5" />
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button
-                            size="sm"
-                            className="h-8 gap-1.5 text-xs"
-                            disabled={bulkSelectedIds.size === 0}
-                            onClick={() => setIsReassignDialogOpen(true)}
-                        >
-                            <Stethoscope className="h-3.5 w-3.5 shrink-0" />
-                            {!isBulkToolbarCompact && tBulk('reassignDoctor')}
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>{tBulk('reassignDoctor')}</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleToggleBulkMode}>
-                            <X className="h-3.5 w-3.5 shrink-0" />
-                            {!isBulkToolbarCompact && tBulk('exitBulkMode')}
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>{tBulk('exitBulkMode')}</TooltipContent>
-                </Tooltip>
-            </div>
-        </div>
         </TooltipProvider>
     ) : undefined;
 
@@ -3250,175 +3250,188 @@ export default function AppointmentsPage() {
                         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                     </div>
                 ) : (
-                  <>
-                {gapsActive && (
-                    <CalendarGapsPanel
-                        gaps={calendarGaps}
-                        selectedGapKey={selectedGap ? gapKey(selectedGap) : undefined}
-                        dateLocale={gapsDateLocale}
-                        onSelect={handleSelectGap}
-                        onClose={handleCloseGaps}
-                    />
-                )}
-                {isCustomMode && agendasPanelOpen && (
-                    <CalendarAgendasPanel
-                        sedeGroups={calendarSedeGroups.sedeGroups}
-                        noSede={calendarSedeGroups.noSede}
-                        visibleIds={selectedCalendarIds}
-                        selectedId={personalizedCalendarId}
-                        onSelect={(id) => { setPersonalizedCalendarId(id); setAgendasPanelOpen(false); }}
-                        onClose={() => setAgendasPanelOpen(false)}
-                    />
-                )}
-                <Calendar
-                    view={currentView}
-                    hourSlotHeight={hourSlotHeight}
-                    slotMinutes={slotDuration}
-                    events={effectiveEvents}
-                    onDateChange={onDateChange}
-                    isLoading={isRefreshing}
-                    onEventClick={handleEventClick}
-                    onEventColorChange={handleEventColorChange}
-                    onEventDoubleClick={isBulkMode ? undefined : (data) => { if (data?.kind !== 'reminder') handleEditAppointment(data as Appointment); }}
-                    onEventContextMenu={isBulkMode ? undefined : renderEventContextMenu}
-                    onEventContextMenuOpen={isBulkMode ? undefined : (data) => { if (data?.kind !== 'reminder') requestAppointmentMenuData(data as Appointment); }}
-                    inlineDraft={inlineDraft ? { date: inlineDraft.date, durationMin: inlineDraft.durationMin, groupValue: inlineDraft.context?.value } : null}
-                    renderInlineDraft={renderInlineDraft}
-                    groupBy={effectiveGroupBy}
-                    groupingColumns={effectiveGroupingColumns}
-                    hideTitle={isCustomMode}
-                    arrowsBeforeToday={isCustomMode}
-                    hideTimeGutter={isCustomMode}
-                    zoom={isCustomMode ? calendarZoom : undefined}
-                    onZoomChange={applyCalendarZoom}
-                    showZoomSlider={!isCustomMode}
-                    leadingActions={isCustomMode && !agendasPanelOpen ? (
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-11 gap-1.5"
-                            onClick={() => setAgendasPanelOpen(true)}
-                        >
-                            <ChevronLeft className="h-4 w-4" />
-                            {tCalendar('back')}
-                        </Button>
-                    ) : undefined}
-                    onViewChange={(v) => { setCurrentView(v); setInlineDraft(null); }}
-                    selectedAppointmentIds={isBulkMode ? bulkSelectedIds : undefined}
-                    onToggleAppointmentSelect={isBulkMode ? handleToggleAppointmentSelect : undefined}
-                    bulkModeContent={bulkModeHeaderContent}
-                    onSlotClick={handleSlotClick}
-                    onCreateClick={handleNewAppointmentClick}
-                    onSlotContextMenu={handleSlotContextMenu}
-                    gaps={gapsActive ? calendarGaps : undefined}
-                    selectedGapKey={selectedGap ? gapKey(selectedGap) : undefined}
-                    onGapClick={handleSelectGap}
-                    blockedRanges={blockedRanges}
-                    blockedFullDays={blockedFullDays}
-                    filterSheet={
-                        <div className="space-y-6">
-                            {/* Bulk selection filters (mobile) */}
-                            {isBulkMode && (
-                                <>
-                                    <div>
-                                        <h4 className="text-sm font-semibold mb-3">{tBulk('panelTitle')}</h4>
-                                        <Select value={bulkDatePreset} onValueChange={(v) => setBulkDatePreset(v as AppointmentDatePreset)}>
-                                            <SelectTrigger className="h-8 w-full text-xs mb-3">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {(['today', 'this_week', 'this_month'] as AppointmentDatePreset[]).map((preset) => (
-                                                    <SelectItem key={preset} value={preset} className="text-xs">
-                                                        {tBulk(preset)}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <div className="space-y-1 mb-3">
-                                            <p className="text-xs text-muted-foreground font-medium mb-1">{tBulk('doctorFilter')}</p>
-                                            {(() => {
-                                                const activeDoctors = doctors.filter(d => d.is_active);
-                                                const allSelected = activeDoctors.length > 0 && activeDoctors.every(d => bulkDoctorIds.includes(d.id));
-                                                const someSelected = !allSelected && activeDoctors.some(d => bulkDoctorIds.includes(d.id));
-                                                return (
-                                                    <>
-                                                        <label className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer border-b pb-2 mb-1">
-                                                            <Checkbox
-                                                                checked={someSelected ? 'indeterminate' : allSelected}
-                                                                onCheckedChange={(c) => setBulkDoctorIds(c ? activeDoctors.map(d => d.id) : [])}
-                                                            />
-                                                            <span className="text-sm font-medium">{t('selectAll')}</span>
-                                                        </label>
-                                                        {activeDoctors.map((doctor) => (
-                                                            <label key={doctor.id} className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer">
-                                                                <Checkbox checked={bulkDoctorIds.includes(doctor.id)} onCheckedChange={(c) => handleSelectBulkDoctor(doctor.id, !!c)} />
-                                                                <span className="text-sm">{doctor.name}</span>
-                                                            </label>
+                    <>
+                        {gapsActive && (
+                            <CalendarGapsPanel
+                                gaps={calendarGaps}
+                                selectedGapKey={selectedGap ? gapKey(selectedGap) : undefined}
+                                dateLocale={gapsDateLocale}
+                                onSelect={handleSelectGap}
+                                onClose={handleCloseGaps}
+                            />
+                        )}
+                        {isCustomMode && agendasPanelOpen && (
+                            <CalendarAgendasPanel
+                                sedeGroups={calendarSedeGroups.sedeGroups}
+                                noSede={calendarSedeGroups.noSede}
+                                visibleIds={selectedCalendarIds}
+                                selectedId={personalizedCalendarId}
+                                onSelect={(id) => { setPersonalizedCalendarId(id); setAgendasPanelOpen(false); }}
+                                onClose={() => setAgendasPanelOpen(false)}
+                            />
+                        )}
+                        <Calendar
+                            view={currentView}
+                            hourSlotHeight={hourSlotHeight}
+                            slotMinutes={slotDuration}
+                            events={effectiveEvents}
+                            onDateChange={onDateChange}
+                            isLoading={isRefreshing}
+                            onEventClick={handleEventClick}
+                            onEventColorChange={handleEventColorChange}
+                            onEventDoubleClick={isBulkMode ? undefined : (data) => { if (data?.kind !== 'reminder') handleEditAppointment(data as Appointment); }}
+                            onEventContextMenu={isBulkMode ? undefined : renderEventContextMenu}
+                            onEventContextMenuOpen={isBulkMode ? undefined : (data) => { if (data?.kind !== 'reminder') requestAppointmentMenuData(data as Appointment); }}
+                            inlineDraft={inlineDraft ? { date: inlineDraft.date, durationMin: inlineDraft.durationMin, groupValue: inlineDraft.context?.value } : null}
+                            renderInlineDraft={renderInlineDraft}
+                            groupBy={effectiveGroupBy}
+                            groupingColumns={effectiveGroupingColumns}
+                            hideTitle={isCustomMode}
+                            arrowsBeforeToday={isCustomMode}
+                            hideTimeGutter={isCustomMode}
+                            zoom={isCustomMode ? calendarZoom : undefined}
+                            onZoomChange={applyCalendarZoom}
+                            showZoomSlider={!isCustomMode}
+                            leadingActions={isCustomMode && !agendasPanelOpen ? (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-11 gap-1.5"
+                                    onClick={() => setAgendasPanelOpen(true)}
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                    {tCalendar('back')}
+                                </Button>
+                            ) : undefined}
+                            onViewChange={(v) => { setCurrentView(v); setInlineDraft(null); }}
+                            selectedAppointmentIds={isBulkMode ? bulkSelectedIds : undefined}
+                            onToggleAppointmentSelect={isBulkMode ? handleToggleAppointmentSelect : undefined}
+                            bulkModeContent={bulkModeHeaderContent}
+                            onSlotClick={handleSlotClick}
+                            onCreateClick={handleNewAppointmentClick}
+                            onSlotContextMenu={handleSlotContextMenu}
+                            gaps={gapsActive ? calendarGaps : undefined}
+                            selectedGapKey={selectedGap ? gapKey(selectedGap) : undefined}
+                            onGapClick={handleSelectGap}
+                            blockedRanges={blockedRanges}
+                            blockedFullDays={blockedFullDays}
+                            filterSheet={
+                                <div className="space-y-6">
+                                    {/* Bulk selection filters (mobile) */}
+                                    {isBulkMode && (
+                                        <>
+                                            <div>
+                                                <h4 className="text-sm font-semibold mb-3">{tBulk('panelTitle')}</h4>
+                                                <Select value={bulkDatePreset} onValueChange={(v) => setBulkDatePreset(v as AppointmentDatePreset)}>
+                                                    <SelectTrigger className="h-8 w-full text-xs mb-3">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {(['today', 'this_week', 'this_month'] as AppointmentDatePreset[]).map((preset) => (
+                                                            <SelectItem key={preset} value={preset} className="text-xs">
+                                                                {tBulk(preset)}
+                                                            </SelectItem>
                                                         ))}
-                                                    </>
-                                                );
-                                            })()}
-                                        </div>
-                                        <div className="space-y-1 mb-3">
-                                            <p className="text-xs text-muted-foreground font-medium mb-1">{tBulk('calendarFilter')}</p>
-                                            {(() => {
-                                                const allSelected = calendars.length > 0 && calendars.every(c => bulkCalendarIds.includes(c.id));
-                                                const someSelected = !allSelected && calendars.some(c => bulkCalendarIds.includes(c.id));
-                                                return (
-                                                    <>
-                                                        <label className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer border-b pb-2 mb-1">
-                                                            <Checkbox
-                                                                checked={someSelected ? 'indeterminate' : allSelected}
-                                                                onCheckedChange={(c) => setBulkCalendarIds(c ? calendars.map(cal => cal.id) : [])}
-                                                            />
-                                                            <span className="text-sm font-medium">{t('selectAll')}</span>
-                                                        </label>
-                                                        {calendars.map((cal) => (
-                                                            <label key={cal.id} className="flex items-center justify-between py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer">
-                                                                <div className="flex items-center gap-2">
-                                                                    <Checkbox checked={bulkCalendarIds.includes(cal.id)} onCheckedChange={(c) => handleSelectBulkCalendar(cal.id, !!c)} />
-                                                                    <span className="text-sm">{cal.name}</span>
-                                                                </div>
-                                                                <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: cal.color }} />
-                                                            </label>
-                                                        ))}
-                                                    </>
-                                                );
-                                            })()}
-                                        </div>
-                                        {isBulkLoading && (
-                                            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-1">
-                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                                {tBulk('applying')}
+                                                    </SelectContent>
+                                                </Select>
+                                                <div className="space-y-1 mb-3">
+                                                    <p className="text-xs text-muted-foreground font-medium mb-1">{tBulk('doctorFilter')}</p>
+                                                    {(() => {
+                                                        const activeDoctors = doctors.filter(d => d.is_active);
+                                                        const allSelected = activeDoctors.length > 0 && activeDoctors.every(d => bulkDoctorIds.includes(d.id));
+                                                        const someSelected = !allSelected && activeDoctors.some(d => bulkDoctorIds.includes(d.id));
+                                                        return (
+                                                            <>
+                                                                <label className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer border-b pb-2 mb-1">
+                                                                    <Checkbox
+                                                                        checked={someSelected ? 'indeterminate' : allSelected}
+                                                                        onCheckedChange={(c) => setBulkDoctorIds(c ? activeDoctors.map(d => d.id) : [])}
+                                                                    />
+                                                                    <span className="text-sm font-medium">{t('selectAll')}</span>
+                                                                </label>
+                                                                {activeDoctors.map((doctor) => (
+                                                                    <label key={doctor.id} className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer">
+                                                                        <Checkbox checked={bulkDoctorIds.includes(doctor.id)} onCheckedChange={(c) => handleSelectBulkDoctor(doctor.id, !!c)} />
+                                                                        <span className="text-sm">{doctor.name}</span>
+                                                                    </label>
+                                                                ))}
+                                                            </>
+                                                        );
+                                                    })()}
+                                                </div>
+                                                <div className="space-y-1 mb-3">
+                                                    <p className="text-xs text-muted-foreground font-medium mb-1">{tBulk('calendarFilter')}</p>
+                                                    {(() => {
+                                                        const allSelected = calendars.length > 0 && calendars.every(c => bulkCalendarIds.includes(c.id));
+                                                        const someSelected = !allSelected && calendars.some(c => bulkCalendarIds.includes(c.id));
+                                                        return (
+                                                            <>
+                                                                <label className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer border-b pb-2 mb-1">
+                                                                    <Checkbox
+                                                                        checked={someSelected ? 'indeterminate' : allSelected}
+                                                                        onCheckedChange={(c) => setBulkCalendarIds(c ? calendars.map(cal => cal.id) : [])}
+                                                                    />
+                                                                    <span className="text-sm font-medium">{t('selectAll')}</span>
+                                                                </label>
+                                                                {calendars.map((cal) => (
+                                                                    <label key={cal.id} className="flex items-center justify-between py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <Checkbox checked={bulkCalendarIds.includes(cal.id)} onCheckedChange={(c) => handleSelectBulkCalendar(cal.id, !!c)} />
+                                                                            <span className="text-sm">{cal.name}</span>
+                                                                        </div>
+                                                                        <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: cal.color }} />
+                                                                    </label>
+                                                                ))}
+                                                            </>
+                                                        );
+                                                    })()}
+                                                </div>
+                                                {isBulkLoading && (
+                                                    <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-1">
+                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                        {tBulk('applying')}
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
-                                    </div>
-                                    <Separator />
-                                </>
-                            )}
-                            {/* Calendars section */}
-                            {!isCustomMode && (
-                            <>
-                            <div>
-                                <h4 className="text-sm font-semibold mb-3">{t('calendars')}</h4>
-                                <div className="flex gap-2 mb-3">
-                                    <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setSelectedCalendarIds(calendars.map(c => c.id))}>{t('selectAll')}</Button>
-                                    <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setSelectedCalendarIds([])}>{t('deselectAll')}</Button>
-                                </div>
-                                <div className="space-y-1">
-                                    {calendarSedeGroups.sedeGroups.map((group) => {
-                                        const groupCalendarIds = group.calendars.map(c => c.id);
-                                        const selectedCount = groupCalendarIds.filter(id => selectedCalendarIds.includes(id)).length;
-                                        const allSelected = selectedCount === groupCalendarIds.length;
-                                        const someSelected = selectedCount > 0 && !allSelected;
-                                        return (
-                                            <div key={group.id}>
-                                                <label className="flex items-center gap-2 py-2 px-1 rounded-md hover:bg-muted/50 cursor-pointer">
-                                                    <Checkbox checked={someSelected ? 'indeterminate' : allSelected} onCheckedChange={(checked) => handleSelectSede(groupCalendarIds, !!checked)} />
-                                                    <span className="text-sm font-medium">{group.name}</span>
-                                                </label>
-                                                <div className="pl-6">
-                                                    {group.calendars.map((calendar) => (
+                                            <Separator />
+                                        </>
+                                    )}
+                                    {/* Calendars section */}
+                                    {!isCustomMode && (
+                                        <>
+                                            <div>
+                                                <h4 className="text-sm font-semibold mb-3">{t('calendars')}</h4>
+                                                <div className="flex gap-2 mb-3">
+                                                    <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setSelectedCalendarIds(calendars.map(c => c.id))}>{t('selectAll')}</Button>
+                                                    <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setSelectedCalendarIds([])}>{t('deselectAll')}</Button>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    {calendarSedeGroups.sedeGroups.map((group) => {
+                                                        const groupCalendarIds = group.calendars.map(c => c.id);
+                                                        const selectedCount = groupCalendarIds.filter(id => selectedCalendarIds.includes(id)).length;
+                                                        const allSelected = selectedCount === groupCalendarIds.length;
+                                                        const someSelected = selectedCount > 0 && !allSelected;
+                                                        return (
+                                                            <div key={group.id}>
+                                                                <label className="flex items-center gap-2 py-2 px-1 rounded-md hover:bg-muted/50 cursor-pointer">
+                                                                    <Checkbox checked={someSelected ? 'indeterminate' : allSelected} onCheckedChange={(checked) => handleSelectSede(groupCalendarIds, !!checked)} />
+                                                                    <span className="text-sm font-medium">{group.name}</span>
+                                                                </label>
+                                                                <div className="pl-6">
+                                                                    {group.calendars.map((calendar) => (
+                                                                        <label key={calendar.id} className="flex items-center justify-between py-2 px-1 rounded-md hover:bg-muted/50 cursor-pointer">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <Checkbox checked={selectedCalendarIds.includes(calendar.id)} onCheckedChange={(checked) => handleSelectCalendar(calendar.id, !!checked)} />
+                                                                                <span className="text-sm">{calendar.name}</span>
+                                                                            </div>
+                                                                            <div className="h-3 w-3 rounded-full" style={{ backgroundColor: calendar.color }} />
+                                                                        </label>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                    {calendarSedeGroups.noSede.map((calendar) => (
                                                         <label key={calendar.id} className="flex items-center justify-between py-2 px-1 rounded-md hover:bg-muted/50 cursor-pointer">
                                                             <div className="flex items-center gap-2">
                                                                 <Checkbox checked={selectedCalendarIds.includes(calendar.id)} onCheckedChange={(checked) => handleSelectCalendar(calendar.id, !!checked)} />
@@ -3429,371 +3442,358 @@ export default function AppointmentsPage() {
                                                     ))}
                                                 </div>
                                             </div>
-                                        );
-                                    })}
-                                    {calendarSedeGroups.noSede.map((calendar) => (
-                                        <label key={calendar.id} className="flex items-center justify-between py-2 px-1 rounded-md hover:bg-muted/50 cursor-pointer">
-                                            <div className="flex items-center gap-2">
-                                                <Checkbox checked={selectedCalendarIds.includes(calendar.id)} onCheckedChange={(checked) => handleSelectCalendar(calendar.id, !!checked)} />
-                                                <span className="text-sm">{calendar.name}</span>
+
+                                            <Separator />
+                                        </>
+                                    )}
+
+                                    {/* Doctors section */}
+                                    {showDoctorFilter && !isCustomMode && (
+                                        <>
+                                            <div>
+                                                <h4 className="text-sm font-semibold mb-3">{t('doctors')}</h4>
+                                                <div className="flex gap-2 mb-3">
+                                                    <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setSelectedDoctorIds(doctors.map(d => d.id))}>{t('selectAll')}</Button>
+                                                    <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setSelectedDoctorIds([])}>{t('deselectAll')}</Button>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    {doctors.map((doctor) => (
+                                                        <label key={doctor.id} className="flex items-center gap-2 py-2 px-1 rounded-md hover:bg-muted/50 cursor-pointer">
+                                                            <Checkbox checked={selectedDoctorIds.includes(doctor.id)} onCheckedChange={(checked) => handleSelectDoctor(doctor.id, !!checked)} />
+                                                            <span className="text-sm">{doctor.name}</span>
+                                                        </label>
+                                                    ))}
+                                                </div>
                                             </div>
-                                            <div className="h-3 w-3 rounded-full" style={{ backgroundColor: calendar.color }} />
-                                        </label>
-                                    ))}
-                                </div>
-                            </div>
+                                            <Separator />
+                                        </>
+                                    )}
 
-                            <Separator />
-                            </>
-                            )}
-
-                            {/* Doctors section */}
-                            {showDoctorFilter && !isCustomMode && (
-                                <>
-                                    <div>
-                                        <h4 className="text-sm font-semibold mb-3">{t('doctors')}</h4>
-                                        <div className="flex gap-2 mb-3">
-                                            <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setSelectedDoctorIds(doctors.map(d => d.id))}>{t('selectAll')}</Button>
-                                            <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setSelectedDoctorIds([])}>{t('deselectAll')}</Button>
+                                    {/* Grouping section (compact header only) */}
+                                    {breakpoint !== 'desktop' && (
+                                        <div className="space-y-3">
+                                            <h4 className="text-sm font-semibold">{t('grouping.label')}</h4>
+                                            <div className="space-y-1">
+                                                {[
+                                                    { value: 'none', label: t('grouping.options.none') },
+                                                    { value: 'doctor', label: t('grouping.options.doctor') },
+                                                    { value: 'calendar', label: t('grouping.options.calendar') }
+                                                ].map((opt) => (
+                                                    <button
+                                                        key={opt.value}
+                                                        className="flex items-center justify-between w-full py-2.5 px-1 rounded-md hover:bg-muted/50 cursor-pointer text-left"
+                                                        onClick={() => setGroupBy(opt.value as CalendarGroupBy)}
+                                                    >
+                                                        <span className="text-sm">{opt.label}</span>
+                                                        {groupBy === opt.value && <Check className="h-4 w-4 text-primary" />}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <Separator />
                                         </div>
-                                        <div className="space-y-1">
-                                            {doctors.map((doctor) => (
-                                                <label key={doctor.id} className="flex items-center gap-2 py-2 px-1 rounded-md hover:bg-muted/50 cursor-pointer">
-                                                    <Checkbox checked={selectedDoctorIds.includes(doctor.id)} onCheckedChange={(checked) => handleSelectDoctor(doctor.id, !!checked)} />
-                                                    <span className="text-sm">{doctor.name}</span>
-                                                </label>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <Separator />
-                                </>
-                            )}
+                                    )}
 
-                            {/* Grouping section (compact header only) */}
-                            {breakpoint !== 'desktop' && (
-                                <div className="space-y-3">
-                                    <h4 className="text-sm font-semibold">{t('grouping.label')}</h4>
-                                    <div className="space-y-1">
-                                        {[
-                                            { value: 'none', label: t('grouping.options.none') },
-                                            { value: 'doctor', label: t('grouping.options.doctor') },
-                                            { value: 'calendar', label: t('grouping.options.calendar') }
-                                        ].map((opt) => (
-                                            <button
-                                                key={opt.value}
-                                                className="flex items-center justify-between w-full py-2.5 px-1 rounded-md hover:bg-muted/50 cursor-pointer text-left"
-                                                onClick={() => setGroupBy(opt.value as CalendarGroupBy)}
-                                            >
-                                                <span className="text-sm">{opt.label}</span>
-                                                {groupBy === opt.value && <Check className="h-4 w-4 text-primary" />}
-                                            </button>
-                                        ))}
+                                    {/* Settings section */}
+                                    <div className="pt-2">
+                                        <CalendarSettingsForm onSettingsChange={handleSettingsEditorChange} showTitle={true} sedes={sedes} value={calendarSettings ?? undefined} />
                                     </div>
-                                    <Separator />
                                 </div>
-                            )}
-
-                            {/* Settings section */}
-                            <div className="pt-2">
-                                <CalendarSettingsForm onSettingsChange={handleSettingsEditorChange} showTitle={true} sedes={sedes} value={calendarSettings ?? undefined} />
-                            </div>
-                        </div>
-                    }
-                    extraActions={
-                        <TooltipProvider>
-                            <div className="flex flex-wrap items-center gap-1.5">
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        variant={gapsActive ? 'default' : 'outline'}
-                                        size={isMobile ? 'icon' : 'sm'}
-                                        className={isMobile ? 'h-8 w-8' : 'h-11 gap-1.5'}
-                                        onClick={handleToggleGaps}
-                                    >
-                                        <CalendarSearch className="h-4 w-4 shrink-0" />
-                                        {!isMobile && (
-                                            <span className="flex flex-col items-start leading-tight">
-                                                <span>{tGaps('button')}</span>
-                                                <span className="text-[10px] font-normal opacity-70">{tGaps('buttonSubtitle')}</span>
-                                            </span>
-                                        )}
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>{tGaps('button')}</TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        variant={isBulkMode ? 'default' : 'outline'}
-                                        size={isMobile ? 'icon' : 'sm'}
-                                        className={isMobile ? 'h-8 w-8' : 'h-11 gap-1.5'}
-                                        onClick={handleToggleBulkMode}
-                                    >
-                                        <Layers className="h-4 w-4 shrink-0" />
-                                        {!isMobile && (
-                                            <span className="flex flex-col items-start leading-tight">
-                                                <span>{tBulk('toggleButton')}</span>
-                                                <span className="text-[10px] font-normal opacity-70">{tBulk('toggleSubtitle')}</span>
-                                            </span>
-                                        )}
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>{tBulk('toggleButton')}</TooltipContent>
-                            </Tooltip>
-                            </div>
-                        </TooltipProvider>
-                    }
-                    primaryActions={
-                        <>
-                        <DropdownMenu>
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button
-                                                variant={isMobile ? "ghost" : "default"}
-                                                size={isMobile ? "icon" : "sm"}
-                                                className={isMobile ? "h-8 w-8" : "h-11 gap-1.5"}
-                                            >
-                                                <PlusCircle className="h-4 w-4 shrink-0" />
-                                                {!isMobile && (
-                                                    <>
+                            }
+                            extraActions={
+                                <TooltipProvider>
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    variant={gapsActive ? 'default' : 'outline'}
+                                                    size={isMobile ? 'icon' : 'sm'}
+                                                    className={isMobile ? 'h-8 w-8' : 'h-11 gap-1.5'}
+                                                    onClick={handleToggleGaps}
+                                                >
+                                                    <CalendarSearch className="h-4 w-4 shrink-0" />
+                                                    {!isMobile && (
                                                         <span className="flex flex-col items-start leading-tight">
-                                                            <span>{tGeneral('create')}</span>
-                                                            <span className="text-[10px] font-normal opacity-80">{t('createSubtitle')}</span>
+                                                            <span>{tGaps('button')}</span>
+                                                            <span className="text-[10px] font-normal opacity-70">{tGaps('buttonSubtitle')}</span>
                                                         </span>
-                                                        <ChevronDown className="h-3.5 w-3.5 opacity-80" />
-                                                    </>
-                                                )}
+                                                    )}
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>{tGaps('button')}</TooltipContent>
+                                        </Tooltip>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    variant={isBulkMode ? 'default' : 'outline'}
+                                                    size={isMobile ? 'icon' : 'sm'}
+                                                    className={isMobile ? 'h-8 w-8' : 'h-11 gap-1.5'}
+                                                    onClick={handleToggleBulkMode}
+                                                >
+                                                    <Layers className="h-4 w-4 shrink-0" />
+                                                    {!isMobile && (
+                                                        <span className="flex flex-col items-start leading-tight">
+                                                            <span>{tBulk('toggleButton')}</span>
+                                                            <span className="text-[10px] font-normal opacity-70">{tBulk('toggleSubtitle')}</span>
+                                                        </span>
+                                                    )}
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>{tBulk('toggleButton')}</TooltipContent>
+                                        </Tooltip>
+                                    </div>
+                                </TooltipProvider>
+                            }
+                            primaryActions={
+                                <>
+                                    <DropdownMenu>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button
+                                                            variant={isMobile ? "ghost" : "default"}
+                                                            size={isMobile ? "icon" : "sm"}
+                                                            className={isMobile ? "h-8 w-8" : "h-11 gap-1.5"}
+                                                        >
+                                                            <PlusCircle className="h-4 w-4 shrink-0" />
+                                                            {!isMobile && (
+                                                                <>
+                                                                    <span className="flex flex-col items-start leading-tight">
+                                                                        <span>{tGeneral('create')}</span>
+                                                                        <span className="text-[10px] font-normal opacity-80">{t('createSubtitle')}</span>
+                                                                    </span>
+                                                                    <ChevronDown className="h-3.5 w-3.5 opacity-80" />
+                                                                </>
+                                                            )}
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    {tGeneral('create')}
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                        <DropdownMenuContent align="end" className="w-64 p-1.5">
+                                            <DropdownMenuItem
+                                                className="cursor-pointer items-start gap-3 rounded-md p-3"
+                                                onSelect={handleNewAppointmentClick}
+                                            >
+                                                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
+                                                    <CalendarPlus className="h-4 w-4" />
+                                                </span>
+                                                <span className="min-w-0">
+                                                    <span className="block font-medium">{tReminders('createType.appointment')}</span>
+                                                    <span className="block text-xs leading-snug text-muted-foreground">
+                                                        {tReminders('createType.appointmentDescription')}
+                                                    </span>
+                                                </span>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                className="cursor-pointer items-start gap-3 rounded-md p-3"
+                                                onSelect={handleNewReminderClick}
+                                            >
+                                                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-violet-100 text-violet-700">
+                                                    <BellRing className="h-4 w-4" />
+                                                </span>
+                                                <span className="min-w-0">
+                                                    <span className="block font-medium">{tReminders('createType.reminder')}</span>
+                                                    <span className="block text-xs leading-snug text-muted-foreground">
+                                                        {tReminders('createType.reminderDescription')}
+                                                    </span>
+                                                </span>
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                    {isCustomMode && !isMobile && (
+                                        <>
+                                            <CalendarViewMenu
+                                                view={currentView}
+                                                onViewChange={(v) => { setCurrentView(v); setInlineDraft(null); }}
+                                                sedeGroups={calendarSedeGroups.sedeGroups}
+                                                noSede={calendarSedeGroups.noSede}
+                                                selectedCalendarIds={selectedCalendarIds}
+                                                onToggleCalendar={handleSelectCalendar}
+                                            />
+                                            <CalendarZoomMenu zoom={calendarZoom} onZoomChange={applyCalendarZoom} />
+                                        </>
+                                    )}
+                                </>
+                            }
+                            extraActionsAfterToday={
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button onClick={forceRefresh} variant="ghost" size="icon" disabled={isRefreshing} className={isMobile ? "h-8 w-8" : "h-11 w-11"}>
+                                                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                                             </Button>
-                                        </DropdownMenuTrigger>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        {tGeneral('create')}
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                            <DropdownMenuContent align="end" className="w-64 p-1.5">
-                                <DropdownMenuItem
-                                    className="cursor-pointer items-start gap-3 rounded-md p-3"
-                                    onSelect={handleNewAppointmentClick}
-                                >
-                                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
-                                        <CalendarPlus className="h-4 w-4" />
-                                    </span>
-                                    <span className="min-w-0">
-                                        <span className="block font-medium">{tReminders('createType.appointment')}</span>
-                                        <span className="block text-xs leading-snug text-muted-foreground">
-                                            {tReminders('createType.appointmentDescription')}
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            {t('refresh')}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            }
+                            trailingActions={
+                                !isMobile ? (
+                                    <CalendarSettingsPopover onSettingsChange={handleSettingsEditorChange} sedes={sedes} value={calendarSettings ?? undefined} />
+                                ) : null
+                            }
+                        >
+                            <div className="flex items-center gap-2">
+                                {/* Mobile/tablet bulk mode bar — compact row shown below the normal header */}
+                                {isBulkMode && breakpoint !== 'desktop' && (
+                                    <div className="flex items-center gap-1.5 w-full py-0.5">
+                                        <Checkbox
+                                            checked={bulkSomeSelected ? 'indeterminate' : bulkAllSelected}
+                                            onCheckedChange={(c) => handleSelectAllVisible(!!c)}
+                                            className="shrink-0"
+                                        />
+                                        <span className="text-xs font-medium flex-1 min-w-0 truncate">
+                                            {bulkSelectedIds.size > 0
+                                                ? tBulk('selectedCount', { count: bulkSelectedIds.size })
+                                                : tBulk('selectHint')}
                                         </span>
-                                    </span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    className="cursor-pointer items-start gap-3 rounded-md p-3"
-                                    onSelect={handleNewReminderClick}
-                                >
-                                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-violet-100 text-violet-700">
-                                        <BellRing className="h-4 w-4" />
-                                    </span>
-                                    <span className="min-w-0">
-                                        <span className="block font-medium">{tReminders('createType.reminder')}</span>
-                                        <span className="block text-xs leading-snug text-muted-foreground">
-                                            {tReminders('createType.reminderDescription')}
-                                        </span>
-                                    </span>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                        {isCustomMode && !isMobile && (
-                            <>
-                                <CalendarViewMenu
-                                    view={currentView}
-                                    onViewChange={(v) => { setCurrentView(v); setInlineDraft(null); }}
-                                    sedeGroups={calendarSedeGroups.sedeGroups}
-                                    noSede={calendarSedeGroups.noSede}
-                                    selectedCalendarIds={selectedCalendarIds}
-                                    onToggleCalendar={handleSelectCalendar}
-                                />
-                                <CalendarZoomMenu zoom={calendarZoom} onZoomChange={applyCalendarZoom} />
-                            </>
-                        )}
-                        </>
-                    }
-                    extraActionsAfterToday={
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button onClick={forceRefresh} variant="ghost" size="icon" disabled={isRefreshing} className={isMobile ? "h-8 w-8" : "h-11 w-11"}>
-                                        <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    {t('refresh')}
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    }
-                    trailingActions={
-                        !isMobile ? (
-                            <CalendarSettingsPopover onSettingsChange={handleSettingsEditorChange} sedes={sedes} value={calendarSettings ?? undefined} />
-                        ) : null
-                    }
-                >
-                    <div className="flex items-center gap-2">
-                        {/* Mobile/tablet bulk mode bar — compact row shown below the normal header */}
-                        {isBulkMode && breakpoint !== 'desktop' && (
-                            <div className="flex items-center gap-1.5 w-full py-0.5">
-                                <Checkbox
-                                    checked={bulkSomeSelected ? 'indeterminate' : bulkAllSelected}
-                                    onCheckedChange={(c) => handleSelectAllVisible(!!c)}
-                                    className="shrink-0"
-                                />
-                                <span className="text-xs font-medium flex-1 min-w-0 truncate">
-                                    {bulkSelectedIds.size > 0
-                                        ? tBulk('selectedCount', { count: bulkSelectedIds.size })
-                                        : tBulk('selectHint')}
-                                </span>
-                                {bulkSelectedIds.size > 0 && (
-                                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setBulkSelectedIds(new Set())}>
-                                        <X className="h-3.5 w-3.5" />
-                                    </Button>
-                                )}
-                                <Button
-                                    size="sm"
-                                    className="h-7 shrink-0 gap-1.5"
-                                    disabled={bulkSelectedIds.size === 0}
-                                    onClick={() => setIsReassignDialogOpen(true)}
-                                >
-                                    <Stethoscope className="h-3.5 w-3.5" />
-                                    {breakpoint === 'tablet' && <span className="text-xs">{tBulk('reassignDoctor')}</span>}
-                                </Button>
-                                <Button variant="outline" size="icon" className="h-7 w-7 shrink-0" onClick={handleToggleBulkMode}>
-                                    <X className="h-3.5 w-3.5" />
-                                </Button>
-                            </div>
-                        )}
-                        {breakpoint === 'desktop' && (
-                            <div className="flex flex-wrap items-center gap-2">
-                                {!isCustomMode && (
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button variant="outline" className="flex h-11 items-center gap-2">
-                                            <CalendarIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                            <span className="flex flex-col items-start leading-tight">
-                                                <span>{t('toggleCalendars')}</span>
-                                                {calendarsSubtitle && (
-                                                    <span className="text-[10px] font-normal text-muted-foreground">{calendarsSubtitle}</span>
-                                                )}
-                                            </span>
-                                            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                        {bulkSelectedIds.size > 0 && (
+                                            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setBulkSelectedIds(new Set())}>
+                                                <X className="h-3.5 w-3.5" />
+                                            </Button>
+                                        )}
+                                        <Button
+                                            size="sm"
+                                            className="h-7 shrink-0 gap-1.5"
+                                            disabled={bulkSelectedIds.size === 0}
+                                            onClick={() => setIsReassignDialogOpen(true)}
+                                        >
+                                            <Stethoscope className="h-3.5 w-3.5" />
+                                            {breakpoint === 'tablet' && <span className="text-xs">{tBulk('reassignDoctor')}</span>}
                                         </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-64 p-2">
-                                        <Command>
-                                            <CommandList>
-                                                <CommandGroup>
-                                                    <CommandItem onSelect={() => setSelectedCalendarIds(calendars.map(c => c.id))}>{t('selectAll')}</CommandItem>
-                                                    <CommandItem onSelect={() => setSelectedCalendarIds([])}>{t('deselectAll')}</CommandItem>
-                                                    <hr className="my-2" />
-                                                    {calendarSedeGroups.sedeGroups.map((group) => {
-                                                        const groupCalendarIds = group.calendars.map(c => c.id);
-                                                        const selectedCount = groupCalendarIds.filter(id => selectedCalendarIds.includes(id)).length;
-                                                        const allSelected = selectedCount === groupCalendarIds.length;
-                                                        const someSelected = selectedCount > 0 && !allSelected;
-                                                        return (
-                                                            <React.Fragment key={group.id}>
-                                                                <CommandItem onSelect={() => handleSelectSede(groupCalendarIds, !allSelected)} className="font-medium">
-                                                                    <div className="flex items-center">
-                                                                        <Checkbox checked={someSelected ? 'indeterminate' : allSelected} className="pointer-events-none" />
-                                                                        <span className="ml-2">{group.name}</span>
-                                                                    </div>
-                                                                </CommandItem>
-                                                                {group.calendars.map((calendar) => {
-                                                                    const isSelected = selectedCalendarIds.includes(calendar.id);
+                                        <Button variant="outline" size="icon" className="h-7 w-7 shrink-0" onClick={handleToggleBulkMode}>
+                                            <X className="h-3.5 w-3.5" />
+                                        </Button>
+                                    </div>
+                                )}
+                                {breakpoint === 'desktop' && (
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        {!isCustomMode && (
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <Button variant="outline" className="flex h-11 items-center gap-2">
+                                                        <CalendarIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                                        <span className="flex flex-col items-start leading-tight">
+                                                            <span>{t('toggleCalendars')}</span>
+                                                            {calendarsSubtitle && (
+                                                                <span className="text-[10px] font-normal text-muted-foreground">{calendarsSubtitle}</span>
+                                                            )}
+                                                        </span>
+                                                        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                                    </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-64 p-2">
+                                                    <Command>
+                                                        <CommandList>
+                                                            <CommandGroup>
+                                                                <CommandItem onSelect={() => setSelectedCalendarIds(calendars.map(c => c.id))}>{t('selectAll')}</CommandItem>
+                                                                <CommandItem onSelect={() => setSelectedCalendarIds([])}>{t('deselectAll')}</CommandItem>
+                                                                <hr className="my-2" />
+                                                                {calendarSedeGroups.sedeGroups.map((group) => {
+                                                                    const groupCalendarIds = group.calendars.map(c => c.id);
+                                                                    const selectedCount = groupCalendarIds.filter(id => selectedCalendarIds.includes(id)).length;
+                                                                    const allSelected = selectedCount === groupCalendarIds.length;
+                                                                    const someSelected = selectedCount > 0 && !allSelected;
                                                                     return (
-                                                                        <CommandItem key={calendar.id} onSelect={() => handleSelectCalendar(calendar.id, !isSelected)} className="pl-6">
-                                                                            <div className="flex items-center justify-between w-full">
-                                                                                <div className='flex items-center'>
-                                                                                    <Checkbox checked={isSelected} className="pointer-events-none" />
-                                                                                    <span className="ml-2">{calendar.name}</span>
+                                                                        <React.Fragment key={group.id}>
+                                                                            <CommandItem onSelect={() => handleSelectSede(groupCalendarIds, !allSelected)} className="font-medium">
+                                                                                <div className="flex items-center">
+                                                                                    <Checkbox checked={someSelected ? 'indeterminate' : allSelected} className="pointer-events-none" />
+                                                                                    <span className="ml-2">{group.name}</span>
                                                                                 </div>
-                                                                                <div className="h-4 w-4 rounded-full" style={{ backgroundColor: calendar.color }} />
+                                                                            </CommandItem>
+                                                                            {group.calendars.map((calendar) => {
+                                                                                const isSelected = selectedCalendarIds.includes(calendar.id);
+                                                                                return (
+                                                                                    <CommandItem key={calendar.id} onSelect={() => handleSelectCalendar(calendar.id, !isSelected)} className="pl-6">
+                                                                                        <div className="flex items-center justify-between w-full">
+                                                                                            <div className='flex items-center'>
+                                                                                                <Checkbox checked={isSelected} className="pointer-events-none" />
+                                                                                                <span className="ml-2">{calendar.name}</span>
+                                                                                            </div>
+                                                                                            <div className="h-4 w-4 rounded-full" style={{ backgroundColor: calendar.color }} />
+                                                                                        </div>
+                                                                                    </CommandItem>
+                                                                                );
+                                                                            })}
+                                                                        </React.Fragment>
+                                                                    );
+                                                                })}
+                                                                {calendarSedeGroups.noSede.length > 0 && (
+                                                                    <>
+                                                                        {calendarSedeGroups.sedeGroups.length > 0 && <hr className="my-2" />}
+                                                                        {calendarSedeGroups.noSede.map((calendar) => {
+                                                                            const isSelected = selectedCalendarIds.includes(calendar.id);
+                                                                            return (
+                                                                                <CommandItem key={calendar.id} onSelect={() => handleSelectCalendar(calendar.id, !isSelected)}>
+                                                                                    <div className="flex items-center justify-between w-full">
+                                                                                        <div className='flex items-center'>
+                                                                                            <Checkbox checked={isSelected} className="pointer-events-none" />
+                                                                                            <span className="ml-2">{calendar.name}</span>
+                                                                                        </div>
+                                                                                        <div className="h-4 w-4 rounded-full" style={{ backgroundColor: calendar.color }} />
+                                                                                    </div>
+                                                                                </CommandItem>
+                                                                            );
+                                                                        })}
+                                                                    </>
+                                                                )}
+                                                            </CommandGroup>
+                                                        </CommandList>
+                                                    </Command>
+                                                </PopoverContent>
+                                            </Popover>
+                                        )}
+                                        {showDoctorFilter && !isCustomMode && (
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <Button variant="outline" className="flex h-11 items-center gap-2">
+                                                        <Users className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                                        <span className="flex flex-col items-start leading-tight">
+                                                            <span>{t('toggleDoctors')}</span>
+                                                            {doctorsSubtitle && (
+                                                                <span className="text-[10px] font-normal text-muted-foreground">{doctorsSubtitle}</span>
+                                                            )}
+                                                        </span>
+                                                        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                                    </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-56 p-2">
+                                                    <Command>
+                                                        <CommandList>
+                                                            <CommandGroup>
+                                                                <CommandItem onSelect={() => setSelectedDoctorIds(doctors.map(d => d.id))}>{t('selectAll')}</CommandItem>
+                                                                <CommandItem onSelect={() => setSelectedDoctorIds([])}>{t('deselectAll')}</CommandItem>
+                                                                <hr className="my-2" />
+                                                                {doctors.map((doctor) => {
+                                                                    const isSelected = selectedDoctorIds.includes(doctor.id);
+                                                                    return (
+                                                                        <CommandItem key={doctor.id} onSelect={() => handleSelectDoctor(doctor.id, !isSelected)}>
+                                                                            <div className="flex items-center">
+                                                                                <Checkbox checked={isSelected} className="pointer-events-none" />
+                                                                                <span className="ml-2">{doctor.name}</span>
                                                                             </div>
                                                                         </CommandItem>
                                                                     );
                                                                 })}
-                                                            </React.Fragment>
-                                                        );
-                                                    })}
-                                                    {calendarSedeGroups.noSede.length > 0 && (
-                                                        <>
-                                                            {calendarSedeGroups.sedeGroups.length > 0 && <hr className="my-2" />}
-                                                            {calendarSedeGroups.noSede.map((calendar) => {
-                                                                const isSelected = selectedCalendarIds.includes(calendar.id);
-                                                                return (
-                                                                    <CommandItem key={calendar.id} onSelect={() => handleSelectCalendar(calendar.id, !isSelected)}>
-                                                                        <div className="flex items-center justify-between w-full">
-                                                                            <div className='flex items-center'>
-                                                                                <Checkbox checked={isSelected} className="pointer-events-none" />
-                                                                                <span className="ml-2">{calendar.name}</span>
-                                                                            </div>
-                                                                            <div className="h-4 w-4 rounded-full" style={{ backgroundColor: calendar.color }} />
-                                                                        </div>
-                                                                    </CommandItem>
-                                                                );
-                                                            })}
-                                                        </>
-                                                    )}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
-                                )}
-                                {showDoctorFilter && !isCustomMode && (
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button variant="outline" className="flex h-11 items-center gap-2">
-                                                    <Users className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                                    <span className="flex flex-col items-start leading-tight">
-                                                        <span>{t('toggleDoctors')}</span>
-                                                        {doctorsSubtitle && (
-                                                            <span className="text-[10px] font-normal text-muted-foreground">{doctorsSubtitle}</span>
-                                                        )}
-                                                    </span>
-                                                    <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-56 p-2">
-                                                <Command>
-                                                    <CommandList>
-                                                        <CommandGroup>
-                                                            <CommandItem onSelect={() => setSelectedDoctorIds(doctors.map(d => d.id))}>{t('selectAll')}</CommandItem>
-                                                            <CommandItem onSelect={() => setSelectedDoctorIds([])}>{t('deselectAll')}</CommandItem>
-                                                            <hr className="my-2" />
-                                                            {doctors.map((doctor) => {
-                                                                const isSelected = selectedDoctorIds.includes(doctor.id);
-                                                                return (
-                                                                <CommandItem key={doctor.id} onSelect={() => handleSelectDoctor(doctor.id, !isSelected)}>
-                                                                    <div className="flex items-center">
-                                                                        <Checkbox checked={isSelected} className="pointer-events-none" />
-                                                                        <span className="ml-2">{doctor.name}</span>
-                                                                    </div>
-                                                                </CommandItem>
-                                                            );
-                                                            })}
-                                                        </CommandGroup>
-                                                    </CommandList>
-                                                </Command>
-                                            </PopoverContent>
-                                        </Popover>
+                                                            </CommandGroup>
+                                                        </CommandList>
+                                                    </Command>
+                                                </PopoverContent>
+                                            </Popover>
+                                        )}
+                                    </div>
                                 )}
                             </div>
-                        )}
-                    </div>
 
-                </Calendar>
-                  </>
+                        </Calendar>
+                    </>
                 )}
             </CardContent>
 

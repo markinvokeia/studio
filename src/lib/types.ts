@@ -30,6 +30,13 @@ export type User = {
   calendar_source_id?: string;
   /** Doctor flag: enables browsing appointments of calendars they have access to in the workspace. */
   can_browse_calendars?: boolean;
+  /** Default doctor assigned to this patient. Nullable. */
+  doctor_id?: string | null;
+  doctor_name?: string;
+  sex?: 'male' | 'female' | null;
+  /** Patient group this user belongs to. Nullable. */
+  group_id?: string | null;
+  group_name?: string;
 };
 
 export type CurrencyFinancialData = {
@@ -221,6 +228,8 @@ export type Quote = {
   doc_no?: string;
   quote_doc_no?: string;
   user_id: string;
+  doctor_id?: string;
+  doctor_name?: string;
   total: number;
   status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'pending' | 'confirmed';
   payment_status: 'unpaid' | 'paid' | 'partial' | 'partially_paid';
@@ -239,8 +248,6 @@ export type Quote = {
   amount_paid?: number;
   amount_pending_payment?: number;
   external_id?: string | number | null;
-  doctor_id?: string;
-  doctor_name?: string;
 };
 
 export type QuoteItem = {
@@ -300,6 +307,8 @@ export type Invoice = {
   user_name: string;
   userEmail?: string;
   user_id: string;
+  doctor_id?: string;
+  doctor_name?: string;
   total: number;
   currency?: 'UYU' | 'USD';
   notes?: string;
@@ -312,8 +321,6 @@ export type Invoice = {
   is_historical?: boolean;
   due_date?: string;
   external_id?: string | number | null;
-  doctor_id?: string;
-  doctor_name?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -1345,6 +1352,15 @@ export type MutualSociety = {
   updated_at?: string;
 };
 
+export type PatientGroup = {
+  id: string | number;
+  name: string;
+  description?: string;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+};
+
 
 export type Credit = {
   source_id: string;
@@ -1552,8 +1568,12 @@ export type GlobalNotificationSetting = {
 
 export type DoctorAlertStyle = 'modal' | 'toast';
 
+/** `unified` = single account ledger (Debe/Haber/Saldo). `tabs` = separate Quotes/Invoices/Payments tabs. */
+export type PatientFinanceView = 'unified' | 'tabs';
+
 export type UserPreferences = {
   alert_style?: DoctorAlertStyle;
+  finance_view?: PatientFinanceView;
 };
 
 export type UserPreferencesResponse = {

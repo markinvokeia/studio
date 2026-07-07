@@ -1,4 +1,98 @@
 {
+  "PatientLedger": {
+    "newQuote": "New Quote",
+    "newTreatment": "New Treatment",
+    "newPayment": "New Payment",
+    "viewStatement": "Statement",
+    "columns": {
+      "date": "Date",
+      "treatment": "Treatment",
+      "debit": "Debit",
+      "credit": "Credit",
+      "balance": "Balance",
+      "status": "Status"
+    },
+    "status": {
+      "presupuestado": "Quoted",
+      "facturado": "Invoiced",
+      "parcial": "Partially paid",
+      "pagado": "Paid",
+      "pago": "Payment",
+      "notaCredito": "Credit note"
+    },
+    "empty": "This patient has no quotes, invoices, or payments yet.",
+    "loading": "Loading account…",
+    "noPendingInvoices": "No pending invoices to pay",
+    "actions": {
+      "openMenu": "Open menu",
+      "edit": "Edit",
+      "invoice": "Invoice",
+      "confirmQuote": "Confirm quote",
+      "pay": "Register payment",
+      "creditNote": "Create credit note",
+      "revertToQuote": "Revert to quote",
+      "deleteQuote": "Delete quote",
+      "deletePayment": "Delete payment",
+      "deleteCreditNote": "Delete credit note"
+    },
+    "dialogs": {
+      "editItem": {
+        "title": "Edit item",
+        "description": "Update the service, quantity, or price of this quote line.",
+        "service": "Service",
+        "quantity": "Quantity",
+        "unitPrice": "Unit price",
+        "save": "Save",
+        "cancel": "Cancel"
+      },
+      "creditNote": {
+        "title": "Create credit note",
+        "description": "For \"{service}\". This creates a credit note against the invoice for this line.",
+        "maxCreditable": "Maximum creditable amount for this invoice: {max}",
+        "exceedsMax": "The credit note total cannot exceed {max}, the invoice's remaining creditable amount.",
+        "quantity": "Quantity",
+        "unitPrice": "Unit price",
+        "notes": "Notes",
+        "save": "Create",
+        "cancel": "Cancel"
+      },
+      "revertInvoice": {
+        "title": "Revert invoice to quote",
+        "description": "This will revert the invoice back to a quote. This action cannot be undone.",
+        "confirm": "Revert"
+      },
+      "deleteQuote": {
+        "title": "Delete quote",
+        "description": "This will permanently delete the quote and all its items. This action cannot be undone.",
+        "cancel": "Cancel",
+        "confirm": "Delete"
+      },
+      "deletePayment": {
+        "title": "Delete payment",
+        "description": "This will permanently delete the payment and reverse any invoices it was applied to. This action cannot be undone."
+      },
+      "deleteCreditNote": {
+        "title": "Delete credit note",
+        "description": "This will permanently delete the credit note along with its allocations. This action cannot be undone."
+      }
+    },
+    "toasts": {
+      "itemUpdated": "Item updated",
+      "itemUpdateError": "Could not update the item",
+      "creditNoteCreated": "Credit note created",
+      "creditNoteError": "Could not create the credit note",
+      "quoteConfirmed": "Quote confirmed",
+      "quoteConfirmError": "Could not confirm the quote",
+      "invoiceReverted": "Invoice reverted to quote",
+      "invoiceRevertError": "Could not revert the invoice",
+      "quoteDeleted": "Quote deleted",
+      "quoteDeleteError": "Could not delete the quote",
+      "paymentDeleted": "Payment deleted",
+      "paymentDeleteError": "Could not delete the payment",
+      "creditNoteDeleted": "Credit note deleted",
+      "creditNoteDeleteError": "Could not delete the credit note"
+    }
+  },
   "AccountStatement": {
     "title": "Account statement",
     "print": "Print",
@@ -106,6 +200,7 @@
     "Currencies": "Currencies & Exchange Rates",
     "Sequences": "Sequences",
     "MutualSocieties": "Mutual Societies",
+    "PatientGroups": "Patient Groups",
     "PrintTemplates": "Document Templates",
     "Templates": "Templates",
     "MedicalInstructionTemplates": "Medical Instruction Templates",
@@ -1434,6 +1529,7 @@
     "tabs": {
       "roles": "Roles",
       "services": "Services",
+      "ledger": "Account",
       "quotes": "Quotes",
       "appointments": "Appointments",
       "treatmentPlans": "Treat. Plans",
@@ -1479,6 +1575,14 @@
       "searchGuardianPlaceholder": "Search by name...",
       "noGuardianResults": "No patients found",
       "clearResponsibleContact": "Clear",
+      "doctor": "Default doctor",
+      "searchDoctor": "Search doctor...",
+      "selectDoctor": "Select doctor",
+      "clearDoctor": "Clear",
+      "sex": "Sex",
+      "sexNone": "Not specified",
+      "sexMale": "Male",
+      "sexFemale": "Female",
       "identity_document": "Identity Document",
       "identity_document_placeholder": "e.g., 12345678",
       "isActive": "Is Active",
@@ -1532,6 +1636,10 @@
         "success": "Mutual society updated",
         "error": "Error updating mutual society"
       }
+    },
+    "patientGroup": {
+      "select": "Select group",
+      "none": "Not assigned"
     },
     "filters": {
       "type": {
@@ -1907,6 +2015,9 @@
       "user": "User",
       "selectUser": "Select User",
       "searchUser": "Search User",
+      "doctor": "Doctor",
+      "selectDoctor": "Select Doctor",
+      "searchDoctor": "Search doctor...",
       "total": "Total",
       "currency": "Currency",
       "exchangeRate": "Exchange Rate",
@@ -2287,6 +2398,7 @@
     },
     "validation": {
       "amountPositive": "Amount must be a positive number.",
+      "amountNonNegative": "Amount cannot be negative.",
       "methodRequired": "Payment method is required.",
       "dateRequired": "Payment date is required.",
       "userRequired": "An user is required",
@@ -2403,6 +2515,9 @@
       "description": "Create a new invoice",
       "user": "User",
       "selectUser": "Select User",
+      "doctor": "Doctor",
+      "selectDoctor": "Select Doctor",
+      "searchDoctor": "Search doctor...",
       "invoiceRef": "Invoice Reference",
       "addItem": "Add Item",
       "total": "Total",
@@ -3012,6 +3127,33 @@
       "isHistorical": "Historical",
       "isHistoricalDescription": "Check this option if the payment was made on a date prior to today",
       "isHistoricalWarning": "Historical payment registered"
+    },
+    "smartPaymentDialog": {
+      "title": "New Payment",
+      "amount": "Amount",
+      "currency": "Currency",
+      "paymentMethod": "Payment Method",
+      "selectMethod": "Select method",
+      "paymentDate": "Payment Date",
+      "useAvailableCredit": "Use available credit",
+      "allocationPreview": "This payment will be applied to",
+      "loadingInvoices": "Checking pending invoices…",
+      "noPendingInvoices": "No pending invoices — this will be registered as a prepayment.",
+      "fromCredit": "from credit",
+      "prepaidRemainder": "Remainder (registered as prepayment)",
+      "notes": "Notes",
+      "notesPlaceholder": "Add any additional notes here...",
+      "isHistorical": "Historical",
+      "isHistoricalDescription": "Check this option if the payment was made on a date prior to today",
+      "isHistoricalWarning": "Historical payment registered",
+      "cancel": "Cancel",
+      "save": "Save",
+      "confirmTitle": "Confirm Payment",
+      "confirmDescription": "This will apply the payment to the patient's pending invoices (oldest first) and register any remainder as a prepayment. Continue?",
+      "confirm": "Confirm",
+      "toasts": {
+        "successDescription": "Payment registered and applied successfully."
+      }
     },
     "tabs": {
       "allocations": "Allocations",
@@ -5905,6 +6047,13 @@
     "alertStyle": {
       "modal": "Modal",
       "toast": "Notification"
+    },
+    "financeViewSection": "Patient finances",
+    "financeViewLabel": "Finance tab layout",
+    "financeViewDescription": "Choose how the patient's finance tab is displayed.",
+    "financeView": {
+      "unified": "Classic",
+      "tabs": "New"
     }
   },
   "UserCommunicationPreferences": {
@@ -5972,6 +6121,43 @@
     "validation": {
       "nameRequired": "Name is required.",
       "codeRequired": "Code is required."
+    }
+  },
+  "PatientGroupsPage": {
+    "title": "Patient Groups",
+    "description": "Manage the catalog of patient groups.",
+    "filterPlaceholder": "Filter by name...",
+    "createDialog": {
+      "title": "Create Patient Group",
+      "description": "Complete the details below to add a new patient group.",
+      "editTitle": "Edit Patient Group",
+      "editDescription": "Update the details of this patient group.",
+      "name": "Name",
+      "namePlaceholder": "e.g., Orthodontics",
+      "descriptionPlaceholder": "Enter an optional description",
+      "isActive": "Active",
+      "cancel": "Cancel",
+      "save": "Create Group",
+      "editSave": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the patient group \"{name}\". This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createSuccessTitle": "Patient Group Created",
+      "editSuccessTitle": "Patient Group Updated",
+      "successDescription": "The patient group \"{name}\" has been saved successfully.",
+      "deleteSuccessTitle": "Patient Group Deleted",
+      "deleteSuccessDescription": "The patient group \"{name}\" has been deleted.",
+      "deleteErrorDescription": "Could not delete the patient group."
+    },
+    "validation": {
+      "nameRequired": "Name is required."
     }
   },
   "Config": {
@@ -6060,6 +6246,17 @@
     "name": "Name",
     "description": "Description",
     "code": "Code",
+    "isActive": "Active",
+    "createdAt": "Created At",
+    "updatedAt": "Updated At",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "PatientGroupsColumns": {
+    "id": "ID",
+    "name": "Name",
+    "description": "Description",
     "isActive": "Active",
     "createdAt": "Created At",
     "updatedAt": "Updated At",

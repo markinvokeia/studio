@@ -11,7 +11,6 @@ import { PatientSubTabNav } from '@/components/patients/patient-subtab-nav'
 export type PatientMacroTab = 'info' | 'clinical' | 'financial'
 export type InfoSubTab = 'details' | 'notes'
 export type ClinicalSubTab = 'anamnesis' | 'clinical-history' | 'treatment-plans' | 'medical-instructions' | 'documents'
-export type FinancialSubTab = 'quotes' | 'invoices' | 'payments'
 
 interface PatientDetailMainContentProps {
   activeTab: PatientMacroTab
@@ -20,8 +19,6 @@ interface PatientDetailMainContentProps {
   onInfoSubTabChange: (tab: InfoSubTab) => void
   activeClinicalSubTab: ClinicalSubTab
   onClinicalSubTabChange: (tab: ClinicalSubTab) => void
-  activeFinancialSubTab: FinancialSubTab
-  onFinancialSubTabChange: (tab: FinancialSubTab) => void
   showDocuments: boolean
   showNotes: boolean
   infoContent: React.ReactNode
@@ -31,10 +28,7 @@ interface PatientDetailMainContentProps {
   treatmentPlansContent: React.ReactNode
   medicalInstructionsContent: React.ReactNode
   documentsContent?: React.ReactNode
-  financialSummaryContent: React.ReactNode
-  quotesContent: React.ReactNode
-  invoicesContent: React.ReactNode
-  paymentsContent: React.ReactNode
+  ledgerContent: React.ReactNode
 }
 
 export function PatientDetailMainContent({
@@ -44,8 +38,6 @@ export function PatientDetailMainContent({
   onInfoSubTabChange,
   activeClinicalSubTab,
   onClinicalSubTabChange,
-  activeFinancialSubTab,
-  onFinancialSubTabChange,
   showDocuments,
   showNotes,
   infoContent,
@@ -55,10 +47,7 @@ export function PatientDetailMainContent({
   treatmentPlansContent,
   medicalInstructionsContent,
   documentsContent,
-  financialSummaryContent,
-  quotesContent,
-  invoicesContent,
-  paymentsContent,
+  ledgerContent,
 }: PatientDetailMainContentProps) {
   const t = useTranslations('UsersPage')
 
@@ -80,12 +69,6 @@ export function PatientDetailMainContent({
     { id: 'medical-instructions', label: t('tabs.medicalInstructions') },
     ...(showDocuments ? [{ id: 'documents', label: t('tabs.documents') }] : []),
   ], [showDocuments, t])
-
-  const financialTabs = React.useMemo(() => [
-    { id: 'quotes', label: t('tabs.quotes') },
-    { id: 'invoices', label: t('tabs.invoices') },
-    { id: 'payments', label: t('tabs.payments') },
-  ], [t])
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
@@ -122,19 +105,7 @@ export function PatientDetailMainContent({
           </>
         )}
 
-        {activeTab === 'financial' && (
-          <div className="space-y-4">
-            {financialSummaryContent}
-            <PatientSubTabNav
-              tabs={financialTabs}
-              activeTab={activeFinancialSubTab}
-              onChange={(id) => onFinancialSubTabChange(id as FinancialSubTab)}
-            />
-            {activeFinancialSubTab === 'quotes' && quotesContent}
-            {activeFinancialSubTab === 'invoices' && invoicesContent}
-            {activeFinancialSubTab === 'payments' && paymentsContent}
-          </div>
-        )}
+        {activeTab === 'financial' && ledgerContent}
       </div>
     </div>
   )

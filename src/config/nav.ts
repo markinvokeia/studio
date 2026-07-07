@@ -62,6 +62,7 @@ import {
   UserPlus,
   Users,
   UserSquare,
+  UsersRound,
   UserX,
   Vault,
   Wallet
@@ -218,6 +219,7 @@ export const navItems: NavItem[] = [
       BUSINESS_CONFIG_PERMISSIONS.CURRENCIES_VIEW_LIST,
       BUSINESS_CONFIG_PERMISSIONS.SEQUENCES_VIEW_LIST,
       BUSINESS_CONFIG_PERMISSIONS.MUTUAL_SOC_VIEW_LIST,
+      BUSINESS_CONFIG_PERMISSIONS.PATIENT_GROUPS_VIEW_MENU,
       BUSINESS_CONFIG_PERMISSIONS.PRINT_TEMPLATES_VIEW,
       BUSINESS_CONFIG_PERMISSIONS.MEDICAL_INSTRUCTION_TEMPLATES_VIEW,
       SYSTEM_PERMISSIONS.STAFF_VIEW_MENU,
@@ -235,6 +237,7 @@ export const navItems: NavItem[] = [
       { title: 'Currencies', href: '/config/currencies', icon: DollarSign, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.CURRENCIES_VIEW_LIST },
       { title: 'Sequences', href: '/config/sequences', icon: List, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.SEQUENCES_VIEW_LIST },
       { title: 'MutualSocieties', href: '/config/mutual-societies', icon: Handshake, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.MUTUAL_SOC_VIEW_MENU },
+      { title: 'PatientGroups', href: '/config/patient-groups', icon: UsersRound, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.PATIENT_GROUPS_VIEW_MENU },
       { title: 'Templates', href: '/config/templates', icon: FileText, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.PRINT_TEMPLATES_VIEW },
       { title: 'MedicalInstructionTemplates', href: '/config/medical-instruction-templates', icon: ClipboardList, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.MEDICAL_INSTRUCTION_TEMPLATES_VIEW },
     ],

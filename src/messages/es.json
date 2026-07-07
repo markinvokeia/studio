@@ -1,4 +1,98 @@
 {
+  "PatientLedger": {
+    "newQuote": "Nuevo Presupuesto",
+    "newTreatment": "Nuevo Tratamiento",
+    "newPayment": "Nuevo Pago",
+    "viewStatement": "Estado de cuenta",
+    "columns": {
+      "date": "Fecha",
+      "treatment": "Tratamiento",
+      "debit": "Debe",
+      "credit": "Haber",
+      "balance": "Saldo",
+      "status": "Estado"
+    },
+    "status": {
+      "presupuestado": "Presupuestado",
+      "facturado": "Facturado",
+      "parcial": "Pago parcial",
+      "pagado": "Pagado",
+      "pago": "Pago",
+      "notaCredito": "Nota de crédito"
+    },
+    "empty": "Este paciente aún no tiene presupuestos, facturas ni pagos.",
+    "loading": "Cargando cuenta…",
+    "noPendingInvoices": "No hay facturas pendientes de pago",
+    "actions": {
+      "openMenu": "Abrir menú",
+      "edit": "Editar",
+      "invoice": "Facturar",
+      "confirmQuote": "Confirmar presupuesto",
+      "pay": "Registrar pago",
+      "creditNote": "Crear nota de crédito",
+      "revertToQuote": "Volver a presupuesto",
+      "deleteQuote": "Eliminar presupuesto",
+      "deletePayment": "Eliminar pago",
+      "deleteCreditNote": "Eliminar nota de crédito"
+    },
+    "dialogs": {
+      "editItem": {
+        "title": "Editar ítem",
+        "description": "Modifica el servicio, la cantidad o el precio de esta línea del presupuesto.",
+        "service": "Servicio",
+        "quantity": "Cantidad",
+        "unitPrice": "Precio unitario",
+        "save": "Guardar",
+        "cancel": "Cancelar"
+      },
+      "creditNote": {
+        "title": "Crear nota de crédito",
+        "description": "Para \"{service}\". Se crea una nota de crédito contra la factura de esta línea.",
+        "maxCreditable": "Monto máximo acreditable para esta factura: {max}",
+        "exceedsMax": "El total de la nota de crédito no puede superar {max}, el monto máximo acreditable restante de la factura.",
+        "quantity": "Cantidad",
+        "unitPrice": "Precio unitario",
+        "notes": "Notas",
+        "save": "Crear",
+        "cancel": "Cancelar"
+      },
+      "revertInvoice": {
+        "title": "Volver factura a presupuesto",
+        "description": "Esto revertirá la factura de vuelta a un presupuesto. Esta acción no se puede deshacer.",
+        "confirm": "Revertir"
+      },
+      "deleteQuote": {
+        "title": "Eliminar presupuesto",
+        "description": "Esto eliminará permanentemente el presupuesto y todos sus ítems. Esta acción no se puede deshacer.",
+        "cancel": "Cancelar",
+        "confirm": "Eliminar"
+      },
+      "deletePayment": {
+        "title": "Eliminar pago",
+        "description": "Esto eliminará permanentemente el pago y revertirá las facturas a las que se aplicó. Esta acción no se puede deshacer."
+      },
+      "deleteCreditNote": {
+        "title": "Eliminar nota de crédito",
+        "description": "Esto eliminará permanentemente la nota de crédito junto con sus alocaciones. Esta acción no se puede deshacer."
+      }
+    },
+    "toasts": {
+      "itemUpdated": "Ítem actualizado",
+      "itemUpdateError": "No se pudo actualizar el ítem",
+      "creditNoteCreated": "Nota de crédito creada",
+      "creditNoteError": "No se pudo crear la nota de crédito",
+      "quoteConfirmed": "Presupuesto confirmado",
+      "quoteConfirmError": "No se pudo confirmar el presupuesto",
+      "invoiceReverted": "Factura revertida a presupuesto",
+      "invoiceRevertError": "No se pudo revertir la factura",
+      "quoteDeleted": "Presupuesto eliminado",
+      "quoteDeleteError": "No se pudo eliminar el presupuesto",
+      "paymentDeleted": "Pago eliminado",
+      "paymentDeleteError": "No se pudo eliminar el pago",
+      "creditNoteDeleted": "Nota de crédito eliminada",
+      "creditNoteDeleteError": "No se pudo eliminar la nota de crédito"
+    }
+  },
   "AccountStatement": {
     "title": "Estado de cuenta",
     "print": "Imprimir",
@@ -106,6 +200,7 @@
     "Currencies": "Monedas y Tipos de Cambio",
     "Sequences": "Secuencias",
     "MutualSocieties": "Sociedades Mutuales",
+    "PatientGroups": "Grupos de Pacientes",
     "PrintTemplates": "Plantillas de Documentos",
     "Templates": "Plantillas",
     "MedicalInstructionTemplates": "Plantillas de Indicaciones Médicas",
@@ -1434,6 +1529,7 @@
     "tabs": {
       "roles": "Roles",
       "services": "Servicios",
+      "ledger": "Cuenta",
       "quotes": "Presupuestos",
       "appointments": "Citas",
       "treatmentPlans": "Planes de Trat.",
@@ -1479,6 +1575,14 @@
       "searchGuardianPlaceholder": "Buscar por nombre...",
       "noGuardianResults": "No se encontraron pacientes",
       "clearResponsibleContact": "Limpiar",
+      "doctor": "Doctor por defecto",
+      "searchDoctor": "Buscar doctor...",
+      "selectDoctor": "Seleccionar doctor",
+      "clearDoctor": "Limpiar",
+      "sex": "Sexo",
+      "sexNone": "No especificado",
+      "sexMale": "Masculino",
+      "sexFemale": "Femenino",
       "identity_document": "Documento de Identidad",
       "identity_document_placeholder": "ej., 12345678",
       "isActive": "Está Activo",
@@ -1532,6 +1636,10 @@
         "success": "Sociedad mutual actualizada",
         "error": "Error al actualizar la sociedad mutual"
       }
+    },
+    "patientGroup": {
+      "select": "Seleccionar grupo",
+      "none": "Sin asignar"
     },
     "filters": {
       "type": {
@@ -1907,6 +2015,9 @@
       "user": "Usuario",
       "selectUser": "Seleccionar Usuario",
       "searchUser": "Buscar Usuario",
+      "doctor": "Doctor",
+      "selectDoctor": "Seleccionar Doctor",
+      "searchDoctor": "Buscar doctor...",
       "total": "Total",
       "currency": "Moneda",
       "exchangeRate": "Tasa de Cambio",
@@ -2287,6 +2398,7 @@
     },
     "validation": {
       "amountPositive": "El monto debe ser un número positivo.",
+      "amountNonNegative": "El monto no puede ser negativo.",
       "methodRequired": "El método de pago es obligatorio.",
       "dateRequired": "La fecha de pago es obligatoria.",
       "userRequired": "Un usuario es obligatorio",
@@ -2403,6 +2515,9 @@
       "description": "Crear una nueva factura",
       "user": "Usuario",
       "selectUser": "Seleccionar Usuario",
+      "doctor": "Doctor",
+      "selectDoctor": "Seleccionar Doctor",
+      "searchDoctor": "Buscar doctor...",
       "invoiceRef": "Referencia de Factura",
       "addItem": "Agregar Artículo",
       "total": "Total",
@@ -2989,6 +3104,33 @@
       "isHistorical": "Histórico",
       "isHistoricalDescription": "Marque esta opción si el pago fue realizado en una fecha anterior a hoy",
       "isHistoricalWarning": "Pago histórico registrado"
+    },
+    "smartPaymentDialog": {
+      "title": "Nuevo Pago",
+      "amount": "Monto",
+      "currency": "Moneda",
+      "paymentMethod": "Método de Pago",
+      "selectMethod": "Seleccionar método",
+      "paymentDate": "Fecha de Pago",
+      "useAvailableCredit": "Usar crédito disponible",
+      "allocationPreview": "Este pago se aplicará a",
+      "loadingInvoices": "Revisando facturas pendientes…",
+      "noPendingInvoices": "No hay facturas pendientes — se registrará como prepago.",
+      "fromCredit": "desde crédito",
+      "prepaidRemainder": "Sobrante (se registra como prepago)",
+      "notes": "Notas",
+      "notesPlaceholder": "Agregue notas adicionales aquí...",
+      "isHistorical": "Histórico",
+      "isHistoricalDescription": "Marque esta opción si el pago fue realizado en una fecha anterior a hoy",
+      "isHistoricalWarning": "Pago histórico registrado",
+      "cancel": "Cancelar",
+      "save": "Guardar",
+      "confirmTitle": "Confirmar Pago",
+      "confirmDescription": "Esto aplicará el pago a las facturas pendientes del paciente (las más antiguas primero) y registrará el sobrante como prepago. ¿Continuar?",
+      "confirm": "Confirmar",
+      "toasts": {
+        "successDescription": "Pago registrado y aplicado correctamente."
+      }
     },
     "tabs": {
       "allocations": "Asignaciones",
@@ -5885,6 +6027,13 @@
     "alertStyle": {
       "modal": "Modal",
       "toast": "Notificación"
+    },
+    "financeViewSection": "Finanzas del paciente",
+    "financeViewLabel": "Diseño de la pestaña Finanzas",
+    "financeViewDescription": "Elige cómo se muestra la pestaña de finanzas del paciente.",
+    "financeView": {
+      "unified": "Clásico",
+      "tabs": "Nuevo"
     }
   },
   "UserCommunicationPreferences": {
@@ -5952,6 +6101,43 @@
     "validation": {
       "nameRequired": "El nombre es obligatorio.",
       "codeRequired": "El código es obligatorio."
+    }
+  },
+  "PatientGroupsPage": {
+    "title": "Grupos de Pacientes",
+    "description": "Gestione el catálogo de grupos de pacientes.",
+    "filterPlaceholder": "Filtrar por nombre...",
+    "createDialog": {
+      "title": "Crear Grupo de Pacientes",
+      "description": "Complete los detalles a continuación para agregar un nuevo grupo de pacientes.",
+      "editTitle": "Editar Grupo de Pacientes",
+      "editDescription": "Actualice los detalles de este grupo de pacientes.",
+      "name": "Nombre",
+      "namePlaceholder": "ej., Ortodoncia",
+      "descriptionPlaceholder": "Ingrese una descripción opcional",
+      "isActive": "Activo",
+      "cancel": "Cancelar",
+      "save": "Crear Grupo",
+      "editSave": "Guardar Cambios"
+    },
+    "deleteDialog": {
+      "title": "¿Está seguro?",
+      "description": "Esto eliminará permanentemente el grupo de pacientes \"{name}\". Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "Ocurrió un error inesperado.",
+      "createSuccessTitle": "Grupo de Pacientes Creado",
+      "editSuccessTitle": "Grupo de Pacientes Actualizado",
+      "successDescription": "El grupo de pacientes \"{name}\" se ha guardado exitosamente.",
+      "deleteSuccessTitle": "Grupo de Pacientes Eliminado",
+      "deleteSuccessDescription": "El grupo de pacientes \"{name}\" ha sido eliminado.",
+      "deleteErrorDescription": "No se pudo eliminar el grupo de pacientes."
+    },
+    "validation": {
+      "nameRequired": "El nombre es obligatorio."
     }
   },
   "Config": {
@@ -6040,6 +6226,17 @@
     "name": "Nombre",
     "description": "Descripción",
     "code": "Código",
+    "isActive": "Activo",
+    "createdAt": "Fecha de Creación",
+    "updatedAt": "Fecha de Actualización",
+    "actions": "Acciones",
+    "edit": "Editar",
+    "delete": "Eliminar"
+  },
+  "PatientGroupsColumns": {
+    "id": "ID",
+    "name": "Nombre",
+    "description": "Descripción",
     "isActive": "Activo",
     "createdAt": "Fecha de Creación",
     "updatedAt": "Fecha de Actualización",

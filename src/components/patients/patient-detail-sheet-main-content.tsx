@@ -10,15 +10,12 @@ import type { VerticalTab } from '@/components/ui/vertical-tab-strip'
 
 export type PatientSheetMacroTab = 'info' | 'clinical' | 'financial'
 export type PatientSheetClinicalSubTab = 'anamnesis' | 'clinical-history' | 'treatment-plans' | 'medical-instructions' | 'documents'
-export type PatientSheetFinancialSubTab = 'quotes' | 'invoices' | 'payments'
 
 interface PatientDetailSheetMainContentProps {
   activeTab: PatientSheetMacroTab
   onActiveTabChange: (tab: PatientSheetMacroTab) => void
   activeClinicalSubTab: PatientSheetClinicalSubTab
   onClinicalSubTabChange: (tab: PatientSheetClinicalSubTab) => void
-  activeFinancialSubTab: PatientSheetFinancialSubTab
-  onFinancialSubTabChange: (tab: PatientSheetFinancialSubTab) => void
   isDoctorMode: boolean
   /** Patient details (demographics + edit). When provided, an "info" tab is shown first. */
   infoContent?: React.ReactNode
@@ -27,10 +24,7 @@ interface PatientDetailSheetMainContentProps {
   treatmentPlansContent: React.ReactNode
   medicalInstructionsContent: React.ReactNode
   documentsContent: React.ReactNode
-  financialSummaryContent?: React.ReactNode
-  quotesContent: React.ReactNode
-  invoicesContent: React.ReactNode
-  paymentsContent: React.ReactNode
+  ledgerContent: React.ReactNode
 }
 
 export function PatientDetailSheetMainContent({
@@ -38,8 +32,6 @@ export function PatientDetailSheetMainContent({
   onActiveTabChange,
   activeClinicalSubTab,
   onClinicalSubTabChange,
-  activeFinancialSubTab,
-  onFinancialSubTabChange,
   isDoctorMode,
   infoContent,
   anamnesisContent,
@@ -47,10 +39,7 @@ export function PatientDetailSheetMainContent({
   treatmentPlansContent,
   medicalInstructionsContent,
   documentsContent,
-  financialSummaryContent,
-  quotesContent,
-  invoicesContent,
-  paymentsContent,
+  ledgerContent,
 }: PatientDetailSheetMainContentProps) {
   const t = useTranslations('UsersPage')
 
@@ -96,23 +85,7 @@ export function PatientDetailSheetMainContent({
           </>
         )}
 
-        {activeTab === 'financial' && !isDoctorMode && (
-          <div className="space-y-4">
-            {financialSummaryContent}
-            <PatientSubTabNav
-              tabs={[
-                { id: 'quotes', label: t('tabs.quotes') },
-                { id: 'invoices', label: t('tabs.invoices') },
-                { id: 'payments', label: t('tabs.payments') },
-              ]}
-              activeTab={activeFinancialSubTab}
-              onChange={(id) => onFinancialSubTabChange(id as PatientSheetFinancialSubTab)}
-            />
-            {activeFinancialSubTab === 'quotes' && quotesContent}
-            {activeFinancialSubTab === 'invoices' && invoicesContent}
-            {activeFinancialSubTab === 'payments' && paymentsContent}
-          </div>
-        )}
+        {activeTab === 'financial' && !isDoctorMode && ledgerContent}
       </div>
     </div>
   )

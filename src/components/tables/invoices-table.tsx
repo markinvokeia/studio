@@ -55,6 +55,7 @@ import { DataListRow } from '@/components/ui/data-list-row';
 import { ViewModeToggle } from '@/components/ui/view-mode-toggle';
 import { useTableViewMode } from '@/hooks/use-table-view-mode';
 import { DatePickerInput } from '../ui/date-picker';
+import { DoctorSelector } from '@/components/ui/doctor-selector';
 import { DialogDescription } from '../ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
@@ -63,6 +64,7 @@ import { ScrollArea } from '../ui/scroll-area';
 
 const getCreateInvoiceFormSchema = (t: (key: string) => string) => z.object({
   user_id: z.string().min(1, t('validation.userRequired')),
+  doctor_id: z.string().optional(),
   total: z.coerce.number().min(0, t('validation.totalNonNegative')),
   currency: z.enum(['UYU', 'USD']),
   order_id: z.string().optional(),
@@ -585,6 +587,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
   const [serviceSearchOpen, setServiceSearchOpen] = React.useState<Record<number, boolean>>({});
   const [serviceSearchQuery, setServiceSearchQuery] = React.useState('');
   const [isSearchingServices, setIsSearchingServices] = React.useState(false);
+  const [doctorName, setDoctorName] = React.useState('');
 
   const createInvoiceFormSchema = React.useMemo(() => getCreateInvoiceFormSchema(t), [t]);
 
@@ -621,6 +624,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
     defaultValues: {
       type: 'invoice',
       user_id: '',
+      doctor_id: '',
       currency: 'UYU',
       items: [],
       total: 0,
@@ -754,9 +758,11 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
             const itemsData = await api.get(itemsEndpoint, { invoice_id: invoice.id, is_sales: isSales ? 'true' : 'false' });
             const itemsNormalized = Array.isArray(itemsData) ? itemsData : (itemsData.invoice_items || itemsData.data || itemsData.result || []);
 
+            setDoctorName(invoice.doctor_name || '');
             form.reset({
               type: (invoice.type?.toString().includes('credit') ? 'credit_note' : 'invoice') as any,
               user_id: userId,
+              doctor_id: invoice.doctor_id ? String(invoice.doctor_id) : '',
               currency: (invoice.currency?.toUpperCase() as any) || 'UYU',
               total: Number(invoice.total || 0),
               order_id: invoice.order_id ? String(invoice.order_id) : undefined,
@@ -780,6 +786,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
             if (initialUser) {
               setUsers([initialUser]);
             }
+            setDoctorName('');
             // Pre-cargar ítems generados por IA si están disponibles
             const preloadedItems = initialItems
               ?.filter(i => i.service_id)
@@ -793,6 +800,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
             form.reset({
               type: 'invoice',
               user_id: initialUser ? initialUser.id : '',
+              doctor_id: '',
               currency: 'UYU',
               items: preloadedItems,
               total: 0,
@@ -1075,6 +1083,26 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                         <SelectItem value="UYU">UYU</SelectItem>
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField control={form.control} name="doctor_id" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('doctor')}</FormLabel>
+                    <FormControl>
+                      <DoctorSelector
+                        value={field.value}
+                        selectedDoctorName={doctorName}
+                        onValueChange={(doctorId, doctor) => {
+                          field.onChange(doctorId);
+                          setDoctorName(doctor?.name || '');
+                        }}
+                        placeholder={t('searchDoctor')}
+                        triggerText={t('selectDoctor')}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
