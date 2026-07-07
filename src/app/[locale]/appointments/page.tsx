@@ -83,7 +83,7 @@ import { ContextEntityPicker } from '@/components/appointments/ContextEntityPick
 import { InlineAppointmentDraft } from '@/components/calendar/inline-appointment-draft';
 import { linkInvoiceToAppointment } from '@/services/billing-links';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
-import { useAccountStatement } from '@/stores/account-statement-store';
+import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
 import { usePatientView } from '@/stores/patient-view-store';
 import { AppointmentStatusContextItems } from '@/components/appointments/AppointmentStatusMenu';
 import { useAppointmentStatus } from '@/hooks/use-appointment-status';
@@ -545,7 +545,7 @@ export default function AppointmentsPage() {
     const { refreshNotifications: refreshReminders, markSessionAction } = useNotifications();
     const { user } = useAuth();
     const { open: openBillingWizard } = useBillingWizard();
-    const { open: openAccountStatement } = useAccountStatement();
+    const { open: openAccountStatement } = usePatientLedgerSheet();
     const { open: openPatientView } = usePatientView();
     const { hasPermission } = usePermissions();
     const canCreateInlinePatient = hasPermission(PATIENTS_PERMISSIONS.CREATE);

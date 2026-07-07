@@ -241,8 +241,6 @@ export type Quote = {
   amount_paid?: number;
   amount_pending_payment?: number;
   external_id?: string | number | null;
-  doctor_id?: string;
-  doctor_name?: string;
 };
 
 export type QuoteItem = {
@@ -316,8 +314,6 @@ export type Invoice = {
   is_historical?: boolean;
   due_date?: string;
   external_id?: string | number | null;
-  doctor_id?: string;
-  doctor_name?: string;
   createdAt: string;
   updatedAt: string;
 };
