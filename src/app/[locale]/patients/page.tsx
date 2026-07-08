@@ -62,8 +62,8 @@ import { AppointmentFormDialog } from '@/components/appointments/AppointmentForm
 import { getCalendarSettings } from '@/components/calendar/calendar-settings-utils';
 import { InvoiceFormDialog } from '@/components/tables/invoices-table';
 import { PrepaidFormDialog } from '@/components/sales/payments/PrepaidFormDialog';
-import { SmartPaymentFormDialog } from '@/components/sales/payments/SmartPaymentFormDialog';
 import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
+import { QuickTreatmentDialog } from '@/components/financial/quick-treatment-dialog';
 import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/components/users/clinic-history-viewer';
 import { PatientInstructionsSection } from '@/components/medical-instructions/patient-instructions-section';
 import { UserCommunicationPreferences } from '@/components/users/user-communication-preferences';
@@ -545,8 +545,8 @@ export default function UsersPage() {
   const [editSessionId, setEditSessionId] = React.useState<number | null>(null);
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = React.useState(false);
   const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = React.useState(false);
+  const [quickTreatmentDialogMode, setQuickTreatmentDialogMode] = React.useState<'quote' | 'invoice' | null>(null);
   const [isPrepaidDialogOpen, setIsPrepaidDialogOpen] = React.useState(false);
-  const [isSmartPaymentDialogOpen, setIsSmartPaymentDialogOpen] = React.useState(false);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = React.useState(false);
   const [isWhatsAppDialogOpen, setIsWhatsAppDialogOpen] = React.useState(false);
   const [treatmentContactCtx, setTreatmentContactCtx] = React.useState<TreatmentContactContext | null>(null);
@@ -1524,13 +1524,15 @@ export default function UsersPage() {
                         ledgerContent={
                           <PatientFinanceSection
                             userId={selectedUser.id}
+                            patientName={selectedUser.name}
+                            patientEmail={selectedUser.email}
                             viewMode={financeView}
                             refreshQuotesTrigger={refreshQuotesTrigger}
                             refreshInvoicesTrigger={refreshInvoicesTrigger}
                             refreshPaymentsTrigger={refreshPaymentsTrigger}
-                            onCreateQuote={() => setIsQuoteDialogOpen(true)}
-                            onCreateTreatment={() => setIsInvoiceDialogOpen(true)}
-                            onCreatePayment={() => setIsSmartPaymentDialogOpen(true)}
+                            onCreateQuote={() => setQuickTreatmentDialogMode('quote')}
+                            onCreateTreatment={() => setQuickTreatmentDialogMode('invoice')}
+                            onCreatePayment={() => setIsPrepaidDialogOpen(true)}
                             onPrintSummary={handlePrintFinancialSummary}
                             onViewStatement={() => openAccountStatement(selectedUser.id, selectedUser.name)}
                             onDataChange={() => loadUsers()}
@@ -1914,21 +1916,6 @@ export default function UsersPage() {
       )}
 
       {selectedUser && (
-        <SmartPaymentFormDialog
-          open={isSmartPaymentDialogOpen}
-          onOpenChange={setIsSmartPaymentDialogOpen}
-          initialUser={selectedUser}
-          onSaveSuccess={() => {
-            setIsSmartPaymentDialogOpen(false);
-            setActiveTab('financial');
-            setRefreshInvoicesTrigger(t => t + 1);
-            setRefreshPaymentsTrigger(t => t + 1);
-            loadUsers();
-          }}
-        />
-      )}
-
-      {selectedUser && (
         <InvoiceFormDialog
           isOpen={isInvoiceDialogOpen}
           onOpenChange={setIsInvoiceDialogOpen}
@@ -1952,6 +1939,24 @@ export default function UsersPage() {
             setIsQuoteDialogOpen(false);
             setActiveTab('financial');
             setRefreshQuotesTrigger(t => t + 1);
+            loadUsers();
+          }}
+        />
+      )}
+
+      {selectedUser && quickTreatmentDialogMode && (
+        <QuickTreatmentDialog
+          open={!!quickTreatmentDialogMode}
+          onOpenChange={(open) => { if (!open) setQuickTreatmentDialogMode(null); }}
+          mode={quickTreatmentDialogMode}
+          patient={selectedUser}
+          onSaveSuccess={() => {
+            setActiveTab('financial');
+            if (quickTreatmentDialogMode === 'quote') {
+              setRefreshQuotesTrigger(t => t + 1);
+            } else {
+              setRefreshInvoicesTrigger(t => t + 1);
+            }
             loadUsers();
           }}
         />

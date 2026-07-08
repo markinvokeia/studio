@@ -13,11 +13,15 @@ import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
 import type { PatientFinanceView, Quote, UserFinancial } from '@/lib/types';
 
-type ClassicSubTab = 'quotes' | 'invoices' | 'payments';
+type FinanceTabsSubTab = 'quotes' | 'invoices' | 'payments';
 
 interface PatientFinanceSectionProps {
   userId: string;
   viewMode: PatientFinanceView;
+  /** Needed by the unified ledger's "Finalizado" credit-allocation payment (its
+   *  `client_user` payload) — the tabs layout doesn't use either. */
+  patientName?: string;
+  patientEmail?: string;
   isSales?: boolean;
   refreshQuotesTrigger?: number;
   refreshInvoicesTrigger?: number;
@@ -32,12 +36,17 @@ interface PatientFinanceSectionProps {
 }
 
 /**
- * Switches between the unified account ledger and the legacy Quotes/Invoices/Payments
- * tabs, per the user's `finance_view` preference (see /preferences).
+ * Switches between the two patient finance layouts per the user's `finance_view`
+ * preference (see /preferences): 'unified' — labeled "Clásico" to users — renders the
+ * single-timeline `PatientLedger`; 'tabs' — labeled "Nuevo" — renders `FinanceTabsView`,
+ * the separate Quotes/Invoices/Payments tabs. Mind the inversion: `finance_view` values
+ * don't match their user-facing labels 1:1, so don't infer one from the other's name.
  */
 export function PatientFinanceSection({
   userId,
   viewMode,
+  patientName,
+  patientEmail,
   isSales = true,
   refreshQuotesTrigger = 0,
   refreshInvoicesTrigger = 0,
@@ -51,7 +60,7 @@ export function PatientFinanceSection({
 }: PatientFinanceSectionProps) {
   if (viewMode === 'tabs') {
     return (
-      <ClassicFinanceTabs
+      <FinanceTabsView
         userId={userId}
         isSales={isSales}
         refreshQuotesTrigger={refreshQuotesTrigger}
@@ -67,6 +76,8 @@ export function PatientFinanceSection({
   return (
     <PatientLedger
       userId={userId}
+      patientName={patientName}
+      patientEmail={patientEmail}
       refreshTrigger={refreshQuotesTrigger + refreshInvoicesTrigger + refreshPaymentsTrigger}
       onCreateQuote={onCreateQuote}
       onCreateTreatment={onCreateTreatment}
@@ -79,7 +90,7 @@ export function PatientFinanceSection({
   );
 }
 
-function ClassicFinanceTabs({
+function FinanceTabsView({
   userId,
   isSales,
   refreshQuotesTrigger,
@@ -90,7 +101,7 @@ function ClassicFinanceTabs({
   onDataChange,
 }: Omit<PatientFinanceSectionProps, 'viewMode' | 'onCreateQuote' | 'onCreateTreatment' | 'onCreatePayment'>) {
   const t = useTranslations('UsersPage');
-  const [subTab, setSubTab] = React.useState<ClassicSubTab>('quotes');
+  const [subTab, setSubTab] = React.useState<FinanceTabsSubTab>('quotes');
   const [selectedQuote, setSelectedQuote] = React.useState<Quote | null>(null);
   const [financialData, setFinancialData] = React.useState<UserFinancial | null>(null);
   const [isStatsOpen, setIsStatsOpen] = React.useState(true);
@@ -127,7 +138,7 @@ function ClassicFinanceTabs({
           { id: 'payments', label: t('tabs.payments') },
         ]}
         activeTab={subTab}
-        onChange={(id) => setSubTab(id as ClassicSubTab)}
+        onChange={(id) => setSubTab(id as FinanceTabsSubTab)}
       />
       {subTab === 'quotes' && (
         <UserQuotes

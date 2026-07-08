@@ -21,19 +21,24 @@
       "notaCredito": "Nota de crédito"
     },
     "empty": "Este paciente aún no tiene presupuestos, facturas ni pagos.",
+    "search": "Buscar...",
+    "finalBalance": "Saldo final:",
     "loading": "Cargando cuenta…",
     "noPendingInvoices": "No hay facturas pendientes de pago",
     "actions": {
       "openMenu": "Abrir menú",
       "edit": "Editar",
-      "invoice": "Facturar",
-      "confirmQuote": "Confirmar presupuesto",
-      "pay": "Registrar pago",
+      "invoiceCustom": "Facturación personalizada / parcial…",
       "creditNote": "Crear nota de crédito",
-      "revertToQuote": "Volver a presupuesto",
       "deleteQuote": "Eliminar presupuesto",
       "deletePayment": "Eliminar pago",
-      "deleteCreditNote": "Eliminar nota de crédito"
+      "deleteCreditNote": "Eliminar nota de crédito",
+      "deleteInvoice": "Eliminar tratamiento"
+    },
+    "statusControl": {
+      "presupuesto": "Presupuesto",
+      "enCurso": "En curso",
+      "finalizado": "Finalizado"
     },
     "dialogs": {
       "editItem": {
@@ -61,6 +66,14 @@
         "description": "Esto revertirá la factura de vuelta a un presupuesto. Esta acción no se puede deshacer.",
         "confirm": "Revertir"
       },
+      "deleteInvoice": {
+        "title": "Eliminar tratamiento",
+        "description": "Este tratamiento se facturó directamente, sin un presupuesto detrás, así que no se puede volver a presupuesto: se eliminará permanentemente. Esta acción no se puede deshacer."
+      },
+      "deleteInvoiceAndQuote": {
+        "title": "Eliminar documento",
+        "description": "Esto eliminará permanentemente la factura junto con el presupuesto que le dio origen. Esta acción no se puede deshacer."
+      },
       "deleteQuote": {
         "title": "Eliminar presupuesto",
         "description": "Esto eliminará permanentemente el presupuesto y todos sus ítems. Esta acción no se puede deshacer.",
@@ -74,6 +87,12 @@
       "deleteCreditNote": {
         "title": "Eliminar nota de crédito",
         "description": "Esto eliminará permanentemente la nota de crédito junto con sus alocaciones. Esta acción no se puede deshacer."
+      },
+      "partialFinalize": {
+        "title": "Pago incompleto",
+        "description": "Este tratamiento o presupuesto no se puede pagar completamente con los pagos registrados. ¿Continuar de todas formas?",
+        "cancel": "Cancelar",
+        "confirm": "Continuar"
       }
     },
     "toasts": {
@@ -81,10 +100,20 @@
       "itemUpdateError": "No se pudo actualizar el ítem",
       "creditNoteCreated": "Nota de crédito creada",
       "creditNoteError": "No se pudo crear la nota de crédito",
-      "quoteConfirmed": "Presupuesto confirmado",
-      "quoteConfirmError": "No se pudo confirmar el presupuesto",
+      "markedEnCurso": "Presupuesto confirmado y facturado",
+      "markEnCursoError": "No se pudo confirmar y facturar el presupuesto",
+      "itemFinalized": "Tratamiento pagado",
+      "itemFinalizeError": "No se pudo pagar el tratamiento",
+      "itemUnfinalized": "Pago revertido",
+      "itemUnfinalizeError": "No se pudo revertir el pago",
+      "alreadyFinalized": "Este tratamiento ya está pagado",
+      "itemPartiallyFinalized": "Se asignó el crédito disponible como pago parcial",
+      "noCreditToApply": "El paciente no tiene crédito disponible para asignar",
+      "noPaymentsToUndo": "No hay pagos para revertir en esta factura",
       "invoiceReverted": "Factura revertida a presupuesto",
       "invoiceRevertError": "No se pudo revertir la factura",
+      "invoiceDeleted": "Tratamiento eliminado",
+      "invoiceDeleteError": "No se pudo eliminar el tratamiento",
       "quoteDeleted": "Presupuesto eliminado",
       "quoteDeleteError": "No se pudo eliminar el presupuesto",
       "paymentDeleted": "Pago eliminado",
@@ -92,6 +121,41 @@
       "creditNoteDeleted": "Nota de crédito eliminada",
       "creditNoteDeleteError": "No se pudo eliminar la nota de crédito"
     }
+  },
+  "QuickTreatmentDialog": {
+    "titleQuote": "Nuevo Presupuesto",
+    "titleTreatment": "Nuevo Tratamiento",
+    "fields": {
+      "date": "Fecha",
+      "tooth": "Pieza",
+      "treatment": "Tratamiento",
+      "searchTreatment": "Buscar tratamiento...",
+      "selectTreatment": "Seleccionar tratamiento",
+      "showDescription": "Mostrar descripción",
+      "hideDescription": "Ocultar descripción",
+      "price": "Precio",
+      "doctor": "Doctor",
+      "searchDoctor": "Buscar doctor...",
+      "selectDoctor": "Seleccionar doctor",
+      "keepOpen": "Guardar y cargar otro"
+    },
+    "validation": {
+      "dateRequired": "La fecha es obligatoria",
+      "toothNumberMin": "Número de pieza inválido",
+      "toothNumberMax": "Número de pieza inválido",
+      "serviceRequired": "Selecciona un tratamiento",
+      "pricePositive": "El precio debe ser mayor o igual a 0"
+    },
+    "toasts": {
+      "quoteCreated": "Presupuesto creado",
+      "treatmentCreated": "Tratamiento creado"
+    },
+    "errors": {
+      "saveQuote": "No se pudo crear el presupuesto",
+      "saveInvoice": "No se pudo crear el tratamiento"
+    },
+    "cancel": "Cancelar",
+    "save": "Aceptar"
   },
   "AccountStatement": {
     "title": "Estado de cuenta",

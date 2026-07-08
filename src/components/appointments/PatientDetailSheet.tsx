@@ -13,11 +13,14 @@ import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/compone
 import { PatientInstructionsSection } from '@/components/medical-instructions/patient-instructions-section';
 import { UserTreatmentPlans } from '@/components/users/user-treatment-plans';
 import { PatientFinanceSection } from '@/components/users/patient-finance-section';
+import { QuickTreatmentDialog } from '@/components/financial/quick-treatment-dialog';
+import { PrepaidFormDialog } from '@/components/sales/payments/PrepaidFormDialog';
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
 import { useFinanceViewPreference } from '@/hooks/use-finance-view-preference';
 import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
+import type { User } from '@/lib/types';
 import {
   AlertTriangle, Mail, Phone, Users,
 } from 'lucide-react';
@@ -90,6 +93,23 @@ export function PatientDetailSheet({
   const [createOdontogramTrigger, setCreateOdontogramTrigger] = React.useState(0);
   const [createDocumentTrigger, setCreateDocumentTrigger] = React.useState(0);
   const [allergies, setAllergies] = React.useState<AllergySummaryItem[]>([]);
+
+  // Finance quick actions — same lightweight dialogs the "Clásico" ledger uses on the
+  // patients list page; this sheet is the other place that view is reused from (e.g.
+  // opened from the appointments page), so it needs the same "…" toolbar wired up.
+  const [quickTreatmentDialogMode, setQuickTreatmentDialogMode] = React.useState<'quote' | 'invoice' | null>(null);
+  const [isPrepaidDialogOpen, setIsPrepaidDialogOpen] = React.useState(false);
+  const [refreshQuotesTrigger, setRefreshQuotesTrigger] = React.useState(0);
+  const [refreshInvoicesTrigger, setRefreshInvoicesTrigger] = React.useState(0);
+  const [refreshPaymentsTrigger, setRefreshPaymentsTrigger] = React.useState(0);
+  const patientForDialogs: User = {
+    id: userId,
+    name: userName,
+    email: userEmail || '',
+    phone_number: userPhone || '',
+    is_active: true,
+    avatar: '',
+  };
 
   React.useEffect(() => {
     if (!isDoctorMode || !open || !userId) return;
@@ -222,12 +242,48 @@ export function PatientDetailSheet({
           ledgerContent={
             <PatientFinanceSection
               userId={userId}
+              patientName={userName}
+              patientEmail={userEmail}
               viewMode={financeView}
+              refreshQuotesTrigger={refreshQuotesTrigger}
+              refreshInvoicesTrigger={refreshInvoicesTrigger}
+              refreshPaymentsTrigger={refreshPaymentsTrigger}
+              onCreateQuote={() => setQuickTreatmentDialogMode('quote')}
+              onCreateTreatment={() => setQuickTreatmentDialogMode('invoice')}
+              onCreatePayment={() => setIsPrepaidDialogOpen(true)}
               onViewStatement={() => openAccountStatement(userId, userName)}
             />
           }
         />
       </div>
+
+      {quickTreatmentDialogMode && (
+        <QuickTreatmentDialog
+          open={!!quickTreatmentDialogMode}
+          onOpenChange={(o) => { if (!o) setQuickTreatmentDialogMode(null); }}
+          mode={quickTreatmentDialogMode}
+          patient={patientForDialogs}
+          onSaveSuccess={() => {
+            setActiveTab('financial');
+            if (quickTreatmentDialogMode === 'quote') {
+              setRefreshQuotesTrigger((n) => n + 1);
+            } else {
+              setRefreshInvoicesTrigger((n) => n + 1);
+            }
+          }}
+        />
+      )}
+
+      <PrepaidFormDialog
+        open={isPrepaidDialogOpen}
+        onOpenChange={setIsPrepaidDialogOpen}
+        initialUser={patientForDialogs}
+        onSaveSuccess={() => {
+          setIsPrepaidDialogOpen(false);
+          setActiveTab('financial');
+          setRefreshPaymentsTrigger((n) => n + 1);
+        }}
+      />
     </ResizableSheet>
   );
 }

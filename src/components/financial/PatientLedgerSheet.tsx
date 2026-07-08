@@ -6,9 +6,12 @@ import { useTranslations } from 'next-intl';
 
 import { ResizableSheet, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
 import { PatientLedger } from '@/components/users/patient-ledger';
+import { QuickTreatmentDialog } from '@/components/financial/quick-treatment-dialog';
+import { PrepaidFormDialog } from '@/components/sales/payments/PrepaidFormDialog';
 import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { useToast } from '@/hooks/use-toast';
+import type { User } from '@/lib/types';
 
 /**
  * Global host for the "view account statement" shortcut used throughout the app
@@ -22,6 +25,12 @@ export function PatientLedgerSheet() {
   const { printFinancialSummary } = usePrintDocument();
   const { toast } = useToast();
   const [isPrinting, setIsPrinting] = React.useState(false);
+  const [quickTreatmentDialogMode, setQuickTreatmentDialogMode] = React.useState<'quote' | 'invoice' | null>(null);
+  const [isPrepaidDialogOpen, setIsPrepaidDialogOpen] = React.useState(false);
+  const [refreshTrigger, setRefreshTrigger] = React.useState(0);
+  const patientForDialogs: User | null = userId
+    ? { id: userId, name: userName || '', email: '', phone_number: '', is_active: true, avatar: '' }
+    : null;
 
   const handlePrint = React.useCallback(async () => {
     if (!userId || isPrinting) return;
@@ -59,9 +68,41 @@ export function PatientLedgerSheet() {
           </div>
         </div>
         <div className="min-h-0 flex-1 overflow-hidden p-4">
-          {userId && <PatientLedger userId={userId} onPrintSummary={handlePrint} />}
+          {userId && (
+            <PatientLedger
+              userId={userId}
+              patientName={userName}
+              refreshTrigger={refreshTrigger}
+              onCreateQuote={() => setQuickTreatmentDialogMode('quote')}
+              onCreateTreatment={() => setQuickTreatmentDialogMode('invoice')}
+              onCreatePayment={() => setIsPrepaidDialogOpen(true)}
+              onPrintSummary={handlePrint}
+            />
+          )}
         </div>
       </div>
+
+      {quickTreatmentDialogMode && patientForDialogs && (
+        <QuickTreatmentDialog
+          open={!!quickTreatmentDialogMode}
+          onOpenChange={(o) => { if (!o) setQuickTreatmentDialogMode(null); }}
+          mode={quickTreatmentDialogMode}
+          patient={patientForDialogs}
+          onSaveSuccess={() => setRefreshTrigger((n) => n + 1)}
+        />
+      )}
+
+      {patientForDialogs && (
+        <PrepaidFormDialog
+          open={isPrepaidDialogOpen}
+          onOpenChange={setIsPrepaidDialogOpen}
+          initialUser={patientForDialogs}
+          onSaveSuccess={() => {
+            setIsPrepaidDialogOpen(false);
+            setRefreshTrigger((n) => n + 1);
+          }}
+        />
+      )}
     </ResizableSheet>
   );
 }

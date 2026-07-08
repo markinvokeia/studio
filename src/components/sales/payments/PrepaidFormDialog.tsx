@@ -17,7 +17,7 @@ import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { useToast } from '@/hooks/use-toast';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { PaymentMethod, User } from '@/lib/types';
-import { cn, toLocalISOString } from '@/lib/utils';
+import { cn, preserveTimeIfToday, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { format, parseISO } from 'date-fns';
@@ -128,7 +128,7 @@ export function PrepaidFormDialog({ open, onOpenChange, initialUser, onSaveSucce
                 user,
                 client_user: clientUser,
                 query: {
-                    payment_date: toLocalISOString(pendingData.created_at),
+                    payment_date: toLocalISOString(preserveTimeIfToday(pendingData.created_at)),
                     amount: pendingData.payment_amount,
                     method: selectedMethod?.name,
                     payment_method_id: pendingData.payment_method_id,

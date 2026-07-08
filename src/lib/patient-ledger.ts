@@ -86,7 +86,9 @@ export function buildPatientLedger(params: {
         const currency = invoice.currency || quote.currency || 'USD';
         pushRow(currency, {
           id: `invoice-item-${item.id}`,
-          date: invoice.createdAt,
+          // The quote's date, not the invoice's — billing a presupuesto shouldn't move
+          // its row down the timeline to "now"; it stays where it was originally quoted.
+          date: quote.createdAt,
           kind: 'item',
           label: item.service_name || quoteItem.service_name,
           docNo: invoice.doc_no || invoice.invoice_doc_no,
@@ -211,6 +213,12 @@ export function buildPatientLedger(params: {
   }
 
   for (const payment of payments) {
+    // Allocations (spending existing credit/prepaid balance or a credit note against an
+    // invoice) are bookkeeping entries for money the ledger already counted once — as the
+    // original direct payment/credit note row. Showing them too would both double the
+    // running balance and read as a second, separate payment (see e.g. a "Finalizado"
+    // credit allocation showing up right after the prepayment that funded it).
+    if ((payment.transaction_type || 'direct_payment') !== 'direct_payment') continue;
     const currency = payment.currency || payment.source_currency || 'USD';
     pushRow(currency, {
       id: `payment-${payment.id}`,
@@ -229,6 +237,9 @@ export function buildPatientLedger(params: {
 
   const result: Record<string, LedgerRow[]> = {};
   for (const [currency, rows] of Object.entries(rowsByCurrency)) {
+    // Ascending by created_at (quote/invoice `createdAt`, payment `payment_date` — both
+    // ultimately fall back to the record's `created_at`) so the running balance below
+    // reads chronologically and the last row is always the patient's final balance.
     const sorted = [...rows].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     let balance = 0;
     result[currency] = sorted.map((row) => {

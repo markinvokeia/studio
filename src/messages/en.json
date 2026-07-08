@@ -21,19 +21,24 @@
       "notaCredito": "Credit note"
     },
     "empty": "This patient has no quotes, invoices, or payments yet.",
+    "search": "Search...",
+    "finalBalance": "Final balance:",
     "loading": "Loading account…",
     "noPendingInvoices": "No pending invoices to pay",
     "actions": {
       "openMenu": "Open menu",
       "edit": "Edit",
-      "invoice": "Invoice",
-      "confirmQuote": "Confirm quote",
-      "pay": "Register payment",
+      "invoiceCustom": "Custom / partial invoice…",
       "creditNote": "Create credit note",
-      "revertToQuote": "Revert to quote",
       "deleteQuote": "Delete quote",
       "deletePayment": "Delete payment",
-      "deleteCreditNote": "Delete credit note"
+      "deleteCreditNote": "Delete credit note",
+      "deleteInvoice": "Delete treatment"
+    },
+    "statusControl": {
+      "presupuesto": "Quoted",
+      "enCurso": "In progress",
+      "finalizado": "Finalized"
     },
     "dialogs": {
       "editItem": {
@@ -61,6 +66,14 @@
         "description": "This will revert the invoice back to a quote. This action cannot be undone.",
         "confirm": "Revert"
       },
+      "deleteInvoice": {
+        "title": "Delete treatment",
+        "description": "This treatment was billed directly, with no quote behind it, so it can't be reverted to a quote: it will be permanently deleted. This action cannot be undone."
+      },
+      "deleteInvoiceAndQuote": {
+        "title": "Delete document",
+        "description": "This will permanently delete the invoice along with the quote it was billed from. This action cannot be undone."
+      },
       "deleteQuote": {
         "title": "Delete quote",
         "description": "This will permanently delete the quote and all its items. This action cannot be undone.",
@@ -74,6 +87,12 @@
       "deleteCreditNote": {
         "title": "Delete credit note",
         "description": "This will permanently delete the credit note along with its allocations. This action cannot be undone."
+      },
+      "partialFinalize": {
+        "title": "Incomplete payment",
+        "description": "This treatment or quote can't be paid in full with the payments on file. Continue anyway?",
+        "cancel": "Cancel",
+        "confirm": "Continue"
       }
     },
     "toasts": {
@@ -81,10 +100,20 @@
       "itemUpdateError": "Could not update the item",
       "creditNoteCreated": "Credit note created",
       "creditNoteError": "Could not create the credit note",
-      "quoteConfirmed": "Quote confirmed",
-      "quoteConfirmError": "Could not confirm the quote",
+      "markedEnCurso": "Quote confirmed and billed",
+      "markEnCursoError": "Could not confirm and bill the quote",
+      "itemFinalized": "Treatment paid",
+      "itemFinalizeError": "Could not pay the treatment",
+      "itemUnfinalized": "Payment reverted",
+      "itemUnfinalizeError": "Could not revert the payment",
+      "alreadyFinalized": "This treatment is already paid",
+      "itemPartiallyFinalized": "Available credit applied as a partial payment",
+      "noCreditToApply": "The patient has no available credit to apply",
+      "noPaymentsToUndo": "No payments to revert on this invoice",
       "invoiceReverted": "Invoice reverted to quote",
       "invoiceRevertError": "Could not revert the invoice",
+      "invoiceDeleted": "Treatment deleted",
+      "invoiceDeleteError": "Could not delete the treatment",
       "quoteDeleted": "Quote deleted",
       "quoteDeleteError": "Could not delete the quote",
       "paymentDeleted": "Payment deleted",
@@ -92,6 +121,41 @@
       "creditNoteDeleted": "Credit note deleted",
       "creditNoteDeleteError": "Could not delete the credit note"
     }
+  },
+  "QuickTreatmentDialog": {
+    "titleQuote": "New Quote",
+    "titleTreatment": "New Treatment",
+    "fields": {
+      "date": "Date",
+      "tooth": "Tooth",
+      "treatment": "Treatment",
+      "searchTreatment": "Search treatment...",
+      "selectTreatment": "Select treatment",
+      "showDescription": "Show description",
+      "hideDescription": "Hide description",
+      "price": "Price",
+      "doctor": "Doctor",
+      "searchDoctor": "Search doctor...",
+      "selectDoctor": "Select doctor",
+      "keepOpen": "Save and add another"
+    },
+    "validation": {
+      "dateRequired": "Date is required",
+      "toothNumberMin": "Invalid tooth number",
+      "toothNumberMax": "Invalid tooth number",
+      "serviceRequired": "Select a treatment",
+      "pricePositive": "Price must be 0 or greater"
+    },
+    "toasts": {
+      "quoteCreated": "Quote created",
+      "treatmentCreated": "Treatment created"
+    },
+    "errors": {
+      "saveQuote": "Could not create the quote",
+      "saveInvoice": "Could not create the treatment"
+    },
+    "cancel": "Cancel",
+    "save": "Save"
   },
   "AccountStatement": {
     "title": "Account statement",

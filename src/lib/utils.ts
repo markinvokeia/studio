@@ -75,6 +75,19 @@ export function toLocalISOString(date: Date): string {
   return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
 }
 
+/**
+ * A `DatePickerInput` only lets the user pick a day — once touched, its value collapses
+ * to midnight (via `parseISO('yyyy-MM-dd')`), losing whatever real time-of-day the field
+ * held before. For same-day records that matters: a ledger/timeline sorted by this
+ * timestamp would misorder a midnight-truncated entry before one created earlier the same
+ * day with a real time. When the picked day is today, swap in the current wall-clock time
+ * instead of midnight; a genuinely backdated (different-day) pick is left untouched.
+ */
+export function preserveTimeIfToday(picked: Date): Date {
+  const now = new Date();
+  return picked.toDateString() === now.toDateString() ? now : picked;
+}
+
 type DocumentWithDocNo = {
   doc_no?: string;
   invoice_doc_no?: string;

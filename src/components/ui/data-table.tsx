@@ -23,6 +23,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -88,6 +89,10 @@ interface DataTableProps<TData, TValue> {
   viewControls?: React.ReactNode;
   /** Override the default initial page size (default: 25) */
   initialPageSize?: number;
+  /** A `<TableRow>` (or several) rendered in a `<TableFooter>` right after the body —
+   *  outside react-table's row model, so it's unaffected by sorting/filtering/pagination
+   *  and always sits at the true end of the table (e.g. a running-balance summary row). */
+  footerRow?: React.ReactNode;
 }
 
 export function DataTable<TData, TValue>({
@@ -132,6 +137,7 @@ export function DataTable<TData, TValue>({
   primaryActions,
   viewControls,
   initialPageSize = 25,
+  footerRow,
 }: DataTableProps<TData, TValue>) {
   const t = useTranslations('General');
   const showCardList = Boolean(isNarrow && renderCard);
@@ -376,6 +382,7 @@ export function DataTable<TData, TValue>({
               </TableRow>
             )}
           </TableBody>
+          {footerRow && <TableFooter>{footerRow}</TableFooter>}
         </table>
       </div>
       ) : null}
