@@ -34,9 +34,6 @@ export type User = {
   doctor_id?: string | null;
   doctor_name?: string;
   sex?: 'male' | 'female' | null;
-  /** Patient group this user belongs to. Nullable. */
-  group_id?: string | null;
-  group_name?: string;
 };
 
 export type CurrencyFinancialData = {

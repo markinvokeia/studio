@@ -18,13 +18,13 @@ import { PhoneInput } from '@/components/ui/phone-input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { PatientGroupsField } from '@/components/patients/patient-groups-field';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import type { MutualSociety, PatientGroup, User } from '@/lib/types';
+import type { MutualSociety, User } from '@/lib/types';
 import {
   fetchPatientById,
   getMutualSocietiesList,
-  getPatientGroupsList,
   searchGuardianPatients,
   upsertUser,
   userFormSchema,
@@ -145,7 +145,6 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
   const { toast } = useToast();
   const [user, setUser] = React.useState<User | null>(userProp ?? null);
   const [mutualSocieties, setMutualSocieties] = React.useState<MutualSociety[]>(mutualSocietiesProp ?? []);
-  const [patientGroups, setPatientGroups] = React.useState<PatientGroup[]>([]);
   const [isLoading, setIsLoading] = React.useState(!userProp);
   const [isSaving, setIsSaving] = React.useState(false);
   const [saveError, setSaveError] = React.useState<string | null>(null);
@@ -157,17 +156,16 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
     defaultValues: {
       id: '', name: '', email: '', phone: '', identity_document: '', birth_date: '',
       notes: '', is_active: true, mutual_society_id: '', is_dependent: false, responsible_contact_id: null,
-      doctor_id: null, sex: null, group_id: null,
+      doctor_id: null, sex: null,
     },
   });
   const isDependent = infoForm.watch('is_dependent');
 
   React.useEffect(() => {
     let active = true;
-    const applyUser = (u: User | null, societies: MutualSociety[], groups: PatientGroup[]) => {
+    const applyUser = (u: User | null, societies: MutualSociety[]) => {
       if (!active) return;
       setMutualSocieties(societies);
-      setPatientGroups(groups);
       if (u) {
         setUser(u);
         setResponsibleContactName(u.responsible_contact_name || '');
@@ -186,7 +184,6 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
           responsible_contact_id: u.responsible_contact_id || null,
           doctor_id: u.doctor_id || null,
           sex: u.sex ?? null,
-          group_id: u.group_id || null,
         });
       }
       setIsLoading(false);
@@ -195,10 +192,10 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
     if (userProp) {
       // Preloaded: only fetch societies if they weren't provided.
       const societiesPromise = mutualSocietiesProp ? Promise.resolve(mutualSocietiesProp) : getMutualSocietiesList();
-      Promise.all([societiesPromise, getPatientGroupsList()]).then(([soc, groups]) => applyUser(userProp, soc, groups));
+      societiesPromise.then((soc) => applyUser(userProp, soc));
     } else {
       setIsLoading(true);
-      Promise.all([fetchPatientById(userId), getMutualSocietiesList(), getPatientGroupsList()]).then(([fetchedUser, soc, groups]) => applyUser(fetchedUser, soc, groups));
+      Promise.all([fetchPatientById(userId), getMutualSocietiesList()]).then(([fetchedUser, soc]) => applyUser(fetchedUser, soc));
     }
     return () => { active = false; };
   }, [userId, userProp, mutualSocietiesProp, infoForm]);
@@ -231,8 +228,6 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
         doctor_id: data.doctor_id || null,
         doctor_name: doctorDisplayName || undefined,
         sex: data.sex ?? null,
-        group_id: data.group_id || null,
-        group_name: patientGroups.find((g) => String(g.id) === data.group_id)?.name || undefined,
       };
       setUser(updated);
       onSaved?.(updated);
@@ -333,23 +328,6 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
               <FormMessage />
             </FormItem>
           )} />
-          <FormField control={infoForm.control} name="group_id" render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('UsersPage.patientGroup.select')}</FormLabel>
-              <Select onValueChange={(value) => field.onChange(value === 'none' ? null : value)} value={field.value || 'none'}>
-                <FormControl>
-                  <SelectTrigger><SelectValue placeholder={t('UsersPage.patientGroup.select')} /></SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="none">{t('UsersPage.patientGroup.none')}</SelectItem>
-                  {patientGroups.map((g) => (
-                    <SelectItem key={g.id} value={String(g.id)}>{g.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )} />
           <FormField control={infoForm.control} name="doctor_id" render={({ field }) => (
             <FormItem>
               <FormLabel>{t('UsersPage.createDialog.doctor')}</FormLabel>
@@ -373,6 +351,7 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
               <FormMessage />
             </FormItem>
           )} />
+          {userId && <PatientGroupsField patientId={userId} />}
           <FormField control={infoForm.control} name="is_dependent" render={({ field }) => (
             <FormItem className="flex flex-row items-center space-x-3 space-y-0">
               <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>

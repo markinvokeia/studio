@@ -1641,6 +1641,17 @@
       "select": "Seleccionar grupo",
       "none": "Sin asignar"
     },
+    "patientGroups": {
+      "label": "Grupos del paciente",
+      "selectPlaceholder": "Seleccionar grupos...",
+      "search": "Buscar grupo...",
+      "noResults": "No hay grupos.",
+      "empty": "Este paciente no pertenece a ningún grupo.",
+      "count": "{count} grupo(s)",
+      "save": "Guardar grupos",
+      "saved": "Grupos del paciente actualizados",
+      "saveError": "No se pudieron guardar los grupos"
+    },
     "filters": {
       "type": {
         "label": "Tipo de Paciente",
@@ -6138,6 +6149,32 @@
     },
     "validation": {
       "nameRequired": "El nombre es obligatorio."
+    },
+    "tabs": {
+      "info": "Información",
+      "patients": "Pacientes"
+    },
+    "patients": {
+      "title": "Pacientes del grupo",
+      "description": "Agregue o quite pacientes de este grupo.",
+      "filterPlaceholder": "Buscar en el grupo...",
+      "addButton": "Agregar pacientes",
+      "addConfirm": "Agregar",
+      "addCancel": "Cancelar",
+      "added": "{count} paciente(s) agregado(s) al grupo",
+      "addError": "No se pudieron agregar los pacientes",
+      "search": "Buscar paciente...",
+      "noResults": "No se encontraron pacientes.",
+      "count": "{count} seleccionado(s)",
+      "col_name": "Nombre",
+      "col_document": "Documento",
+      "col_phone": "Teléfono",
+      "col_email": "Email",
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "remove": "Quitar del grupo",
+      "removed": "Paciente quitado del grupo",
+      "removeError": "No se pudo quitar el paciente"
     }
   },
   "Config": {

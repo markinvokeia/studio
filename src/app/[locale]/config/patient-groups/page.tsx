@@ -13,8 +13,10 @@ import { Dialog, DialogBody, DialogCancelButton, DialogContent, DialogDescriptio
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
+import { PatientGroupPatientsTab } from '@/components/patients/patient-group-patients-tab';
 import { BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
@@ -312,6 +314,12 @@ export default function PatientGroupsPage() {
                 </div>
             </CardHeader>
             <Separator />
+            <Tabs defaultValue="info" className="flex-1 flex flex-col min-h-0">
+                <TabsList className="mx-4 mt-3 w-fit flex-none">
+                    <TabsTrigger value="info">{t('tabs.info')}</TabsTrigger>
+                    <TabsTrigger value="patients" disabled={!selectedPatientGroup}>{t('tabs.patients')}</TabsTrigger>
+                </TabsList>
+                <TabsContent value="info" className="mt-0 min-h-0 flex-1 flex-col data-[state=active]:flex">
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
                     <CardContent className="flex-1 overflow-auto p-4 space-y-4">
@@ -364,6 +372,13 @@ export default function PatientGroupsPage() {
                     )}
                 </form>
             </Form>
+                </TabsContent>
+                <TabsContent value="patients" className="mt-0 min-h-0 flex-1 flex-col p-4 data-[state=active]:flex">
+                    {selectedPatientGroup && (
+                        <PatientGroupPatientsTab groupId={String(selectedPatientGroup.id)} canManage={canUpdate} />
+                    )}
+                </TabsContent>
+            </Tabs>
         </Card>
     );
 

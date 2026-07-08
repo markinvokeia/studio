@@ -51,7 +51,6 @@ import { PatientActionsMenu } from '@/components/patients/patient-actions-menu';
 import {
   getDependantContactInfo,
   getMutualSocietiesList,
-  getPatientGroupsList,
   upsertUser,
   userFormSchema,
   type DependantContactInfo,
@@ -79,7 +78,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useFinanceViewPreference } from '@/hooks/use-finance-view-preference';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
-import { Appointment, Calendar as CalendarType, PatientDischarge, PatientGroup, Service, SessionPrefillData, User, UserRole, MutualSociety } from '@/lib/types';
+import { Appointment, Calendar as CalendarType, PatientDischarge, Service, SessionPrefillData, User, UserRole, MutualSociety } from '@/lib/types';
 import { getSalesServices, getUsersServicesBatch } from '@/services/services';
 import { cn, formatDisplayDate } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -515,8 +514,6 @@ export default function UsersPage() {
 
   const [mutualSocieties, setMutualSocieties] = React.useState<MutualSociety[]>([]);
   const [isLoadingMutualSocieties, setIsLoadingMutualSocieties] = React.useState(false);
-  const [patientGroups, setPatientGroups] = React.useState<PatientGroup[]>([]);
-  const [isLoadingPatientGroups, setIsLoadingPatientGroups] = React.useState(false);
   const [deepLinkView, setDeepLinkView] = React.useState<string | undefined>(undefined);
   const {
     activeTab,
@@ -576,13 +573,6 @@ export default function UsersPage() {
     const societies = await getMutualSocietiesList();
     setMutualSocieties(societies);
     setIsLoadingMutualSocieties(false);
-  }, []);
-
-  const loadPatientGroups = React.useCallback(async () => {
-    setIsLoadingPatientGroups(true);
-    const groups = await getPatientGroupsList();
-    setPatientGroups(groups);
-    setIsLoadingPatientGroups(false);
   }, []);
 
   const loadApptData = React.useCallback(async () => {
@@ -727,7 +717,6 @@ export default function UsersPage() {
       responsible_contact_id: null,
       doctor_id: null,
       sex: null,
-      group_id: null,
     },
   });
   const isDependent = form.watch('is_dependent');
@@ -934,7 +923,6 @@ export default function UsersPage() {
       responsible_contact_id: selectedUser.responsible_contact_id || null,
       doctor_id: selectedUser.doctor_id || null,
       sex: selectedUser.sex ?? null,
-      group_id: selectedUser.group_id || null,
     });
     setSelectedUser(updatedUser);
     setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, notes } : u));
@@ -989,7 +977,6 @@ export default function UsersPage() {
 
     setEditingUser(null);
     loadMutualSocieties();
-    loadPatientGroups();
     form.reset({
       name: '',
       email: '',
@@ -1003,7 +990,6 @@ export default function UsersPage() {
       responsible_contact_id: null,
       doctor_id: null,
       sex: null,
-      group_id: null,
     });
     setSelectedGuardianDisplayName('');
     setSelectedDoctorDisplayName('');
@@ -1014,7 +1000,6 @@ export default function UsersPage() {
   const handleEdit = (user: User) => {
     setEditingUser(user);
     loadMutualSocieties();
-    loadPatientGroups();
     form.reset({
       id: user.id,
       name: user.name,
@@ -1029,7 +1014,6 @@ export default function UsersPage() {
       responsible_contact_id: user.responsible_contact_id || null,
       doctor_id: user.doctor_id || null,
       sex: user.sex ?? null,
-      group_id: user.group_id || null,
     });
     setSelectedGuardianDisplayName(user.responsible_contact_name || '');
     setSelectedDoctorDisplayName(user.doctor_name || '');
@@ -1103,7 +1087,6 @@ export default function UsersPage() {
       loadUserRoles(selectedUser.id);
       fetchPatientDischarge(selectedUser.id);
       loadMutualSocieties();
-      loadPatientGroups();
       fetchPatientAllergies(selectedUser.id);
       fetchPatientConditions(selectedUser.id);
     } else {
@@ -1116,7 +1099,7 @@ export default function UsersPage() {
       setCreateOdontogramTrigger(0);
       setCreateDocumentTrigger(0);
     }
-  }, [selectedUser, loadUserRoles, fetchPatientDischarge, loadMutualSocieties, loadPatientGroups, fetchPatientAllergies, fetchPatientConditions]);
+  }, [selectedUser, loadUserRoles, fetchPatientDischarge, loadMutualSocieties, fetchPatientAllergies, fetchPatientConditions]);
 
   const handleCloseDetails = () => {
     setSelectedUser(null);
@@ -1166,8 +1149,6 @@ export default function UsersPage() {
           doctor_id: data.doctor_id || null,
           doctor_name: selectedDoctorDisplayName || undefined,
           sex: data.sex ?? null,
-          group_id: data.group_id || null,
-          group_name: patientGroups.find((g) => String(g.id) === data.group_id)?.name || undefined,
         });
       }
       setIsDialogOpen(false);
@@ -1714,31 +1695,6 @@ export default function UsersPage() {
                           {mutualSocieties.map((ms) => (
                             <SelectItem key={ms.id} value={String(ms.id)}>
                               {ms.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="group_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('UsersPage.patientGroup.select')}</FormLabel>
-                      <Select onValueChange={(value) => field.onChange(value === 'none' ? null : value)} value={field.value || 'none'}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={t('UsersPage.patientGroup.select')} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="none">{t('UsersPage.patientGroup.none')}</SelectItem>
-                          {patientGroups.map((g) => (
-                            <SelectItem key={g.id} value={String(g.id)}>
-                              {g.name}
                             </SelectItem>
                           ))}
                         </SelectContent>

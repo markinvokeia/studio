@@ -3,7 +3,7 @@ import * as z from 'zod';
 
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
-import type { MutualSociety, PatientGroup, User } from '@/lib/types';
+import type { MutualSociety, User } from '@/lib/types';
 
 // ── Patient form schema ──────────────────────────────────────────────────────
 export const userFormSchema = (t: (key: string) => string) => z.object({
@@ -28,7 +28,6 @@ export const userFormSchema = (t: (key: string) => string) => z.object({
   responsible_contact_id: z.string().nullable().optional(),
   doctor_id: z.string().nullable().optional(),
   sex: z.enum(['male', 'female']).nullable().optional(),
-  group_id: z.string().nullable().optional(),
 }).refine((data) => {
   if (data.is_dependent) return true;
   const hasEmail = data.email && data.email.trim() !== '';
@@ -59,7 +58,6 @@ export async function upsertUser(userData: UserFormValues) {
     responsible_contact_id: userData.responsible_contact_id || null,
     doctor_id: userData.doctor_id || null,
     sex: userData.sex || null,
-    group_id: userData.group_id || null,
     filter_type: 'PACIENTE',
     is_sales: true,
   };
@@ -136,39 +134,6 @@ export async function getMutualSocietiesList(): Promise<MutualSociety[]> {
   }
 }
 
-export async function getPatientGroupsList(): Promise<PatientGroup[]> {
-  try {
-    const data = await api.get(API_ROUTES.PATIENT_GROUPS, { page: '1', limit: '1000' });
-
-    let patientGroupsData: any[] = [];
-    if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object' && 'id' in data[0] && !('json' in data[0])) {
-      patientGroupsData = data;
-    } else if (Array.isArray(data) && data.length > 0) {
-      const firstElement = data[0];
-      if (firstElement.json && typeof firstElement.json === 'object') {
-        patientGroupsData = firstElement.json.data || [];
-      } else if (firstElement.data) {
-        patientGroupsData = firstElement.data;
-      }
-    } else if (typeof data === 'object' && data !== null) {
-      const responseObj = data[0]?.json || data;
-      patientGroupsData = responseObj.data || [];
-    }
-
-    return patientGroupsData.map((g: any) => ({
-      id: g.id,
-      name: g.name,
-      description: g.description,
-      is_active: g.is_active ?? true,
-      created_at: g.created_at,
-      updated_at: g.updated_at,
-    })).filter((g: PatientGroup) => g.id !== undefined && g.id !== null && g.is_active);
-  } catch (error) {
-    console.error('Failed to fetch patient groups:', error);
-    return [];
-  }
-}
-
 // Maps a user from the FILTER_USERS / USERS search response into a partial User.
 function mapSearchUser(apiUser: any): User {
   return {
@@ -189,8 +154,6 @@ function mapSearchUser(apiUser: any): User {
     doctor_id: apiUser.doctor_id ? String(apiUser.doctor_id) : null,
     doctor_name: apiUser.doctor_name || undefined,
     sex: apiUser.sex ?? null,
-    group_id: apiUser.group_id ? String(apiUser.group_id) : null,
-    group_name: apiUser.group_name || undefined,
   };
 }
 

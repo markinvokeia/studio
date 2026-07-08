@@ -1,0 +1,143 @@
+{
+  "name": "Grupos de pacientes - Grupos del paciente",
+  "nodes": [
+    {
+      "id": "wh-patient-groups-list",
+      "name": "LIST /paciente/grupos",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-200, 200],
+      "parameters": {
+        "path": "paciente/grupos",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "id": "pg-patient-groups-select",
+      "name": "Select grupos del paciente",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [40, 200],
+      "alwaysOutputData": true,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  g.id,\n  g.name,\n  g.description,\n  g.is_active\nFROM group_patients gp\nJOIN groups g ON g.id = gp.group_id\nWHERE gp.patient_id = $1::uuid\nORDER BY g.name ASC;",
+        "options": {
+          "queryReplacement": "={{ [$json.query.patient_id] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "id": "resp-patient-groups-ok",
+      "name": "OK Grupos",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [280, 200],
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "wh-patient-groups-set",
+      "name": "SET /paciente/grupos",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-200, 420],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "paciente/grupos",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "id": "pg-patient-groups-set",
+      "name": "Set grupos del paciente",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [40, 420],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH target AS (\n  SELECT CASE\n           WHEN NULLIF($2, '') IS NULL THEN ARRAY[]::uuid[]\n           ELSE string_to_array($2, ',')::uuid[]\n         END AS ids\n),\ndel AS (\n  DELETE FROM public.group_patients gp\n  USING target t\n  WHERE gp.patient_id = $1::uuid\n    AND NOT (gp.group_id = ANY(t.ids))\n  RETURNING gp.group_id\n),\nins AS (\n  INSERT INTO public.group_patients (group_id, patient_id)\n  SELECT x, $1::uuid\n  FROM target t, unnest(t.ids) AS x\n  ON CONFLICT (group_id, patient_id) DO NOTHING\n  RETURNING group_id\n)\nSELECT\n  (SELECT COUNT(*) FROM ins) AS added,\n  (SELECT COUNT(*) FROM del) AS removed;",
+        "options": {
+          "queryReplacement": "={{ [$json.body.patient_id, ($json.body.group_ids || []).join(',')] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "id": "resp-patient-groups-set-ok",
+      "name": "OK Set Grupos",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [280, 420],
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json" }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "LIST /paciente/grupos": {
+      "main": [[{ "node": "Select grupos del paciente", "type": "main", "index": 0 }]]
+    },
+    "Select grupos del paciente": {
+      "main": [[{ "node": "OK Grupos", "type": "main", "index": 0 }]]
+    },
+    "SET /paciente/grupos": {
+      "main": [[{ "node": "Set grupos del paciente", "type": "main", "index": 0 }]]
+    },
+    "Set grupos del paciente": {
+      "main": [[{ "node": "OK Set Grupos", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null
+}

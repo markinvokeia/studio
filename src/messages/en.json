@@ -1641,6 +1641,17 @@
       "select": "Select group",
       "none": "Not assigned"
     },
+    "patientGroups": {
+      "label": "Patient groups",
+      "selectPlaceholder": "Select groups...",
+      "search": "Search group...",
+      "noResults": "No groups.",
+      "empty": "This patient does not belong to any group.",
+      "count": "{count} group(s)",
+      "save": "Save groups",
+      "saved": "Patient groups updated",
+      "saveError": "Could not save groups"
+    },
     "filters": {
       "type": {
         "label": "Patient Type",
@@ -6158,6 +6169,32 @@
     },
     "validation": {
       "nameRequired": "Name is required."
+    },
+    "tabs": {
+      "info": "Information",
+      "patients": "Patients"
+    },
+    "patients": {
+      "title": "Group patients",
+      "description": "Add or remove patients from this group.",
+      "filterPlaceholder": "Search in group...",
+      "addButton": "Add patients",
+      "addConfirm": "Add",
+      "addCancel": "Cancel",
+      "added": "{count} patient(s) added to the group",
+      "addError": "Could not add patients",
+      "search": "Search patient...",
+      "noResults": "No patients found.",
+      "count": "{count} selected",
+      "col_name": "Name",
+      "col_document": "Document",
+      "col_phone": "Phone",
+      "col_email": "Email",
+      "active": "Active",
+      "inactive": "Inactive",
+      "remove": "Remove from group",
+      "removed": "Patient removed from group",
+      "removeError": "Could not remove patient"
     }
   },
   "Config": {

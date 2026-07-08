@@ -110,9 +110,9 @@
         },
         "table": {
           "__rl": true,
-          "value": "patient_groups",
+          "value": "groups",
           "mode": "list",
-          "cachedResultName": "patient_groups"
+          "cachedResultName": "groups"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -216,9 +216,9 @@
         },
         "table": {
           "__rl": true,
-          "value": "patient_groups",
+          "value": "groups",
           "mode": "list",
-          "cachedResultName": "patient_groups"
+          "cachedResultName": "groups"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -340,7 +340,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT *\nFROM public.patient_groups\nWHERE id = $1\nLIMIT 1;",
+        "query": "SELECT *\nFROM public.groups\nWHERE id = $1\nLIMIT 1;",
         "options": {
           "queryReplacement": "={{ $json.query.id }}"
         }
@@ -390,7 +390,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT *\nFROM\n    public.patient_groups\nWHERE\n    (\n        $1 IS NULL\n        OR name ILIKE '%' || $1 || '%'\n    )\n    AND ($2 IS NULL OR is_active = $2)\nORDER BY\n    created_at DESC\nLIMIT $3\nOFFSET $4;",
+        "query": "SELECT *\nFROM\n    public.groups\nWHERE\n    (\n        $1 IS NULL\n        OR name ILIKE '%' || $1 || '%'\n    )\n    AND ($2 IS NULL OR is_active = $2)\nORDER BY\n    created_at DESC\nLIMIT $3\nOFFSET $4;",
         "options": {
           "queryReplacement": "={{ [$json.query.search, $json.query.is_active, $json.query.limit, (($json.query.page - 1) * $json.query.limit)] }}"
         }
@@ -441,7 +441,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "DELETE FROM public.patient_groups\nWHERE id = $1;",
+        "query": "DELETE FROM public.groups\nWHERE id = $1;",
         "options": {
           "queryReplacement": "={{ $json.body.id }}"
         }
