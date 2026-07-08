@@ -63,6 +63,8 @@ src/
 
 All routes are under `[locale]/` (Spanish `es` / English `en`). Use `useTranslations()` from next-intl. **Every new user-facing string must have entries added to both `src/messages/en.json` and `src/messages/es.json`.**
 
+**Per-client overrides:** a client can override specific translation keys via `src/messages/overrides/<NEXT_PUBLIC_CLIENT_ID>/<locale>.json` (partial file — only the changed keys; everything else falls back to the base). `src/i18n.ts` deep-merges the base with the client's override. See [`docs/i18n-overrides.md`](docs/i18n-overrides.md).
+
 ## Code Conventions
 
 ### TypeScript

@@ -1010,12 +1010,12 @@
     "quoteDocNo": "Budget"
   },
   "AppointmentStatus": {
-    "completed": "Attended",
+    "completed": "Completed",
     "confirmed": "Confirmed",
     "pending": "Pending",
     "cancelled": "Cancelled",
     "scheduled": "Scheduled",
-    "arrived": "In waiting room",
+    "arrived": "Arrived",
     "arrived_late": "Arrived late",
     "in_progress": "In progress",
     "attended_late": "Attended late",

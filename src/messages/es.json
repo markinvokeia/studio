@@ -1010,16 +1010,16 @@
     "quoteDocNo": "Presupuesto"
   },
   "AppointmentStatus": {
-    "completed": "Vino a la Cita",
+    "completed": "Completada",
     "confirmed": "Confirmada",
     "pending": "Pendiente",
     "cancelled": "Cancelada",
     "scheduled": "Programada",
-    "arrived": "Llegó a la sala de espera",
+    "arrived": "Llegó",
     "arrived_late": "Llegó tarde",
     "in_progress": "En curso",
     "attended_late": "Se le atiende tarde",
-    "no_show": "Faltó"
+    "no_show": "No asistió"
   },
   "AppointmentStatusMenu": {
     "label": "Estado",
@@ -1034,11 +1034,11 @@
     "otherReason": "Otro motivo…"
   },
   "CancellationReason": {
-    "late": "Canceló Tarde",
-    "in_time": "Canceló con Tiempo",
-    "no_notice": "Canceló sin aviso",
-    "by_doctor": "Canceló el Doctor",
-    "by_clinic": "Canceló la clínica",
+    "late": "Cancelada tarde",
+    "in_time": "Cancelada con tiempo",
+    "no_notice": "Cancelada sin aviso",
+    "by_doctor": "Cancelada por el doctor",
+    "by_clinic": "Cancelada por la clínica",
     "other": "Otro motivo",
     "reschedule": "Reagendada"
   },
