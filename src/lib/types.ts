@@ -907,6 +907,8 @@ export type PatientSession = {
   tipo_sesion?: 'odontograma' | 'clinica';
   fecha_sesion: string;
   diagnostico?: string | null;
+  pieza?: string | null;
+  color?: string | null;
   procedimiento_realizado: string;
   notas_clinicas?: string;
   plan_proxima_cita?: string;

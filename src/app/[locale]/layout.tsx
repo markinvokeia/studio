@@ -15,6 +15,8 @@ import { BillingWizardModal } from '@/components/billing-wizard';
 import { PrintDocumentContainer } from '@/components/print-templates';
 import { PatientLedgerSheet } from '@/components/financial/PatientLedgerSheet';
 import { PatientQuickViewHost } from '@/components/patients/PatientQuickViewHost';
+import { PatientHistorySheet } from '@/components/clinic-history/PatientHistorySheet';
+import { PatientAppointmentsHistorySheet } from '@/components/appointments/PatientAppointmentsHistorySheet';
 import { LicenseInitializer } from '@/components/license/LicenseInitializer';
 import type { RuntimeConfig } from '@/lib/runtime-config';
 
@@ -78,6 +80,8 @@ export default async function LocaleLayout({
                 <PrintDocumentContainer />
                 <PatientLedgerSheet />
                 <PatientQuickViewHost />
+                <PatientHistorySheet />
+                <PatientAppointmentsHistorySheet />
               </PrivateRoute>
             </NotificationsProvider>
           </TVDisplayProvider>

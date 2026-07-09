@@ -1078,6 +1078,8 @@
       "noInvoices": "Sin facturas",
       "quickBill": "Cobro rápido",
       "accounts": "Cuentas",
+      "clinicHistory": "Historia",
+      "appointmentsHistory": "Historial de Citas",
       "patientData": "Datos del paciente",
       "deleteAppointment": "Eliminar cita"
     },
@@ -6489,6 +6491,38 @@
       "cancel": "Cancelar"
     }
   },
+  "PatientHistorySheet": {
+    "title": "Historia clínica",
+    "back": "Atrás",
+    "newAnnotation": "Nueva anotación",
+    "newInstruction": "Nueva indicación",
+    "searchPlaceholder": "Buscar...",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "cancel": "Cancelar",
+    "deleteConfirm": "Esta anotación será eliminada permanentemente. ¿Continuar?",
+    "deleteSuccess": "Anotación eliminada",
+    "deleteError": "No se pudo eliminar la anotación",
+    "columns": {
+      "date": "Fecha",
+      "piece": "Pieza",
+      "description": "Descripción",
+      "next": "Próxima"
+    }
+  },
+  "PatientAppointmentsSheet": {
+    "title": "Historial de citas",
+    "back": "Atrás",
+    "searchPlaceholder": "Buscar...",
+    "durationMinutes": "{min} min",
+    "columns": {
+      "date": "Fecha",
+      "time": "Hora",
+      "duration": "Duración (min)",
+      "calendar": "Agenda",
+      "attendance": "Asistencia"
+    }
+  },
   "ClinicSessionDialog": {
     "treatments": {
       "sectionTitle": "Tratamientos",
@@ -6506,6 +6540,19 @@
       "existing": "Archivos existentes",
       "new": "Nuevos archivos",
       "browseFiles": "buscar archivos"
+    },
+    "annotation": {
+      "createTitle": "Nueva Anotación",
+      "editTitle": "Editar Anotación",
+      "piece": "Pieza",
+      "piecePlaceholder": "N° de pieza",
+      "color": "Color",
+      "selectColor": "Seleccionar color",
+      "noColor": "Sin color",
+      "annotationLabel": "Anotación",
+      "annotationPlaceholder": "Escribe la anotación...",
+      "nextLabel": "Próxima",
+      "nextPlaceholder": "Notas para la próxima cita..."
     },
     "createTitle": "Crear Sesión",
     "editTitle": "Editar Sesión",

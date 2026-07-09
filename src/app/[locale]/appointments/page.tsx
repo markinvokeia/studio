@@ -72,7 +72,7 @@ import { getSalesServices, getUsersServicesBatch, fetchServicesByIds } from '@/s
 import { ColumnDef } from '@tanstack/react-table';
 import { addMinutes, eachDayOfInterval, endOfMonth, endOfWeek, format, isValid, parseISO, set, startOfMonth, startOfWeek } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
-import { BellRing, Building2, Calendar as CalendarIcon, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ChevronLeft, ClipboardCheck, Edit, FileText, Layers, Link2, Loader2, Palette, PlusCircle, Receipt, RefreshCw, Stethoscope, Trash2, UserCog, UserRound, Users, X, Zap } from 'lucide-react';
+import { BellRing, BookOpenText, Building2, Calendar as CalendarIcon, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ChevronLeft, ClipboardCheck, Edit, FileText, History, Layers, Link2, Loader2, Palette, PlusCircle, Receipt, RefreshCw, Stethoscope, Trash2, UserCog, UserRound, Users, X, Zap } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
@@ -86,6 +86,8 @@ import { linkInvoiceToAppointment } from '@/services/billing-links';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
 import { usePatientView } from '@/stores/patient-view-store';
+import { usePatientHistorySheet } from '@/stores/patient-history-sheet-store';
+import { usePatientAppointmentsSheet } from '@/stores/patient-appointments-sheet-store';
 import { AppointmentStatusContextItems } from '@/components/appointments/AppointmentStatusMenu';
 import { useAppointmentStatus } from '@/hooks/use-appointment-status';
 import { canReschedule, normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
@@ -548,6 +550,8 @@ export default function AppointmentsPage() {
     const { open: openBillingWizard } = useBillingWizard();
     const { open: openAccountStatement } = usePatientLedgerSheet();
     const { open: openPatientView } = usePatientView();
+    const { open: openPatientHistory } = usePatientHistorySheet();
+    const { open: openPatientAppointments } = usePatientAppointmentsSheet();
     const { hasPermission } = usePermissions();
     const canCreateInlinePatient = hasPermission(PATIENTS_PERMISSIONS.CREATE);
     const canEditInlinePatient = hasPermission(PATIENTS_PERMISSIONS.UPDATE);
@@ -2936,6 +2940,22 @@ export default function AppointmentsPage() {
                             >
                                 <FileText className="h-4 w-4 shrink-0" />
                                 {t('contextMenu.accounts')}
+                            </ContextMenuItem>
+                            <ContextMenuItem
+                                key="patient-history"
+                                onSelect={() => openPatientHistory(appointment.patientId, appointment.patientName)}
+                                className="flex items-center gap-2 cursor-pointer"
+                            >
+                                <BookOpenText className="h-4 w-4 shrink-0" />
+                                {t('contextMenu.clinicHistory')}
+                            </ContextMenuItem>
+                            <ContextMenuItem
+                                key="patient-appointments-history"
+                                onSelect={() => openPatientAppointments(appointment.patientId, appointment.patientName)}
+                                className="flex items-center gap-2 cursor-pointer"
+                            >
+                                <History className="h-4 w-4 shrink-0" />
+                                {t('contextMenu.appointmentsHistory')}
                             </ContextMenuItem>
                             <ContextMenuItem
                                 key="patient-data"

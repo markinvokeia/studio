@@ -25,7 +25,7 @@ import { api } from '@/services/api';
 import { AttachedFile, PatientSession, Quote, Service, TreatmentDetail } from '@/lib/types';
 import { addMonths, format, isValid, parseISO } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
-import { Calendar as CalendarIcon, Check, ChevronsUpDown, File, FilePlus, Link2, Loader2, Plus, Sparkles, Trash2, Upload, X } from 'lucide-react';
+import { Calendar as CalendarIcon, Check, ChevronsUpDown, File, FilePlus, Link2, Loader2, Palette, Plus, Sparkles, Trash2, Upload, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import * as React from 'react';
 import { API_ROUTES } from '@/constants/routes';
@@ -34,6 +34,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { getSalesServices } from '@/services/services';
 import { ensureDoctorOption } from '@/services/doctors';
 import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
+import { GOOGLE_CALENDAR_COLORS } from '@/components/calendar/calendar-constants';
 
 interface ClinicSessionDialogProps {
     open: boolean;
@@ -61,6 +62,10 @@ interface ClinicSessionDialogProps {
     showPatient?: boolean;           // Show read-only patient name field
     showQuoteSelector?: boolean;     // Show quote picker + "Nuevo" button
     showDiagnosticFields?: boolean;  // Show diagnostico + notas_clinicas fields
+    // Simplified "annotation" variant (custom calendar mode): adds pieza/color
+    // fields, relabels procedure/plan, and fully disables the AI treatment
+    // generation (no /ai/treatments calls, no badges, no manual service add).
+    annotationMode?: boolean;
     // Datos de cita pendiente para crear junto con la sesión
     pendingAppointmentData?: {
         start: string;
@@ -86,6 +91,8 @@ export interface ClinicSessionFormData {
     notas_clinicas?: string;
     plan_proxima_cita?: string;
     fecha_proxima_cita?: string;
+    pieza?: string;
+    color?: string;
     quote_id?: string;
     appointment_id?: string;
     // NUEVOS:
@@ -126,6 +133,7 @@ export function ClinicSessionDialog({
     showPatient = false,
     showQuoteSelector = false,
     showDiagnosticFields = false,
+    annotationMode = false,
     prefillData,
     prefillTreatments,
     existingSession,
@@ -197,9 +205,11 @@ export function ClinicSessionDialog({
         notas_clinicas: '',
         plan_proxima_cita: '',
         fecha_proxima_cita: '',
+        ...(annotationMode ? { pieza: '', color: '' } : {}),
         quote_id: quoteId,
         appointment_id: appointmentId,
     });
+    const [isColorPickerOpen, setIsColorPickerOpen] = React.useState(false);
 
     const doctorOptions = React.useMemo(() => {
         if (!form.doctor_id || !form.doctor_name) return doctors;
@@ -287,6 +297,10 @@ export function ClinicSessionDialog({
                 fecha_proxima_cita: existingSession?.fecha_proxima_cita
                     ? formatDate(existingSession.fecha_proxima_cita)
                     : (prefillData?.fecha_proxima_cita ? formatDate(prefillData.fecha_proxima_cita) : ''),
+                ...(annotationMode ? {
+                    pieza: existingSession?.pieza || '',
+                    color: existingSession?.color || '',
+                } : {}),
                 quote_id: existingSession?.quote_id || quoteId,
                 appointment_id: existingSession?.appointment_id || appointmentId,
                 sesion_id: existingSession?.sesion_id,
@@ -361,7 +375,7 @@ export function ClinicSessionDialog({
             prevPrefillPlanRef.current = undefined;
             return;
         }
-        if (existingSession) return;
+        if (existingSession || annotationMode) return;
 
         const procedure = prefillData?.procedimiento_realizado;
         const plan = prefillData?.plan_proxima_cita;
@@ -561,7 +575,7 @@ export function ClinicSessionDialog({
     };
 
     const handleGenerateForProcedure = async (text: string) => {
-        if (!text.trim()) return;
+        if (annotationMode || !text.trim()) return;
         // If a fetch is already in flight, queue this value — only the last one will be processed
         if (isFetchingProcedureRef.current) {
             pendingProcedureRef.current = text;
@@ -596,7 +610,7 @@ export function ClinicSessionDialog({
     };
 
     const handleGenerateForPlan = async (text: string) => {
-        if (!text.trim()) return;
+        if (annotationMode || !text.trim()) return;
         if (isFetchingPlanRef.current) {
             pendingPlanRef.current = text;
             return;
@@ -633,6 +647,7 @@ export function ClinicSessionDialog({
     const handleProcedureChange = (value: string) => {
         setIsDirty(true);
         setForm(prev => ({ ...prev, procedimiento_realizado: value }));
+        if (annotationMode) return;
         if (procedureTimerRef.current) clearTimeout(procedureTimerRef.current);
         if (value.trim()) {
             setIsProcedureDebouncing(true);
@@ -648,6 +663,7 @@ export function ClinicSessionDialog({
     const handlePlanChange = (value: string) => {
         setIsDirty(true);
         setForm(prev => ({ ...prev, plan_proxima_cita: value }));
+        if (annotationMode) return;
         if (planTimerRef.current) clearTimeout(planTimerRef.current);
         if (value.trim()) {
             setIsPlanDebouncing(true);
@@ -757,7 +773,9 @@ export function ClinicSessionDialog({
             >
                 <DialogHeader className="border-b px-6 py-4">
                     <DialogTitle>
-                        {existingSession ? t('editTitle') : t('createTitle')}
+                        {annotationMode
+                            ? (existingSession ? t('annotation.editTitle') : t('annotation.createTitle'))
+                            : (existingSession ? t('editTitle') : t('createTitle'))}
                     </DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
@@ -805,6 +823,21 @@ export function ClinicSessionDialog({
                                     </Popover>
                                 </div>
 
+                                {/* Pieza (annotation mode only) */}
+                                {annotationMode && (
+                                    <div className="space-y-2">
+                                        <Label>{t('annotation.piece')}</Label>
+                                        <Input
+                                            value={form.pieza || ''}
+                                            onChange={(e) => {
+                                                setIsDirty(true);
+                                                setForm(prev => ({ ...prev, pieza: e.target.value }));
+                                            }}
+                                            placeholder={t('annotation.piecePlaceholder')}
+                                        />
+                                    </div>
+                                )}
+
                                 {/* Doctor */}
                                 <div className="space-y-2">
                                     <Label>{t('doctor')}</Label>
@@ -839,6 +872,68 @@ export function ClinicSessionDialog({
                                         </SelectContent>
                                     </Select>
                                 </div>
+
+                                {/* Color (annotation mode only) — same palette as the calendar */}
+                                {annotationMode && (
+                                    <div className="space-y-2">
+                                        <Label>{t('annotation.color')}</Label>
+                                        <Popover open={isColorPickerOpen} onOpenChange={setIsColorPickerOpen}>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    className="h-10 w-full justify-start gap-2 font-normal"
+                                                >
+                                                    {form.color ? (
+                                                        <span
+                                                            className="h-4 w-4 shrink-0 rounded-full border"
+                                                            style={{ backgroundColor: form.color }}
+                                                        />
+                                                    ) : (
+                                                        <Palette className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                                    )}
+                                                    <span className={cn(!form.color && 'text-muted-foreground')}>
+                                                        {form.color || t('annotation.selectColor')}
+                                                    </span>
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-2" align="start">
+                                                <div className="grid grid-cols-4 gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setIsDirty(true);
+                                                            setForm(prev => ({ ...prev, color: '' }));
+                                                            setIsColorPickerOpen(false);
+                                                        }}
+                                                        className="flex h-6 w-6 items-center justify-center rounded-full border text-muted-foreground transition-transform hover:scale-110"
+                                                        aria-label={t('annotation.noColor')}
+                                                        title={t('annotation.noColor')}
+                                                    >
+                                                        <X className="h-3 w-3" />
+                                                    </button>
+                                                    {GOOGLE_CALENDAR_COLORS.map((color) => (
+                                                        <button
+                                                            key={color.id}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setIsDirty(true);
+                                                                setForm(prev => ({ ...prev, color: color.hex }));
+                                                                setIsColorPickerOpen(false);
+                                                            }}
+                                                            className={cn(
+                                                                'h-6 w-6 rounded-full transition-transform hover:scale-110',
+                                                                form.color === color.hex && 'ring-2 ring-ring ring-offset-2'
+                                                            )}
+                                                            style={{ backgroundColor: color.hex }}
+                                                            aria-label={color.hex}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
+                                )}
 
                                 {/* Quote Selector */}
                                 {showQuoteSelector && (
@@ -930,14 +1025,15 @@ export function ClinicSessionDialog({
 
                                 {/* Procedure + current-session treatment badges */}
                                 <div className="space-y-2 md:col-span-2">
-                                    <Label>{t('procedure')}</Label>
+                                    <Label>{annotationMode ? t('annotation.annotationLabel') : t('procedure')}</Label>
                                     <Textarea
                                         value={form.procedimiento_realizado}
                                         onChange={(e) => handleProcedureChange(e.target.value)}
-                                        placeholder={t('procedurePlaceholder')}
+                                        placeholder={annotationMode ? t('annotation.annotationPlaceholder') : t('procedurePlaceholder')}
                                         className="min-h-[80px] xl:min-h-[100px] resize-y"
                                     />
                                     {/* Current-session badges + loading + Añadir */}
+                                    {!annotationMode && (
                                     <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                                         {(isFetchingProcedure || isProcedureDebouncing) ? (
                                             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground italic">
@@ -986,6 +1082,7 @@ export function ClinicSessionDialog({
                                             </button>
                                         )}
                                     </div>
+                                    )}
                                     {/* Manual add panel for current-session treatments */}
                                     {addingManualFor === 'current' && (
                                         <div className="flex items-center gap-2 rounded-md border bg-muted/20 p-2">
@@ -1070,14 +1167,15 @@ export function ClinicSessionDialog({
 
                                 {/* Next Appointment Plan + next-session treatment badges */}
                                 <div className="space-y-2 md:col-span-2">
-                                    <Label>{t('nextSessionPlan')}</Label>
+                                    <Label>{annotationMode ? t('annotation.nextLabel') : t('nextSessionPlan')}</Label>
                                     <Textarea
                                         value={form.plan_proxima_cita || ''}
                                         onChange={(e) => handlePlanChange(e.target.value)}
-                                        placeholder={t('nextSessionPlanPlaceholder')}
+                                        placeholder={annotationMode ? t('annotation.nextPlaceholder') : t('nextSessionPlanPlaceholder')}
                                         className="min-h-[60px] xl:min-h-[80px] resize-y"
                                     />
                                     {/* Next-session badges + loading + Añadir */}
+                                    {!annotationMode && (
                                     <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                                         {(isFetchingPlan || isPlanDebouncing) ? (
                                             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground italic">
@@ -1126,6 +1224,7 @@ export function ClinicSessionDialog({
                                             </button>
                                         )}
                                     </div>
+                                    )}
                                     {/* Manual add panel for next-session treatments */}
                                     {addingManualFor === 'next' && (
                                         <div className="flex items-center gap-2 rounded-md border bg-muted/20 p-2">
@@ -1184,6 +1283,7 @@ export function ClinicSessionDialog({
                                     )}
                                 </div>
 
+                                {!annotationMode && (
                                 <div className="space-y-3 md:col-span-2">
                                     <div className="flex items-start gap-3 rounded-xl border border-border/70 bg-muted/20 px-4 py-3">
                                         <Checkbox
@@ -1286,6 +1386,7 @@ export function ClinicSessionDialog({
                                         </div>
                                     )}
                                 </div>
+                                )}
 
                                 {/* Inline Treatments panel */}
                                 {showTreatments && (

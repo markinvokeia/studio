@@ -78,6 +78,8 @@ const SESSION_SCALAR_FIELDS = new Set([
     'fecha_sesion',
     'procedimiento_realizado',
     'diagnostico',
+    'pieza',
+    'color',
     'notas_clinicas',
     'plan_proxima_cita',
     'fecha_proxima_cita',

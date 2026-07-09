@@ -1078,6 +1078,8 @@
       "noInvoices": "No invoices",
       "quickBill": "Quick charge",
       "accounts": "Accounts",
+      "clinicHistory": "History",
+      "appointmentsHistory": "Appointment History",
       "patientData": "Patient details",
       "deleteAppointment": "Delete appointment"
     },
@@ -6509,6 +6511,38 @@
       "cancel": "Cancel"
     }
   },
+  "PatientHistorySheet": {
+    "title": "Clinical History",
+    "back": "Back",
+    "newAnnotation": "New annotation",
+    "newInstruction": "New instruction",
+    "searchPlaceholder": "Search...",
+    "edit": "Edit",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "deleteConfirm": "This annotation will be permanently deleted. Continue?",
+    "deleteSuccess": "Annotation deleted",
+    "deleteError": "Could not delete the annotation",
+    "columns": {
+      "date": "Date",
+      "piece": "Tooth",
+      "description": "Description",
+      "next": "Next"
+    }
+  },
+  "PatientAppointmentsSheet": {
+    "title": "Appointment History",
+    "back": "Back",
+    "searchPlaceholder": "Search...",
+    "durationMinutes": "{min} min",
+    "columns": {
+      "date": "Date",
+      "time": "Time",
+      "duration": "Duration (min)",
+      "calendar": "Calendar",
+      "attendance": "Attendance"
+    }
+  },
   "ClinicSessionDialog": {
     "treatments": {
       "sectionTitle": "Treatments",
@@ -6526,6 +6560,19 @@
       "existing": "Existing attachments",
       "new": "New attachments",
       "browseFiles": "browse files"
+    },
+    "annotation": {
+      "createTitle": "New Annotation",
+      "editTitle": "Edit Annotation",
+      "piece": "Tooth",
+      "piecePlaceholder": "Tooth number",
+      "color": "Color",
+      "selectColor": "Select color",
+      "noColor": "No color",
+      "annotationLabel": "Annotation",
+      "annotationPlaceholder": "Write the annotation...",
+      "nextLabel": "Next",
+      "nextPlaceholder": "Notes for the next visit..."
     },
     "createTitle": "Create Session",
     "editTitle": "Edit Session",
