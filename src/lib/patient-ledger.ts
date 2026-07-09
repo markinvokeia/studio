@@ -8,6 +8,11 @@ export type LedgerRow = {
   kind: 'item' | 'payment';
   label: string;
   docNo?: string;
+  /** The originating quote's doc number, present on quote-backed invoice rows so the
+   *  ledger can show "Presupuesto: <quoteDocNo> | Factura: <docNo>". */
+  quoteDocNo?: string;
+  /** The document's free-text notes (quote/invoice/payment) — shown under the doc line. */
+  notes?: string;
   quoteId?: string;
   invoiceId?: string;
   /** Underlying Payment id — present for `kind: 'payment'` rows only. */
@@ -92,6 +97,8 @@ export function buildPatientLedger(params: {
           kind: 'item',
           label: item.service_name || quoteItem.service_name,
           docNo: invoice.doc_no || invoice.invoice_doc_no,
+          quoteDocNo: quote.doc_no,
+          notes: quote.notes || invoice.notes || undefined,
           quoteId: quote.id,
           invoiceId: invoice.id,
           status: invoiceRowStatus(invoice),
@@ -111,6 +118,7 @@ export function buildPatientLedger(params: {
           kind: 'item',
           label: quoteItem.service_name,
           docNo: quote.doc_no,
+          notes: quote.notes || undefined,
           quoteId: quote.id,
           status: 'presupuestado',
           currency,
@@ -143,6 +151,10 @@ export function buildPatientLedger(params: {
           kind: 'item',
           label: item.service_name,
           docNo: invoice.doc_no || invoice.invoice_doc_no,
+          // A `quote_doc_no` means this invoice was billed from a presupuesto even when
+          // its line didn't resolve via `quote_item_id` above — show it as quote-backed.
+          quoteDocNo: invoice.quote_doc_no || undefined,
+          notes: invoice.notes || undefined,
           invoiceId: invoice.id,
           status: invoiceRowStatus(invoice),
           currency,
@@ -185,6 +197,7 @@ export function buildPatientLedger(params: {
           kind: 'item',
           label: item.service_name,
           docNo: creditNote.doc_no || creditNote.invoice_doc_no,
+          notes: creditNote.notes || undefined,
           invoiceId: creditNote.id,
           status: 'notaCredito',
           currency,
@@ -226,6 +239,7 @@ export function buildPatientLedger(params: {
       kind: 'payment',
       label: payment.payment_method || payment.method || 'Pago',
       docNo: payment.doc_no || payment.payment_doc_no,
+      notes: payment.notes || undefined,
       invoiceId: payment.invoice_id || undefined,
       paymentId: payment.id,
       transactionType: payment.transaction_type,

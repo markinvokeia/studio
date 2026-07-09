@@ -4,22 +4,27 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Banknote, Check, ChevronDown, FileMinus, FilePlus2, FileText, Loader2, MoreHorizontal, Pencil, Printer, Receipt, RefreshCw, ScrollText, Search, Trash2 } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
+import { Banknote, Check, ChevronDown, FileMinus, FileText, Loader2, Plus, Printer, Receipt, RefreshCw, ScrollText, Search, Trash2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogBody, DialogCancelButton, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DatePickerInput } from '@/components/ui/date-picker';
+import { DoctorSelector } from '@/components/ui/doctor-selector';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
 import { Input } from '@/components/ui/input';
+import { ServiceSelector } from '@/components/ui/service-selector';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -28,14 +33,14 @@ import { SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
+import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { buildPatientLedger, type LedgerRow, type LedgerRowStatus } from '@/lib/patient-ledger';
-import type { Quote, Service } from '@/lib/types';
-import { cn, formatDisplayDate, toLocalISOString } from '@/lib/utils';
+import type { PaymentMethod, Quote, QuoteItem } from '@/lib/types';
+import { cn, formatDisplayDate, preserveTimeIfToday, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { fetchPatientLedgerData, type PatientLedgerData } from '@/services/patient-ledger-data';
-import { getSalesServices } from '@/services/services';
 
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
@@ -100,16 +105,48 @@ interface PatientLedgerProps {
   patientName?: string;
   patientEmail?: string;
   refreshTrigger?: number;
+  /** Kept for API compatibility with the tabs finance view; the unified ledger now
+   *  creates documents inline from its floating action bar, so these are unused here. */
   onCreateQuote?: () => void;
   onCreateTreatment?: () => void;
   onCreatePayment?: () => void;
   onPrintSummary?: () => void;
   onViewStatement?: () => void;
+  /** When true, the internal toolbar hides its Print/Refresh icons — used by the
+   *  account-statement sheet, which surfaces them in its own header instead. */
+  hideToolbarActions?: boolean;
+  /** Controlled search term. When provided, the ledger filters by it and hides its own
+   *  in-toolbar search box (the host renders the search UI itself, e.g. in a header). */
+  searchTerm?: string;
+}
+
+/** Imperative handle so hosts (e.g. the account-statement sheet header) can trigger a
+ *  reload without owning the ledger's data-loading state. */
+export interface PatientLedgerHandle {
+  refresh: () => void;
+}
+
+/** Short currency symbol shown in the amount columns: "$" for UYU, "U$" for USD. */
+function currencySymbol(currency: string): string {
+  if (currency === 'UYU') return '$';
+  if (currency === 'USD') return 'U$';
+  return currency;
+}
+
+/** Always two decimals (e.g. 25 → "25,00", 25.5 → "25,50"), thousands-separated. */
+function fmtNumber2(amount: number): string {
+  return (amount || 0).toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function fmtAmount(amount: number, currency: string) {
   if (!amount) return '—';
-  return `${currency} ${amount.toLocaleString('es-UY', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  return `${currencySymbol(currency)}${fmtNumber2(amount)}`;
+}
+
+/** Like `fmtAmount` but renders 0 as "<symbol>0,00" instead of a dash — used for the
+ *  Debe/Haber columns, which should always show a number (0 when the side doesn't apply). */
+function fmtAmountZero(amount: number, currency: string) {
+  return `${currencySymbol(currency)}${fmtNumber2(amount)}`;
 }
 
 const STATUS_VARIANT: Record<LedgerRowStatus, 'secondary' | 'outline' | 'warning' | 'success' | 'destructive'> = {
@@ -127,10 +164,25 @@ function RowKindIcon({ row }: { row: LedgerRow }) {
   if (row.status === 'notaCredito') {
     return <FileMinus className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />;
   }
-  if (row.status === 'presupuestado') {
+  // Presupuesto icon for both unbilled presupuestos and invoices billed from a quote
+  // (they carry `quoteDocNo`); standalone treatments (direct invoices) keep the receipt.
+  if (row.status === 'presupuestado' || row.quoteDocNo) {
     return <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />;
   }
   return <Receipt className="h-4 w-4 shrink-0 text-foreground/70" />;
+}
+
+/**
+ * The document-number line under a row's title. Quote-backed invoices show both the
+ * originating presupuesto and the invoice ("Presupuesto: … | Factura: …"); everything
+ * else shows its own single document number, labelled by kind.
+ */
+function docNumbersLabel(row: LedgerRow, t: (key: string) => string): string | null {
+  if (row.kind === 'payment') return row.docNo ? `${t('docLine.payment')}: ${row.docNo}` : null;
+  if (row.status === 'notaCredito') return row.docNo ? `${t('docLine.creditNote')}: ${row.docNo}` : null;
+  if (row.status === 'presupuestado') return row.docNo ? `${t('docLine.quote')}: ${row.docNo}` : null;
+  if (row.quoteDocNo) return `${t('docLine.quote')}: ${row.quoteDocNo} | ${t('docLine.treatment')}: ${row.docNo || '—'}`;
+  return row.docNo ? `${t('docLine.treatment')}: ${row.docNo}` : null;
 }
 
 /**
@@ -148,6 +200,13 @@ function cardAccentClass(row: LedgerRow): string {
     return 'bg-rose-100 border-rose-300 dark:bg-rose-950/40 dark:border-rose-800/60';
   }
   return 'bg-muted/40 border-border';
+}
+
+/** Whether a row originated from a presupuesto — either an unbilled quote line, or an
+ *  invoice billed from a quote (it carries `quoteDocNo`). Standalone treatments/invoices
+ *  with no `quote_doc_no` are not "from a quote". */
+function isFromQuote(row: LedgerRow): boolean {
+  return row.status === 'presupuestado' || !!row.quoteDocNo || !!row.quoteId;
 }
 
 /** Small "P" marker on presupuesto cards — mirrors Odontosys' own presupuesto tag. */
@@ -177,6 +236,10 @@ const STATUS_CONTROL_VARIANT: Record<LedgerItemState, 'destructive' | 'warning' 
   finalizado: 'success',
 };
 
+/** Shared badge shape for every status pill so they're the same size whether or not the
+ *  row has a state-change dropdown (payments/credit notes don't). */
+const STATUS_BADGE_CLASS = 'flex h-6 w-full items-center justify-center gap-1 px-1.5 text-[10px]';
+
 interface LedgerRowStatusControlProps {
   row: LedgerRow;
   /** Presupuesto → En curso: confirm the quote and bill it in one step. */
@@ -205,12 +268,15 @@ interface LedgerRowStatusControlProps {
  */
 function LedgerRowStatusControl({ row, canSetEnCurso, canSetFinalizado, canRevertToEnCurso, canRevertToPresupuesto, busy, onSetEnCurso, onSetFinalizado, onRevertToEnCurso, onRevertToPresupuesto, t }: LedgerRowStatusControlProps) {
   const current = getLedgerItemState(row);
+  const fromQuote = isFromQuote(row);
   const options: { key: LedgerItemState; enabled: boolean; onSelect: () => void }[] = [
-    {
-      key: 'presupuesto',
+    // A standalone treatment/invoice (no quote_doc_no) never offers "Presupuesto" — it
+    // wasn't born from one, so it can't revert to one.
+    ...(fromQuote ? [{
+      key: 'presupuesto' as const,
       enabled: current === 'enCurso' && !!row.quoteId && canRevertToPresupuesto,
       onSelect: () => onRevertToPresupuesto(row),
-    },
+    }] : []),
     {
       key: 'enCurso',
       enabled: (current === 'presupuesto' && canSetEnCurso) || (current === 'finalizado' && canRevertToEnCurso),
@@ -224,13 +290,16 @@ function LedgerRowStatusControl({ row, canSetEnCurso, canSetFinalizado, canRever
   ];
 
   return (
-    <div onClick={(e) => e.stopPropagation()}>
+    <div className="w-full" onClick={(e) => e.stopPropagation()}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="h-7 gap-1 px-1.5" disabled={busy}>
-            <Badge variant={STATUS_CONTROL_VARIANT[current]}>{t(`statusControl.${current}`)}</Badge>
-            <ChevronDown className="h-3 w-3 text-muted-foreground" />
-          </Button>
+          <Badge
+            variant={STATUS_CONTROL_VARIANT[current]}
+            className={cn(STATUS_BADGE_CLASS, 'cursor-pointer select-none', busy && 'pointer-events-none opacity-60')}
+          >
+            {t(`statusControl.${current}`)}
+            <ChevronDown className="h-3 w-3 shrink-0 opacity-70" />
+          </Badge>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           {options.map((option) => (
@@ -249,13 +318,6 @@ function LedgerRowStatusControl({ row, canSetEnCurso, canSetFinalizado, canRever
   );
 }
 
-const editItemSchema = z.object({
-  service_id: z.string().min(1),
-  quantity: z.coerce.number().int().min(1),
-  unit_price: z.coerce.number().min(0),
-});
-type EditItemFormValues = z.infer<typeof editItemSchema>;
-
 const creditNoteSchema = z.object({
   quantity: z.coerce.number().int().min(1),
   unit_price: z.coerce.number().min(0),
@@ -263,120 +325,463 @@ const creditNoteSchema = z.object({
 });
 type CreditNoteFormValues = z.infer<typeof creditNoteSchema>;
 
-interface RowActionsMenuProps {
-  row: LedgerRow;
-  canEdit: boolean;
-  canInvoice: boolean;
-  canCreateCreditNote: boolean;
-  canDeleteQuote: boolean;
-  canDeletePayment: boolean;
-  canDeleteCreditNote: boolean;
-  canDeleteInvoice: boolean;
-  getMaxCreditable: (invoiceId: string) => number;
-  onEdit: (row: LedgerRow) => void;
-  onInvoice: (row: LedgerRow) => void;
-  onCreditNote: (row: LedgerRow) => void;
-  onDeleteQuote: (row: LedgerRow) => void;
-  onDeletePayment: (row: LedgerRow) => void;
-  onDeleteCreditNote: (row: LedgerRow) => void;
-  onDeleteInvoice: (row: LedgerRow) => void;
-  t: (key: string) => string;
-}
-
 const INVOICEABLE_QUOTE_STATUSES = ['accepted', 'confirmed'];
 const CONFIRMABLE_QUOTE_STATUSES = ['draft', 'pending', 'sent'];
 
-/**
- * The "…" menu now only holds actions that don't fit the Presupuesto/En curso/Finalizado
- * status cycle (which lives in the inline `LedgerRowStatusControl` instead, including
- * paying — that's what marking a row "Finalizado" does now): editing an unbilled line, a
- * custom/partial billing (vs. the status control's one-click full-amount invoice), credit
- * notes, and deletions.
- */
-function RowActionsMenu({ row, canEdit, canInvoice, canCreateCreditNote, canDeleteQuote, canDeletePayment, canDeleteCreditNote, canDeleteInvoice, getMaxCreditable, onEdit, onInvoice, onCreditNote, onDeleteQuote, onDeletePayment, onDeleteCreditNote, onDeleteInvoice, t }: RowActionsMenuProps) {
-  const isUnbilledQuoteItem = row.kind === 'item' && row.status === 'presupuestado';
-  const isInvoiceItem = row.kind === 'item' && !!row.status && row.status !== 'presupuestado' && row.status !== 'notaCredito';
-  const isPayment = row.kind === 'payment';
-  const isCreditNote = row.kind === 'item' && row.status === 'notaCredito';
-  const quoteStatus = (row.quoteStatus || '').toLowerCase();
-  const showInvoice = isUnbilledQuoteItem && INVOICEABLE_QUOTE_STATUSES.includes(quoteStatus);
-  const showDeleteQuote = isUnbilledQuoteItem;
-  const showDeletePayment = isPayment;
-  const showDeleteCreditNote = isCreditNote;
-  // Any billed document (En curso or Finalizado) can be deleted outright from here —
-  // for a standalone invoice (no quote) that's just the invoice; for a quote-backed one
-  // it removes the invoice AND its underlying quote, since "delete" means the whole
-  // document is gone, not just reverted back to a still-alive presupuesto.
-  const showDeleteInvoice = isInvoiceItem;
-  const showCreateCreditNote = isInvoiceItem && !!row.invoiceId && getMaxCreditable(row.invoiceId) > 0.005;
-  const hasDestructiveAction = (showDeleteQuote && canDeleteQuote) || (showDeletePayment && canDeletePayment) || (showDeleteCreditNote && canDeleteCreditNote) || (showDeleteInvoice && canDeleteInvoice);
-  const showEdit = isUnbilledQuoteItem && canEdit;
-  const hasAnyAction = showEdit || (showInvoice && canInvoice) || (showCreateCreditNote && canCreateCreditNote) || hasDestructiveAction;
+async function getPaymentMethods(): Promise<PaymentMethod[]> {
+  try {
+    const data = await api.get(API_ROUTES.CASHIER.PAYMENT_METHODS);
+    const methodsData = Array.isArray(data) ? data : (data.payment_methods || data.data || []);
+    return methodsData.map((m: any) => ({ ...m, id: String(m.id) }));
+  } catch {
+    return [];
+  }
+}
 
-  if (!hasAnyAction) return <div className="h-8 w-8" />;
+// ── Inline editor primitives ──────────────────────────────────────────────────
 
+/** Green confirm (submit) + red circular cancel — shared by every inline editor. */
+function EditorControls({ submitting, onCancel }: { submitting: boolean; onCancel: () => void }) {
+  const t = useTranslations('PatientLedger');
   return (
-    <div onClick={(e) => e.stopPropagation()}>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="h-8 w-8 p-0">
-            <span className="sr-only">{t('actions.openMenu')}</span>
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          {showEdit && (
-            <DropdownMenuItem onClick={() => onEdit(row)}>
-              <Pencil className="mr-2 h-4 w-4" />{t('actions.edit')}
-            </DropdownMenuItem>
-          )}
-          {showInvoice && canInvoice && (
-            <DropdownMenuItem onClick={() => onInvoice(row)}>
-              <FileText className="mr-2 h-4 w-4" />{t('actions.invoiceCustom')}
-            </DropdownMenuItem>
-          )}
-          {showCreateCreditNote && canCreateCreditNote && (
-            <DropdownMenuItem onClick={() => onCreditNote(row)}>
-              <FileMinus className="mr-2 h-4 w-4" />{t('actions.creditNote')}
-            </DropdownMenuItem>
-          )}
-          {hasDestructiveAction && <DropdownMenuSeparator />}
-          {showDeleteQuote && canDeleteQuote && (
-            <DropdownMenuItem onClick={() => onDeleteQuote(row)} className="text-destructive focus:text-destructive">
-              <Trash2 className="mr-2 h-4 w-4" />{t('actions.deleteQuote')}
-            </DropdownMenuItem>
-          )}
-          {showDeletePayment && canDeletePayment && (
-            <DropdownMenuItem onClick={() => onDeletePayment(row)} className="text-destructive focus:text-destructive">
-              <Trash2 className="mr-2 h-4 w-4" />{t('actions.deletePayment')}
-            </DropdownMenuItem>
-          )}
-          {showDeleteCreditNote && canDeleteCreditNote && (
-            <DropdownMenuItem onClick={() => onDeleteCreditNote(row)} className="text-destructive focus:text-destructive">
-              <Trash2 className="mr-2 h-4 w-4" />{t('actions.deleteCreditNote')}
-            </DropdownMenuItem>
-          )}
-          {showDeleteInvoice && canDeleteInvoice && (
-            <DropdownMenuItem onClick={() => onDeleteInvoice(row)} className="text-destructive focus:text-destructive">
-              <Trash2 className="mr-2 h-4 w-4" />{t('actions.deleteInvoice')}
-            </DropdownMenuItem>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+    <>
+      <Button
+        type="submit"
+        size="icon"
+        disabled={submitting}
+        title={t('inline.confirm')}
+        className="h-7 w-7 rounded-full bg-emerald-600 text-white hover:bg-emerald-700"
+      >
+        {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+      </Button>
+      <Button
+        type="button"
+        size="icon"
+        variant="outline"
+        disabled={submitting}
+        onClick={onCancel}
+        title={t('inline.cancel')}
+        className="h-7 w-7 rounded-full border-red-400 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40"
+      >
+        <X className="h-3.5 w-3.5" />
+      </Button>
+    </>
+  );
+}
+
+/**
+ * Lays out an inline editor line on the same column grid as the ledger rows so the
+ * Debe/Haber editors always sit under the Debit/Credit columns, whatever the document
+ * type. Secondary fields flow onto an aligned second line that leaves the Debe/Haber/
+ * controls columns empty so nothing shifts.
+ */
+function InlineEditorShell({ docLabel, dateSlot, mainSlot, debeSlot, haberSlot, controls, secondLine }: {
+  docLabel: React.ReactNode;
+  dateSlot: React.ReactNode;
+  mainSlot: React.ReactNode;
+  debeSlot: React.ReactNode;
+  haberSlot: React.ReactNode;
+  controls: React.ReactNode;
+  secondLine?: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-lg border border-primary/50 bg-primary/5 px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
+      <div className="flex items-center gap-3">
+        <div className="flex w-32 shrink-0 flex-col gap-1 text-sm text-muted-foreground">
+          {dateSlot}
+          <Badge variant="outline" className="w-fit text-[10px]">{docLabel}</Badge>
+        </div>
+        <div className="min-w-[10rem] flex-1">{mainSlot}</div>
+        <div className="w-24 shrink-0">{debeSlot}</div>
+        <div className="w-24 shrink-0">{haberSlot}</div>
+        <div className="flex w-24 shrink-0 items-center justify-end gap-1">{controls}</div>
+      </div>
+      {secondLine && (
+        <div className="mt-2 flex items-start gap-3">
+          <div className="w-32 shrink-0" />
+          <div className="flex min-w-[10rem] flex-1 flex-wrap items-center gap-2">{secondLine}</div>
+          <div className="w-24 shrink-0" />
+          <div className="w-24 shrink-0" />
+          <div className="w-24 shrink-0" />
+        </div>
+      )}
     </div>
   );
 }
 
-export function PatientLedger({ userId, patientName, patientEmail, refreshTrigger, onCreateQuote, onCreateTreatment, onCreatePayment, onPrintSummary, onViewStatement }: PatientLedgerProps) {
+/** A disabled "0" placeholder for the Debe/Haber column that's not active in a given
+ *  editor, keeping the row visually complete and aligned. */
+function DisabledAmountCell() {
+  return <div className="flex h-8 items-center justify-end pr-1 text-sm text-muted-foreground">0,00</div>;
+}
+
+const quoteEditorSchema = z.object({
+  created_at: z.date(),
+  service_id: z.string().min(1),
+  service_name: z.string().optional(),
+  tooth_number: z.string().optional(),
+  quantity: z.coerce.number().int().min(1),
+  unit_price: z.coerce.number().min(0),
+  doctor_id: z.string().optional(),
+  description: z.string().optional(),
+});
+type QuoteEditorValues = z.infer<typeof quoteEditorSchema>;
+
+/**
+ * Inline create/edit editor for a Presupuesto (`quote`) or Tratamiento (`invoice`) line.
+ * Enables the Debe editor; Haber is disabled. In edit mode (`editRow` set) it shows the
+ * full field set pre-filled from the quote + its item, and saves the whole quote via
+ * `QUOTES_UPSERT` by id — passing every sibling item so nothing is lost — the same
+ * upsert-by-id pattern the standalone quote editor uses.
+ */
+function QuoteInvoiceInlineEditor({ doc, editRow, editQuote, editItems, userId, currency, onCancel, onSaved }: {
+  doc: 'quote' | 'invoice';
+  editRow?: LedgerRow;
+  /** The full quote behind `editRow` (for quote-level fields: date, doctor, notes). */
+  editQuote?: Quote;
+  /** Every item of that quote, so the whole set is re-sent on save (no data loss). */
+  editItems?: QuoteItem[];
+  userId: string;
+  currency: string;
+  onCancel: () => void;
+  onSaved: () => Promise<void> | void;
+}) {
+  const t = useTranslations('PatientLedger');
+  const { toast } = useToast();
+  const isEdit = !!editRow;
+  const [submitting, setSubmitting] = React.useState(false);
+  const editItem = editItems?.find((i) => i.id === editRow?.itemId);
+  const [doctorName, setDoctorName] = React.useState(editQuote?.doctor_name || '');
+
+  const form = useForm<QuoteEditorValues>({
+    resolver: zodResolver(quoteEditorSchema),
+    defaultValues: {
+      created_at: editQuote?.createdAt ? new Date(editQuote.createdAt) : editRow?.date ? new Date(editRow.date) : new Date(),
+      service_id: editItem?.service_id || editRow?.serviceId || '',
+      service_name: editItem?.service_name || editRow?.label || '',
+      tooth_number: editItem?.tooth_number != null ? String(editItem.tooth_number) : '',
+      quantity: editItem?.quantity || editRow?.quantity || 1,
+      unit_price: editItem?.unit_price ?? editRow?.unitPrice ?? 0,
+      doctor_id: editQuote?.doctor_id || '',
+      description: editQuote?.notes || '',
+    },
+  });
+  const watchedName = form.watch('service_name');
+  const createdAt = form.watch('created_at');
+
+  const onSubmit = async (values: QuoteEditorValues) => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const qty = values.quantity || 1;
+      const tooth = values.tooth_number ? Number(values.tooth_number) : null;
+      const createdAtIso = toLocalISOString(preserveTimeIfToday(values.created_at));
+      if (isEdit) {
+        // Re-send the whole quote (all sibling items preserved), overriding the edited
+        // line, so quote-level fields (date, doctor, notes) and the line save together.
+        const items = (editItems && editItems.length > 0 ? editItems : (editItem ? [editItem] : []))
+          .map((i) => i.id === editRow!.itemId
+            ? { id: i.id, service_id: values.service_id, quantity: qty, unit_price: values.unit_price, total: qty * values.unit_price, tooth_number: tooth }
+            : { id: i.id, service_id: i.service_id, quantity: i.quantity, unit_price: i.unit_price, total: i.total, tooth_number: i.tooth_number ?? null });
+        const total = items.reduce((sum, i) => sum + (i.total || 0), 0);
+        const res = await api.post(API_ROUTES.SALES.QUOTES_UPSERT, {
+          id: editRow!.quoteId,
+          user_id: userId,
+          // Only send doctor_id when set, so an unknown original doctor is never blanked.
+          ...(values.doctor_id ? { doctor_id: values.doctor_id } : {}),
+          total,
+          currency,
+          status: 'draft',
+          payment_status: 'unpaid',
+          billing_status: 'not invoiced',
+          exchange_rate: editQuote?.exchange_rate ?? 1,
+          created_at: createdAtIso,
+          notes: values.description || '',
+          patient_confirmed: false,
+          items,
+          is_sales: true,
+        });
+        if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message);
+        toast({ title: t('toasts.itemUpdated') });
+      } else {
+        const item = {
+          service_id: values.service_id,
+          service_name: values.service_name,
+          quantity: qty,
+          unit_price: values.unit_price,
+          total: qty * values.unit_price,
+          tooth_number: tooth,
+        };
+        if (doc === 'quote') {
+          const res = await api.post(API_ROUTES.SALES.QUOTES_UPSERT, {
+            user_id: userId,
+            doctor_id: values.doctor_id || undefined,
+            total: qty * values.unit_price,
+            currency,
+            status: 'draft',
+            payment_status: 'unpaid',
+            billing_status: 'not invoiced',
+            exchange_rate: 1,
+            created_at: createdAtIso,
+            notes: values.description || '',
+            patient_confirmed: false,
+            items: [item],
+            is_sales: true,
+          });
+          if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message);
+          toast({ title: t('toasts.quoteCreated') });
+        } else {
+          const res = await api.post(API_ROUTES.SALES.INVOICES_UPSERT, {
+            user_id: userId,
+            doctor_id: values.doctor_id || undefined,
+            total: qty * values.unit_price,
+            currency,
+            created_at: createdAtIso,
+            notes: values.description || '',
+            is_historical: false,
+            items: [item],
+            type: 'invoice',
+            is_sales: true,
+          });
+          if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message);
+          toast({ title: t('toasts.treatmentCreated') });
+        }
+      }
+      await onSaved();
+    } catch (e: any) {
+      toast({ title: e?.message || t(isEdit ? 'toasts.itemUpdateError' : doc === 'quote' ? 'toasts.quoteCreateError' : 'toasts.treatmentCreateError'), variant: 'destructive' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={form.handleSubmit(onSubmit)}>
+      <InlineEditorShell
+        docLabel={t(doc === 'quote' ? 'inline.addQuote' : 'inline.addTreatment')}
+        dateSlot={
+          <DatePickerInput
+            value={format(createdAt, 'yyyy-MM-dd')}
+            onChange={(iso) => iso && form.setValue('created_at', parseISO(iso))}
+            className="h-8 text-xs"
+          />
+        }
+        mainSlot={
+          <ServiceSelector
+            isSales
+            value={form.watch('service_id')}
+            selectedServiceName={watchedName}
+            onValueChange={(serviceId, service) => {
+              form.setValue('service_id', serviceId, { shouldValidate: true });
+              if (service) {
+                form.setValue('service_name', service.name);
+                form.setValue('unit_price', Number(service.price) || 0);
+              }
+            }}
+            placeholder={t('fields.searchService')}
+            triggerText={t('fields.selectService')}
+            className="h-8"
+          />
+        }
+        debeSlot={
+          <Input
+            type="number"
+            step="0.01"
+            min="0"
+            aria-label={t('fields.price')}
+            className="h-8 text-right text-sm"
+            {...form.register('unit_price')}
+          />
+        }
+        haberSlot={<DisabledAmountCell />}
+        controls={<EditorControls submitting={submitting} onCancel={onCancel} />}
+        secondLine={
+          <>
+            <Input
+              type="number"
+              placeholder={t('fields.tooth')}
+              aria-label={t('fields.tooth')}
+              className="h-8 w-20 text-sm"
+              {...form.register('tooth_number')}
+            />
+            <Input
+              type="number"
+              min={1}
+              placeholder={t('fields.quantity')}
+              aria-label={t('fields.quantity')}
+              className="h-8 w-16 text-sm"
+              {...form.register('quantity')}
+            />
+            <div className="min-w-[10rem] flex-1">
+              <DoctorSelector
+                value={form.watch('doctor_id')}
+                selectedDoctorName={doctorName}
+                onValueChange={(doctorId, doctor) => {
+                  form.setValue('doctor_id', doctorId);
+                  setDoctorName(doctor?.name || '');
+                }}
+                placeholder={t('fields.searchDoctor')}
+                triggerText={t('fields.selectDoctor')}
+                className="h-8"
+              />
+            </div>
+            <Input
+              placeholder={t('fields.description')}
+              aria-label={t('fields.description')}
+              className="h-8 min-w-[10rem] flex-1 text-sm"
+              {...form.register('description')}
+            />
+          </>
+        }
+      />
+    </form>
+  );
+}
+
+const paymentEditorSchema = z.object({
+  created_at: z.date(),
+  payment_amount: z.coerce.number().positive(),
+  payment_method_id: z.string().min(1),
+  notes: z.string().optional(),
+  is_historical: z.boolean().default(false),
+});
+type PaymentEditorValues = z.infer<typeof paymentEditorSchema>;
+
+/**
+ * Inline editor for a Nuevo Pago — creates a prepayment/credit via `INVOICE_PAYMENT`
+ * (mirrors `PrepaidFormDialog`). Enables the Haber editor; Debe is disabled. The green
+ * confirm button is the confirm, so there's no extra confirmation dialog.
+ */
+function PaymentInlineEditor({ userId, patientName, patientEmail, currency, onCancel, onSaved }: {
+  userId: string;
+  patientName?: string;
+  patientEmail?: string;
+  currency: string;
+  onCancel: () => void;
+  onSaved: () => Promise<void> | void;
+}) {
+  const t = useTranslations('PatientLedger');
+  const { toast } = useToast();
+  const { user: operator, checkActiveSession } = useAuth();
+  const { validateActiveSession, showCashSessionError } = useCashSessionValidation();
+  const [submitting, setSubmitting] = React.useState(false);
+  const [paymentMethods, setPaymentMethods] = React.useState<PaymentMethod[]>([]);
+
+  React.useEffect(() => { void getPaymentMethods().then(setPaymentMethods); }, []);
+
+  const form = useForm<PaymentEditorValues>({
+    resolver: zodResolver(paymentEditorSchema),
+    defaultValues: { created_at: new Date(), payment_amount: 0, payment_method_id: '', notes: '', is_historical: false },
+  });
+  const createdAt = form.watch('created_at');
+  const isHistorical = form.watch('is_historical');
+
+  const onSubmit = async (values: PaymentEditorValues) => {
+    if (submitting || !operator) return;
+    setSubmitting(true);
+    try {
+      let sessionId: string | null = null;
+      if (!values.is_historical) {
+        const validation = await validateActiveSession();
+        if (!validation.isValid) {
+          showCashSessionError(validation.error);
+          return;
+        }
+        sessionId = validation.sessionId ?? null;
+      }
+      const method = paymentMethods.find((m) => m.id === values.payment_method_id);
+      const res: any = await api.post(API_ROUTES.SALES.INVOICE_PAYMENT, {
+        cash_session_id: sessionId,
+        user: operator,
+        client_user: { id: userId, name: patientName || '', email: patientEmail || '' },
+        query: {
+          payment_date: toLocalISOString(preserveTimeIfToday(values.created_at)),
+          amount: values.payment_amount,
+          method: method?.name,
+          payment_method_id: values.payment_method_id,
+          status: 'completed',
+          user_id: userId,
+          is_sales: true,
+          is_prepaid: true,
+          invoice_currency: currency,
+          payment_currency: currency,
+          exchange_rate: 1,
+          notes: values.notes || '',
+          is_historical: values.is_historical,
+        },
+      });
+      if (res?.error && res?.code >= 400) throw new Error(res.message);
+      if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message);
+      toast({ title: t('toasts.paymentCreated') });
+      await checkActiveSession();
+      await onSaved();
+    } catch (e: any) {
+      toast({ title: e?.message || t('toasts.paymentCreateError'), variant: 'destructive' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={form.handleSubmit(onSubmit)}>
+      <InlineEditorShell
+        docLabel={t('inline.addPayment')}
+        dateSlot={
+          <DatePickerInput
+            value={format(createdAt, 'yyyy-MM-dd')}
+            onChange={(iso) => iso && form.setValue('created_at', parseISO(iso))}
+            className="h-8 text-xs"
+          />
+        }
+        mainSlot={
+          <Select value={form.watch('payment_method_id')} onValueChange={(v) => form.setValue('payment_method_id', v, { shouldValidate: true })}>
+            <SelectTrigger className="h-8 text-sm"><SelectValue placeholder={t('fields.selectMethod')} /></SelectTrigger>
+            <SelectContent>
+              {paymentMethods.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        }
+        debeSlot={<DisabledAmountCell />}
+        haberSlot={
+          <FormattedNumberInput
+            value={form.watch('payment_amount')}
+            onChange={(v) => form.setValue('payment_amount', v, { shouldValidate: true })}
+            placeholder="0.00"
+            className="h-8 text-right text-sm"
+          />
+        }
+        controls={<EditorControls submitting={submitting} onCancel={onCancel} />}
+        secondLine={
+          <>
+            <Input
+              placeholder={t('fields.notes')}
+              aria-label={t('fields.notes')}
+              className="h-8 min-w-[10rem] flex-1 text-sm"
+              {...form.register('notes')}
+            />
+            <label className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
+              <Checkbox checked={isHistorical} onCheckedChange={(c) => form.setValue('is_historical', !!c)} />
+              {t('fields.historical')}
+            </label>
+          </>
+        }
+      />
+    </form>
+  );
+}
+
+export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedgerProps>(function PatientLedger({ userId, patientName, patientEmail, refreshTrigger, onPrintSummary, onViewStatement, hideToolbarActions, searchTerm: searchTermProp }: PatientLedgerProps, ref) {
   const t = useTranslations('PatientLedger');
   const { toast } = useToast();
   const { user: operator } = useAuth();
+  const clinicInfo = useClinicInfo();
   const { validateActiveSession, showCashSessionError } = useCashSessionValidation();
   const { hasPermission } = usePermissions();
-  const canEditItem = hasPermission(SALES_PERMISSIONS.QUOTES_UPDATE_ITEM);
   const canInvoiceQuote = hasPermission(SALES_PERMISSIONS.INVOICES_CREATE) || hasPermission(SALES_PERMISSIONS.ORDERS_INVOICE_FROM_ORDER);
   const canConfirmQuote = hasPermission(SALES_PERMISSIONS.QUOTES_CONFIRM);
   const canCreatePaymentPerm = hasPermission(SALES_PERMISSIONS.PAYMENTS_CREATE);
+  const canCreateQuote = hasPermission(SALES_PERMISSIONS.QUOTES_CREATE);
+  const canCreateTreatment = hasPermission(SALES_PERMISSIONS.INVOICES_CREATE);
   const canCreateCreditNote = hasPermission(SALES_PERMISSIONS.INVOICES_CREATE);
   const canRevertInvoice = hasPermission(SALES_PERMISSIONS.INVOICES_DELETE);
   const canDeleteQuote = hasPermission(SALES_PERMISSIONS.QUOTES_DELETE);
@@ -395,21 +800,16 @@ export function PatientLedger({ userId, patientName, patientEmail, refreshTrigge
   const [isLoading, setIsLoading] = React.useState(true);
   const prevRefreshTrigger = React.useRef(refreshTrigger);
 
-  const [services, setServices] = React.useState<Service[]>([]);
-  const loadServices = React.useCallback(async () => {
-    if (services.length > 0) return;
-    try {
-      const data = await getSalesServices({ limit: 500 });
-      setServices(data.items || []);
-    } catch { /* silent */ }
-  }, [services.length]);
-
   const [billingQuote, setBillingQuote] = React.useState<Quote | null>(null);
   const [billingItemId, setBillingItemId] = React.useState<string | null>(null);
-  const [editingRow, setEditingRow] = React.useState<LedgerRow | null>(null);
-  const [isSubmittingEdit, setIsSubmittingEdit] = React.useState(false);
   const [creditNoteRow, setCreditNoteRow] = React.useState<LedgerRow | null>(null);
   const [isSubmittingCreditNote, setIsSubmittingCreditNote] = React.useState(false);
+
+  // Inline editing state: `createDoc` drives the floating-bar → inline-create editor;
+  // `selectedRowId` drives row selection (inline presupuesto edit + action bar).
+  const [createDoc, setCreateDoc] = React.useState<'quote' | 'invoice' | 'payment' | null>(null);
+  const [selectedRowId, setSelectedRowId] = React.useState<string | null>(null);
+  const [searchOpen, setSearchOpen] = React.useState(false);
 
   const load = React.useCallback(async (forceRefresh: boolean) => {
     if (!userId) return;
@@ -430,18 +830,22 @@ export function PatientLedger({ userId, patientName, patientEmail, refreshTrigge
 
   const handleManualRefresh = React.useCallback(() => { void load(true); }, [load]);
 
+  React.useImperativeHandle(ref, () => ({ refresh: () => { void load(true); } }), [load]);
+
   const currencies = Object.keys(ledgerByCurrency);
   const rows = React.useMemo(
     () => (currency ? ledgerByCurrency[currency] || [] : []),
     [currency, ledgerByCurrency],
   );
 
-  // ── Row actions ──────────────────────────────────────────────────────────────
-  const handleEdit = React.useCallback((row: LedgerRow) => {
-    void loadServices();
-    setEditingRow(row);
-  }, [loadServices]);
+  // Currency used by the inline create editor (ledger's own currency, else clinic default).
+  const editorCurrency = currency || clinicInfo?.currency || 'UYU';
 
+  // Reset transient inline state whenever the underlying rows change (after a reload).
+  const closeInline = React.useCallback(() => { setCreateDoc(null); setSelectedRowId(null); }, []);
+  const handleInlineSaved = React.useCallback(async () => { closeInline(); await load(true); }, [closeInline, load]);
+
+  // ── Row actions ──────────────────────────────────────────────────────────────
   const handleInvoice = React.useCallback((row: LedgerRow) => {
     const quote = ledgerData?.quotes.find((q) => q.id === row.quoteId) || null;
     setBillingQuote(quote);
@@ -704,41 +1108,6 @@ export function PatientLedger({ userId, patientName, patientEmail, refreshTrigge
     }
   }, [confirmAction, isRevertingInvoice, isDeletingQuote, isDeletingPayment, isDeletingCreditNote, load, t, toast]);
 
-  const editForm = useForm<EditItemFormValues>({ resolver: zodResolver(editItemSchema) });
-  React.useEffect(() => {
-    if (!editingRow) return;
-    editForm.reset({
-      service_id: editingRow.serviceId || '',
-      quantity: editingRow.quantity || 1,
-      unit_price: editingRow.unitPrice || 0,
-    });
-  }, [editingRow, editForm]);
-
-  const handleSubmitEdit = async (values: EditItemFormValues) => {
-    if (!editingRow?.quoteId || !editingRow.itemId) return;
-    setIsSubmittingEdit(true);
-    try {
-      const res = await api.post(API_ROUTES.SALES.QUOTES_LINES_UPSERT, {
-        id: editingRow.itemId,
-        quote_id: editingRow.quoteId,
-        service_id: values.service_id,
-        quantity: values.quantity,
-        unit_price: values.unit_price,
-        total: values.quantity * values.unit_price,
-        tooth_number: null,
-        is_sales: true,
-      });
-      if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message);
-      toast({ title: t('toasts.itemUpdated') });
-      setEditingRow(null);
-      await load(true);
-    } catch (e: any) {
-      toast({ title: e?.message || t('toasts.itemUpdateError'), variant: 'destructive' });
-    } finally {
-      setIsSubmittingEdit(false);
-    }
-  };
-
   const creditNoteForm = useForm<CreditNoteFormValues>({ resolver: zodResolver(creditNoteSchema) });
   React.useEffect(() => {
     if (!creditNoteRow) return;
@@ -789,10 +1158,10 @@ export function PatientLedger({ userId, patientName, patientEmail, refreshTrigge
 
   const renderStatusCell = React.useCallback((row: LedgerRow) => {
     if (row.kind === 'payment') {
-      return <Badge variant="info">{t('status.pago')}</Badge>;
+      return <Badge variant="info" className={STATUS_BADGE_CLASS}>{t('status.pago')}</Badge>;
     }
     if (row.status === 'notaCredito') {
-      return <Badge variant={STATUS_VARIANT.notaCredito}>{t('status.notaCredito')}</Badge>;
+      return <Badge variant={STATUS_VARIANT.notaCredito} className={STATUS_BADGE_CLASS}>{t('status.notaCredito')}</Badge>;
     }
     if (!row.status) return null;
     return (
@@ -812,69 +1181,110 @@ export function PatientLedger({ userId, patientName, patientEmail, refreshTrigge
     );
   }, [t, canConfirmQuote, canCreatePaymentPerm, canDeletePayment, canRevertInvoice, isMarkingEnCurso, isMarkingFinalized, isUnmarkingFinalized, isRevertingInvoice, handleMarkEnCurso, handleMarkFinalized, handleUnmarkFinalized, handleRevertInvoice]);
 
-  const renderActionsCell = React.useCallback((row: LedgerRow) => (
-    <RowActionsMenu
-      row={row}
-      canEdit={canEditItem}
-      canInvoice={canInvoiceQuote}
-      canCreateCreditNote={canCreateCreditNote}
-      canDeleteQuote={canDeleteQuote}
-      canDeletePayment={canDeletePayment}
-      canDeleteCreditNote={canDeleteCreditNote}
-      canDeleteInvoice={canRevertInvoice}
-      getMaxCreditable={getMaxCreditableForInvoice}
-      onEdit={handleEdit}
-      onInvoice={handleInvoice}
-      onCreditNote={handleCreditNote}
-      onDeleteQuote={handleDeleteQuote}
-      onDeletePayment={handleDeletePayment}
-      onDeleteCreditNote={handleDeleteCreditNote}
-      onDeleteInvoice={handleDeleteInvoice}
-      t={t}
-    />
-  ), [canEditItem, canInvoiceQuote, canCreateCreditNote, canDeleteQuote, canDeletePayment, canDeleteCreditNote, canRevertInvoice, getMaxCreditableForInvoice, handleEdit, handleInvoice, handleCreditNote, handleDeleteQuote, handleDeletePayment, handleDeleteCreditNote, handleDeleteInvoice, t]);
+  /** Routes a selected row's "Eliminar" to the right existing delete handler by kind. */
+  const handleDeleteRow = React.useCallback((row: LedgerRow) => {
+    if (row.kind === 'payment') return handleDeletePayment(row);
+    if (row.status === 'notaCredito') return handleDeleteCreditNote(row);
+    if (row.status === 'presupuestado') return handleDeleteQuote(row);
+    return handleDeleteInvoice(row);
+  }, [handleDeletePayment, handleDeleteCreditNote, handleDeleteQuote, handleDeleteInvoice]);
 
-  const [searchTerm, setSearchTerm] = React.useState('');
+  /** Centered action buttons shown attached under a selected row — the same actions the
+   *  old "…" menu held (custom invoice, credit note, delete), plus a Cancelar to deselect.
+   *  Returns a fragment; the row's merged card container provides border/background. */
+  const renderSelectionActions = React.useCallback((row: LedgerRow) => {
+    const isUnbilledQuoteItem = row.kind === 'item' && row.status === 'presupuestado';
+    const isInvoiceItem = row.kind === 'item' && !!row.status && row.status !== 'presupuestado' && row.status !== 'notaCredito';
+    const isPayment = row.kind === 'payment';
+    const isCreditNote = row.kind === 'item' && row.status === 'notaCredito';
+    const quoteStatus = (row.quoteStatus || '').toLowerCase();
+    const showInvoice = isUnbilledQuoteItem && INVOICEABLE_QUOTE_STATUSES.includes(quoteStatus) && canInvoiceQuote;
+    const showCreateCreditNote = isInvoiceItem && !!row.invoiceId && getMaxCreditableForInvoice(row.invoiceId) > 0.005 && canCreateCreditNote;
+    const canDelete =
+      (isUnbilledQuoteItem && canDeleteQuote) ||
+      (isPayment && canDeletePayment) ||
+      (isCreditNote && canDeleteCreditNote) ||
+      (isInvoiceItem && canRevertInvoice);
+    return (
+      <>
+        {showInvoice && (
+          <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => handleInvoice(row)}>
+            <FileText className="h-3.5 w-3.5" />{t('actions.invoiceCustom')}
+          </Button>
+        )}
+        {showCreateCreditNote && (
+          <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => handleCreditNote(row)}>
+            <FileMinus className="h-3.5 w-3.5" />{t('actions.creditNote')}
+          </Button>
+        )}
+        {canDelete && (
+          <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:text-destructive" onClick={() => handleDeleteRow(row)}>
+            <Trash2 className="h-3.5 w-3.5" />{t('inline.delete')}
+          </Button>
+        )}
+        <Button size="sm" variant="ghost" className="text-xs" onClick={() => setSelectedRowId(null)}>
+          {t('inline.cancel')}
+        </Button>
+      </>
+    );
+  }, [canInvoiceQuote, canCreateCreditNote, canDeleteQuote, canDeletePayment, canDeleteCreditNote, canRevertInvoice, getMaxCreditableForInvoice, handleInvoice, handleCreditNote, handleDeleteRow, t]);
+
+  // Search may be controlled by a host (the sheet renders the search box in its header);
+  // otherwise the ledger keeps its own state and shows an expandable search in the toolbar.
+  const [internalSearch, setInternalSearch] = React.useState('');
+  const isSearchControlled = searchTermProp !== undefined;
+  const search = isSearchControlled ? searchTermProp! : internalSearch;
   const filteredRows = React.useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
+    const term = search.trim().toLowerCase();
     if (!term) return rows;
     return rows.filter((row) => row.label.toLowerCase().includes(term) || (row.docNo || '').toLowerCase().includes(term));
-  }, [rows, searchTerm]);
+  }, [rows, search]);
+
+  // Column totals for the footer. A presupuesto with no invoice behind it isn't a debt
+  // yet, so its Debe is shown in the row but excluded from Total Debe (same rule the
+  // running balance uses). The final balance is the last running balance (positive =
+  // debt, negative = credit in favour).
+  const totals = React.useMemo(() => ({
+    totalDebe: round2(rows.reduce((s, r) => s + (r.status === 'presupuestado' ? 0 : r.debe), 0)),
+    totalHaber: round2(rows.reduce((s, r) => s + r.haber, 0)),
+    finalBalance: rows.length > 0 ? rows[rows.length - 1].runningBalance : 0,
+  }), [rows]);
+
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
+  React.useEffect(() => { if (searchOpen) searchInputRef.current?.focus(); }, [searchOpen]);
+
+  const showToolbar = !isSearchControlled || !!onViewStatement || currencies.length > 1 || !hideToolbarActions;
 
   const toolbar = (
     <div className="flex flex-wrap items-center gap-2">
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder={t('search')}
-          className="h-8 w-48 pl-8 text-xs"
-        />
-      </div>
-      {onCreateQuote && (
-        <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={onCreateQuote}>
-          <FileText className="h-3.5 w-3.5" />{t('newQuote')}
-        </Button>
-      )}
-      {onCreateTreatment && (
-        <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={onCreateTreatment}>
-          <FilePlus2 className="h-3.5 w-3.5" />{t('newTreatment')}
-        </Button>
-      )}
-      {onCreatePayment && (
-        <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={onCreatePayment}>
-          <Receipt className="h-3.5 w-3.5" />{t('newPayment')}
-        </Button>
+      {!isSearchControlled && (
+        <div className="flex items-center">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 w-8 shrink-0 p-0"
+            onClick={() => { if (searchOpen && internalSearch) setInternalSearch(''); setSearchOpen((v) => !v); }}
+            title={t('search')}
+          >
+            <Search className="h-3.5 w-3.5" />
+          </Button>
+          <Input
+            ref={searchInputRef}
+            value={internalSearch}
+            onChange={(e) => setInternalSearch(e.target.value)}
+            onBlur={() => { if (!internalSearch) setSearchOpen(false); }}
+            placeholder={t('search')}
+            className={cn(
+              'h-8 text-xs transition-all duration-200',
+              searchOpen ? 'ml-1 w-48 opacity-100' : 'w-0 border-0 p-0 opacity-0',
+            )}
+            tabIndex={searchOpen ? 0 : -1}
+          />
+        </div>
       )}
       {onViewStatement && (
         <Button size="sm" variant="ghost" className="gap-1.5 text-xs" onClick={onViewStatement}>
           <ScrollText className="h-3.5 w-3.5" />{t('viewStatement')}
-        </Button>
-      )}
-      {onPrintSummary && (
-        <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={onPrintSummary}>
-          <Printer className="h-3.5 w-3.5" />
         </Button>
       )}
       {currencies.length > 1 && (
@@ -885,9 +1295,18 @@ export function PatientLedger({ userId, patientName, patientEmail, refreshTrigge
           </SelectContent>
         </Select>
       )}
-      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 ml-auto" onClick={handleManualRefresh}>
-        <RefreshCw className="h-3.5 w-3.5" />
-      </Button>
+      {!hideToolbarActions && (
+        <div className="ml-auto flex items-center gap-1">
+          {onPrintSummary && (
+            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={onPrintSummary}>
+              <Printer className="h-3.5 w-3.5" />
+            </Button>
+          )}
+          <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={handleManualRefresh}>
+            <RefreshCw className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 
@@ -906,7 +1325,7 @@ export function PatientLedger({ userId, patientName, patientEmail, refreshTrigge
     <>
       <Card className="h-full flex flex-col min-h-0">
         <CardContent className="flex-1 flex flex-col min-h-0 gap-3 p-4">
-          {toolbar}
+          {showToolbar && toolbar}
 
           {/* Both axes scroll on this one container so the sticky header stays column-
               aligned with the cards when the panel is too narrow to fit every column —
@@ -914,54 +1333,149 @@ export function PatientLedger({ userId, patientName, patientEmail, refreshTrigge
               panel's own width, so they can't be relied on here; a horizontal scrollbar
               is more reliable than trying to squeeze/wrap the columns at any width. */}
           <div className="min-h-0 flex-1 overflow-auto">
-            <div className="w-full min-w-max">
+            {/* px-2 gives the selected-row ring room so it isn't clipped by the scroll
+                container's edges; header and rows share the padding so columns stay aligned. */}
+            <div className="w-full min-w-max px-2">
               <div className="sticky top-0 z-10 flex items-center gap-3 bg-card px-3 py-2 text-xs font-medium text-muted-foreground">
-                <div className="w-20 shrink-0">{t('columns.date')}</div>
+                <div className="w-32 shrink-0">{t('columns.date')}</div>
                 <div className="min-w-[10rem] flex-1">{t('columns.treatment')}</div>
-                <div className="w-32 shrink-0 text-center">{t('columns.status')}</div>
-                <div className="w-20 shrink-0 text-right">{t('columns.debit')}</div>
-                <div className="w-20 shrink-0 text-right">{t('columns.credit')}</div>
+                <div className="w-24 shrink-0 text-right">{t('columns.debit')}</div>
+                <div className="w-24 shrink-0 text-right">{t('columns.credit')}</div>
                 <div className="w-24 shrink-0 text-right">{t('columns.balance')}</div>
-                <div className="w-8 shrink-0" />
               </div>
 
               {filteredRows.length === 0 ? (
                 <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">{t('empty')}</div>
               ) : (
                 <div className="space-y-2 py-1">
-                  {filteredRows.map((row) => (
-                    <div
-                      key={row.id}
-                      className={cn('flex items-center gap-3 rounded-lg border px-3 py-2.5', cardAccentClass(row))}
-                    >
-                      <div className="w-20 shrink-0 whitespace-nowrap text-sm text-muted-foreground">
-                        {formatDisplayDate(row.date)}
-                      </div>
-                      <div className="flex min-w-[10rem] flex-1 items-center gap-2">
-                        <RowKindIcon row={row} />
-                        {row.status === 'presupuestado' && <PresupuestoBadge />}
-                        <div className="flex min-w-0 flex-col">
-                          <span className="truncate text-sm font-medium">{row.label}</span>
-                          {row.docNo && <span className="truncate text-xs text-muted-foreground">#{row.docNo}</span>}
+                  {filteredRows.map((row) => {
+                    const selected = selectedRowId === row.id;
+                    return (
+                      // Wrapper carries the selection ring so it wraps the row AND its
+                      // attached action bar as one unit, un-clipped by the scroll edges.
+                      <div key={row.id} className={cn('rounded-lg', selected && 'ring-2 ring-primary ring-offset-2 ring-offset-background')}>
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => { setCreateDoc(null); setSelectedRowId(selected ? null : row.id); }}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setCreateDoc(null); setSelectedRowId(selected ? null : row.id); } }}
+                          className={cn(
+                            'flex cursor-pointer items-center gap-3 border px-3 py-2.5',
+                            cardAccentClass(row),
+                            selected ? 'rounded-t-lg border-b-0' : 'rounded-lg',
+                          )}
+                        >
+                          <div className="flex w-32 shrink-0 flex-col gap-1">
+                            <span className="whitespace-nowrap text-xs text-muted-foreground">{formatDisplayDate(row.date)}</span>
+                            {renderStatusCell(row)}
+                          </div>
+                          <div className="flex min-w-[10rem] flex-1 items-center gap-2">
+                            <RowKindIcon row={row} />
+                            {isFromQuote(row) && <PresupuestoBadge />}
+                            <div className="flex min-w-0 flex-col">
+                              <span className="truncate text-sm font-medium">{row.label}</span>
+                              {docNumbersLabel(row, t) && (
+                                <span className="truncate text-xs text-muted-foreground">{docNumbersLabel(row, t)}</span>
+                              )}
+                              {row.notes && (
+                                <span className="truncate text-[11px] italic text-muted-foreground/80">{row.notes}</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="w-24 shrink-0 text-right text-sm tabular-nums">
+                            {fmtAmountZero(row.debe, row.currency)}
+                            {row.status === 'presupuestado' && (
+                              <div className="text-[10px] font-normal not-italic text-muted-foreground">{t('footer.notCounted')}</div>
+                            )}
+                          </div>
+                          <div className="w-24 shrink-0 text-right text-sm tabular-nums">{fmtAmountZero(row.haber, row.currency)}</div>
+                          <div className="w-24 shrink-0 text-right text-sm font-semibold tabular-nums">{fmtAmount(row.runningBalance, row.currency)}</div>
                         </div>
+                        {selected && (
+                          <div
+                            className="flex flex-wrap items-center justify-center gap-2 rounded-b-lg border border-t-0 border-border bg-muted/40 px-3 py-2"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {renderSelectionActions(row)}
+                          </div>
+                        )}
                       </div>
-                      <div className="flex w-32 shrink-0 justify-center">{renderStatusCell(row)}</div>
-                      <div className="w-20 shrink-0 text-right text-sm tabular-nums">{fmtAmount(row.debe, row.currency)}</div>
-                      <div className="w-20 shrink-0 text-right text-sm tabular-nums">{fmtAmount(row.haber, row.currency)}</div>
-                      <div className="w-24 shrink-0 text-right text-sm font-semibold tabular-nums">{fmtAmount(row.runningBalance, row.currency)}</div>
-                      <div className="w-8 shrink-0">{renderActionsCell(row)}</div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center justify-end gap-2 border-t px-1 pt-3">
-            <span className="text-sm font-medium text-muted-foreground">{t('finalBalance')}</span>
-            <span className="text-lg font-semibold tabular-nums">
-              {fmtAmount(rows.length > 0 ? rows[rows.length - 1].runningBalance : 0, currency || 'USD')}
-            </span>
+          {/* Inline create editor — shown just above the footer when a "+" in the footer
+              is clicked; otherwise nothing renders here. */}
+          {createDoc !== null && (
+            <div className="shrink-0">
+              {createDoc === 'payment' ? (
+                <PaymentInlineEditor
+                  userId={userId}
+                  patientName={patientName}
+                  patientEmail={patientEmail}
+                  currency={editorCurrency}
+                  onCancel={() => setCreateDoc(null)}
+                  onSaved={handleInlineSaved}
+                />
+              ) : (
+                <QuoteInvoiceInlineEditor
+                  doc={createDoc}
+                  userId={userId}
+                  currency={editorCurrency}
+                  onCancel={() => setCreateDoc(null)}
+                  onSaved={handleInlineSaved}
+                />
+              )}
+            </div>
+          )}
+
+          {/* Footer: create buttons on the left; Total Debe / Total Haber / Saldo Final
+              column totals on the right, each aligned under its ledger column (pr-5 matches
+              the rows' right inset: wrapper px-2 + card px-3). */}
+          <div className="flex shrink-0 items-end gap-3 border-t pl-1 pr-5 pt-3">
+            <div className="flex flex-1 flex-wrap items-center gap-2">
+              {canCreateQuote && (
+                <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => { setSelectedRowId(null); setCreateDoc('quote'); }}>
+                  <Plus className="h-3.5 w-3.5" /><FileText className="h-3.5 w-3.5" />{t('inline.addQuote')}
+                </Button>
+              )}
+              {canCreateTreatment && (
+                <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => { setSelectedRowId(null); setCreateDoc('invoice'); }}>
+                  <Plus className="h-3.5 w-3.5" /><Receipt className="h-3.5 w-3.5" />{t('inline.addTreatment')}
+                </Button>
+              )}
+              {canCreatePaymentPerm && (
+                <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => { setSelectedRowId(null); setCreateDoc('payment'); }}>
+                  <Plus className="h-3.5 w-3.5" /><Banknote className="h-3.5 w-3.5" />{t('inline.addPayment')}
+                </Button>
+              )}
+            </div>
+            <div className="w-24 shrink-0 text-right">
+              <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t('footer.totalDebit')}</div>
+              <div className="text-sm font-semibold tabular-nums">{fmtAmountZero(totals.totalDebe, currency || 'USD')}</div>
+            </div>
+            <div className="w-24 shrink-0 text-right">
+              <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t('footer.totalCredit')}</div>
+              <div className="text-sm font-semibold tabular-nums">{fmtAmountZero(totals.totalHaber, currency || 'USD')}</div>
+            </div>
+            <div className="w-24 shrink-0 text-right">
+              <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t('footer.finalBalance')}</div>
+              <div
+                className={cn(
+                  'text-sm font-semibold tabular-nums',
+                  totals.finalBalance > 0.005
+                    ? 'text-red-600 dark:text-red-400'
+                    : totals.finalBalance < -0.005
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : 'text-foreground',
+                )}
+              >
+                {fmtAmountZero(totals.finalBalance, currency || 'USD')}
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -975,58 +1489,6 @@ export function PatientLedger({ userId, patientName, patientEmail, refreshTrigge
         isSales
         onSuccess={async () => { setBillingQuote(null); setBillingItemId(null); await load(true); }}
       />
-
-      <Dialog open={!!editingRow} onOpenChange={(open) => { if (!open) setEditingRow(null); }}>
-        <DialogContent className="sm:max-w-[480px]" confirmOnClose isDirty={editForm.formState.isDirty}>
-          <Form {...editForm}>
-            <form onSubmit={editForm.handleSubmit(handleSubmitEdit)}>
-              <DialogHeader>
-                <DialogTitle>{t('dialogs.editItem.title')}</DialogTitle>
-                <DialogDescription>{t('dialogs.editItem.description')}</DialogDescription>
-              </DialogHeader>
-              <DialogBody className="space-y-4 py-4 px-6">
-                <FormField control={editForm.control} name="service_id" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('dialogs.editItem.service')}</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger><SelectValue placeholder={t('dialogs.editItem.service')} /></SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {services.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField control={editForm.control} name="quantity" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('dialogs.editItem.quantity')}</FormLabel>
-                      <FormControl><Input type="number" min={1} {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={editForm.control} name="unit_price" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('dialogs.editItem.unitPrice')}</FormLabel>
-                      <FormControl><Input type="number" min={0} step="0.01" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                </div>
-              </DialogBody>
-              <DialogFooter>
-                <DialogCancelButton disabled={isSubmittingEdit}>{t('dialogs.editItem.cancel')}</DialogCancelButton>
-                <Button type="submit" disabled={isSubmittingEdit}>
-                  {isSubmittingEdit && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {t('dialogs.editItem.save')}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={!!creditNoteRow} onOpenChange={(open) => { if (!open) setCreditNoteRow(null); }}>
         <DialogContent className="sm:max-w-[480px]" confirmOnClose isDirty={creditNoteForm.formState.isDirty}>
@@ -1114,4 +1576,5 @@ export function PatientLedger({ userId, patientName, patientEmail, refreshTrigge
 
     </>
   );
-}
+});
+PatientLedger.displayName = 'PatientLedger';

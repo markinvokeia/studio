@@ -4,6 +4,46 @@
     "newTreatment": "Nuevo Tratamiento",
     "newPayment": "Nuevo Pago",
     "viewStatement": "Estado de cuenta",
+    "inline": {
+      "addQuote": "Presupuesto",
+      "addTreatment": "Tratamiento",
+      "addPayment": "Pago",
+      "confirm": "Confirmar",
+      "cancel": "Cancelar",
+      "save": "Guardar",
+      "delete": "Eliminar"
+    },
+    "docLine": {
+      "quote": "Presupuesto",
+      "invoice": "Factura",
+      "treatment": "Tratamiento",
+      "payment": "Pago",
+      "creditNote": "Nota de crédito"
+    },
+    "footer": {
+      "totalDebit": "Total Debe",
+      "totalCredit": "Total Haber",
+      "finalBalance": "Saldo Final",
+      "notCounted": "no contabiliza"
+    },
+    "fields": {
+      "date": "Fecha",
+      "service": "Tratamiento",
+      "searchService": "Buscar tratamiento...",
+      "selectService": "Seleccionar tratamiento",
+      "tooth": "Pieza",
+      "quantity": "Cant.",
+      "doctor": "Doctor",
+      "searchDoctor": "Buscar doctor...",
+      "selectDoctor": "Seleccionar doctor",
+      "description": "Descripción",
+      "price": "Precio",
+      "amount": "Monto",
+      "method": "Método de pago",
+      "selectMethod": "Seleccionar método",
+      "notes": "Notas",
+      "historical": "Histórico"
+    },
     "columns": {
       "date": "Fecha",
       "treatment": "Tratamiento",
@@ -90,6 +130,12 @@
       }
     },
     "toasts": {
+      "quoteCreated": "Presupuesto creado",
+      "quoteCreateError": "No se pudo crear el presupuesto",
+      "treatmentCreated": "Tratamiento creado",
+      "treatmentCreateError": "No se pudo crear el tratamiento",
+      "paymentCreated": "Pago registrado",
+      "paymentCreateError": "No se pudo registrar el pago",
       "itemUpdated": "Ítem actualizado",
       "itemUpdateError": "No se pudo actualizar el ítem",
       "creditNoteCreated": "Nota de crédito creada",
@@ -152,6 +198,8 @@
   "AccountStatement": {
     "title": "Estado de cuenta",
     "print": "Imprimir",
+    "search": "Buscar...",
+    "refresh": "Refrescar",
     "close": "Cerrar",
     "loading": "Cargando estado de cuenta…",
     "noData": "Este paciente no tiene movimientos financieros.",

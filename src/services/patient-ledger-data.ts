@@ -8,6 +8,8 @@ function normalizeQuote(raw: any, userId: string): Quote {
     id: String(raw.id),
     doc_no: raw.doc_no || undefined,
     user_id: raw.user_id || userId,
+    doctor_id: raw.doctor_id != null ? String(raw.doctor_id) : undefined,
+    doctor_name: raw.doctor_name || undefined,
     total: Number(raw.total_presupuesto ?? raw.total ?? 0),
     status: (String(raw.status || 'draft').toLowerCase() as Quote['status']),
     payment_status: (String(raw.payment_status || 'unpaid').toLowerCase() as Quote['payment_status']),

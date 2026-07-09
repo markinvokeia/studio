@@ -4,6 +4,46 @@
     "newTreatment": "New Treatment",
     "newPayment": "New Payment",
     "viewStatement": "Statement",
+    "inline": {
+      "addQuote": "Quote",
+      "addTreatment": "Treatment",
+      "addPayment": "Payment",
+      "confirm": "Confirm",
+      "cancel": "Cancel",
+      "save": "Save",
+      "delete": "Delete"
+    },
+    "docLine": {
+      "quote": "Quote",
+      "invoice": "Invoice",
+      "treatment": "Treatment",
+      "payment": "Payment",
+      "creditNote": "Credit note"
+    },
+    "footer": {
+      "totalDebit": "Total debit",
+      "totalCredit": "Total credit",
+      "finalBalance": "Final balance",
+      "notCounted": "not counted"
+    },
+    "fields": {
+      "date": "Date",
+      "service": "Treatment",
+      "searchService": "Search treatment...",
+      "selectService": "Select treatment",
+      "tooth": "Tooth",
+      "quantity": "Qty",
+      "doctor": "Doctor",
+      "searchDoctor": "Search doctor...",
+      "selectDoctor": "Select doctor",
+      "description": "Description",
+      "price": "Price",
+      "amount": "Amount",
+      "method": "Payment method",
+      "selectMethod": "Select method",
+      "notes": "Notes",
+      "historical": "Historical"
+    },
     "columns": {
       "date": "Date",
       "treatment": "Treatment",
@@ -90,6 +130,12 @@
       }
     },
     "toasts": {
+      "quoteCreated": "Quote created",
+      "quoteCreateError": "Could not create the quote",
+      "treatmentCreated": "Treatment created",
+      "treatmentCreateError": "Could not create the treatment",
+      "paymentCreated": "Payment registered",
+      "paymentCreateError": "Could not register the payment",
       "itemUpdated": "Item updated",
       "itemUpdateError": "Could not update the item",
       "creditNoteCreated": "Credit note created",
@@ -152,6 +198,8 @@
   "AccountStatement": {
     "title": "Account statement",
     "print": "Print",
+    "search": "Search...",
+    "refresh": "Refresh",
     "close": "Close",
     "loading": "Loading account statement…",
     "noData": "This patient has no financial movements.",
