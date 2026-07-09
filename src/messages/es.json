@@ -87,12 +87,6 @@
       "deleteCreditNote": {
         "title": "Eliminar nota de crédito",
         "description": "Esto eliminará permanentemente la nota de crédito junto con sus alocaciones. Esta acción no se puede deshacer."
-      },
-      "partialFinalize": {
-        "title": "Pago incompleto",
-        "description": "Este tratamiento o presupuesto no se puede pagar completamente con los pagos registrados. ¿Continuar de todas formas?",
-        "cancel": "Cancelar",
-        "confirm": "Continuar"
       }
     },
     "toasts": {
@@ -107,8 +101,6 @@
       "itemUnfinalized": "Pago revertido",
       "itemUnfinalizeError": "No se pudo revertir el pago",
       "alreadyFinalized": "Este tratamiento ya está pagado",
-      "itemPartiallyFinalized": "Se asignó el crédito disponible como pago parcial",
-      "noCreditToApply": "El paciente no tiene crédito disponible para asignar",
       "noPaymentsToUndo": "No hay pagos para revertir en esta factura",
       "invoiceReverted": "Factura revertida a presupuesto",
       "invoiceRevertError": "No se pudo revertir la factura",

@@ -521,23 +521,12 @@ export function PatientLedger({ userId, patientName, patientEmail, refreshTrigge
     }
   }, [userId, load, t, toast, isMarkingEnCurso]);
 
-  interface PartialFinalizeContext {
-    row: LedgerRow;
-    /** Total available credit — less than what's owed, hence the confirm prompt. */
-    amount: number;
-    credits: { source_id: string; type: string; currency: string; available_balance: string }[];
-    sessionId?: string;
-  }
-  const [partialFinalizeContext, setPartialFinalizeContext] = React.useState<PartialFinalizeContext | null>(null);
-  const [isConfirmingPartialFinalize, setIsConfirmingPartialFinalize] = React.useState(false);
-
   /**
    * En curso → Finalizado: pays the invoice's single line in full, purely from the
    * patient's available credit (built up via "Nuevo Pago", which now only ever creates a
    * prepayment/credit — never applies cash to an invoice directly). When the available
-   * credit falls short, this doesn't error out — it hands off to a confirm dialog that
-   * lets the user apply whatever credit exists as a partial payment instead (leaving the
-   * row at "En curso", since it isn't fully paid).
+   * credit falls short, the action is silently a no-op — the row stays at its current
+   * status without any warning dialog or toast.
    */
   const handleMarkFinalized = React.useCallback(async (row: LedgerRow) => {
     if (!row.invoiceId || isMarkingFinalized) return;
@@ -564,7 +553,6 @@ export function PatientLedger({ userId, patientName, patientEmail, refreshTrigge
       const totalAvailable = round2(credits.reduce((sum: number, c: any) => sum + parseFloat(c.available_balance), 0));
 
       if (totalAvailable + 0.005 < remaining) {
-        setPartialFinalizeContext({ row, amount: totalAvailable, credits, sessionId: validation.sessionId });
         return;
       }
 
@@ -577,29 +565,6 @@ export function PatientLedger({ userId, patientName, patientEmail, refreshTrigge
       setIsMarkingFinalized(false);
     }
   }, [userId, patientName, patientEmail, ledgerData, load, t, toast, isMarkingFinalized, validateActiveSession, showCashSessionError, operator]);
-
-  /** Applies whatever credit is available (less than what's owed) after the user confirms
-   *  the "can't be paid in full" prompt — the row stays at its current status, since the
-   *  invoice ends up partially, not fully, paid. */
-  const handleConfirmPartialFinalize = React.useCallback(async () => {
-    if (!partialFinalizeContext || isConfirmingPartialFinalize) return;
-    const { row, amount, credits, sessionId } = partialFinalizeContext;
-    setIsConfirmingPartialFinalize(true);
-    try {
-      if (amount <= 0.005) {
-        toast({ title: t('toasts.noCreditToApply') });
-      } else {
-        await postCreditAllocation({ userId, patientName, patientEmail, operator, row, amount, credits, sessionId });
-        toast({ title: t('toasts.itemPartiallyFinalized') });
-        await load(true);
-      }
-      setPartialFinalizeContext(null);
-    } catch (e: any) {
-      toast({ title: e?.message || t('toasts.itemFinalizeError'), variant: 'destructive' });
-    } finally {
-      setIsConfirmingPartialFinalize(false);
-    }
-  }, [partialFinalizeContext, isConfirmingPartialFinalize, userId, patientName, patientEmail, operator, load, t, toast]);
 
   /** Finalizado → En curso: undoes every payment transaction applied to this invoice,
    *  returning their amounts to the patient's credit pool and the invoice to unpaid. */
@@ -837,7 +802,7 @@ export function PatientLedger({ userId, patientName, patientEmail, refreshTrigge
         canSetFinalizado={canCreatePaymentPerm}
         canRevertToEnCurso={canDeletePayment}
         canRevertToPresupuesto={canRevertInvoice}
-        busy={isMarkingEnCurso || isMarkingFinalized || isConfirmingPartialFinalize || isUnmarkingFinalized || isRevertingInvoice}
+        busy={isMarkingEnCurso || isMarkingFinalized || isUnmarkingFinalized || isRevertingInvoice}
         onSetEnCurso={handleMarkEnCurso}
         onSetFinalizado={handleMarkFinalized}
         onRevertToEnCurso={handleUnmarkFinalized}
@@ -845,7 +810,7 @@ export function PatientLedger({ userId, patientName, patientEmail, refreshTrigge
         t={t}
       />
     );
-  }, [t, canConfirmQuote, canCreatePaymentPerm, canDeletePayment, canRevertInvoice, isMarkingEnCurso, isMarkingFinalized, isConfirmingPartialFinalize, isUnmarkingFinalized, isRevertingInvoice, handleMarkEnCurso, handleMarkFinalized, handleUnmarkFinalized, handleRevertInvoice]);
+  }, [t, canConfirmQuote, canCreatePaymentPerm, canDeletePayment, canRevertInvoice, isMarkingEnCurso, isMarkingFinalized, isUnmarkingFinalized, isRevertingInvoice, handleMarkEnCurso, handleMarkFinalized, handleUnmarkFinalized, handleRevertInvoice]);
 
   const renderActionsCell = React.useCallback((row: LedgerRow) => (
     <RowActionsMenu
@@ -1147,25 +1112,6 @@ export function PatientLedger({ userId, patientName, patientEmail, refreshTrigge
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!partialFinalizeContext} onOpenChange={(open) => { if (!open && !isConfirmingPartialFinalize) setPartialFinalizeContext(null); }}>
-        <DialogContent className="sm:max-w-[480px]">
-          <DialogHeader>
-            <DialogTitle>{t('dialogs.partialFinalize.title')}</DialogTitle>
-          </DialogHeader>
-          <DialogBody className="px-6 py-4">
-            <p className="text-sm text-muted-foreground">{t('dialogs.partialFinalize.description')}</p>
-          </DialogBody>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPartialFinalizeContext(null)} disabled={isConfirmingPartialFinalize}>
-              {t('dialogs.partialFinalize.cancel')}
-            </Button>
-            <Button onClick={handleConfirmPartialFinalize} disabled={isConfirmingPartialFinalize}>
-              {isConfirmingPartialFinalize && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t('dialogs.partialFinalize.confirm')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
