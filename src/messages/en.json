@@ -945,6 +945,8 @@
       "slotNoLongerAvailable": "Slot no longer available",
       "slotUnavailableDescription": "The selected time slot is no longer available.",
       "slotUnavailableTitle": "Slot Unavailable",
+      "slotBlockedTitle": "Time outside working hours",
+      "slotBlockedDescription": "The selected date and time falls outside the calendar's working hours and cannot be booked.",
       "unexpectedError": "Unexpected error",
       "endTimeInvalid": "End time must be after start time",
       "loadQuoteServicesError": "Failed to load services from quote",

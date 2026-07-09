@@ -945,6 +945,8 @@
       "slotNoLongerAvailable": "El horario ya no está disponible",
       "slotUnavailableDescription": "El horario seleccionado ya no está disponible.",
       "slotUnavailableTitle": "Horario no disponible",
+      "slotBlockedTitle": "Horario fuera de atención",
+      "slotBlockedDescription": "La fecha y hora seleccionada está fuera del horario de atención del calendario y no se puede agendar.",
       "unexpectedError": "Error inesperado",
       "endTimeInvalid": "La hora de fin debe ser posterior a la de inicio",
       "loadQuoteServicesError": "Error al cargar servicios del presupuesto",

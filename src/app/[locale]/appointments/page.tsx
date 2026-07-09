@@ -1019,6 +1019,33 @@ export default function AppointmentsPage() {
         return () => { active = false; };
     }, [inlineDraft?.patient?.id]);
 
+    // True when "block out-of-office hours" is on and the given start time falls
+    // inside a non-working band for that specific day. Computed from the schedules
+    // directly (not the visible `blockedRanges`) so it also validates dates in other
+    // weeks. When a calendar is given, its sede's schedules are preferred. Used to
+    // block save on create/edit/reschedule.
+    const isDateTimeBlocked = React.useCallback((start: Date, calendarId?: string): boolean => {
+        if (!blockUnavailable || !isValid(start) || clinicSchedules.length === 0) return false;
+        // Clinic-wide schedules scoped to the default sede (matches the block overlay);
+        // never over-filter to empty.
+        let sched = defaultSede
+            ? clinicSchedules.filter((s) => !s.sede_id || String(s.sede_id) === String(defaultSede))
+            : clinicSchedules;
+        if (sched.length === 0) sched = clinicSchedules;
+        // Prefer the target calendar's sede schedules when a calendar is given.
+        if (calendarId) {
+            const cal = calendars.find((c) => String(c.id) === String(calendarId));
+            const sedeId = cal?.sede_id;
+            if (sedeId) {
+                const scoped = clinicSchedules.filter((s) => !s.sede_id || String(s.sede_id) === String(sedeId));
+                if (scoped.length > 0) sched = scoped;
+            }
+        }
+        const minuteOfDay = start.getHours() * 60 + start.getMinutes();
+        return computeBlockedRanges(start, sched, clinicExceptions)
+            .some((b) => minuteOfDay >= b.startMin && minuteOfDay < b.endMin);
+    }, [blockUnavailable, clinicSchedules, defaultSede, clinicExceptions, calendars]);
+
     const handleSaveInlineDraft = React.useCallback(async () => {
         if (!inlineDraft?.patient) return;
         setIsSavingInline(true);
@@ -1031,6 +1058,14 @@ export default function AppointmentsPage() {
             const svcNames = inlineDraft.services.map((s) => s.name).join(', ');
             const draftColor = inlineDraft.colorTouched ? inlineDraft.color : inlineDraft.color || getGoogleCalendarColorId(calendar?.color);
             const editing = inlineDraft.editing ?? null;
+
+            // Block save when the chosen date/time falls outside the calendar's
+            // working hours (only when "block out-of-office hours" is enabled).
+            if (isDateTimeBlocked(start, calendar?.id ? String(calendar.id) : undefined)) {
+                toast({ variant: 'destructive', title: tToasts('slotBlockedTitle'), description: tToasts('slotBlockedDescription') });
+                setIsSavingInline(false);
+                return;
+            }
 
             // When creating (not editing/rescheduling), warn if the patient already
             // has upcoming appointments booked, and let the user confirm first.
@@ -1110,7 +1145,7 @@ export default function AppointmentsPage() {
         } finally {
             setIsSavingInline(false);
         }
-    }, [inlineDraft, toast, tToasts, rescheduleAppointment, user?.id, calendars]);
+    }, [inlineDraft, toast, tToasts, rescheduleAppointment, user?.id, calendars, isDateTimeBlocked]);
 
     const renderInlineDraft = React.useCallback(() => {
         if (!inlineDraft) return null;
@@ -3845,6 +3880,7 @@ export default function AppointmentsPage() {
                 doctorCalendarMap={doctorCalendarMap}
                 checkCalendarAvailability={checkCalendarAvailability}
                 checkDoctorAvailability={checkDoctorAvailability}
+                isDateTimeBlocked={isDateTimeBlocked}
             />
             {inlineFutureConfirm && (
                 <FutureAppointmentsConfirmDialog

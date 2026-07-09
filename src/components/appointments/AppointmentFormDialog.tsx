@@ -95,6 +95,10 @@ interface AppointmentFormDialogProps {
     checkCalendarAvailability?: boolean;
     checkDoctorAvailability?: boolean;
     userQuotes?: Quote[];
+    /** When "block out-of-office hours" is on, returns true if the given start
+     *  time falls outside the calendar's working hours (optionally scoped to a
+     *  calendar). Save is blocked with an error when it returns true. */
+    isDateTimeBlocked?: (start: Date, calendarId?: string) => boolean;
 }
 
 export function AppointmentFormDialog({
@@ -112,6 +116,7 @@ export function AppointmentFormDialog({
     checkCalendarAvailability = false,
     checkDoctorAvailability = false,
     userQuotes: externalUserQuotes,
+    isDateTimeBlocked,
 }: AppointmentFormDialogProps) {
     const t = useTranslations('AppointmentsPage');
     const tColumns = useTranslations('AppointmentsColumns');
@@ -719,6 +724,16 @@ export function AppointmentFormDialog({
         }
 
         setErrors([]);
+
+        // Block save when the chosen date/time falls outside the calendar's working
+        // hours (only when "block out-of-office hours" is enabled on the calendar).
+        if (isDateTimeBlocked) {
+            const start = parse(`${date} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
+            if (isValid(start) && isDateTimeBlocked(start, calendar?.id ? String(calendar.id) : undefined)) {
+                toast({ variant: "destructive", title: tToasts('slotBlockedTitle'), description: tToasts('slotBlockedDescription') });
+                return;
+            }
+        }
 
         // When creating (not editing/rescheduling), warn if the patient already has
         // upcoming appointments booked, and let the user confirm before saving.
