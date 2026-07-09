@@ -24,6 +24,7 @@ import { CalendarScheduleView } from './calendar-schedule-view';
 import { CalendarViewTabs } from './calendar-view-tabs';
 import { CalendarFab } from './calendar-fab';
 import { CalendarFilterSheet } from './calendar-filter-sheet';
+import { CalendarInlineDraftOverlay } from './inline-draft-overlay';
 
 // Re-export types for backward compatibility
 export type { CalendarGroupBy, CalendarEvent, CalendarGroupingColumn, CalendarView } from './calendar-types';
@@ -201,8 +202,6 @@ const Calendar: React.FC<CalendarProps> = ({
               dateLocale={dateLocale}
               hourSlotHeight={effectiveSlotHeight}
               slotMinutes={slotMinutes}
-              inlineDraft={inlineDraft}
-              renderInlineDraft={renderInlineDraft}
               {...eventHandlers}
               {...gapProps}
               {...blockProps}
@@ -226,8 +225,6 @@ const Calendar: React.FC<CalendarProps> = ({
               breakpoint={breakpoint}
               hourSlotHeight={effectiveSlotHeight}
               slotMinutes={slotMinutes}
-              inlineDraft={inlineDraft}
-              renderInlineDraft={renderInlineDraft}
               showTimeColumn={showTimeColumn}
               onToggleTimeColumn={handleToggleTimeColumn}
               hideTimeGutter={hideTimeGutter}
@@ -249,8 +246,6 @@ const Calendar: React.FC<CalendarProps> = ({
             timeZoneLabel={timeZoneLabel}
             hourSlotHeight={effectiveSlotHeight}
             slotMinutes={slotMinutes}
-            inlineDraft={inlineDraft}
-            renderInlineDraft={renderInlineDraft}
             showTimeColumn={showTimeColumn}
             onToggleTimeColumn={handleToggleTimeColumn}
             {...eventHandlers}
@@ -384,6 +379,13 @@ const Calendar: React.FC<CalendarProps> = ({
         <CalendarFilterSheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
           {filterSheet}
         </CalendarFilterSheet>
+      )}
+
+      {/* Inline appointment draft — rendered once as a centered overlay so it stays
+          visible regardless of the date selected inside it (it is not pinned to the
+          clicked day's column). */}
+      {inlineDraft && renderInlineDraft && (
+        <CalendarInlineDraftOverlay>{renderInlineDraft()}</CalendarInlineDraftOverlay>
       )}
     </div>
   );

@@ -22,7 +22,6 @@ import { CalendarEventDay } from './calendar-event-day';
 import { CalendarTimeColumn } from './calendar-time-column';
 import { TimeSlotDividers } from './calendar-time-column';
 import { CalendarHourRail } from './calendar-hour-rail';
-import { CalendarInlineDraftOverlay } from './inline-draft-overlay';
 import { CalendarGapOverlays } from './calendar-gap-overlay';
 import { CalendarBlockedOverlays } from './calendar-blocked-overlay';
 import { isSlotBlocked } from './calendar-gaps';
@@ -43,8 +42,6 @@ interface CalendarDayViewProps {
   onEventContextMenuOpen?: (data: any) => void;
   onSlotClick?: CalendarSlotClickHandler;
   onSlotContextMenu?: CalendarSlotClickHandler;
-  inlineDraft?: import('./calendar-types').InlineDraft | null;
-  renderInlineDraft?: () => React.ReactNode;
   hourSlotHeight?: number;
   slotMinutes?: number;
   gaps?: Gap[];
@@ -71,8 +68,6 @@ export function CalendarDayView({
   onEventContextMenuOpen,
   onSlotClick,
   onSlotContextMenu,
-  inlineDraft,
-  renderInlineDraft,
   hourSlotHeight = HOUR_SLOT_HEIGHT,
   slotMinutes,
   gaps,
@@ -206,9 +201,6 @@ export function CalendarDayView({
                     onEventContextMenuOpen={onEventContextMenuOpen}
                   />
                 ))}
-                {inlineDraft && renderInlineDraft && isSameDay(day, inlineDraft.date) && (
-                  <CalendarInlineDraftOverlay>{renderInlineDraft()}</CalendarInlineDraftOverlay>
-                )}
               </div>
             </div>
           ))}

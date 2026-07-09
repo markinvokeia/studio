@@ -26,11 +26,9 @@ import {
 } from './calendar-utils';
 import { CalendarEventDay } from './calendar-event-day';
 import { TimeSlotDividers } from './calendar-time-column';
-import { CalendarInlineDraftOverlay } from './inline-draft-overlay';
 import { CalendarGapOverlays } from './calendar-gap-overlay';
 import { CalendarBlockedOverlays } from './calendar-blocked-overlay';
 import { isSlotBlocked, type Gap, type BlockedRange } from './calendar-gaps';
-import type { InlineDraft } from './calendar-types';
 
 interface CalendarDayViewMobileProps {
   currentDate: Date;
@@ -52,8 +50,6 @@ interface CalendarDayViewMobileProps {
   selectedGapKey?: string;
   onGapClick?: (gap: Gap) => void;
   blockedRanges?: BlockedRange[];
-  inlineDraft?: InlineDraft | null;
-  renderInlineDraft?: () => React.ReactNode;
   slotMinutes?: number;
 }
 
@@ -77,8 +73,6 @@ export function CalendarDayViewMobile({
   selectedGapKey,
   onGapClick,
   blockedRanges,
-  inlineDraft,
-  renderInlineDraft,
   slotMinutes,
 }: CalendarDayViewMobileProps) {
   const [api, setApi] = React.useState<CarouselApi>();
@@ -348,9 +342,6 @@ export function CalendarDayViewMobile({
                             onEventContextMenuOpen={onEventContextMenuOpen}
                           />
                         ))}
-                        {inlineDraft && renderInlineDraft && isSameDay(slide.day, inlineDraft.date) && (!isGrouped || String(slide.column?.value ?? '') === String(inlineDraft.groupValue ?? '')) && (
-                          <CalendarInlineDraftOverlay>{renderInlineDraft()}</CalendarInlineDraftOverlay>
-                        )}
                         {showIndicator && (
                           <div
                             className="absolute left-0 right-0 z-20 pointer-events-none flex items-center"
