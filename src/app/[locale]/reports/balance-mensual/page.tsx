@@ -12,7 +12,7 @@ import { ReportKPICard } from '@/components/reports/report-kpi-card';
 import { ReportShell } from '@/components/reports/report-shell';
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
-import { useReportExport } from '@/hooks/use-report-export';
+import { useReportExport, type ExportSection } from '@/hooks/use-report-export';
 import type {
   ReportBalanceMensualCobradoRow,
   ReportBalanceMensualPendienteRow,
@@ -130,74 +130,127 @@ export default function BalanceMensualPage() {
     },
   ];
 
-  // ── Export: single flat file with both day-detail blocks + pendiente ─────
-  type ExportRow = {
-    bloque: string;
-    fecha: string;
-    medico: string;
-    paciente: string;
-    detalle: string;
-    forma_pago: string;
-    moneda: string;
-    importe: number | string;
-  };
-  const exportColumns: ColumnDef<ExportRow>[] = [
-    { accessorKey: 'bloque', header: t('col_bloque') },
-    { accessorKey: 'fecha', header: t('col_fecha') },
-    { accessorKey: 'medico', header: t('col_medico') },
-    { accessorKey: 'paciente', header: t('col_paciente') },
-    { accessorKey: 'detalle', header: t('col_detalle') },
-    { accessorKey: 'forma_pago', header: t('col_forma_pago') },
-    { accessorKey: 'moneda', header: t('col_moneda') },
-    { accessorKey: 'importe', header: t('col_importe') },
+  // ── Export: each block keeps its own columns instead of being forced into
+  // one shared flat table, so e.g. "Pendiente por médico" isn't padded with
+  // Fecha/Paciente/Forma de pago columns that don't apply to it ────────────
+  const producidoExportCols = [
+    { header: t('col_fecha'), key: 'fecha' },
+    { header: t('col_medico'), key: 'medico' },
+    { header: t('col_paciente'), key: 'paciente' },
+    { header: t('col_servicio'), key: 'servicio' },
+    { header: t('col_factura'), key: 'factura' },
+    { header: t('col_moneda'), key: 'moneda' },
+    { header: t('col_importe'), key: 'importe' },
   ];
-  const producidoExport: ExportRow[] = producidoDays.flatMap((g) => [
-    ...g.rows.map((r) => ({
-      bloque: t('block_producido'),
-      fecha: fmtFecha(r.fecha),
+  const cobradoExportCols = [
+    { header: t('col_fecha'), key: 'fecha' },
+    { header: t('col_medico'), key: 'medico' },
+    { header: t('col_paciente'), key: 'paciente' },
+    { header: t('col_factura'), key: 'factura' },
+    { header: t('col_forma_pago'), key: 'forma_pago' },
+    { header: t('col_moneda'), key: 'moneda' },
+    { header: t('col_importe'), key: 'importe' },
+  ];
+  const pendienteExportCols = [
+    { header: t('col_medico'), key: 'medico' },
+    { header: t('col_moneda'), key: 'moneda' },
+    { header: t('col_facturado'), key: 'facturado' },
+    { header: t('col_cobrado'), key: 'cobrado' },
+    { header: t('col_saldo'), key: 'saldo' },
+  ];
+
+  const buildProducidoRows = (days: DayGroup<ReportBalanceMensualProducidoRow>[], total: Record<string, number>) => {
+    const rows: Record<string, unknown>[] = days.flatMap((g) => [
+      ...g.rows.map((r) => ({
+        fecha: fmtFecha(r.fecha), medico: r.doctor_name, paciente: r.patient_name,
+        servicio: r.service_name, factura: r.invoice_doc_no, moneda: r.currency, importe: Number(r.importe),
+      })),
+      ...Object.entries(g.subtotal).map(([cur, val]) => ({
+        fecha: '', medico: '', paciente: '', servicio: `${t('subtotal_dia')} · ${fmtFecha(g.fecha)}`,
+        factura: '', moneda: cur, importe: val,
+      })),
+    ]);
+    Object.entries(total).forEach(([cur, val]) => {
+      rows.push({ fecha: '', medico: '', paciente: '', servicio: t('total_periodo'), factura: '', moneda: cur, importe: val });
+    });
+    return rows;
+  };
+  const buildCobradoRows = (days: DayGroup<ReportBalanceMensualCobradoRow>[], total: Record<string, number>) => {
+    const rows: Record<string, unknown>[] = days.flatMap((g) => [
+      ...g.rows.map((r) => ({
+        fecha: fmtFecha(r.fecha), medico: r.doctor_name, paciente: r.patient_name,
+        factura: r.invoice_doc_no, forma_pago: r.payment_method, moneda: r.currency, importe: Number(r.importe),
+      })),
+      ...Object.entries(g.subtotal).map(([cur, val]) => ({
+        fecha: '', medico: '', paciente: '', factura: `${t('subtotal_dia')} · ${fmtFecha(g.fecha)}`,
+        forma_pago: '', moneda: cur, importe: val,
+      })),
+    ]);
+    Object.entries(total).forEach(([cur, val]) => {
+      rows.push({ fecha: '', medico: '', paciente: '', factura: t('total_periodo'), forma_pago: '', moneda: cur, importe: val });
+    });
+    return rows;
+  };
+  const buildPendienteRows = (rows: ReportBalanceMensualPendienteRow[]) =>
+    rows.map((r) => ({
       medico: r.doctor_name,
-      paciente: r.patient_name,
-      detalle: `${r.service_name} · ${r.invoice_doc_no}`,
-      forma_pago: '',
       moneda: r.currency,
-      importe: Number(r.importe),
-    })),
-    ...Object.entries(g.subtotal).map(([cur, val]) => ({
-      bloque: t('block_producido'), fecha: fmtFecha(g.fecha), medico: '', paciente: '',
-      detalle: t('subtotal_dia'), forma_pago: '', moneda: cur, importe: val,
-    })),
-  ]);
-  const cobradoExport: ExportRow[] = cobradoDays.flatMap((g) => [
-    ...g.rows.map((r) => ({
-      bloque: t('block_cobrado'),
-      fecha: fmtFecha(r.fecha),
-      medico: r.doctor_name,
-      paciente: r.patient_name,
-      detalle: r.invoice_doc_no,
-      forma_pago: r.payment_method,
-      moneda: r.currency,
-      importe: Number(r.importe),
-    })),
-    ...Object.entries(g.subtotal).map(([cur, val]) => ({
-      bloque: t('block_cobrado'), fecha: fmtFecha(g.fecha), medico: '', paciente: '',
-      detalle: t('subtotal_dia'), forma_pago: '', moneda: cur, importe: val,
-    })),
-  ]);
-  const pendienteExport: ExportRow[] = pendiente.map((r) => ({
-    bloque: t('block_pendiente'), fecha: '', medico: r.doctor_name, paciente: '',
-    detalle: `${t('col_facturado')}: ${fmt(Number(r.total_facturado))} · ${t('col_cobrado')}: ${fmt(Number(r.total_cobrado))}`,
-    forma_pago: '', moneda: r.currency, importe: Number(r.saldo),
-  }));
-  const exportData: ExportRow[] | null = data
-    ? [...producidoExport, ...cobradoExport, ...pendienteExport]
-    : null;
+      facturado: Number(r.total_facturado),
+      cobrado: Number(r.total_cobrado),
+      saldo: Number(r.saldo),
+    }));
+
+  const buildBalanceSections = (
+    prodDays: DayGroup<ReportBalanceMensualProducidoRow>[],
+    cobDays: DayGroup<ReportBalanceMensualCobradoRow>[],
+    pendRows: ReportBalanceMensualPendienteRow[],
+    prodTotal: Record<string, number>,
+    cobTotal: Record<string, number>,
+  ): ExportSection[] => [
+    { title: t('block_producido'), columns: producidoExportCols, rows: buildProducidoRows(prodDays, prodTotal) },
+    { title: t('block_cobrado'), columns: cobradoExportCols, rows: buildCobradoRows(cobDays, cobTotal) },
+    { title: t('block_pendiente'), columns: pendienteExportCols, rows: buildPendienteRows(pendRows) },
+  ];
 
   const periodTag = dateRange?.from ? format(dateRange.from, 'yyyy-MM') : '';
   const medicoTag = doctorId && doctorName ? doctorName.replace(/\s+/g, '-') : 'TOTAL';
+
+  // Distinct doctors present in the current data — used both to split the
+  // CSV/Excel export into one sheet per doctor, and to paginate the printed
+  // PDF so each doctor starts on a new page, when no doctor filter is applied
+  const doctorNames = data
+    ? Array.from(new Set([
+        ...producido.map((r) => r.doctor_name),
+        ...cobrado.map((r) => r.doctor_name),
+        ...pendiente.map((r) => r.doctor_name),
+      ].filter(Boolean))).sort((a, b) => a.localeCompare(b))
+    : [];
+  const showPerDoctorPrint = !doctorId && doctorNames.length > 1;
+
+  const exportSheets = data
+    ? doctorId
+      ? [{ name: medicoTag, sections: buildBalanceSections(producidoDays, cobradoDays, pendiente, producidoByCurrency, cobradoByCurrency) }]
+      : doctorNames.map((name) => {
+          const prodRows = producido.filter((r) => r.doctor_name === name);
+          const cobRows = cobrado.filter((r) => r.doctor_name === name);
+          return {
+            name,
+            sections: buildBalanceSections(
+              groupByDay(prodRows),
+              groupByDay(cobRows),
+              pendiente.filter((r) => r.doctor_name === name),
+              totalByCurrency(prodRows),
+              totalByCurrency(cobRows),
+            ),
+          };
+        })
+    : undefined;
+
   const { exportCSV, exportExcel, exportPDF } = useReportExport(
-    exportColumns,
-    exportData,
+    [] as ColumnDef<Record<string, unknown>>[],
+    data ? [{}] : null,
     `Balance_${medicoTag}_${periodTag}`,
+    { sheets: exportSheets },
   );
 
   const filters = (
@@ -282,61 +335,133 @@ export default function BalanceMensualPage() {
             <ReportKPICard title={t('kpi_pendiente')} value={fmtMultiCurrency(pendienteByCurrency)} variant="warning" />
           </div>
 
-          {/* Bloque A — Producido por día */}
-          <DayDetailBlock<ReportBalanceMensualProducidoRow>
-            title={t('block_producido')}
-            emptyLabel={t('empty_block')}
-            days={producidoDays}
-            total={producidoByCurrency}
-            headers={[t('col_fecha'), t('col_medico'), t('col_paciente'), t('col_servicio'), t('col_factura'), t('col_moneda'), t('col_importe')]}
-            renderRow={(r, i) => (
-              <TableRow key={i}>
-                <TableCell className="whitespace-nowrap">{fmtFecha(r.fecha)}</TableCell>
-                <TableCell>{r.doctor_name}</TableCell>
-                <TableCell>{r.patient_name}</TableCell>
-                <TableCell>{r.service_name}</TableCell>
-                <TableCell className="whitespace-nowrap text-muted-foreground">{r.invoice_doc_no}</TableCell>
-                <TableCell>{r.currency}</TableCell>
-                <TableCell className="text-right tabular-nums">{fmt(Number(r.importe))}</TableCell>
-              </TableRow>
-            )}
-            colSpanBeforeAmount={5}
-            subtotalLabel={t('subtotal_dia')}
-            totalLabel={t('total_periodo')}
-          />
+          {/* Combined view (all doctors mixed together) — used on screen always,
+              and for print only when a single doctor is in scope */}
+          <div className={showPerDoctorPrint ? 'flex flex-col gap-4 print:hidden' : undefined}>
+            {/* Bloque A — Producido por día */}
+            <DayDetailBlock<ReportBalanceMensualProducidoRow>
+              title={t('block_producido')}
+              emptyLabel={t('empty_block')}
+              days={producidoDays}
+              total={producidoByCurrency}
+              headers={[t('col_fecha'), t('col_medico'), t('col_paciente'), t('col_servicio'), t('col_factura'), t('col_moneda'), t('col_importe')]}
+              renderRow={(r, i) => (
+                <TableRow key={i}>
+                  <TableCell className="whitespace-nowrap">{fmtFecha(r.fecha)}</TableCell>
+                  <TableCell>{r.doctor_name}</TableCell>
+                  <TableCell>{r.patient_name}</TableCell>
+                  <TableCell>{r.service_name}</TableCell>
+                  <TableCell className="whitespace-nowrap text-muted-foreground">{r.invoice_doc_no}</TableCell>
+                  <TableCell>{r.currency}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmt(Number(r.importe))}</TableCell>
+                </TableRow>
+              )}
+              colSpanBeforeAmount={5}
+              subtotalLabel={t('subtotal_dia')}
+              totalLabel={t('total_periodo')}
+            />
 
-          {/* Bloque B — Cobrado por día */}
-          <DayDetailBlock<ReportBalanceMensualCobradoRow>
-            title={t('block_cobrado')}
-            emptyLabel={t('empty_block')}
-            days={cobradoDays}
-            total={cobradoByCurrency}
-            headers={[t('col_fecha'), t('col_medico'), t('col_paciente'), t('col_factura'), t('col_forma_pago'), t('col_moneda'), t('col_importe')]}
-            renderRow={(r, i) => (
-              <TableRow key={i}>
-                <TableCell className="whitespace-nowrap">{fmtFecha(r.fecha)}</TableCell>
-                <TableCell>{r.doctor_name}</TableCell>
-                <TableCell>{r.patient_name}</TableCell>
-                <TableCell className="whitespace-nowrap text-muted-foreground">{r.invoice_doc_no}</TableCell>
-                <TableCell>{r.payment_method}</TableCell>
-                <TableCell>{r.currency}</TableCell>
-                <TableCell className="text-right tabular-nums">{fmt(Number(r.importe))}</TableCell>
-              </TableRow>
-            )}
-            colSpanBeforeAmount={5}
-            subtotalLabel={t('subtotal_dia')}
-            totalLabel={t('total_periodo')}
-          />
+            {/* Bloque B — Cobrado por día */}
+            <DayDetailBlock<ReportBalanceMensualCobradoRow>
+              title={t('block_cobrado')}
+              emptyLabel={t('empty_block')}
+              days={cobradoDays}
+              total={cobradoByCurrency}
+              headers={[t('col_fecha'), t('col_medico'), t('col_paciente'), t('col_factura'), t('col_forma_pago'), t('col_moneda'), t('col_importe')]}
+              renderRow={(r, i) => (
+                <TableRow key={i}>
+                  <TableCell className="whitespace-nowrap">{fmtFecha(r.fecha)}</TableCell>
+                  <TableCell>{r.doctor_name}</TableCell>
+                  <TableCell>{r.patient_name}</TableCell>
+                  <TableCell className="whitespace-nowrap text-muted-foreground">{r.invoice_doc_no}</TableCell>
+                  <TableCell>{r.payment_method}</TableCell>
+                  <TableCell>{r.currency}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmt(Number(r.importe))}</TableCell>
+                </TableRow>
+              )}
+              colSpanBeforeAmount={5}
+              subtotalLabel={t('subtotal_dia')}
+              totalLabel={t('total_periodo')}
+            />
 
-          {/* Bloque C — Pendiente por médico */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">{t('block_pendiente')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ReportDataTable columns={pendienteColumns} data={pendiente} />
-            </CardContent>
-          </Card>
+            {/* Bloque C — Pendiente por médico */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">{t('block_pendiente')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ReportDataTable columns={pendienteColumns} data={pendiente} />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Print-only view: one section per doctor, each starting on a new page */}
+          {showPerDoctorPrint && (
+            <div className="hidden print:flex print:flex-col print:gap-4">
+              {doctorNames.map((name, idx) => {
+                const prodRows = producido.filter((r) => r.doctor_name === name);
+                const cobRows = cobrado.filter((r) => r.doctor_name === name);
+                const pendRows = pendiente.filter((r) => r.doctor_name === name);
+                return (
+                  <div key={name} className={idx > 0 ? 'flex flex-col gap-4 print:break-before-page' : 'flex flex-col gap-4'}>
+                    <h2 className="text-base font-semibold">{name}</h2>
+                    <DayDetailBlock<ReportBalanceMensualProducidoRow>
+                      title={t('block_producido')}
+                      emptyLabel={t('empty_block')}
+                      days={groupByDay(prodRows)}
+                      total={totalByCurrency(prodRows)}
+                      headers={[t('col_fecha'), t('col_medico'), t('col_paciente'), t('col_servicio'), t('col_factura'), t('col_moneda'), t('col_importe')]}
+                      renderRow={(r, i) => (
+                        <TableRow key={i}>
+                          <TableCell className="whitespace-nowrap">{fmtFecha(r.fecha)}</TableCell>
+                          <TableCell>{r.doctor_name}</TableCell>
+                          <TableCell>{r.patient_name}</TableCell>
+                          <TableCell>{r.service_name}</TableCell>
+                          <TableCell className="whitespace-nowrap text-muted-foreground">{r.invoice_doc_no}</TableCell>
+                          <TableCell>{r.currency}</TableCell>
+                          <TableCell className="text-right tabular-nums">{fmt(Number(r.importe))}</TableCell>
+                        </TableRow>
+                      )}
+                      colSpanBeforeAmount={5}
+                      subtotalLabel={t('subtotal_dia')}
+                      totalLabel={t('total_periodo')}
+                    />
+                    <DayDetailBlock<ReportBalanceMensualCobradoRow>
+                      title={t('block_cobrado')}
+                      emptyLabel={t('empty_block')}
+                      days={groupByDay(cobRows)}
+                      total={totalByCurrency(cobRows)}
+                      headers={[t('col_fecha'), t('col_medico'), t('col_paciente'), t('col_factura'), t('col_forma_pago'), t('col_moneda'), t('col_importe')]}
+                      renderRow={(r, i) => (
+                        <TableRow key={i}>
+                          <TableCell className="whitespace-nowrap">{fmtFecha(r.fecha)}</TableCell>
+                          <TableCell>{r.doctor_name}</TableCell>
+                          <TableCell>{r.patient_name}</TableCell>
+                          <TableCell className="whitespace-nowrap text-muted-foreground">{r.invoice_doc_no}</TableCell>
+                          <TableCell>{r.payment_method}</TableCell>
+                          <TableCell>{r.currency}</TableCell>
+                          <TableCell className="text-right tabular-nums">{fmt(Number(r.importe))}</TableCell>
+                        </TableRow>
+                      )}
+                      colSpanBeforeAmount={5}
+                      subtotalLabel={t('subtotal_dia')}
+                      totalLabel={t('total_periodo')}
+                    />
+                    {pendRows.length > 0 && (
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm font-medium">{t('block_pendiente')}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <ReportDataTable columns={pendienteColumns} data={pendRows} />
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </>
       )}
     </ReportShell>
