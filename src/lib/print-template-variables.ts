@@ -130,4 +130,6 @@ export const PRINT_TEMPLATE_VARIABLES: Record<PrintDocumentType, PrintTemplateVa
     { key: '{{generated_at}}',     label: 'Fecha generación',      group: 'document' },
     { key: '{{movements_table}}',  label: 'Tablas de movimientos', group: 'tables' },
   ],
+  // The patient ledger is a React-only print (not a customizable HTML template).
+  ledger: [],
 };

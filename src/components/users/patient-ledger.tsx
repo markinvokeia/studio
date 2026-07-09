@@ -1371,7 +1371,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
                           </div>
                           <div className="flex min-w-[10rem] flex-1 items-center gap-2">
                             <RowKindIcon row={row} />
-                            {isFromQuote(row) && <PresupuestoBadge />}
+                            {row.status === 'presupuestado' && <PresupuestoBadge />}
                             <div className="flex min-w-0 flex-col">
                               <span className="truncate text-sm font-medium">{row.label}</span>
                               {docNumbersLabel(row, t) && (

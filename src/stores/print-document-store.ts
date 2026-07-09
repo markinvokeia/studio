@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import type { Quote, QuoteItem, Invoice, InvoiceItem, CreditNote, Payment, DocPrintTemplate, FinancialSummaryReport, CajaSessionDetails } from '@/lib/types';
+import type { LedgerRow } from '@/lib/patient-ledger';
 
-export type PrintDocumentType = 'quote' | 'invoice' | 'payment' | 'credit_note' | 'prepayment' | 'financial_summary' | 'caja_apertura' | 'caja_cierre' | 'caja_sesion';
+export type PrintDocumentType = 'quote' | 'invoice' | 'payment' | 'credit_note' | 'prepayment' | 'financial_summary' | 'ledger' | 'caja_apertura' | 'caja_cierre' | 'caja_sesion';
 
 export type PrintInvoiceRow = Invoice & { items: InvoiceItem[]; payments: Payment[] };
 
@@ -42,6 +43,13 @@ export type FinancialSummaryPrintData = {
   dateRange?: { from?: string; to?: string };
 };
 
+/** The "Clásico" (unified) patient ledger, printed exactly as shown on screen — the
+ *  same rows `buildPatientLedger` produces, grouped by currency. */
+export type LedgerPrintData = {
+  patientName?: string;
+  rowsByCurrency: Record<string, LedgerRow[]>;
+};
+
 export type CajaAperturaPrintData = {
   details: CajaSessionDetails;
 };
@@ -61,6 +69,7 @@ export type PrintData =
   | CreditNotePrintData
   | PrepaymentPrintData
   | FinancialSummaryPrintData
+  | LedgerPrintData
   | CajaAperturaPrintData
   | CajaCierrePrintData
   | CajaSesionPrintData;

@@ -10,6 +10,8 @@ import {
 } from '@/stores/print-document-store';
 import type { Quote, Invoice, Payment, CreditNote, QuoteItem, InvoiceItem, DocPrintTemplate, FinancialSummaryReport, CajaSessionDetails } from '@/lib/types';
 import { fetchClinicInfo } from '@/hooks/useClinicInfo';
+import { fetchPatientLedgerData } from '@/services/patient-ledger-data';
+import { buildPatientLedger } from '@/lib/patient-ledger';
 
 // ── Data mappers (match patterns in user-quotes.tsx / user-invoices.tsx) ───────
 
@@ -246,6 +248,25 @@ export function usePrintDocument() {
     triggerPrint(deactivate);
   }
 
+  /**
+   * Prints the "Clásico" (unified) patient ledger exactly as shown in the expanded panel
+   * — same rows via `buildPatientLedger` — with the report header/footer, no controls.
+   */
+  async function printLedger(userId: string, patientName?: string): Promise<void> {
+    const [ledgerData] = await Promise.all([
+      fetchPatientLedgerData(userId, { forceRefresh: true }),
+      fetchClinicInfo(),
+    ]);
+    const rowsByCurrency = buildPatientLedger(ledgerData);
+    if (Object.keys(rowsByCurrency).length === 0) {
+      throw new Error('no_data');
+    }
+    activate('ledger', { patientName, rowsByCurrency });
+    await waitForFrame();
+    await waitForImages();
+    triggerPrint(deactivate);
+  }
+
   async function printCajaApertura(sessionId: number | string): Promise<void> {
     const raw = await api.get(API_ROUTES.CASHIER.SESSIONS_DETAILS, { cash_session_id: String(sessionId) });
     const details = (Array.isArray(raw) ? raw[0] : raw) as CajaSessionDetails;
@@ -273,6 +294,6 @@ export function usePrintDocument() {
     triggerPrint(deactivate);
   }
 
-  return { printQuote, printInvoice, printPayment, printCreditNote, printPrepayment, printFinancialSummary, printCajaApertura, printCajaCierre, printCajaSesion };
+  return { printQuote, printInvoice, printPayment, printCreditNote, printPrepayment, printFinancialSummary, printLedger, printCajaApertura, printCajaCierre, printCajaSesion };
 
 }

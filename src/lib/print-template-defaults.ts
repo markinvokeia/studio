@@ -263,6 +263,8 @@ export const PRINT_TEMPLATE_DEFAULTS: Record<PrintDocumentType, string> = {
   credit_note:       CREDIT_NOTE_DEFAULT,
   prepayment:        PREPAYMENT_DEFAULT,
   financial_summary: FINANCIAL_SUMMARY_DEFAULT,
+  // The patient ledger is a React-only print (not a customizable HTML template).
+  ledger:            '',
   caja_apertura:     CAJA_APERTURA_DEFAULT,
   caja_cierre:       CAJA_CIERRE_DEFAULT,
   caja_sesion:       CAJA_SESION_DEFAULT,

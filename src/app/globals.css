@@ -447,19 +447,76 @@ textarea::placeholder {
     color: #111827;
   }
 
-  /* ── Multi-page print (financial summary) ────────────────────────────────── */
-  /* Hide everything on the page except our print container so the app layout
-     (sidebar, panels, overlays) doesn't bleed through as a gray shadow. */
-  html.printing-multipage * {
-    visibility: hidden !important;
+  /* ── Patient ledger print (Clásico) ──────────────────────────────────────── */
+  /* Scoped, higher-specificity !important rules that win over the generic
+     table/th/td print rules above: compact fonts, fixed equal-width amount
+     columns, status stacked under the date, amounts never wrapping. */
+  table.ledger-print-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: fixed !important;
+    font-size: 0.6rem !important;
   }
-  html.printing-multipage [data-print-container],
-  html.printing-multipage [data-print-container] * {
-    visibility: visible !important;
+  table.ledger-print-table th {
+    padding: 3px 5px !important;
+    border: none !important;
+    border-bottom: 1px solid #9ca3af !important;
+    background: transparent !important;
+    text-align: left !important;
+    font-weight: 600 !important;
+    font-size: 0.52rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.03em !important;
+    color: #6b7280 !important;
+    white-space: nowrap !important;
+  }
+  table.ledger-print-table td {
+    padding: 3px 5px !important;
+    border: none !important;
+    border-bottom: 1px solid #e5e7eb !important;
+    vertical-align: top !important;
+    white-space: normal !important;
+    word-break: normal !important;
+  }
+  table.ledger-print-table th.num,
+  table.ledger-print-table td.num {
+    text-align: right !important;
+    white-space: nowrap !important;
+    font-variant-numeric: tabular-nums !important;
+  }
+  table.ledger-print-table .status { font-size: 0.52rem !important; color: #374151 !important; }
+  table.ledger-print-table .doc { font-size: 0.52rem !important; color: #6b7280 !important; }
+  table.ledger-print-table .notes { font-size: 0.5rem !important; font-style: italic !important; color: #6b7280 !important; }
+  table.ledger-print-table .notcounted { font-size: 0.5rem !important; color: #6b7280 !important; }
+
+  .ledger-print-totals {
+    display: flex !important;
+    justify-content: flex-end !important;
+    gap: 1.5rem !important;
+    margin-top: 0.5rem !important;
+    padding-top: 0.4rem !important;
+    border-top: 1.5px solid #9ca3af !important;
+  }
+  .ledger-print-totals .lbl {
+    font-size: 0.5rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.03em !important;
+    color: #6b7280 !important;
+  }
+  .ledger-print-totals .val { font-size: 0.68rem !important; font-weight: 600 !important; font-variant-numeric: tabular-nums !important; }
+
+  /* ── Multi-page print (document templates) ───────────────────────────────── */
+  /* The print container is portaled to <body>. Hide every *other* body child with
+     display:none so their (otherwise still-laid-out) height doesn't generate phantom
+     blank pages, and let the document flow naturally across pages. */
+  html.printing-multipage body > *:not([data-print-container]) {
+    display: none !important;
   }
   html.printing-multipage [data-print-container] {
-    position: absolute !important;
-    inset: 0 !important;
+    display: block !important;
+    position: static !important;
+    inset: auto !important;
+    width: 100% !important;
     padding: 0 !important;
     background: white !important;
   }
