@@ -36,6 +36,8 @@ import api from '@/services/api';
 import { markLocallyCreated } from '@/hooks/use-appointment-status';
 import { getSalesServices } from '@/services/services';
 import { TreatmentPlanReviewDialog } from '@/components/appointments/TreatmentPlanReviewDialog';
+import { FutureAppointmentsConfirmDialog } from '@/components/appointments/future-appointments-confirm-dialog';
+import { fetchFuturePatientAppointments, type FuturePatientAppointment } from '@/services/appointments';
 import { getServicesByQuoteId, getQuoteItems } from '@/services/quotes';
 import { addMinutes, differenceInMinutes, format, isValid, parse, parseISO } from 'date-fns';
 import { AlertTriangle, CalendarDays, Check, ChevronsUpDown, ClipboardList, Clock, FileText, FilePlus, Link2, Loader2, MapPin, Plus, Stethoscope, UserRound, X } from 'lucide-react';
@@ -189,6 +191,11 @@ export function AppointmentFormDialog({
     const [isPlanReviewOpen, setIsPlanReviewOpen] = React.useState(false);
     const [pendingWorkflowSaveResult, setPendingWorkflowSaveResult] = React.useState<{ result: any; startDateTime: Date } | null>(null);
     const pendingWorkflowCallbackInvokedRef = React.useRef(false);
+
+    // Future-appointments confirmation: when creating an appointment for a patient
+    // who already has upcoming appointments, ask the user to confirm before saving.
+    const [futureConfirm, setFutureConfirm] = React.useState<{ appointments: FuturePatientAppointment[]; patientName: string } | null>(null);
+    const skipFutureCheckRef = React.useRef(false);
 
     const flushPendingWorkflowSaveSuccess = React.useCallback(() => {
         if (pendingWorkflowCallbackInvokedRef.current) return;
@@ -712,6 +719,20 @@ export function AppointmentFormDialog({
         }
 
         setErrors([]);
+
+        // When creating (not editing/rescheduling), warn if the patient already has
+        // upcoming appointments booked, and let the user confirm before saving.
+        if (!isEditing) {
+            if (skipFutureCheckRef.current) {
+                skipFutureCheckRef.current = false;
+            } else if (user?.id) {
+                const future = await fetchFuturePatientAppointments(String(user.id), calendars);
+                if (future.length > 0) {
+                    setFutureConfirm({ appointments: future, patientName: user.name });
+                    return;
+                }
+            }
+        }
 
         const startDateTime = parse(`${date} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
         let endDateTime: Date;
@@ -1714,6 +1735,21 @@ export function AppointmentFormDialog({
                         setFirstAppointmentId(undefined);
                         setPendingWorkflowSaveResult(null);
                     }}
+                />
+            )}
+
+            {futureConfirm && (
+                <FutureAppointmentsConfirmDialog
+                    open={!!futureConfirm}
+                    onOpenChange={(open) => { if (!open) setFutureConfirm(null); }}
+                    patientName={futureConfirm.patientName}
+                    appointments={futureConfirm.appointments}
+                    onConfirm={() => {
+                        setFutureConfirm(null);
+                        skipFutureCheckRef.current = true;
+                        handleSave();
+                    }}
+                    onCancel={() => setFutureConfirm(null)}
                 />
             )}
         </>

@@ -66,7 +66,8 @@ import { Appointment, AppointmentBulkFilterParams, AppointmentDatePreset, Appoin
 import { cn, toLocalISOString } from '@/lib/utils';
 import api from '@/services/api';
 import { getQuoteItems } from '@/services/quotes';
-import { updateAppointmentStatusRequest } from '@/services/appointments';
+import { updateAppointmentStatusRequest, fetchFuturePatientAppointments, type FuturePatientAppointment } from '@/services/appointments';
+import { FutureAppointmentsConfirmDialog } from '@/components/appointments/future-appointments-confirm-dialog';
 import { getSalesServices, getUsersServicesBatch, fetchServicesByIds } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
 import { addMinutes, eachDayOfInterval, endOfMonth, endOfWeek, format, isValid, parseISO, set, startOfMonth, startOfWeek } from 'date-fns';
@@ -986,6 +987,9 @@ export default function AppointmentsPage() {
     const [isSavingInline, setIsSavingInline] = React.useState(false);
     const [inlineDebt, setInlineDebt] = React.useState<{ currency: string; amount: number }[]>([]);
     const [inlineCancelledCount, setInlineCancelledCount] = React.useState(0);
+    // Future-appointments confirmation for the quick inline-create flow.
+    const [inlineFutureConfirm, setInlineFutureConfirm] = React.useState<{ appointments: FuturePatientAppointment[]; patientName: string } | null>(null);
+    const skipInlineFutureCheckRef = React.useRef(false);
 
     // Load the inline-draft patient's debt + cancelled-appointment count to surface
     // them inline next to the patient.
@@ -1027,6 +1031,21 @@ export default function AppointmentsPage() {
             const svcNames = inlineDraft.services.map((s) => s.name).join(', ');
             const draftColor = inlineDraft.colorTouched ? inlineDraft.color : inlineDraft.color || getGoogleCalendarColorId(calendar?.color);
             const editing = inlineDraft.editing ?? null;
+
+            // When creating (not editing/rescheduling), warn if the patient already
+            // has upcoming appointments booked, and let the user confirm first.
+            if (!editing && !inlineDraft.rescheduling) {
+                if (skipInlineFutureCheckRef.current) {
+                    skipInlineFutureCheckRef.current = false;
+                } else if (patient?.id) {
+                    const future = await fetchFuturePatientAppointments(String(patient.id), calendars);
+                    if (future.length > 0) {
+                        setInlineFutureConfirm({ appointments: future, patientName: patient.name });
+                        setIsSavingInline(false);
+                        return;
+                    }
+                }
+            }
 
             // Reschedule flow (custom mode): cancel the original + create a new
             // appointment via the reschedule endpoint, reusing the inline card.
@@ -1091,7 +1110,7 @@ export default function AppointmentsPage() {
         } finally {
             setIsSavingInline(false);
         }
-    }, [inlineDraft, toast, tToasts, rescheduleAppointment, user?.id]);
+    }, [inlineDraft, toast, tToasts, rescheduleAppointment, user?.id, calendars]);
 
     const renderInlineDraft = React.useCallback(() => {
         if (!inlineDraft) return null;
@@ -3827,6 +3846,20 @@ export default function AppointmentsPage() {
                 checkCalendarAvailability={checkCalendarAvailability}
                 checkDoctorAvailability={checkDoctorAvailability}
             />
+            {inlineFutureConfirm && (
+                <FutureAppointmentsConfirmDialog
+                    open={!!inlineFutureConfirm}
+                    onOpenChange={(open) => { if (!open) setInlineFutureConfirm(null); }}
+                    patientName={inlineFutureConfirm.patientName}
+                    appointments={inlineFutureConfirm.appointments}
+                    onConfirm={() => {
+                        setInlineFutureConfirm(null);
+                        skipInlineFutureCheckRef.current = true;
+                        handleSaveInlineDraft();
+                    }}
+                    onCancel={() => setInlineFutureConfirm(null)}
+                />
+            )}
             <ReminderFormDialog
                 open={isReminderFormOpen}
                 onOpenChange={(open) => {

@@ -6150,6 +6150,14 @@
     "cancel": "Cancel",
     "continueAnyway": "Send Anyway"
   },
+  "FutureAppointmentsConfirmDialog": {
+    "title": "Attention",
+    "description": "{patient} has the following appointments scheduled:",
+    "appointmentLine": "Date: {date}  Time: {time} - {room}",
+    "question": "Assign this new time?",
+    "confirm": "Yes",
+    "cancel": "No"
+  },
   "MutualSocietiesPage": {
     "title": "Mutual Societies",
     "description": "Manage the catalog of mutual societies for quotes and invoicing.",

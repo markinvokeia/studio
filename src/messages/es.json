@@ -6130,6 +6130,14 @@
     "cancel": "Cancelar",
     "continueAnyway": "Enviar de Todos Modos"
   },
+  "FutureAppointmentsConfirmDialog": {
+    "title": "Atención",
+    "description": "{patient} tiene las siguientes citas marcadas:",
+    "appointmentLine": "Día: {date}  Hora: {time} - {room}",
+    "question": "¿Darle esta nueva hora?",
+    "confirm": "Sí",
+    "cancel": "No"
+  },
   "MutualSocietiesPage": {
     "title": "Sociedades Mutuales",
     "description": "Gestione el catálogo de sociedades mutuales para presupuestos y facturación.",
