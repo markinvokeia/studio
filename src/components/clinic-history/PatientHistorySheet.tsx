@@ -10,12 +10,15 @@ import { ResizableSheet, SheetTitle, SheetDescription } from '@/components/ui/re
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ViewModeToggle } from '@/components/ui/view-mode-toggle';
 
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
 import { PatientInstructionDialog } from '@/components/medical-instructions/patient-instruction-dialog';
+import { TreatmentTimeline } from '@/components/users/clinic-history-viewer';
 
 import { useClinicHistory } from '@/hooks/useClinicHistory';
 import { usePatientHistorySheet } from '@/stores/patient-history-sheet-store';
+import { useTableViewMode } from '@/hooks/use-table-view-mode';
 import { useToast } from '@/hooks/use-toast';
 
 import type { PatientSession } from '@/lib/types';
@@ -37,8 +40,21 @@ export function PatientHistorySheet() {
   const t = useTranslations('PatientHistorySheet');
   const { toast } = useToast();
 
-  const { patientSessions, isLoadingPatientSessions, fetchPatientSessions, createSession, updateSession, deleteSession } = useClinicHistory();
+  const {
+    patientSessions,
+    isLoadingPatientSessions,
+    fetchPatientSessions,
+    createSession,
+    updateSession,
+    deleteSession,
+    doctors,
+    isLoadingDoctors,
+    fetchDoctors,
+    isSubmittingSession,
+    getSessionAttachment,
+  } = useClinicHistory();
 
+  const [viewMode, setViewMode] = useTableViewMode('patient-history-sheet', 'table');
   const [isAnnotationOpen, setIsAnnotationOpen] = React.useState(false);
   const [isInstructionOpen, setIsInstructionOpen] = React.useState(false);
   const [editingSession, setEditingSession] = React.useState<PatientSession | null>(null);
@@ -199,18 +215,44 @@ export function PatientHistorySheet() {
             <ClipboardList className="mr-1.5 h-4 w-4" />
             {t('newInstruction')}
           </Button>
+          <ViewModeToggle value={viewMode} onChange={setViewMode} className="ml-auto" />
         </div>
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-4">
-          <DataTable
-            columns={columns}
-            data={rows}
-            isLoading={isLoadingPatientSessions}
-            sorting={sorting}
-            onSortingChange={setSorting}
-            useGlobalFilter
-            filterPlaceholder={t('searchPlaceholder')}
-          />
-        </div>
+        {viewMode === 'table' ? (
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-4">
+            <DataTable
+              columns={columns}
+              data={rows}
+              isLoading={isLoadingPatientSessions}
+              sorting={sorting}
+              onSortingChange={setSorting}
+              useGlobalFilter
+              filterPlaceholder={t('searchPlaceholder')}
+            />
+          </div>
+        ) : (
+          <div className="min-h-0 flex-1 overflow-y-auto p-4">
+            {userId && (
+              <TreatmentTimeline
+                sessions={patientSessions}
+                appointments={[]}
+                isLoading={isLoadingPatientSessions}
+                userId={userId}
+                userName={userName}
+                doctors={doctors}
+                isLoadingDoctors={isLoadingDoctors}
+                isSubmittingSession={isSubmittingSession}
+                onCreateSession={createSession}
+                onUpdateSession={updateSession}
+                onDeleteSession={deleteSession}
+                onFetchDoctors={fetchDoctors}
+                onRefreshAll={async (uid) => { await fetchPatientSessions(uid); }}
+                onLoadSessionAttachment={getSessionAttachment}
+                hideToolbar
+                forcedTypeFilter="clinica"
+              />
+            )}
+          </div>
+        )}
       </div>
 
       {userId && (

@@ -10,10 +10,14 @@ import { ResizableSheet, SheetTitle, SheetDescription } from '@/components/ui/re
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
+import { ViewModeToggle } from '@/components/ui/view-mode-toggle';
 
 import { getStatusIcon } from '@/components/appointments/status-icons';
+import { TreatmentTimeline } from '@/components/users/clinic-history-viewer';
 
 import { usePatientAppointmentsSheet } from '@/stores/patient-appointments-sheet-store';
+import { useClinicHistory } from '@/hooks/useClinicHistory';
+import { useTableViewMode } from '@/hooks/use-table-view-mode';
 import { api } from '@/services/api';
 
 import type { Appointment, Calendar } from '@/lib/types';
@@ -40,7 +44,22 @@ export function PatientAppointmentsHistorySheet() {
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [sorting, setSorting] = React.useState<SortingState>([{ id: 'date', desc: true }]);
+  const [viewMode, setViewMode] = useTableViewMode('patient-appointments-sheet', 'table');
   const calendarsRef = React.useRef<Calendar[]>([]);
+
+  // Only the session-related callbacks the timeline requires; instantiating the
+  // hook triggers no fetches by itself.
+  const {
+    doctors,
+    isLoadingDoctors,
+    fetchDoctors,
+    isSubmittingSession,
+    createSession,
+    updateSession,
+    deleteSession,
+    fetchPatientSessions,
+    getSessionAttachment,
+  } = useClinicHistory();
 
   const fetchAppointments = React.useCallback(async (currentUserId: string, currentUserName?: string) => {
     setIsLoading(true);
@@ -198,18 +217,56 @@ export function PatientAppointmentsHistorySheet() {
             <ArrowLeft className="mr-1.5 h-4 w-4" />
             {t('back')}
           </Button>
+          <ViewModeToggle value={viewMode} onChange={setViewMode} className="ml-auto" />
         </div>
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-4">
-          <DataTable
-            columns={columns}
-            data={appointments}
-            isLoading={isLoading}
-            sorting={sorting}
-            onSortingChange={setSorting}
-            useGlobalFilter
-            filterPlaceholder={t('searchPlaceholder')}
-          />
-        </div>
+        {viewMode === 'table' ? (
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-4">
+            <DataTable
+              columns={columns}
+              data={appointments}
+              isLoading={isLoading}
+              sorting={sorting}
+              onSortingChange={setSorting}
+              useGlobalFilter
+              filterPlaceholder={t('searchPlaceholder')}
+            />
+          </div>
+        ) : (
+          <div className="min-h-0 flex-1 overflow-y-auto p-4">
+            {userId && (
+              <TreatmentTimeline
+                sessions={[]}
+                appointments={appointments}
+                isLoading={false}
+                isLoadingAppointments={isLoading}
+                userId={userId}
+                userName={userName}
+                doctors={doctors}
+                isLoadingDoctors={isLoadingDoctors}
+                isSubmittingSession={isSubmittingSession}
+                onCreateSession={createSession}
+                onUpdateSession={updateSession}
+                onDeleteSession={deleteSession}
+                onFetchDoctors={fetchDoctors}
+                onRefreshAll={async (uid) => { await fetchPatientSessions(uid); }}
+                onLoadSessionAttachment={getSessionAttachment}
+                onRefreshAppointments={() => fetchAppointments(userId, userName)}
+                onAppointmentStatusUpdated={(appointmentId, newStatus, extra) => {
+                  setAppointments(prev => prev.map(a => a.id === appointmentId
+                    ? {
+                        ...a,
+                        status: newStatus,
+                        cancellation_reason: newStatus === 'cancelled' ? extra?.cancellation_reason ?? null : null,
+                        cancellation_note: newStatus === 'cancelled' ? extra?.cancellation_note ?? null : null,
+                      }
+                    : a));
+                }}
+                hideToolbar
+                forcedTypeFilter="appointment"
+              />
+            )}
+          </div>
+        )}
       </div>
     </ResizableSheet>
   );

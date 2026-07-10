@@ -1720,6 +1720,8 @@ function parsePlanProximaCita(value: string | null | undefined): string {
 }
 
 // Treatment Timeline Component with CRUD
+export type TimelineFilter = 'all' | 'clinica' | 'odontograma' | 'appointment';
+
 interface TreatmentTimelineProps {
     sessions: PatientSession[];
     appointments?: Appointment[];
@@ -1751,9 +1753,13 @@ interface TreatmentTimelineProps {
     ) => void;
     onEditAppointment?: (appointment: Appointment) => void;
     isDoctorMode?: boolean;
+    /** Hide the header block (title, counter, filters, add-session button, filter chips). */
+    hideToolbar?: boolean;
+    /** Lock the timeline to one event type, overriding the interactive type filter. */
+    forcedTypeFilter?: TimelineFilter;
 }
 
-function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAppointments = false, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, createOdontogramTrigger = 0, onOdontogramTriggerConsumed, sessionPrefill, onSessionCreated, editSessionId, onRefreshAppointments, onAppointmentStatusUpdated, onEditAppointment, isDoctorMode = false }: TreatmentTimelineProps) {
+export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAppointments = false, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, createOdontogramTrigger = 0, onOdontogramTriggerConsumed, sessionPrefill, onSessionCreated, editSessionId, onRefreshAppointments, onAppointmentStatusUpdated, onEditAppointment, isDoctorMode = false, hideToolbar = false, forcedTypeFilter }: TreatmentTimelineProps) {
     const t = useTranslations('ClinicHistoryPage.timeline');
     const tDialog = useTranslations('ClinicHistoryPage.sessionDialog');
     const tPage = useTranslations('ClinicHistoryPage');
@@ -1855,7 +1861,6 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
         }
     }, [userId]);
 
-    type TimelineFilter = 'all' | 'clinica' | 'odontograma' | 'appointment';
     const [typeFilter, setTypeFilter] = React.useState<TimelineFilter>('all');
     const [doctorFilter, setDoctorFilter] = React.useState<string>('all');
 
@@ -2104,13 +2109,15 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
         return Array.from(map.entries()).map(([value, label]) => ({ value, label }));
     }, [allItems]);
 
+    const effectiveTypeFilter = forcedTypeFilter ?? typeFilter;
+
     const filteredItems = React.useMemo(() => {
         return allItems.filter(item => {
-            if (typeFilter !== 'all') {
-                if (item.kind === 'appointment' && typeFilter !== 'appointment') return false;
-                if (item.kind === 'session' && typeFilter === 'appointment') return false;
-                if (item.kind === 'session' && typeFilter === 'clinica' && item.data.tipo_sesion === 'odontograma') return false;
-                if (item.kind === 'session' && typeFilter === 'odontograma' && item.data.tipo_sesion !== 'odontograma') return false;
+            if (effectiveTypeFilter !== 'all') {
+                if (item.kind === 'appointment' && effectiveTypeFilter !== 'appointment') return false;
+                if (item.kind === 'session' && effectiveTypeFilter === 'appointment') return false;
+                if (item.kind === 'session' && effectiveTypeFilter === 'clinica' && item.data.tipo_sesion === 'odontograma') return false;
+                if (item.kind === 'session' && effectiveTypeFilter === 'odontograma' && item.data.tipo_sesion !== 'odontograma') return false;
             }
             if (doctorFilter !== 'all') {
                 if (item.kind === 'session') {
@@ -2122,7 +2129,7 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
             }
             return true;
         });
-    }, [allItems, typeFilter, doctorFilter]);
+    }, [allItems, effectiveTypeFilter, doctorFilter]);
 
     const getItemKey = (item: { kind: string; data: any }, index: number) =>
         item.kind === 'appointment' ? `appt-${item.data.id}-${index}` : `session-${item.data.sesion_id}`;
@@ -2145,6 +2152,8 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
     return (
         <div>
             <div className="bg-card text-card-foreground rounded-xl shadow-sm border overflow-hidden flex flex-col">
+                {!hideToolbar && (
+                <>
                 <div className="flex items-center justify-between px-3 py-3 border-b shrink-0 gap-2">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -2279,6 +2288,8 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                         )}
                     </div>
                 )}
+                </>
+                )}
 
                 <div>
                             {allItems.length === 0 ? (
@@ -2289,7 +2300,9 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                             ) : filteredItems.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center h-24 text-muted-foreground gap-1 p-4">
                                     <p className="text-xs">Sin resultados</p>
-                                    <button onClick={() => { setTypeFilter('all'); setDoctorFilter('all'); }} className="text-xs text-primary hover:underline">Limpiar filtros</button>
+                                    {!hideToolbar && (
+                                        <button onClick={() => { setTypeFilter('all'); setDoctorFilter('all'); }} className="text-xs text-primary hover:underline">Limpiar filtros</button>
+                                    )}
                                 </div>
                             ) : (
                                 <div>
