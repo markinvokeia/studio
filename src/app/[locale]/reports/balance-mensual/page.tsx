@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DoctorSelector } from '@/components/ui/doctor-selector';
 import { DateRangePresets } from '@/components/reports/date-range-presets';
 import { ReportDataTable } from '@/components/reports/report-data-table';
@@ -78,6 +79,10 @@ export default function BalanceMensualPage() {
   const [selectedDoctors, setSelectedDoctors] = useState<DoctorOption[]>([]);
   const doctorIds = selectedDoctors.map((d) => d.id);
   const [docType, setDocType] = useState<DocType>('all');
+  // Sub-tab used only to organize the on-screen blocks when the doc-type
+  // filter is "all" — the filter itself still governs which data is shown
+  // for a specific type; this just avoids stacking all 3 blocks at once
+  const [activeBlock, setActiveBlock] = useState<Exclude<DocType, 'all'>>('producido');
 
   const [data, setData] = useState<ReportBalanceMensualResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -92,21 +97,28 @@ export default function BalanceMensualPage() {
       };
       if (currency !== 'all') query.currency = currency;
       if (doctorIds.length > 0) query.doctor_ids = doctorIds.join(',');
-      if (docType !== 'all') query.doc_type = docType;
       const res = await api.get(API_ROUTES.REPORTS.BALANCE_MENSUAL, query);
       setData(res?.data ?? null);
     } finally {
       setIsLoading(false);
     }
-  }, [dateRange, currency, doctorIds, docType]);
+  }, [dateRange, currency, doctorIds]);
 
   const showProducido = docType === 'all' || docType === 'producido';
   const showCobrado = docType === 'all' || docType === 'cobrado';
   const showPendiente = docType === 'all' || docType === 'pendiente';
 
+  // On-screen block visibility: when the filter is a specific type, mirrors it;
+  // when "Todos", the active sub-tab decides which single block is displayed
+  const blockProducido = docType === 'all' ? activeBlock === 'producido' : showProducido;
+  const blockCobrado = docType === 'all' ? activeBlock === 'cobrado' : showCobrado;
+  const blockPendiente = docType === 'all' ? activeBlock === 'pendiente' : showPendiente;
+
   const producido = data?.producido ?? [];
   const cobrado = data?.cobrado ?? [];
-  const pendiente = data?.pendiente ?? [];
+  // Rows with saldo 0 mean the invoiced amount was fully collected — nothing
+  // actually pending, so they're excluded from this block
+  const pendiente = (data?.pendiente ?? []).filter((r) => Number(r.saldo) !== 0);
 
   const producidoByCurrency = totalByCurrency(producido);
   const cobradoByCurrency = totalByCurrency(cobrado);
@@ -356,6 +368,16 @@ export default function BalanceMensualPage() {
     >
       {data && (
         <>
+          {docType === 'all' && (
+            <Tabs value={activeBlock} onValueChange={(v) => setActiveBlock(v as Exclude<DocType, 'all'>)} className="print:hidden">
+              <TabsList>
+                <TabsTrigger value="producido">{t('doc_type_producido')}</TabsTrigger>
+                <TabsTrigger value="cobrado">{t('doc_type_cobrado')}</TabsTrigger>
+                <TabsTrigger value="pendiente">{t('doc_type_pendiente')}</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
+
           <div className="flex flex-wrap gap-3 print:grid print:grid-cols-3 print:gap-3">
             {showProducido && <ReportKPICard title={t('kpi_producido')} value={fmtMultiCurrency(producidoByCurrency)} />}
             {showCobrado && <ReportKPICard title={t('kpi_cobrado')} value={fmtMultiCurrency(cobradoByCurrency)} variant="success" />}
@@ -366,7 +388,7 @@ export default function BalanceMensualPage() {
               and for print only when a single doctor is in scope */}
           <div className={showPerDoctorPrint ? 'flex flex-col gap-4 print:hidden' : undefined}>
             {/* Bloque A — Producido por día */}
-            {showProducido && (
+            {blockProducido && (
               <DayDetailBlock<ReportBalanceMensualProducidoRow>
                 title={t('block_producido')}
                 emptyLabel={t('empty_block')}
@@ -391,7 +413,7 @@ export default function BalanceMensualPage() {
             )}
 
             {/* Bloque B — Cobrado por día */}
-            {showCobrado && (
+            {blockCobrado && (
               <DayDetailBlock<ReportBalanceMensualCobradoRow>
                 title={t('block_cobrado')}
                 emptyLabel={t('empty_block')}
@@ -416,7 +438,7 @@ export default function BalanceMensualPage() {
             )}
 
             {/* Bloque C — Pendiente por médico */}
-            {showPendiente && (
+            {blockPendiente && (
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium">{t('block_pendiente')}</CardTitle>
