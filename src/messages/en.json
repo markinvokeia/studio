@@ -11,7 +11,17 @@
       "confirm": "Confirm",
       "cancel": "Cancel",
       "save": "Save",
-      "delete": "Delete"
+      "delete": "Delete",
+      "selectPending": "Select pending treatments"
+    },
+    "allocations": {
+      "title": "Pending treatments",
+      "pending": "Pending",
+      "allocated": "Allocated",
+      "difference": "Difference: {amount}",
+      "exceedsPending": "Cannot exceed pending",
+      "noPending": "No pending treatments in this currency",
+      "mismatch": "Allocated sum doesn't match the amount. Difference: {amount}"
     },
     "docLine": {
       "quote": "Quote",

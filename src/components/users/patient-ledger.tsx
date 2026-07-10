@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format, parseISO } from 'date-fns';
-import { Banknote, Check, ChevronDown, FileMinus, FileText, Loader2, Plus, Printer, Receipt, RefreshCw, ScrollText, Search, Trash2, X } from 'lucide-react';
+import { Banknote, Check, ChevronDown, FileMinus, FileText, ListChecks, Loader2, Plus, Printer, Receipt, RefreshCw, ScrollText, Search, Trash2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
@@ -375,7 +375,7 @@ function EditorControls({ submitting, onCancel }: { submitting: boolean; onCance
  * type. Secondary fields flow onto an aligned second line that leaves the Debe/Haber/
  * controls columns empty so nothing shifts.
  */
-function InlineEditorShell({ docLabel, dateSlot, mainSlot, debeSlot, haberSlot, controls, secondLine }: {
+function InlineEditorShell({ docLabel, dateSlot, mainSlot, debeSlot, haberSlot, controls, secondLine, belowSlot }: {
   docLabel: React.ReactNode;
   dateSlot: React.ReactNode;
   mainSlot: React.ReactNode;
@@ -383,28 +383,32 @@ function InlineEditorShell({ docLabel, dateSlot, mainSlot, debeSlot, haberSlot, 
   haberSlot: React.ReactNode;
   controls: React.ReactNode;
   secondLine?: React.ReactNode;
+  /** Optional full-width area rendered below both lines (e.g. the payment allocations). */
+  belowSlot?: React.ReactNode;
 }) {
   return (
     <div className="rounded-lg border border-primary/50 bg-primary/5 px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
+      {/* Line 1: date · main fields · Debe · Haber · confirm/cancel */}
       <div className="flex items-center gap-3">
-        <div className="flex w-32 shrink-0 flex-col gap-1 text-sm text-muted-foreground">
-          {dateSlot}
-          <Badge variant="outline" className="w-fit text-[10px]">{docLabel}</Badge>
-        </div>
+        <div className="w-32 shrink-0 text-sm text-muted-foreground">{dateSlot}</div>
         <div className="min-w-[10rem] flex-1">{mainSlot}</div>
         <div className="w-24 shrink-0">{debeSlot}</div>
         <div className="w-24 shrink-0">{haberSlot}</div>
         <div className="flex w-24 shrink-0 items-center justify-end gap-1">{controls}</div>
       </div>
+      {/* Line 2: type badge (under the date) · secondary fields */}
       {secondLine && (
         <div className="mt-2 flex items-start gap-3">
-          <div className="w-32 shrink-0" />
+          <div className="flex w-32 shrink-0 items-center">
+            <Badge variant="outline" className="text-[10px]">{docLabel}</Badge>
+          </div>
           <div className="flex min-w-[10rem] flex-1 flex-wrap items-center gap-2">{secondLine}</div>
           <div className="w-24 shrink-0" />
           <div className="w-24 shrink-0" />
           <div className="w-24 shrink-0" />
         </div>
       )}
+      {belowSlot}
     </div>
   );
 }
@@ -567,21 +571,40 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editQuote, editItems, userId, 
           />
         }
         mainSlot={
-          <ServiceSelector
-            isSales
-            value={form.watch('service_id')}
-            selectedServiceName={watchedName}
-            onValueChange={(serviceId, service) => {
-              form.setValue('service_id', serviceId, { shouldValidate: true });
-              if (service) {
-                form.setValue('service_name', service.name);
-                form.setValue('unit_price', Number(service.price) || 0);
-              }
-            }}
-            placeholder={t('fields.searchService')}
-            triggerText={t('fields.selectService')}
-            className="h-8"
-          />
+          <div className="flex items-center gap-2">
+            <div className="min-w-[8rem] flex-1">
+              <ServiceSelector
+                isSales
+                value={form.watch('service_id')}
+                selectedServiceName={watchedName}
+                onValueChange={(serviceId, service) => {
+                  form.setValue('service_id', serviceId, { shouldValidate: true });
+                  if (service) {
+                    form.setValue('service_name', service.name);
+                    form.setValue('unit_price', Number(service.price) || 0);
+                  }
+                }}
+                placeholder={t('fields.searchService')}
+                triggerText={t('fields.selectService')}
+                className="h-8"
+              />
+            </div>
+            <Input
+              type="number"
+              placeholder={t('fields.tooth')}
+              aria-label={t('fields.tooth')}
+              className="h-8 w-16 shrink-0 text-sm"
+              {...form.register('tooth_number')}
+            />
+            <Input
+              type="number"
+              min={1}
+              placeholder={t('fields.quantity')}
+              aria-label={t('fields.quantity')}
+              className="h-8 w-14 shrink-0 text-sm"
+              {...form.register('quantity')}
+            />
+          </div>
         }
         debeSlot={
           <Input
@@ -597,21 +620,6 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editQuote, editItems, userId, 
         controls={<EditorControls submitting={submitting} onCancel={onCancel} />}
         secondLine={
           <>
-            <Input
-              type="number"
-              placeholder={t('fields.tooth')}
-              aria-label={t('fields.tooth')}
-              className="h-8 w-20 text-sm"
-              {...form.register('tooth_number')}
-            />
-            <Input
-              type="number"
-              min={1}
-              placeholder={t('fields.quantity')}
-              aria-label={t('fields.quantity')}
-              className="h-8 w-16 text-sm"
-              {...form.register('quantity')}
-            />
             <div className="min-w-[10rem] flex-1">
               <DoctorSelector
                 value={form.watch('doctor_id')}
@@ -626,8 +634,8 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editQuote, editItems, userId, 
               />
             </div>
             <Input
-              placeholder={t('fields.description')}
-              aria-label={t('fields.description')}
+              placeholder={t('fields.notes')}
+              aria-label={t('fields.notes')}
               className="h-8 min-w-[10rem] flex-1 text-sm"
               {...form.register('description')}
             />
@@ -647,16 +655,27 @@ const paymentEditorSchema = z.object({
 });
 type PaymentEditorValues = z.infer<typeof paymentEditorSchema>;
 
+/** A patient invoice with an outstanding balance, offered as a payment allocation target. */
+export type PendingInvoiceLite = {
+  id: string;
+  docNo: string;
+  date: string;
+  pending: number;
+  currency: string;
+};
+
 /**
- * Inline editor for a Nuevo Pago — creates a prepayment/credit via `INVOICE_PAYMENT`
- * (mirrors `PrepaidFormDialog`). Enables the Haber editor; Debe is disabled. The green
- * confirm button is the confirm, so there's no extra confirmation dialog.
+ * Inline editor for a Nuevo Pago — creates a single payment via `INVOICE_PAYMENT`
+ * (`is_prepaid: true`). When the user picks "seleccionar tratamientos pendientes" it
+ * additionally sends `invoice_allocations` so the backend books that one payment against
+ * the chosen invoices (oldest-first by default, user-adjustable, sum must equal the total).
  */
-function PaymentInlineEditor({ userId, patientName, patientEmail, currency, onCancel, onSaved }: {
+function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pendingInvoices, onCancel, onSaved }: {
   userId: string;
   patientName?: string;
   patientEmail?: string;
   currency: string;
+  pendingInvoices: PendingInvoiceLite[];
   onCancel: () => void;
   onSaved: () => Promise<void> | void;
 }) {
@@ -675,9 +694,79 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, onCa
   });
   const createdAt = form.watch('created_at');
   const isHistorical = form.watch('is_historical');
+  const amount = form.watch('payment_amount') || 0;
+
+  // Pending invoices in this payment's currency, oldest first (FIFO distribution order).
+  const sortedPending = React.useMemo(
+    () => pendingInvoices
+      .filter((p) => p.currency === currency)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+    [pendingInvoices, currency],
+  );
+
+  // Allocation state: `alloc[invoiceId] = amount`. Presence = the invoice is included.
+  const [showAllocations, setShowAllocations] = React.useState(false);
+  const [alloc, setAlloc] = React.useState<Record<string, number>>({});
+  const [allocManual, setAllocManual] = React.useState(false);
+
+  const distributeFifo = React.useCallback((total: number): Record<string, number> => {
+    let remaining = round2(total);
+    const result: Record<string, number> = {};
+    for (const inv of sortedPending) {
+      if (remaining <= 0.005) break;
+      const take = round2(Math.min(inv.pending, remaining));
+      if (take > 0.005) { result[inv.id] = take; remaining = round2(remaining - take); }
+    }
+    return result;
+  }, [sortedPending]);
+
+  // Auto-redistribute (oldest first) whenever the total changes, until the user edits.
+  React.useEffect(() => {
+    if (showAllocations && !allocManual) setAlloc(distributeFifo(amount));
+  }, [showAllocations, allocManual, amount, distributeFifo]);
+
+  const allocated = round2(Object.values(alloc).reduce((s, a) => s + a, 0));
+  const difference = round2(amount - allocated);
+  const allocMismatch = showAllocations && Math.abs(difference) > 0.005;
+
+  const toggleInvoice = (inv: PendingInvoiceLite) => {
+    setAllocManual(true);
+    setAlloc((prev) => {
+      const next = { ...prev };
+      if (inv.id in next) { delete next[inv.id]; return next; }
+      const others = round2(Object.values(next).reduce((s, a) => s + a, 0));
+      next[inv.id] = round2(Math.min(inv.pending, Math.max(0, amount - others)));
+      return next;
+    });
+  };
+
+  const setInvoiceAmount = (inv: PendingInvoiceLite, value: number) => {
+    setAllocManual(true);
+    setAlloc((prev) => ({ ...prev, [inv.id]: round2(Math.max(0, Math.min(inv.pending, value || 0))) }));
+  };
+
+  const toggleAllocationsPanel = () => {
+    if (showAllocations) {
+      setShowAllocations(false);
+      setAlloc({});
+      setAllocManual(false);
+    } else {
+      setShowAllocations(true);
+      setAllocManual(false); // triggers a fresh FIFO distribution via the effect
+    }
+  };
 
   const onSubmit = async (values: PaymentEditorValues) => {
     if (submitting || !operator) return;
+    const invoiceAllocations = Object.entries(alloc)
+      .filter(([, a]) => a > 0.005)
+      .map(([id, a]) => ({ invoice_id: Number(id), amount: a }));
+    if (showAllocations) {
+      if (invoiceAllocations.length === 0 || Math.abs(round2(values.payment_amount - allocated)) > 0.005) {
+        toast({ title: t('allocations.mismatch', { amount: fmtAmountZero(difference, currency) }), variant: 'destructive' });
+        return;
+      }
+    }
     setSubmitting(true);
     try {
       let sessionId: string | null = null;
@@ -694,6 +783,8 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, onCa
         cash_session_id: sessionId,
         user: operator,
         client_user: { id: userId, name: patientName || '', email: patientEmail || '' },
+        // One payment; when present, the backend allocates it to these invoices.
+        ...(invoiceAllocations.length > 0 ? { invoice_allocations: invoiceAllocations } : {}),
         query: {
           payment_date: toLocalISOString(preserveTimeIfToday(values.created_at)),
           amount: values.payment_amount,
@@ -756,15 +847,62 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, onCa
             <Input
               placeholder={t('fields.notes')}
               aria-label={t('fields.notes')}
-              className="h-8 min-w-[10rem] flex-1 text-sm"
+              className="h-8 min-w-[8rem] flex-1 text-sm"
               {...form.register('notes')}
             />
             <label className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
               <Checkbox checked={isHistorical} onCheckedChange={(c) => form.setValue('is_historical', !!c)} />
               {t('fields.historical')}
             </label>
+            <Button
+              type="button"
+              size="sm"
+              variant={showAllocations ? 'secondary' : 'outline'}
+              className="h-8 shrink-0 gap-1.5 text-xs"
+              onClick={toggleAllocationsPanel}
+              disabled={sortedPending.length === 0}
+            >
+              <ListChecks className="h-3.5 w-3.5" />{t('inline.selectPending')}
+            </Button>
           </>
         }
+        belowSlot={showAllocations && (
+          <div className="mt-3 rounded-md border border-border bg-background/70 p-2.5">
+            <div className="mb-2 flex items-center justify-between text-xs">
+              <span className="font-medium">{t('allocations.title')}</span>
+              <span className={cn('tabular-nums', allocMismatch ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400')}>
+                {t('allocations.allocated')}: {fmtAmountZero(allocated, currency)} / {fmtAmountZero(amount, currency)}
+                {allocMismatch && ` · ${t('allocations.difference', { amount: fmtAmountZero(difference, currency) })}`}
+              </span>
+            </div>
+            {sortedPending.length === 0 ? (
+              <div className="py-2 text-center text-xs text-muted-foreground">{t('allocations.noPending')}</div>
+            ) : (
+              <div className="space-y-1.5">
+                {sortedPending.map((inv) => {
+                  const included = inv.id in alloc;
+                  return (
+                    <div key={inv.id} className="flex items-center gap-2 text-xs">
+                      <Checkbox checked={included} onCheckedChange={() => toggleInvoice(inv)} />
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-medium">{t('docLine.treatment')}: {inv.docNo}</div>
+                        <div className="truncate text-muted-foreground">
+                          {formatDisplayDate(inv.date)} · {t('allocations.pending')}: {fmtAmountZero(inv.pending, inv.currency)}
+                        </div>
+                      </div>
+                      <FormattedNumberInput
+                        value={included ? alloc[inv.id] : 0}
+                        onChange={(v) => setInvoiceAmount(inv, v)}
+                        placeholder="0.00"
+                        className={cn('h-7 w-24 shrink-0 text-right text-xs', !included && 'opacity-50')}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       />
     </form>
   );
@@ -1250,6 +1388,20 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
     finalBalance: rows.length > 0 ? rows[rows.length - 1].runningBalance : 0,
   }), [rows]);
 
+  // Invoices with an outstanding balance — offered as targets for a payment's allocations.
+  const pendingInvoices = React.useMemo<PendingInvoiceLite[]>(() => {
+    return (ledgerData?.invoices || [])
+      .filter((i) => (i.type || 'invoice') !== 'credit_note')
+      .map((i) => ({
+        id: i.id,
+        docNo: i.doc_no || i.invoice_doc_no || i.id,
+        date: i.createdAt,
+        pending: round2((i.total || 0) - (i.paid_amount || 0)),
+        currency: i.currency || 'USD',
+      }))
+      .filter((p) => p.pending > 0.005);
+  }, [ledgerData]);
+
   const searchInputRef = React.useRef<HTMLInputElement>(null);
   React.useEffect(() => { if (searchOpen) searchInputRef.current?.focus(); }, [searchOpen]);
 
@@ -1417,6 +1569,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
                   patientName={patientName}
                   patientEmail={patientEmail}
                   currency={editorCurrency}
+                  pendingInvoices={pendingInvoices}
                   onCancel={() => setCreateDoc(null)}
                   onSaved={handleInlineSaved}
                 />

@@ -11,7 +11,17 @@
       "confirm": "Confirmar",
       "cancel": "Cancelar",
       "save": "Guardar",
-      "delete": "Eliminar"
+      "delete": "Eliminar",
+      "selectPending": "Seleccionar tratamientos pendientes"
+    },
+    "allocations": {
+      "title": "Tratamientos pendientes",
+      "pending": "Pendiente",
+      "allocated": "Asignado",
+      "difference": "Diferencia: {amount}",
+      "exceedsPending": "No puede exceder el pendiente",
+      "noPending": "No hay tratamientos pendientes en esta moneda",
+      "mismatch": "La suma asignada no coincide con el monto. Diferencia: {amount}"
     },
     "docLine": {
       "quote": "Presupuesto",
