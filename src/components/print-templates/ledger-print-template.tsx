@@ -32,6 +32,7 @@ function fmtDash(amount: number, currency: string): string {
 }
 
 function statusLabel(row: LedgerRow, t: (key: string) => string): string {
+  if (row.kind === 'balance') return '';
   if (row.kind === 'payment') return t('status.pago');
   if (row.status === 'notaCredito') return t('status.notaCredito');
   if (row.status === 'presupuestado') return t('statusControl.presupuesto');
@@ -40,6 +41,7 @@ function statusLabel(row: LedgerRow, t: (key: string) => string): string {
 }
 
 function docNumbersLabel(row: LedgerRow, t: (key: string) => string): string | null {
+  if (row.kind === 'balance') return null;
   if (row.kind === 'payment') return row.docNo ? `${t('docLine.payment')}: ${row.docNo}` : null;
   if (row.status === 'notaCredito') return row.docNo ? `${t('docLine.creditNote')}: ${row.docNo}` : null;
   if (row.status === 'presupuestado') return row.docNo ? `${t('docLine.quote')}: ${row.docNo}` : null;
@@ -50,6 +52,7 @@ function docNumbersLabel(row: LedgerRow, t: (key: string) => string): string | n
 /** Light row tint matching the on-screen colour coding; forced to print. */
 function rowTint(row: LedgerRow): React.CSSProperties {
   const base: React.CSSProperties = { WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' };
+  if (row.kind === 'balance') return { ...base, backgroundColor: '#f1f5f9' };
   if (row.kind === 'payment') return { ...base, backgroundColor: '#ecfdf5' };
   if (row.status === 'notaCredito') return { ...base, backgroundColor: '#fffbeb' };
   if (row.status === 'presupuestado') return { ...base, backgroundColor: '#ffe4e6' };
@@ -59,8 +62,8 @@ function rowTint(row: LedgerRow): React.CSSProperties {
 function computeTotals(rows: LedgerRow[]) {
   const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
   return {
-    totalDebe: round2(rows.reduce((s, r) => s + (r.status === 'presupuestado' ? 0 : r.debe), 0)),
-    totalHaber: round2(rows.reduce((s, r) => s + r.haber, 0)),
+    totalDebe: round2(rows.reduce((s, r) => s + (r.kind === 'balance' || r.status === 'presupuestado' ? 0 : r.debe), 0)),
+    totalHaber: round2(rows.reduce((s, r) => s + (r.kind === 'balance' ? 0 : r.haber), 0)),
     finalBalance: rows.length > 0 ? rows[rows.length - 1].runningBalance : 0,
   };
 }
@@ -68,7 +71,7 @@ function computeTotals(rows: LedgerRow[]) {
 export function LedgerPrintTemplate({ data }: LedgerPrintTemplateProps) {
   const t = useTranslations('PatientLedger');
   const tStatement = useTranslations('AccountStatement');
-  const { patientName, rowsByCurrency } = data;
+  const { patientName, rowsByCurrency, periodLabel } = data;
   const currencies = Object.keys(rowsByCurrency).sort((a, b) =>
     a === 'UYU' ? -1 : b === 'UYU' ? 1 : a.localeCompare(b),
   );
@@ -77,7 +80,10 @@ export function LedgerPrintTemplate({ data }: LedgerPrintTemplateProps) {
     <div>
       {/* Document title + patient — mirrors the sheet header, without any controls. */}
       <div className="flex items-baseline justify-between mb-4 pb-3 border-b border-gray-300">
-        <h1 className="text-2xl font-bold tracking-tight uppercase">{tStatement('title')}</h1>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight uppercase">{tStatement('title')}</h1>
+          {periodLabel && <span className="text-xs text-gray-500">{periodLabel}</span>}
+        </div>
         {patientName && <span className="text-sm font-medium text-gray-700">{patientName}</span>}
       </div>
 
@@ -126,10 +132,16 @@ export function LedgerPrintTemplate({ data }: LedgerPrintTemplateProps) {
                               P
                             </span>
                           )}
-                          {row.label}
+                          {row.kind === 'balance' ? t('openingBalance.label') : row.label}
                         </div>
-                        {docLine && <div className="doc">{docLine}</div>}
-                        {row.notes && <div className="notes">{row.notes}</div>}
+                        {row.kind === 'balance' ? (
+                          <div className="notes">{t('openingBalance.hint')}</div>
+                        ) : (
+                          <>
+                            {docLine && <div className="doc">{docLine}</div>}
+                            {row.notes && <div className="notes">{row.notes}</div>}
+                          </>
+                        )}
                       </td>
                       <td className="num">
                         {fmtZero(row.debe, row.currency)}

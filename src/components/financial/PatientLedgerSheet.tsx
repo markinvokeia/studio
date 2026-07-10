@@ -47,7 +47,7 @@ export function PatientLedgerSheet() {
       // In "Clásico" (unified) mode, print the ledger exactly as shown in this panel;
       // otherwise fall back to the backend financial-summary report.
       if (financeView === 'unified') {
-        await printLedger(userId, userName);
+        await printLedger(userId, userName, ledgerRef.current?.getVisibleLedger());
       } else {
         await printFinancialSummary(userId);
       }

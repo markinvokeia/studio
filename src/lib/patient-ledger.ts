@@ -5,7 +5,9 @@ export type LedgerRowStatus = 'presupuestado' | 'facturado' | 'parcial' | 'pagad
 export type LedgerRow = {
   id: string;
   date: string;
-  kind: 'item' | 'payment';
+  /** 'balance' is a synthetic summary row (see `splitLedgerByRange`) — not a real
+   *  quote/invoice/payment, never clickable, carries no id back to any document. */
+  kind: 'item' | 'payment' | 'balance';
   label: string;
   docNo?: string;
   /** The originating quote's doc number, present on quote-backed invoice rows so the
@@ -267,4 +269,44 @@ export function buildPatientLedger(params: {
     });
   }
   return result;
+}
+
+/**
+ * Splits a currency's full (already-sorted, already-cumulative) ledger rows into a
+ * `[from, to]` window, prefixing a synthetic "Saldo anterior" row when there's history
+ * before `from` — its `runningBalance` is just the last pre-range row's balance, since
+ * `rows` already carries the account's true cumulative balance from the very start.
+ * `to` is treated as inclusive through the end of that calendar day.
+ */
+export function splitLedgerByRange(rows: LedgerRow[], range: { from: Date; to: Date }): LedgerRow[] {
+  // Normalized to the full calendar day, not the literal Date objects — presets like
+  // "Hoy" hand back `new Date()` (the current time-of-day, not midnight), which would
+  // otherwise push every row from earlier today into "before the range".
+  const fromTime = new Date(range.from.getFullYear(), range.from.getMonth(), range.from.getDate(), 0, 0, 0, 0).getTime();
+  const toTime = new Date(range.to.getFullYear(), range.to.getMonth(), range.to.getDate(), 23, 59, 59, 999).getTime();
+
+  const before: LedgerRow[] = [];
+  const inRange: LedgerRow[] = [];
+  for (const row of rows) {
+    const t = new Date(row.date).getTime();
+    if (t < fromTime) before.push(row);
+    else if (t <= toTime) inRange.push(row);
+  }
+
+  if (before.length === 0) return inRange;
+
+  const openingBalance = before[before.length - 1].runningBalance;
+  const openingRow: LedgerRow = {
+    id: `opening-balance-${range.from.toISOString()}`,
+    date: range.from.toISOString(),
+    kind: 'balance',
+    // Renderers special-case `kind === 'balance'` and show a translated label instead
+    // of this — kept only as a non-empty fallback for anything that reads it directly.
+    label: 'Saldo anterior',
+    currency: rows[0]?.currency || 'USD',
+    debe: openingBalance > 0 ? openingBalance : 0,
+    haber: openingBalance < 0 ? -openingBalance : 0,
+    runningBalance: openingBalance,
+  };
+  return [openingRow, ...inRange];
 }

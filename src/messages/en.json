@@ -20,8 +20,11 @@
       "allocated": "Allocated",
       "difference": "Difference: {amount}",
       "exceedsPending": "Cannot exceed pending",
+      "exceeds": "Exceeds the amount by {amount}",
+      "leftoverCredit": "The remainder ({amount}) will be added as patient credit",
       "noPending": "No pending treatments in this currency",
-      "mismatch": "Allocated sum doesn't match the amount. Difference: {amount}"
+      "noneSelected": "Select at least one treatment or turn off this option",
+      "mismatch": "Allocated sum can't exceed the payment amount. Excess: {amount}"
     },
     "docLine": {
       "quote": "Quote",
@@ -29,6 +32,16 @@
       "treatment": "Treatment",
       "payment": "Payment",
       "creditNote": "Credit note"
+    },
+    "openingBalance": {
+      "label": "Opening balance",
+      "hint": "Account balance before this period"
+    },
+    "allocationsPopover": {
+      "paidTreatments": "Treatments paid",
+      "paidBy": "Paid with",
+      "loading": "Loading…",
+      "empty": "No data"
     },
     "footer": {
       "totalDebit": "Total debit",

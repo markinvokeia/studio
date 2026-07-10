@@ -48,6 +48,9 @@ export type FinancialSummaryPrintData = {
 export type LedgerPrintData = {
   patientName?: string;
   rowsByCurrency: Record<string, LedgerRow[]>;
+  /** Human-readable active period (e.g. "01/07/2026 – 31/07/2026"), shown in the print
+   *  header so it's clear the table isn't the full historical account. */
+  periodLabel?: string;
 };
 
 export type CajaAperturaPrintData = {

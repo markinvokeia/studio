@@ -20,8 +20,11 @@
       "allocated": "Asignado",
       "difference": "Diferencia: {amount}",
       "exceedsPending": "No puede exceder el pendiente",
+      "exceeds": "Excede el monto por {amount}",
+      "leftoverCredit": "El resto ({amount}) se agregará como crédito del paciente",
       "noPending": "No hay tratamientos pendientes en esta moneda",
-      "mismatch": "La suma asignada no coincide con el monto. Diferencia: {amount}"
+      "noneSelected": "Selecciona al menos un tratamiento o desmarca la opción",
+      "mismatch": "La suma asignada no puede superar el monto del pago. Excedente: {amount}"
     },
     "docLine": {
       "quote": "Presupuesto",
@@ -29,6 +32,16 @@
       "treatment": "Tratamiento",
       "payment": "Pago",
       "creditNote": "Nota de crédito"
+    },
+    "openingBalance": {
+      "label": "Saldo anterior",
+      "hint": "Balance de la cuenta antes de este período"
+    },
+    "allocationsPopover": {
+      "paidTreatments": "Tratamientos pagados",
+      "paidBy": "Pagado con",
+      "loading": "Cargando…",
+      "empty": "Sin datos"
     },
     "footer": {
       "totalDebit": "Total Debe",

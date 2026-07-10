@@ -4,9 +4,10 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { format, parseISO } from 'date-fns';
-import { Banknote, Check, ChevronDown, FileMinus, FileText, ListChecks, Loader2, Plus, Printer, Receipt, RefreshCw, ScrollText, Search, Trash2, X } from 'lucide-react';
+import { endOfMonth, format, parseISO, startOfMonth } from 'date-fns';
+import { Banknote, Check, ChevronDown, FileMinus, FileText, History, Link2, ListChecks, Loader2, Plus, Printer, Receipt, RefreshCw, ScrollText, Search, Trash2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { DateRange } from 'react-day-picker';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,8 @@ import { ServiceSelector } from '@/components/ui/service-selector';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { DateRangePresets } from '@/components/reports/date-range-presets';
 import { QuoteBillingDialog } from '@/components/sales/quotes/quote-billing-dialog';
 import { SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
@@ -36,7 +39,7 @@ import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
-import { buildPatientLedger, type LedgerRow, type LedgerRowStatus } from '@/lib/patient-ledger';
+import { buildPatientLedger, splitLedgerByRange, type LedgerRow, type LedgerRowStatus } from '@/lib/patient-ledger';
 import type { PaymentMethod, Quote, QuoteItem } from '@/lib/types';
 import { cn, formatDisplayDate, preserveTimeIfToday, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -124,6 +127,10 @@ interface PatientLedgerProps {
  *  reload without owning the ledger's data-loading state. */
 export interface PatientLedgerHandle {
   refresh: () => void;
+  /** What's currently on screen — active date range + the per-currency rows exactly as
+   *  displayed (opening-balance row included) — so a host can print a WYSIWYG copy
+   *  instead of re-fetching and re-building the whole (unfiltered) ledger itself. */
+  getVisibleLedger: () => { dateRange: DateRange | undefined; rowsByCurrency: Record<string, LedgerRow[]> };
 }
 
 /** Short currency symbol shown in the amount columns: "$" for UYU, "U$" for USD. */
@@ -158,6 +165,9 @@ const STATUS_VARIANT: Record<LedgerRowStatus, 'secondary' | 'outline' | 'warning
 };
 
 function RowKindIcon({ row }: { row: LedgerRow }) {
+  if (row.kind === 'balance') {
+    return <History className="h-4 w-4 shrink-0 text-muted-foreground" />;
+  }
   if (row.kind === 'payment') {
     return <Banknote className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />;
   }
@@ -178,6 +188,7 @@ function RowKindIcon({ row }: { row: LedgerRow }) {
  * else shows its own single document number, labelled by kind.
  */
 function docNumbersLabel(row: LedgerRow, t: (key: string) => string): string | null {
+  if (row.kind === 'balance') return null;
   if (row.kind === 'payment') return row.docNo ? `${t('docLine.payment')}: ${row.docNo}` : null;
   if (row.status === 'notaCredito') return row.docNo ? `${t('docLine.creditNote')}: ${row.docNo}` : null;
   if (row.status === 'presupuestado') return row.docNo ? `${t('docLine.quote')}: ${row.docNo}` : null;
@@ -190,6 +201,9 @@ function docNumbersLabel(row: LedgerRow, t: (key: string) => string): string | n
  * badge) for unbilled presupuestos, light amber for credit notes.
  */
 function cardAccentClass(row: LedgerRow): string {
+  if (row.kind === 'balance') {
+    return 'bg-slate-100 border-slate-300 dark:bg-slate-900/40 dark:border-slate-700/60';
+  }
   if (row.kind === 'payment') {
     return 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950/25 dark:border-emerald-900/50';
   }
@@ -338,17 +352,140 @@ async function getPaymentMethods(): Promise<PaymentMethod[]> {
   }
 }
 
+// ── Payment ↔ invoice allocation lookups ────────────────────────────────────
+// Powers the small "linked documents" popover on payment/invoice rows: which
+// treatments a payment covered, or which payment(s) covered a treatment.
+
+/** One line in the allocations popover — deliberately thin, just enough to show and
+ *  cross-reference against `LedgerRow.docNo` for the on-screen highlight. */
+type LiteAllocation = {
+  key: string;
+  docNo: string;
+  amount: number;
+  currency: string;
+  date: string;
+};
+
+/** For a payment: every invoice/treatment it was applied to, and how much. */
+async function fetchPaymentAllocations(paymentId: string): Promise<LiteAllocation[]> {
+  try {
+    const data = await api.get(API_ROUTES.SALES.PAYMENT_ALLOCATIONS, { payment_id: paymentId });
+    const raw: any[] = Array.isArray(data) ? data : (data.allocations || data.data || []);
+    return raw
+      .filter((a) => a && a.allocation_id != null)
+      .map((a) => ({
+        key: String(a.allocation_id),
+        docNo: a.factura_doc_no || '',
+        amount: Math.abs(parseFloat(a.monto_aplicado_a_factura || '0')),
+        currency: a.moneda_allocation || a.moneda_factura || '',
+        date: a.fecha_aplicacion || '',
+      }));
+  } catch {
+    return [];
+  }
+}
+
+/** For an invoice/treatment: every payment applied to it, and how much. */
+async function fetchInvoicePaymentsList(invoiceId: string): Promise<LiteAllocation[]> {
+  try {
+    const data = await api.get(API_ROUTES.SALES.INVOICE_PAYMENTS, { invoice_id: invoiceId, is_sales: 'true' });
+    const raw: any[] = Array.isArray(data) ? data : (data.payments || data.data || []);
+    return raw
+      .filter((p) => p && p.status !== 'failed')
+      .map((p) => ({
+        key: String(p.transaction_id || p.id || `${invoiceId}-${p.payment_date || Math.random()}`),
+        docNo: p.doc_no || String(p.transaction_doc_no || ''),
+        amount: Math.abs(parseFloat(p.amount_applied ?? p.amount ?? '0')),
+        currency: p.source_currency || p.invoice_currency || '',
+        date: p.payment_date || p.created_at || '',
+      }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Small "linked documents" icon shown on payment rows (which treatments it paid) and on
+ * billed treatment rows (which payment(s) covered it). Fetches lazily on first open and
+ * caches per-row for the component's lifetime; while open, tells the parent which doc
+ * numbers to highlight elsewhere in the visible ledger.
+ */
+function RowAllocationsPopover({ row, onHighlight }: { row: LedgerRow; onHighlight: (docNos: Set<string> | null) => void }) {
+  const t = useTranslations('PatientLedger');
+  const [open, setOpen] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
+  const cacheRef = React.useRef<LiteAllocation[] | null>(null);
+  const [items, setItems] = React.useState<LiteAllocation[] | null>(null);
+
+  const handleOpenChange = async (next: boolean) => {
+    setOpen(next);
+    if (!next) {
+      onHighlight(null);
+      return;
+    }
+    if (cacheRef.current) {
+      setItems(cacheRef.current);
+      onHighlight(new Set(cacheRef.current.map((a) => a.docNo).filter(Boolean)));
+      return;
+    }
+    setLoading(true);
+    const data = row.kind === 'payment'
+      ? await fetchPaymentAllocations(row.paymentId!)
+      : await fetchInvoicePaymentsList(row.invoiceId!);
+    cacheRef.current = data;
+    setItems(data);
+    setLoading(false);
+    onHighlight(new Set(data.map((a) => a.docNo).filter(Boolean)));
+  };
+
+  return (
+    <Popover open={open} onOpenChange={handleOpenChange}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          onClick={(e) => e.stopPropagation()}
+          title={t(row.kind === 'payment' ? 'allocationsPopover.paidTreatments' : 'allocationsPopover.paidBy')}
+          className="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
+          <Link2 className="h-3 w-3" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-2.5" align="start" onClick={(e) => e.stopPropagation()}>
+        <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+          {t(row.kind === 'payment' ? 'allocationsPopover.paidTreatments' : 'allocationsPopover.paidBy')}
+        </p>
+        {loading ? (
+          <div className="flex items-center gap-2 py-1 text-xs text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />{t('allocationsPopover.loading')}
+          </div>
+        ) : !items || items.length === 0 ? (
+          <p className="py-1 text-xs text-muted-foreground">{t('allocationsPopover.empty')}</p>
+        ) : (
+          <div className="space-y-1">
+            {items.map((a) => (
+              <div key={a.key} className="flex items-center justify-between gap-2 text-xs">
+                <span className="truncate">#{a.docNo || '—'}</span>
+                <span className="shrink-0 tabular-nums font-medium">{fmtAmountZero(a.amount, a.currency)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 // ── Inline editor primitives ──────────────────────────────────────────────────
 
 /** Green confirm (submit) + red circular cancel — shared by every inline editor. */
-function EditorControls({ submitting, onCancel }: { submitting: boolean; onCancel: () => void }) {
+function EditorControls({ submitting, onCancel, disabled }: { submitting: boolean; onCancel: () => void; disabled?: boolean }) {
   const t = useTranslations('PatientLedger');
   return (
     <>
       <Button
         type="submit"
         size="icon"
-        disabled={submitting}
+        disabled={submitting || disabled}
         title={t('inline.confirm')}
         className="h-7 w-7 rounded-full bg-emerald-600 text-white hover:bg-emerald-700"
       >
@@ -668,7 +805,9 @@ export type PendingInvoiceLite = {
  * Inline editor for a Nuevo Pago — creates a single payment via `INVOICE_PAYMENT`
  * (`is_prepaid: true`). When the user picks "seleccionar tratamientos pendientes" it
  * additionally sends `invoice_allocations` so the backend books that one payment against
- * the chosen invoices (oldest-first by default, user-adjustable, sum must equal the total).
+ * the chosen invoices (oldest-first by default, user-adjustable). The allocated sum may be
+ * less than the total payment — the remainder is booked as credit via `is_prepaid: true` —
+ * but it can never exceed it.
  */
 function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pendingInvoices, onCancel, onSaved }: {
   userId: string;
@@ -726,8 +865,20 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
   }, [showAllocations, allocManual, amount, distributeFifo]);
 
   const allocated = round2(Object.values(alloc).reduce((s, a) => s + a, 0));
+  // Positive `difference` = leftover (amount > allocated) — goes to the patient's credit,
+  // not an error. Negative = over-allocation (allocated > amount) — that's invalid, the
+  // payment can't cover more than what's being paid.
   const difference = round2(amount - allocated);
-  const allocMismatch = showAllocations && Math.abs(difference) > 0.005;
+  const allocOverage = showAllocations && difference < -0.005;
+  const allocLeftover = showAllocations && difference > 0.005;
+  // Per-row: an allocation can never exceed what that treatment actually still owes,
+  // regardless of how the total payment compares — flagged inline, not silently clamped,
+  // so the user sees exactly which row is the problem.
+  const rowExceedsPending = React.useCallback(
+    (inv: PendingInvoiceLite) => (alloc[inv.id] ?? 0) > inv.pending + 0.005,
+    [alloc],
+  );
+  const hasInvalidAllocation = showAllocations && (allocOverage || sortedPending.some(rowExceedsPending));
 
   const toggleInvoice = (inv: PendingInvoiceLite) => {
     setAllocManual(true);
@@ -740,9 +891,11 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
     });
   };
 
+  // Not clamped to `inv.pending`/`amount` here — an over-limit value is kept as typed so
+  // the row can show a visible error instead of silently rewriting what the user entered.
   const setInvoiceAmount = (inv: PendingInvoiceLite, value: number) => {
     setAllocManual(true);
-    setAlloc((prev) => ({ ...prev, [inv.id]: round2(Math.max(0, Math.min(inv.pending, value || 0))) }));
+    setAlloc((prev) => ({ ...prev, [inv.id]: round2(Math.max(0, value || 0)) }));
   };
 
   const toggleAllocationsPanel = () => {
@@ -762,8 +915,18 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
       .filter(([, a]) => a > 0.005)
       .map(([id, a]) => ({ invoice_id: Number(id), amount: a }));
     if (showAllocations) {
-      if (invoiceAllocations.length === 0 || Math.abs(round2(values.payment_amount - allocated)) > 0.005) {
-        toast({ title: t('allocations.mismatch', { amount: fmtAmountZero(difference, currency) }), variant: 'destructive' });
+      if (invoiceAllocations.length === 0) {
+        toast({ title: t('allocations.noneSelected'), variant: 'destructive' });
+        return;
+      }
+      const overPending = sortedPending.find(rowExceedsPending);
+      if (overPending) {
+        toast({ title: t('allocations.exceedsPending'), variant: 'destructive' });
+        return;
+      }
+      // Allocated may be less than the payment (the rest becomes credit) but never more.
+      if (round2(allocated - values.payment_amount) > 0.005) {
+        toast({ title: t('allocations.mismatch', { amount: fmtAmountZero(round2(allocated - values.payment_amount), currency) }), variant: 'destructive' });
         return;
       }
     }
@@ -841,7 +1004,7 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
             className="h-8 text-right text-sm"
           />
         }
-        controls={<EditorControls submitting={submitting} onCancel={onCancel} />}
+        controls={<EditorControls submitting={submitting} onCancel={onCancel} disabled={hasInvalidAllocation} />}
         secondLine={
           <>
             <Input
@@ -870,32 +1033,47 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
           <div className="mt-3 rounded-md border border-border bg-background/70 p-2.5">
             <div className="mb-2 flex items-center justify-between text-xs">
               <span className="font-medium">{t('allocations.title')}</span>
-              <span className={cn('tabular-nums', allocMismatch ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400')}>
+              <span className={cn('tabular-nums', allocOverage ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400')}>
                 {t('allocations.allocated')}: {fmtAmountZero(allocated, currency)} / {fmtAmountZero(amount, currency)}
-                {allocMismatch && ` · ${t('allocations.difference', { amount: fmtAmountZero(difference, currency) })}`}
+                {allocOverage && ` · ${t('allocations.exceeds', { amount: fmtAmountZero(Math.abs(difference), currency) })}`}
               </span>
             </div>
+            {allocLeftover && (
+              <div className="mb-2 text-xs text-muted-foreground">
+                {t('allocations.leftoverCredit', { amount: fmtAmountZero(difference, currency) })}
+              </div>
+            )}
             {sortedPending.length === 0 ? (
               <div className="py-2 text-center text-xs text-muted-foreground">{t('allocations.noPending')}</div>
             ) : (
               <div className="space-y-1.5">
                 {sortedPending.map((inv) => {
                   const included = inv.id in alloc;
+                  const rowInvalid = included && rowExceedsPending(inv);
                   return (
-                    <div key={inv.id} className="flex items-center gap-2 text-xs">
-                      <Checkbox checked={included} onCheckedChange={() => toggleInvoice(inv)} />
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate font-medium">{t('docLine.treatment')}: {inv.docNo}</div>
-                        <div className="truncate text-muted-foreground">
-                          {formatDisplayDate(inv.date)} · {t('allocations.pending')}: {fmtAmountZero(inv.pending, inv.currency)}
+                    <div key={inv.id} className="flex flex-col gap-0.5">
+                      <div className="flex items-center gap-2 text-xs">
+                        <Checkbox checked={included} onCheckedChange={() => toggleInvoice(inv)} />
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate font-medium">{t('docLine.treatment')}: {inv.docNo}</div>
+                          <div className="truncate text-muted-foreground">
+                            {formatDisplayDate(inv.date)} · {t('allocations.pending')}: {fmtAmountZero(inv.pending, inv.currency)}
+                          </div>
                         </div>
+                        <FormattedNumberInput
+                          value={included ? alloc[inv.id] : 0}
+                          onChange={(v) => setInvoiceAmount(inv, v)}
+                          placeholder="0.00"
+                          className={cn(
+                            'h-7 w-24 shrink-0 text-right text-xs',
+                            !included && 'opacity-50',
+                            rowInvalid && 'border-destructive text-destructive focus-visible:ring-destructive',
+                          )}
+                        />
                       </div>
-                      <FormattedNumberInput
-                        value={included ? alloc[inv.id] : 0}
-                        onChange={(v) => setInvoiceAmount(inv, v)}
-                        placeholder="0.00"
-                        className={cn('h-7 w-24 shrink-0 text-right text-xs', !included && 'opacity-50')}
-                      />
+                      {rowInvalid && (
+                        <div className="pl-6 text-[11px] text-destructive">{t('allocations.exceedsPending')}</div>
+                      )}
                     </div>
                   );
                 })}
@@ -937,6 +1115,12 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
   const [currency, setCurrency] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const prevRefreshTrigger = React.useRef(refreshTrigger);
+  // Period filter — defaults to "Este mes", matching `DateRangePresets`' own internal
+  // default so the picker's label and this seed never disagree on first render.
+  const [dateRange, setDateRange] = React.useState<DateRange | undefined>({
+    from: startOfMonth(new Date()),
+    to: endOfMonth(new Date()),
+  });
 
   const [billingQuote, setBillingQuote] = React.useState<Quote | null>(null);
   const [billingItemId, setBillingItemId] = React.useState<string | null>(null);
@@ -948,6 +1132,9 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
   const [createDoc, setCreateDoc] = React.useState<'quote' | 'invoice' | 'payment' | null>(null);
   const [selectedRowId, setSelectedRowId] = React.useState<string | null>(null);
   const [searchOpen, setSearchOpen] = React.useState(false);
+  // Doc numbers to ring-highlight while a row's "linked documents" popover is open —
+  // see `RowAllocationsPopover`. Cleared when the popover closes.
+  const [highlightedDocNos, setHighlightedDocNos] = React.useState<Set<string> | null>(null);
 
   const load = React.useCallback(async (forceRefresh: boolean) => {
     if (!userId) return;
@@ -968,13 +1155,35 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
 
   const handleManualRefresh = React.useCallback(() => { void load(true); }, [load]);
 
-  React.useImperativeHandle(ref, () => ({ refresh: () => { void load(true); } }), [load]);
-
   const currencies = Object.keys(ledgerByCurrency);
   const rows = React.useMemo(
     () => (currency ? ledgerByCurrency[currency] || [] : []),
     [currency, ledgerByCurrency],
   );
+
+  // The active period's rows, prefixed with a synthetic "Saldo anterior" row when the
+  // account has history before `dateRange.from` — see `splitLedgerByRange`.
+  const rowsInRange = React.useMemo(
+    () => (dateRange?.from && dateRange?.to ? splitLedgerByRange(rows, { from: dateRange.from, to: dateRange.to }) : rows),
+    [rows, dateRange],
+  );
+
+  // Same split, applied to every currency — used by hosts (e.g. the print button) that
+  // need a WYSIWYG snapshot of what's currently on screen, not just the active tab.
+  const rowsInRangeByCurrency = React.useMemo(() => {
+    if (!dateRange?.from || !dateRange?.to) return ledgerByCurrency;
+    const range = { from: dateRange.from, to: dateRange.to };
+    const result: Record<string, LedgerRow[]> = {};
+    for (const [cur, curRows] of Object.entries(ledgerByCurrency)) {
+      result[cur] = splitLedgerByRange(curRows, range);
+    }
+    return result;
+  }, [ledgerByCurrency, dateRange]);
+
+  React.useImperativeHandle(ref, () => ({
+    refresh: () => { void load(true); },
+    getVisibleLedger: () => ({ dateRange, rowsByCurrency: rowsInRangeByCurrency }),
+  }), [load, dateRange, rowsInRangeByCurrency]);
 
   // Currency used by the inline create editor (ledger's own currency, else clinic default).
   const editorCurrency = currency || clinicInfo?.currency || 'UYU';
@@ -1374,19 +1583,23 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
   const search = isSearchControlled ? searchTermProp! : internalSearch;
   const filteredRows = React.useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (!term) return rows;
-    return rows.filter((row) => row.label.toLowerCase().includes(term) || (row.docNo || '').toLowerCase().includes(term));
-  }, [rows, search]);
+    if (!term) return rowsInRange;
+    // The opening-balance row is a summary anchor, not a searchable document — a search
+    // term never hides it, so "before this period" context stays visible either way.
+    return rowsInRange.filter((row) => row.kind === 'balance' || row.label.toLowerCase().includes(term) || (row.docNo || '').toLowerCase().includes(term));
+  }, [rowsInRange, search]);
 
-  // Column totals for the footer. A presupuesto with no invoice behind it isn't a debt
-  // yet, so its Debe is shown in the row but excluded from Total Debe (same rule the
-  // running balance uses). The final balance is the last running balance (positive =
-  // debt, negative = credit in favour).
+  // Column totals for the footer, scoped to the active period. A presupuesto with no
+  // invoice behind it isn't a debt yet, so its Debe is shown in the row but excluded from
+  // Total Debe (same rule the running balance uses); the synthetic opening-balance row is
+  // a starting point, not a movement, so it's excluded from both sides too. The final
+  // balance is the last running balance (positive = debt, negative = credit in favour) —
+  // already the account's true balance as of the period end, not a period-only delta.
   const totals = React.useMemo(() => ({
-    totalDebe: round2(rows.reduce((s, r) => s + (r.status === 'presupuestado' ? 0 : r.debe), 0)),
-    totalHaber: round2(rows.reduce((s, r) => s + r.haber, 0)),
-    finalBalance: rows.length > 0 ? rows[rows.length - 1].runningBalance : 0,
-  }), [rows]);
+    totalDebe: round2(rowsInRange.reduce((s, r) => s + (r.kind === 'balance' || r.status === 'presupuestado' ? 0 : r.debe), 0)),
+    totalHaber: round2(rowsInRange.reduce((s, r) => s + (r.kind === 'balance' ? 0 : r.haber), 0)),
+    finalBalance: rowsInRange.length > 0 ? rowsInRange[rowsInRange.length - 1].runningBalance : 0,
+  }), [rowsInRange]);
 
   // Invoices with an outstanding balance — offered as targets for a payment's allocations.
   const pendingInvoices = React.useMemo<PendingInvoiceLite[]>(() => {
@@ -1405,10 +1618,9 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
   const searchInputRef = React.useRef<HTMLInputElement>(null);
   React.useEffect(() => { if (searchOpen) searchInputRef.current?.focus(); }, [searchOpen]);
 
-  const showToolbar = !isSearchControlled || !!onViewStatement || currencies.length > 1 || !hideToolbarActions;
-
   const toolbar = (
     <div className="flex flex-wrap items-center gap-2">
+      <DateRangePresets value={dateRange} onChange={setDateRange} />
       {!isSearchControlled && (
         <div className="flex items-center">
           <Button
@@ -1477,7 +1689,9 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
     <>
       <Card className="h-full flex flex-col min-h-0">
         <CardContent className="flex-1 flex flex-col min-h-0 gap-3 p-4">
-          {showToolbar && toolbar}
+          {/* The period filter always needs a home, so the toolbar row is never fully
+              hidden — `hideToolbarActions` still hides just the Print/Refresh icons within it. */}
+          {toolbar}
 
           {/* Both axes scroll on this one container so the sticky header stays column-
               aligned with the cards when the panel is too narrow to fit every column —
@@ -1501,18 +1715,34 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
               ) : (
                 <div className="space-y-2 py-1">
                   {filteredRows.map((row) => {
-                    const selected = selectedRowId === row.id;
+                    const isBalanceRow = row.kind === 'balance';
+                    const selected = !isBalanceRow && selectedRowId === row.id;
+                    // Only rows that can actually have a payment↔invoice link show the
+                    // popover: direct payments, and billed treatments (not unbilled
+                    // presupuestos or credit notes, which don't carry `invoice_payments`).
+                    const showAllocationsLink = row.kind === 'payment'
+                      ? !!row.paymentId
+                      : row.kind === 'item' && !!row.invoiceId && ['facturado', 'parcial', 'pagado'].includes(row.status || '');
+                    const isHighlighted = !selected && !!row.docNo && highlightedDocNos?.has(row.docNo);
                     return (
                       // Wrapper carries the selection ring so it wraps the row AND its
                       // attached action bar as one unit, un-clipped by the scroll edges.
-                      <div key={row.id} className={cn('rounded-lg', selected && 'ring-2 ring-primary ring-offset-2 ring-offset-background')}>
+                      <div
+                        key={row.id}
+                        className={cn(
+                          'rounded-lg',
+                          selected && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
+                          isHighlighted && 'ring-2 ring-amber-400 ring-offset-2 ring-offset-background',
+                        )}
+                      >
                         <div
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => { setCreateDoc(null); setSelectedRowId(selected ? null : row.id); }}
-                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setCreateDoc(null); setSelectedRowId(selected ? null : row.id); } }}
+                          role={isBalanceRow ? undefined : 'button'}
+                          tabIndex={isBalanceRow ? undefined : 0}
+                          onClick={isBalanceRow ? undefined : () => { setCreateDoc(null); setSelectedRowId(selected ? null : row.id); }}
+                          onKeyDown={isBalanceRow ? undefined : (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setCreateDoc(null); setSelectedRowId(selected ? null : row.id); } }}
                           className={cn(
-                            'flex cursor-pointer items-center gap-3 border px-3 py-2.5',
+                            'flex items-center gap-3 border px-3 py-2.5',
+                            isBalanceRow ? 'cursor-default italic' : 'cursor-pointer',
                             cardAccentClass(row),
                             selected ? 'rounded-t-lg border-b-0' : 'rounded-lg',
                           )}
@@ -1524,15 +1754,26 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
                           <div className="flex min-w-[10rem] flex-1 items-center gap-2">
                             <RowKindIcon row={row} />
                             {row.status === 'presupuestado' && <PresupuestoBadge />}
-                            <div className="flex min-w-0 flex-col">
-                              <span className="truncate text-sm font-medium">{row.label}</span>
-                              {docNumbersLabel(row, t) && (
-                                <span className="truncate text-xs text-muted-foreground">{docNumbersLabel(row, t)}</span>
-                              )}
-                              {row.notes && (
-                                <span className="truncate text-[11px] italic text-muted-foreground/80">{row.notes}</span>
+                            <div className="flex min-w-0 flex-1 flex-col">
+                              <span className="truncate text-sm font-medium">
+                                {isBalanceRow ? t('openingBalance.label') : row.label}
+                              </span>
+                              {isBalanceRow ? (
+                                <span className="truncate text-xs text-muted-foreground">{t('openingBalance.hint')}</span>
+                              ) : (
+                                <>
+                                  {docNumbersLabel(row, t) && (
+                                    <span className="truncate text-xs text-muted-foreground">{docNumbersLabel(row, t)}</span>
+                                  )}
+                                  {row.notes && (
+                                    <span className="truncate text-[11px] italic text-muted-foreground/80">{row.notes}</span>
+                                  )}
+                                </>
                               )}
                             </div>
+                            {showAllocationsLink && (
+                              <RowAllocationsPopover row={row} onHighlight={setHighlightedDocNos} />
+                            )}
                           </div>
                           <div className="w-24 shrink-0 text-right text-sm tabular-nums">
                             {fmtAmountZero(row.debe, row.currency)}

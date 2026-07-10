@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { format } from 'date-fns';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 import { fetchQuoteInvoicesForFinancials } from '@/services/quote-financials';
@@ -11,7 +12,7 @@ import {
 import type { Quote, Invoice, Payment, CreditNote, QuoteItem, InvoiceItem, DocPrintTemplate, FinancialSummaryReport, CajaSessionDetails } from '@/lib/types';
 import { fetchClinicInfo } from '@/hooks/useClinicInfo';
 import { fetchPatientLedgerData } from '@/services/patient-ledger-data';
-import { buildPatientLedger } from '@/lib/patient-ledger';
+import { buildPatientLedger, type LedgerRow } from '@/lib/patient-ledger';
 
 // ── Data mappers (match patterns in user-quotes.tsx / user-invoices.tsx) ───────
 
@@ -251,17 +252,31 @@ export function usePrintDocument() {
   /**
    * Prints the "Clásico" (unified) patient ledger exactly as shown in the expanded panel
    * — same rows via `buildPatientLedger` — with the report header/footer, no controls.
+   *
+   * When `visible` is passed (the live `PatientLedger`'s `getVisibleLedger()`), that's
+   * used as-is instead of re-fetching — it's already the exact on-screen rows, active
+   * date range included (opening-balance row and all), so the PDF matches the screen.
    */
-  async function printLedger(userId: string, patientName?: string): Promise<void> {
-    const [ledgerData] = await Promise.all([
-      fetchPatientLedgerData(userId, { forceRefresh: true }),
-      fetchClinicInfo(),
-    ]);
-    const rowsByCurrency = buildPatientLedger(ledgerData);
+  async function printLedger(
+    userId: string,
+    patientName?: string,
+    visible?: { dateRange?: { from?: Date; to?: Date }; rowsByCurrency: Record<string, LedgerRow[]> },
+  ): Promise<void> {
+    let rowsByCurrency = visible?.rowsByCurrency;
+    if (!rowsByCurrency) {
+      const [ledgerData] = await Promise.all([
+        fetchPatientLedgerData(userId, { forceRefresh: true }),
+        fetchClinicInfo(),
+      ]);
+      rowsByCurrency = buildPatientLedger(ledgerData);
+    }
     if (Object.keys(rowsByCurrency).length === 0) {
       throw new Error('no_data');
     }
-    activate('ledger', { patientName, rowsByCurrency });
+    const periodLabel = visible?.dateRange?.from && visible.dateRange.to
+      ? `${format(visible.dateRange.from, 'dd/MM/yyyy')} – ${format(visible.dateRange.to, 'dd/MM/yyyy')}`
+      : undefined;
+    activate('ledger', { patientName, rowsByCurrency, periodLabel });
     await waitForFrame();
     await waitForImages();
     triggerPrint(deactivate);
