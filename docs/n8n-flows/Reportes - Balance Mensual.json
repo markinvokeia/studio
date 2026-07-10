@@ -1,0 +1,410 @@
+{
+  "name": "Reportes - Balance Mensual",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "reports/balance-mensual",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "fb0385f1-d108-4998-90f6-70abe5290ec5",
+      "name": "GET /reports/balance-mensual",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -96,
+        128
+      ],
+      "webhookId": "b139e26f-05df-46f6-a032-6f47ec332bb4",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  TO_CHAR(i.created_at, 'YYYY-MM-DD') AS fecha,\n  i.doctor_id,\n  COALESCE(doc.name, 'Sin médico') AS doctor_name,\n  COALESCE(pat.name, '')          AS patient_name,\n  COALESCE(sc.name, 'Servicio')   AS service_name,\n  i.doc_no                        AS invoice_doc_no,\n  i.currency,\n  ii.total                        AS importe\nFROM invoice_items ii\nJOIN invoices i        ON i.id = ii.invoice_id\nLEFT JOIN users pat    ON pat.id = i.user_id\nLEFT JOIN users doc    ON doc.id = i.doctor_id\nLEFT JOIN service_catalog sc ON sc.id = ii.service_id\nWHERE i.is_sales = true\n  AND i.type   = 'invoice'\n  AND i.status = 'booked'\n  AND i.created_at::date BETWEEN $1::date AND $2::date\n  AND ($3::varchar IS NULL OR i.currency = $3::varchar)\n  AND ($4::uuid[] IS NULL OR i.doctor_id = ANY($4::uuid[]))\n  AND ($5::varchar IS NULL OR $5::varchar IN ('todos', 'producido'))\nORDER BY fecha ASC, doctor_name ASC, i.doc_no ASC",
+        "options": {
+          "queryReplacement": "={{ [$('query').first().json?.date_from, $('query').first().json?.date_to, $('query').first().json?.currency || null, $('query').first().json?.doctor_ids || null, $('query').first().json?.doc_type || null] }}"
+        }
+      },
+      "id": "24e53452-e854-4e80-82a1-34034238058d",
+      "name": "Query Balance Producido",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        368,
+        -64
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  TO_CHAR(p.created_at, 'YYYY-MM-DD') AS fecha,\n  p.doctor_id,\n  COALESCE(doc.name, 'Sin médico')       AS doctor_name,\n  COALESCE(pat.name, '')                 AS patient_name,\n  inv.doc_no                             AS invoice_doc_no,\n  COALESCE(pm.name, p.method, 'N/D')     AS payment_method,\n  p.currency,\n  p.amount                               AS importe\nFROM payments p\nLEFT JOIN users pat            ON pat.id = p.user_id\nLEFT JOIN users doc            ON doc.id = p.doctor_id\nLEFT JOIN invoices inv         ON inv.id = p.invoice_id\nLEFT JOIN payment_methods pm   ON pm.id = p.payment_method_id\nWHERE p.is_sales = true\n  AND p.created_at::date BETWEEN $1::date AND $2::date\n  AND ($3::varchar IS NULL OR p.currency = $3::varchar)\n  AND ($4::uuid[] IS NULL OR p.doctor_id = ANY($4::uuid[]))\n  AND ($5::varchar IS NULL OR $5::varchar IN ('todos', 'cobrado'))\nORDER BY fecha ASC, doctor_name ASC",
+        "options": {
+          "queryReplacement": "={{ [$('query').first().json?.date_from, $('query').first().json?.date_to, $('query').first().json?.currency || null, $('query').first().json?.doctor_ids || null, $('query').first().json?.doc_type || null] }}"
+        }
+      },
+      "id": "5e981484-ac5f-47fc-b30f-e0ab78af3885",
+      "name": "Query Balance Cobrado",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        368,
+        128
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  i.doctor_id,\n  COALESCE(doc.name, 'Sin médico')            AS doctor_name,\n  i.currency,\n  COALESCE(SUM(i.total), 0)                   AS total_facturado,\n  COALESCE(SUM(i.paid_amount), 0)             AS total_cobrado,\n  COALESCE(SUM(i.total - i.paid_amount), 0)   AS saldo\nFROM invoices i\nLEFT JOIN users doc ON doc.id = i.doctor_id\nWHERE i.is_sales = true\n  AND i.type   = 'invoice'\n  AND i.status = 'booked'\n  AND i.created_at::date BETWEEN $1::date AND $2::date\n  AND ($3::varchar IS NULL OR i.currency = $3::varchar)\n  AND ($4::uuid[] IS NULL OR i.doctor_id = ANY($4::uuid[]))\n  AND ($5::varchar IS NULL OR $5::varchar IN ('todos', 'pendiente'))\nGROUP BY i.doctor_id, doc.name, i.currency\nORDER BY doctor_name ASC, i.currency ASC",
+        "options": {
+          "queryReplacement": "={{ [$('query').first().json?.date_from, $('query').first().json?.date_to, $('query').first().json?.currency || null, $('query').first().json?.doctor_ids || null, $('query').first().json?.doc_type || null] }}"
+        }
+      },
+      "id": "296a0e77-be89-4de1-b46a-f199c11d63f0",
+      "name": "Query Balance Pendiente",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        368,
+        320
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const producido = $('Query Balance Producido').all()\n  .map(i => i.json)\n  .filter(r => r && r.fecha)\n  .map(r => ({\n    fecha: r.fecha,\n    doctor_id: r.doctor_id || null,\n    doctor_name: r.doctor_name,\n    patient_name: r.patient_name || '',\n    service_name: r.service_name,\n    invoice_doc_no: r.invoice_doc_no,\n    currency: r.currency,\n    importe: Number(r.importe || 0),\n  }));\n\nconst cobrado = $('Query Balance Cobrado').all()\n  .map(i => i.json)\n  .filter(r => r && r.fecha)\n  .map(r => ({\n    fecha: r.fecha,\n    doctor_id: r.doctor_id || null,\n    doctor_name: r.doctor_name,\n    patient_name: r.patient_name || '',\n    invoice_doc_no: r.invoice_doc_no || '',\n    payment_method: r.payment_method || 'N/D',\n    currency: r.currency,\n    importe: Number(r.importe || 0),\n  }));\n\nconst pendiente = $('Query Balance Pendiente').all()\n  .map(i => i.json)\n  .filter(r => r && r.currency)\n  .map(r => ({\n    doctor_id: r.doctor_id || null,\n    doctor_name: r.doctor_name,\n    currency: r.currency,\n    total_facturado: Number(r.total_facturado || 0),\n    total_cobrado: Number(r.total_cobrado || 0),\n    saldo: Number(r.saldo || 0),\n  }));\n\nconst total_producido = producido.reduce((s, r) => s + r.importe, 0);\nconst total_cobrado   = cobrado.reduce((s, r) => s + r.importe, 0);\nconst total_pendiente = pendiente.reduce((s, r) => s + r.saldo, 0);\nconst num_doctores = new Set(pendiente.map(r => r.doctor_id).filter(Boolean)).size;\n\nreturn [{ json: {\n  summary: { total_producido, total_cobrado, total_pendiente, num_doctores },\n  producido,\n  cobrado,\n  pendiente\n} }];"
+      },
+      "id": "7f007445-fef2-47e0-8782-15ecc0b703f5",
+      "name": "Build Balance Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        64
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "7cc7998f-5cd7-410c-8776-c5c2bcf3eacf",
+      "name": "Respond Balance Mensual",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1072,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 400,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1072,
+        176
+      ],
+      "id": "22d9af5c-d2cd-48e9-bd82-6fccd05ef81b",
+      "name": "Error"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d91ccd0c-e568-4a97-8a9e-b3acb4b60533",
+              "name": "date_from",
+              "value": "={{ $json.query.date_from }}",
+              "type": "string"
+            },
+            {
+              "id": "dcba22d8-0627-47da-8df3-d2c35479700c",
+              "name": "date_to",
+              "value": "={{ $json.query.date_to }}",
+              "type": "string"
+            },
+            {
+              "id": "8e206ff4-6e1a-414a-85df-2b95e4bc3bf1",
+              "name": "currency",
+              "value": "={{ $json.query.currency || null }}",
+              "type": "string"
+            },
+            {
+              "id": "780edfea-0e05-4ea0-99e3-d8e4d8bfabde",
+              "name": "doctor_ids",
+              "value": "={{ $json.query.doctor_ids ? $json.query.doctor_ids.split(\",\") : null }}",
+              "type": "array"
+            },
+            {
+              "id": "f3a1c9de-1a4f-4e2b-9c1d-6a4b1c2e8f70",
+              "name": "doc_type",
+              "value": "={{ $json.query.doc_type || null }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        128,
+        128
+      ],
+      "id": "105ecc95-a9f1-4c0a-9b01-aa83ef944ba3",
+      "name": "query"
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        608,
+        112
+      ],
+      "id": "33d706d2-ad12-4d04-b86d-72d24906a37c",
+      "name": "Merge",
+      "alwaysOutputData": true,
+      "onError": "continueErrorOutput"
+    }
+  ],
+  "pinData": {
+    "GET /reports/balance-mensual": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.5",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3ODM0Mzg4ODB9.qGRCYRCSlhWJNSer2oElP1ryEoZKltSvY5IySjdONAw",
+            "cache-control": "no-cache",
+            "origin": "http://localhost:3000",
+            "pragma": "no-cache",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/",
+            "sec-ch-ua": "\"Not;A=Brand\";v=\"8\", \"Chromium\";v=\"150\", \"Brave\";v=\"150\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "sec-gpc": "1",
+            "x-forwarded-for": "177.3.104.80",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "d4e738525fe6",
+            "x-real-ip": "177.3.104.80"
+          },
+          "params": {},
+          "query": {
+            "date_from": "2026-07-01",
+            "date_to": "2026-07-31",
+            "doctor_ids": "3ec12900-e900-4c1b-b3c4-ea3e76539e21,b95a4430-3ecd-4623-ab9b-6f00102556e1"
+          },
+          "body": {},
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/reports/balance-mensual",
+          "executionMode": "production",
+          "jwtPayload": {
+            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "email": "raidel@invokeia.com",
+            "expiresIn": "24h",
+            "iat": 1783438880
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "GET /reports/balance-mensual": {
+      "main": [
+        [
+          {
+            "node": "query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Balance Producido": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Balance Cobrado": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Balance Pendiente": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Balance Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Balance Mensual",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "query": {
+      "main": [
+        [
+          {
+            "node": "Query Balance Producido",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Query Balance Cobrado",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Query Balance Pendiente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Build Balance Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "020558c9-4203-4ee9-901a-e7d1d0d78454",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
+  },
+  "nodeGroups": [],
+  "id": "Da55eshYdcpZxTZk",
+  "tags": []
+}

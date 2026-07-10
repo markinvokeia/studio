@@ -132,13 +132,36 @@ function autoColWidths(aoa: unknown[][], colCount: number) {
   }));
 }
 
+interface ReportWorkbook {
+  name: string;
+  sheets: { name: string; sections: ExportSection[] }[];
+}
+
 interface ReportExportOptions {
   // One entry per Excel sheet (and, for the single-sheet case, per CSV file).
   // Each sheet stacks one or more sections, each with its own header row —
   // lets a report mix blocks with different column shapes without forcing
   // every row into one flat table. When provided, this fully replaces the
-  // flat `columns`/`data` based export for both CSV and Excel.
+  // flat `columns`/`data` based export for both CSV and Excel (unless
+  // `workbooks` is also provided, in which case Excel uses that instead).
   sheets?: { name: string; sections: ExportSection[] }[];
+  // Excel only: one .xlsx workbook per entry (each with its own sheets), e.g.
+  // one workbook per document type. Bundled into a .zip when there's more
+  // than one. Falls back to `sheets` (single workbook) when omitted.
+  workbooks?: ReportWorkbook[];
+}
+
+function buildWorkbookSheets(utils: typeof import('xlsx').utils, wb: import('xlsx').WorkBook, sheets: { name: string; sections: ExportSection[] }[]) {
+  const usedNames = new Set<string>();
+  for (const sheet of sheets) {
+    const nonEmpty = sheet.sections.filter((s) => s.rows.length);
+    if (!nonEmpty.length) continue;
+    const aoa = sectionsToAOA(nonEmpty);
+    const ws = utils.aoa_to_sheet(aoa);
+    const colCount = Math.max(...nonEmpty.map((s) => s.columns.length));
+    ws['!cols'] = autoColWidths(aoa, colCount);
+    utils.book_append_sheet(wb, ws, sanitizeSheetName(sheet.name, usedNames));
+  }
 }
 
 export function useReportExport<T>(
@@ -151,6 +174,7 @@ export function useReportExport<T>(
   const canExportData = hasPermission(REPORTS_PERMISSIONS.EXPORT_EXCEL);
   const canExportPDF = hasPermission(REPORTS_PERMISSIONS.EXPORT_PDF);
   const sheets = options?.sheets;
+  const workbooks = options?.workbooks;
 
   const exportCSV = useCallback(async () => {
     if (!data?.length) return;
@@ -188,20 +212,37 @@ export function useReportExport<T>(
 
   const exportExcel = useCallback(async () => {
     if (!data?.length) return;
-    const { utils, writeFile } = await import('xlsx');
-    const wb = utils.book_new();
+    const { utils, writeFile, write } = await import('xlsx');
 
-    if (sheets?.length) {
-      const usedNames = new Set<string>();
-      for (const sheet of sheets) {
-        const nonEmpty = sheet.sections.filter((s) => s.rows.length);
-        if (!nonEmpty.length) continue;
-        const aoa = sectionsToAOA(nonEmpty);
-        const ws = utils.aoa_to_sheet(aoa);
-        const colCount = Math.max(...nonEmpty.map((s) => s.columns.length));
-        ws['!cols'] = autoColWidths(aoa, colCount);
-        utils.book_append_sheet(wb, ws, sanitizeSheetName(sheet.name, usedNames));
+    if (workbooks?.length) {
+      const nonEmptyWorkbooks = workbooks.filter((w) => w.sheets.some((s) => s.sections.some((sec) => sec.rows.length)));
+      if (!nonEmptyWorkbooks.length) return;
+
+      if (nonEmptyWorkbooks.length === 1) {
+        const wb = utils.book_new();
+        buildWorkbookSheets(utils, wb, nonEmptyWorkbooks[0].sheets);
+        writeFile(wb, `${filename}.xlsx`);
+        return;
       }
+
+      // One workbook per entry (e.g. per document type): bundle into a .zip
+      const { default: JSZip } = await import('jszip');
+      const zip = new JSZip();
+      const usedNames = new Set<string>();
+      for (const workbook of nonEmptyWorkbooks) {
+        const wb = utils.book_new();
+        buildWorkbookSheets(utils, wb, workbook.sheets);
+        const buffer = write(wb, { type: 'array', bookType: 'xlsx' });
+        zip.file(`${sanitizeFileName(workbook.name, usedNames)}.xlsx`, buffer);
+      }
+      const blob = await zip.generateAsync({ type: 'blob' });
+      downloadBlob(blob, `${filename}.zip`);
+      return;
+    }
+
+    const wb = utils.book_new();
+    if (sheets?.length) {
+      buildWorkbookSheets(utils, wb, sheets);
     } else {
       const exportCols = deriveExportColumns(columns);
       const wsData: unknown[][] = [
@@ -214,7 +255,7 @@ export function useReportExport<T>(
     }
 
     writeFile(wb, `${filename}.xlsx`);
-  }, [columns, data, filename, sheets]);
+  }, [columns, data, filename, sheets, workbooks]);
 
   const exportPDF = useCallback(() => {
     window.print();
