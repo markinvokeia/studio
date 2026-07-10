@@ -99,6 +99,8 @@ export function UserSelector({
                     phone_number: u.phone_number || '',
                     is_active: u.is_active ?? true,
                     avatar: '',
+                    doctor_id: u.doctor_id ? String(u.doctor_id) : null,
+                    doctor_name: u.doctor_name || undefined,
                 })));
             } catch {
                 setUsers([]);
@@ -190,6 +192,8 @@ export function UserSelector({
                 phone_number: u.phone_number || '',
                 is_active: u.is_active ?? true,
                 avatar: '',
+                doctor_id: u.doctor_id ? String(u.doctor_id) : null,
+                doctor_name: u.doctor_name || undefined,
             }));
             setUsers(newUsers);
 

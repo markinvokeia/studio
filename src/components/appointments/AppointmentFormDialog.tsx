@@ -402,11 +402,25 @@ export function AppointmentFormDialog({
                 setOriginalCalendarId(editingAppointment.calendar_source_id ?? '');
                 loadLinkedSession(editingAppointment);
             } else if (initialData) {
+                const initialUser = initialData.user || null;
+                // Patient's default doctor (e.g. "create appointment" from the
+                // patient view) — only when no doctor was provided explicitly.
+                let initialDoctor = initialData.doctor || null;
+                let initialCalendar = initialData.calendar || null;
+                if (!initialDoctor && initialUser?.doctor_id) {
+                    initialDoctor = allDoctors.find(d => String(d.id) === String(initialUser.doctor_id))
+                        ?? (initialUser.doctor_name
+                            ? { id: String(initialUser.doctor_id), name: initialUser.doctor_name, email: '', phone_number: '', is_active: true, avatar: '' } as UserType
+                            : null);
+                    if (initialDoctor && !initialCalendar && initialDoctor.calendar_source_id) {
+                        initialCalendar = calendars.find(c => String(c.id) === String(initialDoctor!.calendar_source_id)) ?? null;
+                    }
+                }
                 setAppointment({
-                    user: initialData.user || null,
+                    user: initialUser,
                     services: initialData.services || [],
-                    doctor: initialData.doctor || null,
-                    calendar: initialData.calendar || null,
+                    doctor: initialDoctor,
+                    calendar: initialCalendar,
                     date: initialData.date || format(new Date(), 'yyyy-MM-dd'),
                     time: initialData.time || format(new Date(), 'HH:mm'),
                     endTime: '',
@@ -1160,7 +1174,25 @@ export function AppointmentFormDialog({
                                         onValueChange={(_, user) => {
                                             if (user) {
                                                 setHasBeenEdited(true);
-                                                setAppointment(prev => ({ ...prev, user }));
+                                                setAppointment(prev => {
+                                                    const next = { ...prev, user };
+                                                    // Patient's default doctor — only when no doctor was chosen yet,
+                                                    // so it never overrides a manual selection.
+                                                    if (!prev.doctor && user.doctor_id) {
+                                                        const defaultDoctor = allDoctors.find(d => String(d.id) === String(user.doctor_id))
+                                                            ?? (user.doctor_name
+                                                                ? { id: String(user.doctor_id), name: user.doctor_name, email: '', phone_number: '', is_active: true, avatar: '' } as UserType
+                                                                : null);
+                                                        if (defaultDoctor) {
+                                                            next.doctor = defaultDoctor;
+                                                            if (!prev.calendar && defaultDoctor.calendar_source_id) {
+                                                                const defaultCalendar = calendars.find(c => String(c.id) === String(defaultDoctor.calendar_source_id)) ?? null;
+                                                                if (defaultCalendar) next.calendar = defaultCalendar;
+                                                            }
+                                                        }
+                                                    }
+                                                    return next;
+                                                });
                                                 setErrors(prev => prev.filter(err => err !== 'user'));
                                             }
                                         }}

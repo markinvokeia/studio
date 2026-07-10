@@ -1102,6 +1102,7 @@
       "quickBill": "Cobro rápido",
       "accounts": "Cuentas",
       "clinicHistory": "Historia",
+      "imagesAndFiles": "Imágenes y archivos",
       "appointmentsHistory": "Historial de Citas",
       "patientData": "Datos del paciente",
       "deleteAppointment": "Eliminar cita"
@@ -1741,6 +1742,8 @@
       },
       "birth_date": "Fecha de nacimiento",
       "birth_date_placeholder": "01/01/1999",
+      "address": "Dirección",
+      "addressPlaceholder": "Calle, número, ciudad",
       "notes": {
         "title": "Notas del Paciente",
         "description": "Gestionar las notas y observaciones del paciente",
@@ -6532,6 +6535,10 @@
       "description": "Descripción",
       "next": "Próxima"
     }
+  },
+  "PatientDocumentsSheet": {
+    "title": "Imágenes y archivos",
+    "back": "Atrás"
   },
   "PatientAppointmentsSheet": {
     "title": "Historial de citas",

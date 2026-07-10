@@ -21,6 +21,7 @@ export const userFormSchema = (t: (key: string) => string) => z.object({
     .regex(/^\d*$/, { message: t('UsersPage.createDialog.validation.identityInvalid') })
     .max(10, { message: t('UsersPage.createDialog.validation.identityMaxLength') }),
   birth_date: z.string().optional(),
+  address: z.string().optional(),
   notes: z.string().optional(),
   is_active: z.boolean().default(false),
   mutual_society_id: z.string().optional(),
@@ -145,6 +146,7 @@ function mapSearchUser(apiUser: any): User {
     avatar: '',
     identity_document: apiUser.identity_document || '',
     birth_date: apiUser.birth_date || '',
+    address: apiUser.address || '',
     notes: apiUser.notes || '',
     mutual_society_id: apiUser.mutual_society_id ?? undefined,
     mutual_society_name: apiUser.mutual_society_name ?? undefined,

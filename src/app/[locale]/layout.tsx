@@ -17,6 +17,7 @@ import { PatientLedgerSheet } from '@/components/financial/PatientLedgerSheet';
 import { PatientQuickViewHost } from '@/components/patients/PatientQuickViewHost';
 import { PatientHistorySheet } from '@/components/clinic-history/PatientHistorySheet';
 import { PatientAppointmentsHistorySheet } from '@/components/appointments/PatientAppointmentsHistorySheet';
+import { PatientDocumentsSheet } from '@/components/patients/PatientDocumentsSheet';
 import { LicenseInitializer } from '@/components/license/LicenseInitializer';
 import type { RuntimeConfig } from '@/lib/runtime-config';
 
@@ -82,6 +83,7 @@ export default async function LocaleLayout({
                 <PatientQuickViewHost />
                 <PatientHistorySheet />
                 <PatientAppointmentsHistorySheet />
+                <PatientDocumentsSheet />
               </PrivateRoute>
             </NotificationsProvider>
           </TVDisplayProvider>

@@ -154,7 +154,7 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
   const infoForm = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema(t)),
     defaultValues: {
-      id: '', name: '', email: '', phone: '', identity_document: '', birth_date: '',
+      id: '', name: '', email: '', phone: '', identity_document: '', birth_date: '', address: '',
       notes: '', is_active: true, mutual_society_id: '', is_dependent: false, responsible_contact_id: null,
       doctor_id: null, sex: null,
     },
@@ -177,6 +177,7 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
           phone: u.phone_number || '',
           identity_document: u.identity_document || '',
           birth_date: u.birth_date || '',
+          address: u.address || '',
           notes: u.notes || '',
           is_active: u.is_active,
           mutual_society_id: u.mutual_society_id ? String(u.mutual_society_id) : '',
@@ -219,6 +220,7 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
         phone_number: data.phone || '',
         identity_document: data.identity_document,
         birth_date: data.birth_date,
+        address: data.address,
         notes: data.notes,
         is_active: data.is_active,
         mutual_society_id: data.mutual_society_id,
@@ -247,9 +249,13 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
   }
 
   return (
-    <div className="pr-1">
-      <Form {...infoForm}>
-        <form onSubmit={infoForm.handleSubmit(handleSave)} className="space-y-4 p-2">
+    <Form {...infoForm}>
+      {/* Column capped at the host height: the fields scroll internally and the
+          save footer sits right below them — hugging the form when it's short,
+          pinned to the bottom edge when the form overflows. No content shows
+          through the footer. */}
+      <form onSubmit={infoForm.handleSubmit(handleSave)} className="flex max-h-full min-h-0 flex-col">
+        <div className="min-h-0 space-y-4 overflow-y-auto p-2">
           {saveError && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
@@ -263,13 +269,40 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
               <FormMessage />
             </FormItem>
           )} />
-          <FormField control={infoForm.control} name="email" render={({ field }) => (
+          <FormField control={infoForm.control} name="identity_document" render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('UsersPage.createDialog.email')}</FormLabel>
-              <FormControl><Input type="email" placeholder={t('UsersPage.createDialog.emailPlaceholder')} {...field} /></FormControl>
+              <FormLabel>{t('UsersPage.createDialog.identity_document')}</FormLabel>
+              <FormControl><Input placeholder={t('UsersPage.createDialog.identity_document_placeholder')} {...field} /></FormControl>
               <FormMessage />
             </FormItem>
           )} />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField control={infoForm.control} name="birth_date" render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('UsersPage.createDialog.birth_date')}</FormLabel>
+                <FormControl>
+                  <DatePickerInput value={field.value} onChange={field.onChange} placeholder={t('UsersPage.createDialog.birth_date_placeholder')} disabledDays={(date: Date) => date > new Date() || date < new Date('1900-01-01')} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+            <FormField control={infoForm.control} name="sex" render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('UsersPage.createDialog.sex')}</FormLabel>
+                <Select onValueChange={(value) => field.onChange(value === 'none' ? null : value)} value={field.value || 'none'}>
+                  <FormControl>
+                    <SelectTrigger><SelectValue placeholder={t('UsersPage.createDialog.sex')} /></SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="none">{t('UsersPage.createDialog.sexNone')}</SelectItem>
+                    <SelectItem value="male">{t('UsersPage.createDialog.sexMale')}</SelectItem>
+                    <SelectItem value="female">{t('UsersPage.createDialog.sexFemale')}</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )} />
+          </div>
           <FormField control={infoForm.control} name="phone" render={({ field }) => (
             <FormItem>
               <FormLabel>{t('UsersPage.createDialog.phone')}</FormLabel>
@@ -279,55 +312,21 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
               <FormMessage />
             </FormItem>
           )} />
-          <FormField control={infoForm.control} name="identity_document" render={({ field }) => (
+          <FormField control={infoForm.control} name="email" render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('UsersPage.createDialog.identity_document')}</FormLabel>
-              <FormControl><Input placeholder={t('UsersPage.createDialog.identity_document_placeholder')} {...field} /></FormControl>
+              <FormLabel>{t('UsersPage.createDialog.email')}</FormLabel>
+              <FormControl><Input type="email" placeholder={t('UsersPage.createDialog.emailPlaceholder')} {...field} /></FormControl>
               <FormMessage />
             </FormItem>
           )} />
-          <FormField control={infoForm.control} name="birth_date" render={({ field }) => (
+          <FormField control={infoForm.control} name="address" render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('UsersPage.createDialog.birth_date')}</FormLabel>
-              <FormControl>
-                <DatePickerInput value={field.value} onChange={field.onChange} placeholder={t('UsersPage.createDialog.birth_date_placeholder')} disabledDays={(date: Date) => date > new Date() || date < new Date('1900-01-01')} />
-              </FormControl>
+              <FormLabel>{t('UsersPage.createDialog.address')}</FormLabel>
+              <FormControl><Input placeholder={t('UsersPage.createDialog.addressPlaceholder')} {...field} /></FormControl>
               <FormMessage />
             </FormItem>
           )} />
-          <FormField control={infoForm.control} name="sex" render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('UsersPage.createDialog.sex')}</FormLabel>
-              <Select onValueChange={(value) => field.onChange(value === 'none' ? null : value)} value={field.value || 'none'}>
-                <FormControl>
-                  <SelectTrigger><SelectValue placeholder={t('UsersPage.createDialog.sex')} /></SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="none">{t('UsersPage.createDialog.sexNone')}</SelectItem>
-                  <SelectItem value="male">{t('UsersPage.createDialog.sexMale')}</SelectItem>
-                  <SelectItem value="female">{t('UsersPage.createDialog.sexFemale')}</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )} />
-          <FormField control={infoForm.control} name="mutual_society_id" render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('UsersPage.mutualSociety.select')}</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value || ''}>
-                <FormControl>
-                  <SelectTrigger><SelectValue placeholder={t('UsersPage.mutualSociety.select')} /></SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="none">{t('UsersPage.mutualSociety.none')}</SelectItem>
-                  {mutualSocieties.map((ms) => (
-                    <SelectItem key={ms.id} value={String(ms.id)}>{ms.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )} />
+          {userId && <PatientGroupsField patientId={userId} />}
           <FormField control={infoForm.control} name="doctor_id" render={({ field }) => (
             <FormItem>
               <FormLabel>{t('UsersPage.createDialog.doctor')}</FormLabel>
@@ -351,7 +350,23 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
               <FormMessage />
             </FormItem>
           )} />
-          {userId && <PatientGroupsField patientId={userId} />}
+          <FormField control={infoForm.control} name="mutual_society_id" render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('UsersPage.mutualSociety.select')}</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value || ''}>
+                <FormControl>
+                  <SelectTrigger><SelectValue placeholder={t('UsersPage.mutualSociety.select')} /></SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="none">{t('UsersPage.mutualSociety.none')}</SelectItem>
+                  {mutualSocieties.map((ms) => (
+                    <SelectItem key={ms.id} value={String(ms.id)}>{ms.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )} />
           <FormField control={infoForm.control} name="is_dependent" render={({ field }) => (
             <FormItem className="flex flex-row items-center space-x-3 space-y-0">
               <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
@@ -383,11 +398,14 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
               <FormLabel>{t('UsersPage.createDialog.isActive')}</FormLabel>
             </FormItem>
           )} />
-          <Button type="submit" disabled={isSaving} className="w-full">
+        </div>
+        {/* Status-bar footer, outside the scroll area */}
+        <div className="flex flex-none justify-end border-t bg-card px-3 py-2">
+          <Button type="submit" size="sm" disabled={isSaving}>
             {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('UsersPage.notes.saving')}</> : t('UsersPage.notes.save')}
           </Button>
-        </form>
-      </Form>
-    </div>
+        </div>
+      </form>
+    </Form>
   );
 }

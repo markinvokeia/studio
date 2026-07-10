@@ -1,18 +1,42 @@
 'use client';
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
+
+import { Dialog, DialogBody, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 import { PatientDetailSheet } from '@/components/appointments/PatientDetailSheet';
+import { PatientInfoTab } from '@/components/patients/patient-info-tab';
+
 import { usePatientView } from '@/stores/patient-view-store';
 
 /**
  * Global host that renders the patient detail sheet driven by usePatientView,
  * so any part of the app can open a patient with a single store call.
+ * With `infoOnly` (calendar context menu → "Datos del paciente") it renders a
+ * quick centered dialog with just the patient info form instead of the sheet.
  */
 export function PatientQuickViewHost() {
-  const { isOpen, userId, userName, userEmail, userPhone, initialTab, close } = usePatientView();
+  const { isOpen, userId, userName, userEmail, userPhone, initialTab, infoOnly, close } = usePatientView();
+  const t = useTranslations('AppointmentsPage');
 
   if (!userId) return null;
+
+  if (infoOnly) {
+    return (
+      <Dialog open={isOpen} onOpenChange={(o) => { if (!o) close(); }}>
+        <DialogContent maxWidth="xl" className="p-0">
+          <DialogHeader className="border-b px-6 py-4">
+            <DialogTitle className="truncate">{userName}</DialogTitle>
+            <DialogDescription>{t('contextMenu.patientData')}</DialogDescription>
+          </DialogHeader>
+          <DialogBody className="flex min-h-0 flex-col overflow-hidden p-0">
+            <PatientInfoTab userId={userId} />
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <PatientDetailSheet

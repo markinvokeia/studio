@@ -383,12 +383,16 @@ export function AnamnesisViewer({ userId, onClinicalDataChange }: { userId: stri
     );
 }
 
-export function DocumentsViewer({ userId, createTrigger = 0 }: { userId: string; createTrigger?: number }) {
-    const { documents, isLoadingDocuments, uploadDocument, deleteDocument, getDocumentContent, refreshAll } = useClinicHistory();
+export function DocumentsViewer({ userId, createTrigger = 0, documentsOnly = false }: { userId: string; createTrigger?: number; documentsOnly?: boolean }) {
+    const { documents, isLoadingDocuments, uploadDocument, deleteDocument, getDocumentContent, refreshAll, fetchDocuments } = useClinicHistory();
 
     React.useEffect(() => {
-        if (userId) refreshAll(userId);
-    }, [userId, refreshAll]);
+        if (!userId) return;
+        // documentsOnly skips the full clinic-history reload (anamnesis, allergies…)
+        // for hosts that only show the documents gallery.
+        if (documentsOnly) fetchDocuments(userId);
+        else refreshAll(userId);
+    }, [userId, refreshAll, fetchDocuments, documentsOnly]);
 
     return (
         <EnhancedDocumentsGallery

@@ -66,7 +66,7 @@ export function ContextEntityPicker({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={searchPlaceholder}
-          className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          className="w-full bg-transparent text-xs outline-none placeholder:text-muted-foreground"
         />
       </div>
 
