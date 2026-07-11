@@ -18,12 +18,13 @@ import { PhoneInput } from '@/components/ui/phone-input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { PatientGroupsField } from '@/components/patients/patient-groups-field';
+import { PatientGroupsField, savePatientGroups } from '@/components/patients/patient-groups-field';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { MutualSociety, User } from '@/lib/types';
 import {
   fetchPatientById,
+  findPatientByName,
   getMutualSocietiesList,
   searchGuardianPatients,
   upsertUser,
@@ -124,14 +125,17 @@ export function ResponsibleContactField({
 }
 
 interface PatientInfoTabProps {
-  userId: string;
+  /** Patient to edit. Omit to run in create mode (empty form, upsert creates a new patient). */
+  userId?: string;
   /** Preloaded patient — when given, the form skips fetching it (used by the patients page). */
   user?: User;
   /** Preloaded mutual societies — when given, skips fetching them. */
   mutualSocieties?: MutualSociety[];
   /** Show the notes field inline. Disable when the host has a separate notes tab. Default true. */
   showNotes?: boolean;
-  /** Called after a successful save with the updated patient. */
+  /** Prefill for the name field in create mode (e.g. the search query typed by the user). */
+  initialName?: string;
+  /** Called after a successful save with the updated (or newly created) patient. */
   onSaved?: (updated: User) => void;
 }
 
@@ -140,7 +144,8 @@ interface PatientInfoTabProps {
  * Fetches the patient and mutual societies by id when not preloaded, so it can be
  * embedded anywhere (patient quick view, patients page) with only a user_id.
  */
-export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutualSocietiesProp, showNotes = true, onSaved }: PatientInfoTabProps) {
+export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutualSocietiesProp, showNotes = true, initialName, onSaved }: PatientInfoTabProps) {
+  const isCreateMode = !userId && !userProp;
   const t = useTranslations();
   const { toast } = useToast();
   const [user, setUser] = React.useState<User | null>(userProp ?? null);
@@ -150,11 +155,13 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
   const [saveError, setSaveError] = React.useState<string | null>(null);
   const [responsibleContactName, setResponsibleContactName] = React.useState('');
   const [doctorDisplayName, setDoctorDisplayName] = React.useState('');
+  // Create mode: groups picked before the patient exists, assigned right after the upsert.
+  const [pendingGroupIds, setPendingGroupIds] = React.useState<string[]>([]);
 
   const infoForm = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema(t)),
     defaultValues: {
-      id: '', name: '', email: '', phone: '', identity_document: '', birth_date: '', address: '',
+      id: '', name: initialName || '', email: '', phone: '', identity_document: '', birth_date: '', address: '',
       notes: '', is_active: true, mutual_society_id: '', is_dependent: false, responsible_contact_id: null,
       doctor_id: null, sex: null,
     },
@@ -194,6 +201,10 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
       // Preloaded: only fetch societies if they weren't provided.
       const societiesPromise = mutualSocietiesProp ? Promise.resolve(mutualSocietiesProp) : getMutualSocietiesList();
       societiesPromise.then((soc) => applyUser(userProp, soc));
+    } else if (!userId) {
+      // Create mode: empty form, only the societies list is needed.
+      const societiesPromise = mutualSocietiesProp ? Promise.resolve(mutualSocietiesProp) : getMutualSocietiesList();
+      societiesPromise.then((soc) => applyUser(null, soc));
     } else {
       setIsLoading(true);
       Promise.all([fetchPatientById(userId), getMutualSocietiesList()]).then(([fetchedUser, soc]) => applyUser(fetchedUser, soc));
@@ -211,6 +222,35 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
     setIsSaving(true);
     setSaveError(null);
     try {
+      if (isCreateMode) {
+        await upsertUser({ ...data, id: undefined });
+        toast({ title: t('UsersPage.createDialog.createSuccessTitle'), description: t('UsersPage.createDialog.createSuccessDescription') });
+        // The upsert response doesn't return the record — resolve the new id by name.
+        const created = await findPatientByName(data.name);
+        if (created?.id && pendingGroupIds.length > 0) {
+          try {
+            await savePatientGroups(created.id, pendingGroupIds);
+          } catch (groupsError) {
+            console.error('Failed to assign groups to the new patient:', groupsError);
+          }
+        }
+        onSaved?.(created ?? {
+          id: '',
+          name: data.name,
+          email: data.email || '',
+          phone_number: data.phone || '',
+          is_active: data.is_active,
+          avatar: '',
+          identity_document: data.identity_document,
+          birth_date: data.birth_date,
+          address: data.address,
+          notes: data.notes,
+          doctor_id: data.doctor_id || null,
+          doctor_name: doctorDisplayName || undefined,
+          sex: data.sex ?? null,
+        });
+        return;
+      }
       await upsertUser(data);
       toast({ title: t('UsersPage.createDialog.editSuccessTitle'), description: t('UsersPage.createDialog.editSuccessDescription') });
       const updated: User = {
@@ -326,7 +366,9 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
               <FormMessage />
             </FormItem>
           )} />
-          {userId && <PatientGroupsField patientId={userId} />}
+          {userId
+            ? <PatientGroupsField patientId={userId} />
+            : <PatientGroupsField value={pendingGroupIds} onChange={setPendingGroupIds} />}
           <FormField control={infoForm.control} name="doctor_id" render={({ field }) => (
             <FormItem>
               <FormLabel>{t('UsersPage.createDialog.doctor')}</FormLabel>

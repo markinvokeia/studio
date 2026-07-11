@@ -58,6 +58,10 @@ interface InlineAppointmentDraftProps {
   /** Accent color shown on the card (derived from service > doctor > calendar). */
   accentColor?: string;
   onCreatePatient?: () => void;
+  /** When provided, "create patient" (the + button and the picker's create
+   *  entry) opens the host's patient form dialog instead of the inline
+   *  mini-form. Receives the typed search query as name prefill. */
+  onRequestCreatePatient?: (name: string) => void;
   onEditPatient?: () => void;
   canCreatePatient?: boolean;
   canEditPatient?: boolean;
@@ -295,6 +299,7 @@ export function InlineAppointmentDraft({
   onCancel,
   accentColor,
   onCreatePatient,
+  onRequestCreatePatient,
   onEditPatient,
   canCreatePatient = false,
   canEditPatient = false,
@@ -366,6 +371,10 @@ export function InlineAppointmentDraft({
   }, [durationMin, endTime, formatDurationLabel, startMinutes]);
 
   const handleCreatePatientClick = () => {
+    if (onRequestCreatePatient) {
+      onRequestCreatePatient('');
+      return;
+    }
     setCreatePatientToken((token) => token + 1);
     onCreatePatient?.();
   };
@@ -406,6 +415,7 @@ export function InlineAppointmentDraft({
       selectedUserName={patient?.name}
       onValueChange={(_, u) => onPatientChange(u ?? null)}
       openCreateToken={createPatientToken}
+      onRequestCreate={onRequestCreatePatient}
       triggerText={t('selectPatient')}
       placeholder={t('searchPatient')}
       className="h-7 px-2 text-xs font-normal"

@@ -16,7 +16,14 @@ import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 
 interface PatientGroupsFieldProps {
-    patientId: string;
+    /** Patient whose groups are managed. Omit for deferred mode (patient not
+     *  created yet): the selection is reported via `onChange` and the host
+     *  persists it later with `savePatientGroups`. */
+    patientId?: string;
+    /** Deferred mode: initial selection. */
+    value?: string[];
+    /** Deferred mode: called with the selected group ids on every change. */
+    onChange?: (groupIds: string[]) => void;
 }
 
 type GroupOption = { id: string; name: string };
@@ -59,11 +66,25 @@ async function fetchPatientGroups(patientId: string): Promise<GroupOption[]> {
     }
 }
 
-export function PatientGroupsField({ patientId }: PatientGroupsFieldProps) {
+/** Persists a patient's group assignments (used inline and by deferred-mode hosts). */
+export async function savePatientGroups(patientId: string, groupIds: string[]): Promise<void> {
+    const responseData = await api.post(API_ROUTES.PATIENT_GROUPS_BY_PATIENT, {
+        patient_id: patientId,
+        group_ids: groupIds,
+    });
+    const error = Array.isArray(responseData)
+        ? responseData.find((item: any) => item?.error)
+        : (responseData as any)?.error;
+    if (error) throw new Error(typeof error === 'string' ? error : 'Failed to save patient groups');
+}
+
+export function PatientGroupsField({ patientId, value, onChange }: PatientGroupsFieldProps) {
     const t = useTranslations('UsersPage.patientGroups');
     const { toast } = useToast();
     const { hasPermission } = usePermissions();
-    const canManage = hasPermission(PATIENTS_PERMISSIONS.UPDATE);
+    // Deferred mode has no patient yet — the host (create dialog) is already
+    // permission-gated, so selection is always allowed there.
+    const canManage = patientId ? hasPermission(PATIENTS_PERMISSIONS.UPDATE) : true;
 
     const [groups, setGroups] = React.useState<GroupOption[]>([]);
     const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
@@ -75,6 +96,18 @@ export function PatientGroupsField({ patientId }: PatientGroupsFieldProps) {
     React.useEffect(() => {
         let cancelled = false;
         setIsLoading(true);
+        if (!patientId) {
+            // Deferred mode: only the catalog is needed; selection starts from `value`.
+            fetchAllGroups()
+                .then((all) => {
+                    if (cancelled) return;
+                    setSelectedIds(value ?? []);
+                    setInitialIds([]);
+                    setGroups(all.sort((a, b) => a.name.localeCompare(b.name)));
+                })
+                .finally(() => { if (!cancelled) setIsLoading(false); });
+            return () => { cancelled = true; };
+        }
         Promise.all([fetchAllGroups(), fetchPatientGroups(patientId)])
             .then(([all, mine]) => {
                 if (cancelled) return;
@@ -88,6 +121,7 @@ export function PatientGroupsField({ patientId }: PatientGroupsFieldProps) {
             })
             .finally(() => { if (!cancelled) setIsLoading(false); });
         return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [patientId]);
 
     const isDirty = React.useMemo(() => {
@@ -97,9 +131,11 @@ export function PatientGroupsField({ patientId }: PatientGroupsFieldProps) {
     }, [selectedIds, initialIds]);
 
     const toggleGroup = (id: string) => {
-        setSelectedIds((current) =>
-            current.includes(id) ? current.filter((value) => value !== id) : [...current, id],
-        );
+        const next = selectedIds.includes(id)
+            ? selectedIds.filter((v) => v !== id)
+            : [...selectedIds, id];
+        setSelectedIds(next);
+        onChange?.(next);
     };
 
     const selectedGroups = React.useMemo(
@@ -108,16 +144,10 @@ export function PatientGroupsField({ patientId }: PatientGroupsFieldProps) {
     );
 
     const handleSave = async () => {
+        if (!patientId) return;
         setIsSaving(true);
         try {
-            const responseData = await api.post(API_ROUTES.PATIENT_GROUPS_BY_PATIENT, {
-                patient_id: patientId,
-                group_ids: selectedIds,
-            });
-            const error = Array.isArray(responseData)
-                ? responseData.find((item: any) => item?.error)
-                : (responseData as any)?.error;
-            if (error) throw new Error(typeof error === 'string' ? error : t('saveError'));
+            await savePatientGroups(patientId, selectedIds);
             setInitialIds(selectedIds);
             toast({ title: t('saved') });
         } catch (error) {
@@ -193,7 +223,7 @@ export function PatientGroupsField({ patientId }: PatientGroupsFieldProps) {
                         <p className="text-xs text-muted-foreground">{t('empty')}</p>
                     )}
 
-                    {canManage && isDirty && (
+                    {patientId && canManage && isDirty && (
                         <div className="flex justify-end">
                             <Button type="button" size="sm" onClick={handleSave} disabled={isSaving}>
                                 {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

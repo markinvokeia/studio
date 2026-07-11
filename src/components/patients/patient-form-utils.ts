@@ -172,6 +172,26 @@ export async function fetchPatientById(userId: string): Promise<User | null> {
   }
 }
 
+/** Finds a patient by exact name — used to resolve a just-created patient's id
+ *  (the upsert response doesn't return the record). Falls back to the first match. */
+export async function findPatientByName(name: string): Promise<User | null> {
+  try {
+    const responseData = await api.get(API_ROUTES.USERS, { search: name, filter_type: 'PACIENTE' });
+    let usersData: any[] = [];
+    if (Array.isArray(responseData) && responseData.length > 0) {
+      const first = responseData[0];
+      usersData = first.json?.data || first.data || [];
+    } else if (responseData?.data) {
+      usersData = responseData.data;
+    }
+    const users = usersData.map(mapSearchUser);
+    return users.find((u: User) => u.name.toLowerCase() === name.toLowerCase()) || users[0] || null;
+  } catch (error) {
+    console.error('Failed to find patient by name:', error);
+    return null;
+  }
+}
+
 /** Searches potential guardian patients (non-dependents) for the responsible-contact picker. */
 export async function searchGuardianPatients(searchQuery: string, currentUserId?: string): Promise<User[]> {
   try {

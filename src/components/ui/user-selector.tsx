@@ -22,6 +22,10 @@ interface UserSelectorProps {
     className?: string;
     disabled?: boolean;
     openCreateToken?: number;
+    /** When provided, "create new" delegates to this callback (e.g. to open a
+     *  full patient form dialog) instead of the built-in inline mini-form.
+     *  Receives the current search query as name prefill. */
+    onRequestCreate?: (name: string) => void;
 }
 
 export function UserSelector({
@@ -35,6 +39,7 @@ export function UserSelector({
     className,
     disabled = false,
     openCreateToken,
+    onRequestCreate,
 }: UserSelectorProps) {
     const [open, setOpen] = React.useState(false);
     const [searchQuery, setSearchQuery] = React.useState('');
@@ -59,13 +64,17 @@ export function UserSelector({
         if (openCreateToken === undefined) return;
         if (lastOpenCreateTokenRef.current === openCreateToken) return;
         lastOpenCreateTokenRef.current = openCreateToken;
+        if (onRequestCreate) {
+            onRequestCreate(searchQueryRef.current.trim());
+            return;
+        }
         setOpen(true);
         setCreateName(searchQueryRef.current.trim());
         setCreatePhone('');
         setCreateEmail('');
         setCreateError(null);
         setIsCreating(true);
-    }, [openCreateToken]);
+    }, [openCreateToken, onRequestCreate]);
 
     const handleOpenChange = (nextOpen: boolean) => {
         if (!nextOpen) {
@@ -138,6 +147,12 @@ export function UserSelector({
     };
 
     const handleStartCreate = () => {
+        if (onRequestCreate) {
+            onRequestCreate(searchQuery.trim());
+            setOpen(false);
+            setSearchQuery('');
+            return;
+        }
         setCreateName(searchQuery.trim());
         setCreatePhone('');
         setCreateEmail('');

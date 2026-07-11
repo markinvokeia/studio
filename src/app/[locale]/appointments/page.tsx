@@ -78,6 +78,7 @@ import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
 import { AppointmentPanel } from '@/components/appointments/AppointmentPanel';
+import { PatientCreateDialog } from '@/components/patients/patient-create-dialog';
 import { BulkReassignDoctorDialog } from '@/components/appointments/BulkReassignDoctorDialog';
 import { reassignAppointmentField, type AppointmentReassignChange } from '@/lib/appointment-reassign';
 import { ContextEntityPicker } from '@/components/appointments/ContextEntityPicker';
@@ -993,6 +994,8 @@ export default function AppointmentsPage() {
     const [isSavingInline, setIsSavingInline] = React.useState(false);
     const [inlineDebt, setInlineDebt] = React.useState<{ currency: string; amount: number }[]>([]);
     const [inlineCancelledCount, setInlineCancelledCount] = React.useState(0);
+    // "New patient" full-form dialog opened from the inline draft's patient picker.
+    const [inlineCreatePatient, setInlineCreatePatient] = React.useState<{ open: boolean; initialName: string }>({ open: false, initialName: '' });
     // Future-appointments confirmation for the quick inline-create flow.
     const [inlineFutureConfirm, setInlineFutureConfirm] = React.useState<{ appointments: FuturePatientAppointment[]; patientName: string } | null>(null);
     const skipInlineFutureCheckRef = React.useRef(false);
@@ -1224,18 +1227,20 @@ export default function AppointmentsPage() {
                 accentColor={accentColor}
                 canCreatePatient={canCreateInlinePatient}
                 canEditPatient={canEditInlinePatient}
+                onRequestCreatePatient={(name) => setInlineCreatePatient({ open: true, initialName: name })}
                 onEditPatient={inlineDraft.patient ? () => openPatientView({
                     userId: inlineDraft.patient!.id,
                     userName: inlineDraft.patient!.name,
                     userEmail: inlineDraft.patient!.email || undefined,
                     userPhone: inlineDraft.patient!.phone_number || undefined,
                     initialTab: 'info',
+                    infoOnly: true,
                 }) : undefined}
                 title={isRescheduling ? tReschedule('dialogTitle') : isEditing ? tInline('editTitle') : undefined}
                 saveLabel={isRescheduling ? tReschedule('submit') : isEditing ? tInline('update') : undefined}
             />
         );
-    }, [inlineDraft, doctors, calendars, appointments, inlineDebt, inlineCancelledCount, isSavingInline, handleSaveInlineDraft, openAccountStatement, openPatientView, canCreateInlinePatient, canEditInlinePatient, calendarMode, slotDuration, tInline, tReschedule]);
+    }, [inlineDraft, doctors, calendars, appointments, inlineDebt, inlineCancelledCount, isSavingInline, handleSaveInlineDraft, openAccountStatement, openPatientView, canCreateInlinePatient, canEditInlinePatient, calendarMode, slotDuration, tInline, tReschedule, setInlineCreatePatient]);
 
     // Esc closes the inline draft only when it is still empty (untouched) — no
     // patient, no services and no notes — so accidental opens dismiss without
@@ -3922,6 +3927,21 @@ export default function AppointmentsPage() {
                 checkCalendarAvailability={checkCalendarAvailability}
                 checkDoctorAvailability={checkDoctorAvailability}
                 isDateTimeBlocked={isDateTimeBlocked}
+            />
+            <PatientCreateDialog
+                open={inlineCreatePatient.open}
+                onOpenChange={(o) => setInlineCreatePatient((s) => ({ ...s, open: o }))}
+                initialName={inlineCreatePatient.initialName}
+                onCreated={(created) => {
+                    setInlineDraft((d) => {
+                        if (!d) return d;
+                        // Same default-doctor rule as picking an existing patient.
+                        const defaultDoctor = !d.doctor && created.doctor_id
+                            ? doctors.find((doc) => String(doc.id) === String(created.doctor_id)) ?? null
+                            : null;
+                        return { ...d, patient: created, ...(defaultDoctor ? { doctor: defaultDoctor } : {}) };
+                    });
+                }}
             />
             {inlineFutureConfirm && (
                 <FutureAppointmentsConfirmDialog
