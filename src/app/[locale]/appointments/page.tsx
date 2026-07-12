@@ -3871,21 +3871,36 @@ export default function AppointmentsPage() {
                                     </div>
                                 )}
                                 {breakpoint === 'desktop' && (
-                                    <div className="flex flex-wrap items-center gap-2">
+                                    <TooltipProvider>
+                                    <div className="flex items-center gap-2">
                                         {!isCustomMode && (
                                             <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <Button variant="outline" className="flex h-11 items-center gap-2">
-                                                        <CalendarIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                                        <span className="flex flex-col items-start leading-tight">
-                                                            <span>{t('toggleCalendars')}</span>
-                                                            {calendarsSubtitle && (
-                                                                <span className="text-[10px] font-normal text-muted-foreground">{calendarsSubtitle}</span>
-                                                            )}
-                                                        </span>
-                                                        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                                    </Button>
-                                                </PopoverTrigger>
+                                                {/* Short label; the full "Mostrar/Ocultar Calendarios" (+ selection
+                                                    summary) lives in the tooltip. Collapses to icon-only with the
+                                                    secondary tier, like the custom-mode buttons. */}
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <PopoverTrigger asChild>
+                                                            <Button
+                                                                variant="outline"
+                                                                size={secondaryIconOnly ? 'icon' : 'sm'}
+                                                                className={secondaryIconOnly ? 'h-10 w-10 shrink-0' : 'h-10 gap-1.5 shrink-0'}
+                                                            >
+                                                                <CalendarIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                                                {!secondaryIconOnly && (
+                                                                    <>
+                                                                        {t('calendars')}
+                                                                        <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                                                                    </>
+                                                                )}
+                                                            </Button>
+                                                        </PopoverTrigger>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>{t('toggleCalendars')}</p>
+                                                        {calendarsSubtitle && <p className="text-xs opacity-70">{calendarsSubtitle}</p>}
+                                                    </TooltipContent>
+                                                </Tooltip>
                                                 <PopoverContent className="w-64 p-2">
                                                     <Command>
                                                         <CommandList>
@@ -3950,18 +3965,29 @@ export default function AppointmentsPage() {
                                         )}
                                         {showDoctorFilter && !isCustomMode && (
                                             <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <Button variant="outline" className="flex h-11 items-center gap-2">
-                                                        <Users className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                                        <span className="flex flex-col items-start leading-tight">
-                                                            <span>{t('toggleDoctors')}</span>
-                                                            {doctorsSubtitle && (
-                                                                <span className="text-[10px] font-normal text-muted-foreground">{doctorsSubtitle}</span>
-                                                            )}
-                                                        </span>
-                                                        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                                    </Button>
-                                                </PopoverTrigger>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <PopoverTrigger asChild>
+                                                            <Button
+                                                                variant="outline"
+                                                                size={secondaryIconOnly ? 'icon' : 'sm'}
+                                                                className={secondaryIconOnly ? 'h-10 w-10 shrink-0' : 'h-10 gap-1.5 shrink-0'}
+                                                            >
+                                                                <Users className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                                                {!secondaryIconOnly && (
+                                                                    <>
+                                                                        {t('doctors')}
+                                                                        <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                                                                    </>
+                                                                )}
+                                                            </Button>
+                                                        </PopoverTrigger>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>{t('toggleDoctors')}</p>
+                                                        {doctorsSubtitle && <p className="text-xs opacity-70">{doctorsSubtitle}</p>}
+                                                    </TooltipContent>
+                                                </Tooltip>
                                                 <PopoverContent className="w-56 p-2">
                                                     <Command>
                                                         <CommandList>
@@ -3987,6 +4013,7 @@ export default function AppointmentsPage() {
                                             </Popover>
                                         )}
                                     </div>
+                                    </TooltipProvider>
                                 )}
                             </div>
 
