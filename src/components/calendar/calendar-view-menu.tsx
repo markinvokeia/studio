@@ -15,6 +15,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 import type { CalendarView } from './calendar-types';
 
@@ -41,6 +42,8 @@ interface CalendarViewMenuProps {
   selectedCalendarIds: string[];
   /** Toggle a single calendar's visibility. */
   onToggleCalendar: (calendarId: string, checked: boolean) => void;
+  /** Collapse the trigger to an icon-only button (tight desktop widths). */
+  iconOnly?: boolean;
 }
 
 /** View options (custom mode) — day counts, month and "list", each mapped to a CalendarView. */
@@ -67,6 +70,7 @@ export function CalendarViewMenu({
   noSede,
   selectedCalendarIds,
   onToggleCalendar,
+  iconOnly,
 }: CalendarViewMenuProps) {
   const t = useTranslations('Calendar');
   const selectedSet = React.useMemo(() => new Set(selectedCalendarIds), [selectedCalendarIds]);
@@ -88,13 +92,28 @@ export function CalendarViewMenu({
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="h-11 gap-1.5">
-          <Eye className="h-4 w-4" />
-          {t('view')}
-          <ChevronDown className="h-3.5 w-3.5 opacity-80" />
-        </Button>
-      </DropdownMenuTrigger>
+      {iconOnly ? (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="h-10 w-10">
+                  <Eye className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent>{t('view')}</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      ) : (
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" className="h-10 gap-1.5">
+            <Eye className="h-4 w-4" />
+            {t('view')}
+            <ChevronDown className="h-3.5 w-3.5 opacity-80" />
+          </Button>
+        </DropdownMenuTrigger>
+      )}
       <DropdownMenuContent align="start" className="w-56 max-h-[70vh] overflow-y-auto">
         <DropdownMenuRadioGroup value={view} onValueChange={(v) => onViewChange(v as CalendarView)}>
           {VIEW_OPTIONS.map((opt) => (

@@ -102,6 +102,10 @@ export interface CalendarProps {
   primaryActions?: React.ReactNode;
   /** Content rendered at the end of the desktop header actions */
   trailingActions?: React.ReactNode;
+  /** Callback ref to the desktop header's action cluster, so the page can observe its
+   *  overflow and collapse buttons to icon-only. Fires with the node on mount and null
+   *  on unmount (e.g. when the compact header replaces the desktop one). */
+  headerActionsClusterRef?: React.RefCallback<HTMLDivElement>;
   /** IDs of appointments currently selected in bulk mode */
   selectedAppointmentIds?: Set<string>;
   /** Called when the user clicks the checkbox on a schedule-view event */

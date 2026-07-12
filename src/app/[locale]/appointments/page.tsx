@@ -811,6 +811,88 @@ export default function AppointmentsPage() {
         return () => window.removeEventListener('resize', check);
     }, []);
 
+    // Desktop header responsiveness: instead of wrapping action buttons to a second row
+    // when space is tight, collapse them to icon-only — secondary buttons (Buscar huecos /
+    // Operaciones en Lotes) first, then primary (Crear / Ver / Zoom). Level 0 = full labels,
+    // 1 = secondary icons, 2 = all icons.
+    //
+    // The decision is DETERMINISTIC: the action cluster is flex-1 + overflow-hidden, so its
+    // scrollWidth is the true content width at the current level regardless of how much space
+    // it was allocated, and its clientWidth is the space actually available. We record each
+    // level's content width as we observe it, then pick the target level directly.
+    //
+    // The cluster node arrives via a CALLBACK REF held in state — never located with
+    // querySelector from an effect: the desktop header can mount a commit AFTER this page's
+    // breakpoint flips to desktop (page and Calendar hold separate useCalendarBreakpoint
+    // states), so an effect keyed on isDesktop could run while the node doesn't exist yet
+    // and never retry — which left the header permanently clipped after a tablet→desktop
+    // resize. With the node in state, its mount/unmount re-runs the observer effect itself.
+    const isDesktop = breakpoint === 'desktop';
+    const [headerActionsEl, setHeaderActionsEl] = React.useState<HTMLDivElement | null>(null);
+    const [headerCollapseLevel, setHeaderCollapseLevel] = React.useState(0);
+    const levelContentWidthRef = React.useRef<Record<number, number>>({});
+
+    // `measure` compares the action cluster's content width (scrollWidth — accurate because
+    // its children are flex-shrink:0, so they keep their natural width) against the space
+    // allocated to it (clientWidth), and steps the collapse level one tier at a time. We keep
+    // it in a ref so the ResizeObserver can stay persistent across level changes, and refresh
+    // it (plus re-measure) after EVERY commit: a render can change the cluster's content
+    // width (level step, mode switch, data-driven buttons) without resizing the cluster
+    // itself, which a ResizeObserver would never report.
+    const measureHeaderRef = React.useRef<() => void>(() => {});
+    React.useEffect(() => {
+        measureHeaderRef.current = () => {
+            if (!isDesktop || isBulkMode || !headerActionsEl) return;
+            const available = headerActionsEl.clientWidth;   // space allocated to the action cluster
+            const needed = headerActionsEl.scrollWidth;      // content width at the CURRENT (committed) level
+            levelContentWidthRef.current[headerCollapseLevel] = needed;
+            let target = headerCollapseLevel;
+            if (needed - available > 1 && headerCollapseLevel < 2) {
+                target = headerCollapseLevel + 1;                 // doesn't fit → more icons
+            } else if (headerCollapseLevel > 0) {
+                // Fits → expand only if the next-lower (more labels) tier is known to fit with an
+                // 8px margin, so it doesn't flip-flop right at the boundary.
+                const lowerNeeded = levelContentWidthRef.current[headerCollapseLevel - 1];
+                if (lowerNeeded !== undefined && lowerNeeded + 8 <= available) {
+                    target = headerCollapseLevel - 1;
+                }
+            }
+            if (target !== headerCollapseLevel) setHeaderCollapseLevel(target);
+        };
+        measureHeaderRef.current();
+    });
+
+    // Custom mode adds Ver/Zoom, so per-level content widths differ — drop the cache on change.
+    React.useEffect(() => { levelContentWidthRef.current = {}; }, [calendarMode]);
+    // Force level 0 whenever the desktop header isn't in use (mobile/tablet or bulk mode).
+    React.useEffect(() => {
+        if (!isDesktop || isBulkMode) setHeaderCollapseLevel((prev) => (prev === 0 ? prev : 0));
+    }, [isDesktop, isBulkMode]);
+    // ResizeObserver on the action cluster — re-attached only when the node itself changes.
+    // The callback is deferred to requestAnimationFrame (and coalesced) so the measurement
+    // never runs synchronously inside ResizeObserver delivery — that synchronous setState is
+    // what produced the "ResizeObserver loop" errors and the resize-thrashing.
+    React.useEffect(() => {
+        if (!headerActionsEl || !isDesktop || isBulkMode || typeof ResizeObserver === 'undefined') return;
+        let raf = 0;
+        const schedule = () => {
+            if (raf) return;
+            raf = requestAnimationFrame(() => { raf = 0; measureHeaderRef.current(); });
+        };
+        const observer = new ResizeObserver(schedule);
+        observer.observe(headerActionsEl);
+        // Web fonts can widen labels after first paint without resizing the row.
+        if (typeof document !== 'undefined' && document.fonts?.ready) {
+            document.fonts.ready.then(schedule).catch(() => {});
+        }
+        return () => { if (raf) cancelAnimationFrame(raf); observer.disconnect(); };
+    }, [headerActionsEl, isDesktop, isBulkMode]);
+    // Icon-only flags: mobile always collapses; desktop collapses progressively by overflow.
+    const secondaryIconOnly = isMobile || (isDesktop && headerCollapseLevel >= 1);
+    const primaryIconOnly = isMobile || (isDesktop && headerCollapseLevel >= 2);
+    // On desktop the Ver/Zoom dropdowns collapse to icons together with the primary tier.
+    const compactPrimaryActions = isDesktop && headerCollapseLevel >= 2;
+
     const handleSettingsChange = React.useCallback((settings: CalendarSettings) => {
         setCalendarSettings(settings);
         const mappedView = SETTINGS_VIEW_MAP[settings.default_view] || 'month';
@@ -3372,6 +3454,7 @@ export default function AppointmentsPage() {
                         )}
                         <Calendar
                             view={currentView}
+                            headerActionsClusterRef={setHeaderActionsEl}
                             hourSlotHeight={hourSlotHeight}
                             slotMinutes={slotDuration}
                             events={effectiveEvents}
@@ -3396,7 +3479,7 @@ export default function AppointmentsPage() {
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className="h-11 gap-1.5"
+                                    className="h-10 gap-1.5 shrink-0"
                                     onClick={() => setAgendasPanelOpen(true)}
                                 >
                                     <ChevronLeft className="h-4 w-4" />
@@ -3417,6 +3500,29 @@ export default function AppointmentsPage() {
                             blockedFullDays={blockedFullDays}
                             filterSheet={
                                 <div className="space-y-6">
+                                    {/* Quick actions (compact layouts): Buscar huecos / Operaciones en Lotes
+                                        live here instead of the header row to keep it on a single line. */}
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <Button
+                                            variant={gapsActive ? 'default' : 'outline'}
+                                            size="sm"
+                                            className="h-10 justify-start gap-2"
+                                            onClick={handleToggleGaps}
+                                        >
+                                            <CalendarSearch className="h-4 w-4 shrink-0" />
+                                            <span className="truncate">{tGaps('button')}</span>
+                                        </Button>
+                                        <Button
+                                            variant={isBulkMode ? 'default' : 'outline'}
+                                            size="sm"
+                                            className="h-10 justify-start gap-2"
+                                            onClick={handleToggleBulkMode}
+                                        >
+                                            <Layers className="h-4 w-4 shrink-0" />
+                                            <span className="truncate">{tBulk('toggleButton')}</span>
+                                        </Button>
+                                    </div>
+                                    <Separator />
                                     {/* Bulk selection filters (mobile) */}
                                     {isBulkMode && (
                                         <>
@@ -3601,21 +3707,18 @@ export default function AppointmentsPage() {
                             }
                             extraActions={
                                 <TooltipProvider>
-                                    <div className="flex flex-wrap items-center gap-1.5">
+                                    <div className="flex items-center gap-1.5">
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <Button
                                                     variant={gapsActive ? 'default' : 'outline'}
-                                                    size={isMobile ? 'icon' : 'sm'}
-                                                    className={isMobile ? 'h-8 w-8' : 'h-11 gap-1.5'}
+                                                    size={secondaryIconOnly ? 'icon' : 'sm'}
+                                                    className={secondaryIconOnly ? (isMobile ? 'h-8 w-8 shrink-0' : 'h-10 w-10 shrink-0') : 'h-10 gap-1.5 shrink-0'}
                                                     onClick={handleToggleGaps}
                                                 >
                                                     <CalendarSearch className="h-4 w-4 shrink-0" />
-                                                    {!isMobile && (
-                                                        <span className="flex flex-col items-start leading-tight">
-                                                            <span>{tGaps('button')}</span>
-                                                            <span className="text-[10px] font-normal opacity-70">{tGaps('buttonSubtitle')}</span>
-                                                        </span>
+                                                    {!secondaryIconOnly && (
+                                                        <span className="block w-[3.5rem] whitespace-normal text-left leading-[1.1] text-[11px]">{tGaps('button')}</span>
                                                     )}
                                                 </Button>
                                             </TooltipTrigger>
@@ -3625,16 +3728,13 @@ export default function AppointmentsPage() {
                                             <TooltipTrigger asChild>
                                                 <Button
                                                     variant={isBulkMode ? 'default' : 'outline'}
-                                                    size={isMobile ? 'icon' : 'sm'}
-                                                    className={isMobile ? 'h-8 w-8' : 'h-11 gap-1.5'}
+                                                    size={secondaryIconOnly ? 'icon' : 'sm'}
+                                                    className={secondaryIconOnly ? (isMobile ? 'h-8 w-8 shrink-0' : 'h-10 w-10 shrink-0') : 'h-10 gap-1.5 shrink-0'}
                                                     onClick={handleToggleBulkMode}
                                                 >
                                                     <Layers className="h-4 w-4 shrink-0" />
-                                                    {!isMobile && (
-                                                        <span className="flex flex-col items-start leading-tight">
-                                                            <span>{tBulk('toggleButton')}</span>
-                                                            <span className="text-[10px] font-normal opacity-70">{tBulk('toggleSubtitle')}</span>
-                                                        </span>
+                                                    {!secondaryIconOnly && (
+                                                        <span className="block w-[4.25rem] whitespace-normal text-left leading-[1.1] text-[11px]">{tBulk('toggleButton')}</span>
                                                     )}
                                                 </Button>
                                             </TooltipTrigger>
@@ -3652,16 +3752,13 @@ export default function AppointmentsPage() {
                                                     <DropdownMenuTrigger asChild>
                                                         <Button
                                                             variant={isMobile ? "ghost" : "default"}
-                                                            size={isMobile ? "icon" : "sm"}
-                                                            className={isMobile ? "h-8 w-8" : "h-11 gap-1.5"}
+                                                            size={primaryIconOnly ? "icon" : "sm"}
+                                                            className={primaryIconOnly ? (isMobile ? "h-8 w-8" : "h-10 w-10") : "h-10 gap-1.5"}
                                                         >
                                                             <PlusCircle className="h-4 w-4 shrink-0" />
-                                                            {!isMobile && (
+                                                            {!primaryIconOnly && (
                                                                 <>
-                                                                    <span className="flex flex-col items-start leading-tight">
-                                                                        <span>{tGeneral('create')}</span>
-                                                                        <span className="text-[10px] font-normal opacity-80">{t('createSubtitle')}</span>
-                                                                    </span>
+                                                                    <span>{tGeneral('create')}</span>
                                                                     <ChevronDown className="h-3.5 w-3.5 opacity-80" />
                                                                 </>
                                                             )}
@@ -3669,7 +3766,7 @@ export default function AppointmentsPage() {
                                                     </DropdownMenuTrigger>
                                                 </TooltipTrigger>
                                                 <TooltipContent>
-                                                    {tGeneral('create')}
+                                                    {t('createSubtitle')}
                                                 </TooltipContent>
                                             </Tooltip>
                                         </TooltipProvider>
@@ -3713,8 +3810,9 @@ export default function AppointmentsPage() {
                                                 noSede={calendarSedeGroups.noSede}
                                                 selectedCalendarIds={selectedCalendarIds}
                                                 onToggleCalendar={handleSelectCalendar}
+                                                iconOnly={compactPrimaryActions}
                                             />
-                                            <CalendarZoomMenu zoom={calendarZoom} onZoomChange={applyCalendarZoom} />
+                                            <CalendarZoomMenu zoom={calendarZoom} onZoomChange={applyCalendarZoom} iconOnly={compactPrimaryActions} />
                                         </>
                                     )}
                                 </>
@@ -3723,7 +3821,7 @@ export default function AppointmentsPage() {
                                 <TooltipProvider>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
-                                            <Button onClick={forceRefresh} variant="ghost" size="icon" disabled={isRefreshing} className={isMobile ? "h-8 w-8" : "h-11 w-11"}>
+                                            <Button onClick={forceRefresh} variant="ghost" size="icon" disabled={isRefreshing} className={isMobile ? "h-8 w-8" : "h-10 w-10"}>
                                                 <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                                             </Button>
                                         </TooltipTrigger>

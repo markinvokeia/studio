@@ -11,24 +11,29 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 1rem;
   border-bottom: 1px solid hsl(var(--border));
   flex-shrink: 0;
   flex-wrap: wrap;
   gap: 0.5rem;
 }
 
-/* Reordered actions header (desktop): items flow left-to-right after the date.
-   When space is tight the secondary cluster wraps to a full-width second row,
-   staying left-aligned. */
+/* Reordered actions header (desktop): a single non-wrapping row. Nav on the left,
+   action buttons in the middle, refresh + settings pinned to the right. When space
+   is tight the middle buttons collapse to icon-only (driven from page.tsx) instead
+   of wrapping to a second row, keeping the header at a single compact row. */
 .calendar-header--actions {
   justify-content: flex-start;
+  flex-wrap: nowrap;
 }
 .calendar-header--actions .calendar-header__secondary {
-  /* Fill the remaining row-1 space; its buttons wrap to a second row when tight. */
-  flex: 1 1 auto;
-  min-width: 0;
   justify-content: flex-start;
+}
+/* Keep the action buttons at their natural width: they must NOT shrink individually
+   (which would clip each button's label), so their combined width overflows the
+   cluster and page.tsx can read scrollWidth vs clientWidth to decide icon collapse. */
+.calendar-header--actions .calendar-header__secondary > * {
+  flex-shrink: 0;
 }
 
 .calendar-body {

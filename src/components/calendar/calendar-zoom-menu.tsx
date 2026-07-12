@@ -12,6 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface CalendarZoomMenuProps {
   zoom: number;
@@ -19,13 +20,15 @@ interface CalendarZoomMenuProps {
   min?: number;
   max?: number;
   step?: number;
+  /** Collapse the trigger to an icon-only button (tight desktop widths). */
+  iconOnly?: boolean;
 }
 
 /**
  * Desktop "Zoom" dropdown (custom mode): +/- controls that scale slot height while the
  * day view keeps the current visible range. Also shows the Ctrl +/- keyboard shortcuts.
  */
-export function CalendarZoomMenu({ zoom, onZoomChange, min = 0.7, max = 2.5, step = 0.1 }: CalendarZoomMenuProps) {
+export function CalendarZoomMenu({ zoom, onZoomChange, min = 0.7, max = 2.5, step = 0.1, iconOnly }: CalendarZoomMenuProps) {
   const t = useTranslations('Calendar');
   const clamp = (v: number) => Math.min(max, Math.max(min, Math.round(v * 10) / 10));
   const decrease = () => onZoomChange(clamp(zoom - step));
@@ -34,13 +37,28 @@ export function CalendarZoomMenu({ zoom, onZoomChange, min = 0.7, max = 2.5, ste
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="h-11 gap-1.5">
-          <Search className="h-4 w-4" />
-          {t('zoom')}
-          <ChevronDown className="h-3.5 w-3.5 opacity-80" />
-        </Button>
-      </DropdownMenuTrigger>
+      {iconOnly ? (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="h-10 w-10">
+                  <Search className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent>{t('zoom')}</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      ) : (
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" className="h-10 gap-1.5">
+            <Search className="h-4 w-4" />
+            {t('zoom')}
+            <ChevronDown className="h-3.5 w-3.5 opacity-80" />
+          </Button>
+        </DropdownMenuTrigger>
+      )}
       <DropdownMenuContent align="start" className="w-56">
         <div className="flex items-center justify-between gap-2 px-2 py-1.5">
           <Button

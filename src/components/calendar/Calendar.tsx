@@ -71,6 +71,7 @@ const Calendar: React.FC<CalendarProps> = ({
   extraActionsAfterToday,
   primaryActions,
   trailingActions,
+  headerActionsClusterRef,
   selectedAppointmentIds,
   onToggleAppointmentSelect,
   bulkModeContent,
@@ -330,6 +331,7 @@ const Calendar: React.FC<CalendarProps> = ({
         extraActionsAfterToday={extraActionsAfterToday}
         primaryActions={primaryActions}
         trailingActions={trailingActions}
+        actionsClusterRef={headerActionsClusterRef}
         bulkModeContent={bulkModeContent}
       >
         {children}

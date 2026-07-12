@@ -19,7 +19,7 @@ export function CalendarSettingsPopover({ onSettingsChange, sedes, value }: Cale
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="icon" className="h-9 w-9 shrink-0">
+        <Button variant="outline" size="icon" className="h-10 w-10 shrink-0">
           <Settings2 className="h-4 w-4 text-muted-foreground" />
         </Button>
       </PopoverTrigger>

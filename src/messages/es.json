@@ -877,7 +877,7 @@
     "showingCountDoctors": "Mostrando {count} de {total} doctores",
     "selectAll": "Seleccionar Todo",
     "bulk": {
-      "toggleButton": "Selección masiva",
+      "toggleButton": "Operaciones en Lotes",
       "toggleSubtitle": "Filtra y asigna en lote",
       "panelTitle": "Filtros de selección",
       "datePreset": "Rango de fechas",
@@ -5218,7 +5218,7 @@
     "filterTitle": "Filtrar Agenda",
     "noAppointments": "Sin citas",
     "gaps": {
-      "button": "Encontrar huecos",
+      "button": "Buscar huecos",
       "buttonSubtitle": "Espacios disponibles",
       "panelTitle": "Huecos disponibles",
       "duration": "{min} min",

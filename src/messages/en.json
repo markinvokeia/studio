@@ -877,7 +877,7 @@
     "showingCountDoctors": "Showing {count} of {total} doctors",
     "selectAll": "Select All",
     "bulk": {
-      "toggleButton": "Bulk selection",
+      "toggleButton": "Batch operations",
       "toggleSubtitle": "Filter and assign in bulk",
       "panelTitle": "Selection filters",
       "datePreset": "Date range",
@@ -5240,7 +5240,7 @@
     "filterTitle": "Filter Schedule",
     "noAppointments": "No appointments",
     "gaps": {
-      "button": "Find free slots",
+      "button": "Find slots",
       "buttonSubtitle": "Available openings",
       "panelTitle": "Available slots",
       "duration": "{min} min",
