@@ -6262,14 +6262,18 @@
     "filterPlaceholder": "Filtrar por nombre...",
     "createDialog": {
       "title": "Crear Grupo de Pacientes",
-      "description": "Complete los detalles a continuación para agregar un nuevo grupo de pacientes.",
+      "description": "Descripción",
       "editTitle": "Editar Grupo de Pacientes",
       "editDescription": "Actualice los detalles de este grupo de pacientes.",
       "name": "Nombre",
       "namePlaceholder": "ej., Ortodoncia",
       "descriptionPlaceholder": "Ingrese una descripción opcional",
       "isActive": "Activo",
+      "isDoctor": "Este grupo representa a un doctor",
+      "doctor": "Doctor",
+      "doctorPlaceholder": "Seleccione un doctor",
       "cancel": "Cancelar",
+      "revert": "Descartar cambios",
       "save": "Crear Grupo",
       "editSave": "Guardar Cambios"
     },
@@ -6290,7 +6294,8 @@
       "deleteErrorDescription": "No se pudo eliminar el grupo de pacientes."
     },
     "validation": {
-      "nameRequired": "El nombre es obligatorio."
+      "nameRequired": "El nombre es obligatorio.",
+      "doctorRequired": "Debe seleccionar un doctor."
     },
     "tabs": {
       "info": "Información",

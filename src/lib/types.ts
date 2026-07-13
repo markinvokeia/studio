@@ -1356,6 +1356,9 @@ export type PatientGroup = {
   name: string;
   description?: string;
   is_active: boolean;
+  is_doctor?: boolean;
+  user_id?: string | null;
+  external_id?: string | null;
   created_at?: string;
   updated_at?: string;
 };

@@ -6289,7 +6289,11 @@
       "namePlaceholder": "e.g., Orthodontics",
       "descriptionPlaceholder": "Enter an optional description",
       "isActive": "Active",
+      "isDoctor": "This group represents a doctor",
+      "doctor": "Doctor",
+      "doctorPlaceholder": "Select a doctor",
       "cancel": "Cancel",
+      "revert": "Discard changes",
       "save": "Create Group",
       "editSave": "Save Changes"
     },
@@ -6310,7 +6314,8 @@
       "deleteErrorDescription": "Could not delete the patient group."
     },
     "validation": {
-      "nameRequired": "Name is required."
+      "nameRequired": "Name is required.",
+      "doctorRequired": "You must select a doctor."
     },
     "tabs": {
       "info": "Information",

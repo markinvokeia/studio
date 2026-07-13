@@ -12,6 +12,7 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { Dialog, DialogBody, DialogCancelButton, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
@@ -26,7 +27,7 @@ import { PatientGroup } from '@/lib/types';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, Loader2, Pencil, Trash2, UsersRound } from 'lucide-react';
+import { AlertTriangle, Loader2, Trash2, UsersRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -37,11 +38,51 @@ const patientGroupFormSchema = (t: (key: string) => string) => z.object({
     name: z.string().min(1, { message: t('validation.nameRequired') }),
     description: z.string().optional(),
     is_active: z.boolean().default(true),
+    is_doctor: z.boolean().default(false),
+    user_id: z.string().optional().nullable(),
+}).refine((data) => !data.is_doctor || !!data.user_id, {
+    message: t('validation.doctorRequired'),
+    path: ['user_id'],
 });
 
 type PatientGroupFormValues = z.infer<ReturnType<typeof patientGroupFormSchema>>;
 
 type PatientGroupResponse = { patientGroups: PatientGroup[]; total: number };
+
+type DoctorOption = { id: string; name: string };
+
+async function getDoctors(): Promise<DoctorOption[]> {
+    try {
+        const data = await api.get(API_ROUTES.USERS, {
+            page: '1',
+            limit: '500',
+            search: '',
+            filter_type: 'DOCTOR',
+            only_active: 'true',
+        });
+
+        let usersData: any[] = [];
+        if (Array.isArray(data) && data.length > 0) {
+            const firstElement = data[0];
+            if (firstElement.json && typeof firstElement.json === 'object') {
+                usersData = firstElement.json.data || [];
+            } else if (firstElement.data) {
+                usersData = firstElement.data;
+            } else if ('id' in firstElement) {
+                usersData = data;
+            }
+        } else if (typeof data === 'object' && data !== null && (data as any).data) {
+            usersData = (data as any).data;
+        }
+
+        return usersData
+            .map((u: any) => ({ id: String(u.id), name: u.name || '' }))
+            .filter((d: DoctorOption) => d.id && d.id !== 'undefined');
+    } catch (error) {
+        console.error('Failed to fetch doctors:', error);
+        return [];
+    }
+}
 
 async function getPatientGroups(pagination: PaginationState, searchQuery: string): Promise<PatientGroupResponse> {
     try {
@@ -79,6 +120,9 @@ async function getPatientGroups(pagination: PaginationState, searchQuery: string
                 name: g.name,
                 description: g.description,
                 is_active: g.is_active ?? true,
+                is_doctor: g.is_doctor ?? false,
+                user_id: g.user_id ?? null,
+                external_id: g.external_id ?? null,
                 created_at: g.created_at,
                 updated_at: g.updated_at,
             }))
@@ -132,10 +176,29 @@ export default function PatientGroupsPage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [deletingPatientGroup, setDeletingPatientGroup] = React.useState<PatientGroup | null>(null);
 
+    const [doctors, setDoctors] = React.useState<DoctorOption[]>([]);
+
     const form = useForm<PatientGroupFormValues>({
         resolver: zodResolver(patientGroupFormSchema(t)),
-        defaultValues: { name: '', description: '', is_active: true },
+        defaultValues: { name: '', description: '', is_active: true, is_doctor: false, user_id: null },
     });
+
+    const isDoctor = form.watch('is_doctor');
+
+    React.useEffect(() => {
+        getDoctors().then(setDoctors);
+    }, []);
+
+    const groupToFormValues = React.useCallback((group: PatientGroup): PatientGroupFormValues => ({
+        id: group.id,
+        name: group.name,
+        description: group.description || '',
+        is_active: group.is_active,
+        is_doctor: group.is_doctor ?? false,
+        user_id: group.user_id ?? null,
+    }), []);
+
+    const emptyFormValues: PatientGroupFormValues = { name: '', description: '', is_active: true, is_doctor: false, user_id: null };
 
     const loadPatientGroups = React.useCallback(async () => {
         setIsRefreshing(true);
@@ -160,8 +223,8 @@ export default function PatientGroupsPage() {
         setSelectedPatientGroup(group);
         setSubmissionError(null);
         if (group) {
-            setIsEditing(false);
-            form.reset({ id: group.id, name: group.name, description: group.description || '', is_active: group.is_active });
+            setIsEditing(canUpdate);
+            form.reset(groupToFormValues(group));
         }
     };
 
@@ -170,7 +233,7 @@ export default function PatientGroupsPage() {
         setRowSelection({});
         setIsEditing(true);
         setSubmissionError(null);
-        form.reset({ name: '', description: '', is_active: true });
+        form.reset(emptyFormValues);
         setIsCreateDialogOpen(true);
     };
 
@@ -181,25 +244,24 @@ export default function PatientGroupsPage() {
     };
 
     const handleBack = () => {
-        if (isEditing && selectedPatientGroup) {
-            setIsEditing(false);
-            form.reset({ id: selectedPatientGroup.id, name: selectedPatientGroup.name, description: selectedPatientGroup.description || '', is_active: selectedPatientGroup.is_active });
-        } else {
-            handleClose();
-        }
+        handleClose();
     };
 
     const onSubmit = async (values: PatientGroupFormValues) => {
         setSubmissionError(null);
         setIsSaving(true);
         try {
-            await upsertPatientGroup(values);
+            const payload = { ...values, user_id: values.is_doctor ? values.user_id ?? null : null };
+            await upsertPatientGroup(payload);
             toast({ title: selectedPatientGroup ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle') });
             await loadPatientGroups();
-            setIsEditing(false);
             if (!values.id) {
+                setIsEditing(false);
                 setIsCreateDialogOpen(false);
                 handleClose();
+            } else if (selectedPatientGroup) {
+                // Keep the detail panel in edit mode; sync the header with the saved values.
+                setSelectedPatientGroup(prev => (prev ? { ...prev, ...payload } : prev));
             }
         } catch (error) {
             setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
@@ -288,7 +350,7 @@ export default function PatientGroupsPage() {
                         <CardTitle className="text-base lg:text-lg truncate">
                             {isEditing && !selectedPatientGroup ? t('createDialog.title') : (selectedPatientGroup?.name ?? '')}
                         </CardTitle>
-                        {selectedPatientGroup && !isEditing && (
+                        {selectedPatientGroup && (
                             <div className="mt-0.5">
                                 <Badge variant={selectedPatientGroup.is_active ? 'success' : 'outline'} className="text-[10px]">
                                     {selectedPatientGroup.is_active ? 'Activo' : 'Inactivo'}
@@ -296,19 +358,11 @@ export default function PatientGroupsPage() {
                             </div>
                         )}
                     </div>
-                    {selectedPatientGroup && !isEditing && (
+                    {selectedPatientGroup && canDelete && (
                         <div className="flex gap-1 flex-none">
-                            {canUpdate && (
-                                <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                                    <Pencil className="h-4 w-4 mr-1" />
-                                    <span className="hidden sm:inline">{tColumns('edit')}</span>
-                                </Button>
-                            )}
-                            {canDelete && (
-                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" onClick={() => { setDeletingPatientGroup(selectedPatientGroup); setIsDeleteDialogOpen(true); }}>
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            )}
+                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" onClick={() => { setDeletingPatientGroup(selectedPatientGroup); setIsDeleteDialogOpen(true); }}>
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
                         </div>
                     )}
                 </div>
@@ -350,6 +404,33 @@ export default function PatientGroupsPage() {
                                 <FormLabel className="font-normal">{t('createDialog.isActive')}</FormLabel>
                             </FormItem>
                         )} />
+                        <FormField control={form.control} name="is_doctor" render={({ field }) => (
+                            <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-lg border p-3">
+                                <FormControl><Checkbox checked={field.value} onCheckedChange={(checked) => {
+                                    field.onChange(checked);
+                                    if (!checked) form.setValue('user_id', null);
+                                }} disabled={!isEditing} /></FormControl>
+                                <FormLabel className="font-normal">{t('createDialog.isDoctor')}</FormLabel>
+                            </FormItem>
+                        )} />
+                        {isDoctor && (
+                            <FormField control={form.control} name="user_id" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('createDialog.doctor')}</FormLabel>
+                                    <Select value={field.value ?? ''} onValueChange={field.onChange} disabled={!isEditing}>
+                                        <FormControl>
+                                            <SelectTrigger><SelectValue placeholder={t('createDialog.doctorPlaceholder')} /></SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {doctors.map((doc) => (
+                                                <SelectItem key={doc.id} value={doc.id}>{doc.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                        )}
                     </CardContent>
                     {isEditing && (
                         <div className="flex-none border-t bg-card px-4 py-3 flex gap-2">
@@ -357,16 +438,13 @@ export default function PatientGroupsPage() {
                                 {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 {selectedPatientGroup ? t('createDialog.editSave') : t('createDialog.save')}
                             </Button>
-                            <Button type="button" variant="outline" disabled={isSaving} onClick={() => {
-                                setIsEditing(false);
+                            <Button type="button" variant="outline" disabled={isSaving || !form.formState.isDirty} onClick={() => {
                                 setSubmissionError(null);
                                 if (selectedPatientGroup) {
-                                    form.reset({ id: selectedPatientGroup.id, name: selectedPatientGroup.name, description: selectedPatientGroup.description || '', is_active: selectedPatientGroup.is_active });
-                                } else {
-                                    handleClose();
+                                    form.reset(groupToFormValues(selectedPatientGroup));
                                 }
                             }}>
-                                {t('createDialog.cancel')}
+                                {t('createDialog.revert')}
                             </Button>
                         </div>
                     )}
@@ -411,7 +489,7 @@ export default function PatientGroupsPage() {
                     if (!open) {
                         setIsEditing(false);
                         setSubmissionError(null);
-                        form.reset({ name: '', description: '', is_active: true });
+                        form.reset(emptyFormValues);
                     }
                 }}
             >
@@ -450,6 +528,33 @@ export default function PatientGroupsPage() {
                                         <FormLabel className="font-normal">{t('createDialog.isActive')}</FormLabel>
                                     </FormItem>
                                 )} />
+                                <FormField control={form.control} name="is_doctor" render={({ field }) => (
+                                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-lg border p-3">
+                                        <FormControl><Checkbox checked={field.value} onCheckedChange={(checked) => {
+                                            field.onChange(checked);
+                                            if (!checked) form.setValue('user_id', null);
+                                        }} /></FormControl>
+                                        <FormLabel className="font-normal">{t('createDialog.isDoctor')}</FormLabel>
+                                    </FormItem>
+                                )} />
+                                {isDoctor && (
+                                    <FormField control={form.control} name="user_id" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('createDialog.doctor')}</FormLabel>
+                                            <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                                                <FormControl>
+                                                    <SelectTrigger><SelectValue placeholder={t('createDialog.doctorPlaceholder')} /></SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {doctors.map((doc) => (
+                                                        <SelectItem key={doc.id} value={doc.id}>{doc.name}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                )}
                             </DialogBody>
                             <DialogFooter>
                                 <DialogCancelButton disabled={isSaving}>
