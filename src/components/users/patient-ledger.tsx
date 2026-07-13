@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { endOfMonth, format, parseISO, startOfMonth } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { Banknote, Check, ChevronDown, FileMinus, FileText, History, Link2, ListChecks, Loader2, Plus, Printer, Receipt, RefreshCw, ScrollText, Search, Trash2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { DateRange } from 'react-day-picker';
@@ -121,6 +121,11 @@ interface PatientLedgerProps {
   /** Controlled search term. When provided, the ledger filters by it and hides its own
    *  in-toolbar search box (the host renders the search UI itself, e.g. in a header). */
   searchTerm?: string;
+  /** Controlled period filter. When `onDateRangeChange` is provided the ledger becomes
+   *  controlled: it filters by `dateRange` and hides its own in-toolbar picker (the host
+   *  renders the `DateRangePresets` itself, e.g. in a header). */
+  dateRange?: DateRange | undefined;
+  onDateRangeChange?: (range: DateRange | undefined) => void;
 }
 
 /** Imperative handle so hosts (e.g. the account-statement sheet header) can trigger a
@@ -1090,7 +1095,7 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
   );
 }
 
-export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedgerProps>(function PatientLedger({ userId, patientName, patientEmail, refreshTrigger, onPrintSummary, onViewStatement, hideToolbarActions, searchTerm: searchTermProp }: PatientLedgerProps, ref) {
+export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedgerProps>(function PatientLedger({ userId, patientName, patientEmail, refreshTrigger, onPrintSummary, onViewStatement, hideToolbarActions, searchTerm: searchTermProp, dateRange: dateRangeProp, onDateRangeChange }: PatientLedgerProps, ref) {
   const t = useTranslations('PatientLedger');
   const { toast } = useToast();
   const { user: operator } = useAuth();
@@ -1119,12 +1124,12 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
   const [currency, setCurrency] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const prevRefreshTrigger = React.useRef(refreshTrigger);
-  // Period filter — defaults to "Este mes", matching `DateRangePresets`' own internal
-  // default so the picker's label and this seed never disagree on first render.
-  const [dateRange, setDateRange] = React.useState<DateRange | undefined>({
-    from: startOfMonth(new Date()),
-    to: endOfMonth(new Date()),
-  });
+  // Period filter — controllable by a host (the account-statement sheet renders the
+  // picker in its header). Defaults to "Todo el tiempo" (undefined = no date filter).
+  const [internalDateRange, setInternalDateRange] = React.useState<DateRange | undefined>(undefined);
+  const isDateRangeControlled = onDateRangeChange !== undefined;
+  const dateRange = isDateRangeControlled ? dateRangeProp : internalDateRange;
+  const setDateRange = isDateRangeControlled ? onDateRangeChange : setInternalDateRange;
 
   const [billingQuote, setBillingQuote] = React.useState<Quote | null>(null);
   const [billingItemId, setBillingItemId] = React.useState<string | null>(null);
@@ -1622,9 +1627,13 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
   const searchInputRef = React.useRef<HTMLInputElement>(null);
   React.useEffect(() => { if (searchOpen) searchInputRef.current?.focus(); }, [searchOpen]);
 
+  // With both search and the period filter controlled from a host header, and Print/Refresh
+  // hidden, the toolbar can be empty — skip it entirely so it doesn't take a blank row.
+  const showToolbar = !isDateRangeControlled || !isSearchControlled || !!onViewStatement || currencies.length > 1 || !hideToolbarActions;
+
   const toolbar = (
     <div className="flex flex-wrap items-center gap-2">
-      <DateRangePresets value={dateRange} onChange={setDateRange} />
+      {!isDateRangeControlled && <DateRangePresets value={dateRange} onChange={setDateRange} allowAllTime />}
       {!isSearchControlled && (
         <div className="flex items-center">
           <Button
@@ -1693,9 +1702,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
     <>
       <Card className="h-full flex flex-col min-h-0">
         <CardContent className="flex-1 flex flex-col min-h-0 gap-3 p-4">
-          {/* The period filter always needs a home, so the toolbar row is never fully
-              hidden — `hideToolbarActions` still hides just the Print/Refresh icons within it. */}
-          {toolbar}
+          {showToolbar && toolbar}
 
           {/* Both axes scroll on this one container so the sticky header stays column-
               aligned with the cards when the panel is too narrow to fit every column —

@@ -3,10 +3,12 @@
 import * as React from 'react';
 import { FileText, Printer, RefreshCw, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { DateRange } from 'react-day-picker';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { DateRangePresets } from '@/components/reports/date-range-presets';
 import { ResizableSheet, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
 import { PatientLedger, type PatientLedgerHandle } from '@/components/users/patient-ledger';
 import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
@@ -33,12 +35,14 @@ export function PatientLedgerSheet() {
   const [isPrinting, setIsPrinting] = React.useState(false);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [searchOpen, setSearchOpen] = React.useState(false);
+  // Period filter — defaults to "Todo el tiempo" (undefined) every time the sheet opens.
+  const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
   const searchInputRef = React.useRef<HTMLInputElement>(null);
   const ledgerRef = React.useRef<PatientLedgerHandle>(null);
 
   React.useEffect(() => { if (searchOpen) searchInputRef.current?.focus(); }, [searchOpen]);
-  // Reset the search box whenever the sheet re-targets a different patient.
-  React.useEffect(() => { setSearchTerm(''); setSearchOpen(false); }, [userId]);
+  // Reset the search box and period filter whenever the sheet re-targets a different patient.
+  React.useEffect(() => { setSearchTerm(''); setSearchOpen(false); setDateRange(undefined); }, [userId]);
 
   const handlePrint = React.useCallback(async () => {
     if (!userId || isPrinting) return;
@@ -85,6 +89,9 @@ export function PatientLedgerSheet() {
               Close (right-4) controls, which the pr-28 above reserves room for. All icons
               share the same h-8 w-8 button / h-4 w-4 icon sizing. */}
           <div className="flex shrink-0 items-center gap-1">
+            {/* key={userId} remounts the picker when the sheet re-targets another patient,
+                so its label resets to "Todo el tiempo" in step with the cleared filter. */}
+            <DateRangePresets key={userId} value={dateRange} onChange={setDateRange} allowAllTime className="mr-1" />
             <Input
               ref={searchInputRef}
               value={searchTerm}
@@ -137,6 +144,8 @@ export function PatientLedgerSheet() {
               patientName={userName}
               hideToolbarActions
               searchTerm={searchTerm}
+              dateRange={dateRange}
+              onDateRangeChange={setDateRange}
             />
           )}
         </div>

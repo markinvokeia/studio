@@ -7145,7 +7145,9 @@
     "month": "This month",
     "prevMonth": "Last month",
     "year": "This year",
-    "custom": "Custom"
+    "custom": "Custom",
+    "fromPrefix": "From",
+    "toPrefix": "Until"
   },
   "ReportShell": {
     "generate": "Generate Report",

@@ -314,6 +314,8 @@ type DatePickerInputProps = {
   placeholder?: string
   disabled?: boolean
   className?: string
+  /** Overrides the calendar-toggle icon color (defaults to a muted foreground). */
+  iconClassName?: string
   disabledDays?: (date: Date) => boolean
 }
 
@@ -360,6 +362,7 @@ export function DatePickerInput({
   placeholder = 'dd/mm/aaaa',
   disabled = false,
   className,
+  iconClassName,
   disabledDays,
 }: DatePickerInputProps) {
   const [inputValue, setInputValue] = React.useState<string>(() => {
@@ -468,7 +471,10 @@ export function DatePickerInput({
           <PopoverTrigger asChild>
             <button
               type="button"
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground disabled:opacity-50"
+              className={cn(
+                'absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground disabled:opacity-50',
+                iconClassName,
+              )}
               disabled={disabled}
               onClick={(e) => {
                 e.preventDefault()
