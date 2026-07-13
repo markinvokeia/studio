@@ -1,13 +1,35 @@
 # Reconciliación de allocations al editar tratamientos y pagos
 
-**Estado:** Borrador — para revisión de quien mantiene los flujos de n8n
+**Estado:** Implementado — flujos de n8n en producción, frontend ya los usa
 **Fuente:** `docs/n8n-flows/All Sales Quote endpoints.json`, `docs/n8n-flows/Payment.json`
-**Alcance:** `invoices`, `payments`, `payment_allocations`, `invoice_allocations`
+**Alcance:** `invoices`, `payments`, `payment_allocations`, `invoice_allocations`,
+`src/components/users/patient-ledger.tsx`
 
 Dos flujos nuevos para permitir editar un tratamiento o un pago que ya tienen cobros
 aplicados, liberando y re-aplicando sus allocations en vez de dejarlos desincronizados o
-bloquear la edición por completo. Sin cambios de código todavía — esto es la especificación
-para revisar antes de implementar.
+bloquear la edición por completo.
+
+## 0. Estado actual
+
+Los dos flujos (`docs/n8n-flows/flow-invoice-edit-with-reallocation.json` y
+`docs/n8n-flows/flow-payment-edit-with-reallocation.json`) ya se pegaron en n8n. El frontend
+en `patient-ledger.tsx` ya los usa:
+
+- **Tratamientos con pagos aplicados** (`parcial`/`pagado`) ahora se pueden editar in-line
+  igual que uno sin pagos — `QuoteInvoiceInlineEditor` detecta ese caso por `editRow.status`
+  y llama a `INVOICE_ITEMS_EDIT_WITH_REALLOCATION` en vez de `INVOICES_UPSERT`. Como ese
+  endpoint solo toca la línea (no el documento completo), fecha/doctor/notas del tratamiento
+  no se ofrecen para editar en ese caso — igual que ya pasaba con la línea de presupuesto.
+- **Pagos con allocations** ahora también se pueden editar — `PaymentInlineEditor` reemplazó
+  por completo el enfoque de deshacer+recrear por una llamada a
+  `PAYMENT_EDIT_WITH_REALLOCATION` (para todos los pagos, tengan o no allocations). El panel
+  de "seleccionar tratamientos pendientes" se oculta en modo edición porque ya no aplica: la
+  reasignación es automática (FIFO) contra las allocations que el pago ya tenía.
+- Ambos toasts de éxito muestran cuánto quedó liberado como crédito del paciente cuando
+  corresponde (`toasts.releasedCredit`).
+
+Sigue pendiente: probar en la app real ambos casos (edición de tratamiento con pagos mixtos,
+edición de pago con allocations a más de una factura) antes de considerar esto cerrado.
 
 ## 1. El problema
 
@@ -145,17 +167,55 @@ hoy).
 
 ## 5. A confirmar antes de implementar
 
-Tres puntos que no se pudieron verificar solo con los JSON exportados:
+Al armar el flujo de n8n para el Flujo A (`docs/n8n-flows/flow-invoice-edit-with-reallocation.json`)
+se pudieron confirmar dos de los tres puntos que habían quedado pendientes:
 
-- **Esquema exacto de `invoice_allocations`** — nombres de columnas (`source_id`/`target_id`
-  u otros). Se infirió parcialmente de `credit_note/undo`, que borra por `source_id`, pero no
-  se vio el INSERT completo.
-- **`invoices.paid_amount`** — ¿es una columna guardada que hay que recalcular en el Flujo A,
-  o se deriva siempre al leer (como hace `Obtener Info Factura` en `Payment.json`, vía
-  `SUM(payments...)`)?
-- **Garantía de unicidad/orden de `created_at`** en ambas tablas de allocations — si dos
-  filas pueden compartir el mismo timestamp, hace falta el desempate por `id` ascendente
-  para que el FIFO sea determinístico.
+- ~~**Esquema exacto de `invoice_allocations`**~~ — **Confirmado.** El nodo `Insert invoice
+  allocations` en `Payment.json` muestra el esquema completo:
+  `id, source_id, target_id, amount, created_at, created_by, allocated_currency,
+  target_amount, exchange_rate`. `source_id` es el origen del crédito (la nota de crédito),
+  `target_id` es la factura acreditada — tal como se había asumido.
+- ~~**`invoices.paid_amount`**~~ — **Confirmado que se deriva, no se guarda.** El `INSERT INTO
+  public.invoices` de `invoices/upsert` no incluye una columna `paid_amount` — se calcula al
+  leer, vía `SUM(payments...)` (como hace `Obtener Info Factura` en `Payment.json`). El Flujo A
+  no necesita tocar ninguna columna de "monto pagado" en `invoices`, solo `total`.
+- **Garantía de unicidad/orden de `created_at`** en ambas tablas de allocations — sigue sin
+  confirmar. El flujo ya generado ordena por `created_at ASC, id ASC` para que el FIFO sea
+  determinístico incluso si hay timestamps repetidos, así que no bloquea la implementación,
+  pero vale la pena confirmar que `id` efectivamente refleja el orden real de inserción.
+
+## 5.1 Flujo A ya generado
+
+`docs/n8n-flows/flow-invoice-edit-with-reallocation.json` contiene el flujo completo y listo
+para copiar-pegar en el canvas de la workflow "All Sales Quote endpoints" en n8n — 20 nodos:
+validación de datos requeridos, chequeo de que la factura exista, actualización de la línea
+y recálculo del total, lectura + borrado de ambas fuentes de allocations, el cálculo FIFO
+(nodo de código `Merge & Reallocate FIFO`), y un loop que reinserta cada allocation en la
+tabla que corresponda (`payment_allocations` o `invoice_allocations`) antes de responder.
+
+## 5.2 Flujo B ya generado
+
+`docs/n8n-flows/flow-payment-edit-with-reallocation.json` — 27 nodos, construido reusando
+la estructura exacta de `payments/edit` (mismo sub-flujo `Is Cash session active workflow`,
+mismo patrón de `Remove cash movement` + reinsertar si el método final es efectivo), con
+tres extensiones sobre el endpoint original:
+
+- **Detección de cambios** (`Detectar cambios`, nodo de código): el chequeo de sesión de
+  caja solo se dispara si realmente cambia el método o el monto — si el pago solo cambia de
+  fecha/notas, se saltea por completo y va directo a `Update Payment In Place`.
+- **Pagos históricos:** `payments/edit` bloquea con "old cash session" a cualquier pago sin
+  `cash_session_id` (porque su única condición exige que la sesión activa coincida con la
+  del pago). Como el Flujo B sí necesita poder editar pagos históricos (`is_historical` es
+  parte del payload), `Evaluar sesion de caja` trata "nunca tuvo sesión" como válido, y solo
+  bloquea cuando el pago sí tenía una sesión y ya no es la activa.
+- **`Get payment description` con `alwaysOutputData: true`:** el nodo original no lo tiene,
+  y con un pago sin factura (prepago) la consulta no matchea ninguna fila — sin ese flag el
+  nodo no emite ningún item y la cadena hacia `Registrar Movimiento Caja` se corta en seco.
+  Vale la pena confirmar si `payments/edit` tiene este mismo problema latente.
+
+Después de actualizar el pago en el lugar, reaplica FIFO las `payment_allocations`
+existentes contra el nuevo monto (mismo algoritmo y mismo criterio de desempate que el
+Flujo A), reinsertando solo lo que entra y dejando el resto como crédito disponible del pago.
 
 ## 6. Referencia — endpoints existentes revisados
 

@@ -613,21 +613,28 @@ type QuoteEditorValues = z.infer<typeof quoteEditorSchema>;
  *   it recalculates the quote's total itself). That endpoint only touches `quote_items`,
  *   not the quote's own date/doctor/notes, so those fields aren't offered here in edit
  *   mode — editing them would silently no-op.
- * - Anything already billed (with or without a quote behind it) re-sends the whole invoice
- *   via `INVOICES_UPSERT` by id, passing every sibling item so nothing is lost — unlike
- *   quotes, this preserves item ids for anything not being edited (no full item churn),
- *   and the invoice's date/doctor/notes are real fields on that same call, so they stay
- *   editable here.
+ * - A billed treatment with no payments yet (`facturado`) re-sends the whole invoice via
+ *   `INVOICES_UPSERT` by id, passing every sibling item so nothing is lost — this preserves
+ *   item ids for anything not being edited, and the invoice's date/doctor/notes are real
+ *   fields on that same call, so they stay editable here.
+ * - A billed treatment that already has payments and/or credit-note allocations against it
+ *   (`parcial`/`pagado`) upserts just this one line via `INVOICE_ITEMS_EDIT_WITH_REALLOCATION`
+ *   instead — changing the total there would otherwise leave those allocations pointing at
+ *   an amount that no longer exists, so the backend releases them and re-applies as much as
+ *   still fits (FIFO), before recalculating the invoice's total. Like the presupuesto case,
+ *   that endpoint only touches the one line, so date/doctor/notes aren't offered here either.
  */
 function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editItems, userId, currency, onCancel, onSaved }: {
   doc: 'quote' | 'invoice';
   editRow?: LedgerRow;
-  /** The full invoice behind `editRow` — only set when editing a billed treatment (its
-   *  date/doctor/notes are real fields on `INVOICES_UPSERT`, so they're editable here). An
-   *  unbilled presupuesto edits through `QUOTES_LINES_UPSERT` instead, which only touches
-   *  `quote_items` — so it has no equivalent quote-level fields to prefill or edit here. */
+  /** The full invoice behind `editRow` — only set when editing a billed treatment. Its
+   *  date/doctor/notes are only editable here for an unpaid (`facturado`) invoice, where
+   *  they're real fields on `INVOICES_UPSERT`; a presupuesto or an already-paid invoice
+   *  edits through a line-only endpoint with no equivalent document-level fields. */
   editInvoice?: Invoice;
-  /** Every sibling item of the quote/invoice being edited, so the whole set is re-sent on save. */
+  /** Every sibling item of the quote/invoice being edited. Only actually needed (all of
+   *  them) for the whole-invoice resend path; the two line-only edit paths just look up
+   *  this one item in it for prefill (e.g. `tooth_number`, which isn't on `LedgerRow`). */
   editItems?: (QuoteItem | InvoiceItem)[];
   userId: string;
   currency: string;
@@ -637,11 +644,15 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editItems, userId
   const t = useTranslations('PatientLedger');
   const { toast } = useToast();
   const isEdit = !!editRow;
-  const editKind: 'quote' | 'invoice' = editRow?.status === 'presupuestado' ? 'quote' : 'invoice';
-  // Editing a presupuesto line goes through QUOTES_LINES_UPSERT, which has no
-  // date/doctor/notes fields of its own — so that whole second line of the editor is
-  // hidden, and the date is shown read-only, for that one case.
-  const isQuoteLineEdit = isEdit && editKind === 'quote';
+  const editKind: 'quote' | 'invoice' | 'invoice-reallocate' = editRow?.status === 'presupuestado'
+    ? 'quote'
+    : (editRow?.status === 'parcial' || editRow?.status === 'pagado')
+      ? 'invoice-reallocate'
+      : 'invoice';
+  // Both line-only endpoints (quote lines, and an already-paid invoice's reallocation edit)
+  // have no date/doctor/notes fields of their own — so that whole second line of the editor
+  // is hidden, and the date is shown read-only, for either case.
+  const isLineOnlyEdit = isEdit && (editKind === 'quote' || editKind === 'invoice-reallocate');
   const [submitting, setSubmitting] = React.useState(false);
   const editItem = editItems?.find((i) => i.id === editRow?.itemId);
   const [doctorName, setDoctorName] = React.useState(editInvoice?.doctor_name || '');
@@ -683,6 +694,29 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editItems, userId
         });
         if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message);
         toast({ title: t('toasts.itemUpdated') });
+      } else if (isEdit && editKind === 'invoice-reallocate') {
+        // A single invoice_items row, matched by id — the backend releases whatever
+        // payment_allocations/invoice_allocations already pointed at this invoice, edits
+        // the line, recalculates the total, and re-applies as much of what was released as
+        // still fits (FIFO), before responding with what didn't fit as `released_amount`.
+        const res = await api.post(API_ROUTES.SALES.INVOICE_ITEMS_EDIT_WITH_REALLOCATION, {
+          invoice_id: editRow!.invoiceId,
+          item_id: editRow!.itemId,
+          service_id: values.service_id,
+          quantity: qty,
+          unit_price: values.unit_price,
+          total: qty * values.unit_price,
+          tooth_number: tooth,
+        });
+        const result = Array.isArray(res) ? res[0] : res;
+        if (result?.error || (typeof result?.code === 'number' && result.code >= 400)) {
+          throw new Error(result?.message);
+        }
+        const released = Number(result?.released_amount) || 0;
+        toast({
+          title: t('toasts.itemUpdated'),
+          description: released > 0.005 ? t('toasts.releasedCredit', { amount: fmtAmountZero(released, currency) }) : undefined,
+        });
       } else if (isEdit) {
         // Re-send the whole invoice (all sibling items preserved by id), overriding the
         // edited line, so the invoice-level fields (date, doctor, notes) and the line
@@ -764,7 +798,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editItems, userId
       <InlineEditorShell
         docLabel={t(doc === 'quote' ? 'inline.addQuote' : 'inline.addTreatment')}
         dateSlot={
-          isQuoteLineEdit ? (
+          isLineOnlyEdit ? (
             <span className="text-xs text-muted-foreground">{formatDisplayDate(editRow!.date)}</span>
           ) : (
             <DatePickerInput
@@ -823,7 +857,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editItems, userId
         haberSlot={<DisabledAmountCell />}
         controls={<EditorControls submitting={submitting} onCancel={onCancel} />}
         secondLine={
-          isQuoteLineEdit ? undefined : (
+          isLineOnlyEdit ? undefined : (
             <>
               <div className="min-w-[10rem] flex-1">
                 <DoctorSelector
@@ -878,12 +912,13 @@ export type PendingInvoiceLite = {
  * less than the total payment — the remainder is booked as credit via `is_prepaid: true` —
  * but it can never exceed it.
  *
- * In edit mode (`editRow`/`editPayment` set) there's no "update payment" endpoint on the
- * backend, so saving undoes the original transaction (`PAYMENT_UNDO`) first and then
- * creates a new one with the edited values — same as a manual delete+recreate, just in one
- * step. Only offered for payments with no invoice allocations (see the "Editar" gating in
- * the parent), since re-deriving which invoices an allocated payment covered isn't safe to
- * infer here.
+ * In edit mode (`editRow`/`editPayment` set) saving instead calls
+ * `PAYMENT_EDIT_WITH_REALLOCATION`: the backend updates the payment row in place (so no
+ * duplicate "payment received" email, and the original cash session isn't lost), then
+ * releases and re-applies (FIFO) whatever invoice allocations the payment already had
+ * against the new amount. Because reallocation is automatic, the "seleccionar tratamientos
+ * pendientes" panel — which is for choosing new allocations — doesn't apply here and is
+ * hidden in edit mode.
  */
 function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pendingInvoices, editRow, editPayment, onCancel, onSaved }: {
   userId: string;
@@ -996,7 +1031,36 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
 
   const onSubmit = async (values: PaymentEditorValues) => {
     if (submitting || !operator) return;
-    if (isEdit && (!editRow?.paymentId || !editRow?.transactionType)) return;
+    if (isEdit) {
+      if (!editRow?.paymentId) return;
+      setSubmitting(true);
+      try {
+        const res = await api.post(API_ROUTES.SALES.PAYMENT_EDIT_WITH_REALLOCATION, {
+          payment_id: editRow.paymentId,
+          payment_date: toLocalISOString(preserveTimeIfToday(values.created_at)),
+          amount: values.payment_amount,
+          payment_method_id: values.payment_method_id,
+          notes: values.notes || '',
+          is_historical: values.is_historical,
+        });
+        const result = Array.isArray(res) ? res[0] : res;
+        if (result?.error || (typeof result?.code === 'number' && result.code >= 400)) {
+          throw new Error(result?.message);
+        }
+        const released = Number(result?.released_amount) || 0;
+        toast({
+          title: t('toasts.paymentUpdated'),
+          description: released > 0.005 ? t('toasts.releasedCredit', { amount: fmtAmountZero(released, currency) }) : undefined,
+        });
+        await checkActiveSession();
+        await onSaved();
+      } catch (e: any) {
+        toast({ title: e?.message || t('toasts.paymentUpdateError'), variant: 'destructive' });
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
     const invoiceAllocations = Object.entries(alloc)
       .filter(([, a]) => a > 0.005)
       .map(([id, a]) => ({ invoice_id: Number(id), amount: a }));
@@ -1052,21 +1116,11 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
       });
       if (res?.error && res?.code >= 400) throw new Error(res.message);
       if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message);
-      if (isEdit) {
-        // No "update payment" endpoint — create the replacement first (above), then undo
-        // the original transaction, so a failure here leaves both instead of losing the
-        // payment outright.
-        const undoRes = await api.post(API_ROUTES.SALES.PAYMENT_UNDO, {}, undefined, {
-          transaction_id: editRow!.paymentId as string,
-          transaction_type: editRow!.transactionType as NonNullable<LedgerRow['transactionType']>,
-        });
-        if (Array.isArray(undoRes) && undoRes[0]?.code >= 400) throw new Error(undoRes[0]?.message);
-      }
-      toast({ title: t(isEdit ? 'toasts.paymentUpdated' : 'toasts.paymentCreated') });
+      toast({ title: t('toasts.paymentCreated') });
       await checkActiveSession();
       await onSaved();
     } catch (e: any) {
-      toast({ title: e?.message || t(isEdit ? 'toasts.paymentUpdateError' : 'toasts.paymentCreateError'), variant: 'destructive' });
+      toast({ title: e?.message || t('toasts.paymentCreateError'), variant: 'destructive' });
     } finally {
       setSubmitting(false);
     }
@@ -1113,19 +1167,21 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
               <Checkbox checked={isHistorical} onCheckedChange={(c) => form.setValue('is_historical', !!c)} />
               {t('fields.historical')}
             </label>
-            <Button
-              type="button"
-              size="sm"
-              variant={showAllocations ? 'secondary' : 'outline'}
-              className="h-8 shrink-0 gap-1.5 text-xs"
-              onClick={toggleAllocationsPanel}
-              disabled={sortedPending.length === 0}
-            >
-              <ListChecks className="h-3.5 w-3.5" />{t('inline.selectPending')}
-            </Button>
+            {!isEdit && (
+              <Button
+                type="button"
+                size="sm"
+                variant={showAllocations ? 'secondary' : 'outline'}
+                className="h-8 shrink-0 gap-1.5 text-xs"
+                onClick={toggleAllocationsPanel}
+                disabled={sortedPending.length === 0}
+              >
+                <ListChecks className="h-3.5 w-3.5" />{t('inline.selectPending')}
+              </Button>
+            )}
           </>
         }
-        belowSlot={showAllocations && (
+        belowSlot={!isEdit && showAllocations && (
           <div className="mt-3 rounded-md border border-border bg-background/70 p-2.5">
             <div className="mb-2 flex items-center justify-between text-xs">
               <span className="font-medium">{t('allocations.title')}</span>
@@ -1496,11 +1552,15 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
   }, [userId, load, t, toast, isMarkingEnCurso]);
 
   /**
-   * En curso → Finalizado: pays the invoice's single line in full, purely from the
-   * patient's available credit (built up via "Nuevo Pago", which now only ever creates a
-   * prepayment/credit — never applies cash to an invoice directly). When the available
-   * credit falls short, the action is silently a no-op — the row stays at its current
-   * status without any warning dialog or toast.
+   * En curso → Finalizado: applies whatever of the patient's available credit fits (built
+   * up via "Nuevo Pago", which now only ever creates a prepayment/credit — never applies
+   * cash to an invoice directly), then forces the row's status to Finalizado regardless of
+   * whether that covered the whole balance. This is a manual staff action — clicking
+   * "Finalizado" means "treat this as finalized", not "only if the numbers happen to add
+   * up" — so any gap not covered by credit is left uncollected rather than blocking the
+   * status change. The force itself goes through `INVOICE_PAYMENT_STATE_SET`, which only
+   * touches `invoices.payment_state` (not `paid_amount`) — see
+   * `docs/finalizado-manual-tratamiento.md`.
    */
   const handleMarkFinalized = React.useCallback(async (row: LedgerRow) => {
     if (!row.invoiceId || isMarkingFinalized) return;
@@ -1516,22 +1576,36 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
         .filter((p) => p.invoice_id === row.invoiceId)
         .reduce((sum, p) => sum + Math.abs(Number(p.amount_applied ?? p.amount ?? 0)), 0);
       const remaining = round2(row.debe - alreadyApplied);
-      if (remaining <= 0.005) {
-        toast({ title: t('toasts.alreadyFinalized') });
-        return;
+
+      let stillPending = 0;
+      if (remaining > 0.005) {
+        const creditsRes: any = await api.get(API_ROUTES.USER_CREDIT, { user_id: userId });
+        const credits = (Array.isArray(creditsRes) ? creditsRes : [])
+          .filter((c: any) => c && c.source_id && (c.currency || row.currency) === row.currency && parseFloat(c.available_balance) > 0.005);
+        const totalAvailable = round2(credits.reduce((sum: number, c: any) => sum + parseFloat(c.available_balance), 0));
+
+        if (totalAvailable > 0.005) {
+          const amountToApply = round2(Math.min(totalAvailable, remaining));
+          await postCreditAllocation({ userId, patientName, patientEmail, operator, row, amount: amountToApply, credits, sessionId: validation.sessionId });
+          stillPending = round2(remaining - amountToApply);
+        } else {
+          stillPending = remaining;
+        }
       }
 
-      const creditsRes: any = await api.get(API_ROUTES.USER_CREDIT, { user_id: userId });
-      const credits = (Array.isArray(creditsRes) ? creditsRes : [])
-        .filter((c: any) => c && c.source_id && (c.currency || row.currency) === row.currency && parseFloat(c.available_balance) > 0.005);
-      const totalAvailable = round2(credits.reduce((sum: number, c: any) => sum + parseFloat(c.available_balance), 0));
-
-      if (totalAvailable + 0.005 < remaining) {
-        return;
+      const stateRes = await api.post(API_ROUTES.SALES.INVOICE_PAYMENT_STATE_SET, {
+        invoice_id: Number(row.invoiceId),
+        payment_state: 'paid',
+      });
+      const stateResult = Array.isArray(stateRes) ? stateRes[0] : stateRes;
+      if (stateResult?.error || (typeof stateResult?.code === 'number' && stateResult.code >= 400)) {
+        throw new Error(stateResult?.message);
       }
 
-      await postCreditAllocation({ userId, patientName, patientEmail, operator, row, amount: remaining, credits, sessionId: validation.sessionId });
-      toast({ title: t('toasts.itemFinalized') });
+      toast({
+        title: t('toasts.itemFinalized'),
+        description: stillPending > 0.005 ? t('toasts.itemFinalizedManualDesc', { pending: fmtAmountZero(stillPending, row.currency) }) : undefined,
+      });
       await load(true);
     } catch (e: any) {
       toast({ title: e?.message || t('toasts.itemFinalizeError'), variant: 'destructive' });
@@ -1540,14 +1614,19 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
     }
   }, [userId, patientName, patientEmail, ledgerData, load, t, toast, isMarkingFinalized, validateActiveSession, showCashSessionError, operator]);
 
-  /** Finalizado → En curso: undoes every payment transaction applied to this invoice,
-   *  returning their amounts to the patient's credit pool and the invoice to unpaid. */
+  /**
+   * Finalizado → En curso: undoes every real payment transaction applied to this invoice
+   * (if any — a "Finalizado" forced with no credit behind it has none), then always forces
+   * `payment_state` back to `unpaid` via `INVOICE_PAYMENT_STATE_SET`. That force is needed
+   * regardless of whether anything was undone: since `handleMarkFinalized` can finalize a
+   * row purely by force (no real payment created), there may be nothing to revert here, and
+   * without the force the row would just stay stuck on Finalizado forever.
+   */
   const handleUnmarkFinalized = React.useCallback(async (row: LedgerRow) => {
     if (!row.invoiceId || isUnmarkingFinalized) return;
     setIsUnmarkingFinalized(true);
     try {
       const payments = (ledgerData?.payments || []).filter((p) => p.invoice_id === row.invoiceId);
-      if (payments.length === 0) throw new Error(t('toasts.noPaymentsToUndo'));
       for (const p of payments) {
         const res = await api.post(API_ROUTES.SALES.PAYMENT_UNDO, {}, undefined, {
           transaction_id: p.id,
@@ -1555,6 +1634,16 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
         });
         if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message);
       }
+
+      const stateRes = await api.post(API_ROUTES.SALES.INVOICE_PAYMENT_STATE_SET, {
+        invoice_id: Number(row.invoiceId),
+        payment_state: 'unpaid',
+      });
+      const stateResult = Array.isArray(stateRes) ? stateRes[0] : stateRes;
+      if (stateResult?.error || (typeof stateResult?.code === 'number' && stateResult.code >= 400)) {
+        throw new Error(stateResult?.message);
+      }
+
       toast({ title: t('toasts.itemUnfinalized') });
       await load(true);
     } catch (e: any) {
@@ -1770,15 +1859,18 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
     const quoteStatus = (row.quoteStatus || '').toLowerCase();
     const showInvoice = isUnbilledQuoteItem && INVOICEABLE_QUOTE_STATUSES.includes(quoteStatus) && canInvoiceQuote;
     const showCreateCreditNote = isInvoiceItem && !!row.invoiceId && getMaxCreditableForInvoice(row.invoiceId) > 0.005 && canCreateCreditNote;
-    // Editing a billed treatment is only offered while it's still fully unpaid — once a
-    // payment has touched it (parcial/pagado), changing its total would desync the amounts
-    // already applied against it.
+    // A billed treatment with payments/allocations already against it (parcial/pagado)
+    // edits through INVOICE_ITEMS_EDIT_WITH_REALLOCATION instead of the whole-invoice
+    // resend — see QuoteInvoiceInlineEditor's editKind — so it's just as editable as an
+    // unpaid one now.
     const showEditItem =
       (isUnbilledQuoteItem && canEditQuote) ||
-      (isInvoiceItem && row.status === 'facturado' && canEditInvoice);
-    // Only pure prepayments/credit (no invoice_id) are safe to edit — see the "Editar
-    // pagos" decision: allocated payments keep their delete-only path for now.
-    const showEditPayment = isPayment && !row.invoiceId && row.transactionType !== 'credit_note_allocation' && canCreatePaymentPerm;
+      (isInvoiceItem && canEditInvoice);
+    // Payments with allocations now edit through PAYMENT_EDIT_WITH_REALLOCATION (which
+    // releases and re-applies them FIFO), same as pure prepayments/credit — see
+    // PaymentInlineEditor's editKind. Credit-note-derived rows stay excluded: they're
+    // auto-derived bookkeeping, not something the user created directly.
+    const showEditPayment = isPayment && row.transactionType !== 'credit_note_allocation' && canCreatePaymentPerm;
     // Only structured credit notes (with their own itemId/serviceId) carry enough
     // information to be resent on edit; the rare lump-sum ones stay delete-only.
     const showEditCreditNote = isCreditNote && !!row.itemId && !!row.serviceId && canCreateCreditNote;
@@ -1982,9 +2074,8 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
 
                     // A row being edited swaps its whole static display for the matching
                     // inline editor, pre-filled, in the same slot — same visual position,
-                    // no dialog. `editKind` mirrors QuoteInvoiceInlineEditor's own rule:
-                    // an unbilled presupuesto edits the quote; anything already billed
-                    // edits the invoice.
+                    // no dialog. QuoteInvoiceInlineEditor derives its own editKind from
+                    // `row.status`, so it doesn't need to be told apart here.
                     if (editingItemRowId === row.id) {
                       return (
                         <div key={row.id} className="rounded-lg">
