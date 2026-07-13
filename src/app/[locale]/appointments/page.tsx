@@ -72,7 +72,7 @@ import { getSalesServices, getUsersServicesBatch, fetchServicesByIds } from '@/s
 import { ColumnDef } from '@tanstack/react-table';
 import { addMinutes, eachDayOfInterval, endOfMonth, endOfWeek, format, isValid, parseISO, set, startOfMonth, startOfWeek } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
-import { BellRing, BookOpenText, Building2, Calendar as CalendarIcon, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ChevronLeft, ClipboardCheck, Edit, FileText, History, Images, Layers, Link2, Loader2, Palette, PlusCircle, Receipt, RefreshCw, Stethoscope, Trash2, UserCog, UserRound, Users, X, Zap } from 'lucide-react';
+import { BellRing, BookOpenText, Building2, Calendar as CalendarIcon, CalendarDays, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileText, History, Images, Layers, Link2, Loader2, Palette, PlusCircle, Receipt, RefreshCw, Stethoscope, Trash2, UserCog, UserRound, Users, X, Zap } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
@@ -671,6 +671,19 @@ export default function AppointmentsPage() {
         window.addEventListener('keydown', onKeyDown);
         return () => window.removeEventListener('keydown', onKeyDown);
     }, [calendarMode, currentView, calendarZoom, applyCalendarZoom]);
+    // Ctrl/Cmd B toggles the Agendas side panel (custom mode only).
+    React.useEffect(() => {
+        if (calendarMode !== 'custom') return;
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'b') return;
+            const el = e.target as HTMLElement | null;
+            if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+            e.preventDefault();
+            setAgendasPanelOpen((o) => !o);
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [calendarMode]);
 
     const tBulk = useTranslations('AppointmentsPage.bulk');
 
@@ -3432,16 +3445,7 @@ export default function AppointmentsPage() {
                         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                     </div>
                 ) : (
-                    <>
-                        {gapsActive && (
-                            <CalendarGapsPanel
-                                gaps={calendarGaps}
-                                selectedGapKey={selectedGap ? gapKey(selectedGap) : undefined}
-                                dateLocale={gapsDateLocale}
-                                onSelect={handleSelectGap}
-                                onClose={handleCloseGaps}
-                            />
-                        )}
+                    <div className="flex h-full">
                         {isCustomMode && agendasPanelOpen && (
                             <CalendarAgendasPanel
                                 sedeGroups={calendarSedeGroups.sedeGroups}
@@ -3450,6 +3454,16 @@ export default function AppointmentsPage() {
                                 selectedId={personalizedCalendarId}
                                 onSelect={(id) => { setPersonalizedCalendarId(id); setAgendasPanelOpen(false); }}
                                 onClose={() => setAgendasPanelOpen(false)}
+                            />
+                        )}
+                        <div className={cn('relative h-full min-w-0 flex-1', isCustomMode && agendasPanelOpen && '[&_.calendar-container]:rounded-l-none')}>
+                        {gapsActive && (
+                            <CalendarGapsPanel
+                                gaps={calendarGaps}
+                                selectedGapKey={selectedGap ? gapKey(selectedGap) : undefined}
+                                dateLocale={gapsDateLocale}
+                                onSelect={handleSelectGap}
+                                onClose={handleCloseGaps}
                             />
                         )}
                         <Calendar
@@ -3475,15 +3489,16 @@ export default function AppointmentsPage() {
                             zoom={isCustomMode ? calendarZoom : undefined}
                             onZoomChange={applyCalendarZoom}
                             showZoomSlider={!isCustomMode}
-                            leadingActions={isCustomMode && !agendasPanelOpen ? (
+                            leadingActions={isCustomMode ? (
                                 <Button
-                                    variant="outline"
+                                    variant={agendasPanelOpen ? 'default' : 'outline'}
                                     size="sm"
                                     className="h-10 gap-1.5 shrink-0"
-                                    onClick={() => setAgendasPanelOpen(true)}
+                                    onClick={() => setAgendasPanelOpen((o) => !o)}
+                                    title="Ctrl+B"
                                 >
-                                    <ChevronLeft className="h-4 w-4" />
-                                    {tCalendar('back')}
+                                    <CalendarDays className="h-4 w-4" />
+                                    {tCalendar('agendas')}
                                 </Button>
                             ) : undefined}
                             onViewChange={(v) => { setCurrentView(v); setInlineDraft(null); }}
@@ -4018,7 +4033,8 @@ export default function AppointmentsPage() {
                             </div>
 
                         </Calendar>
-                    </>
+                        </div>
+                    </div>
                 )}
             </CardContent>
 
