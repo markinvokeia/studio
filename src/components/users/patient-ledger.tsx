@@ -419,7 +419,17 @@ async function fetchInvoicePaymentsList(invoiceId: string): Promise<LiteAllocati
  * caches per-row for the component's lifetime; while open, tells the parent which doc
  * numbers to highlight elsewhere in the visible ledger.
  */
-function RowAllocationsPopover({ row, onHighlight }: { row: LedgerRow; onHighlight: (docNos: Set<string> | null) => void }) {
+function RowAllocationsPopover({
+  row,
+  invoiceDocNoById,
+  onHighlight,
+}: {
+  row: LedgerRow;
+  /** `invoiceId -> doc_no` lookup, needed to label the payment's own directly-linked invoice
+   *  (it isn't returned by `PAYMENT_ALLOCATIONS`, see below). */
+  invoiceDocNoById: Map<string, string>;
+  onHighlight: (docNos: Set<string> | null) => void;
+}) {
   const t = useTranslations('PatientLedger');
   const [open, setOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
@@ -438,9 +448,26 @@ function RowAllocationsPopover({ row, onHighlight }: { row: LedgerRow; onHighlig
       return;
     }
     setLoading(true);
-    const data = row.kind === 'payment'
-      ? await fetchPaymentAllocations(row.paymentId!)
-      : await fetchInvoicePaymentsList(row.invoiceId!);
+    let data: LiteAllocation[];
+    if (row.kind === 'payment') {
+      // `PAYMENT_ALLOCATIONS` only returns the *extra* invoices a split payment was spread
+      // onto (via `invoice_allocations` at creation time) — the payment's own directly-paid
+      // invoice (`row.invoiceId`, every row here being a `direct_payment`) never shows up
+      // there, so it has to be prepended from the row itself.
+      const extra = await fetchPaymentAllocations(row.paymentId!);
+      const direct: LiteAllocation[] = row.invoiceId
+        ? [{
+            key: `direct-${row.invoiceId}`,
+            docNo: invoiceDocNoById.get(row.invoiceId) || '',
+            amount: row.haber,
+            currency: row.currency,
+            date: row.date,
+          }]
+        : [];
+      data = [...direct, ...extra];
+    } else {
+      data = await fetchInvoicePaymentsList(row.invoiceId!);
+    }
     cacheRef.current = data;
     setItems(data);
     setLoading(false);
@@ -1610,6 +1637,16 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
     finalBalance: rowsInRange.length > 0 ? rowsInRange[rowsInRange.length - 1].runningBalance : 0,
   }), [rowsInRange]);
 
+  // `invoiceId -> doc_no`, used to label a direct payment's own invoice in the allocations
+  // popover (see `RowAllocationsPopover`).
+  const invoiceDocNoById = React.useMemo(() => {
+    const map = new Map<string, string>();
+    for (const i of ledgerData?.invoices || []) {
+      map.set(i.id, i.doc_no || i.invoice_doc_no || i.id);
+    }
+    return map;
+  }, [ledgerData]);
+
   // Invoices with an outstanding balance — offered as targets for a payment's allocations.
   const pendingInvoices = React.useMemo<PendingInvoiceLite[]>(() => {
     return (ledgerData?.invoices || [])
@@ -1783,7 +1820,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
                               )}
                             </div>
                             {showAllocationsLink && (
-                              <RowAllocationsPopover row={row} onHighlight={setHighlightedDocNos} />
+                              <RowAllocationsPopover row={row} invoiceDocNoById={invoiceDocNoById} onHighlight={setHighlightedDocNos} />
                             )}
                           </div>
                           <div className="w-24 shrink-0 text-right text-sm tabular-nums">
