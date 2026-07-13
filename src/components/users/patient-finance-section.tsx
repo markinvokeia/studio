@@ -37,8 +37,8 @@ interface PatientFinanceSectionProps {
 
 /**
  * Switches between the two patient finance layouts per the user's `finance_view`
- * preference (see /preferences): 'unified' — labeled "Clásico" to users — renders the
- * single-timeline `PatientLedger`; 'tabs' — labeled "Nuevo" — renders `FinanceTabsView`,
+ * preference (see /preferences): 'unified' — labeled "Personalizado" to users — renders
+ * the single-timeline `PatientLedger`; 'tabs' — labeled "Normal" — renders `FinanceTabsView`,
  * the separate Quotes/Invoices/Payments tabs. Mind the inversion: `finance_view` values
  * don't match their user-facing labels 1:1, so don't infer one from the other's name.
  */
@@ -85,7 +85,7 @@ export function PatientFinanceSection({
       onPrintSummary={onPrintSummary}
       // No onViewStatement here — this IS the unified statement already, so the
       // "view statement" shortcut would just open a duplicate of itself. Only the
-      // classic tabs view (which doesn't have a consolidated timeline) needs it.
+      // tabs view (which doesn't have a consolidated timeline) needs it.
     />
   );
 }

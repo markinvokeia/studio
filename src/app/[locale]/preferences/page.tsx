@@ -77,7 +77,7 @@ export default function UserPreferencesPage() {
                         <p className="text-xs text-muted-foreground mt-0.5">{t('financeViewDescription')}</p>
                     </div>
                     <div className="flex gap-2">
-                        {(['unified', 'tabs'] as PatientFinanceView[]).map((view) => (
+                        {(['tabs', 'unified'] as PatientFinanceView[]).map((view) => (
                             <button
                                 key={view}
                                 type="button"

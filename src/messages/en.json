@@ -6197,8 +6197,8 @@
     "financeViewLabel": "Finance tab layout",
     "financeViewDescription": "Choose how the patient's finance tab is displayed.",
     "financeView": {
-      "unified": "Classic",
-      "tabs": "New"
+      "unified": "Custom",
+      "tabs": "Normal"
     }
   },
   "UserCommunicationPreferences": {

@@ -6177,8 +6177,8 @@
     "financeViewLabel": "Diseño de la pestaña Finanzas",
     "financeViewDescription": "Elige cómo se muestra la pestaña de finanzas del paciente.",
     "financeView": {
-      "unified": "Clásico",
-      "tabs": "Nuevo"
+      "unified": "Personalizado",
+      "tabs": "Normal"
     }
   },
   "UserCommunicationPreferences": {

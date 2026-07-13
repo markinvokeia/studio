@@ -94,7 +94,7 @@ export function PatientDetailSheet({
   const [createDocumentTrigger, setCreateDocumentTrigger] = React.useState(0);
   const [allergies, setAllergies] = React.useState<AllergySummaryItem[]>([]);
 
-  // Finance quick actions — same lightweight dialogs the "Clásico" ledger uses on the
+  // Finance quick actions — same lightweight dialogs the "Personalizado" ledger uses on the
   // patients list page; this sheet is the other place that view is reused from (e.g.
   // opened from the appointments page), so it needs the same "…" toolbar wired up.
   const [quickTreatmentDialogMode, setQuickTreatmentDialogMode] = React.useState<'quote' | 'invoice' | null>(null);
