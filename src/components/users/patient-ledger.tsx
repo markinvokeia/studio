@@ -391,7 +391,11 @@ async function fetchInvoicePaymentsList(invoiceId: string): Promise<LiteAllocati
     const data = await api.get(API_ROUTES.SALES.INVOICE_PAYMENTS, { invoice_id: invoiceId, is_sales: 'true' });
     const raw: any[] = Array.isArray(data) ? data : (data.payments || data.data || []);
     return raw
-      .filter((p) => p && p.status !== 'failed')
+      // Empty responses come back as `[{ success: true }]`; skip those ack objects.
+      .filter((p) =>
+        p && typeof p === 'object' && p.status !== 'failed' &&
+        (p.id != null || p.amount_applied != null || p.amount != null || p.doc_no || p.payment_doc_no)
+      )
       .map((p) => ({
         key: String(p.transaction_id || p.id || `${invoiceId}-${p.payment_date || Math.random()}`),
         docNo: p.doc_no || String(p.transaction_doc_no || ''),
