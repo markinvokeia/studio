@@ -1,25 +1,25 @@
 'use client';
 
 import * as React from 'react';
-import { Check, ChevronsUpDown, Loader2, UsersRound, X } from 'lucide-react';
+import { Check, ChevronsUpDown, Loader2, Boxes, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
+import { PURCHASES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 
-interface PatientGroupsFieldProps {
-    /** Patient whose groups are managed. Omit for deferred mode (patient not
+interface ProviderGroupsFieldProps {
+    /** Provider whose groups are managed. Omit for deferred mode (provider not
      *  created yet): the selection is reported via `onChange` and the host
-     *  persists it later with `savePatientGroups`. */
-    patientId?: string;
+     *  persists it later with `saveProviderGroups`. */
+    providerId?: string;
     /** Deferred mode: initial selection. */
     value?: string[];
     /** Deferred mode: called with the selected group ids on every change. */
@@ -45,7 +45,7 @@ const mapGroup = (g: any): GroupOption => ({ id: g?.id != null ? String(g.id) : 
 
 async function fetchAllGroups(): Promise<GroupOption[]> {
     try {
-        const data = await api.get(API_ROUTES.PATIENT_GROUPS, { page: '1', limit: '1000' });
+        const data = await api.get(API_ROUTES.PROVIDER_GROUPS, { page: '1', limit: '1000' });
         return extractRows(data)
             .filter((g: any) => g.is_active !== false)
             .map(mapGroup)
@@ -56,35 +56,35 @@ async function fetchAllGroups(): Promise<GroupOption[]> {
     }
 }
 
-async function fetchPatientGroups(patientId: string): Promise<GroupOption[]> {
+async function fetchProviderGroups(providerId: string): Promise<GroupOption[]> {
     try {
-        const data = await api.get(API_ROUTES.PATIENT_GROUPS_BY_PATIENT, { patient_id: patientId });
+        const data = await api.get(API_ROUTES.PROVIDER_GROUPS_BY_PROVIDER, { provider_id: providerId });
         return extractRows(data).map(mapGroup).filter((g) => g.id);
     } catch (error) {
-        console.error('Failed to fetch patient groups:', error);
+        console.error('Failed to fetch provider groups:', error);
         return [];
     }
 }
 
-/** Persists a patient's group assignments (used inline and by deferred-mode hosts). */
-export async function savePatientGroups(patientId: string, groupIds: string[]): Promise<void> {
-    const responseData = await api.post(API_ROUTES.PATIENT_GROUPS_BY_PATIENT, {
-        patient_id: patientId,
+/** Persists a provider's group assignments (used inline and by deferred-mode hosts). */
+export async function saveProviderGroups(providerId: string, groupIds: string[]): Promise<void> {
+    const responseData = await api.post(API_ROUTES.PROVIDER_GROUPS_BY_PROVIDER, {
+        provider_id: providerId,
         group_ids: groupIds,
     });
     const error = Array.isArray(responseData)
         ? responseData.find((item: any) => item?.error)
         : (responseData as any)?.error;
-    if (error) throw new Error(typeof error === 'string' ? error : 'Failed to save patient groups');
+    if (error) throw new Error(typeof error === 'string' ? error : 'Failed to save provider groups');
 }
 
-export function PatientGroupsField({ patientId, value, onChange }: PatientGroupsFieldProps) {
-    const t = useTranslations('UsersPage.patientGroups');
+export function ProviderGroupsField({ providerId, value, onChange }: ProviderGroupsFieldProps) {
+    const t = useTranslations('ProvidersPage.providerGroups');
     const { toast } = useToast();
     const { hasPermission } = usePermissions();
-    // Deferred mode has no patient yet — the host (create dialog) is already
+    // Deferred mode has no provider yet — the host (create dialog) is already
     // permission-gated, so selection is always allowed there.
-    const canManage = patientId ? hasPermission(PATIENTS_PERMISSIONS.UPDATE) : true;
+    const canManage = providerId ? hasPermission(PURCHASES_PERMISSIONS.SUPPLIERS_UPDATE) : true;
 
     const [groups, setGroups] = React.useState<GroupOption[]>([]);
     const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
@@ -96,7 +96,7 @@ export function PatientGroupsField({ patientId, value, onChange }: PatientGroups
     React.useEffect(() => {
         let cancelled = false;
         setIsLoading(true);
-        if (!patientId) {
+        if (!providerId) {
             // Deferred mode: only the catalog is needed; selection starts from `value`.
             fetchAllGroups()
                 .then((all) => {
@@ -108,13 +108,13 @@ export function PatientGroupsField({ patientId, value, onChange }: PatientGroups
                 .finally(() => { if (!cancelled) setIsLoading(false); });
             return () => { cancelled = true; };
         }
-        Promise.all([fetchAllGroups(), fetchPatientGroups(patientId)])
+        Promise.all([fetchAllGroups(), fetchProviderGroups(providerId)])
             .then(([all, mine]) => {
                 if (cancelled) return;
                 const ids = mine.map((m) => m.id);
                 setSelectedIds(ids);
                 setInitialIds(ids);
-                // Merge so the patient's current groups are always selectable, even if inactive.
+                // Merge so the provider's current groups are always selectable, even if inactive.
                 const map = new Map(all.map((g) => [g.id, g]));
                 mine.forEach((m) => { if (!map.has(m.id)) map.set(m.id, m); });
                 setGroups([...map.values()].sort((a, b) => a.name.localeCompare(b.name)));
@@ -122,7 +122,7 @@ export function PatientGroupsField({ patientId, value, onChange }: PatientGroups
             .finally(() => { if (!cancelled) setIsLoading(false); });
         return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [patientId]);
+    }, [providerId]);
 
     const isDirty = React.useMemo(() => {
         if (selectedIds.length !== initialIds.length) return true;
@@ -144,10 +144,10 @@ export function PatientGroupsField({ patientId, value, onChange }: PatientGroups
     );
 
     const handleSave = async () => {
-        if (!patientId) return;
+        if (!providerId) return;
         setIsSaving(true);
         try {
-            await savePatientGroups(patientId, selectedIds);
+            await saveProviderGroups(providerId, selectedIds);
             setInitialIds(selectedIds);
             toast({ title: t('saved') });
         } catch (error) {
@@ -204,7 +204,7 @@ export function PatientGroupsField({ patientId, value, onChange }: PatientGroups
                         <div className="flex flex-wrap gap-2">
                             {selectedGroups.map((group) => (
                                 <Badge key={group.id} variant="secondary" className="gap-1 py-1 pl-2 pr-1">
-                                    <UsersRound className="h-3 w-3 text-muted-foreground" />
+                                    <Boxes className="h-3 w-3 text-muted-foreground" />
                                     <span className="text-xs">{group.name}</span>
                                     {canManage && (
                                         <button
@@ -223,7 +223,7 @@ export function PatientGroupsField({ patientId, value, onChange }: PatientGroups
                         <p className="text-xs text-muted-foreground">{t('empty')}</p>
                     )}
 
-                    {patientId && canManage && isDirty && (
+                    {providerId && canManage && isDirty && (
                         <div className="flex justify-end">
                             <Button type="button" size="sm" onClick={handleSave} disabled={isSaving}>
                                 {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -237,4 +237,4 @@ export function PatientGroupsField({ patientId, value, onChange }: PatientGroups
     );
 }
 
-export default PatientGroupsField;
+export default ProviderGroupsField;

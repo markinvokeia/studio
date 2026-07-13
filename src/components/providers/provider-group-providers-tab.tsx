@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Check, Loader2, Plus, Trash2, User as UserIcon, X } from 'lucide-react';
+import { Check, Loader2, Plus, Trash2, Briefcase, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ColumnDef, ColumnFiltersState, PaginationState } from '@tanstack/react-table';
 
@@ -19,12 +19,12 @@ import { API_ROUTES } from '@/constants/routes';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 
-interface PatientGroupPatientsTabProps {
+interface ProviderGroupProvidersTabProps {
     groupId: string;
     canManage: boolean;
 }
 
-type PatientRow = {
+type ProviderRow = {
     id: string;
     name: string;
     email?: string;
@@ -35,7 +35,7 @@ type PatientRow = {
 
 /**
  * Tolerant extractor: handles the paginated `{ data, total }` envelope as well
- * as a bare array of patient rows (older flow shape), whether or not it is
+ * as a bare array of provider rows (older flow shape), whether or not it is
  * wrapped in `[{ json: ... }]`.
  */
 function parseList(raw: any): { list: any[]; total: number } {
@@ -53,14 +53,14 @@ function parseList(raw: any): { list: any[]; total: number } {
             return { list: raw.map((i: any) => i.json), total: raw.length };
         }
         if (first && (first.data !== undefined || first.total !== undefined)) return fromEnvelope(first);
-        // bare array of patient rows
+        // bare array of provider rows
         return { list: raw, total: raw.length };
     }
     if (raw && typeof raw === 'object') return fromEnvelope(raw);
     return { list: [], total: 0 };
 }
 
-function mapPatient(p: any): PatientRow {
+function mapProvider(p: any): ProviderRow {
     return {
         id: p?.id != null ? String(p.id) : '',
         name: p.name ?? '',
@@ -71,54 +71,54 @@ function mapPatient(p: any): PatientRow {
     };
 }
 
-async function fetchGroupPatients(
+async function fetchGroupProviders(
     groupId: string,
     pagination: PaginationState,
     search: string,
-): Promise<{ rows: PatientRow[]; total: number }> {
+): Promise<{ rows: ProviderRow[]; total: number }> {
     try {
-        const { list, total } = parseList(await api.get(API_ROUTES.PATIENT_GROUP_PATIENTS, {
+        const { list, total } = parseList(await api.get(API_ROUTES.PROVIDER_GROUP_PROVIDERS, {
             group_id: groupId,
             page: (pagination.pageIndex + 1).toString(),
             limit: pagination.pageSize.toString(),
             search,
         }));
-        return { rows: list.map(mapPatient).filter((p) => p.id), total: total || list.length };
+        return { rows: list.map(mapProvider).filter((p) => p.id), total: total || list.length };
     } catch (error) {
-        console.error('Failed to fetch group patients:', error);
+        console.error('Failed to fetch group providers:', error);
         return { rows: [], total: 0 };
     }
 }
 
-async function searchPatients(search: string): Promise<PatientRow[]> {
+async function searchProviders(search: string): Promise<ProviderRow[]> {
     try {
         const { list } = parseList(await api.get(API_ROUTES.USERS, {
-            filter_type: 'PACIENTE',
+            filter_type: 'PROVEEDOR',
             search,
             page: '1',
             limit: '20',
             only_debtors: 'false',
             only_active: 'true',
         }));
-        return list.map(mapPatient).filter((p) => p.id);
+        return list.map(mapProvider).filter((p) => p.id);
     } catch (error) {
-        console.error('Failed to search patients:', error);
+        console.error('Failed to search providers:', error);
         return [];
     }
 }
 
-export function PatientGroupPatientsTab({ groupId, canManage }: PatientGroupPatientsTabProps) {
-    const t = useTranslations('PatientGroupsPage.patients');
+export function ProviderGroupProvidersTab({ groupId, canManage }: ProviderGroupProvidersTabProps) {
+    const t = useTranslations('ProviderGroupsPage.providers');
     const { toast } = useToast();
 
     const viewportNarrow = useViewportNarrow();
-    const [viewMode, setViewMode] = useTableViewMode('patient-group-patients', 'table');
+    const [viewMode, setViewMode] = useTableViewMode('provider-group-providers', 'table');
     const showToggle = !viewportNarrow;
     const useListView = showToggle && viewMode === 'list';
     const isNarrow = viewportNarrow || useListView;
     const viewToggleEl = showToggle ? <ViewModeToggle value={viewMode} onChange={setViewMode} /> : undefined;
 
-    const [rows, setRows] = React.useState<PatientRow[]>([]);
+    const [rows, setRows] = React.useState<ProviderRow[]>([]);
     const [total, setTotal] = React.useState(0);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
@@ -128,7 +128,7 @@ export function PatientGroupPatientsTab({ groupId, canManage }: PatientGroupPati
     // Add popover
     const [isAddOpen, setAddOpen] = React.useState(false);
     const [searchQuery, setSearchQuery] = React.useState('');
-    const [results, setResults] = React.useState<PatientRow[]>([]);
+    const [results, setResults] = React.useState<ProviderRow[]>([]);
     const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
     const [known, setKnown] = React.useState<Map<string, string>>(new Map());
     const [isSearching, setIsSearching] = React.useState(false);
@@ -137,7 +137,7 @@ export function PatientGroupPatientsTab({ groupId, canManage }: PatientGroupPati
     const loadData = React.useCallback(async () => {
         setIsRefreshing(true);
         const search = (columnFilters.find((f) => f.id === 'name')?.value as string) || '';
-        const { rows: fetched, total: t2 } = await fetchGroupPatients(groupId, pagination, search);
+        const { rows: fetched, total: t2 } = await fetchGroupProviders(groupId, pagination, search);
         setRows(fetched);
         setTotal(t2);
         setIsRefreshing(false);
@@ -152,13 +152,13 @@ export function PatientGroupPatientsTab({ groupId, canManage }: PatientGroupPati
         setPagination((prev) => ({ ...prev, pageIndex: 0 }));
     }, [columnFilters]);
 
-    // Debounced patient search inside the add popover
+    // Debounced provider search inside the add popover
     React.useEffect(() => {
         if (!isAddOpen) return;
         const handler = setTimeout(async () => {
             setIsSearching(true);
             try {
-                const found = await searchPatients(searchQuery.trim());
+                const found = await searchProviders(searchQuery.trim());
                 setResults(found);
                 setKnown((prev) => {
                     const next = new Map(prev);
@@ -182,7 +182,7 @@ export function PatientGroupPatientsTab({ groupId, canManage }: PatientGroupPati
         if (selectedIds.length === 0) return;
         setIsSaving(true);
         try {
-            await api.post(API_ROUTES.PATIENT_GROUP_ASSIGN, { group_id: groupId, user_ids: selectedIds });
+            await api.post(API_ROUTES.PROVIDER_GROUP_ASSIGN, { group_id: groupId, user_ids: selectedIds });
             toast({ title: t('added', { count: selectedIds.length }) });
             setSelectedIds([]);
             setSearchQuery('');
@@ -199,7 +199,7 @@ export function PatientGroupPatientsTab({ groupId, canManage }: PatientGroupPati
     const handleRemove = async (id: string) => {
         setRemovingId(id);
         try {
-            await api.post(API_ROUTES.PATIENT_GROUP_REMOVE, { group_id: groupId, user_ids: [id] });
+            await api.post(API_ROUTES.PROVIDER_GROUP_REMOVE, { group_id: groupId, user_ids: [id] });
             toast({ title: t('removed') });
             await loadData();
         } catch (error) {
@@ -209,7 +209,7 @@ export function PatientGroupPatientsTab({ groupId, canManage }: PatientGroupPati
         }
     };
 
-    const columns: ColumnDef<PatientRow>[] = [
+    const columns: ColumnDef<ProviderRow>[] = [
         { accessorKey: 'name', header: t('col_name') },
         { accessorKey: 'identity_document', header: t('col_document') },
         { accessorKey: 'phone_number', header: t('col_phone') },
@@ -260,7 +260,7 @@ export function PatientGroupPatientsTab({ groupId, canManage }: PatientGroupPati
                                         <CommandItem key={p.id} value={p.id} onSelect={() => toggleSelect(p.id)}>
                                             <Check className={cn('mr-2 h-4 w-4', selectedIds.includes(p.id) ? 'opacity-100' : 'opacity-0')} />
                                             <span className="flex items-center gap-2">
-                                                <UserIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                                                <Briefcase className="h-3.5 w-3.5 text-muted-foreground" />
                                                 {p.name}
                                             </span>
                                         </CommandItem>
@@ -314,7 +314,7 @@ export function PatientGroupPatientsTab({ groupId, canManage }: PatientGroupPati
                 onRefresh={loadData}
                 isRefreshing={isRefreshing}
                 isNarrow={isNarrow}
-                renderCard={(row: PatientRow) => (
+                renderCard={(row: ProviderRow) => (
                     <DataCard
                         title={row.name}
                         subtitle={[row.identity_document, row.phone_number].filter(Boolean).join(' · ')}
@@ -348,4 +348,4 @@ export function PatientGroupPatientsTab({ groupId, canManage }: PatientGroupPati
     );
 }
 
-export default PatientGroupPatientsTab;
+export default ProviderGroupProvidersTab;

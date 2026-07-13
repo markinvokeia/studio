@@ -334,6 +334,7 @@
     "Sequences": "Secuencias",
     "MutualSocieties": "Sociedades Mutuales",
     "PatientGroups": "Grupos de Pacientes",
+    "ProviderGroups": "Grupos de Proveedores",
     "PrintTemplates": "Plantillas de Documentos",
     "Templates": "Plantillas",
     "MedicalInstructionTemplates": "Plantillas de Indicaciones Médicas",
@@ -3503,6 +3504,17 @@
   },
   "ProvidersPage": {
     "title": "Proveedores",
+    "providerGroups": {
+      "label": "Grupos del proveedor",
+      "selectPlaceholder": "Seleccionar grupos...",
+      "search": "Buscar grupo...",
+      "noResults": "No hay grupos.",
+      "empty": "Este proveedor no pertenece a ningún grupo.",
+      "count": "{count} grupo(s)",
+      "save": "Guardar grupos",
+      "saved": "Grupos del proveedor actualizados",
+      "saveError": "No se pudieron guardar los grupos"
+    },
     "stats": {
       "title": "Resumen Financiero",
       "totalInvoiced": "Total Facturado",
@@ -6329,6 +6341,81 @@
       "removed": "Paciente quitado del grupo",
       "removeError": "No se pudo quitar el paciente"
     }
+  },
+  "ProviderGroupsPage": {
+    "title": "Grupos de Proveedores",
+    "description": "Gestione el catálogo de grupos de proveedores.",
+    "filterPlaceholder": "Filtrar por nombre...",
+    "createDialog": {
+      "title": "Crear Grupo de Proveedores",
+      "description": "Descripción",
+      "editTitle": "Editar Grupo de Proveedores",
+      "editDescription": "Actualice los detalles de este grupo de proveedores.",
+      "name": "Nombre",
+      "namePlaceholder": "ej., Insumos dentales",
+      "descriptionPlaceholder": "Ingrese una descripción opcional",
+      "isActive": "Activo",
+      "cancel": "Cancelar",
+      "revert": "Descartar cambios",
+      "save": "Crear Grupo",
+      "editSave": "Guardar Cambios"
+    },
+    "deleteDialog": {
+      "title": "¿Está seguro?",
+      "description": "Esto eliminará permanentemente el grupo de proveedores \"{name}\". Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "Ocurrió un error inesperado.",
+      "createSuccessTitle": "Grupo de Proveedores Creado",
+      "editSuccessTitle": "Grupo de Proveedores Actualizado",
+      "successDescription": "El grupo de proveedores \"{name}\" se ha guardado exitosamente.",
+      "deleteSuccessTitle": "Grupo de Proveedores Eliminado",
+      "deleteSuccessDescription": "El grupo de proveedores \"{name}\" ha sido eliminado.",
+      "deleteErrorDescription": "No se pudo eliminar el grupo de proveedores."
+    },
+    "validation": {
+      "nameRequired": "El nombre es obligatorio."
+    },
+    "tabs": {
+      "info": "Información",
+      "providers": "Proveedores"
+    },
+    "providers": {
+      "title": "Proveedores del grupo",
+      "description": "Agregue o quite proveedores de este grupo.",
+      "filterPlaceholder": "Buscar en el grupo...",
+      "addButton": "Agregar proveedores",
+      "addConfirm": "Agregar",
+      "addCancel": "Cancelar",
+      "added": "{count} proveedor(es) agregado(s) al grupo",
+      "addError": "No se pudieron agregar los proveedores",
+      "search": "Buscar proveedor...",
+      "noResults": "No se encontraron proveedores.",
+      "count": "{count} seleccionado(s)",
+      "col_name": "Nombre",
+      "col_document": "Documento",
+      "col_phone": "Teléfono",
+      "col_email": "Email",
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "remove": "Quitar del grupo",
+      "removed": "Proveedor quitado del grupo",
+      "removeError": "No se pudo quitar el proveedor"
+    }
+  },
+  "ProviderGroupsColumns": {
+    "id": "ID",
+    "name": "Nombre",
+    "description": "Descripción",
+    "isActive": "Activo",
+    "createdAt": "Fecha de Creación",
+    "updatedAt": "Fecha de Actualización",
+    "actions": "Acciones",
+    "edit": "Editar",
+    "delete": "Eliminar"
   },
   "Config": {
     "PrintTemplates": {

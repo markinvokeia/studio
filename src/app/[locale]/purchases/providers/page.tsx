@@ -45,6 +45,7 @@ import { UserOrders } from '@/components/users/user-orders';
 import { UserPayments } from '@/components/users/user-payments';
 import { UserQuotes } from '@/components/users/user-quotes';
 import { UserServices } from '@/components/users/user-services';
+import { ProviderGroupsField, saveProviderGroups } from '@/components/providers/provider-groups-field';
 import { PURCHASES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
@@ -169,6 +170,18 @@ async function upsertProvider(providerData: ProviderFormValues) {
   }
 
   return responseData;
+}
+
+/** Resolve a newly-created provider's id by name (the upsert response omits it). */
+async function findProviderByName(name: string): Promise<string | null> {
+  try {
+    const { users } = await getProviders({ pageIndex: 0, pageSize: 25 }, name);
+    const match = users.find((u) => u.name === name) ?? users[0];
+    return match?.id ? String(match.id) : null;
+  } catch (error) {
+    console.error('Failed to resolve new provider id:', error);
+    return null;
+  }
 }
 
 const NotesTab = ({ user, onUpdate }: { user: User, onUpdate: (notes: string) => void }) => {
@@ -362,6 +375,7 @@ function ProvidersPageContent() {
   const [providerCount, setProviderCount] = React.useState(0);
   const [selectedProvider, setSelectedProvider] = React.useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [pendingGroupIds, setPendingGroupIds] = React.useState<string[]>([]);
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
   const [detailError, setDetailError] = React.useState<string | null>(null);
   const [isSavingDetail, setIsSavingDetail] = React.useState(false);
@@ -498,6 +512,7 @@ function ProvidersPageContent() {
       bank_account: '',
       is_active: true,
     });
+    setPendingGroupIds([]);
     setSubmissionError(null);
     setIsDialogOpen(true);
   };
@@ -637,6 +652,17 @@ function ProvidersPageContent() {
 
     try {
       await upsertProvider(data);
+      // The upsert response doesn't return the record — resolve the new id by name to assign groups.
+      if (pendingGroupIds.length > 0) {
+        const newId = await findProviderByName(data.name);
+        if (newId) {
+          try {
+            await saveProviderGroups(newId, pendingGroupIds);
+          } catch (groupsError) {
+            console.error('Failed to assign groups to the new provider:', groupsError);
+          }
+        }
+      }
       toast({
         title: t('ProvidersPage.createDialog.createSuccessTitle'),
         description: t('ProvidersPage.createDialog.createSuccessDescription'),
@@ -979,6 +1005,7 @@ function ProvidersPageContent() {
                                   <FormLabel>{t('ProvidersPage.createDialog.isActive')}</FormLabel>
                                 </FormItem>
                               )} />
+                              <ProviderGroupsField providerId={selectedProvider.id} />
                               {canUpdateSupplier && (
                                 <div className="flex gap-2 pt-2">
                                   <Button type="submit" disabled={isSavingDetail}>
@@ -1236,6 +1263,7 @@ function ProvidersPageContent() {
                     </FormItem>
                   )}
                 />
+                <ProviderGroupsField value={pendingGroupIds} onChange={setPendingGroupIds} />
               </DialogBody>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('ProvidersPage.createDialog.cancel')}</Button>

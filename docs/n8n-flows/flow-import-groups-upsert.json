@@ -1,0 +1,133 @@
+{
+  "name": "Importar - Grupos (upsert + doctor)",
+  "nodes": [
+    {
+      "id": "node-trigger",
+      "name": "Inicio Manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [100, 300],
+      "parameters": {}
+    },
+    {
+      "id": "node-rows",
+      "name": "Filas de grupos (reemplazar por lectura de Excel)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 300],
+      "parameters": {
+        "jsCode": "// ⚠️ Nodo de ejemplo. Reemplázalo por la lectura del Excel:\n//   Read Binary File → Spreadsheet File (xlsx) → (este mapeo).\n// Cada item de salida = UNA fila del grupo. El nodo Postgres siguiente\n// se ejecuta una vez por item (fila).\n//\n// Ajusta el nombre de las columnas según tu Excel.\nconst rows = [\n  { name: 'Grupo Ejemplo',   description: 'Importado desde Excel', is_active: true, is_doctor: false, external_id: 'EXT-001' },\n  { name: 'Dr. Juan Pérez',  description: 'Grupo que es doctor',   is_active: true, is_doctor: true,  external_id: 'DOC-100' }\n];\n\nreturn rows.map((r) => ({ json: r }));"
+      }
+    },
+    {
+      "id": "node-pg-group",
+      "name": "1. Upsert grupo",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [560, 300],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Paso 1: crea/actualiza SOLO el grupo (transacción propia).\n-- Se ejecuta una vez por fila (item) que entra.\n-- Parámetros:\n--   $1 name, $2 description, $3 is_active, $4 is_doctor, $5 external_id\nWITH input AS (\n    SELECT\n        $1::text                     AS name,\n        NULLIF($2::text, '')         AS description,\n        COALESCE($3::boolean, true)  AS is_active,\n        COALESCE($4::boolean, false) AS is_doctor,\n        NULLIF($5::text, '')         AS external_id\n),\nupsert_group AS (\n    INSERT INTO public.groups (name, description, is_active, is_doctor, external_id)\n    SELECT name, description, is_active, is_doctor, external_id FROM input\n    ON CONFLICT (external_id) WHERE external_id IS NOT NULL DO UPDATE\n        SET name        = EXCLUDED.name,\n            description = EXCLUDED.description,\n            is_active   = EXCLUDED.is_active,\n            is_doctor   = EXCLUDED.is_doctor,\n            updated_at  = CURRENT_TIMESTAMP\n    RETURNING *\n)\n-- Devuelve la fila del grupo (plana): id, name, is_doctor, external_id, ...\nSELECT * FROM upsert_group;",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.name, $json.description, $json.is_active, $json.is_doctor, $json.external_id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "node-if-doctor",
+      "name": "¿Es doctor?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [800, 300],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.is_doctor }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "leftValue": "={{ ($json.external_id ?? '').toString() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-pg-doctor",
+      "name": "2. Crear doctor + rol + asociar al grupo",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1040, 200],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Paso 2 (solo si el grupo es doctor): registra/actualiza el usuario,\n-- le asigna el rol de médico (role_id = 2) y lo asocia al grupo.\n-- Todo en una sola sentencia = una sola transacción.\n-- Parámetros (vienen de la fila del grupo ya creado):\n--   $1 group_id (uuid), $2 name (nombre del grupo), $3 internal_id (external_id del grupo)\nWITH doc AS (\n    -- email ficticio 'no_email_<internal_id>@invokeia.com' para pasar la\n    -- validación (email o teléfono requerido). Conflicto por internal_id.\n    INSERT INTO public.users (name, email, internal_id, is_sales, is_active)\n    VALUES (\n        $2::text,\n        'no_email_' || $3::text || '@invokeia.com',\n        $3::text,\n        true,\n        true\n    )\n    ON CONFLICT (internal_id) DO UPDATE\n        SET name        = EXCLUDED.name,\n            internal_id = EXCLUDED.internal_id,\n            updated_at  = CURRENT_TIMESTAMP\n    RETURNING *\n),\ndoctor_role AS (\n    INSERT INTO public.user_roles (user_id, role_id)\n    SELECT id, 2 FROM doc\n    ON CONFLICT (user_id, role_id) DO NOTHING\n    RETURNING *\n),\nlink_group AS (\n    UPDATE public.groups\n        SET user_id    = (SELECT id FROM doc),\n            is_doctor  = true,\n            updated_at = CURRENT_TIMESTAMP\n        WHERE id = $1::uuid\n    RETURNING *\n)\nSELECT json_build_object(\n    'group',  (SELECT row_to_json(g) FROM link_group g),\n    'doctor', (SELECT row_to_json(d) FROM doc d),\n    'role',   (SELECT row_to_json(r) FROM doctor_role r)\n) AS result;",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.id, $json.name, $json.external_id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "node-output",
+      "name": "Salida (objeto único)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 300],
+      "parameters": {
+        "jsCode": "// Junta el resultado de todas las filas (rama doctor y rama solo-grupo)\n// en un solo objeto.\nconst items = $input.all();\nconst created = items.map((it) => {\n  const j = it.json || {};\n  if (j.result) return j.result;                    // rama doctor (objeto json_build_object)\n  return { group: j, doctor: null, role: null };    // rama solo-grupo (fila plana)\n});\n\nreturn [{\n  json: {\n    count: created.length,\n    groups: created\n  }\n}];"
+      }
+    }
+  ],
+  "connections": {
+    "Inicio Manual": {
+      "main": [[{ "node": "Filas de grupos (reemplazar por lectura de Excel)", "type": "main", "index": 0 }]]
+    },
+    "Filas de grupos (reemplazar por lectura de Excel)": {
+      "main": [[{ "node": "1. Upsert grupo", "type": "main", "index": 0 }]]
+    },
+    "1. Upsert grupo": {
+      "main": [[{ "node": "¿Es doctor?", "type": "main", "index": 0 }]]
+    },
+    "¿Es doctor?": {
+      "main": [
+        [{ "node": "2. Crear doctor + rol + asociar al grupo", "type": "main", "index": 0 }],
+        [{ "node": "Salida (objeto único)", "type": "main", "index": 0 }]
+      ]
+    },
+    "2. Crear doctor + rol + asociar al grupo": {
+      "main": [[{ "node": "Salida (objeto único)", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,374 @@
+{
+  "name": "Grupos de proveedores",
+  "nodes": [
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [560, 240],
+      "id": "a102bf98-ec67-4495-a4ee-eee1179a62b0",
+      "name": "Error"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json" }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [560, 48],
+      "id": "80ed12a0-6b3f-4089-bee6-7d956c1e9b01",
+      "name": "OK"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "grupo_proveedor",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-288, -144],
+      "id": "d85f48be-b583-4fa6-aff8-63b104e13401",
+      "name": "UPSERT /grupo_proveedor",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "89f0babb-3d7a-4be8-b6e2-e90c00ee1501",
+              "leftValue": "={{ $json.body.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-80, -144],
+      "id": "77b20687-5278-41d2-bf65-5e3212c28901",
+      "name": "Grupo proveedor exists?"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "groups_prov",
+          "mode": "list",
+          "cachedResultName": "groups_prov"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "is_active": "={{ $json.body.is_active }}",
+            "name": "={{ $json.body.name }}",
+            "created_at": "={{ $now }}",
+            "updated_at": "={{ $now }}",
+            "description": "={{ $json.body.description }}"
+          },
+          "matchingColumns": ["id"],
+          "schema": [
+            { "id": "id", "displayName": "id", "required": false, "defaultMatch": true, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": true },
+            { "id": "name", "displayName": "name", "required": true, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "description", "displayName": "description", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "created_at", "displayName": "created_at", "required": false, "defaultMatch": false, "display": true, "type": "dateTime", "canBeUsedToMatch": true },
+            { "id": "updated_at", "displayName": "updated_at", "required": false, "defaultMatch": false, "display": true, "type": "dateTime", "canBeUsedToMatch": true },
+            { "id": "is_active", "displayName": "is_active", "required": false, "defaultMatch": false, "display": true, "type": "boolean", "canBeUsedToMatch": true }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [144, -64],
+      "id": "70577f48-2ff5-4d3d-8486-971a74388a01",
+      "name": "Insert grupo proveedor",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "groups_prov",
+          "mode": "list",
+          "cachedResultName": "groups_prov"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "is_active": "={{ $json.body.is_active }}",
+            "id": "={{ $json.body.id }}",
+            "name": "={{ $json.body.name }}",
+            "updated_at": "={{ $now }}",
+            "description": "={{ $json.body.description }}"
+          },
+          "matchingColumns": ["id"],
+          "schema": [
+            { "id": "id", "displayName": "id", "required": false, "defaultMatch": true, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "name", "displayName": "name", "required": true, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "description", "displayName": "description", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "created_at", "displayName": "created_at", "required": false, "defaultMatch": false, "display": true, "type": "dateTime", "canBeUsedToMatch": true, "removed": true },
+            { "id": "updated_at", "displayName": "updated_at", "required": false, "defaultMatch": false, "display": true, "type": "dateTime", "canBeUsedToMatch": true },
+            { "id": "is_active", "displayName": "is_active", "required": false, "defaultMatch": false, "display": true, "type": "boolean", "canBeUsedToMatch": true }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [144, -240],
+      "id": "ab9c988c-9339-40d0-9a23-ab6cf0c96001",
+      "name": "Update grupo proveedor",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "path": "grupo_proveedor",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-288, 48],
+      "id": "7aa61f69-883e-442e-9eef-8209ff881a01",
+      "name": "GET /grupo_proveedor",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM public.groups_prov\nWHERE id = $1\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ $json.query.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [-80, 48],
+      "id": "ce0208f1-1e18-45c1-8886-4fba8d7d2701",
+      "name": "Select grupo proveedor",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "path": "grupos_proveedor",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-288, 240],
+      "id": "fd855235-8236-4637-ab3e-8e678427ae01",
+      "name": "LIST /grupos_proveedor",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM\n    public.groups_prov\nWHERE\n    (\n        $1 IS NULL\n        OR name ILIKE '%' || $1 || '%'\n    )\n    AND ($2 IS NULL OR is_active = $2)\nORDER BY\n    created_at DESC\nLIMIT $3\nOFFSET $4;",
+        "options": {
+          "queryReplacement": "={{ [$json.query.search, $json.query.is_active, $json.query.limit, (($json.query.page - 1) * $json.query.limit)] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [-80, 240],
+      "id": "98637be3-826f-47f1-856d-a3a18658ef01",
+      "name": "Select grupos proveedor",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "DELETE",
+        "path": "grupo_proveedor",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-288, 432],
+      "id": "98d6d2e4-accb-42ab-88ec-1957a6253c01",
+      "name": "DELETE /grupo_proveedor",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM public.groups_prov\nWHERE id = $1;",
+        "options": {
+          "queryReplacement": "={{ $json.body.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [-80, 432],
+      "id": "3b025d6e-d0e8-4fb9-9204-e42c722dc701",
+      "name": "Delete grupo proveedor",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    }
+  ],
+  "connections": {
+    "UPSERT /grupo_proveedor": {
+      "main": [[{ "node": "Grupo proveedor exists?", "type": "main", "index": 0 }]]
+    },
+    "Grupo proveedor exists?": {
+      "main": [
+        [{ "node": "Update grupo proveedor", "type": "main", "index": 0 }],
+        [{ "node": "Insert grupo proveedor", "type": "main", "index": 0 }]
+      ]
+    },
+    "Insert grupo proveedor": {
+      "main": [
+        [{ "node": "OK", "type": "main", "index": 0 }],
+        [{ "node": "Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Update grupo proveedor": {
+      "main": [
+        [{ "node": "OK", "type": "main", "index": 0 }],
+        [{ "node": "Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "GET /grupo_proveedor": {
+      "main": [[{ "node": "Select grupo proveedor", "type": "main", "index": 0 }]]
+    },
+    "Select grupo proveedor": {
+      "main": [
+        [{ "node": "OK", "type": "main", "index": 0 }],
+        [{ "node": "Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "LIST /grupos_proveedor": {
+      "main": [[{ "node": "Select grupos proveedor", "type": "main", "index": 0 }]]
+    },
+    "Select grupos proveedor": {
+      "main": [
+        [{ "node": "OK", "type": "main", "index": 0 }],
+        [{ "node": "Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "DELETE /grupo_proveedor": {
+      "main": [[{ "node": "Delete grupo proveedor", "type": "main", "index": 0 }]]
+    },
+    "Delete grupo proveedor": {
+      "main": [
+        [{ "node": "OK", "type": "main", "index": 0 }],
+        [{ "node": "Error", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null
+}

@@ -1,0 +1,143 @@
+{
+  "name": "Grupos de proveedores - Grupos del proveedor",
+  "nodes": [
+    {
+      "id": "wh-provider-groups-list",
+      "name": "LIST /proveedor/grupos",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-200, 200],
+      "parameters": {
+        "path": "proveedor/grupos",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "id": "pg-provider-groups-select",
+      "name": "Select grupos del proveedor",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [40, 200],
+      "alwaysOutputData": true,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  g.id,\n  g.name,\n  g.description,\n  g.is_active\nFROM group_provider gp\nJOIN groups_prov g ON g.id = gp.group_id\nWHERE gp.provider_id = $1::uuid\nORDER BY g.name ASC;",
+        "options": {
+          "queryReplacement": "={{ [$json.query.provider_id] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "id": "resp-provider-groups-ok",
+      "name": "OK Grupos",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [280, 200],
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "wh-provider-groups-set",
+      "name": "SET /proveedor/grupos",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-200, 420],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "proveedor/grupos",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "id": "pg-provider-groups-set",
+      "name": "Set grupos del proveedor",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [40, 420],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH target AS (\n  SELECT CASE\n           WHEN NULLIF($2, '') IS NULL THEN ARRAY[]::uuid[]\n           ELSE string_to_array($2, ',')::uuid[]\n         END AS ids\n),\ndel AS (\n  DELETE FROM public.group_provider gp\n  USING target t\n  WHERE gp.provider_id = $1::uuid\n    AND NOT (gp.group_id = ANY(t.ids))\n  RETURNING gp.group_id\n),\nins AS (\n  INSERT INTO public.group_provider (group_id, provider_id)\n  SELECT x, $1::uuid\n  FROM target t, unnest(t.ids) AS x\n  ON CONFLICT (group_id, provider_id) DO NOTHING\n  RETURNING group_id\n)\nSELECT\n  (SELECT COUNT(*) FROM ins) AS added,\n  (SELECT COUNT(*) FROM del) AS removed;",
+        "options": {
+          "queryReplacement": "={{ [$json.body.provider_id, ($json.body.group_ids || []).join(',')] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "id": "resp-provider-groups-set-ok",
+      "name": "OK Set Grupos",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [280, 420],
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json" }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "LIST /proveedor/grupos": {
+      "main": [[{ "node": "Select grupos del proveedor", "type": "main", "index": 0 }]]
+    },
+    "Select grupos del proveedor": {
+      "main": [[{ "node": "OK Grupos", "type": "main", "index": 0 }]]
+    },
+    "SET /proveedor/grupos": {
+      "main": [[{ "node": "Set grupos del proveedor", "type": "main", "index": 0 }]]
+    },
+    "Set grupos del proveedor": {
+      "main": [[{ "node": "OK Set Grupos", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null
+}

@@ -1,0 +1,222 @@
+{
+  "name": "Grupos de proveedores - Proveedores del grupo",
+  "nodes": [
+    {
+      "id": "wh-group-providers-list",
+      "name": "LIST /grupo_proveedor/proveedores",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-200, 200],
+      "parameters": {
+        "path": "grupo_proveedor/proveedores",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "id": "pg-group-providers-select",
+      "name": "Select proveedores del grupo",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [40, 200],
+      "alwaysOutputData": true,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  u.id,\n  u.name,\n  u.email,\n  u.phone_number,\n  u.identity_document,\n  u.is_active,\n  COUNT(*) OVER() AS total_count\nFROM group_provider gp\nJOIN users u ON u.id = gp.provider_id\nWHERE gp.group_id = $1::uuid\n  AND (\n    $2::text IS NULL OR $2 = ''\n    OR u.name ILIKE '%' || $2 || '%'\n    OR u.email ILIKE '%' || $2 || '%'\n    OR u.phone_number ILIKE '%' || $2 || '%'\n    OR u.identity_document ILIKE '%' || $2 || '%'\n  )\nORDER BY u.name ASC\nLIMIT $3::int OFFSET $4::int;",
+        "options": {
+          "queryReplacement": "={{ [$json.query.group_id, $json.query.search || null, Number($json.query.limit || 25), (Number($json.query.page || 1) - 1) * Number($json.query.limit || 25)] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "id": "code-group-providers-page",
+      "name": "Build Proveedores Page",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [280, 200],
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json).filter(r => r && r.id);\nconst total = rows.length ? Number(rows[0].total_count) : 0;\nconst data = rows.map(({ total_count, ...r }) => r);\nreturn [{ json: { data, total } }];"
+      }
+    },
+    {
+      "id": "resp-group-providers-ok",
+      "name": "OK Proveedores",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [520, 200],
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "wh-group-providers-assign",
+      "name": "ADD /grupo_proveedor/asignar",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-200, 420],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "grupo_proveedor/asignar",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "id": "pg-group-providers-assign",
+      "name": "Asignar proveedores al grupo",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [40, 420],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.group_provider (group_id, provider_id)\nSELECT $1::uuid, x\nFROM unnest(\n  CASE\n    WHEN NULLIF($2, '') IS NULL THEN ARRAY[]::uuid[]\n    ELSE string_to_array($2, ',')::uuid[]\n  END\n) AS x\nON CONFLICT (group_id, provider_id) DO NOTHING\nRETURNING provider_id;",
+        "options": {
+          "queryReplacement": "={{ [$json.body.group_id, ($json.body.user_ids || []).join(',')] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "id": "resp-group-providers-assign-ok",
+      "name": "OK Asignar",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [280, 420],
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "wh-group-providers-remove",
+      "name": "REMOVE /grupo_proveedor/quitar",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-200, 640],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "grupo_proveedor/quitar",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "id": "pg-group-providers-remove",
+      "name": "Quitar proveedores del grupo",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [40, 640],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM public.group_provider\nWHERE group_id = $1::uuid\n  AND provider_id = ANY(\n    CASE\n      WHEN NULLIF($2, '') IS NULL THEN ARRAY[]::uuid[]\n      ELSE string_to_array($2, ',')::uuid[]\n    END\n  )\nRETURNING provider_id;",
+        "options": {
+          "queryReplacement": "={{ [$json.body.group_id, ($json.body.user_ids || []).join(',')] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "id": "resp-group-providers-remove-ok",
+      "name": "OK Quitar",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [280, 640],
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json" }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "LIST /grupo_proveedor/proveedores": {
+      "main": [[{ "node": "Select proveedores del grupo", "type": "main", "index": 0 }]]
+    },
+    "Select proveedores del grupo": {
+      "main": [[{ "node": "Build Proveedores Page", "type": "main", "index": 0 }]]
+    },
+    "Build Proveedores Page": {
+      "main": [[{ "node": "OK Proveedores", "type": "main", "index": 0 }]]
+    },
+    "ADD /grupo_proveedor/asignar": {
+      "main": [[{ "node": "Asignar proveedores al grupo", "type": "main", "index": 0 }]]
+    },
+    "Asignar proveedores al grupo": {
+      "main": [[{ "node": "OK Asignar", "type": "main", "index": 0 }]]
+    },
+    "REMOVE /grupo_proveedor/quitar": {
+      "main": [[{ "node": "Quitar proveedores del grupo", "type": "main", "index": 0 }]]
+    },
+    "Quitar proveedores del grupo": {
+      "main": [[{ "node": "OK Quitar", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null
+}

@@ -334,6 +334,7 @@
     "Sequences": "Sequences",
     "MutualSocieties": "Mutual Societies",
     "PatientGroups": "Patient Groups",
+    "ProviderGroups": "Provider Groups",
     "PrintTemplates": "Document Templates",
     "Templates": "Templates",
     "MedicalInstructionTemplates": "Medical Instruction Templates",
@@ -3526,6 +3527,17 @@
   },
   "ProvidersPage": {
     "title": "Providers",
+    "providerGroups": {
+      "label": "Provider groups",
+      "selectPlaceholder": "Select groups...",
+      "search": "Search group...",
+      "noResults": "No groups.",
+      "empty": "This provider does not belong to any group.",
+      "count": "{count} group(s)",
+      "save": "Save groups",
+      "saved": "Provider groups updated",
+      "saveError": "Could not save groups"
+    },
     "stats": {
       "title": "Financial Summary",
       "totalInvoiced": "Total Invoiced",
@@ -6349,6 +6361,81 @@
       "removed": "Patient removed from group",
       "removeError": "Could not remove patient"
     }
+  },
+  "ProviderGroupsPage": {
+    "title": "Provider Groups",
+    "description": "Manage the catalog of provider groups.",
+    "filterPlaceholder": "Filter by name...",
+    "createDialog": {
+      "title": "Create Provider Group",
+      "description": "Complete the details below to add a new provider group.",
+      "editTitle": "Edit Provider Group",
+      "editDescription": "Update the details of this provider group.",
+      "name": "Name",
+      "namePlaceholder": "e.g., Dental supplies",
+      "descriptionPlaceholder": "Enter an optional description",
+      "isActive": "Active",
+      "cancel": "Cancel",
+      "revert": "Discard changes",
+      "save": "Create Group",
+      "editSave": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the provider group \"{name}\". This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createSuccessTitle": "Provider Group Created",
+      "editSuccessTitle": "Provider Group Updated",
+      "successDescription": "The provider group \"{name}\" has been saved successfully.",
+      "deleteSuccessTitle": "Provider Group Deleted",
+      "deleteSuccessDescription": "The provider group \"{name}\" has been deleted.",
+      "deleteErrorDescription": "Could not delete the provider group."
+    },
+    "validation": {
+      "nameRequired": "Name is required."
+    },
+    "tabs": {
+      "info": "Information",
+      "providers": "Providers"
+    },
+    "providers": {
+      "title": "Group providers",
+      "description": "Add or remove providers from this group.",
+      "filterPlaceholder": "Search in group...",
+      "addButton": "Add providers",
+      "addConfirm": "Add",
+      "addCancel": "Cancel",
+      "added": "{count} provider(s) added to the group",
+      "addError": "Could not add providers",
+      "search": "Search provider...",
+      "noResults": "No providers found.",
+      "count": "{count} selected",
+      "col_name": "Name",
+      "col_document": "Document",
+      "col_phone": "Phone",
+      "col_email": "Email",
+      "active": "Active",
+      "inactive": "Inactive",
+      "remove": "Remove from group",
+      "removed": "Provider removed from group",
+      "removeError": "Could not remove provider"
+    }
+  },
+  "ProviderGroupsColumns": {
+    "id": "ID",
+    "name": "Name",
+    "description": "Description",
+    "isActive": "Active",
+    "createdAt": "Created At",
+    "updatedAt": "Updated At",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete"
   },
   "Config": {
     "PrintTemplates": {

@@ -1,0 +1,103 @@
+{
+  "name": "Importar - Proveedores (upsert)",
+  "nodes": [
+    {
+      "id": "node-trigger",
+      "name": "Inicio Manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "node-rows",
+      "name": "Filas de proveedores (reemplazar por lectura de Excel)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        340,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// ⚠️ Nodo de ejemplo. Reemplázalo por la lectura real del Excel:\n//   Read Binary File → Spreadsheet File (xlsx) → (este nodo).\n// Cada item de salida = UNA fila de proveedor con las columnas del Excel.\nconst rows = [\n  { row_number: 2, ID_PROVEEDOR: 10248, NOMBRE_PROVEEDOR: 'Antel',       TELEFONO_MOVIL: '', OTRO_TELEFONO: '', CORREO_ELECTRONICO: '', DIRECCION: '', OTRA_INFO: '', ESTADO: 1 },\n  { row_number: 3, ID_PROVEEDOR: 5244,  NOMBRE_PROVEEDOR: 'BRACKETS UP', TELEFONO_MOVIL: '', OTRO_TELEFONO: '', CORREO_ELECTRONICO: '', DIRECCION: '', OTRA_INFO: '', ESTADO: 1 }\n];\n\nreturn rows.map((r) => ({ json: r }));"
+      }
+    },
+    {
+      "id": "node-pg-upsert",
+      "name": "Upsert proveedor",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        600,
+        300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Upsert de proveedor en la tabla users (is_sales = FALSE).\n-- Se ejecuta una vez por fila (item) que entra desde el Excel.\n-- Parámetros:\n--   $1 internal_id (ID_PROVEEDOR)      $2 name (NOMBRE_PROVEEDOR)\n--   $3 estado texto (ESTADO)           $4 documento (no viene en el Excel)\n--   $5 telefono movil (TELEFONO_MOVIL) $6 correo (CORREO_ELECTRONICO)\n--   $7 direccion (DIRECCION)           $8 otro telefono (OTRO_TELEFONO)\n--   $9 fecha nac. (no viene)           $10 sexo (no viene)\n--   $11 otra info (OTRA_INFO)          $12 is_active (boolean, derivado de ESTADO)\nINSERT INTO users (\n  internal_id, name, is_active, is_sales,\n  identity_document, phone_number, email,\n  address, alternative_phone, birthday, notes\n)\nSELECT\n  v.internal_id,\n  v.name,\n  v.is_active,\n  FALSE,                       -- is_sales = FALSE  -> proveedor (compras)\n  CASE WHEN v.cand_doc IS NOT NULL\n         AND NOT EXISTS (SELECT 1 FROM users u WHERE u.identity_document = v.cand_doc)\n       THEN v.cand_doc ELSE NULL END,\n  CASE WHEN v.cand_phone IS NOT NULL\n         AND NOT EXISTS (SELECT 1 FROM users u WHERE u.phone_number = v.cand_phone)\n       THEN v.cand_phone ELSE NULL END,\n  CASE WHEN v.cand_email IS NOT NULL\n         AND NOT EXISTS (SELECT 1 FROM users u WHERE u.email = v.cand_email)\n       THEN v.cand_email ELSE NULL END,\n  v.address,\n  v.alternative_phone,\n  v.birthday,\n  v.notes\nFROM (\n  SELECT\n    NULLIF(TRIM($1::text), '') AS internal_id,\n    COALESCE(NULLIF(TRIM($2::text), ''), 'Sin nombre') AS name,\n    CASE WHEN (LOWER(TRIM(COALESCE($3::text, '1'))) IN ('activo','active','true','','1') OR COALESCE($3,1)=1) THEN TRUE ELSE FALSE END AS is_active,\n    NULLIF(regexp_replace(COALESCE($4::text,''), '[^0-9A-Za-z]', '', 'g'), '') AS cand_doc,\n    CASE\n      WHEN length(regexp_replace(COALESCE($5::text,''), '\\D', '', 'g')) >= 7\n        THEN right(regexp_replace($5::text, '\\D', '', 'g'), 9)\n      ELSE NULL\n    END AS cand_phone,\n    CASE\n      WHEN LOWER(TRIM(COALESCE($6::text,''))) ~ '^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$'\n        THEN LOWER(TRIM($6::text))\n      ELSE NULL\n    END AS cand_email,\n    NULLIF(TRIM(COALESCE($7::text,'')), '') AS address,\n    NULLIF(TRIM(COALESCE($8::text,'')), '') AS alternative_phone,\n    CASE\n      WHEN COALESCE($9::text,'') ~ '^\\d{1,2}/\\d{1,2}/\\d{4}$' THEN to_date($9::text, 'MM/DD/YYYY')\n      WHEN COALESCE($9::text,'') ~ '^\\d{4}-\\d{1,2}-\\d{1,2}$' THEN to_date($9::text, 'YYYY-MM-DD')\n      ELSE NULL\n    END AS birthday,\n    'Origen: Proveedores'\n      || E'\\n' || 'Estado origen: ' || COALESCE(NULLIF(TRIM($3::text),''), 'desconocido')\n      || CASE WHEN COALESCE(TRIM($4::text),'') <> '' THEN E'\\n' || 'Documento: ' || TRIM($4::text) ELSE '' END\n      || CASE WHEN COALESCE(TRIM($5::text),'') <> '' THEN E'\\n' || 'Movil: ' || TRIM($5::text) ELSE '' END\n      || CASE WHEN COALESCE(TRIM($6::text),'') <> '' THEN E'\\n' || 'Correo: ' || TRIM($6::text) ELSE '' END\n      || CASE WHEN COALESCE(TRIM($10::text),'') <> '' THEN E'\\n' || 'Sexo: ' || TRIM($10::text) ELSE '' END\n      || CASE WHEN COALESCE(TRIM($9::text),'') <> '' THEN E'\\n' || 'Fecha nacimiento: ' || TRIM($9::text) ELSE '' END\n      || CASE WHEN COALESCE(TRIM($11::text),'') <> '' THEN E'\\n' || 'Otra info: ' || TRIM($11::text) ELSE '' END\n      AS notes\n) v\nWHERE v.internal_id IS NOT NULL\nON CONFLICT (internal_id) DO UPDATE\n    SET internal_id = EXCLUDED.internal_id,\n        is_active   = $12\nRETURNING id;",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.ID_PROVEEDOR, $json.NOMBRE_PROVEEDOR, $json.ESTADO, '', $json.TELEFONO_MOVIL, $json.CORREO_ELECTRONICO, $json.DIRECCION, $json.OTRO_TELEFONO, '', '', $json.OTRA_INFO, ['1','activo','active','true',''].includes(String($json.ESTADO ?? '').trim().toLowerCase()) ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "node-output",
+      "name": "Salida (objeto unico)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        860,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Junta los ids de todos los proveedores upserted en un solo objeto resumen.\nconst items = $input.all();\nconst ids = items.map((i) => i.json && i.json.id).filter(Boolean);\n\nreturn [{ json: { count: ids.length, provider_ids: ids } }];"
+      }
+    }
+  ],
+  "connections": {
+    "Inicio Manual": {
+      "main": [
+        [
+          {
+            "node": "Filas de proveedores (reemplazar por lectura de Excel)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filas de proveedores (reemplazar por lectura de Excel)": {
+      "main": [
+        [
+          {
+            "node": "Upsert proveedor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert proveedor": {
+      "main": [
+        [
+          {
+            "node": "Salida (objeto unico)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
