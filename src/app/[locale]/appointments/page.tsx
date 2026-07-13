@@ -2562,12 +2562,15 @@ export default function AppointmentsPage() {
     const blockedRanges = React.useMemo<BlockedRange[]>(() => {
         if (!blockUnavailable || !blockingConfigured) return [];
         const isGroupingView = ['day', '2-day', '3-day', '4-day', '5-day', '6-day', 'week'].includes(currentView);
+        // Custom mode always renders grouped-by-calendar columns (regardless of the
+        // grouped_by setting), so the ranges must be tagged per calendar to match.
+        const effGroupBy = calendarMode === 'custom' ? 'calendar' : groupBy;
         const tagDay = (day: Date, sched: ClinicSchedule[], groupValue?: string): BlockedRange[] =>
             computeBlockedRanges(day, sched, clinicExceptions)
                 .map((r) => ({ dayKey: format(day, 'yyyy-MM-dd'), startMin: r.startMin, endMin: r.endMin, groupValue, reason: r.reason, note: r.note }));
 
         // Grouped by consultorio: each column blocks per its calendar's SEDE schedules.
-        if (isGroupingView && groupBy === 'calendar') {
+        if (isGroupingView && effGroupBy === 'calendar') {
             return calendars.flatMap((cal) => {
                 const sedeId = cal.sede_id;
                 const sched = sedeId
@@ -2577,14 +2580,14 @@ export default function AppointmentsPage() {
             });
         }
         // Grouped by doctor: clinic-wide hours, tagged per column so each shows them.
-        if (isGroupingView && groupBy === 'doctor') {
+        if (isGroupingView && effGroupBy === 'doctor') {
             return doctors.flatMap((doc) =>
                 blockVisibleDays.flatMap((day) => tagDay(day, effectiveSchedules, String(doc.id))),
             );
         }
         // Non-grouped: a single clinic-wide timeline.
         return blockVisibleDays.flatMap((day) => tagDay(day, effectiveSchedules, undefined));
-    }, [blockUnavailable, blockingConfigured, currentView, groupBy, blockVisibleDays, effectiveSchedules, clinicSchedules, clinicExceptions, calendars, doctors]);
+    }, [blockUnavailable, blockingConfigured, currentView, groupBy, calendarMode, blockVisibleDays, effectiveSchedules, clinicSchedules, clinicExceptions, calendars, doctors]);
 
     const blockedFullDays = React.useMemo<Set<string>>(() => {
         if (!blockUnavailable || !blockingConfigured) return new Set();
@@ -2822,10 +2825,12 @@ export default function AppointmentsPage() {
         // continuous free time merges across hours regardless of other columns.
         // Only the grid views render grouped columns; month/schedule/year use union.
         const isGroupingView = ['day', '2-day', '3-day', '4-day', '5-day', '6-day', 'week'].includes(currentView);
-        if (isGroupingView && groupBy !== 'none' && groupingColumns.length > 0) {
-            return groupingColumns.flatMap((col) =>
+        // Use the effective grouping so custom mode (always grouped by calendar)
+        // gets gaps tagged with the shown agenda's column value.
+        if (isGroupingView && effectiveGroupBy !== 'none' && effectiveGroupingColumns.length > 0) {
+            return effectiveGroupingColumns.flatMap((col) =>
                 gapVisibleDays.flatMap((day) =>
-                    dayGapsFor(filterEventsByDayAndGroup(calendarEvents, day, groupBy, col.value), day)
+                    dayGapsFor(filterEventsByDayAndGroup(calendarEvents, day, effectiveGroupBy, col.value), day)
                         .map((g) => ({ ...g, groupValue: col.value, groupLabel: col.label })),
                 ),
             );
@@ -2835,7 +2840,7 @@ export default function AppointmentsPage() {
             return gapVisibleDays.flatMap((day) => dayGapsFor(calendarEvents, day));
         }
         return computeRangeGaps(calendarEvents, gapVisibleDays, clinicSchedules);
-    }, [gapsActive, blockUnavailable, blockingConfigured, groupBy, groupingColumns, currentView, calendarEvents, gapVisibleDays, clinicSchedules, effectiveSchedules, clinicExceptions]);
+    }, [gapsActive, blockUnavailable, blockingConfigured, effectiveGroupBy, effectiveGroupingColumns, currentView, calendarEvents, gapVisibleDays, clinicSchedules, effectiveSchedules, clinicExceptions]);
 
     // Render additional context menu items for the calendar event:
     // status submenu + clinic session shortcut.
