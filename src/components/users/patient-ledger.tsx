@@ -4,8 +4,8 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { format, parseISO } from 'date-fns';
-import { Banknote, Check, ChevronDown, FileMinus, FileText, History, Link2, ListChecks, Loader2, Plus, Printer, Receipt, RefreshCw, ScrollText, Search, Trash2, X } from 'lucide-react';
+import { endOfMonth, format, parseISO, startOfMonth } from 'date-fns';
+import { Banknote, Check, ChevronDown, FileMinus, FileText, History, Link2, ListChecks, Loader2, Pencil, Plus, Printer, Receipt, RefreshCw, ScrollText, Search, Trash2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { DateRange } from 'react-day-picker';
 
@@ -40,7 +40,7 @@ import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { buildPatientLedger, splitLedgerByRange, type LedgerRow, type LedgerRowStatus } from '@/lib/patient-ledger';
-import type { PaymentMethod, Quote, QuoteItem } from '@/lib/types';
+import type { Invoice, InvoiceItem, Payment, PaymentMethod, Quote, QuoteItem } from '@/lib/types';
 import { cn, formatDisplayDate, preserveTimeIfToday, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { fetchPatientLedgerData, type PatientLedgerData } from '@/services/patient-ledger-data';
@@ -457,12 +457,12 @@ function RowAllocationsPopover({
       const extra = await fetchPaymentAllocations(row.paymentId!);
       const direct: LiteAllocation[] = row.invoiceId
         ? [{
-            key: `direct-${row.invoiceId}`,
-            docNo: invoiceDocNoById.get(row.invoiceId) || '',
-            amount: row.haber,
-            currency: row.currency,
-            date: row.date,
-          }]
+          key: `direct-${row.invoiceId}`,
+          docNo: invoiceDocNoById.get(row.invoiceId) || '',
+          amount: row.haber,
+          currency: row.currency,
+          date: row.date,
+        }]
         : [];
       data = [...direct, ...extra];
     } else {
@@ -606,18 +606,29 @@ type QuoteEditorValues = z.infer<typeof quoteEditorSchema>;
 
 /**
  * Inline create/edit editor for a Presupuesto (`quote`) or Tratamiento (`invoice`) line.
- * Enables the Debe editor; Haber is disabled. In edit mode (`editRow` set) it shows the
- * full field set pre-filled from the quote + its item, and saves the whole quote via
- * `QUOTES_UPSERT` by id — passing every sibling item so nothing is lost — the same
- * upsert-by-id pattern the standalone quote editor uses.
+ * Enables the Debe editor; Haber is disabled. In edit mode (`editRow` set) which underlying
+ * document gets updated depends on the row itself, not the `doc` prop:
+ * - An unbilled presupuesto (`editRow.status === 'presupuestado'`) upserts just this one
+ *   line via `QUOTES_LINES_UPSERT` (by id, matching `quote/lines/upsert`'s own contract —
+ *   it recalculates the quote's total itself). That endpoint only touches `quote_items`,
+ *   not the quote's own date/doctor/notes, so those fields aren't offered here in edit
+ *   mode — editing them would silently no-op.
+ * - Anything already billed (with or without a quote behind it) re-sends the whole invoice
+ *   via `INVOICES_UPSERT` by id, passing every sibling item so nothing is lost — unlike
+ *   quotes, this preserves item ids for anything not being edited (no full item churn),
+ *   and the invoice's date/doctor/notes are real fields on that same call, so they stay
+ *   editable here.
  */
-function QuoteInvoiceInlineEditor({ doc, editRow, editQuote, editItems, userId, currency, onCancel, onSaved }: {
+function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editItems, userId, currency, onCancel, onSaved }: {
   doc: 'quote' | 'invoice';
   editRow?: LedgerRow;
-  /** The full quote behind `editRow` (for quote-level fields: date, doctor, notes). */
-  editQuote?: Quote;
-  /** Every item of that quote, so the whole set is re-sent on save (no data loss). */
-  editItems?: QuoteItem[];
+  /** The full invoice behind `editRow` — only set when editing a billed treatment (its
+   *  date/doctor/notes are real fields on `INVOICES_UPSERT`, so they're editable here). An
+   *  unbilled presupuesto edits through `QUOTES_LINES_UPSERT` instead, which only touches
+   *  `quote_items` — so it has no equivalent quote-level fields to prefill or edit here. */
+  editInvoice?: Invoice;
+  /** Every sibling item of the quote/invoice being edited, so the whole set is re-sent on save. */
+  editItems?: (QuoteItem | InvoiceItem)[];
   userId: string;
   currency: string;
   onCancel: () => void;
@@ -626,21 +637,26 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editQuote, editItems, userId, 
   const t = useTranslations('PatientLedger');
   const { toast } = useToast();
   const isEdit = !!editRow;
+  const editKind: 'quote' | 'invoice' = editRow?.status === 'presupuestado' ? 'quote' : 'invoice';
+  // Editing a presupuesto line goes through QUOTES_LINES_UPSERT, which has no
+  // date/doctor/notes fields of its own — so that whole second line of the editor is
+  // hidden, and the date is shown read-only, for that one case.
+  const isQuoteLineEdit = isEdit && editKind === 'quote';
   const [submitting, setSubmitting] = React.useState(false);
   const editItem = editItems?.find((i) => i.id === editRow?.itemId);
-  const [doctorName, setDoctorName] = React.useState(editQuote?.doctor_name || '');
+  const [doctorName, setDoctorName] = React.useState(editInvoice?.doctor_name || '');
 
   const form = useForm<QuoteEditorValues>({
     resolver: zodResolver(quoteEditorSchema),
     defaultValues: {
-      created_at: editQuote?.createdAt ? new Date(editQuote.createdAt) : editRow?.date ? new Date(editRow.date) : new Date(),
+      created_at: editInvoice?.createdAt ? new Date(editInvoice.createdAt) : editRow?.date ? new Date(editRow.date) : new Date(),
       service_id: editItem?.service_id || editRow?.serviceId || '',
       service_name: editItem?.service_name || editRow?.label || '',
-      tooth_number: editItem?.tooth_number != null ? String(editItem.tooth_number) : '',
+      tooth_number: (editItem as QuoteItem | undefined)?.tooth_number != null ? String((editItem as QuoteItem).tooth_number) : '',
       quantity: editItem?.quantity || editRow?.quantity || 1,
       unit_price: editItem?.unit_price ?? editRow?.unitPrice ?? 0,
-      doctor_id: editQuote?.doctor_id || '',
-      description: editQuote?.notes || '',
+      doctor_id: editInvoice?.doctor_id || '',
+      description: editInvoice?.notes || '',
     },
   });
   const watchedName = form.watch('service_name');
@@ -653,29 +669,40 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editQuote, editItems, userId, 
       const qty = values.quantity || 1;
       const tooth = values.tooth_number ? Number(values.tooth_number) : null;
       const createdAtIso = toLocalISOString(preserveTimeIfToday(values.created_at));
-      if (isEdit) {
-        // Re-send the whole quote (all sibling items preserved), overriding the edited
-        // line, so quote-level fields (date, doctor, notes) and the line save together.
+      if (isEdit && editKind === 'quote') {
+        // A single quote_items row, matched by id — `quote/lines/upsert` recalculates the
+        // quote's own total itself, and doesn't touch (or need) the sibling items at all.
+        const res = await api.post(API_ROUTES.SALES.QUOTES_LINES_UPSERT, {
+          id: editRow!.itemId,
+          quote_id: editRow!.quoteId,
+          service_id: values.service_id,
+          quantity: qty,
+          unit_price: values.unit_price,
+          total: qty * values.unit_price,
+          tooth_number: tooth,
+        });
+        if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message);
+        toast({ title: t('toasts.itemUpdated') });
+      } else if (isEdit) {
+        // Re-send the whole invoice (all sibling items preserved by id), overriding the
+        // edited line, so the invoice-level fields (date, doctor, notes) and the line
+        // save together.
         const items = (editItems && editItems.length > 0 ? editItems : (editItem ? [editItem] : []))
           .map((i) => i.id === editRow!.itemId
             ? { id: i.id, service_id: values.service_id, quantity: qty, unit_price: values.unit_price, total: qty * values.unit_price, tooth_number: tooth }
-            : { id: i.id, service_id: i.service_id, quantity: i.quantity, unit_price: i.unit_price, total: i.total, tooth_number: i.tooth_number ?? null });
+            : { id: i.id, service_id: i.service_id, quantity: i.quantity, unit_price: i.unit_price, total: i.total, tooth_number: (i as QuoteItem).tooth_number ?? null });
         const total = items.reduce((sum, i) => sum + (i.total || 0), 0);
-        const res = await api.post(API_ROUTES.SALES.QUOTES_UPSERT, {
-          id: editRow!.quoteId,
+        const res = await api.post(API_ROUTES.SALES.INVOICES_UPSERT, {
+          id: editRow!.invoiceId,
           user_id: userId,
-          // Only send doctor_id when set, so an unknown original doctor is never blanked.
           ...(values.doctor_id ? { doctor_id: values.doctor_id } : {}),
           total,
           currency,
-          status: 'draft',
-          payment_status: 'unpaid',
-          billing_status: 'not invoiced',
-          exchange_rate: editQuote?.exchange_rate ?? 1,
           created_at: createdAtIso,
           notes: values.description || '',
-          patient_confirmed: false,
+          is_historical: editInvoice?.is_historical ?? false,
           items,
+          type: 'invoice',
           is_sales: true,
         });
         if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message);
@@ -737,11 +764,15 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editQuote, editItems, userId, 
       <InlineEditorShell
         docLabel={t(doc === 'quote' ? 'inline.addQuote' : 'inline.addTreatment')}
         dateSlot={
-          <DatePickerInput
-            value={format(createdAt, 'yyyy-MM-dd')}
-            onChange={(iso) => iso && form.setValue('created_at', parseISO(iso))}
-            className="h-8 text-xs"
-          />
+          isQuoteLineEdit ? (
+            <span className="text-xs text-muted-foreground">{formatDisplayDate(editRow!.date)}</span>
+          ) : (
+            <DatePickerInput
+              value={format(createdAt, 'yyyy-MM-dd')}
+              onChange={(iso) => iso && form.setValue('created_at', parseISO(iso))}
+              className="h-8 text-xs"
+            />
+          )
         }
         mainSlot={
           <div className="flex items-center gap-2">
@@ -792,27 +823,29 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editQuote, editItems, userId, 
         haberSlot={<DisabledAmountCell />}
         controls={<EditorControls submitting={submitting} onCancel={onCancel} />}
         secondLine={
-          <>
-            <div className="min-w-[10rem] flex-1">
-              <DoctorSelector
-                value={form.watch('doctor_id')}
-                selectedDoctorName={doctorName}
-                onValueChange={(doctorId, doctor) => {
-                  form.setValue('doctor_id', doctorId);
-                  setDoctorName(doctor?.name || '');
-                }}
-                placeholder={t('fields.searchDoctor')}
-                triggerText={t('fields.selectDoctor')}
-                className="h-8"
+          isQuoteLineEdit ? undefined : (
+            <>
+              <div className="min-w-[10rem] flex-1">
+                <DoctorSelector
+                  value={form.watch('doctor_id')}
+                  selectedDoctorName={doctorName}
+                  onValueChange={(doctorId, doctor) => {
+                    form.setValue('doctor_id', doctorId);
+                    setDoctorName(doctor?.name || '');
+                  }}
+                  placeholder={t('fields.searchDoctor')}
+                  triggerText={t('fields.selectDoctor')}
+                  className="h-8"
+                />
+              </div>
+              <Input
+                placeholder={t('fields.notes')}
+                aria-label={t('fields.notes')}
+                className="h-8 min-w-[10rem] flex-1 text-sm"
+                {...form.register('description')}
               />
-            </div>
-            <Input
-              placeholder={t('fields.notes')}
-              aria-label={t('fields.notes')}
-              className="h-8 min-w-[10rem] flex-1 text-sm"
-              {...form.register('description')}
-            />
-          </>
+            </>
+          )
         }
       />
     </form>
@@ -844,13 +877,22 @@ export type PendingInvoiceLite = {
  * the chosen invoices (oldest-first by default, user-adjustable). The allocated sum may be
  * less than the total payment — the remainder is booked as credit via `is_prepaid: true` —
  * but it can never exceed it.
+ *
+ * In edit mode (`editRow`/`editPayment` set) there's no "update payment" endpoint on the
+ * backend, so saving undoes the original transaction (`PAYMENT_UNDO`) first and then
+ * creates a new one with the edited values — same as a manual delete+recreate, just in one
+ * step. Only offered for payments with no invoice allocations (see the "Editar" gating in
+ * the parent), since re-deriving which invoices an allocated payment covered isn't safe to
+ * infer here.
  */
-function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pendingInvoices, onCancel, onSaved }: {
+function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pendingInvoices, editRow, editPayment, onCancel, onSaved }: {
   userId: string;
   patientName?: string;
   patientEmail?: string;
   currency: string;
   pendingInvoices: PendingInvoiceLite[];
+  editRow?: LedgerRow;
+  editPayment?: Payment;
   onCancel: () => void;
   onSaved: () => Promise<void> | void;
 }) {
@@ -858,6 +900,7 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
   const { toast } = useToast();
   const { user: operator, checkActiveSession } = useAuth();
   const { validateActiveSession, showCashSessionError } = useCashSessionValidation();
+  const isEdit = !!editRow;
   const [submitting, setSubmitting] = React.useState(false);
   const [paymentMethods, setPaymentMethods] = React.useState<PaymentMethod[]>([]);
 
@@ -865,7 +908,13 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
 
   const form = useForm<PaymentEditorValues>({
     resolver: zodResolver(paymentEditorSchema),
-    defaultValues: { created_at: new Date(), payment_amount: 0, payment_method_id: '', notes: '', is_historical: false },
+    defaultValues: {
+      created_at: editPayment?.payment_date ? new Date(editPayment.payment_date) : new Date(),
+      payment_amount: editPayment ? Math.abs(editPayment.amount_applied ?? editPayment.source_amount ?? 0) : 0,
+      payment_method_id: editPayment?.payment_method_id || '',
+      notes: editPayment?.notes || '',
+      is_historical: editPayment?.is_historical || false,
+    },
   });
   const createdAt = form.watch('created_at');
   const isHistorical = form.watch('is_historical');
@@ -947,6 +996,7 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
 
   const onSubmit = async (values: PaymentEditorValues) => {
     if (submitting || !operator) return;
+    if (isEdit && (!editRow?.paymentId || !editRow?.transactionType)) return;
     const invoiceAllocations = Object.entries(alloc)
       .filter(([, a]) => a > 0.005)
       .map(([id, a]) => ({ invoice_id: Number(id), amount: a }));
@@ -1002,11 +1052,21 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
       });
       if (res?.error && res?.code >= 400) throw new Error(res.message);
       if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message);
-      toast({ title: t('toasts.paymentCreated') });
+      if (isEdit) {
+        // No "update payment" endpoint — create the replacement first (above), then undo
+        // the original transaction, so a failure here leaves both instead of losing the
+        // payment outright.
+        const undoRes = await api.post(API_ROUTES.SALES.PAYMENT_UNDO, {}, undefined, {
+          transaction_id: editRow!.paymentId as string,
+          transaction_type: editRow!.transactionType as NonNullable<LedgerRow['transactionType']>,
+        });
+        if (Array.isArray(undoRes) && undoRes[0]?.code >= 400) throw new Error(undoRes[0]?.message);
+      }
+      toast({ title: t(isEdit ? 'toasts.paymentUpdated' : 'toasts.paymentCreated') });
       await checkActiveSession();
       await onSaved();
     } catch (e: any) {
-      toast({ title: e?.message || t('toasts.paymentCreateError'), variant: 'destructive' });
+      toast({ title: e?.message || t(isEdit ? 'toasts.paymentUpdateError' : 'toasts.paymentCreateError'), variant: 'destructive' });
     } finally {
       setSubmitting(false);
     }
@@ -1015,7 +1075,7 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
   return (
     <form onSubmit={form.handleSubmit(onSubmit)}>
       <InlineEditorShell
-        docLabel={t('inline.addPayment')}
+        docLabel={t(isEdit ? 'inline.editPayment' : 'inline.addPayment')}
         dateSlot={
           <DatePickerInput
             value={format(createdAt, 'yyyy-MM-dd')}
@@ -1122,6 +1182,114 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
   );
 }
 
+/**
+ * Inline editor for an existing (structured) credit note. There's no "update credit note"
+ * endpoint, so saving undoes the original (`CREDIT_NOTE_UNDO`) and creates a replacement
+ * (`INVOICES_UPSERT`, `type: 'credit_note'`) against the same parent invoice with the
+ * edited quantity/price/notes — the service itself isn't editable, since this note is
+ * crediting one specific line.
+ */
+function CreditNoteInlineEditor({ row, userId, parentInvoiceId, maxCreditable, onCancel, onSaved }: {
+  row: LedgerRow;
+  userId: string;
+  parentInvoiceId: string;
+  /** What this note could total including its own current amount (about to be replaced) —
+   *  i.e. `getMaxCreditableForInvoice(parentInvoiceId) + row's own current total`. */
+  maxCreditable: number;
+  onCancel: () => void;
+  onSaved: () => Promise<void> | void;
+}) {
+  const t = useTranslations('PatientLedger');
+  const { toast } = useToast();
+  const [submitting, setSubmitting] = React.useState(false);
+
+  const form = useForm<CreditNoteFormValues>({
+    resolver: zodResolver(creditNoteSchema),
+    defaultValues: {
+      quantity: row.quantity || 1,
+      unit_price: row.unitPrice || 0,
+      notes: row.notes || '',
+    },
+  });
+  const quantity = form.watch('quantity') || 0;
+  const unitPrice = form.watch('unit_price') || 0;
+
+  const onSubmit = async (values: CreditNoteFormValues) => {
+    if (submitting || !row.invoiceId || !row.itemId || !row.serviceId) return;
+    const total = values.quantity * values.unit_price;
+    if (total > maxCreditable + 0.01) {
+      form.setError('unit_price', { message: t('dialogs.creditNote.exceedsMax', { max: maxCreditable.toFixed(2) }) });
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const undoRes = await api.post(API_ROUTES.SALES.CREDIT_NOTE_UNDO, {}, undefined, { credit_note_id: row.invoiceId });
+      if (Array.isArray(undoRes) && undoRes[0]?.code >= 400) throw new Error(undoRes[0]?.message);
+      const res = await api.post(API_ROUTES.SALES.INVOICES_UPSERT, {
+        user_id: userId,
+        type: 'credit_note',
+        parent_id: parentInvoiceId,
+        currency: row.currency,
+        total,
+        notes: values.notes || '',
+        is_sales: true,
+        items: [{ service_id: row.serviceId, quantity: values.quantity, unit_price: values.unit_price, total }],
+      });
+      if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message);
+      toast({ title: t('toasts.creditNoteUpdated') });
+      await onSaved();
+    } catch (e: any) {
+      toast({ title: e?.message || t('toasts.creditNoteUpdateError'), variant: 'destructive' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={form.handleSubmit(onSubmit)}>
+      <InlineEditorShell
+        docLabel={t('docLine.creditNote')}
+        dateSlot={<span className="text-xs text-muted-foreground">{formatDisplayDate(row.date)}</span>}
+        mainSlot={
+          <div className="flex items-center gap-2">
+            <span className="min-w-0 flex-1 truncate text-sm">{row.label}</span>
+            <Input
+              type="number"
+              min={1}
+              aria-label={t('dialogs.creditNote.quantity')}
+              className="h-8 w-16 shrink-0 text-sm"
+              {...form.register('quantity')}
+            />
+            <Input
+              type="number"
+              min={0}
+              step="0.01"
+              aria-label={t('dialogs.creditNote.unitPrice')}
+              className="h-8 w-24 shrink-0 text-right text-sm"
+              {...form.register('unit_price')}
+            />
+          </div>
+        }
+        debeSlot={<DisabledAmountCell />}
+        haberSlot={
+          <div className="flex h-8 items-center justify-end pr-1 text-sm font-medium tabular-nums">
+            {fmtNumber2(round2(quantity * unitPrice))}
+          </div>
+        }
+        controls={<EditorControls submitting={submitting} onCancel={onCancel} />}
+        secondLine={
+          <Input
+            placeholder={t('fields.notes')}
+            aria-label={t('fields.notes')}
+            className="h-8 min-w-[10rem] flex-1 text-sm"
+            {...form.register('notes')}
+          />
+        }
+      />
+    </form>
+  );
+}
+
 export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedgerProps>(function PatientLedger({ userId, patientName, patientEmail, refreshTrigger, onPrintSummary, onViewStatement, hideToolbarActions, searchTerm: searchTermProp, dateRange: dateRangeProp, onDateRangeChange }: PatientLedgerProps, ref) {
   const t = useTranslations('PatientLedger');
   const { toast } = useToast();
@@ -1139,6 +1307,8 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
   const canDeleteQuote = hasPermission(SALES_PERMISSIONS.QUOTES_DELETE);
   const canDeletePayment = hasPermission(SALES_PERMISSIONS.PAYMENTS_CREATE);
   const canDeleteCreditNote = hasPermission(SALES_PERMISSIONS.INVOICES_DELETE);
+  const canEditQuote = hasPermission(SALES_PERMISSIONS.QUOTES_UPDATE);
+  const canEditInvoice = hasPermission(SALES_PERMISSIONS.INVOICES_UPDATE);
   const [isRevertingInvoice, setIsRevertingInvoice] = React.useState(false);
   const [isDeletingQuote, setIsDeletingQuote] = React.useState(false);
   const [isDeletingPayment, setIsDeletingPayment] = React.useState(false);
@@ -1161,12 +1331,19 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
   const [billingQuote, setBillingQuote] = React.useState<Quote | null>(null);
   const [billingItemId, setBillingItemId] = React.useState<string | null>(null);
   const [creditNoteRow, setCreditNoteRow] = React.useState<LedgerRow | null>(null);
+  /** Set instead of `creditNoteRow` when editing an existing credit note (as opposed to
+   *  creating a new one against the invoice it targets) — see the shared dialog below. */
+  const [editingCreditNoteRow, setEditingCreditNoteRow] = React.useState<LedgerRow | null>(null);
   const [isSubmittingCreditNote, setIsSubmittingCreditNote] = React.useState(false);
 
   // Inline editing state: `createDoc` drives the floating-bar → inline-create editor;
-  // `selectedRowId` drives row selection (inline presupuesto edit + action bar).
+  // `selectedRowId` drives row selection (action bar with Facturar/Editar/Nota de
+  // crédito/Eliminar); `editingItemRowId`/`editingPaymentRowId` swap a specific row's
+  // static display for its inline editor, pre-filled, in place.
   const [createDoc, setCreateDoc] = React.useState<'quote' | 'invoice' | 'payment' | null>(null);
   const [selectedRowId, setSelectedRowId] = React.useState<string | null>(null);
+  const [editingItemRowId, setEditingItemRowId] = React.useState<string | null>(null);
+  const [editingPaymentRowId, setEditingPaymentRowId] = React.useState<string | null>(null);
   const [searchOpen, setSearchOpen] = React.useState(false);
   // Doc numbers to ring-highlight while a row's "linked documents" popover is open —
   // see `RowAllocationsPopover`. Cleared when the popover closes.
@@ -1225,7 +1402,13 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
   const editorCurrency = currency || clinicInfo?.currency || 'UYU';
 
   // Reset transient inline state whenever the underlying rows change (after a reload).
-  const closeInline = React.useCallback(() => { setCreateDoc(null); setSelectedRowId(null); }, []);
+  const closeInline = React.useCallback(() => {
+    setCreateDoc(null);
+    setSelectedRowId(null);
+    setEditingItemRowId(null);
+    setEditingPaymentRowId(null);
+    setEditingCreditNoteRow(null);
+  }, []);
   const handleInlineSaved = React.useCallback(async () => { closeInline(); await load(true); }, [closeInline, load]);
 
   // ── Row actions ──────────────────────────────────────────────────────────────
@@ -1249,6 +1432,10 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
 
   const handleCreditNote = React.useCallback((row: LedgerRow) => {
     setCreditNoteRow(row);
+  }, []);
+
+  const handleEditCreditNote = React.useCallback((row: LedgerRow) => {
+    setEditingCreditNoteRow(row);
   }, []);
 
   const [isMarkingEnCurso, setIsMarkingEnCurso] = React.useState(false);
@@ -1583,6 +1770,18 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
     const quoteStatus = (row.quoteStatus || '').toLowerCase();
     const showInvoice = isUnbilledQuoteItem && INVOICEABLE_QUOTE_STATUSES.includes(quoteStatus) && canInvoiceQuote;
     const showCreateCreditNote = isInvoiceItem && !!row.invoiceId && getMaxCreditableForInvoice(row.invoiceId) > 0.005 && canCreateCreditNote;
+    // Editing a billed treatment is only offered while it's still fully unpaid — once a
+    // payment has touched it (parcial/pagado), changing its total would desync the amounts
+    // already applied against it.
+    const showEditItem =
+      (isUnbilledQuoteItem && canEditQuote) ||
+      (isInvoiceItem && row.status === 'facturado' && canEditInvoice);
+    // Only pure prepayments/credit (no invoice_id) are safe to edit — see the "Editar
+    // pagos" decision: allocated payments keep their delete-only path for now.
+    const showEditPayment = isPayment && !row.invoiceId && row.transactionType !== 'credit_note_allocation' && canCreatePaymentPerm;
+    // Only structured credit notes (with their own itemId/serviceId) carry enough
+    // information to be resent on edit; the rare lump-sum ones stay delete-only.
+    const showEditCreditNote = isCreditNote && !!row.itemId && !!row.serviceId && canCreateCreditNote;
     const canDelete =
       (isUnbilledQuoteItem && canDeleteQuote) ||
       (isPayment && canDeletePayment) ||
@@ -1593,6 +1792,21 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
         {showInvoice && (
           <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => handleInvoice(row)}>
             <FileText className="h-3.5 w-3.5" />{t('actions.invoiceCustom')}
+          </Button>
+        )}
+        {showEditItem && (
+          <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => { setSelectedRowId(null); setEditingItemRowId(row.id); }}>
+            <Pencil className="h-3.5 w-3.5" />{t('actions.edit')}
+          </Button>
+        )}
+        {showEditPayment && (
+          <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => { setSelectedRowId(null); setEditingPaymentRowId(row.id); }}>
+            <Pencil className="h-3.5 w-3.5" />{t('actions.edit')}
+          </Button>
+        )}
+        {showEditCreditNote && (
+          <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => { setSelectedRowId(null); handleEditCreditNote(row); }}>
+            <Pencil className="h-3.5 w-3.5" />{t('actions.edit')}
           </Button>
         )}
         {showCreateCreditNote && (
@@ -1610,7 +1824,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
         </Button>
       </>
     );
-  }, [canInvoiceQuote, canCreateCreditNote, canDeleteQuote, canDeletePayment, canDeleteCreditNote, canRevertInvoice, getMaxCreditableForInvoice, handleInvoice, handleCreditNote, handleDeleteRow, t]);
+  }, [canInvoiceQuote, canCreateCreditNote, canDeleteQuote, canDeletePayment, canDeleteCreditNote, canRevertInvoice, canEditQuote, canEditInvoice, canCreatePaymentPerm, getMaxCreditableForInvoice, handleInvoice, handleCreditNote, handleEditCreditNote, handleDeleteRow, t]);
 
   // Search may be controlled by a host (the sheet renders the search box in its header);
   // otherwise the ledger keeps its own state and shows an expandable search in the toolbar.
@@ -1765,6 +1979,72 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
                   {filteredRows.map((row) => {
                     const isBalanceRow = row.kind === 'balance';
                     const selected = !isBalanceRow && selectedRowId === row.id;
+
+                    // A row being edited swaps its whole static display for the matching
+                    // inline editor, pre-filled, in the same slot — same visual position,
+                    // no dialog. `editKind` mirrors QuoteInvoiceInlineEditor's own rule:
+                    // an unbilled presupuesto edits the quote; anything already billed
+                    // edits the invoice.
+                    if (editingItemRowId === row.id) {
+                      return (
+                        <div key={row.id} className="rounded-lg">
+                          <QuoteInvoiceInlineEditor
+                            doc={row.status === 'presupuestado' ? 'quote' : 'invoice'}
+                            editRow={row}
+                            editInvoice={row.invoiceId ? ledgerData?.invoices.find((i) => i.id === row.invoiceId) : undefined}
+                            // For the presupuesto case only this one item's own fields
+                            // (notably tooth_number, which isn't on LedgerRow) are needed
+                            // for prefill — QUOTES_LINES_UPSERT doesn't touch siblings, so
+                            // there's no need to resend the whole set on save.
+                            editItems={row.status === 'presupuestado'
+                              ? ledgerData?.quoteItemsByQuote[row.quoteId || '']
+                              : ledgerData?.invoiceItemsByInvoice[row.invoiceId || '']}
+                            userId={userId}
+                            currency={row.currency}
+                            onCancel={() => setEditingItemRowId(null)}
+                            onSaved={async () => { setEditingItemRowId(null); await load(true); }}
+                          />
+                        </div>
+                      );
+                    }
+                    if (editingPaymentRowId === row.id) {
+                      return (
+                        <div key={row.id} className="rounded-lg">
+                          <PaymentInlineEditor
+                            userId={userId}
+                            patientName={patientName}
+                            patientEmail={patientEmail}
+                            currency={row.currency}
+                            pendingInvoices={pendingInvoices}
+                            editRow={row}
+                            editPayment={ledgerData?.payments.find((p) => p.id === row.paymentId)}
+                            onCancel={() => setEditingPaymentRowId(null)}
+                            onSaved={async () => { setEditingPaymentRowId(null); await load(true); }}
+                          />
+                        </div>
+                      );
+                    }
+                    if (editingCreditNoteRow?.id === row.id) {
+                      const creditNoteInvoice = row.invoiceId ? ledgerData?.invoices.find((i) => i.id === row.invoiceId) : undefined;
+                      const parentInvoiceId = creditNoteInvoice?.parent_id;
+                      // Falls back to the normal row below if the parent can't be resolved
+                      // (shouldn't happen for a structured credit note, but avoids a dead end).
+                      if (parentInvoiceId) {
+                        return (
+                          <div key={row.id} className="rounded-lg">
+                            <CreditNoteInlineEditor
+                              row={row}
+                              userId={userId}
+                              parentInvoiceId={parentInvoiceId}
+                              maxCreditable={getMaxCreditableForInvoice(parentInvoiceId) + (creditNoteInvoice?.total || 0)}
+                              onCancel={() => setEditingCreditNoteRow(null)}
+                              onSaved={async () => { setEditingCreditNoteRow(null); await load(true); }}
+                            />
+                          </div>
+                        );
+                      }
+                    }
+
                     // Only rows that can actually have a payment↔invoice link show the
                     // popover: direct payments, and billed treatments (not unbilled
                     // presupuestos or credit notes, which don't carry `invoice_payments`).
@@ -1786,8 +2066,8 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
                         <div
                           role={isBalanceRow ? undefined : 'button'}
                           tabIndex={isBalanceRow ? undefined : 0}
-                          onClick={isBalanceRow ? undefined : () => { setCreateDoc(null); setSelectedRowId(selected ? null : row.id); }}
-                          onKeyDown={isBalanceRow ? undefined : (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setCreateDoc(null); setSelectedRowId(selected ? null : row.id); } }}
+                          onClick={isBalanceRow ? undefined : () => { setCreateDoc(null); setEditingItemRowId(null); setEditingPaymentRowId(null); setEditingCreditNoteRow(null); setSelectedRowId(selected ? null : row.id); }}
+                          onKeyDown={isBalanceRow ? undefined : (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setCreateDoc(null); setEditingItemRowId(null); setEditingPaymentRowId(null); setEditingCreditNoteRow(null); setSelectedRowId(selected ? null : row.id); } }}
                           className={cn(
                             'flex items-center gap-3 border px-3 py-2.5',
                             isBalanceRow ? 'cursor-default italic' : 'cursor-pointer',
@@ -1880,17 +2160,17 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
           <div className="flex shrink-0 items-end gap-3 border-t pl-1 pr-5 pt-3">
             <div className="flex flex-1 flex-wrap items-center gap-2">
               {canCreateQuote && (
-                <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => { setSelectedRowId(null); setCreateDoc('quote'); }}>
+                <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => { setSelectedRowId(null); setEditingItemRowId(null); setEditingPaymentRowId(null); setEditingCreditNoteRow(null); setCreateDoc('quote'); }}>
                   <Plus className="h-3.5 w-3.5" /><FileText className="h-3.5 w-3.5" />{t('inline.addQuote')}
                 </Button>
               )}
               {canCreateTreatment && (
-                <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => { setSelectedRowId(null); setCreateDoc('invoice'); }}>
+                <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => { setSelectedRowId(null); setEditingItemRowId(null); setEditingPaymentRowId(null); setEditingCreditNoteRow(null); setCreateDoc('invoice'); }}>
                   <Plus className="h-3.5 w-3.5" /><Receipt className="h-3.5 w-3.5" />{t('inline.addTreatment')}
                 </Button>
               )}
               {canCreatePaymentPerm && (
-                <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => { setSelectedRowId(null); setCreateDoc('payment'); }}>
+                <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => { setSelectedRowId(null); setEditingItemRowId(null); setEditingPaymentRowId(null); setEditingCreditNoteRow(null); setCreateDoc('payment'); }}>
                   <Plus className="h-3.5 w-3.5" /><Banknote className="h-3.5 w-3.5" />{t('inline.addPayment')}
                 </Button>
               )}
@@ -1932,7 +2212,10 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
         onSuccess={async () => { setBillingQuote(null); setBillingItemId(null); await load(true); }}
       />
 
-      <Dialog open={!!creditNoteRow} onOpenChange={(open) => { if (!open) setCreditNoteRow(null); }}>
+      <Dialog
+        open={!!creditNoteRow}
+        onOpenChange={(open) => { if (!open) setCreditNoteRow(null); }}
+      >
         <DialogContent className="sm:max-w-[480px]" confirmOnClose isDirty={creditNoteForm.formState.isDirty}>
           <Form {...creditNoteForm}>
             <form onSubmit={creditNoteForm.handleSubmit(handleSubmitCreditNote)}>

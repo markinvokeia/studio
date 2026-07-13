@@ -8,10 +8,12 @@
       "addQuote": "Presupuesto",
       "addTreatment": "Tratamiento",
       "addPayment": "Pago",
+      "editPayment": "Editar pago",
       "confirm": "Confirmar",
       "cancel": "Cancelar",
       "save": "Guardar",
       "delete": "Eliminar",
+      "edit": "Editar",
       "selectPending": "Seleccionar tratamientos pendientes"
     },
     "allocations": {
@@ -180,7 +182,11 @@
       "paymentDeleted": "Pago eliminado",
       "paymentDeleteError": "No se pudo eliminar el pago",
       "creditNoteDeleted": "Nota de crédito eliminada",
-      "creditNoteDeleteError": "No se pudo eliminar la nota de crédito"
+      "creditNoteDeleteError": "No se pudo eliminar la nota de crédito",
+      "paymentUpdated": "Pago actualizado",
+      "paymentUpdateError": "No se pudo actualizar el pago",
+      "creditNoteUpdated": "Nota de crédito actualizada",
+      "creditNoteUpdateError": "No se pudo actualizar la nota de crédito"
     }
   },
   "QuickTreatmentDialog": {

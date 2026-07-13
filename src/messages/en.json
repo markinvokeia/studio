@@ -8,10 +8,12 @@
       "addQuote": "Quote",
       "addTreatment": "Treatment",
       "addPayment": "Payment",
+      "editPayment": "Edit payment",
       "confirm": "Confirm",
       "cancel": "Cancel",
       "save": "Save",
       "delete": "Delete",
+      "edit": "Edit",
       "selectPending": "Select pending treatments"
     },
     "allocations": {
@@ -180,7 +182,11 @@
       "paymentDeleted": "Payment deleted",
       "paymentDeleteError": "Could not delete the payment",
       "creditNoteDeleted": "Credit note deleted",
-      "creditNoteDeleteError": "Could not delete the credit note"
+      "creditNoteDeleteError": "Could not delete the credit note",
+      "paymentUpdated": "Payment updated",
+      "paymentUpdateError": "Could not update the payment",
+      "creditNoteUpdated": "Credit note updated",
+      "creditNoteUpdateError": "Could not update the credit note"
     }
   },
   "QuickTreatmentDialog": {

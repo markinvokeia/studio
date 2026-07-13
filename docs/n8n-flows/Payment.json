@@ -1,0 +1,2078 @@
+{
+  "name": "Payment",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT i.*,   \n       (SELECT COALESCE(SUM(CASE WHEN p.currency = i.currency THEN p.amount ELSE p.converted_amount END), 0) FROM payments p WHERE p.invoice_id = i.id) as paid_amount, o.doc_no AS order_doc_no\nFROM invoices i\nLEFT JOIN orders o ON i.order_id = o.id\nWHERE i.id = $1",
+        "options": {
+          "queryReplacement": "={{ [$json.invoice_id] }}"
+        }
+      },
+      "id": "22658695-75fb-4981-8063-ccaad2575a4c",
+      "name": "Obtener Info Factura",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -672,
+        944
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validar si el pago es válido\nconst invoice = $('Obtener Info Factura').first().json;\nconst input = $('Validar Entrada').first().json;\nconst conversion = input.conversion; \nconst paymentAmount = Number(conversion ? input.converted_amount: input.payment_amount);\nconst totalPaid = Number(input.total_paid);\nconst remainingAmount = Number(invoice.total) - Number(invoice.paid_amount);\n\nif (totalPaid <= 0) {\n  return [{\n    json: {\n      error: true,\n      message: \"El monto del pago debe ser mayor a 0\"\n    }\n  }];\n}\n\n// if (totalPaid > remainingAmount) {\n//   return [{\n//     json: {\n//       error: true,\n//       message: `El pago ($${totalPaid}) excede el monto pendiente ($${remainingAmount})`\n//     }\n//   }];\n// }\n\nif (invoice.payment_state === 'paid') {\n  return [{\n    json: {\n      error: true,\n      message: \"Esta factura ya está completamente pagada\"\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    invoice: invoice,\n    payment_amount: totalPaid,\n    total_paid: Number(invoice.paid_amount) + Number(totalPaid), \n    remainingAmount: remainingAmount,\n    remaining_after_payment: remainingAmount - totalPaid,\n    will_be_fully_paid: (Number(remainingAmount) - Number(totalPaid)) <= 0.01\n  }\n}];"
+      },
+      "id": "a75e19e5-7b0a-4392-b4c2-ee587a1141dc",
+      "name": "Validar Pago",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -496,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "has-error",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal"
+              }
+            },
+            {
+              "id": "2123459e-6a6f-4293-b41a-ce2318e28905",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "b3a0e468-3c71-440c-b840-8ecf5cf13010",
+      "name": "¿Pago Válido?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -336,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "payments",
+          "mode": "list",
+          "cachedResultName": "payments"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "invoice_id": "={{ $json.invoice_id || null}}",
+            "amount": "={{ $json.payment_amount }}",
+            "method": "={{ $('Validar Entrada').first().json.payment_method }}",
+            "created_at": "={{ $('Validar Entrada').first().json.payment_date || $now.toISO() }}",
+            "payment_method_id": "={{ $('Validar Entrada').first().json.payment_method_id }}",
+            "cash_session_id": "={{ $('Validar Entrada').first().json.cash_session_id }}",
+            "currency": "={{ $('Validar Entrada').first().json.currency || 'UYU' }}",
+            "is_sales": "={{ $('Validar Entrada').first().json.is_sales }}",
+            "exchange_rate": "={{ $('Validar Entrada').first().json.exchange_rate || 1 }}",
+            "invoice_currency": "={{ $json.invoice_currency }}",
+            "converted_amount": "={{ $json.converted_amount }}",
+            "user_id": "={{ $('Validar Entrada').first().json.prepaid ? $('Validar Entrada').first().json.user.id : $('Obtener Info Factura').first().json.user_id }}",
+            "notes": "={{ $('Validar Entrada').first().json.notes }}",
+            "is_historical": "={{ $('Validar Entrada').first().json.is_historical }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "invoice_id",
+              "displayName": "invoice_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "amount",
+              "displayName": "amount",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "method",
+              "displayName": "method",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "payment_method_id",
+              "displayName": "payment_method_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "cash_session_id",
+              "displayName": "cash_session_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "currency",
+              "displayName": "currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "is_sales",
+              "displayName": "is_sales",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "invoice_currency",
+              "displayName": "invoice_currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "exchange_rate",
+              "displayName": "exchange_rate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "converted_amount",
+              "displayName": "converted_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "doc_no",
+              "displayName": "doc_no",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "is_historical",
+              "displayName": "is_historical",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "86bb5202-c6ae-46f5-b429-093899c3332d",
+      "name": "Registrar Pago",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1056,
+        1440
+      ],
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "query",
+              "type": "object"
+            },
+            {
+              "name": "sessionId"
+            },
+            {
+              "name": "user",
+              "type": "object"
+            },
+            {
+              "name": "message"
+            },
+            {
+              "name": "invoice_id"
+            },
+            {
+              "name": "amount",
+              "type": "number"
+            },
+            {
+              "name": "payment_method"
+            },
+            {
+              "name": "payment_date"
+            },
+            {
+              "name": "cash_session_id",
+              "type": "any"
+            },
+            {
+              "name": "credit_payment",
+              "type": "array"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1744,
+        1344
+      ],
+      "id": "df220452-49bb-49d1-8251-45453d158623",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "const query = $json.query;\n\nconst input = $input.first().json;\n// Validar datos de entrada desde el trigger\nconst invoice_id = input.invoice_id || query?.invoice_id || '';\nconst cash_session_id = input.cash_session_id || query?.cash_session_id || null;\nconst payment_date = query?.payment_date || input.payment_date  || '';\nconst payment_amount = input.amount || query?.amount || query?.paid_amount || query?.payment_amount || 0;\nconst payment_method = query?.method || input.method  || '';\nconst payment_method_id = query?.payment_method_id || input.payment_method_id  || 1 ;\nconst user = input.user || query?.user || {};\nconst currency = input.payment_currency || query?.payment_currency || 'UYU';\nconst invoice_currency = input.invoice_currency || query?.invoice_currency || 'UYU';\nconst exchange_rate = input?.exchange_rate || query?.exchange_rate  || 1 ;\nconst converted_amount = input.converted_amount || query?.converted_amount || payment_amount;\nconst credit_payment = input.credit_payment\nconst prepaid = !invoice_id || invoice_id === '' ? true : false\nconst total_paid = query?.total_paid || payment_amount;\nconst notes = query?.notes || '';\nconst is_historical = query?.is_historical\nconst is_sales = query?.is_sales\n\n// Validaciones básicas\n// if (!invoice_id || invoice_id === '') {\n//   return [{ json: { error: true, message: 'Numero de factura es requerido' } }];\n// }\n\nif (!payment_date || payment_date === '') {\n  return [{ json: { error: true, message: 'La fecha del pago es requerida' } }];\n}\n\nif ((!total_paid || total_paid === '') && credit_payment?.length === 0) {\n  return [{ json: { error: true, message: 'El monto del pago es requerido' } }];\n}\n\nif ((!payment_method || payment_method === '') && credit_payment?.length === 0) {\n  return [{ json: { error: true, message: 'El método de pago es requerido' } }];\n}\n\nreturn [{\n  json: {\n    invoice_id,\n    payment_date,\n    payment_amount,\n    payment_method,\n    payment_method_id,\n    cash_session_id,    \n    user: user,\n    currency,\n    invoice_currency,\n    exchange_rate,\n    converted_amount,\n    conversion: currency !== invoice_currency,\n    credit_payment,\n    prepaid,\n    total_paid,\n    notes,\n    is_historical,\n    is_sales\n  }\n}];"
+      },
+      "id": "d417aeec-c6ed-4793-98aa-65e0fd71689f",
+      "name": "Validar Entrada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1504,
+        1344
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"success\": false,\n  \"message\": \"{{ $json.message }}\",\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        32,
+        1360
+      ],
+      "id": "f9964b48-08c1-4b23-bb3d-cea8728cc12b",
+      "name": "Pago No pudo ser creado"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT u.name, u.email\nFROM users u\nWHERE u.id = $1",
+        "options": {
+          "queryReplacement": "={{ $('Obtener Info Factura').first().json.user_id }}"
+        }
+      },
+      "id": "da9e4750-e286-4f30-a3a5-200e06d387d6",
+      "name": "Obtener Info Paciente",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2704,
+        928
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"success\": true,\n  \"message\": \"Pago procesado exitosamente\",\n  \"payment_id\": {{ $('Validar Entrada').first().json.payment_amount > 0 ? $('Registrar Pago').first().json.id : null }},\n  \"amount\": {{ $('Validar Entrada').first().json.total_paid }},\n  \"invoice_id\": {{ $('Validar Entrada').first().json.invoice_id || \"null\" }},\n  \"invoice_status\": \"{{ $('Validar Entrada').first().json.invoice_id ? $('Get invoice status').first().json.status : null }}\",\n  \"remaining_balance\": {{ $('Validar Entrada').first().json.invoice_id ? $('Validar Pago').item.json.remaining_after_payment : 0 }},\n  \"quote_payment_status\": \"{{ $('Validar Entrada').first().json.invoice_id ? ($('get_quotes_status').item.json.payment_status || null) : null }}\",\n  \"currency\": \"{{ $('Validar Entrada').first().json.currency }}\",\n  \"exchange_rate\": {{ $('Validar Entrada').item.json.exchange_rate || 1 }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3424,
+        1120
+      ],
+      "id": "ff23c3c4-665f-4753-8eff-f83656544f63",
+      "name": "Pago Confirmado"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "cash_movements",
+          "mode": "list",
+          "cachedResultName": "cash_movements"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "amount": "={{ $('Registrar Pago').first().json.amount }}",
+            "created_at": "={{ $('Validar Entrada').first().json.payment_date.toDateTime().toISO() }}",
+            "payment_method_id": "={{ $('Validar Entrada').first().json.payment_method_id }}",
+            "cash_session_id": "={{ $('Validar Entrada').first().json.cash_session_id }}",
+            "payment_id": "={{ $('Registrar Pago').first().json.id }}",
+            "description": "={{ $('mov_description').first().json.invoice_description }}",
+            "user_id": "={{ $('Validar Entrada').first().json.prepaid ? $('Validar Entrada').first().json.user.id : $('Obtener Info Factura').first().json.user_id }}",
+            "type": "={{ $('When Executed by Another Workflow').first().json.type || 'INFLOW' }}",
+            "currency": "={{ $('Validar Entrada').first().json.currency || 'UYU' }}",
+            "is_sales": "={{ $('Registrar Pago').first().json.is_sales }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "cash_session_id",
+              "displayName": "cash_session_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "type",
+              "displayName": "type",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "payment_method_id",
+              "displayName": "payment_method_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "amount",
+              "displayName": "amount",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "payment_id",
+              "displayName": "payment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "currency",
+              "displayName": "currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "is_sales",
+              "displayName": "is_sales",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "is_trx",
+              "displayName": "is_trx",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "source_type",
+              "displayName": "source_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "source_id",
+              "displayName": "source_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "b00bf43b-410c-4b3b-b168-24cdd5433dda",
+      "name": "Registrar Movimiento Caja",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1808,
+        1312
+      ],
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "63c6b619-bcb6-4529-99c5-ddd8624f1b00",
+              "name": "name",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "8c90588b-4da4-496f-93aa-ee862284f306",
+              "name": "amount",
+              "value": "={{ $('Validar Entrada').first().json.total_paid }}",
+              "type": "number"
+            },
+            {
+              "id": "2b74dfb1-bac2-4b73-b62e-e44229a76163",
+              "name": "invoiceId",
+              "value": "={{ $('Validar Pago').first().json.invoice.doc_no }}",
+              "type": "string"
+            },
+            {
+              "id": "a29aebbf-8c33-48e7-ade7-7177ef15130e",
+              "name": "=paymentMethod",
+              "value": "={{ $('Validar Entrada').first().json.payment_method || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "57077220-dd56-4531-b8de-b3859d2b6e40",
+              "name": "=currentDateTime",
+              "value": "={{ $now.format('dd/MM/yyyy HH:mm') }}",
+              "type": "string"
+            },
+            {
+              "id": "be69b2c3-a827-4336-bdab-5576f9efe76d",
+              "name": "=status",
+              "value": "={{ $('Get invoice status').first().json.payment_state }}",
+              "type": "string"
+            },
+            {
+              "id": "327978ae-bc01-4678-8e17-d4aedc21bb62",
+              "name": "=remainingAfterPayment",
+              "value": "={{ $('Validar Pago').first().json.remaining_after_payment }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2928,
+        928
+      ],
+      "id": "46e36ac5-3d31-4328-bfb6-e3c894a27c37",
+      "name": "Set data"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT i.id, i.status, i.payment_state\nFROM invoices i\nWHERE i.id = $1",
+        "options": {
+          "queryReplacement": "={{ [$('Obtener Info Factura').first().json.id] }}"
+        }
+      },
+      "id": "a294945a-8a1f-42bf-ba40-704daac18f04",
+      "name": "Get invoice status",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2304,
+        928
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "861335fe-b423-46a2-a748-fcfee89859d2",
+              "leftValue": "={{ $('Validar Entrada').first().json.credit_payment }}",
+              "rightValue": "",
+              "operator": {
+                "type": "array",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "0b04abd4-daa1-425a-8274-e89b9cdba0a9",
+              "leftValue": "={{ $('Validar Entrada').first().json.credit_payment?.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -96,
+        928
+      ],
+      "id": "a754cb84-9567-4dd2-b6ba-cfafc0785398",
+      "name": "¿Pago con credito?"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "377018f3-36f3-411a-820f-c54d3d765974",
+              "name": "credit_payments",
+              "value": "={{ $('Validar Entrada').first().json.credit_payment }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        304,
+        208
+      ],
+      "id": "17f0ed58-490e-4e31-8c55-31b2b73e3a05",
+      "name": "Set credit_payments"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "3d776ce7-fbb7-4b0d-9df3-4827451fe370",
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "payment",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1280,
+        224
+      ],
+      "id": "2591f686-f4f7-4f00-ac87-ddba4f6602ab",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "credit_payments",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        512,
+        208
+      ],
+      "id": "537f68df-f842-47e5-867a-b3d0c35182f1",
+      "name": "Split Out credit_payments"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        800,
+        208
+      ],
+      "id": "8a971db7-c0bc-4a03-8acf-8d689ce1fed2",
+      "name": "Loop Over payment Items"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "26f7d19e-60e8-4fb2-b9ae-5ebc420e7478",
+              "leftValue": "={{ $json.prepaid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "57b36154-7d89-4db3-898d-7a4dfd4c161c",
+              "leftValue": "={{ $json.prepaid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1088,
+        1104
+      ],
+      "id": "419fa913-7efa-4408-840c-b91f2e247c91",
+      "name": "If not prepaid"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const paymentData = $('payment_values').item.json;\nconst isPrepaid = paymentData.prepaid;\nconst invoiceType = paymentData.invoice_type;\n\nlet invoiceDescription;\nlet orderDescription;\n\nif (isPrepaid) {\n    invoiceDescription = 'PREPAGO';\n    orderDescription = '';\n} else {\n    const invoiceInfo = $('Obtener Info Factura').item.json;\n    const orderDocNo = invoiceInfo?.order_doc_no || 'N/A';\n    invoiceDescription = `Pago factura: ${invoiceInfo.doc_no}`;\n    orderDescription = `Orden: ${orderDocNo}`;\n\n    if (invoiceType === 'credit_note') {\n      invoiceDescription = `Nota de crédito: ${invoiceInfo.doc_no}`;\n      orderDescription = '';\n    }\n}\n\nreturn {\n    invoice_description: invoiceDescription,\n    order_description: orderDescription\n  };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1536,
+        1312
+      ],
+      "id": "3d0aa832-a985-4045-a990-1f52f25e4854",
+      "name": "mov_description"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9ca69f10-d1c8-4b8b-8cf0-1d22a1874194",
+              "leftValue": "={{ $('payment_values').first().json.invoice_type }}",
+              "rightValue": "credit_note",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2080,
+        1456
+      ],
+      "id": "eb0ff850-d27a-4a10-ae24-9c15eeacca3a",
+      "name": "If credit_note"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "payment_allocations",
+          "mode": "list",
+          "cachedResultName": "payment_allocations"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "invoice_id": "={{ $('Validar Entrada').first().json.invoice_id }}",
+            "exchange_rate": "={{ $('Validar Entrada').first().json.exchange_rate }}",
+            "amount": "={{ $('Validar Entrada').first().json.payment_amount }}",
+            "payment_id": "={{ $('Registrar Pago').first().json.id }}",
+            "allocated_currency": "={{ $('Validar Entrada').first().json.currency }}",
+            "target_amount": "={{ $('Validar Entrada').first().json.payment_amount / $('Validar Entrada').first().json.exchange_rate }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "payment_id",
+              "displayName": "payment_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "invoice_id",
+              "displayName": "invoice_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "amount",
+              "displayName": "amount",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "allocated_currency",
+              "displayName": "allocated_currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "target_amount",
+              "displayName": "target_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "exchange_rate",
+              "displayName": "exchange_rate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2320,
+        1440
+      ],
+      "id": "97301f08-c12b-40ac-b434-7323337f80ec",
+      "name": "Insert payment allocations1",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "57b36154-7d89-4db3-898d-7a4dfd4c161c",
+              "leftValue": "={{ $('Validar Entrada').first().json.prepaid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1760,
+        1104
+      ],
+      "id": "c8c026e3-6b6b-4405-8473-1b5291325dd6",
+      "name": "If not prepaid1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "559f8715-0db1-476c-8693-ac0ff52c580d",
+              "leftValue": "={{ $('Validar Entrada').first().json.payment_amount }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "1bde35c2-1eb7-4747-944c-cf5c04a55eeb",
+              "leftValue": "={{ Number($('Validar Entrada').first().json.payment_amount) }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1520,
+        720
+      ],
+      "id": "0cf9a98d-f985-475c-b6e0-f5bfe47a58be",
+      "name": "only_credit_payment"
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputData = $('Validar Entrada').first().json;\n\n// Datos base de la entrada\nconst is_sales = inputData.is_sales;\nconst exchangeRate = inputData.exchange_rate || 1;\nconst currency = inputData.currency;\nlet invoiceId = inputData.invoice_id;\nlet paidAmount = inputData.payment_amount;\nlet totalPaid = inputData.total_paid;\n\nlet outputs = [];\n\n// 1. SI NO HAY INVOICE_ID, ES TRATADO COMO PRE-PAGO DIRECTO\nif (!invoiceId) {\n  // Según pto 2: La moneda de la factura es la del pago\n  let invoiceCurrency = currency;\n  // Según pto 4: Recalcular monto convertido\n  let convertedAmount = paidAmount * exchangeRate;\n\n  // Según pto 3: Lógica de signos (is_sales = false es compra/egreso, invertimos)\n  if (is_sales === false) {\n    paidAmount = -Math.abs(paidAmount);\n    convertedAmount = -Math.abs(convertedAmount);\n  }\n\n  outputs.push({\n    invoice_id: null,\n    payment_amount: paidAmount,\n    invoice_currency: invoiceCurrency,\n    converted_amount: convertedAmount,\n    prepaid: true,\n    invoice_type: ''\n  });\n\n} else {\n  // 2. CASO CON FACTURA (Se obtienen datos de nodos externos)\n  const remainingAmount = $('Validar Pago').first().json.remainingAmount;\n  const invoiceData = $('Obtener Info Factura').first().json;\n  const invoiceCurrency = invoiceData.currency || 'UYU';\n  const invoiceType = invoiceData.type;\n  \n  let convertedAmount = 0;\n\n  // Cálculo de conversión estándar para el pago\n  if (invoiceCurrency !== currency && invoiceCurrency !== 'UYU') {\n    convertedAmount = paidAmount / exchangeRate;\n  } else {\n    convertedAmount = paidAmount * exchangeRate;\n  }\n\n  // A. SI HAY EXCEDENTE (Pago > Deuda) se genera un pago y un prepago\n  if (totalPaid > remainingAmount) {\n    let convertedAmountInfavor = totalPaid - remainingAmount;\n    let amountInfavor = 0;\n\n    // Ajustar el \"monto a favor\" según moneda\n    if (invoiceCurrency !== currency && invoiceCurrency !== 'UYU') {\n      amountInfavor = convertedAmountInfavor * exchangeRate;\n    } else {\n      amountInfavor = convertedAmountInfavor / exchangeRate;\n    }\n\n    // El pago real a la factura es el total menos el excedente\n    paidAmount = paidAmount - amountInfavor;\n\n    // Aplicar lógica de signos (Facturas de compra o Notas de crédito de venta)\n    if ((invoiceType === 'invoice' && is_sales === false) || (invoiceType === 'credit_note' && is_sales === true)) {\n      paidAmount = -Math.abs(paidAmount);\n      amountInfavor = -Math.abs(amountInfavor);\n      convertedAmount = -Math.abs(convertedAmount);\n      convertedAmountInfavor = -Math.abs(convertedAmountInfavor);\n    }\n\n    // Salida 1: El pago aplicado a la factura\n    outputs.push({\n      invoice_id: invoiceId,\n      payment_amount: paidAmount,\n      invoice_currency: invoiceCurrency,\n      converted_amount: convertedAmount - convertedAmountInfavor,\n      prepaid: false,\n      invoice_type: invoiceType\n    });\n\n    // Salida 2: El excedente como nuevo Prepago\n    outputs.push({\n      invoice_id: null,\n      payment_amount: amountInfavor,\n      invoice_currency: null,\n      converted_amount: convertedAmountInfavor,\n      prepaid: true,\n      invoice_type: ''\n    });\n\n  } else {\n    // B. PAGO NORMAL O MENOR A LA DEUDA\n    if ((invoiceType === 'invoice' && is_sales === false) || (invoiceType === 'credit_note' && is_sales === true)) {\n      paidAmount = -Math.abs(paidAmount);\n      convertedAmount = -Math.abs(convertedAmount);\n    }\n\n    outputs.push({\n      invoice_id: invoiceId,\n      payment_amount: paidAmount,\n      invoice_currency: invoiceCurrency,\n      converted_amount: convertedAmount,\n      prepaid: false,\n      invoice_type: invoiceType\n    });\n  }\n}\n\nreturn {\n  outputs: outputs\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        272,
+        1120
+      ],
+      "id": "ec3448e6-4c31-4381-85c6-44cef5f93001",
+      "name": "list_payments"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        848,
+        1120
+      ],
+      "id": "ef4b3921-4248-4b1d-8fa6-9453375f9a4f",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "outputs",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        544,
+        1120
+      ],
+      "id": "97a9cc0c-c328-476a-956f-c9d7a5745e27",
+      "name": "payment_values"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT q.id, q.payment_status, q.total\nFROM quotes q\nJOIN orders o ON o.quote_id = q.id\nJOIN invoices i ON i.order_id = o.id\nWHERE i.id = $1",
+        "options": {
+          "queryReplacement": "={{ [$('Obtener Info Factura').first().json.id] }}"
+        }
+      },
+      "id": "9dc26f34-e723-4828-9673-e386e2ab9dc2",
+      "name": "get_quotes_status",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2496,
+        928
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "iuqte7TCM_EiFbvt1bBZA",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/iuqte7TCM_EiFbvt1bBZA",
+          "cachedResultName": "Send Email to User"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "subject": "=✅ Pago Recibido - Factura #{{ $('Validar Entrada').first().json.invoice_id }}",
+            "data": "={{ $json }}",
+            "cc": "={{ ['mark@invokeia.com'] }}",
+            "template": "payment-received-email",
+            "channel": "email",
+            "category": "billing",
+            "user_id": "={{ $('Obtener Info Factura').first().json.user_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "subject",
+              "displayName": "subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "template",
+              "displayName": "template",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "data",
+              "displayName": "data",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            },
+            {
+              "id": "attachement",
+              "displayName": "attachement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            },
+            {
+              "id": "channel",
+              "displayName": "channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "cc",
+              "displayName": "cc",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array",
+              "removed": false
+            },
+            {
+              "id": "bcc",
+              "displayName": "bcc",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array",
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        3136,
+        928
+      ],
+      "id": "e0431111-d216-438c-ba5c-8523e9169789",
+      "name": "Send email1",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a1bf3c2c-d45b-40a5-9a74-001d82697602",
+              "leftValue": "={{ $('Validar Entrada').first().json.is_historical }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1264,
+        1440
+      ],
+      "id": "7d626e0e-c24c-4e32-ba59-0499def249d7",
+      "name": "NOT is historical?"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "payment_allocations",
+          "mode": "list",
+          "cachedResultName": "payment_allocations"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "invoice_id": "={{ $('Validar Entrada').first().json.invoice_id }}",
+            "exchange_rate": "={{ $json.exchange_rate || 1 }}",
+            "amount": "={{ $json.amount }}",
+            "payment_id": "={{ $json.source_id }}",
+            "allocated_currency": "={{ $json.currency }}",
+            "target_amount": "={{ $('Validar Entrada').first().json.invoice_currency === $json.currency ? $json.amount : ($('Validar Entrada').first().json.invoice_currency !== 'UYU' ? $json.amount / ($json.exchange_rate || 1) : $json.amount * ($json.exchange_rate || 1)) }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "payment_id",
+              "displayName": "payment_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "invoice_id",
+              "displayName": "invoice_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "amount",
+              "displayName": "amount",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "allocated_currency",
+              "displayName": "allocated_currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "target_amount",
+              "displayName": "target_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "exchange_rate",
+              "displayName": "exchange_rate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1552,
+        128
+      ],
+      "id": "4753fa9d-5889-470b-99c8-5d2cb7f107a1",
+      "name": "Insert payment allocations",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "invoice_allocations",
+          "mode": "list",
+          "cachedResultName": "invoice_allocations"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "exchange_rate": "={{ $json.exchange_rate || 1 }}",
+            "amount": "={{ $json.amount }}",
+            "allocated_currency": "={{ $json.currency }}",
+            "target_amount": "={{ $('Validar Entrada').first().json.invoice_currency === $json.currency ? $json.amount : ($('Validar Entrada').first().json.invoice_currency !== 'UYU' ? $json.amount / ($json.exchange_rate || 1) : $json.amount * ($json.exchange_rate || 1)) }}",
+            "target_id": "={{ $('Validar Entrada').first().json.invoice_id }}",
+            "source_id": "={{ $json.source_id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "source_id",
+              "displayName": "source_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "target_id",
+              "displayName": "target_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "amount",
+              "displayName": "amount",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "created_by",
+              "displayName": "created_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "allocated_currency",
+              "displayName": "allocated_currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "target_amount",
+              "displayName": "target_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "exchange_rate",
+              "displayName": "exchange_rate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1568,
+        368
+      ],
+      "id": "995c498d-6d65-48ad-ae73-fd46804618b3",
+      "name": "Insert invoice allocations",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Validar Pago": [
+      {
+        "json": {
+          "invoice": {
+            "id": 364,
+            "order_id": 310,
+            "total": "130.00",
+            "status": "booked",
+            "created_at": "2026-04-29T10:07:27.552Z",
+            "paid_amount": "0",
+            "currency": "UYU",
+            "is_sales": true,
+            "invoice_ref": null,
+            "user_id": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "type": "invoice",
+            "parent_id": null,
+            "reason": null,
+            "payment_state": "unpaid",
+            "due_date": null,
+            "doc_no": "INV-2026-04-0409",
+            "notes": "",
+            "is_historical": false,
+            "order_doc_no": "ORD-2026-04-0307"
+          },
+          "payment_amount": 130,
+          "total_paid": 130,
+          "remainingAmount": 130,
+          "remaining_after_payment": 0,
+          "will_be_fully_paid": true
+        }
+      }
+    ],
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "query": {
+            "payment_date": "2026-07-10T14:48:19",
+            "amount": 95,
+            "method": "Mercado Pago",
+            "payment_method_id": "6",
+            "status": "completed",
+            "user_id": "03a03ce2-7e6b-4013-97cf-6bf31bb7933c",
+            "is_sales": true,
+            "is_prepaid": true,
+            "invoice_currency": "UYU",
+            "payment_currency": "UYU",
+            "exchange_rate": 1,
+            "notes": "",
+            "is_historical": false
+          },
+          "sessionId": "",
+          "user": {
+            "id": "03a03ce2-7e6b-4013-97cf-6bf31bb7933c",
+            "name": "Hijo de Juan Pérez",
+            "email": "juanito@perez.com"
+          },
+          "invoice_id": "",
+          "payment_method": "Cash",
+          "payment_date": "2026-07-10T13:49:07.632-04:00",
+          "cash_session_id": 178,
+          "credit_payment": []
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Obtener Info Factura": {
+      "main": [
+        [
+          {
+            "node": "Validar Pago",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Pago": {
+      "main": [
+        [
+          {
+            "node": "¿Pago Válido?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Pago Válido?": {
+      "main": [
+        [
+          {
+            "node": "¿Pago con credito?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pago No pudo ser creado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar Pago": {
+      "main": [
+        [
+          {
+            "node": "NOT is historical?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Validar Entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Entrada": {
+      "main": [
+        [
+          {
+            "node": "If not prepaid",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pago No pudo ser creado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Info Paciente": {
+      "main": [
+        [
+          {
+            "node": "Set data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar Movimiento Caja": {
+      "main": [
+        [
+          {
+            "node": "If credit_note",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set data": {
+      "main": [
+        [
+          {
+            "node": "Send email1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get invoice status": {
+      "main": [
+        [
+          {
+            "node": "get_quotes_status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Pago con credito?": {
+      "main": [
+        [
+          {
+            "node": "Set credit_payments",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "list_payments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set credit_payments": {
+      "main": [
+        [
+          {
+            "node": "Split Out credit_payments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Insert payment allocations",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert invoice allocations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out credit_payments": {
+      "main": [
+        [
+          {
+            "node": "Loop Over payment Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over payment Items": {
+      "main": [
+        [
+          {
+            "node": "only_credit_payment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If not prepaid": {
+      "main": [
+        [
+          {
+            "node": "Obtener Info Factura",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "list_payments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "mov_description": {
+      "main": [
+        [
+          {
+            "node": "Registrar Movimiento Caja",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If credit_note": {
+      "main": [
+        [
+          {
+            "node": "Insert payment allocations1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert payment allocations1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If not prepaid1": {
+      "main": [
+        [
+          {
+            "node": "Get invoice status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pago Confirmado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "only_credit_payment": {
+      "main": [
+        [
+          {
+            "node": "Get invoice status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "list_payments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "list_payments": {
+      "main": [
+        [
+          {
+            "node": "payment_values",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "If not prepaid1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar Pago",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "payment_values": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_quotes_status": {
+      "main": [
+        [
+          {
+            "node": "Obtener Info Paciente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send email1": {
+      "main": [
+        [
+          {
+            "node": "Pago Confirmado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NOT is historical?": {
+      "main": [
+        [
+          {
+            "node": "mov_description",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If credit_note",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert payment allocations": {
+      "main": [
+        [
+          {
+            "node": "Loop Over payment Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert invoice allocations": {
+      "main": [
+        [
+          {
+            "node": "Loop Over payment Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "c3fdb680-3da8-4b44-ac07-8ecd71bf542b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
+  },
+  "nodeGroups": [],
+  "id": "Mj06BQz5cGWi4G1k",
+  "tags": []
+}
