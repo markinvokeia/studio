@@ -5250,9 +5250,13 @@
   },
   "Reminders": {
     "recordatorio": "Recordatorio",
+    "nota": "Nota",
     "createTitle": "Crear recordatorio",
+    "createNoteTitle": "Crear nota",
     "editTitle": "Editar recordatorio",
+    "editNoteTitle": "Editar nota",
     "dialogDescription": "Agrega una tarea interna visible en el calendario de la clínica.",
+    "noteDialogDescription": "Agrega una nota interna silenciosa al calendario de la clínica.",
     "titleLabel": "Título",
     "titlePlaceholder": "Ej: Llamar a laboratorio",
     "descriptionLabel": "Descripción",
@@ -5261,6 +5265,9 @@
     "timeLabel": "Hora",
     "durationLabel": "Duración (min)",
     "priorityLabel": "Prioridad",
+    "calendarLabel": "Calendario",
+    "noCalendar": "Sin calendario",
+    "groupedItems": "Notas y recordatorios",
     "colorLabel": "Color",
     "saveCreate": "Guardar",
     "saveEdit": "Guardar",
@@ -5302,7 +5309,9 @@
       "appointment": "Crear cita",
       "appointmentDescription": "Agenda una cita con paciente, doctor y servicio.",
       "reminder": "Crear recordatorio",
-      "reminderDescription": "Agrega una tarea interna para la clínica."
+      "reminderDescription": "Agrega una tarea interna para la clínica.",
+      "note": "Crear nota",
+      "noteDescription": "Agrega una nota interna silenciosa sin notificaciones."
     }
   },
   "AlertCategoriesPage": {

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { BellRing, CheckCircle2 } from 'lucide-react';
+import { BellRing, CheckCircle2, FileText } from 'lucide-react';
 
 import {
   ContextMenu,
@@ -39,10 +39,11 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
 }: CalendarEventChipProps) {
   const rawStatus = event.data?.status as string | undefined;
   const isReminder = event.data?.kind === 'reminder';
+  const isNote = isReminder && event.data?.type === 'note';
   const reminderStatus = event.data?.status as CalendarReminderStatus | undefined;
   const reminderPriority = event.data?.priority as CalendarReminderPriority | undefined;
   const reminderIsDone = isReminderDone(reminderStatus);
-  const ReminderIcon = reminderIsDone ? CheckCircle2 : BellRing;
+  const ReminderIcon = isNote ? FileText : reminderIsDone ? CheckCircle2 : BellRing;
   const status = (rawStatus?.toLowerCase() as AppointmentStatus | undefined) ?? undefined;
   const cancellationReason = (event.data?.cancellation_reason as CancellationReason | undefined) ?? null;
   const isCancelled = status === 'cancelled';
@@ -56,7 +57,7 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
 
   return (
     <ContextMenu onOpenChange={(o) => { if (o) onEventContextMenuOpen?.(event.data); }}>
-      <ContextMenuTrigger>
+      <ContextMenuTrigger asChild>
         <div
           data-testid="calendar-event"
           title={event.label ?? event.title}
@@ -67,6 +68,7 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
             reminderIsDone && 'event-reminder-done',
           )}
           style={eventStyle}
+          onContextMenu={(e) => e.stopPropagation()}
           onClick={(e) => {
             if (e.button !== 0) return;
             e.stopPropagation();

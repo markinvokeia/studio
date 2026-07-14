@@ -2,8 +2,8 @@
 'use client';
 
 import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
-import { CalendarCreateTypeDialog } from '@/components/appointments/CalendarCreateTypeDialog';
 import Calendar, { type CalendarGroupBy, type CalendarGroupingColumn, type CalendarView, type CalendarEvent } from '@/components/calendar/Calendar';
+import type { CalendarSlotContextMenuContext } from '@/components/calendar/calendar-types';
 import { CalendarSettingsPopover } from '@/components/calendar/calendar-settings-popover';
 import { CalendarSettingsForm } from '@/components/calendar/calendar-settings-form';
 import { getCalendarSettings } from '@/components/calendar/calendar-settings-utils';
@@ -62,7 +62,7 @@ import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
-import { Appointment, AppointmentBulkFilterParams, AppointmentDatePreset, AppointmentStatus, Calendar as CalendarType, CalendarReminder, CalendarSettings, ClinicSchedule, ClinicException, Invoice, Order, PatientSession, Quote, QuoteItem, Sede, Service, SessionPreloadedService, User as UserType } from '@/lib/types';
+import { Appointment, AppointmentBulkFilterParams, AppointmentDatePreset, AppointmentStatus, Calendar as CalendarType, CalendarItemType, CalendarReminder, CalendarSettings, ClinicSchedule, ClinicException, Invoice, Order, PatientSession, Quote, QuoteItem, Sede, Service, SessionPreloadedService, User as UserType } from '@/lib/types';
 import { cn, toLocalISOString } from '@/lib/utils';
 import api from '@/services/api';
 import { getQuoteItems } from '@/services/quotes';
@@ -213,6 +213,8 @@ const GOOGLE_CALENDAR_COLORS = [
 
 const colorMap = new Map(GOOGLE_CALENDAR_COLORS.map(c => [c.id, c.hex]));
 const colorIdByHex = new Map(GOOGLE_CALENDAR_COLORS.map(c => [c.hex.toLowerCase(), c.id]));
+const UNASSIGNED_CALENDAR_GROUP_ID = '__calendar-items-unassigned__';
+const CALENDAR_ITEMS_DOCTOR_GROUP_ID = '__calendar-items-doctor-column__';
 
 function getGoogleCalendarColorId(value?: string | null): string | undefined {
     const rawColor = (value || '').trim();
@@ -592,8 +594,8 @@ export default function AppointmentsPage() {
     const [isReminderFormOpen, setIsReminderFormOpen] = React.useState(false);
     const [editingReminder, setEditingReminder] = React.useState<CalendarReminder | null>(null);
     const [reminderInitialDate, setReminderInitialDate] = React.useState<Date | null>(null);
-    const [isCreateTypeOpen, setIsCreateTypeOpen] = React.useState(false);
-    const [pendingSlotDate, setPendingSlotDate] = React.useState<Date | null>(null);
+    const [reminderInitialType, setReminderInitialType] = React.useState<CalendarItemType>('reminder');
+    const [reminderInitialCalendarId, setReminderInitialCalendarId] = React.useState<string | null>(null);
 
     const [selectedDoctorIds, setSelectedDoctorIds] = React.useState<string[]>([]);
     const [groupBy, setGroupBy] = React.useState<CalendarGroupBy>('none');
@@ -635,6 +637,11 @@ export default function AppointmentsPage() {
     const [calendarMode, setCalendarMode] = React.useState<string>(DEFAULT_CALENDAR_MODE);
     const [personalizedCalendarId, setPersonalizedCalendarId] = React.useState<string | null>(null);
     const [agendasPanelOpen, setAgendasPanelOpen] = React.useState(false);
+    const isCustomMode = calendarMode === 'custom';
+    const firstVisibleCalendarId = React.useMemo(
+        () => calendars.find((calendar) => selectedCalendarIds.includes(calendar.id))?.id ?? null,
+        [calendars, selectedCalendarIds],
+    );
     // Zoom is controlled here in custom mode (a dropdown replaces the floating slider).
     // Persisted in the same localStorage key the Calendar uses internally.
     const [calendarZoom, setCalendarZoom] = React.useState<number>(0.9);
@@ -994,9 +1001,8 @@ export default function AppointmentsPage() {
         setEditingAppointment(null);
         setInlineDraft(null);
         // In custom mode, "Crear cita" opens the simplified inline card (the same
-        // window used to edit/reschedule) instead of the modal form.
-        const isTimeGrid = ['day', '2-day', '3-day', '4-day', '5-day', '6-day', 'week'].includes(currentView);
-        if (isCustomMode && isTimeGrid) {
+        // centered window used to edit/reschedule, regardless of the current view.
+        if (isCustomMode) {
             const calId = personalizedCalendarId ?? firstVisibleCalendarId ?? null;
             const calendar = calId ? (calendars.find((c) => String(c.id) === String(calId)) ?? null) : null;
             setInlineDraft({
@@ -1020,7 +1026,16 @@ export default function AppointmentsPage() {
     const handleNewReminderClick = () => {
         setEditingReminder(null);
         setReminderInitialDate(new Date());
-        setPendingSlotDate(null);
+        setReminderInitialType('reminder');
+        setReminderInitialCalendarId(isCustomMode ? (personalizedCalendarId ?? selectedCalendarIds[0] ?? null) : null);
+        setIsReminderFormOpen(true);
+    };
+
+    const handleNewNoteClick = () => {
+        setEditingReminder(null);
+        setReminderInitialDate(new Date());
+        setReminderInitialType('note');
+        setReminderInitialCalendarId(isCustomMode ? (personalizedCalendarId ?? selectedCalendarIds[0] ?? null) : null);
         setIsReminderFormOpen(true);
     };
 
@@ -1065,7 +1080,6 @@ export default function AppointmentsPage() {
             if (calendar) base.calendar = calendar;
         }
         setSlotInitialData(base);
-        setPendingSlotDate(date);
     }, [doctors, calendars]);
 
     // ── In-canvas (inline) appointment creation ─────────────────────────────
@@ -1351,29 +1365,32 @@ export default function AppointmentsPage() {
         return () => window.removeEventListener('keydown', onKeyDown);
     }, [inlineDraft, isSavingInline]);
 
-    // Left-click on an empty slot → inline draft (if enabled, desktop, time-grid view)
-    // or the modal form. Month/year/schedule always use the modal.
+    // Left-click on an empty slot → the centered inline draft in custom mode.
+    // Outside custom mode, the saved inline preference still applies only to time grids.
     const handleSlotClick = React.useCallback((date: Date, context?: { groupBy: 'doctor' | 'calendar' | 'sede'; value: string }) => {
         const isTimeGrid = ['day', '2-day', '3-day', '4-day', '5-day', '6-day', 'week'].includes(currentView);
-        if (calendarSettings?.inline_appointment_creation && isTimeGrid) {
+        if (isCustomMode || (calendarSettings?.inline_appointment_creation && isTimeGrid)) {
             const draftDoctor = context?.groupBy === 'doctor' ? (doctors.find((d) => String(d.id) === String(context.value)) ?? null) : null;
-            const draftCalendar = context?.groupBy === 'calendar' ? (calendars.find((c) => String(c.id) === String(context.value)) ?? null) : null;
-            setInlineDraft({ date, context, durationMin: slotDuration, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '', ...getInitialDraftColor(draftCalendar) });
+            const customCalendarId = isCustomMode ? (personalizedCalendarId ?? selectedCalendarIds[0] ?? null) : null;
+            const draftCalendarId = context?.groupBy === 'calendar' ? context.value : customCalendarId;
+            const draftCalendar = draftCalendarId ? (calendars.find((c) => String(c.id) === String(draftCalendarId)) ?? null) : null;
+            const draftContext = context ?? (draftCalendarId ? { groupBy: 'calendar' as const, value: String(draftCalendarId) } : undefined);
+            setInlineDraft({ date, context: draftContext, durationMin: slotDuration, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '', ...getInitialDraftColor(draftCalendar) });
             return;
         }
         prepareSlot(date, context);
         setIsReschedulingMode(false);
         setCreateOpen(true);
-    }, [prepareSlot, calendarSettings?.inline_appointment_creation, currentView, doctors, calendars, slotDuration]);
+    }, [prepareSlot, calendarSettings?.inline_appointment_creation, currentView, doctors, calendars, slotDuration, isCustomMode, personalizedCalendarId, selectedCalendarIds]);
 
-    // Opens the inline edit/reschedule card for an existing appointment when the
-    // inline-creation preference is on and the current view is a time grid.
+    // Opens the inline edit/reschedule card for an existing appointment. Custom
+    // mode always uses this centered window, regardless of view or preference.
     // Returns true when it handled the request inline (so callers can fall back
     // to the modal form otherwise). Pass `rescheduling` to submit via the
     // reschedule endpoint (cancel old + create new) instead of an in-place update.
     const openInlineDraftForAppointment = React.useCallback((appointment: Appointment, rescheduling: boolean): boolean => {
         const isTimeGrid = ['day', '2-day', '3-day', '4-day', '5-day', '6-day', 'week'].includes(currentView);
-        if (!calendarSettings?.inline_appointment_creation || !isTimeGrid) return false;
+        if (!isCustomMode && (!calendarSettings?.inline_appointment_creation || !isTimeGrid)) return false;
         const startStr = appointment.start?.dateTime;
         const start = startStr ? parseISO(startStr.replace(/Z$/, '')) : new Date();
         const endStr = appointment.end?.dateTime;
@@ -1415,7 +1432,7 @@ export default function AppointmentsPage() {
             rescheduling,
         });
         return true;
-    }, [calendarSettings?.inline_appointment_creation, currentView, doctors, calendars, groupBy, calendarMode]);
+    }, [calendarSettings?.inline_appointment_creation, currentView, doctors, calendars, groupBy, calendarMode, isCustomMode]);
 
     // Edit an existing appointment: inline edit card when the inline-creation
     // preference is on (and on a time-grid view), otherwise the modal form.
@@ -1428,25 +1445,60 @@ export default function AppointmentsPage() {
         setCreateOpen(true);
     }, [openInlineDraftForAppointment]);
 
-    // Right-click on an empty slot → choose between appointment or reminder.
-    const handleSlotContextMenu = React.useCallback((date: Date, context?: { groupBy: 'doctor' | 'calendar' | 'sede'; value: string }) => {
-        prepareSlot(date, context);
-        setIsCreateTypeOpen(true);
-    }, [prepareSlot]);
+    const handleCreateAppointmentFromSlot = React.useCallback((slot: CalendarSlotContextMenuContext) => {
+        handleSlotClick(slot.date, slot.context);
+    }, [handleSlotClick]);
 
-    const handleCreateAppointmentFromSlot = React.useCallback(() => {
-        setEditingAppointment(null);
-        setIsReschedulingMode(false);
-        setIsCreateTypeOpen(false);
-        setCreateOpen(true);
+    const handleCreateReminderFromSlot = React.useCallback((slot: CalendarSlotContextMenuContext) => {
+        setEditingReminder(null);
+        setReminderInitialDate(slot.date);
+        setReminderInitialType('reminder');
+        setReminderInitialCalendarId(
+            slot.context?.groupBy === 'calendar' && slot.context.value !== UNASSIGNED_CALENDAR_GROUP_ID
+                ? slot.context.value
+                : null,
+        );
+        setIsReminderFormOpen(true);
     }, []);
 
-    const handleCreateReminderFromSlot = React.useCallback(() => {
+    const handleCreateNoteFromSlot = React.useCallback((slot: CalendarSlotContextMenuContext) => {
         setEditingReminder(null);
-        setReminderInitialDate(pendingSlotDate ?? new Date());
-        setIsCreateTypeOpen(false);
+        setReminderInitialDate(slot.date);
+        setReminderInitialType('note');
+        setReminderInitialCalendarId(
+            slot.context?.groupBy === 'calendar' && slot.context.value !== UNASSIGNED_CALENDAR_GROUP_ID
+                ? slot.context.value
+                : null,
+        );
         setIsReminderFormOpen(true);
-    }, [pendingSlotDate]);
+    }, []);
+
+    const renderSlotContextMenu = React.useCallback((slot: CalendarSlotContextMenuContext) => (
+        <>
+            <ContextMenuItem
+                disabled={slot.isBlocked}
+                className="flex cursor-pointer items-center gap-2"
+                onSelect={() => handleCreateAppointmentFromSlot(slot)}
+            >
+                <CalendarPlus className="h-4 w-4" />
+                {tReminders('createType.appointment')}
+            </ContextMenuItem>
+            <ContextMenuItem
+                className="flex cursor-pointer items-center gap-2"
+                onSelect={() => handleCreateReminderFromSlot(slot)}
+            >
+                <BellRing className="h-4 w-4" />
+                {tReminders('createType.reminder')}
+            </ContextMenuItem>
+            <ContextMenuItem
+                className="flex cursor-pointer items-center gap-2"
+                onSelect={() => handleCreateNoteFromSlot(slot)}
+            >
+                <FileText className="h-4 w-4" />
+                {tReminders('createType.note')}
+            </ContextMenuItem>
+        </>
+    ), [handleCreateAppointmentFromSlot, handleCreateNoteFromSlot, handleCreateReminderFromSlot, tReminders]);
 
 
     // Keep grouping in sync with the saved calendar settings whenever the
@@ -1607,6 +1659,8 @@ export default function AppointmentsPage() {
         );
         const optimisticReminder: CalendarReminder = {
             id: reminderId,
+            type: values.type,
+            calendar_id: values.calendar_id,
             title: values.title,
             description: values.description,
             start_datetime: values.start_datetime,
@@ -1633,6 +1687,8 @@ export default function AppointmentsPage() {
         try {
             const response = await api.post(API_ROUTES.REMINDERS_UPSERT, {
                 id: editingReminder?.id || undefined,
+                type: values.type,
+                calendar_id: values.calendar_id,
                 title: values.title,
                 description: values.description,
                 start_datetime: values.start_datetime,
@@ -1667,11 +1723,13 @@ export default function AppointmentsPage() {
             });
             refreshCalendarDataRef.current();
         }
-    }, [editingReminder, tReminders, toast, refreshReminders]);
+    }, [editingReminder, tReminders, toast, refreshReminders, user]);
 
     const handleEditReminder = React.useCallback((reminder: CalendarReminder) => {
         setEditingReminder(reminder);
         setReminderInitialDate(null);
+        setReminderInitialType(reminder.type);
+        setReminderInitialCalendarId(reminder.calendar_id);
         setIsReminderFormOpen(true);
     }, []);
 
@@ -1728,6 +1786,9 @@ export default function AppointmentsPage() {
     }, [tReminders, toast]);
 
     const handleEdit = (appointment: Appointment) => {
+        if (calendarMode === 'custom' && openInlineDraftForAppointment(appointment, false)) {
+            return;
+        }
         setEditingAppointment(appointment);
         setIsReschedulingMode(false);
         setCreateOpen(true);
@@ -2474,6 +2535,7 @@ export default function AppointmentsPage() {
 
         const reminderEvents = reminders
             .filter((reminder) => reminder.status !== 'cancelled')
+            .filter((reminder) => !reminder.calendar_id || selectedCalendarIdSet.has(String(reminder.calendar_id)))
             .map((reminder) => {
                 const start = parseISO(reminder.start_datetime.replace(/Z$/, ''));
                 const end = reminder.end_datetime ? parseISO(reminder.end_datetime.replace(/Z$/, '')) : start;
@@ -2482,8 +2544,11 @@ export default function AppointmentsPage() {
                 return {
                     id: `reminder-${reminder.id}`,
                     title: reminder.title,
+                    label: [format(start, 'HH:mm'), reminder.title].filter(Boolean).join(' '),
                     start,
                     end,
+                    doctorGroupId: CALENDAR_ITEMS_DOCTOR_GROUP_ID,
+                    calendarGroupId: reminder.calendar_id || UNASSIGNED_CALENDAR_GROUP_ID,
                     data: { ...reminder, kind: 'reminder' as const },
                     color: reminder.color || '#8b5cf6',
                 };
@@ -2492,6 +2557,19 @@ export default function AppointmentsPage() {
 
         return [...events, ...reminderEvents];
     }, [appointments, calendars, reminders, selectedCalendarIds, selectedDoctorIds, eventLabelFormat, isBulkMode]);
+
+    const visibleCalendarItems = React.useMemo(
+        () => reminders.filter((reminder) => {
+            if (reminder.status === 'cancelled') return false;
+            if (reminder.calendar_id && !selectedCalendarIds.includes(String(reminder.calendar_id))) return false;
+            if (!fetchRange) return true;
+            const start = parseISO(reminder.start_datetime.replace(/Z$/, ''));
+            return isValid(start) && start >= fetchRange.start && start <= fetchRange.end;
+        }),
+        [fetchRange, reminders, selectedCalendarIds],
+    );
+    const hasVisibleCalendarItems = visibleCalendarItems.length > 0;
+    const hasVisibleUnassignedItems = visibleCalendarItems.some((reminder) => !reminder.calendar_id);
 
     // ── "Huecos"/blocking: clinic schedules. `/schedules` requires `sede_id`, so
     // fetch the availability of every sede and combine.
@@ -2571,23 +2649,33 @@ export default function AppointmentsPage() {
 
         // Grouped by consultorio: each column blocks per its calendar's SEDE schedules.
         if (isGroupingView && effGroupBy === 'calendar') {
-            return calendars.flatMap((cal) => {
+            const calendarRanges = calendars.flatMap((cal) => {
                 const sedeId = cal.sede_id;
                 const sched = sedeId
                     ? clinicSchedules.filter((s) => !s.sede_id || String(s.sede_id) === String(sedeId))
                     : effectiveSchedules;
                 return blockVisibleDays.flatMap((day) => tagDay(day, sched, String(cal.id)));
             });
+            if (!hasVisibleUnassignedItems || calendarMode === 'custom') return calendarRanges;
+            return [
+                ...calendarRanges,
+                ...blockVisibleDays.flatMap((day) => tagDay(day, effectiveSchedules, UNASSIGNED_CALENDAR_GROUP_ID)),
+            ];
         }
         // Grouped by doctor: clinic-wide hours, tagged per column so each shows them.
         if (isGroupingView && effGroupBy === 'doctor') {
-            return doctors.flatMap((doc) =>
+            const doctorRanges = doctors.flatMap((doc) =>
                 blockVisibleDays.flatMap((day) => tagDay(day, effectiveSchedules, String(doc.id))),
             );
+            if (!hasVisibleCalendarItems) return doctorRanges;
+            return [
+                ...doctorRanges,
+                ...blockVisibleDays.flatMap((day) => tagDay(day, effectiveSchedules, CALENDAR_ITEMS_DOCTOR_GROUP_ID)),
+            ];
         }
         // Non-grouped: a single clinic-wide timeline.
         return blockVisibleDays.flatMap((day) => tagDay(day, effectiveSchedules, undefined));
-    }, [blockUnavailable, blockingConfigured, currentView, groupBy, calendarMode, blockVisibleDays, effectiveSchedules, clinicSchedules, clinicExceptions, calendars, doctors]);
+    }, [blockUnavailable, blockingConfigured, currentView, groupBy, calendarMode, blockVisibleDays, effectiveSchedules, clinicSchedules, clinicExceptions, calendars, doctors, hasVisibleCalendarItems, hasVisibleUnassignedItems]);
 
     const blockedFullDays = React.useMemo<Set<string>>(() => {
         if (!blockUnavailable || !blockingConfigured) return new Set();
@@ -2628,13 +2716,16 @@ export default function AppointmentsPage() {
             ? { groupBy: groupBy as 'doctor' | 'calendar' | 'sede', value: gap.groupValue }
             : undefined;
 
-        // When inline creation is on (and on a time-grid view), draft the appointment
-        // in-place on the calendar instead of opening the modal — same as a slot click.
+        // Custom mode always uses the centered inline window. Outside custom mode,
+        // the saved preference applies only to time-grid views.
         const isTimeGrid = ['day', '2-day', '3-day', '4-day', '5-day', '6-day', 'week'].includes(currentView);
-        if (calendarSettings?.inline_appointment_creation && isTimeGrid) {
+        if (isCustomMode || (calendarSettings?.inline_appointment_creation && isTimeGrid)) {
             const draftDoctor = context?.groupBy === 'doctor' ? (doctors.find((d) => String(d.id) === String(context.value)) ?? null) : null;
-            const draftCalendar = context?.groupBy === 'calendar' ? (calendars.find((c) => String(c.id) === String(context.value)) ?? null) : null;
-            setInlineDraft({ date: gap.start, context, durationMin: slotDuration, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '', ...getInitialDraftColor(draftCalendar) });
+            const customCalendarId = isCustomMode ? (personalizedCalendarId ?? selectedCalendarIds[0] ?? null) : null;
+            const draftCalendarId = context?.groupBy === 'calendar' ? context.value : customCalendarId;
+            const draftCalendar = draftCalendarId ? (calendars.find((c) => String(c.id) === String(draftCalendarId)) ?? null) : null;
+            const draftContext = context ?? (draftCalendarId ? { groupBy: 'calendar' as const, value: String(draftCalendarId) } : undefined);
+            setInlineDraft({ date: gap.start, context: draftContext, durationMin: slotDuration, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '', ...getInitialDraftColor(draftCalendar) });
             setGapsActive(false);
             setSelectedGap(null);
             return;
@@ -2662,12 +2753,11 @@ export default function AppointmentsPage() {
             }
         }
         setSlotInitialData(base);
-        setPendingSlotDate(gap.start);
         setCreateOpen(true);
         // Per the requirement: selecting a proposal closes the panel and clears the effect.
         setGapsActive(false);
         setSelectedGap(null);
-    }, [groupBy, doctors, calendars, calendarSettings?.inline_appointment_creation, currentView, slotDuration]);
+    }, [groupBy, doctors, calendars, calendarSettings?.inline_appointment_creation, currentView, slotDuration, isCustomMode, personalizedCalendarId, selectedCalendarIds]);
 
     const handleSelectDoctor = React.useCallback((doctorId: string, checked: boolean) => {
         setSelectedDoctorIds(prev => {
@@ -2695,7 +2785,7 @@ export default function AppointmentsPage() {
     }, []);
 
     const doctorGroupingColumns = React.useMemo<CalendarGroupingColumn[]>(() => {
-        return doctors
+        const columns: CalendarGroupingColumn[] = doctors
             .filter((doctor) => selectedDoctorIds.includes(doctor.id))
             .map((doctor) => ({
                 id: doctor.id,
@@ -2703,10 +2793,18 @@ export default function AppointmentsPage() {
                 value: doctor.id,
                 color: (doctor as any).color ?? undefined,
             }));
-    }, [doctors, selectedDoctorIds]);
+        if (hasVisibleCalendarItems) {
+            columns.push({
+                id: CALENDAR_ITEMS_DOCTOR_GROUP_ID,
+                label: tReminders('groupedItems'),
+                value: CALENDAR_ITEMS_DOCTOR_GROUP_ID,
+            });
+        }
+        return columns;
+    }, [doctors, selectedDoctorIds, hasVisibleCalendarItems, tReminders]);
 
     const calendarGroupingColumns = React.useMemo<CalendarGroupingColumn[]>(() => {
-        return calendars
+        const columns: CalendarGroupingColumn[] = calendars
             .filter((calendar) => selectedCalendarIds.includes(calendar.id))
             .map((calendar) => ({
                 id: calendar.id,
@@ -2714,7 +2812,15 @@ export default function AppointmentsPage() {
                 value: calendar.id,
                 color: (calendar as any).color ?? undefined,
             }));
-    }, [calendars, selectedCalendarIds]);
+        if (hasVisibleUnassignedItems) {
+            columns.push({
+                id: UNASSIGNED_CALENDAR_GROUP_ID,
+                label: tReminders('noCalendar'),
+                value: UNASSIGNED_CALENDAR_GROUP_ID,
+            });
+        }
+        return columns;
+    }, [calendars, selectedCalendarIds, hasVisibleUnassignedItems, tReminders]);
 
     // Calendars grouped by sede, used by the calendar selector to offer a
     // per-sede "select all" toggle. Calendars without a sede fall into a
@@ -2779,11 +2885,6 @@ export default function AppointmentsPage() {
     }, [calendarGroupingColumns, doctorGroupingColumns, groupBy]);
 
     // ── Custom mode: show a single agenda at a time ──────────────────────────
-    const isCustomMode = calendarMode === 'custom';
-    const firstVisibleCalendarId = React.useMemo(
-        () => calendars.find((c) => selectedCalendarIds.includes(c.id))?.id ?? null,
-        [calendars, selectedCalendarIds],
-    );
     // Keep the shown agenda valid: default to the first visible one, and fall
     // back to it if the current selection gets hidden.
     React.useEffect(() => {
@@ -3481,7 +3582,13 @@ export default function AppointmentsPage() {
                             isLoading={isRefreshing}
                             onEventClick={handleEventClick}
                             onEventColorChange={handleEventColorChange}
-                            onEventDoubleClick={isBulkMode ? undefined : (data) => { if (data?.kind !== 'reminder') handleEditAppointment(data as Appointment); }}
+                            onEventDoubleClick={isBulkMode ? undefined : (data) => {
+                                if (data?.kind === 'reminder') {
+                                    handleEditReminder(data as CalendarReminder);
+                                    return;
+                                }
+                                handleEditAppointment(data as Appointment);
+                            }}
                             onEventContextMenu={isBulkMode ? undefined : renderEventContextMenu}
                             onEventContextMenuOpen={isBulkMode ? undefined : (data) => { if (data?.kind !== 'reminder') requestAppointmentMenuData(data as Appointment); }}
                             inlineDraft={inlineDraft ? { date: inlineDraft.date, durationMin: inlineDraft.durationMin, groupValue: inlineDraft.context?.value } : null}
@@ -3512,7 +3619,7 @@ export default function AppointmentsPage() {
                             bulkModeContent={bulkModeHeaderContent}
                             onSlotClick={handleSlotClick}
                             onCreateClick={handleNewAppointmentClick}
-                            onSlotContextMenu={handleSlotContextMenu}
+                            renderSlotContextMenu={renderSlotContextMenu}
                             gaps={gapsActive ? calendarGaps : undefined}
                             selectedGapKey={selectedGap ? gapKey(selectedGap) : undefined}
                             onGapClick={handleSelectGap}
@@ -3819,6 +3926,20 @@ export default function AppointmentsPage() {
                                                     </span>
                                                 </span>
                                             </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                className="cursor-pointer items-start gap-3 rounded-md p-3"
+                                                onSelect={handleNewNoteClick}
+                                            >
+                                                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-sky-100 text-sky-700">
+                                                    <FileText className="h-4 w-4" />
+                                                </span>
+                                                <span className="min-w-0">
+                                                    <span className="block font-medium">{tReminders('createType.note')}</span>
+                                                    <span className="block text-xs leading-snug text-muted-foreground">
+                                                        {tReminders('createType.noteDescription')}
+                                                    </span>
+                                                </span>
+                                            </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                     {isCustomMode && !isMobile && (
@@ -4052,13 +4173,6 @@ export default function AppointmentsPage() {
                 isLoading={isReassignLoading}
             />
 
-            <CalendarCreateTypeDialog
-                open={isCreateTypeOpen}
-                onOpenChange={setIsCreateTypeOpen}
-                date={pendingSlotDate}
-                onCreateAppointment={handleCreateAppointmentFromSlot}
-                onCreateReminder={handleCreateReminderFromSlot}
-            />
             <AppointmentFormDialog
                 open={isCreateOpen}
                 onOpenChange={handleOpenChange}
@@ -4113,6 +4227,9 @@ export default function AppointmentsPage() {
                     }
                 }}
                 initialDate={reminderInitialDate}
+                initialType={reminderInitialType}
+                initialCalendarId={reminderInitialCalendarId}
+                calendars={calendars}
                 editingReminder={editingReminder}
                 onSave={handleSaveReminder}
             />

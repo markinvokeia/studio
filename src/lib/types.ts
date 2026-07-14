@@ -663,8 +663,12 @@ export type CalendarReminderPriority = 'LOW' | 'MEDIUM' | 'HIGH';
 
 export type CalendarReminderStatus = 'pending' | 'done' | 'dismissed' | 'cancelled';
 
+export type CalendarItemType = 'note' | 'reminder';
+
 export type CalendarReminder = {
   id: string;
+  type: CalendarItemType;
+  calendar_id: string | null;
   title: string;
   description?: string | null;
   start_datetime: string;

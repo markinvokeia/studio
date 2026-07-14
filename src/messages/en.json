@@ -5272,9 +5272,13 @@
   },
   "Reminders": {
     "recordatorio": "Reminder",
+    "nota": "Note",
     "createTitle": "Create reminder",
+    "createNoteTitle": "Create note",
     "editTitle": "Edit reminder",
+    "editNoteTitle": "Edit note",
     "dialogDescription": "Add an internal task visible in the clinic calendar.",
+    "noteDialogDescription": "Add a silent internal note to the clinic calendar.",
     "titleLabel": "Title",
     "titlePlaceholder": "E.g. Call the lab",
     "descriptionLabel": "Description",
@@ -5283,6 +5287,9 @@
     "timeLabel": "Time",
     "durationLabel": "Duration (min)",
     "priorityLabel": "Priority",
+    "calendarLabel": "Calendar",
+    "noCalendar": "No calendar",
+    "groupedItems": "Notes and reminders",
     "colorLabel": "Color",
     "saveCreate": "Save",
     "saveEdit": "Save",
@@ -5323,7 +5330,9 @@
       "appointment": "Create appointment",
       "appointmentDescription": "Schedule an appointment with patient, doctor and service.",
       "reminder": "Create reminder",
-      "reminderDescription": "Add an internal task for the clinic."
+      "reminderDescription": "Add an internal task for the clinic.",
+      "note": "Create note",
+      "noteDescription": "Add a silent internal note without notifications."
     }
   },
   "AlertCategoriesPage": {

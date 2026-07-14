@@ -2,11 +2,11 @@
 
 import * as React from 'react';
 import { addMinutes, format, isValid, parse, parseISO } from 'date-fns';
-import { BellRing } from 'lucide-react';
+import { BellRing, FileText } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-import { MagicWandButton } from '@/components/ai/magic-wand-button';
-import { getPriorityColor } from '@/lib/reminders';
+import { Button } from '@/components/ui/button';
+import { DatePickerInput } from '@/components/ui/date-picker';
 import {
   Dialog,
   DialogBody,
@@ -17,7 +17,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -28,11 +27,19 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+
+import { MagicWandButton } from '@/components/ai/magic-wand-button';
+import { GOOGLE_CALENDAR_COLORS } from '@/components/calendar/calendar-constants';
+
 import { useLocalAI } from '@/hooks/use-local-ai';
-import { toLocalISOString } from '@/lib/utils';
-import type { CalendarReminder, CalendarReminderPriority } from '@/lib/types';
+import { getPriorityColor } from '@/lib/reminders';
+import { cn, toLocalISOString } from '@/lib/utils';
+
+import type { Calendar, CalendarItemType, CalendarReminder, CalendarReminderPriority } from '@/lib/types';
 
 export interface ReminderFormValues {
+  type: CalendarItemType;
+  calendar_id: string | null;
   title: string;
   description?: string | null;
   start_datetime: string;
@@ -45,11 +52,37 @@ interface ReminderFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialDate?: Date | null;
+  initialType?: CalendarItemType;
+  initialCalendarId?: string | null;
+  calendars: Calendar[];
   editingReminder?: CalendarReminder | null;
   onSave: (values: ReminderFormValues) => void;
 }
 
 const DEFAULT_DURATION_MINUTES = 15;
+const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
+
+function normalizeSelectableColor(value?: string | null): string | null {
+  const rawColor = value?.trim();
+  if (!rawColor) return null;
+
+  const paletteColor = GOOGLE_CALENDAR_COLORS.find((option) => option.id === rawColor);
+  if (paletteColor) return paletteColor.hex;
+
+  return HEX_COLOR_PATTERN.test(rawColor) ? rawColor.toLowerCase() : null;
+}
+
+function getDefaultColor(
+  calendars: Calendar[],
+  calendarId: string | null,
+  priority: CalendarReminderPriority,
+): string {
+  const calendar = calendarId
+    ? calendars.find((option) => String(option.id) === calendarId)
+    : null;
+
+  return normalizeSelectableColor(calendar?.color) ?? getPriorityColor(priority);
+}
 
 function parseLocalDateTime(value?: string | null): Date | null {
   if (!value) return null;
@@ -61,6 +94,9 @@ export function ReminderFormDialog({
   open,
   onOpenChange,
   initialDate,
+  initialType = 'reminder',
+  initialCalendarId = null,
+  calendars,
   editingReminder,
   onSave,
 }: ReminderFormDialogProps) {
@@ -74,7 +110,12 @@ export function ReminderFormDialog({
   const [time, setTime] = React.useState(format(new Date(), 'HH:mm'));
   const [duration, setDuration] = React.useState(String(DEFAULT_DURATION_MINUTES));
   const [priority, setPriority] = React.useState<CalendarReminderPriority>('MEDIUM');
+  const [calendarId, setCalendarId] = React.useState<string | null>(null);
+  const [color, setColor] = React.useState(getPriorityColor('MEDIUM'));
   const [error, setError] = React.useState<string | null>(null);
+  const isColorManuallySelectedRef = React.useRef(false);
+  const itemType = editingReminder?.type ?? initialType;
+  const isNote = itemType === 'note';
 
   React.useEffect(() => {
     if (!open) return;
@@ -82,15 +123,25 @@ export function ReminderFormDialog({
     const start = parseLocalDateTime(editingReminder?.start_datetime) ?? initialDate ?? new Date();
     const end = parseLocalDateTime(editingReminder?.end_datetime);
     const durationMinutes = end ? Math.max(5, Math.round((end.getTime() - start.getTime()) / 60000)) : DEFAULT_DURATION_MINUTES;
+    const nextPriority = editingReminder?.priority ?? 'MEDIUM';
+    const persistedColor = normalizeSelectableColor(editingReminder?.color);
 
     setTitle(editingReminder?.title ?? '');
     setDescription(editingReminder?.description ?? '');
     setDate(format(start, 'yyyy-MM-dd'));
     setTime(format(start, 'HH:mm'));
     setDuration(String(durationMinutes));
-    setPriority(editingReminder?.priority ?? 'MEDIUM');
+    setPriority(nextPriority);
+    setCalendarId(editingReminder?.calendar_id ?? initialCalendarId);
+    setColor(persistedColor ?? getPriorityColor(nextPriority));
+    isColorManuallySelectedRef.current = persistedColor !== null;
     setError(null);
-  }, [editingReminder, initialDate, open]);
+  }, [editingReminder, initialCalendarId, initialDate, open]);
+
+  React.useEffect(() => {
+    if (!open || isColorManuallySelectedRef.current) return;
+    setColor(getDefaultColor(calendars, calendarId, priority));
+  }, [calendarId, calendars, open, priority]);
 
   const handleEnhance = React.useCallback(async () => {
     const [titleResult, descResult] = await Promise.all([
@@ -100,6 +151,27 @@ export function ReminderFormDialog({
     if (titleResult.text) setTitle(titleResult.text);
     if (descResult?.text) setDescription(descResult.text);
   }, [title, description, enhanceText]);
+
+  const handlePriorityChange = (value: string) => {
+    const nextPriority = value as CalendarReminderPriority;
+    setPriority(nextPriority);
+    if (!isColorManuallySelectedRef.current) {
+      setColor(getDefaultColor(calendars, calendarId, nextPriority));
+    }
+  };
+
+  const handleCalendarChange = (value: string) => {
+    const nextCalendarId = value === '__none__' ? null : value;
+    setCalendarId(nextCalendarId);
+    if (!isColorManuallySelectedRef.current) {
+      setColor(getDefaultColor(calendars, nextCalendarId, priority));
+    }
+  };
+
+  const handleColorChange = (nextColor: string) => {
+    isColorManuallySelectedRef.current = true;
+    setColor(nextColor);
+  };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -121,11 +193,13 @@ export function ReminderFormDialog({
     }
 
     onSave({
+      type: itemType,
+      calendar_id: calendarId,
       title: cleanTitle,
       description: description.trim() || null,
       start_datetime: toLocalISOString(start),
       end_datetime: toLocalISOString(addMinutes(start, durationMinutes)),
-      color: getPriorityColor(priority),
+      color,
       priority,
     });
     onOpenChange(false);
@@ -137,10 +211,16 @@ export function ReminderFormDialog({
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <BellRing className="h-5 w-5" />
-              {editingReminder ? t('editTitle') : t('createTitle')}
+              {isNote
+                ? <FileText className="h-5 w-5" />
+                : <BellRing className="h-5 w-5" />}
+              {editingReminder
+                ? t((editingReminder.type === 'note' ? 'editNoteTitle' : 'editTitle'))
+                : t((initialType === 'note' ? 'createNoteTitle' : 'createTitle'))}
             </DialogTitle>
-            <DialogDescription>{t('dialogDescription')}</DialogDescription>
+            <DialogDescription>
+              {t(isNote ? 'noteDialogDescription' : 'dialogDescription')}
+            </DialogDescription>
           </DialogHeader>
 
           <DialogBody className="space-y-4 px-6 py-5">
@@ -173,7 +253,7 @@ export function ReminderFormDialog({
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="reminder-date">{t('dateLabel')}</Label>
-                <Input id="reminder-date" type="date" value={date} onChange={(event) => setDate(event.target.value)} />
+                <DatePickerInput value={date} onChange={setDate} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="reminder-time">{t('timeLabel')}</Label>
@@ -192,16 +272,75 @@ export function ReminderFormDialog({
               </div>
             </div>
 
+            {!isNote && (
+              <div className="space-y-2">
+                <Label>{t('priorityLabel')}</Label>
+                <Select value={priority} onValueChange={handlePriorityChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="LOW">{t('priority.low')}</SelectItem>
+                    <SelectItem value="MEDIUM">{t('priority.medium')}</SelectItem>
+                    <SelectItem value="HIGH">{t('priority.high')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="space-y-2">
-              <Label>{t('priorityLabel')}</Label>
-              <Select value={priority} onValueChange={(value) => setPriority(value as CalendarReminderPriority)}>
+              <div className="flex items-center gap-2">
+                <Label>{t('colorLabel')}</Label>
+                <span
+                  aria-hidden="true"
+                  className="h-4 w-4 rounded-full border border-border shadow-sm"
+                  style={{ backgroundColor: color }}
+                />
+              </div>
+              <div
+                role="radiogroup"
+                aria-label={t('colorLabel')}
+                className="flex flex-wrap gap-2"
+              >
+                {GOOGLE_CALENDAR_COLORS.map((option) => {
+                  const isSelected = option.hex.toLowerCase() === color.toLowerCase();
+
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      aria-label={`${t('colorLabel')} ${option.id}`}
+                      data-testid={`reminder-color-${option.id}`}
+                      onClick={() => handleColorChange(option.hex)}
+                      className={cn(
+                        'h-7 w-7 rounded-full border-2 transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                        isSelected ? 'border-foreground ring-2 ring-ring ring-offset-2' : 'border-transparent',
+                      )}
+                      style={{ backgroundColor: option.hex }}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>{t('calendarLabel')}</Label>
+              <Select
+                value={calendarId ?? '__none__'}
+                onValueChange={handleCalendarChange}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="LOW">{t('priority.low')}</SelectItem>
-                  <SelectItem value="MEDIUM">{t('priority.medium')}</SelectItem>
-                  <SelectItem value="HIGH">{t('priority.high')}</SelectItem>
+                  <SelectItem value="__none__">{t('noCalendar')}</SelectItem>
+                  {calendars.filter((calendar) => calendar.is_active || String(calendar.id) === calendarId).map((calendar) => (
+                    <SelectItem key={calendar.id} value={String(calendar.id)}>
+                      {calendar.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

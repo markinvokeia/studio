@@ -159,6 +159,8 @@ export function ReminderPanel({
   const startTime = formatLocalTime(reminder.start_datetime);
   const endTime = formatLocalTime(reminder.end_datetime);
   const isDone = reminder.status === 'done';
+  const isNote = reminder.type === 'note';
+  const ItemIcon = isNote ? FileText : BellRing;
 
   const displayTitle = enhancement?.title ?? reminder.title;
   const displayDescription = enhancement?.description ?? reminder.description;
@@ -183,7 +185,7 @@ export function ReminderPanel({
               className="grid h-12 w-12 shrink-0 place-items-center rounded-xl text-white shadow-sm"
               style={{ backgroundColor: reminder.color || '#8b5cf6' }}
             >
-              <BellRing className="h-5 w-5" />
+              <ItemIcon className="h-5 w-5" />
             </span>
             <div className="min-w-0 flex-1">
               <SheetTitle className="flex items-center gap-2 text-lg font-semibold text-foreground">
@@ -196,7 +198,7 @@ export function ReminderPanel({
                 )}
               </SheetTitle>
               <SheetDescription className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                <span>{t('recordatorio')}</span>
+                <span>{t(isNote ? 'nota' : 'recordatorio')}</span>
                 <span
                   className={cn(
                     'inline-flex items-center rounded-full border border-transparent px-2.5 py-0.5 text-xs font-semibold text-white',
@@ -228,11 +230,13 @@ export function ReminderPanel({
                 label={t('timeLabel')}
                 value={endTime ? `${startTime} -> ${endTime}` : startTime}
               />
-              <DetailRow
-                icon={Flag}
-                label={t('priorityLabel')}
-                value={t(`priority.${reminder.priority.toLowerCase()}`)}
-              />
+              {!isNote && (
+                <DetailRow
+                  icon={Flag}
+                  label={t('priorityLabel')}
+                  value={t(`priority.${reminder.priority.toLowerCase()}`)}
+                />
+              )}
               {displayDescription && (
                 <DetailRow
                   icon={FileText}

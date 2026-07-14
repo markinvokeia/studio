@@ -195,6 +195,11 @@ function normalizeBackendNotification(n: BackendNotification): UnifiedNotificati
         type: 'reminder',
         reminder: {
           id: m.id ?? n.reminder_id ?? '',
+          type: m.type === 'note' || m.tipo === 'nota' ? 'note' : 'reminder',
+          calendar_id: (() => {
+            const calendarId = m.calendar_id ?? m.calendarId ?? m.calendario_id ?? m.calendarioId ?? null;
+            return calendarId == null || calendarId === '' ? null : String(calendarId);
+          })(),
           title: m.title ?? '',
           description: m.description ?? null,
           start_datetime: m.start_datetime ?? '',

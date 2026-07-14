@@ -54,7 +54,7 @@ const Calendar: React.FC<CalendarProps> = ({
   onEventDoubleClick,
   onSlotClick,
   onCreateClick,
-  onSlotContextMenu,
+  renderSlotContextMenu,
   onEventContextMenu,
   onEventContextMenuOpen,
   inlineDraft,
@@ -163,7 +163,7 @@ const Calendar: React.FC<CalendarProps> = ({
     onEventContextMenu,
     onEventContextMenuOpen,
     onSlotClick,
-    onSlotContextMenu,
+    renderSlotContextMenu,
   };
 
   // Free-slot ("Huecos") overlay props, threaded into the grid/month views.

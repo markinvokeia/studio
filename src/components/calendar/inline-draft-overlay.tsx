@@ -16,7 +16,10 @@ export function CalendarInlineDraftOverlay({ children }: { children: React.React
   if (!mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/55 p-4 backdrop-blur-[1px] dark:bg-background/70">
+    <div
+      data-testid="calendar-inline-draft-overlay"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background/55 p-4 backdrop-blur-[1px] dark:bg-background/70"
+    >
       <div
         className="w-[340px] max-w-[calc(100vw-2rem)] sm:w-[520px]"
         onClick={(e) => e.stopPropagation()}

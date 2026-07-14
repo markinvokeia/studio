@@ -5,12 +5,13 @@ import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 
 import { Checkbox } from '@/components/ui/checkbox';
+import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from '@/components/ui/context-menu';
 
 import type { Locale } from 'date-fns';
 import { addDays, format, isSameDay, set, startOfWeek } from 'date-fns';
 
 import { DEFAULT_SCROLL_HOUR, GROUPED_COLUMN_MIN_WIDTH, HOUR_SLOT_HEIGHT, TABLET_MAX_RESOURCE_COLS } from './calendar-constants';
-import type { CalendarBreakpoint, CalendarEvent, CalendarGroupBy, CalendarGroupingColumn, CalendarSlotClickHandler, CalendarView } from './calendar-types';
+import type { CalendarBreakpoint, CalendarEvent, CalendarGroupBy, CalendarGroupingColumn, CalendarSlotClickHandler, CalendarSlotContextMenuContext, CalendarSlotContextMenuRenderer, CalendarView } from './calendar-types';
 import {
   filterEventsByDayAndGroup,
   getEventStyle,
@@ -43,7 +44,7 @@ interface CalendarDayViewGroupedProps {
   onEventContextMenu?: (data: any) => React.ReactNode;
   onEventContextMenuOpen?: (data: any) => void;
   onSlotClick?: CalendarSlotClickHandler;
-  onSlotContextMenu?: CalendarSlotClickHandler;
+  renderSlotContextMenu?: CalendarSlotContextMenuRenderer;
   hourSlotHeight?: number;
   slotMinutes?: number;
   gaps?: Gap[];
@@ -74,7 +75,7 @@ export function CalendarDayViewGrouped({
   onEventContextMenu,
   onEventContextMenuOpen,
   onSlotClick,
-  onSlotContextMenu,
+  renderSlotContextMenu,
   hourSlotHeight = HOUR_SLOT_HEIGHT,
   slotMinutes,
   gaps,
@@ -92,6 +93,7 @@ export function CalendarDayViewGrouped({
   const gutterTrack = hideTimeGutter ? '' : '60px ';
 
   const columns = groupingColumns;
+  const [contextSlot, setContextSlot] = React.useState<CalendarSlotContextMenuContext | null>(null);
   const isTablet = breakpoint === 'tablet';
   const groupedColumnMinWidth = isTablet ? 360 : GROUPED_COLUMN_MIN_WIDTH;
   const groupedDayGap = 1.6;
@@ -139,17 +141,19 @@ export function CalendarDayViewGrouped({
   };
 
   const handleSlotContextMenu = (day: Date, col: CalendarGroupingColumn, e: React.MouseEvent<HTMLDivElement>) => {
-    if (!onSlotContextMenu) return;
+    if (!renderSlotContextMenu) return;
     // An event's own context menu (radix ContextMenuTrigger) already handled and
     // preventDefault'd the right-click — don't also open the slot menu over it.
     if (e.defaultPrevented) return;
     if ((e.target as HTMLElement).closest('.event-in-day-view, .event')) return;
     if (!e.currentTarget.contains(e.target as Node)) return;
     const date = slotDateFromEvent(day, e);
-    if (isSlotBlocked(blockedRanges, date, col.value)) { e.preventDefault(); return; } // disable create/reminder on blocked slots
-    e.preventDefault();
     const context = groupBy !== 'none' ? { groupBy, value: col.value } : undefined;
-    onSlotContextMenu(date, context);
+    setContextSlot({
+      date,
+      context,
+      isBlocked: isSlotBlocked(blockedRanges, date, col.value),
+    });
   };
 
   return (
@@ -231,52 +235,55 @@ export function CalendarDayViewGrouped({
                 const eventsWithLayout = getEventsWithLayout(dayColEvents);
 
                 return (
-                  <div
-                    key={`${format(day, 'yyyy-MM-dd')}-${col.id}`}
-                    className="day-column"
-                    data-group-col={col.value}
-                  >
-                    <CalendarHourRail
-                      keyPrefix={col.id}
-                      ariaLabel={t('createAppointment')}
-                      onClick={(e) => handleSlotClick(day, col, e)}
-                      onContextMenu={(e) => handleSlotContextMenu(day, col, e)}
-                    />
-                    <div
-                      className="day-column-content"
-                      onClick={(e) => handleSlotClick(day, col, e)}
-                      onContextMenu={(e) => handleSlotContextMenu(day, col, e)}
-                    >
-                      <TimeSlotDividers keyPrefix={col.id} />
-                      <CalendarBlockedOverlays
-                        ranges={blockedRanges}
-                        dayKey={format(day, 'yyyy-MM-dd')}
-                        groupValue={col.value}
-                        hourSlotHeight={hourSlotHeight}
-                      />
-                      <CalendarGapOverlays
-                        gaps={gaps}
-                        dayKey={format(day, 'yyyy-MM-dd')}
-                        groupValue={col.value}
-                        hourSlotHeight={hourSlotHeight}
-                        selectedGapKey={selectedGapKey}
-                        onGapClick={onGapClick}
-                      />
-                      {eventsWithLayout.map((event) => (
-                        <CalendarEventDay
-                          key={event.id}
-                          event={event}
-                          style={getEventStyle(event, hourSlotHeight)}
-                          dateLocale={dateLocale}
-                          onEventClick={onEventClick}
-                          onEventColorChange={onEventColorChange}
-                          onEventDoubleClick={onEventDoubleClick}
-                          onEventContextMenu={onEventContextMenu}
-                          onEventContextMenuOpen={onEventContextMenuOpen}
+                  <ContextMenu key={`${format(day, 'yyyy-MM-dd')}-${col.id}`}>
+                    <ContextMenuTrigger asChild disabled={!renderSlotContextMenu}>
+                      <div className="day-column" data-group-col={col.value}>
+                        <CalendarHourRail
+                          keyPrefix={col.id}
+                          ariaLabel={t('createAppointment')}
+                          onClick={(e) => handleSlotClick(day, col, e)}
+                          onContextMenu={(e) => handleSlotContextMenu(day, col, e)}
                         />
-                      ))}
-                    </div>
-                  </div>
+                        <div
+                          className="day-column-content"
+                          onClick={(e) => handleSlotClick(day, col, e)}
+                          onContextMenu={(e) => handleSlotContextMenu(day, col, e)}
+                        >
+                          <TimeSlotDividers keyPrefix={col.id} />
+                          <CalendarBlockedOverlays
+                            ranges={blockedRanges}
+                            dayKey={format(day, 'yyyy-MM-dd')}
+                            groupValue={col.value}
+                            hourSlotHeight={hourSlotHeight}
+                          />
+                          <CalendarGapOverlays
+                            gaps={gaps}
+                            dayKey={format(day, 'yyyy-MM-dd')}
+                            groupValue={col.value}
+                            hourSlotHeight={hourSlotHeight}
+                            selectedGapKey={selectedGapKey}
+                            onGapClick={onGapClick}
+                          />
+                          {eventsWithLayout.map((event) => (
+                            <CalendarEventDay
+                              key={event.id}
+                              event={event}
+                              style={getEventStyle(event, hourSlotHeight)}
+                              dateLocale={dateLocale}
+                              onEventClick={onEventClick}
+                              onEventColorChange={onEventColorChange}
+                              onEventDoubleClick={onEventDoubleClick}
+                              onEventContextMenu={onEventContextMenu}
+                              onEventContextMenuOpen={onEventContextMenuOpen}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent>
+                      {contextSlot && renderSlotContextMenu?.(contextSlot)}
+                    </ContextMenuContent>
+                  </ContextMenu>
                 );
               })}
             </div>

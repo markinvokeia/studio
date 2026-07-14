@@ -23,6 +23,20 @@ const T = {
     doctor: 'Doctores',
     calendar: 'Consultorios',
   },
+  calendarItems: {
+    createNote: 'Crear nota',
+    createReminder: 'Crear recordatorio',
+    createAppointment: 'Crear cita',
+    noteTitle: 'Crear nota',
+    editNoteTitle: 'Editar nota',
+    reminderTitle: 'Crear recordatorio',
+    noCalendar: 'Sin calendario',
+    title: 'Título',
+    duration: 'Duración (min)',
+    priority: 'Prioridad',
+    color: 'Color',
+    save: 'Guardar',
+  },
   panelTabs: {
     info: 'Información',
     patient: 'Paciente',
@@ -858,6 +872,140 @@ test.describe('Citas', () => {
   // ── Funcionalidades avanzadas ─────────────────────────────────────────
 
   test.describe('Funcionalidades avanzadas', () => {
+    test('envía type y calendar_id de una nota al backend', async ({ page }, testInfo) => {
+      test.skip(testInfo.project.name === 'mobile-chrome', 'El contrato HTTP se valida una vez en escritorio');
+
+      let submittedPayload: Record<string, unknown> | null = null;
+      await page.route(/\/reminders(?:\?.*)?$/, async (route) => {
+        if (route.request().method() !== 'GET') {
+          await route.continue();
+          return;
+        }
+
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            reminders: submittedPayload ? [{
+              ...submittedPayload,
+              id: 'note-e2e-001',
+              created_at: '2026-07-13T10:00:00',
+            }] : [],
+          }),
+        });
+      });
+      await page.route('**/reminders/upsert', async (route) => {
+        submittedPayload = route.request().postDataJSON() as Record<string, unknown>;
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            reminder: {
+              ...submittedPayload,
+              id: 'note-e2e-001',
+              created_at: '2026-07-13T10:00:00',
+            },
+          }),
+        });
+      });
+
+      const slot = page.locator('.day-column-content').first();
+      if (!await slot.isVisible({ timeout: 5_000 }).catch(() => false)) return;
+      const box = await slot.boundingBox();
+      const scrollBox = await page.locator('.day-view-container').boundingBox();
+      if (!box || !scrollBox) return;
+      await page.mouse.click(
+        box.x + Math.min(24, box.width / 2),
+        scrollBox.y + scrollBox.height / 2,
+        { button: 'right' },
+      );
+      await page.getByRole('menuitem', { name: T.calendarItems.createNote }).click();
+
+      const dialog = page.getByRole('dialog', { name: T.calendarItems.noteTitle });
+      await expect(dialog).toBeVisible({ timeout: 5_000 });
+      await expect(dialog.getByText(T.calendarItems.duration, { exact: true })).toBeVisible();
+      await expect(dialog.getByText(T.calendarItems.priority, { exact: true })).toHaveCount(0);
+      await expect(dialog.getByText(T.calendarItems.color, { exact: true })).toBeVisible();
+      await expect(dialog.getByRole('radio')).toHaveCount(11);
+      await expect(dialog.locator('input[placeholder="dd/mm/aaaa"]')).toBeVisible();
+      await expect(dialog.locator('input[type="time"]')).toBeVisible();
+      await dialog.locator('#reminder-title').fill('Nota persistida e2e');
+      await dialog.getByTestId('reminder-color-9').click();
+      await dialog.getByRole('button', { name: T.calendarItems.save }).click();
+
+      await expect.poll(() => submittedPayload).not.toBeNull();
+      expect(submittedPayload).toMatchObject({
+        type: 'note',
+        calendar_id: null,
+        color: '#5484ed',
+      });
+
+      const savedNote = page.locator('.event-reminder').filter({ hasText: 'Nota persistida e2e' }).first();
+      await expect(savedNote).toBeVisible({ timeout: 5_000 });
+      await expect(savedNote).toContainText(/^\d{2}:\d{2}\s+Nota persistida e2e/);
+      await expect.poll(() => savedNote.evaluate((element) => (
+        (element as HTMLElement).style.getPropertyValue('--reminder-color')
+      ))).toBe('#5484ed');
+
+      await savedNote.dblclick();
+      await expect(page.getByRole('dialog', { name: T.calendarItems.editNoteTitle })).toBeVisible({ timeout: 5_000 });
+    });
+
+    test('muestra el selector de color al crear un recordatorio', async ({ page }) => {
+      const slot = page.locator('.day-column-content').first();
+      if (!await slot.isVisible({ timeout: 5_000 }).catch(() => false)) return;
+      const box = await slot.boundingBox();
+      const scrollBox = await page.locator('.day-view-container').boundingBox();
+      if (!box || !scrollBox) return;
+
+      await page.mouse.click(
+        box.x + Math.min(24, box.width / 2),
+        scrollBox.y + scrollBox.height / 2,
+        { button: 'right' },
+      );
+      await page.getByRole('menuitem', { name: T.calendarItems.createReminder }).click();
+
+      const dialog = page.getByRole('dialog', { name: T.calendarItems.reminderTitle });
+      await expect(dialog).toBeVisible({ timeout: 5_000 });
+      await expect(dialog.getByText(T.calendarItems.color, { exact: true })).toBeVisible();
+      await expect(dialog.getByRole('radio')).toHaveCount(11);
+    });
+
+    test('clic derecho en un slot muestra cita, recordatorio y nota', async ({ page }) => {
+      const dayViewButton = page.getByRole('button', { name: /Día|1 Día/ }).first();
+      if (await dayViewButton.isVisible().catch(() => false)) await dayViewButton.click();
+
+      const slot = page.locator('.day-column-content').first();
+      if (!await slot.isVisible({ timeout: 5_000 }).catch(() => false)) return;
+      const box = await slot.boundingBox();
+      const scrollBox = await page.locator('.day-view-container').boundingBox();
+      if (!box || !scrollBox) return;
+      await page.mouse.click(
+        box.x + Math.min(24, box.width / 2),
+        scrollBox.y + scrollBox.height / 2,
+        { button: 'right' },
+      );
+
+      const menu = page.getByRole('menu');
+      await expect(menu.getByRole('menuitem', { name: T.calendarItems.createAppointment })).toBeVisible();
+      await expect(menu.getByRole('menuitem', { name: T.calendarItems.createReminder })).toBeVisible();
+      await expect(menu.getByRole('menuitem', { name: T.calendarItems.createNote })).toBeVisible();
+    });
+
+    test('en un horario bloqueado la cita está deshabilitada y recordatorio y nota habilitados', async ({ page }) => {
+      const blocked = page.locator('.calendar-blocked').first();
+      test.skip(!await blocked.isVisible({ timeout: 3_000 }).catch(() => false), 'No hay horarios bloqueados visibles');
+
+      const box = await blocked.boundingBox();
+      if (!box) return;
+      await page.mouse.click(box.x + Math.min(12, box.width / 2), box.y + Math.min(12, box.height / 2), { button: 'right' });
+
+      const menu = page.getByRole('menu');
+      await expect(menu.getByRole('menuitem', { name: T.calendarItems.createAppointment })).toHaveAttribute('data-disabled');
+      await expect(menu.getByRole('menuitem', { name: T.calendarItems.createReminder })).not.toHaveAttribute('data-disabled');
+      await expect(menu.getByRole('menuitem', { name: T.calendarItems.createNote })).not.toHaveAttribute('data-disabled');
+    });
+
     test('menú contextual de evento muestra paleta de 11 colores', async ({ page }) => {
       // Events render as .event divs wrapped in a Radix ContextMenu
       const firstEvent = page.locator('.event').first();
@@ -872,6 +1020,21 @@ test.describe('Citas', () => {
       expect(count).toBeGreaterThanOrEqual(11);
 
       await page.keyboard.press('Escape');
+    });
+
+    test('en modo custom sólo el doble clic abre la edición inline de una cita', async ({ page }) => {
+      const agendasButton = page.getByRole('button', { name: 'Agendas' }).first();
+      if (!await agendasButton.isVisible({ timeout: 5_000 }).catch(() => false)) return;
+
+      const event = page.getByTestId('calendar-day-event').first();
+      if (!await event.isVisible({ timeout: 5_000 }).catch(() => false)) return;
+
+      await event.click();
+      await page.waitForTimeout(300);
+      await expect(page.getByTestId('calendar-inline-draft-overlay')).toHaveCount(0);
+
+      await event.dblclick();
+      await expect(page.getByTestId('calendar-inline-draft-overlay')).toBeVisible({ timeout: 5_000 });
     });
 
     test('botón "Nuevo" de presupuesto en formulario abre QuickQuoteDialog', async ({ page }) => {

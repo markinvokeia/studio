@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { BellRing, CheckCircle2 } from 'lucide-react';
+import { BellRing, CheckCircle2, FileText } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 
@@ -222,10 +222,11 @@ export function CalendarMonthViewMobile({
               const startTime = formatEventTime(event.start, dateLocale);
               const rawStatus = event.data?.status as string | undefined;
               const isReminder = event.data?.kind === 'reminder';
+              const isNote = isReminder && event.data?.type === 'note';
               const reminderStatus = event.data?.status as CalendarReminderStatus | undefined;
               const reminderPriority = event.data?.priority as CalendarReminderPriority | undefined;
               const reminderIsDone = isReminderDone(reminderStatus);
-              const ReminderIcon = reminderIsDone ? CheckCircle2 : BellRing;
+              const ReminderIcon = isNote ? FileText : reminderIsDone ? CheckCircle2 : BellRing;
               const status = (rawStatus?.toLowerCase() as AppointmentStatus | undefined) ?? undefined;
               const StatusIcon = status ? STATUS_ICONS[status] : null;
               const statusColor = status ? STATUS_ACCENT_COLOR[status] : undefined;

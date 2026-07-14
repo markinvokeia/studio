@@ -36,6 +36,14 @@ export interface CalendarSlotClickContext {
 
 export type CalendarSlotClickHandler = (date: Date, context?: CalendarSlotClickContext) => void;
 
+export interface CalendarSlotContextMenuContext {
+  date: Date;
+  context?: CalendarSlotClickContext;
+  isBlocked: boolean;
+}
+
+export type CalendarSlotContextMenuRenderer = (slot: CalendarSlotContextMenuContext) => React.ReactNode;
+
 /** A pending in-canvas appointment being created at a slot. */
 export interface InlineDraft {
   /** Start date/time of the draft. */
@@ -68,8 +76,8 @@ export interface CalendarProps {
   onSlotClick?: CalendarSlotClickHandler;
   /** Explicit "create" action (mobile FAB) — always opens the modal, bypassing inline creation. */
   onCreateClick?: () => void;
-  /** Right-click on an empty slot — used to offer appointment vs reminder creation. */
-  onSlotContextMenu?: CalendarSlotClickHandler;
+  /** Menu body for right-clicking an empty time-grid slot. */
+  renderSlotContextMenu?: CalendarSlotContextMenuRenderer;
   onEventContextMenu?: (event: any) => React.ReactNode;
   /** Fires when an event's context menu opens — used to lazily load per-appointment data. */
   onEventContextMenuOpen?: (event: any) => void;
