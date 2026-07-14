@@ -19,6 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 import { InstructionRichTextEditor } from '@/components/medical-instructions/instruction-rich-text-editor';
+import { usePatientInstructionPrint } from '@/components/medical-instructions/patient-instruction-print-view';
 
 import { API_ROUTES } from '@/constants/routes';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
@@ -33,7 +34,7 @@ import api from '@/services/api';
 
 import { format } from 'date-fns';
 import { es, enUS, type Locale } from 'date-fns/locale';
-import { Calendar as CalendarIcon, Loader2, RefreshCw } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, Printer, RefreshCw } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
 function substituteTokens(text: string, vars: Record<string, string>): string {
@@ -83,10 +84,13 @@ export function PatientInstructionDialog({
     const dateLocale = locale === 'es' ? es : enUS;
     const { toast } = useToast();
     const clinic = useClinicInfo();
+    const { printInstruction, PrintContainer } = usePatientInstructionPrint();
 
     const [templates, setTemplates] = React.useState<MedicalInstructionTemplate[]>([]);
     const [isLoadingTemplates, setIsLoadingTemplates] = React.useState(false);
     const [isSubmitting, setIsSubmitting] = React.useState(false);
+    const [isPrinting, setIsPrinting] = React.useState(false);
+    const [savedInstruction, setSavedInstruction] = React.useState<PatientMedicalInstruction | null>(null);
 
     const [fecha, setFecha] = React.useState('');
     const [toothNumber, setToothNumber] = React.useState('');
@@ -116,6 +120,7 @@ export function PatientInstructionDialog({
         setDoctorName(initialDoctorName);
         setTemplateId(existingInstruction?.template_id || '');
         setTemplateName(existingInstruction?.template_name || '');
+        setSavedInstruction(existingInstruction || null);
 
         // Re-apply variables in case the saved content still has unresolved {{tokens}}
         // (e.g. inserted manually, or saved before all fields were filled in).
@@ -188,7 +193,7 @@ export function PatientInstructionDialog({
         setIsSubmitting(true);
         try {
             const payload: PatientMedicalInstruction = {
-                id: existingInstruction?.id,
+                id: savedInstruction?.id,
                 patient_id: patientId,
                 fecha,
                 numero_diente: toothNumber ? parseInt(toothNumber, 10) : null,
@@ -198,9 +203,15 @@ export function PatientInstructionDialog({
                 template_name: templateName || undefined,
                 content_html: contentHtml,
             };
-            await api.post(API_ROUTES.PATIENT_MEDICAL_INSTRUCTIONS_UPSERT, payload);
-            toast({ title: existingInstruction ? t('toast.editSuccess') : t('toast.createSuccess') });
-            onOpenChange(false);
+            const response = await api.post(API_ROUTES.PATIENT_MEDICAL_INSTRUCTIONS_UPSERT, payload);
+            const responseRecord = Array.isArray(response)
+                ? response[0]
+                : (response?.rows?.[0] || response?.data || response?.result || response);
+            // Only trust the response for the id (needed for subsequent updates) —
+            // the rest of the form state is already known-good and validated.
+            const saved: PatientMedicalInstruction = { ...payload, id: responseRecord?.id ?? payload.id };
+            setSavedInstruction(saved);
+            toast({ title: savedInstruction ? t('toast.editSuccess') : t('toast.createSuccess') });
             onSaved();
         } catch (error) {
             toast({
@@ -213,11 +224,21 @@ export function PatientInstructionDialog({
         }
     };
 
+    const handlePrint = async () => {
+        if (!savedInstruction) return;
+        setIsPrinting(true);
+        try {
+            await printInstruction(savedInstruction, patientName);
+        } finally {
+            setIsPrinting(false);
+        }
+    };
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent maxWidth="5xl" className="h-full max-h-[90vh] p-0">
                 <DialogHeader className="border-b px-6 py-4">
-                    <DialogTitle>{existingInstruction ? t('editTitle') : t('createTitle')}</DialogTitle>
+                    <DialogTitle>{savedInstruction ? t('editTitle') : t('createTitle')}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
                     <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-4">
@@ -295,10 +316,22 @@ export function PatientInstructionDialog({
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
                                 <Label>{t('content')}</Label>
-                                <Button type="button" variant="ghost" size="sm" onClick={handleRefreshVariables}>
-                                    <RefreshCw className="h-3.5 w-3.5 mr-1" />
-                                    {t('refreshVariables')}
-                                </Button>
+                                <div className="flex items-center gap-1">
+                                    <Button type="button" variant="ghost" size="sm" onClick={handleRefreshVariables}>
+                                        <RefreshCw className="h-3.5 w-3.5 mr-1" />
+                                        {t('refreshVariables')}
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        disabled={!savedInstruction || isPrinting}
+                                        onClick={handlePrint}
+                                    >
+                                        {isPrinting ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Printer className="h-3.5 w-3.5 mr-1" />}
+                                        {t('print')}
+                                    </Button>
+                                </div>
                             </div>
                             <InstructionRichTextEditor
                                 value={contentHtml}
@@ -312,7 +345,7 @@ export function PatientInstructionDialog({
                         </div>
                     </div>
                     <DialogFooter className="px-6 py-4 border-t shrink-0">
-                        <DialogCancelButton variant="outline">{t('cancel')}</DialogCancelButton>
+                        <DialogCancelButton variant="outline">{t('close')}</DialogCancelButton>
                         <Button type="submit" disabled={isSubmitting}>
                             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             {isSubmitting ? t('saving') : t('save')}
@@ -320,6 +353,7 @@ export function PatientInstructionDialog({
                     </DialogFooter>
                 </form>
             </DialogContent>
+            {PrintContainer}
         </Dialog>
     );
 }

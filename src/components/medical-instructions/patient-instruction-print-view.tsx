@@ -83,8 +83,9 @@ function PatientInstructionPrintContent({ instruction, patientName }: PrintTarge
     const dateLocale = locale === 'es' ? es : enUS;
     const clinic = useClinicInfo();
 
-    const formattedDate = instruction.fecha
-        ? format(new Date(instruction.fecha + 'T00:00:00'), 'dd/MM/yyyy', { locale: dateLocale })
+    const parsedDate = instruction.fecha ? new Date(instruction.fecha.split('T')[0] + 'T00:00:00') : null;
+    const formattedDate = parsedDate && !isNaN(parsedDate.getTime())
+        ? format(parsedDate, 'dd/MM/yyyy', { locale: dateLocale })
         : '';
 
     // Defensive: resolve any {{tokens}} still left in the saved content_html

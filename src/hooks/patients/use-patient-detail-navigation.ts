@@ -65,6 +65,11 @@ export function usePatientDetailNavigation({ deepLinkView, selectedUserId }: Use
     setActiveClinicalSubTab('documents')
   }, [])
 
+  const openClinicalMedicalInstructions = React.useCallback(() => {
+    setActiveTab('clinical')
+    setActiveClinicalSubTab('medical-instructions')
+  }, [])
+
   const openFinancial = React.useCallback(() => {
     setActiveTab('financial')
   }, [])
@@ -81,6 +86,7 @@ export function usePatientDetailNavigation({ deepLinkView, selectedUserId }: Use
     openClinicalHistory,
     openClinicalTreatmentPlans,
     openClinicalDocuments,
+    openClinicalMedicalInstructions,
     openFinancial,
   }
 }

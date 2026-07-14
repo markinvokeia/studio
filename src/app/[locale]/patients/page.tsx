@@ -525,6 +525,7 @@ export default function UsersPage() {
     openClinicalAnamnesis,
     openClinicalHistory,
     openClinicalDocuments,
+    openClinicalMedicalInstructions,
   } = usePatientDetailNavigation({
     deepLinkView,
     selectedUserId: selectedUser?.id,
@@ -536,6 +537,7 @@ export default function UsersPage() {
   const [createOdontogramTrigger, setCreateOdontogramTrigger] = React.useState(0);
   const [sessionPrefill, setSessionPrefill] = React.useState<SessionPrefillData | null>(null);
   const [createDocumentTrigger, setCreateDocumentTrigger] = React.useState(0);
+  const [createMedicalInstructionTrigger, setCreateMedicalInstructionTrigger] = React.useState(0);
   const [refreshInvoicesTrigger, setRefreshInvoicesTrigger] = React.useState(0);
   const [refreshQuotesTrigger, setRefreshQuotesTrigger] = React.useState(0);
   const [refreshOrdersTrigger, setRefreshOrdersTrigger] = React.useState(0);
@@ -1098,6 +1100,7 @@ export default function UsersPage() {
       setCreateSessionTrigger(0);
       setCreateOdontogramTrigger(0);
       setCreateDocumentTrigger(0);
+      setCreateMedicalInstructionTrigger(0);
     }
   }, [selectedUser, loadUserRoles, fetchPatientDischarge, loadMutualSocieties, fetchPatientAllergies, fetchPatientConditions]);
 
@@ -1392,6 +1395,7 @@ export default function UsersPage() {
                         showActivate={canToggleStatus}
                         onCreateClinicalSession={() => { openClinicalHistory(); setCreateSessionTrigger(n => n + 1); }}
                         onCreateOdontogram={() => { openClinicalHistory(); setCreateOdontogramTrigger(n => n + 1); }}
+                        onCreateMedicalInstruction={() => { openClinicalMedicalInstructions(); setCreateMedicalInstructionTrigger(n => n + 1); }}
                         onCreateDocument={() => { openClinicalDocuments(); setCreateDocumentTrigger(n => n + 1); }}
                         onQuickBill={() => openBillingWizard({ patientId: selectedUser.id, patientName: selectedUser.name })}
                         onCreateQuote={() => setIsQuoteDialogOpen(true)}
@@ -1518,6 +1522,7 @@ export default function UsersPage() {
                           <PatientInstructionsSection
                             userId={selectedUser.id}
                             userName={selectedUser.name}
+                            createTrigger={createMedicalInstructionTrigger}
                           />
                         }
                         documentsContent={<DocumentsViewer userId={selectedUser.id} createTrigger={createDocumentTrigger} />}

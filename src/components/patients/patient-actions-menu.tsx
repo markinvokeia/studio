@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { CalendarIcon, CheckCircle, ChevronDown, CreditCard, FileText, Mail, MoreHorizontal, Plus, Receipt, SlidersHorizontal, Smile, Stethoscope, ToggleLeft, Upload, XCircle, Zap } from 'lucide-react';
+import { CalendarIcon, CheckCircle, ChevronDown, ClipboardList, CreditCard, FileText, Mail, MoreHorizontal, Plus, Receipt, SlidersHorizontal, Smile, Stethoscope, ToggleLeft, Upload, XCircle, Zap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import {
@@ -29,6 +29,7 @@ export interface PatientActionsMenuProps {
   // Clinical "create" actions — only shown when provided.
   onCreateClinicalSession?: () => void;
   onCreateOdontogram?: () => void;
+  onCreateMedicalInstruction?: () => void;
   onCreateDocument?: () => void;
 
   // Financial
@@ -62,6 +63,7 @@ export function PatientActionsMenu({
   showActivate = true,
   onCreateClinicalSession,
   onCreateOdontogram,
+  onCreateMedicalInstruction,
   onCreateDocument,
   onQuickBill,
   onCreateQuote,
@@ -75,7 +77,7 @@ export function PatientActionsMenu({
   onPreferences,
 }: PatientActionsMenuProps) {
   const t = useTranslations();
-  const hasClinicalCreate = !!(onCreateClinicalSession || onCreateOdontogram || onCreateDocument);
+  const hasClinicalCreate = !!(onCreateClinicalSession || onCreateOdontogram || onCreateMedicalInstruction || onCreateDocument);
 
   return (
     <TooltipProvider>
@@ -106,6 +108,11 @@ export function PatientActionsMenu({
                 {onCreateOdontogram && (
                   <DropdownMenuItem onClick={onCreateOdontogram}>
                     <Smile className="h-4 w-4 mr-2 text-purple-600" />Sesión de odontograma
+                  </DropdownMenuItem>
+                )}
+                {onCreateMedicalInstruction && (
+                  <DropdownMenuItem onClick={onCreateMedicalInstruction}>
+                    <ClipboardList className="h-4 w-4 mr-2 text-primary" />Indicación médica
                   </DropdownMenuItem>
                 )}
                 {onCreateDocument && (
