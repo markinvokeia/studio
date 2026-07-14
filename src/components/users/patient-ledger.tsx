@@ -656,13 +656,13 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
     : (editRow?.status === 'parcial' || editRow?.status === 'pagado')
       ? 'invoice-reallocate'
       : 'invoice';
-  // Only the already-paid invoice reallocation edit has no document-level fields at all —
-  // date is shown read-only and the doctor/notes line is hidden for it. A presupuesto does
-  // have doctor/notes (saved via a separate QUOTES_UPSERT patch, see above), so it gets the
-  // full second line like a facturado invoice; only its date stays read-only (quote/lines/
-  // upsert has no date field of its own).
-  const isLineOnlyEdit = isEdit && editKind === 'invoice-reallocate';
-  const isDateReadOnly = isEdit && (editKind === 'quote' || editKind === 'invoice-reallocate');
+  // Date/doctor/notes are always shown and editable, regardless of payment status. For
+  // an already-paid invoice reallocation edit, they're saved via a document-level
+  // INVOICES_UPSERT patch (siblings unchanged, so the total doesn't move and existing
+  // payment/credit-note allocations aren't touched) run *before* the line-only
+  // reallocation call — mirroring the presupuesto pattern above. A presupuesto's date
+  // stays read-only since `quote/lines/upsert` has no date field of its own.
+  const isDateReadOnly = isEdit && editKind === 'quote';
   const [submitting, setSubmitting] = React.useState(false);
   const editItem = editItems?.find((i) => i.id === editRow?.itemId);
   const [doctorName, setDoctorName] = React.useState(editInvoice?.doctor_name || editQuote?.doctor_name || editRow?.doctorName || '');
@@ -737,6 +737,36 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
         if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message);
         toast({ title: t('toasts.itemUpdated') });
       } else if (isEdit && editKind === 'invoice-reallocate') {
+        // Document-level fields (date/doctor/notes) aren't accepted by the reallocation
+        // endpoint below, so patch them first via INVOICES_UPSERT — same pattern as the
+        // quote branch above: every sibling item is sent back unchanged (by id) so the
+        // total doesn't move, which leaves the existing payment/credit-note allocations
+        // untouched. The line's own quantity/price change is applied right after by the
+        // reallocation call, which recalculates the total itself.
+        if (editInvoice) {
+          const siblingItems = (editItems || []).map((i) => ({
+            id: i.id,
+            service_id: i.service_id,
+            quantity: i.quantity,
+            unit_price: i.unit_price,
+            total: i.total,
+            tooth_number: (i as QuoteItem).tooth_number ?? null,
+          }));
+          const invoiceRes = await api.post(API_ROUTES.SALES.INVOICES_UPSERT, {
+            id: editInvoice.id,
+            user_id: editInvoice.user_id,
+            doctor_id: values.doctor_id || undefined,
+            total: editInvoice.total,
+            currency: editInvoice.currency,
+            created_at: createdAtIso,
+            notes: values.description || '',
+            is_historical: editInvoice.is_historical ?? false,
+            items: siblingItems,
+            type: 'invoice',
+            is_sales: true,
+          });
+          if (Array.isArray(invoiceRes) && invoiceRes[0]?.code >= 400) throw new Error(invoiceRes[0]?.message);
+        }
         // A single invoice_items row, matched by id — the backend releases whatever
         // payment_allocations/invoice_allocations already pointed at this invoice, edits
         // the line, recalculates the total, and re-applies as much of what was released as
@@ -899,29 +929,27 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
         haberSlot={<DisabledAmountCell />}
         controls={<EditorControls submitting={submitting} onCancel={onCancel} />}
         secondLine={
-          isLineOnlyEdit ? undefined : (
-            <>
-              <div className="min-w-[10rem] flex-1">
-                <DoctorSelector
-                  value={form.watch('doctor_id')}
-                  selectedDoctorName={doctorName}
-                  onValueChange={(doctorId, doctor) => {
-                    form.setValue('doctor_id', doctorId);
-                    setDoctorName(doctor?.name || '');
-                  }}
-                  placeholder={t('fields.searchDoctor')}
-                  triggerText={t('fields.selectDoctor')}
-                  className="h-8"
-                />
-              </div>
-              <Input
-                placeholder={t('fields.notes')}
-                aria-label={t('fields.notes')}
-                className="h-8 min-w-[10rem] flex-1 text-sm"
-                {...form.register('description')}
+          <>
+            <div className="min-w-[10rem] flex-1">
+              <DoctorSelector
+                value={form.watch('doctor_id')}
+                selectedDoctorName={doctorName}
+                onValueChange={(doctorId, doctor) => {
+                  form.setValue('doctor_id', doctorId);
+                  setDoctorName(doctor?.name || '');
+                }}
+                placeholder={t('fields.searchDoctor')}
+                triggerText={t('fields.selectDoctor')}
+                className="h-8"
               />
-            </>
-          )
+            </div>
+            <Input
+              placeholder={t('fields.notes')}
+              aria-label={t('fields.notes')}
+              className="h-8 min-w-[10rem] flex-1 text-sm"
+              {...form.register('description')}
+            />
+          </>
         }
       />
     </form>
