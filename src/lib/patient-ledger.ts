@@ -36,6 +36,12 @@ export type LedgerRow = {
   /** The parent Quote's own status (draft/pending/accepted/confirmed/rejected) — only
    *  'accepted'/'confirmed' quotes have an Order behind them and can be invoiced. */
   quoteStatus?: string;
+  /** The parent Quote's doctor_id — carried through so billing a presupuesto (Presupuesto →
+   *  En curso) can propagate it onto the resulting Invoice instead of leaving it unset. */
+  doctorId?: string;
+  /** Denormalized doctor name matching `doctorId`, for display/prefill without an extra
+   *  lookup (e.g. the inline editor's DoctorSelector). */
+  doctorName?: string;
 };
 
 function round2(n: number): number {
@@ -111,6 +117,8 @@ export function buildPatientLedger(params: {
           serviceId: item.service_id,
           quantity: item.quantity,
           unitPrice: item.unit_price,
+          doctorId: invoice.doctor_id || quote.doctor_id || undefined,
+          doctorName: invoice.doctor_name || quote.doctor_name || undefined,
         });
       } else {
         const currency = quote.currency || 'USD';
@@ -131,6 +139,8 @@ export function buildPatientLedger(params: {
           quantity: quoteItem.quantity,
           unitPrice: quoteItem.unit_price,
           quoteStatus: quote.status,
+          doctorId: quote.doctor_id || undefined,
+          doctorName: quote.doctor_name || undefined,
         });
       }
     }
@@ -166,6 +176,8 @@ export function buildPatientLedger(params: {
           serviceId: item.service_id,
           quantity: item.quantity,
           unitPrice: item.unit_price,
+          doctorId: invoice.doctor_id || undefined,
+          doctorName: invoice.doctor_name || undefined,
         });
       }
     } else if (items.length === 0) {

@@ -417,6 +417,7 @@ export function QuoteBillingDialog({
       const billingQuery = {
         quote_id: Number(quote.id),
         user_id: quote.user_id,
+        doctor_id: quote.doctor_id,
         currency: quote.currency || 'UYU',
         invoice_date: toLocalISOString(new Date()),
         due_date: values.due_date ? toLocalISOString(values.due_date) : undefined,

@@ -608,11 +608,14 @@ type QuoteEditorValues = z.infer<typeof quoteEditorSchema>;
  * Inline create/edit editor for a Presupuesto (`quote`) or Tratamiento (`invoice`) line.
  * Enables the Debe editor; Haber is disabled. In edit mode (`editRow` set) which underlying
  * document gets updated depends on the row itself, not the `doc` prop:
- * - An unbilled presupuesto (`editRow.status === 'presupuestado'`) upserts just this one
- *   line via `QUOTES_LINES_UPSERT` (by id, matching `quote/lines/upsert`'s own contract —
- *   it recalculates the quote's total itself). That endpoint only touches `quote_items`,
- *   not the quote's own date/doctor/notes, so those fields aren't offered here in edit
- *   mode — editing them would silently no-op.
+ * - An unbilled presupuesto (`editRow.status === 'presupuestado'`) upserts the line via
+ *   `QUOTES_LINES_UPSERT` (by id, matching `quote/lines/upsert`'s own contract — it
+ *   recalculates the quote's total itself). That endpoint only touches `quote_items`, not
+ *   the quote's own doctor/notes, so those are saved separately via a `QUOTES_UPSERT` patch
+ *   run *before* the line upsert — carrying over the quote's other required fields unchanged
+ *   plus every sibling item as-is (the backend needs `items` present to process the request
+ *   at all; the edited line's own new values are applied right after by the line upsert, so
+ *   it always has the last word on that line and on the recalculated total).
  * - A billed treatment with no payments yet (`facturado`) re-sends the whole invoice via
  *   `INVOICES_UPSERT` by id, passing every sibling item so nothing is lost — this preserves
  *   item ids for anything not being edited, and the invoice's date/doctor/notes are real
@@ -621,20 +624,24 @@ type QuoteEditorValues = z.infer<typeof quoteEditorSchema>;
  *   (`parcial`/`pagado`) upserts just this one line via `INVOICE_ITEMS_EDIT_WITH_REALLOCATION`
  *   instead — changing the total there would otherwise leave those allocations pointing at
  *   an amount that no longer exists, so the backend releases them and re-applies as much as
- *   still fits (FIFO), before recalculating the invoice's total. Like the presupuesto case,
- *   that endpoint only touches the one line, so date/doctor/notes aren't offered here either.
+ *   still fits (FIFO), before recalculating the invoice's total. That endpoint only touches
+ *   the one line, so date/doctor/notes aren't offered here (no document-level fields to send).
  */
-function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editItems, userId, currency, onCancel, onSaved }: {
+function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editItems, userId, currency, onCancel, onSaved }: {
   doc: 'quote' | 'invoice';
   editRow?: LedgerRow;
   /** The full invoice behind `editRow` — only set when editing a billed treatment. Its
    *  date/doctor/notes are only editable here for an unpaid (`facturado`) invoice, where
-   *  they're real fields on `INVOICES_UPSERT`; a presupuesto or an already-paid invoice
-   *  edits through a line-only endpoint with no equivalent document-level fields. */
+   *  they're real fields on `INVOICES_UPSERT`; an already-paid invoice edits through a
+   *  line-only endpoint with no equivalent document-level fields. */
   editInvoice?: Invoice;
+  /** The full quote behind `editRow` — only set when editing an unbilled presupuesto line.
+   *  Supplies doctor/notes prefill and the other required fields (`total`, `status`, etc.)
+   *  that must be carried over unchanged on the `QUOTES_UPSERT` doctor/notes patch. */
+  editQuote?: Quote;
   /** Every sibling item of the quote/invoice being edited. Only actually needed (all of
-   *  them) for the whole-invoice resend path; the two line-only edit paths just look up
-   *  this one item in it for prefill (e.g. `tooth_number`, which isn't on `LedgerRow`). */
+   *  them) for the whole-invoice resend path; the line-only edit paths just look up this
+   *  one item in it for prefill (e.g. `tooth_number`, which isn't on `LedgerRow`). */
   editItems?: (QuoteItem | InvoiceItem)[];
   userId: string;
   currency: string;
@@ -649,13 +656,16 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editItems, userId
     : (editRow?.status === 'parcial' || editRow?.status === 'pagado')
       ? 'invoice-reallocate'
       : 'invoice';
-  // Both line-only endpoints (quote lines, and an already-paid invoice's reallocation edit)
-  // have no date/doctor/notes fields of their own — so that whole second line of the editor
-  // is hidden, and the date is shown read-only, for either case.
-  const isLineOnlyEdit = isEdit && (editKind === 'quote' || editKind === 'invoice-reallocate');
+  // Only the already-paid invoice reallocation edit has no document-level fields at all —
+  // date is shown read-only and the doctor/notes line is hidden for it. A presupuesto does
+  // have doctor/notes (saved via a separate QUOTES_UPSERT patch, see above), so it gets the
+  // full second line like a facturado invoice; only its date stays read-only (quote/lines/
+  // upsert has no date field of its own).
+  const isLineOnlyEdit = isEdit && editKind === 'invoice-reallocate';
+  const isDateReadOnly = isEdit && (editKind === 'quote' || editKind === 'invoice-reallocate');
   const [submitting, setSubmitting] = React.useState(false);
   const editItem = editItems?.find((i) => i.id === editRow?.itemId);
-  const [doctorName, setDoctorName] = React.useState(editInvoice?.doctor_name || '');
+  const [doctorName, setDoctorName] = React.useState(editInvoice?.doctor_name || editQuote?.doctor_name || editRow?.doctorName || '');
 
   const form = useForm<QuoteEditorValues>({
     resolver: zodResolver(quoteEditorSchema),
@@ -666,8 +676,8 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editItems, userId
       tooth_number: (editItem as QuoteItem | undefined)?.tooth_number != null ? String((editItem as QuoteItem).tooth_number) : '',
       quantity: editItem?.quantity || editRow?.quantity || 1,
       unit_price: editItem?.unit_price ?? editRow?.unitPrice ?? 0,
-      doctor_id: editInvoice?.doctor_id || '',
-      description: editInvoice?.notes || '',
+      doctor_id: editInvoice?.doctor_id || editQuote?.doctor_id || editRow?.doctorId || '',
+      description: editInvoice?.notes || editQuote?.notes || editRow?.notes || '',
     },
   });
   const watchedName = form.watch('service_name');
@@ -681,6 +691,38 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editItems, userId
       const tooth = values.tooth_number ? Number(values.tooth_number) : null;
       const createdAtIso = toLocalISOString(preserveTimeIfToday(values.created_at));
       if (isEdit && editKind === 'quote') {
+        // doctor/notes live on the quote itself, not on quote_items — patched first via a
+        // QUOTES_UPSERT by id, carrying over the quote's other required columns unchanged
+        // (omitting them would null/blank them out server-side) *and* every sibling item
+        // as-is (the backend requires `items` to complete the request at all; the edited
+        // line's own new values are applied right after by the line upsert below, so it
+        // always has the last word on that line and on the recalculated total).
+        if (editQuote) {
+          const siblingItems = (editItems || []).map((i) => ({
+            id: i.id,
+            service_id: i.service_id,
+            quantity: i.quantity,
+            unit_price: i.unit_price,
+            total: i.total,
+            tooth_number: (i as QuoteItem).tooth_number ?? null,
+          }));
+          const quoteRes = await api.post(API_ROUTES.SALES.QUOTES_UPSERT, {
+            id: editQuote.id,
+            user_id: editQuote.user_id,
+            doctor_id: values.doctor_id || undefined,
+            total: editQuote.total,
+            currency: editQuote.currency,
+            status: editQuote.status,
+            payment_status: editQuote.payment_status,
+            billing_status: editQuote.billing_status,
+            exchange_rate: editQuote.exchange_rate ?? 1,
+            created_at: editQuote.createdAt,
+            notes: values.description || '',
+            items: siblingItems,
+            is_sales: true,
+          });
+          if (Array.isArray(quoteRes) && quoteRes[0]?.code >= 400) throw new Error(quoteRes[0]?.message);
+        }
         // A single quote_items row, matched by id — `quote/lines/upsert` recalculates the
         // quote's own total itself, and doesn't touch (or need) the sibling items at all.
         const res = await api.post(API_ROUTES.SALES.QUOTES_LINES_UPSERT, {
@@ -798,7 +840,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editItems, userId
       <InlineEditorShell
         docLabel={t(doc === 'quote' ? 'inline.addQuote' : 'inline.addTreatment')}
         dateSlot={
-          isLineOnlyEdit ? (
+          isDateReadOnly ? (
             <span className="text-xs text-muted-foreground">{formatDisplayDate(editRow!.date)}</span>
           ) : (
             <DatePickerInput
@@ -939,8 +981,6 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
   const [submitting, setSubmitting] = React.useState(false);
   const [paymentMethods, setPaymentMethods] = React.useState<PaymentMethod[]>([]);
 
-  React.useEffect(() => { void getPaymentMethods().then(setPaymentMethods); }, []);
-
   const form = useForm<PaymentEditorValues>({
     resolver: zodResolver(paymentEditorSchema),
     defaultValues: {
@@ -951,6 +991,23 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
       is_historical: editPayment?.is_historical || false,
     },
   });
+
+  React.useEffect(() => {
+    void getPaymentMethods().then((methods) => {
+      setPaymentMethods(methods);
+      // The payment list endpoint that feeds `editPayment` only reliably carries the
+      // method's denormalized code/name, not always its id (unlike a fresh payment, whose
+      // id comes straight from `INVOICE_PAYMENT`'s own response) — once the methods are
+      // loaded, resolve the id by code/name so the select still preselects correctly.
+      if (isEdit && editPayment && !methods.some((m) => m.id === form.getValues('payment_method_id'))) {
+        const matched = methods.find((m) =>
+          (editPayment.payment_method_code && m.code === editPayment.payment_method_code)
+          || (editPayment.payment_method && m.name.toLowerCase() === editPayment.payment_method.toLowerCase()));
+        if (matched) form.setValue('payment_method_id', matched.id, { shouldValidate: true });
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const createdAt = form.watch('created_at');
   const isHistorical = form.watch('is_historical');
   const amount = form.watch('payment_amount') || 0;
@@ -1524,6 +1581,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
       const billingQuery = {
         quote_id: Number(row.quoteId),
         user_id: userId,
+        doctor_id: row.doctorId,
         currency: row.currency,
         invoice_date: toLocalISOString(new Date()),
         notes: '',
@@ -2083,6 +2141,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
                             doc={row.status === 'presupuestado' ? 'quote' : 'invoice'}
                             editRow={row}
                             editInvoice={row.invoiceId ? ledgerData?.invoices.find((i) => i.id === row.invoiceId) : undefined}
+                            editQuote={row.status === 'presupuestado' ? ledgerData?.quotes.find((q) => q.id === row.quoteId) : undefined}
                             // For the presupuesto case only this one item's own fields
                             // (notably tooth_number, which isn't on LedgerRow) are needed
                             // for prefill — QUOTES_LINES_UPSERT doesn't touch siblings, so

@@ -37,6 +37,8 @@ function normalizeInvoice(raw: any, userId: string): Invoice {
     quote_doc_no: raw.quote_doc_no || undefined,
     user_id: raw.user_id != null ? String(raw.user_id) : userId,
     user_name: raw.user_name || '',
+    doctor_id: raw.doctor_id != null ? String(raw.doctor_id) : undefined,
+    doctor_name: raw.doctor_name || undefined,
     total: parseFloat(raw.total) || 0,
     currency: (raw.currency || 'USD') as Invoice['currency'],
     notes: raw.notes || '',
