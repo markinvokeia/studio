@@ -1,10 +1,19 @@
 .calendar-container {
+  --calendar-grid-major: hsl(var(--border) / 0.5);
+  --calendar-grid-minor: hsl(var(--border) / 0.4);
+  --calendar-grid-vertical: hsl(var(--border));
   display: flex;
   flex-direction: column;
   height: 100%;
   background-color: var(--card);
   border: 1px solid hsl(var(--border));
   border-radius: var(--radius);
+}
+
+.dark .calendar-container {
+  --calendar-grid-major: hsl(var(--foreground) / 0.2);
+  --calendar-grid-minor: hsl(var(--foreground) / 0.1);
+  --calendar-grid-vertical: hsl(var(--foreground) / 0.16);
 }
 
 .calendar-header {
@@ -397,7 +406,7 @@
   left: 0;
   z-index: 11;
   background-color: hsl(var(--card));
-  border-right: 1px solid hsl(var(--border));
+  border-right: 1px solid var(--calendar-grid-vertical);
 }
 
 .time-zone-label {
@@ -410,8 +419,8 @@
   font-size: 0.7rem;
   color: hsl(var(--muted-foreground));
   text-align: center;
-  border-bottom: 1px solid hsl(var(--border));
-  border-right: 1px solid hsl(var(--border));
+  border-bottom: 1px solid var(--calendar-grid-major);
+  border-right: 1px solid var(--calendar-grid-vertical);
   position: sticky;
   left: 0;
   z-index: 16;
@@ -426,7 +435,7 @@
 .time-slot {
   height: var(--hour-slot-height, 60px);
   /* 1 hour */
-  border-bottom: 1px solid hsl(var(--border) / 0.5);
+  border-bottom: 1px solid var(--calendar-grid-major);
   position: relative;
 }
 
@@ -442,8 +451,8 @@
   background-image:
     repeating-linear-gradient(
       to bottom,
-      hsl(var(--border) / 0.4) 0,
-      hsl(var(--border) / 0.4) 1px,
+      var(--calendar-grid-minor) 0,
+      var(--calendar-grid-minor) 1px,
       transparent 1px,
       transparent calc(var(--hour-slot-height, 60px) / var(--cal-slots-per-hour, 4))
     );
@@ -460,7 +469,7 @@
 }
 
 .day-column {
-  border-right: 1px solid hsl(var(--border));
+  border-right: 1px solid var(--calendar-grid-vertical);
   position: relative;
   box-sizing: border-box;
   display: flex;
@@ -488,7 +497,7 @@
   flex: 0 0 auto;
   width: 22px;
   box-sizing: border-box;
-  border-right: 1px solid hsl(var(--border));
+  border-right: 1px solid var(--calendar-grid-vertical);
   background-color: hsl(var(--muted) / 0.25);
   cursor: pointer;
   user-select: none;
@@ -501,13 +510,13 @@
 .column-hour-rail-slot {
   height: var(--hour-slot-height, 60px);
   position: relative;
-  border-bottom: 1px solid hsl(var(--border) / 0.5);
+  border-bottom: 1px solid var(--calendar-grid-major);
   /* Same sub-hour slot lines as the events area (see .time-slot-divider). */
   background-image:
     repeating-linear-gradient(
       to bottom,
-      hsl(var(--border) / 0.4) 0,
-      hsl(var(--border) / 0.4) 1px,
+      var(--calendar-grid-minor) 0,
+      var(--calendar-grid-minor) 1px,
       transparent 1px,
       transparent calc(var(--hour-slot-height, 60px) / var(--cal-slots-per-hour, 4))
     );
@@ -532,7 +541,7 @@
 .day-block {
   display: grid;
   background-color: hsl(var(--card));
-  border-right: 1px solid hsl(var(--border));
+  border-right: 1px solid var(--calendar-grid-vertical);
   overflow: hidden;
   box-sizing: border-box;
 }
@@ -546,11 +555,11 @@
 }
 
 .day-block > .day-column:not(:last-child) {
-  border-right: 1px solid hsl(var(--border));
+  border-right: 1px solid var(--calendar-grid-vertical);
 }
 
 .day-column-content>.time-slot {
-  border-bottom: 1px solid hsl(var(--border) / 0.5);
+  border-bottom: 1px solid var(--calendar-grid-major);
 }
 
 .event-in-day-view {
