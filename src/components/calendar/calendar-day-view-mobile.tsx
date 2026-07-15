@@ -4,7 +4,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 
 import type { Locale } from 'date-fns';
-import { addDays, format, isSameDay, isToday, set, startOfWeek } from 'date-fns';
+import { addDays, format, isSameDay, isToday, set } from 'date-fns';
 
 import {
   Carousel,
@@ -19,6 +19,7 @@ import {
   filterEventsByDay,
   filterEventsByDayAndGroup,
   generateTimeSlots,
+  getCalendarViewStartDate,
   getEventStyle,
   getEventsWithLayout,
   formatTimeSlotLabel,
@@ -78,7 +79,9 @@ export function CalendarDayViewMobile({
   const [api, setApi] = React.useState<CarouselApi>();
   const [activeIndex, setActiveIndex] = React.useState(0);
 
-  const startDay = view === 'week' ? startOfWeek(currentDate, { weekStartsOn: 1 }) : currentDate;
+  const startDay = view === 'week'
+    ? getCalendarViewStartDate(currentDate, view)
+    : currentDate;
   const days = Array.from({ length: numDays }, (_, i) => addDays(startDay, i));
   const timeSlots = generateTimeSlots();
 

@@ -8,12 +8,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from '@/components/ui/context-menu';
 
 import type { Locale } from 'date-fns';
-import { addDays, format, isSameDay, set, startOfWeek } from 'date-fns';
+import { addDays, format, isSameDay, set } from 'date-fns';
 
 import { DEFAULT_SCROLL_HOUR, GROUPED_COLUMN_MIN_WIDTH, HOUR_SLOT_HEIGHT, TABLET_MAX_RESOURCE_COLS } from './calendar-constants';
 import type { CalendarBreakpoint, CalendarEvent, CalendarGroupBy, CalendarGroupingColumn, CalendarSlotClickHandler, CalendarSlotContextMenuContext, CalendarSlotContextMenuRenderer, CalendarView } from './calendar-types';
 import {
   filterEventsByDayAndGroup,
+  getCalendarViewStartDate,
   getEventStyle,
   getEventsWithLayout,
   slotTimeFromOffset,
@@ -87,7 +88,9 @@ export function CalendarDayViewGrouped({
   hideTimeGutter = false,
 }: CalendarDayViewGroupedProps) {
   const t = useTranslations('Calendar');
-  const startDay = view === 'week' ? startOfWeek(currentDate, { weekStartsOn: 1 }) : currentDate;
+  const startDay = view === 'week'
+    ? getCalendarViewStartDate(currentDate, view)
+    : currentDate;
   const days = Array.from({ length: numDays }, (_, i) => addDays(startDay, i));
   // Custom mode hides the 60px gutter; the leading grid track collapses to 0.
   const gutterTrack = hideTimeGutter ? '' : '60px ';

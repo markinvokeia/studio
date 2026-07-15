@@ -8,13 +8,14 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from '@/components/ui/context-menu';
 
 import type { Locale } from 'date-fns';
-import { addDays, format, isSameDay, set, startOfWeek } from 'date-fns';
+import { addDays, format, isSameDay, set } from 'date-fns';
 
 import { DEFAULT_SCROLL_HOUR, HOUR_SLOT_HEIGHT } from './calendar-constants';
 import type { CalendarEvent, CalendarSlotClickHandler, CalendarSlotContextMenuContext, CalendarSlotContextMenuRenderer, CalendarView } from './calendar-types';
 import {
   filterEventsByDay,
   generateTimeSlots,
+  getCalendarViewStartDate,
   getEventStyle,
   getEventsWithLayout,
   slotTimeFromOffset,
@@ -79,7 +80,9 @@ export function CalendarDayView({
   onToggleTimeColumn,
 }: CalendarDayViewProps) {
   const t = useTranslations('Calendar');
-  const startDay = view === 'week' ? startOfWeek(currentDate, { weekStartsOn: 1 }) : currentDate;
+  const startDay = view === 'week'
+    ? getCalendarViewStartDate(currentDate, view)
+    : currentDate;
   const days = Array.from({ length: numDays }, (_, i) => addDays(startDay, i));
   const timeSlots = generateTimeSlots();
   const [contextSlot, setContextSlot] = React.useState<CalendarSlotContextMenuContext | null>(null);

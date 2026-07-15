@@ -30,22 +30,24 @@ export function computeDateRange(
   currentDate: Date,
   view: CalendarView
 ): { start: Date; end: Date } | null {
+  const viewStart = startOfDay(currentDate);
+
   switch (view) {
     case 'day':
       return { start: startOfDay(currentDate), end: endOfDay(currentDate) };
     case '2-day':
-      return { start: startOfDay(currentDate), end: endOfDay(addDays(currentDate, 1)) };
+      return { start: viewStart, end: endOfDay(addDays(viewStart, 1)) };
     case '3-day':
-      return { start: startOfDay(currentDate), end: endOfDay(addDays(currentDate, 2)) };
+      return { start: viewStart, end: endOfDay(addDays(viewStart, 2)) };
     case '4-day':
-      return { start: startOfDay(currentDate), end: endOfDay(addDays(currentDate, 3)) };
+      return { start: viewStart, end: endOfDay(addDays(viewStart, 3)) };
     case '5-day':
-      return { start: startOfDay(currentDate), end: endOfDay(addDays(currentDate, 4)) };
+      return { start: viewStart, end: endOfDay(addDays(viewStart, 4)) };
     case '6-day':
-      return { start: startOfDay(currentDate), end: endOfDay(addDays(currentDate, 5)) };
+      return { start: viewStart, end: endOfDay(addDays(viewStart, 5)) };
     case 'week':
       return {
-        start: startOfWeek(currentDate, { weekStartsOn: 1 }),
+        start: getCalendarViewStartDate(currentDate, view),
         end: endOfWeek(currentDate, { weekStartsOn: 1 }),
       };
     case 'month':
@@ -63,19 +65,84 @@ export function computeDateRange(
 // Navigation helpers
 // ---------------------------------------------------------------------------
 
+const MULTI_DAY_VIEW_LENGTHS: Partial<Record<CalendarView, number>> = {
+  '2-day': 2,
+  '3-day': 3,
+  '4-day': 4,
+  '5-day': 5,
+  '6-day': 6,
+};
+
+function getMultiDayBlockOffsets(numberOfDays: number): number[] {
+  const offsets: number[] = [];
+
+  for (let offset = 0; offset + numberOfDays <= 7; offset += numberOfDays) {
+    offsets.push(offset);
+  }
+
+  const finalOffset = 7 - numberOfDays;
+  if (offsets[offsets.length - 1] !== finalOffset) {
+    offsets.push(finalOffset);
+  }
+
+  return offsets;
+}
+
+/**
+ * Returns the first visible date for a calendar view.
+ *
+ * Multi-day views are split into blocks anchored to Monday. The final block is
+ * shifted back when needed so it stays inside the same Monday-Sunday week.
+ */
+export function getCalendarViewStartDate(currentDate: Date, view: CalendarView): Date {
+  if (view === 'week') {
+    return startOfWeek(currentDate, { weekStartsOn: 1 });
+  }
+
+  const numberOfDays = MULTI_DAY_VIEW_LENGTHS[view];
+  if (!numberOfDays) {
+    return startOfDay(currentDate);
+  }
+
+  const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+  const dayOffset = currentDate.getDay() === 0 ? 6 : currentDate.getDay() - 1;
+  const blockOffset = Math.min(
+    Math.floor(dayOffset / numberOfDays) * numberOfDays,
+    7 - numberOfDays
+  );
+
+  return addDays(weekStart, blockOffset);
+}
+
 export function navigateDate(
   currentDate: Date,
   view: CalendarView,
   direction: 1 | -1
 ): Date {
   const delta = direction;
+  const viewStart = startOfDay(currentDate);
+  const numberOfDays = MULTI_DAY_VIEW_LENGTHS[view];
+
+  if (numberOfDays) {
+    const weekStart = startOfWeek(viewStart, { weekStartsOn: 1 });
+    const blockOffsets = getMultiDayBlockOffsets(numberOfDays);
+    const currentOffset = viewStart.getDay() === 0 ? 6 : viewStart.getDay() - 1;
+    const currentBlockIndex = blockOffsets.indexOf(currentOffset);
+    const nextBlockIndex = currentBlockIndex + direction;
+
+    if (nextBlockIndex < 0) {
+      return addDays(addWeeks(weekStart, -1), blockOffsets[blockOffsets.length - 1]);
+    }
+
+    if (nextBlockIndex >= blockOffsets.length) {
+      return addWeeks(weekStart, 1);
+    }
+
+    return addDays(weekStart, blockOffsets[nextBlockIndex]);
+  }
+
   switch (view) {
     case 'day': return addDays(currentDate, delta);
-    case '2-day': return addDays(currentDate, 2 * delta);
-    case '3-day': return addDays(currentDate, 3 * delta);
-    case '4-day': return addDays(currentDate, 4 * delta);
-    case '5-day': return addDays(currentDate, 5 * delta);
-    case '6-day': return addDays(currentDate, 6 * delta);
     case 'week': return addWeeks(currentDate, delta);
     case 'year': return addYears(currentDate, delta);
     case 'month':
@@ -89,7 +156,9 @@ export function computeHeaderTitle(
   view: CalendarView,
   dateLocale: Locale
 ): string {
-  const start = view === 'week' ? startOfWeek(currentDate, { weekStartsOn: 1 }) : currentDate;
+  const start = view === 'week'
+    ? getCalendarViewStartDate(currentDate, view)
+    : currentDate;
   switch (view) {
     case 'day':
       return format(currentDate, 'MMMM d, yyyy', { locale: dateLocale });
