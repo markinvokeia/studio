@@ -296,7 +296,6 @@ export function PatientHistorySheet() {
           patientId={userId}
           patientName={userName}
           existingInstruction={null}
-          onSaved={() => setIsInstructionOpen(false)}
         />
       )}
     </ResizableSheet>

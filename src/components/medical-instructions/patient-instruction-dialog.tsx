@@ -68,7 +68,7 @@ interface PatientInstructionDialogProps {
     patientId: string;
     patientName?: string;
     existingInstruction?: PatientMedicalInstruction | null;
-    onSaved: () => void;
+    onSaved?: () => void;
 }
 
 export function PatientInstructionDialog({
@@ -212,7 +212,7 @@ export function PatientInstructionDialog({
             const saved: PatientMedicalInstruction = { ...payload, id: responseRecord?.id ?? payload.id };
             setSavedInstruction(saved);
             toast({ title: savedInstruction ? t('toast.editSuccess') : t('toast.createSuccess') });
-            onSaved();
+            onSaved?.();
         } catch (error) {
             toast({
                 title: t('toast.error'),
