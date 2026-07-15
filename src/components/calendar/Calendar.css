@@ -140,7 +140,7 @@
 .event-reminder,
 .event-in-day-view.event-reminder {
   background-color: var(--reminder-bg, rgb(245 243 255)) !important;
-  color: rgb(76 29 149) !important;
+  color: var(--reminder-foreground, white) !important;
   border: 1px dashed var(--reminder-border, rgb(196 181 253));
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.55);
 }
@@ -151,7 +151,6 @@
   color: rgb(107 114 128) !important;
   border-color: var(--reminder-border, rgb(229 231 235));
   border-style: solid;
-  opacity: 0.82;
 }
 
 .event-reminder-done .event-title,

@@ -239,7 +239,7 @@ export function CalendarMonthViewMobile({
                   className={cn(
                     'flex items-start gap-3 rounded-lg border p-3 cursor-pointer active:bg-muted/50 transition-colors',
                     isReminder ? 'border-[var(--reminder-border)] bg-[var(--reminder-bg)]' : 'border-border/50',
-                    reminderIsDone && 'border-slate-200 bg-slate-50/80 opacity-80',
+                    reminderIsDone && 'border-slate-200 bg-slate-50',
                   )}
                   style={reminderCardStyle}
                   onClick={() => onEventClick(event.data)}

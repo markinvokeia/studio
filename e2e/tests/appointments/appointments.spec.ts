@@ -907,6 +907,27 @@ test.describe('Citas', () => {
     test('envía type y calendar_id de una nota al backend', async ({ page }, testInfo) => {
       test.skip(testInfo.project.name === 'mobile-chrome', 'El contrato HTTP se valida una vez en escritorio');
 
+      await page.route(/\/calendar_settings\/search(?:\?.*)?$/, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            default_view: 'day',
+            grouped_by: 'none',
+            check_availability: false,
+            filter_doctors_by_service: false,
+            block_unavailable: false,
+            hour_height: 96,
+            slot_duration: 15,
+            event_label_format: 'time_patient_service',
+            default_sede: '',
+            mode: 'invoke',
+          }),
+        });
+      });
+      await page.reload();
+      await page.getByRole('button', { name: T.today }).waitFor({ state: 'visible', timeout: 30_000 });
+
       let submittedPayload: Record<string, unknown> | null = null;
       await page.route(/\/reminders(?:\?.*)?$/, async (route) => {
         if (route.request().method() !== 'GET') {
@@ -978,6 +999,12 @@ test.describe('Citas', () => {
       await expect.poll(() => savedNote.evaluate((element) => (
         (element as HTMLElement).style.getPropertyValue('--reminder-color')
       ))).toBe('#5484ed');
+      await expect.poll(() => savedNote.evaluate((element) => (
+        getComputedStyle(element).backgroundColor
+      ))).toBe('rgb(84, 132, 237)');
+      await expect.poll(() => savedNote.evaluate((element) => (
+        getComputedStyle(element).opacity
+      ))).toBe('1');
 
       await savedNote.dblclick();
       await expect(page.getByRole('dialog', { name: T.calendarItems.editNoteTitle })).toBeVisible({ timeout: 5_000 });

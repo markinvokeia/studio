@@ -132,7 +132,7 @@ export function CalendarScheduleView({
                 className={cn(
                   'relative group/card overflow-hidden p-2 rounded-md cursor-pointer transition-all duration-150',
                   isReminder && !isBulkMode && 'border border-dashed border-[var(--reminder-border)] bg-[var(--reminder-bg)]',
-                  reminderIsDone && !isBulkMode && 'border-solid border-slate-200 opacity-80',
+                  reminderIsDone && !isBulkMode && 'border-solid border-slate-200',
                   isBulkMode && isReminder && 'opacity-40 cursor-default pointer-events-none',
                   isBulkMode && !isReminder && isSelected && 'shadow-sm',
                 )}
