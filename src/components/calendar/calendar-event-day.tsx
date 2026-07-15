@@ -139,7 +139,7 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
           })()}
         </div>
       </ContextMenuTrigger>
-      <ContextMenuContent>
+      <ContextMenuContent className="w-[min(18rem,calc(100vw-1rem))]">
         {/* The whole menu body (including color swatches) is supplied by the
             consumer's render prop so it can place the color picker inline or in
             a submenu depending on the calendar mode. */}
