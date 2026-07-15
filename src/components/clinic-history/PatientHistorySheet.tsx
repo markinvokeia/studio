@@ -83,17 +83,7 @@ export function PatientHistorySheet() {
     {
       accessorKey: 'pieza',
       header: t('columns.piece'),
-      cell: ({ row }) => (
-        <span className="flex items-center gap-1.5">
-          {row.original.color && (
-            <span
-              className="h-2.5 w-2.5 shrink-0 rounded-full border"
-              style={{ backgroundColor: row.original.color }}
-            />
-          )}
-          {row.original.pieza || '—'}
-        </span>
-      ),
+      cell: ({ row }) => row.original.pieza || '—',
     },
     {
       accessorKey: 'procedimiento_realizado',
@@ -115,6 +105,18 @@ export function PatientHistorySheet() {
           )}
         </span>
       ),
+    },
+    {
+      accessorKey: 'color',
+      header: t('columns.color'),
+      cell: ({ row }) => row.original.color ? (
+        <span
+          className="block h-3 w-3 rounded-full border"
+          style={{ backgroundColor: row.original.color }}
+          aria-label={`${t('columns.color')}: ${row.original.color}`}
+          title={row.original.color}
+        />
+      ) : '—',
     },
     {
       id: 'actions',
@@ -249,6 +251,7 @@ export function PatientHistorySheet() {
                 onLoadSessionAttachment={getSessionAttachment}
                 hideToolbar
                 forcedTypeFilter="clinica"
+                showSessionColor
               />
             )}
           </div>

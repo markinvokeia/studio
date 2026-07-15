@@ -6661,7 +6661,8 @@
       "date": "Date",
       "piece": "Tooth",
       "description": "Description",
-      "next": "Next"
+      "next": "Next",
+      "color": "Color"
     }
   },
   "PatientDocumentsSheet": {

@@ -6641,7 +6641,8 @@
       "date": "Fecha",
       "piece": "Pieza",
       "description": "Descripción",
-      "next": "Próxima"
+      "next": "Próxima",
+      "color": "Color"
     }
   },
   "PatientDocumentsSheet": {

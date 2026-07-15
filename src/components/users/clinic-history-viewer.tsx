@@ -1761,12 +1761,15 @@ interface TreatmentTimelineProps {
     hideToolbar?: boolean;
     /** Lock the timeline to one event type, overriding the interactive type filter. */
     forcedTypeFilter?: TimelineFilter;
+    /** Show the clinical session color at the end of each list item. */
+    showSessionColor?: boolean;
 }
 
-export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAppointments = false, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, createOdontogramTrigger = 0, onOdontogramTriggerConsumed, sessionPrefill, onSessionCreated, editSessionId, onRefreshAppointments, onAppointmentStatusUpdated, onEditAppointment, isDoctorMode = false, hideToolbar = false, forcedTypeFilter }: TreatmentTimelineProps) {
+export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAppointments = false, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, createOdontogramTrigger = 0, onOdontogramTriggerConsumed, sessionPrefill, onSessionCreated, editSessionId, onRefreshAppointments, onAppointmentStatusUpdated, onEditAppointment, isDoctorMode = false, hideToolbar = false, forcedTypeFilter, showSessionColor = false }: TreatmentTimelineProps) {
     const t = useTranslations('ClinicHistoryPage.timeline');
     const tDialog = useTranslations('ClinicHistoryPage.sessionDialog');
     const tPage = useTranslations('ClinicHistoryPage');
+    const tPatientHistory = useTranslations('PatientHistorySheet');
     const tStatus = useTranslations('AppointmentStatus');
     const tReason = useTranslations('CancellationReason');
     const { toast } = useToast();
@@ -2391,26 +2394,36 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                 <div className="w-5 h-5 rounded-full border-2 border-background shadow-sm bg-card flex items-center justify-center shrink-0 mt-0.5">
                                                     <Icon className={cn('h-3 w-3', session.tipo_sesion === 'odontograma' ? 'text-purple-500' : 'text-primary')} />
                                                 </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-1 flex-wrap">
-                                                        <Badge variant="secondary" className={cn('text-xs px-1.5 py-0 leading-relaxed', session.tipo_sesion === 'odontograma' ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400' : 'bg-primary/10 text-primary')}>
-                                                            {session.tipo_sesion === 'odontograma' ? t('sessionTypeOdontogram') : t('sessionTypeClinical')}
-                                                        </Badge>
-                                                        <span className="text-xs text-muted-foreground">{formatDate(session.fecha_sesion)}</span>
-                                                        {session.quote_doc_no && (
-                                                            <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-1.5 py-0 leading-relaxed font-mono">
-                                                                {session.quote_doc_no}
+                                                <div className="flex flex-1 min-w-0 items-start justify-between gap-3">
+                                                    <div className="min-w-0 flex-1">
+                                                        <div className="flex items-center gap-1 flex-wrap">
+                                                            <Badge variant="secondary" className={cn('text-xs px-1.5 py-0 leading-relaxed', session.tipo_sesion === 'odontograma' ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400' : 'bg-primary/10 text-primary')}>
+                                                                {session.tipo_sesion === 'odontograma' ? t('sessionTypeOdontogram') : t('sessionTypeClinical')}
                                                             </Badge>
-                                                        )}
-                                                        {session.invoice_id && (
-                                                            <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-1.5 py-0 leading-relaxed font-mono">
-                                                                <FileText className="h-2.5 w-2.5 mr-0.5" />#{session.invoice_id}
-                                                            </Badge>
+                                                            <span className="text-xs text-muted-foreground">{formatDate(session.fecha_sesion)}</span>
+                                                            {session.quote_doc_no && (
+                                                                <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-1.5 py-0 leading-relaxed font-mono">
+                                                                    {session.quote_doc_no}
+                                                                </Badge>
+                                                            )}
+                                                            {session.invoice_id && (
+                                                                <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-1.5 py-0 leading-relaxed font-mono">
+                                                                    <FileText className="h-2.5 w-2.5 mr-0.5" />#{session.invoice_id}
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-xs font-medium truncate mt-0.5">{session.procedimiento_realizado || t('noTitle')}</p>
+                                                        {(session.nombre_doctor || session.doctor_name) && (
+                                                            <p className="text-xs text-muted-foreground truncate">{session.nombre_doctor || session.doctor_name}</p>
                                                         )}
                                                     </div>
-                                                    <p className="text-xs font-medium truncate mt-0.5">{session.procedimiento_realizado || t('noTitle')}</p>
-                                                    {(session.nombre_doctor || session.doctor_name) && (
-                                                        <p className="text-xs text-muted-foreground truncate">{session.nombre_doctor || session.doctor_name}</p>
+                                                    {showSessionColor && session.color && (
+                                                        <span
+                                                            className="mt-1 block h-3 w-3 shrink-0 rounded-full border"
+                                                            style={{ backgroundColor: session.color }}
+                                                            aria-label={`${tPatientHistory('columns.color')}: ${session.color}`}
+                                                            title={session.color}
+                                                        />
                                                     )}
                                                 </div>
                                             </div>
