@@ -37,6 +37,7 @@ const T = {
     color: 'Color',
     save: 'Guardar',
   },
+  editAppointment: 'Editar cita',
   panelTabs: {
     info: 'Información',
     patient: 'Paciente',
@@ -583,6 +584,230 @@ test.describe('Citas', () => {
       await expect(page.getByText(T.createDialog.title)).toBeVisible();
       await page.getByRole('button', { name: T.createDialog.cancel }).click();
       await expect(dialog).not.toBeVisible({ timeout: 5_000 });
+    });
+
+    test('mobile day muestra guía horaria, cancela long press al deslizar y permite elegir fecha', async ({ page }, testInfo) => {
+      test.skip(testInfo.project.name !== 'mobile-chrome', 'El comportamiento aplica únicamente al tamaño mobile');
+
+      await page.route(/\/calendar_settings\/search(?:\?.*)?$/, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            default_view: 'day',
+            grouped_by: 'none',
+            check_availability: false,
+            filter_doctors_by_service: false,
+            block_unavailable: false,
+            hour_height: 96,
+            slot_duration: 15,
+            event_label_format: 'time_patient_service',
+            default_sede: '',
+            mode: 'custom',
+          }),
+        });
+      });
+
+      await page.reload();
+      await page.getByRole('button', { name: T.today }).waitFor({ state: 'visible', timeout: 30_000 });
+
+      const rail = page.locator('.column-hour-rail').first();
+      await expect(rail).toBeVisible();
+      await expect(rail.locator('.column-hour-rail-slot')).toHaveCount(24);
+      await expect(rail.locator('.column-hour-rail-label')).toHaveText(
+        Array.from({ length: 24 }, (_, hour) => String(hour)),
+      );
+      await expect(page.locator('.calendar-body')).toHaveCSS('--cal-slots-per-hour', '4');
+      await expect(rail.locator('.column-hour-rail-slot').first()).toHaveCSS(
+        'background-image',
+        /repeating-linear-gradient/,
+      );
+
+      const timeGrid = page.getByTestId('calendar-mobile-time-grid');
+      await timeGrid.evaluate((element) => { element.scrollTop = 0; });
+      const slide = page.getByTestId('calendar-mobile-slide').first();
+      const box = await slide.boundingBox();
+      expect(box).not.toBeNull();
+      const clientX = (box?.x ?? 0) + 60;
+      const clientY = (box?.y ?? 0) + 40;
+
+      await slide.dispatchEvent('pointerdown', {
+        pointerType: 'touch',
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+        clientX,
+        clientY,
+      });
+      await slide.dispatchEvent('pointermove', {
+        pointerType: 'touch',
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+        clientX: clientX + 50,
+        clientY,
+      });
+      await page.waitForTimeout(750);
+      await expect(page.getByRole('menuitem', { name: T.calendarItems.createAppointment })).toHaveCount(0);
+      await slide.dispatchEvent('pointerup', {
+        pointerType: 'touch',
+        isPrimary: true,
+        button: 0,
+        buttons: 0,
+        clientX: clientX + 50,
+        clientY,
+      });
+
+      await slide.dispatchEvent('pointerdown', {
+        pointerType: 'touch',
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+        clientX,
+        clientY,
+      });
+      await page.waitForTimeout(750);
+      await expect(page.getByRole('menuitem', { name: T.calendarItems.createAppointment })).toBeVisible();
+      await expect(page.getByRole('menuitem', { name: T.calendarItems.createReminder })).toBeVisible();
+      await expect(page.getByRole('menuitem', { name: T.calendarItems.createNote })).toBeVisible();
+      await page.keyboard.press('Escape');
+
+      const datePicker = page.getByTestId('calendar-header-date-picker').last();
+      const previousTitle = (await datePicker.locator('span').first().textContent())?.trim();
+      await datePicker.click();
+      const datePopover = page.locator('[data-radix-popper-content-wrapper]').last();
+      await expect(datePopover).toBeVisible();
+      await datePopover.locator('button:has(svg.lucide-chevron-right)').click();
+      await datePopover.locator('button:not(.day-outside)').filter({ hasText: /^1$/ }).first().click();
+      await expect(datePopover).not.toBeVisible();
+      await expect(datePicker.locator('span').first()).not.toHaveText(previousTitle ?? '');
+    });
+
+    test('mobile long press en horario bloqueado deshabilita solo Crear cita', async ({ page }, testInfo) => {
+      test.skip(testInfo.project.name !== 'mobile-chrome', 'El comportamiento aplica únicamente al tamaño mobile');
+
+      await page.route(/\/calendar_settings\/search(?:\?.*)?$/, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            default_view: 'day',
+            grouped_by: 'none',
+            check_availability: false,
+            filter_doctors_by_service: false,
+            block_unavailable: true,
+            hour_height: 96,
+            slot_duration: 15,
+            event_label_format: 'time_patient_service',
+            default_sede: '',
+            mode: 'custom',
+          }),
+        });
+      });
+      await page.route(/\/schedules(?:\?.*)?$/, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(Array.from({ length: 7 }, (_, index) => ({
+            id: `schedule-${index + 1}`,
+            day_of_week: index + 1,
+            start_time: '09:00:00',
+            end_time: '17:00:00',
+          }))),
+        });
+      });
+      await page.route(/\/exceptions(?:\?.*)?$/, async (route) => {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+      });
+
+      await page.reload();
+      await page.getByRole('button', { name: T.today }).waitFor({ state: 'visible', timeout: 30_000 });
+      await expect(page.locator('.calendar-blocked').first()).toBeAttached();
+
+      const timeGrid = page.getByTestId('calendar-mobile-time-grid');
+      await timeGrid.evaluate((element) => { element.scrollTop = 0; });
+      const slide = page.getByTestId('calendar-mobile-slide').first();
+      const box = await slide.boundingBox();
+      expect(box).not.toBeNull();
+
+      await slide.dispatchEvent('pointerdown', {
+        pointerType: 'touch',
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+        clientX: (box?.x ?? 0) + 60,
+        clientY: (box?.y ?? 0) + 40,
+      });
+      await page.waitForTimeout(750);
+
+      await expect(page.getByRole('menuitem', { name: T.calendarItems.createAppointment }))
+        .toHaveAttribute('data-disabled', '');
+      await expect(page.getByRole('menuitem', { name: T.calendarItems.createReminder }))
+        .not.toHaveAttribute('data-disabled');
+      await expect(page.getByRole('menuitem', { name: T.calendarItems.createNote }))
+        .not.toHaveAttribute('data-disabled');
+    });
+
+    test('mobile long press sobre una cita abre exclusivamente su menú', async ({ page }, testInfo) => {
+      test.skip(testInfo.project.name !== 'mobile-chrome', 'El comportamiento aplica únicamente al tamaño mobile');
+
+      await page.route(/\/calendar_settings\/search(?:\?.*)?$/, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            default_view: 'day',
+            grouped_by: 'none',
+            check_availability: false,
+            filter_doctors_by_service: false,
+            block_unavailable: false,
+            hour_height: 96,
+            slot_duration: 15,
+            event_label_format: 'time_patient_service',
+            default_sede: '',
+            mode: 'invoke',
+          }),
+        });
+      });
+      await page.route(/\/users_appointments(?:\?.*)?$/, async (route) => {
+        const start = new URL(route.request().url()).searchParams.get('startingDateAndTime');
+        const day = start?.slice(0, 10) ?? '2026-01-01';
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify([{
+            id: 'mobile-context-menu-appointment',
+            patient_id: 'mobile-patient',
+            patient_name: 'Paciente Mobile',
+            doctor_id: '',
+            summary: 'Control',
+            start_time: `${day}T10:00:00`,
+            end_time: `${day}T10:30:00`,
+            status: 'scheduled',
+            calendar_source_id: '',
+          }]),
+        });
+      });
+
+      await page.reload();
+      await page.getByRole('button', { name: T.today }).waitFor({ state: 'visible', timeout: 30_000 });
+      const appointment = page.getByTestId('calendar-day-event').first();
+      await expect(appointment).toBeVisible();
+      const box = await appointment.boundingBox();
+      expect(box).not.toBeNull();
+
+      await appointment.dispatchEvent('pointerdown', {
+        pointerType: 'touch',
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+        clientX: (box?.x ?? 0) + 10,
+        clientY: (box?.y ?? 0) + 10,
+      });
+      await page.waitForTimeout(750);
+
+      await expect(page.getByRole('menuitem', { name: T.editAppointment })).toBeVisible();
+      await expect(page.getByRole('menuitem', { name: T.calendarItems.createAppointment })).toHaveCount(0);
     });
   });
 

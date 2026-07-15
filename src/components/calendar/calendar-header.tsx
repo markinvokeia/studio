@@ -47,27 +47,32 @@ interface CalendarHeaderProps {
 
 /** Clickable header date that opens a date picker to jump to any day. Selecting a
  *  day moves the calendar to that day (and thus its week/month, per the view). */
-function HeaderDatePicker({
+export function HeaderDatePicker({
   headerTitle,
-  viewLabel,
+  view,
   currentDate,
   onDateSelect,
   className,
 }: {
   headerTitle: string;
-  viewLabel: string;
+  view: CalendarView;
   currentDate: Date;
   onDateSelect: (date: Date) => void;
   className?: string;
 }) {
   const [open, setOpen] = React.useState(false);
+  const t = useTranslations('Calendar');
   const locale = useLocale();
   const dateLocale = locale === 'es' ? es : enUS;
+  const viewKey = view.includes('-') ? view.replace('-', '') : view;
+  const viewLabel = t('showingView', { view: t(`views.${viewKey}`) });
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
           type="button"
+          data-testid="calendar-header-date-picker"
           className={`flex flex-col items-start whitespace-nowrap rounded-md px-1.5 py-0.5 leading-tight transition-colors hover:bg-muted ${className ?? ''}`}
         >
           <span className="font-semibold">{headerTitle}</span>
@@ -110,8 +115,6 @@ export function CalendarHeader({
   bulkModeContent,
 }: CalendarHeaderProps) {
   const t = useTranslations('Calendar');
-  const viewKey = view.includes('-') ? view.replace('-', '') : view;
-  const viewLabel = t('showingView', { view: t(`views.${viewKey}`) });
 
   // Mobile / tablet: compact header
   if (breakpoint === 'mobile' || breakpoint === 'tablet') {
@@ -193,7 +196,7 @@ export function CalendarHeader({
             </Button>
           </div>
         )}
-        <HeaderDatePicker headerTitle={headerTitle} viewLabel={viewLabel} currentDate={currentDate} onDateSelect={onDateSelect} className="text-sm" />
+        <HeaderDatePicker headerTitle={headerTitle} view={view} currentDate={currentDate} onDateSelect={onDateSelect} className="text-sm" />
       </div>
 
       {/* Action cluster: Create / View / Zoom + gaps / bulk + calendars. flex-1 so it

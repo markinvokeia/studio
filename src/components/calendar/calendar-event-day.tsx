@@ -85,6 +85,7 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
             width: `${(1 / (event.totalColumns || 1)) * 100}%`,
             paddingRight: '4px',
           }}
+          onPointerDown={(e) => e.stopPropagation()}
           onContextMenu={(e) => e.stopPropagation()}
           onClick={(e) => {
             if (e.button !== 0) return;

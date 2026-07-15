@@ -13,7 +13,7 @@ import { CalendarZoomControl } from './calendar-zoom-control';
 import { useCalendarBreakpoint } from '@/hooks/use-calendar-breakpoint';
 import { useCalendarNavigation } from '@/hooks/use-calendar-navigation';
 
-import { CalendarHeader } from './calendar-header';
+import { CalendarHeader, HeaderDatePicker } from './calendar-header';
 import { CalendarDayView } from './calendar-day-view';
 import { CalendarDayViewGrouped } from './calendar-day-view-grouped';
 import { CalendarDayViewMobile } from './calendar-day-view-mobile';
@@ -340,7 +340,13 @@ const Calendar: React.FC<CalendarProps> = ({
       {/* Mobile: date title bar */}
       {isMobile && (
         <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-card">
-          <h3 className="text-sm font-semibold text-foreground">{headerTitle}</h3>
+          <HeaderDatePicker
+            headerTitle={headerTitle}
+            view={view}
+            currentDate={currentDate}
+            onDateSelect={setCurrentDate}
+            className="min-w-0 text-sm text-foreground"
+          />
           {effectiveView === 'month' && (
             <button
               type="button"
