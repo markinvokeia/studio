@@ -3802,8 +3802,9 @@ export default function AppointmentsPage() {
                                         </>
                                     )}
 
-                                    {/* Grouping section (compact header only) */}
-                                    {breakpoint !== 'desktop' && (
+                                    {/* Grouping section (compact header only). Custom mobile
+                                        is always grouped by consultorio, so it has no choice to expose. */}
+                                    {breakpoint !== 'desktop' && !(isCustomMode && isMobile) && (
                                         <div className="space-y-3">
                                             <h4 className="text-sm font-semibold">{t('grouping.label')}</h4>
                                             <div className="space-y-1">

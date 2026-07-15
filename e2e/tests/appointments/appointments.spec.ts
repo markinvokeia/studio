@@ -533,6 +533,38 @@ test.describe('Citas', () => {
       await expect(page.getByText(T.grouping.calendar).first()).toBeVisible();
       await page.keyboard.press('Escape');
     });
+
+    test('en modo custom móvil no muestra el submenú Agrupar', async ({ page }, testInfo) => {
+      test.skip(testInfo.project.name !== 'mobile-chrome', 'El comportamiento aplica únicamente al tamaño mobile');
+
+      await page.route(/\/calendar_settings\/search(?:\?.*)?$/, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            default_view: 'day',
+            grouped_by: 'none',
+            check_availability: false,
+            filter_doctors_by_service: false,
+            block_unavailable: false,
+            hour_height: 96,
+            slot_duration: 15,
+            event_label_format: 'time_patient_service',
+            default_sede: '',
+            mode: 'custom',
+          }),
+        });
+      });
+
+      await page.reload();
+      await page.getByRole('button', { name: T.today }).waitFor({ state: 'visible', timeout: 30_000 });
+
+      const filterButton = page.locator('svg.lucide-sliders-horizontal').locator('..').first();
+      await expect(filterButton).toBeVisible();
+      await filterButton.click({ force: true });
+
+      await expect(page.locator('h4').filter({ hasText: new RegExp(`^${T.grouping.label}$`, 'i') })).toHaveCount(0);
+    });
   });
 
   // ── Creación desde slot vacío del calendario ──────────────────────────
