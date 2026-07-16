@@ -27,7 +27,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT\n  TO_CHAR(i.created_at, 'YYYY-MM-DD') AS fecha,\n  i.doctor_id,\n  COALESCE(doc.name, 'Sin médico') AS doctor_name,\n  COALESCE(pat.name, '')          AS patient_name,\n  COALESCE(sc.name, 'Servicio')   AS service_name,\n  i.doc_no                        AS invoice_doc_no,\n  i.currency,\n  ii.total                        AS importe\nFROM invoice_items ii\nJOIN invoices i        ON i.id = ii.invoice_id\nLEFT JOIN users pat    ON pat.id = i.user_id\nLEFT JOIN users doc    ON doc.id = i.doctor_id\nLEFT JOIN service_catalog sc ON sc.id = ii.service_id\nWHERE i.is_sales = true\n  AND i.type   = 'invoice'\n  AND i.status = 'booked'\n  AND i.created_at::date BETWEEN $1::date AND $2::date\n  AND ($3::varchar IS NULL OR i.currency = $3::varchar)\n  AND ($4::uuid[] IS NULL OR i.doctor_id = ANY($4::uuid[]))\n  AND ($5::varchar IS NULL OR $5::varchar IN ('todos', 'producido'))\nORDER BY fecha ASC, doctor_name ASC, i.doc_no ASC",
+        "query": "SELECT\n  TO_CHAR(i.created_at, 'YYYY-MM-DD') AS fecha,\n  i.doctor_id,\n  COALESCE(doc.name, 'Sin médico') AS doctor_name,\n  COALESCE(pat.name, '')          AS patient_name,\n  COALESCE(sc.name, 'Servicio')   AS service_name,\n  i.doc_no                        AS invoice_doc_no,\n  i.currency,\n  ii.total                        AS importe\nFROM invoice_items ii\nJOIN invoices i        ON i.id = ii.invoice_id\nLEFT JOIN users pat    ON pat.id = i.user_id\nLEFT JOIN users doc    ON doc.id = i.doctor_id\nLEFT JOIN service_catalog sc ON sc.id = ii.service_id\nWHERE i.is_sales = true\n  AND i.type   = 'invoice'\n  AND i.status = 'booked'\n  AND i.created_at::date BETWEEN $1::date AND $2::date\n  AND ($3::varchar IS NULL OR i.currency = $3::varchar)\n  AND ($4::uuid[] IS NULL OR i.doctor_id = ANY($4::uuid[]))\nORDER BY fecha ASC, doctor_name ASC, i.doc_no ASC",
         "options": {
           "queryReplacement": "={{ [$('query').first().json?.date_from, $('query').first().json?.date_to, $('query').first().json?.currency || null, $('query').first().json?.doctor_ids || null, $('query').first().json?.doc_type || null] }}"
         }
@@ -52,7 +52,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT\n  TO_CHAR(p.created_at, 'YYYY-MM-DD') AS fecha,\n  p.doctor_id,\n  COALESCE(doc.name, 'Sin médico')       AS doctor_name,\n  COALESCE(pat.name, '')                 AS patient_name,\n  inv.doc_no                             AS invoice_doc_no,\n  COALESCE(pm.name, p.method, 'N/D')     AS payment_method,\n  p.currency,\n  p.amount                               AS importe\nFROM payments p\nLEFT JOIN users pat            ON pat.id = p.user_id\nLEFT JOIN users doc            ON doc.id = p.doctor_id\nLEFT JOIN invoices inv         ON inv.id = p.invoice_id\nLEFT JOIN payment_methods pm   ON pm.id = p.payment_method_id\nWHERE p.is_sales = true\n  AND p.created_at::date BETWEEN $1::date AND $2::date\n  AND ($3::varchar IS NULL OR p.currency = $3::varchar)\n  AND ($4::uuid[] IS NULL OR p.doctor_id = ANY($4::uuid[]))\n  AND ($5::varchar IS NULL OR $5::varchar IN ('todos', 'cobrado'))\nORDER BY fecha ASC, doctor_name ASC",
+        "query": "SELECT\n  TO_CHAR(p.created_at, 'YYYY-MM-DD') AS fecha,\n  p.doctor_id,\n  COALESCE(doc.name, 'Sin médico')       AS doctor_name,\n  COALESCE(pat.name, '')                 AS patient_name,\n  inv.doc_no                             AS invoice_doc_no,\n  COALESCE(pm.name, p.method, 'N/D')     AS payment_method,\n  p.currency,\n  p.amount                               AS importe\nFROM payments p\nLEFT JOIN users pat            ON pat.id = p.user_id\nLEFT JOIN users doc            ON doc.id = p.doctor_id\nLEFT JOIN invoices inv         ON inv.id = p.invoice_id\nLEFT JOIN payment_methods pm   ON pm.id = p.payment_method_id\nWHERE p.is_sales = true\n  AND p.created_at::date BETWEEN $1::date AND $2::date\n  AND ($3::varchar IS NULL OR p.currency = $3::varchar)\n  AND ($4::uuid[] IS NULL OR p.doctor_id = ANY($4::uuid[]))\nORDER BY fecha ASC, doctor_name ASC",
         "options": {
           "queryReplacement": "={{ [$('query').first().json?.date_from, $('query').first().json?.date_to, $('query').first().json?.currency || null, $('query').first().json?.doctor_ids || null, $('query').first().json?.doc_type || null] }}"
         }
@@ -76,32 +76,7 @@
     },
     {
       "parameters": {
-        "operation": "executeQuery",
-        "query": "SELECT\n  i.doctor_id,\n  COALESCE(doc.name, 'Sin médico')            AS doctor_name,\n  i.currency,\n  COALESCE(SUM(i.total), 0)                   AS total_facturado,\n  COALESCE(SUM(i.paid_amount), 0)             AS total_cobrado,\n  COALESCE(SUM(i.total - i.paid_amount), 0)   AS saldo\nFROM invoices i\nLEFT JOIN users doc ON doc.id = i.doctor_id\nWHERE i.is_sales = true\n  AND i.type   = 'invoice'\n  AND i.status = 'booked'\n  AND i.created_at::date BETWEEN $1::date AND $2::date\n  AND ($3::varchar IS NULL OR i.currency = $3::varchar)\n  AND ($4::uuid[] IS NULL OR i.doctor_id = ANY($4::uuid[]))\n  AND ($5::varchar IS NULL OR $5::varchar IN ('todos', 'pendiente'))\nGROUP BY i.doctor_id, doc.name, i.currency\nORDER BY doctor_name ASC, i.currency ASC",
-        "options": {
-          "queryReplacement": "={{ [$('query').first().json?.date_from, $('query').first().json?.date_to, $('query').first().json?.currency || null, $('query').first().json?.doctor_ids || null, $('query').first().json?.doc_type || null] }}"
-        }
-      },
-      "id": "134edb5c-3529-4594-a073-ec63d9cd5f53",
-      "name": "Query Balance Pendiente",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.5,
-      "position": [
-        1504,
-        1216
-      ],
-      "alwaysOutputData": true,
-      "credentials": {
-        "postgres": {
-          "id": "6b7Sjdnppbfve8ka",
-          "name": "Postgres account"
-        }
-      },
-      "onError": "continueErrorOutput"
-    },
-    {
-      "parameters": {
-        "jsCode": "const producido = $('Query Balance Producido').all()\n  .map(i => i.json)\n  .filter(r => r && r.fecha)\n  .map(r => ({\n    fecha: r.fecha,\n    doctor_id: r.doctor_id || null,\n    doctor_name: r.doctor_name,\n    patient_name: r.patient_name || '',\n    service_name: r.service_name,\n    invoice_doc_no: r.invoice_doc_no,\n    currency: r.currency,\n    importe: Number(r.importe || 0),\n  }));\n\nconst cobrado = $('Query Balance Cobrado').all()\n  .map(i => i.json)\n  .filter(r => r && r.fecha)\n  .map(r => ({\n    fecha: r.fecha,\n    doctor_id: r.doctor_id || null,\n    doctor_name: r.doctor_name,\n    patient_name: r.patient_name || '',\n    invoice_doc_no: r.invoice_doc_no || '',\n    payment_method: r.payment_method || 'N/D',\n    currency: r.currency,\n    importe: Number(r.importe || 0),\n  }));\n\nconst pendiente = $('Query Balance Pendiente').all()\n  .map(i => i.json)\n  .filter(r => r && r.currency)\n  .map(r => ({\n    doctor_id: r.doctor_id || null,\n    doctor_name: r.doctor_name,\n    currency: r.currency,\n    total_facturado: Number(r.total_facturado || 0),\n    total_cobrado: Number(r.total_cobrado || 0),\n    saldo: Number(r.saldo || 0),\n  }));\n\nconst total_producido = producido.reduce((s, r) => s + r.importe, 0);\nconst total_cobrado   = cobrado.reduce((s, r) => s + r.importe, 0);\nconst total_pendiente = pendiente.reduce((s, r) => s + r.saldo, 0);\nconst num_doctores = new Set(pendiente.map(r => r.doctor_id).filter(Boolean)).size;\n\nreturn [{ json: {\n  summary: { total_producido, total_cobrado, total_pendiente, num_doctores },\n  producido,\n  cobrado,\n  pendiente\n} }];"
+        "jsCode": "const producido = $('Query Balance Producido').all()\n  .map(i => i.json)\n  .filter(r => r && r.fecha)\n  .map(r => ({\n    fecha: r.fecha,\n    doctor_id: r.doctor_id || null,\n    doctor_name: r.doctor_name,\n    patient_name: r.patient_name || '',\n    service_name: r.service_name,\n    invoice_doc_no: r.invoice_doc_no,\n    currency: r.currency,\n    importe: Number(r.importe || 0),\n  }));\n\nconst cobrado = $('Query Balance Cobrado').all()\n  .map(i => i.json)\n  .filter(r => r && r.fecha)\n  .map(r => ({\n    fecha: r.fecha,\n    doctor_id: r.doctor_id || null,\n    doctor_name: r.doctor_name,\n    patient_name: r.patient_name || '',\n    invoice_doc_no: r.invoice_doc_no || '',\n    payment_method: r.payment_method || 'N/D',\n    currency: r.currency,\n    importe: Number(r.importe || 0),\n  }));\n\n// Pendiente = Producido - Cobrado del mismo período, agrupado por médico + moneda,\n// para que el saldo siempre cuadre con los totales mostrados en pantalla\nconst groups = new Map();\nconst ensure = (doctorId, doctorName, currency) => {\n  const k = `${doctorId || 'null'}|${doctorName}|${currency}`;\n  if (!groups.has(k)) {\n    groups.set(k, { doctor_id: doctorId, doctor_name: doctorName, currency, total_facturado: 0, total_cobrado: 0 });\n  }\n  return groups.get(k);\n};\nfor (const r of producido) {\n  ensure(r.doctor_id, r.doctor_name, r.currency).total_facturado += r.importe;\n}\nfor (const r of cobrado) {\n  ensure(r.doctor_id, r.doctor_name, r.currency).total_cobrado += r.importe;\n}\nconst pendiente = [...groups.values()]\n  .map(g => ({ ...g, saldo: g.total_facturado - g.total_cobrado }))\n  .sort((a, b) => a.doctor_name.localeCompare(b.doctor_name) || a.currency.localeCompare(b.currency));\n\nconst total_producido = producido.reduce((s, r) => s + r.importe, 0);\nconst total_cobrado   = cobrado.reduce((s, r) => s + r.importe, 0);\nconst total_pendiente = total_producido - total_cobrado;\nconst num_doctores = new Set(pendiente.map(r => r.doctor_id).filter(Boolean)).size;\n\nreturn [{ json: {\n  summary: { total_producido, total_cobrado, total_pendiente, num_doctores },\n  producido,\n  cobrado,\n  pendiente\n} }];"
       },
       "id": "b768c98e-c9cc-4037-8b43-eace8991e018",
       "name": "Build Balance Response",
@@ -203,7 +178,7 @@
     },
     {
       "parameters": {
-        "numberInputs": 3
+        "numberInputs": 2
       },
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
@@ -317,24 +292,6 @@
         ]
       ]
     },
-    "Query Balance Pendiente": {
-      "main": [
-        [
-          {
-            "node": "Merge",
-            "type": "main",
-            "index": 2
-          }
-        ],
-        [
-          {
-            "node": "Error",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Build Balance Response": {
       "main": [
         [
@@ -363,11 +320,6 @@
           },
           {
             "node": "Query Balance Cobrado",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Query Balance Pendiente",
             "type": "main",
             "index": 0
           }

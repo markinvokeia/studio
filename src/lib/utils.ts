@@ -168,7 +168,7 @@ export function fmtMoney(amount: number, currency: string): string {
 
 export function fmtMultiCurrency(amounts: Record<string, number>): string {
   const entries = Object.entries(amounts)
-    .filter(([, v]) => v > 0)
+    .filter(([, v]) => v !== 0)
     .sort(([a], [b]) => a.localeCompare(b));
   if (entries.length === 0) return '—';
   return entries.map(([c, v]) => `${_moneyFmt.format(v)} (${c})`).join(' / ');

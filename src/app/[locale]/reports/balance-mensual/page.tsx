@@ -68,6 +68,23 @@ function totalByCurrency(rows: DayRow[]): Record<string, number> {
   }, {});
 }
 
+// Saldo pendiente puede ser negativo (crédito a favor si se cobró de más), así que
+// cada moneda se colorea según su propio signo en vez de un único color por tarjeta
+function renderPendienteValue(amounts: Record<string, number>): ReactNode {
+  const entries = Object.entries(amounts)
+    .filter(([, v]) => v !== 0)
+    .sort(([a], [b]) => a.localeCompare(b));
+  if (entries.length === 0) return '—';
+  return entries.map(([currency, v], i) => (
+    <span key={currency}>
+      {i > 0 && ' / '}
+      <span className={v < 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
+        {fmt(v)} ({currency})
+      </span>
+    </span>
+  ));
+}
+
 export default function BalanceMensualPage() {
   const t = useTranslations('ReportBalanceMensualPage');
 
@@ -147,7 +164,14 @@ export default function BalanceMensualPage() {
     {
       accessorKey: 'saldo',
       header: t('col_saldo'),
-      cell: ({ row }) => <span className="tabular-nums text-amber-600">{fmt(Number(row.original.saldo))}</span>,
+      cell: ({ row }) => {
+        const saldo = Number(row.original.saldo);
+        return (
+          <span className={`tabular-nums ${saldo < 0 ? 'text-emerald-600' : 'text-amber-600'}`}>
+            {fmt(saldo)}
+          </span>
+        );
+      },
     },
   ];
 
@@ -381,7 +405,7 @@ export default function BalanceMensualPage() {
           <div className="flex flex-wrap gap-3 print:grid print:grid-cols-3 print:gap-3">
             {showProducido && <ReportKPICard title={t('kpi_producido')} value={fmtMultiCurrency(producidoByCurrency)} />}
             {showCobrado && <ReportKPICard title={t('kpi_cobrado')} value={fmtMultiCurrency(cobradoByCurrency)} variant="success" />}
-            {showPendiente && <ReportKPICard title={t('kpi_pendiente')} value={fmtMultiCurrency(pendienteByCurrency)} variant="warning" />}
+            {showPendiente && <ReportKPICard title={t('kpi_pendiente')} value={renderPendienteValue(pendienteByCurrency)} />}
           </div>
 
           {/* Combined view (all doctors mixed together) — used on screen always,
