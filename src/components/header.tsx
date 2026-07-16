@@ -7,7 +7,7 @@ import { NotificationsBell } from '@/components/notifications/notifications-bell
 import { NotificationsPanel } from '@/components/notifications/notifications-panel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CASHIER_PERMISSIONS, GLOBAL_PERMISSIONS, SALES_PERMISSIONS, STICKY_NOTES_PERMISSIONS, TV_DISPLAY_PERMISSIONS } from '@/constants/permissions';
+import { CASHIER_PERMISSIONS, GLOBAL_PERMISSIONS, PATIENTS_PERMISSIONS, SALES_PERMISSIONS, STICKY_NOTES_PERMISSIONS, TV_DISPLAY_PERMISSIONS } from '@/constants/permissions';
 import { useAlertNotifications } from '@/context/alert-notifications-context';
 import { useNotifications } from '@/context/notifications-context';
 import { useAuth } from '@/context/AuthContext';
@@ -446,9 +446,11 @@ export function Header() {
                             <ChevronRight className="h-4 w-4" />
                         </Button>
 
-                        <PanelItem label="Paciente">
-                            <QuickPatientSearch />
-                        </PanelItem>
+                        {hasPermission(PATIENTS_PERMISSIONS.VIEW_LIST) && (
+                            <PanelItem label="Paciente">
+                                <QuickPatientSearch />
+                            </PanelItem>
+                        )}
 
                         {hasPermission(CASHIER_PERMISSIONS.VIEW_WIDGET) && (
                             <PanelItem label="Caja">
@@ -587,7 +589,7 @@ export function Header() {
                         'bg-[hsl(var(--floating-header-bg)/0.95)] backdrop-blur-md border-b border-border shadow-md w-full',
                         'animate-in fade-in slide-in-from-top-2 duration-200',
                     )}>
-                        <QuickPatientSearch />
+                        {hasPermission(PATIENTS_PERMISSIONS.VIEW_LIST) && <QuickPatientSearch />}
                         <OpenCashSessionWidget />
                         {hasPermission(TV_DISPLAY_PERMISSIONS.VIEW_MENU) && <TVDisplayWidget />}
 
