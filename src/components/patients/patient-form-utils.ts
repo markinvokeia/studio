@@ -153,17 +153,36 @@ function mapSearchUser(apiUser: any): User {
     is_dependent: apiUser.is_dependent ?? false,
     responsible_contact_id: apiUser.responsible_contact_id || undefined,
     responsible_contact_name: apiUser.responsible_contact_name || undefined,
-    doctor_id: apiUser.doctor_id ? String(apiUser.doctor_id) : null,
+    doctor_id: apiUser.doctor_id !== undefined && apiUser.doctor_id !== null && apiUser.doctor_id !== ''
+      ? String(apiUser.doctor_id)
+      : null,
     doctor_name: apiUser.doctor_name || undefined,
     sex: apiUser.sex ?? null,
   };
 }
 
+function extractSearchUsers(data: any): any[] {
+  if (Array.isArray(data)) {
+    return data.flatMap((item) => {
+      const nested = item?.json?.data ?? item?.data;
+      if (Array.isArray(nested)) return nested;
+      if (nested && typeof nested === 'object') return [nested];
+      if (item?.json && typeof item.json === 'object') return [item.json];
+      return item && typeof item === 'object' ? [item] : [];
+    });
+  }
+
+  const nested = data?.data ?? data?.users ?? data?.result;
+  if (Array.isArray(nested)) return nested;
+  if (nested && typeof nested === 'object') return [nested];
+  return data && typeof data === 'object' ? [data] : [];
+}
+
 /** Fetches a single patient's full record by id (used to prefill the form). */
 export async function fetchPatientById(userId: string): Promise<User | null> {
   try {
-    const data = await api.get(API_ROUTES.FILTER_USERS, { search: userId });
-    const usersData = (Array.isArray(data) && data.length > 0) ? (data[0].data ?? data[0].json?.data ?? []) : (data?.data ?? []);
+    const data = await api.get(API_ROUTES.USERS, { search: userId, filter_type: 'PACIENTE' });
+    const usersData = extractSearchUsers(data);
     const match = usersData.find((u: any) => String(u.user_id ?? u.id) === String(userId)) ?? usersData[0];
     return match ? mapSearchUser(match) : null;
   } catch (error) {

@@ -160,6 +160,10 @@ function mapApiUser(apiUser: any): User {
     is_dependent: apiUser.is_dependent ?? apiUser.is_dependant ?? false,
     responsible_contact_id: apiUser.responsible_contact_id ? String(apiUser.responsible_contact_id) : undefined,
     responsible_contact_name: apiUser.responsible_contact_name || undefined,
+    doctor_id: apiUser.doctor_id !== undefined && apiUser.doctor_id !== null && apiUser.doctor_id !== ''
+      ? String(apiUser.doctor_id)
+      : null,
+    doctor_name: apiUser.doctor_name || undefined,
   };
 }
 

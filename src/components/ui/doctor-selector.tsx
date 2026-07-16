@@ -7,7 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { API_ROUTES } from '@/constants/routes';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
-import { ensureDoctorOption, type DoctorOption } from '@/services/doctors';
+import { ensureDoctorOption, normalizeDoctorOptions, type DoctorOption } from '@/services/doctors';
 import { Check, ChevronsUpDown, Loader2 } from 'lucide-react';
 
 interface DoctorSelectorSingleProps {
@@ -59,17 +59,22 @@ export function DoctorSelector(props: DoctorSelectorProps) {
     const [isLoading, setIsLoading] = React.useState(false);
 
     React.useEffect(() => {
+        if (props.multiple || !value) return;
+        let active = true;
+        ensureDoctorOption([], value, selectedDoctorName).then(([doctor]) => {
+            if (active && doctor) setSelectedDoctorCache(doctor);
+        });
+        return () => { active = false; };
+    }, [props.multiple, selectedDoctorName, value]);
+
+    React.useEffect(() => {
         const handler = setTimeout(async () => {
             setIsLoading(true);
             try {
                 const params: Record<string, string> = {};
                 if (searchQuery.trim()) params.search = searchQuery.trim();
                 const data = await api.get(API_ROUTES.USERS_DOCTORS, params);
-                const raw = Array.isArray(data) ? data : (data?.doctors || data?.data || data?.result || []);
-                let nextDoctors: DoctorOption[] = raw.map((doc: any) => ({
-                    id: String(doc.id),
-                    name: doc.name ?? doc.nombre ?? '',
-                }));
+                let nextDoctors = normalizeDoctorOptions(data);
                 if (props.multiple) {
                     for (const doctor of props.selectedDoctors ?? []) {
                         nextDoctors = await ensureDoctorOption(nextDoctors, doctor.id, doctor.name);
@@ -86,7 +91,7 @@ export function DoctorSelector(props: DoctorSelectorProps) {
         }, 300);
         return () => clearTimeout(handler);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchQuery]);
+    }, [searchQuery, value, selectedDoctorName]);
 
     const selectedDoctor = React.useMemo(() => {
         const fromResults = doctors.find((d) => d.id === value);
