@@ -150,13 +150,8 @@ function fmtNumber2(amount: number): string {
   return (amount || 0).toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function fmtAmount(amount: number, currency: string) {
-  if (!amount) return '—';
-  return `${currencySymbol(currency)}${fmtNumber2(amount)}`;
-}
-
-/** Like `fmtAmount` but renders 0 as "<symbol>0,00" instead of a dash — used for the
- *  Debe/Haber columns, which should always show a number (0 when the side doesn't apply). */
+/** Always renders a number — including "<symbol>0,00" for a zero amount — so balances and
+ *  Debe/Haber cells never show a dash. */
 function fmtAmountZero(amount: number, currency: string) {
   return `${currencySymbol(currency)}${fmtNumber2(amount)}`;
 }
@@ -422,12 +417,16 @@ async function fetchInvoicePaymentsList(invoiceId: string): Promise<LiteAllocati
 function RowAllocationsPopover({
   row,
   invoiceDocNoById,
+  serviceLabelByDocNo,
   onHighlight,
 }: {
   row: LedgerRow;
   /** `invoiceId -> doc_no` lookup, needed to label the payment's own directly-linked invoice
    *  (it isn't returned by `PAYMENT_ALLOCATIONS`, see below). */
   invoiceDocNoById: Map<string, string>;
+  /** `doc_no -> service name(s)` lookup — on a payment row, the popover lists what was paid
+   *  for (service name), not the invoice's document number. */
+  serviceLabelByDocNo: Map<string, string>;
   onHighlight: (docNos: Set<string> | null) => void;
 }) {
   const t = useTranslations('PatientLedger');
@@ -500,7 +499,9 @@ function RowAllocationsPopover({
           <div className="space-y-1">
             {items.map((a) => (
               <div key={a.key} className="flex items-center justify-between gap-2 text-xs">
-                <span className="truncate">#{a.docNo || '—'}</span>
+                <span className="truncate">
+                  {row.kind === 'payment' ? (a.docNo && serviceLabelByDocNo.get(a.docNo)) || `#${a.docNo || '—'}` : `#${a.docNo || '—'}`}
+                </span>
                 <span className="shrink-0 tabular-nums font-medium">{fmtAmountZero(a.amount, a.currency)}</span>
               </div>
             ))}
@@ -594,6 +595,7 @@ function DisabledAmountCell() {
 
 const quoteEditorSchema = z.object({
   created_at: z.date(),
+  currency: z.enum(['UYU', 'USD']),
   service_id: z.string().min(1),
   service_name: z.string().optional(),
   tooth_number: z.string().optional(),
@@ -671,6 +673,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
     resolver: zodResolver(quoteEditorSchema),
     defaultValues: {
       created_at: editInvoice?.createdAt ? new Date(editInvoice.createdAt) : editRow?.date ? new Date(editRow.date) : new Date(),
+      currency: ((editInvoice?.currency || editQuote?.currency || editRow?.currency) as 'UYU' | 'USD' | undefined) || (currency as 'UYU' | 'USD'),
       service_id: editItem?.service_id || editRow?.serviceId || '',
       service_name: editItem?.service_name || editRow?.label || '',
       tooth_number: (editItem as QuoteItem | undefined)?.tooth_number != null ? String((editItem as QuoteItem).tooth_number) : '',
@@ -682,6 +685,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
   });
   const watchedName = form.watch('service_name');
   const createdAt = form.watch('created_at');
+  const selectedCurrency = form.watch('currency');
 
   const onSubmit = async (values: QuoteEditorValues) => {
     if (submitting) return;
@@ -787,7 +791,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
         const released = Number(result?.released_amount) || 0;
         toast({
           title: t('toasts.itemUpdated'),
-          description: released > 0.005 ? t('toasts.releasedCredit', { amount: fmtAmountZero(released, currency) }) : undefined,
+          description: released > 0.005 ? t('toasts.releasedCredit', { amount: fmtAmountZero(released, values.currency) }) : undefined,
         });
       } else if (isEdit) {
         // Re-send the whole invoice (all sibling items preserved by id), overriding the
@@ -803,7 +807,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
           user_id: userId,
           ...(values.doctor_id ? { doctor_id: values.doctor_id } : {}),
           total,
-          currency,
+          currency: values.currency,
           created_at: createdAtIso,
           notes: values.description || '',
           is_historical: editInvoice?.is_historical ?? false,
@@ -827,7 +831,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
             user_id: userId,
             doctor_id: values.doctor_id || undefined,
             total: qty * values.unit_price,
-            currency,
+            currency: values.currency,
             status: 'draft',
             payment_status: 'unpaid',
             billing_status: 'not invoiced',
@@ -845,7 +849,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
             user_id: userId,
             doctor_id: values.doctor_id || undefined,
             total: qty * values.unit_price,
-            currency,
+            currency: values.currency,
             created_at: createdAtIso,
             notes: values.description || '',
             is_historical: false,
@@ -882,6 +886,17 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
         }
         mainSlot={
           <div className="flex items-center gap-2">
+            {isEdit ? (
+              <Badge variant="outline" className="h-8 shrink-0 px-2.5 text-xs">{selectedCurrency}</Badge>
+            ) : (
+              <Select value={selectedCurrency} onValueChange={(v) => form.setValue('currency', v as 'UYU' | 'USD', { shouldValidate: true })}>
+                <SelectTrigger className="h-8 w-20 shrink-0 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="UYU">UYU</SelectItem>
+                  <SelectItem value="USD">USD</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
             <div className="min-w-[8rem] flex-1">
               <ServiceSelector
                 isSales
@@ -958,6 +973,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
 
 const paymentEditorSchema = z.object({
   created_at: z.date(),
+  currency: z.enum(['UYU', 'USD']),
   payment_amount: z.coerce.number().positive(),
   payment_method_id: z.string().min(1),
   notes: z.string().optional(),
@@ -1013,6 +1029,7 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
     resolver: zodResolver(paymentEditorSchema),
     defaultValues: {
       created_at: editPayment?.payment_date ? new Date(editPayment.payment_date) : new Date(),
+      currency: (editPayment?.source_currency as 'UYU' | 'USD' | undefined) || (currency as 'UYU' | 'USD'),
       payment_amount: editPayment ? Math.abs(editPayment.amount_applied ?? editPayment.source_amount ?? 0) : 0,
       payment_method_id: editPayment?.payment_method_id || '',
       notes: editPayment?.notes || '',
@@ -1039,13 +1056,14 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
   const createdAt = form.watch('created_at');
   const isHistorical = form.watch('is_historical');
   const amount = form.watch('payment_amount') || 0;
+  const selectedCurrency = form.watch('currency');
 
   // Pending invoices in this payment's currency, oldest first (FIFO distribution order).
   const sortedPending = React.useMemo(
     () => pendingInvoices
-      .filter((p) => p.currency === currency)
+      .filter((p) => p.currency === selectedCurrency)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
-    [pendingInvoices, currency],
+    [pendingInvoices, selectedCurrency],
   );
 
   // Allocation state: `alloc[invoiceId] = amount`. Presence = the invoice is included.
@@ -1068,6 +1086,12 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
   React.useEffect(() => {
     if (showAllocations && !allocManual) setAlloc(distributeFifo(amount));
   }, [showAllocations, allocManual, amount, distributeFifo]);
+
+  // Switching currency invalidates any manual allocation (it's keyed to the previous
+  // currency's invoices) — fall back to a fresh FIFO distribution in the new currency.
+  React.useEffect(() => {
+    setAllocManual(false);
+  }, [selectedCurrency]);
 
   const allocated = round2(Object.values(alloc).reduce((s, a) => s + a, 0));
   // Positive `difference` = leftover (amount > allocated) — goes to the patient's credit,
@@ -1135,7 +1159,7 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
         const released = Number(result?.released_amount) || 0;
         toast({
           title: t('toasts.paymentUpdated'),
-          description: released > 0.005 ? t('toasts.releasedCredit', { amount: fmtAmountZero(released, currency) }) : undefined,
+          description: released > 0.005 ? t('toasts.releasedCredit', { amount: fmtAmountZero(released, values.currency) }) : undefined,
         });
         await checkActiveSession();
         await onSaved();
@@ -1161,7 +1185,7 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
       }
       // Allocated may be less than the payment (the rest becomes credit) but never more.
       if (round2(allocated - values.payment_amount) > 0.005) {
-        toast({ title: t('allocations.mismatch', { amount: fmtAmountZero(round2(allocated - values.payment_amount), currency) }), variant: 'destructive' });
+        toast({ title: t('allocations.mismatch', { amount: fmtAmountZero(round2(allocated - values.payment_amount), values.currency) }), variant: 'destructive' });
         return;
       }
     }
@@ -1192,8 +1216,8 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
           user_id: userId,
           is_sales: true,
           is_prepaid: true,
-          invoice_currency: currency,
-          payment_currency: currency,
+          invoice_currency: values.currency,
+          payment_currency: values.currency,
           exchange_rate: 1,
           notes: values.notes || '',
           is_historical: values.is_historical,
@@ -1223,12 +1247,25 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
           />
         }
         mainSlot={
-          <Select value={form.watch('payment_method_id')} onValueChange={(v) => form.setValue('payment_method_id', v, { shouldValidate: true })}>
-            <SelectTrigger className="h-8 text-sm"><SelectValue placeholder={t('fields.selectMethod')} /></SelectTrigger>
-            <SelectContent>
-              {paymentMethods.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            {isEdit ? (
+              <Badge variant="outline" className="h-8 shrink-0 px-2.5 text-xs">{selectedCurrency}</Badge>
+            ) : (
+              <Select value={selectedCurrency} onValueChange={(v) => form.setValue('currency', v as 'UYU' | 'USD', { shouldValidate: true })}>
+                <SelectTrigger className="h-8 w-20 shrink-0 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="UYU">UYU</SelectItem>
+                  <SelectItem value="USD">USD</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+            <Select value={form.watch('payment_method_id')} onValueChange={(v) => form.setValue('payment_method_id', v, { shouldValidate: true })}>
+              <SelectTrigger className="h-8 flex-1 text-sm"><SelectValue placeholder={t('fields.selectMethod')} /></SelectTrigger>
+              <SelectContent>
+                {paymentMethods.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
         }
         debeSlot={<DisabledAmountCell />}
         haberSlot={
@@ -1271,13 +1308,13 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
             <div className="mb-2 flex items-center justify-between text-xs">
               <span className="font-medium">{t('allocations.title')}</span>
               <span className={cn('tabular-nums', allocOverage ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400')}>
-                {t('allocations.allocated')}: {fmtAmountZero(allocated, currency)} / {fmtAmountZero(amount, currency)}
-                {allocOverage && ` · ${t('allocations.exceeds', { amount: fmtAmountZero(Math.abs(difference), currency) })}`}
+                {t('allocations.allocated')}: {fmtAmountZero(allocated, selectedCurrency)} / {fmtAmountZero(amount, selectedCurrency)}
+                {allocOverage && ` · ${t('allocations.exceeds', { amount: fmtAmountZero(Math.abs(difference), selectedCurrency) })}`}
               </span>
             </div>
             {allocLeftover && (
               <div className="mb-2 text-xs text-muted-foreground">
-                {t('allocations.leftoverCredit', { amount: fmtAmountZero(difference, currency) })}
+                {t('allocations.leftoverCredit', { amount: fmtAmountZero(difference, selectedCurrency) })}
               </div>
             )}
             {sortedPending.length === 0 ? (
@@ -1497,9 +1534,15 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
     setLedgerData(data);
     const grouped = buildPatientLedger(data);
     setLedgerByCurrency(grouped);
-    setCurrency((prev) => (prev && grouped[prev] ? prev : Object.keys(grouped)[0] || null));
+    // Prefer the currency already selected, else the clinic's configured default (even if
+    // this patient has no rows in it yet), else whichever currency the data happens to have.
+    setCurrency((prev) => {
+      if (prev && grouped[prev]) return prev;
+      if (clinicInfo?.currency) return clinicInfo.currency;
+      return Object.keys(grouped)[0] || null;
+    });
     setIsLoading(false);
-  }, [userId]);
+  }, [userId, clinicInfo]);
 
   React.useEffect(() => {
     const forceRefresh = prevRefreshTrigger.current !== refreshTrigger;
@@ -1509,7 +1552,13 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
 
   const handleManualRefresh = React.useCallback(() => { void load(true); }, [load]);
 
-  const currencies = Object.keys(ledgerByCurrency);
+  // Data currencies plus the clinic's configured default, even if this patient has no rows
+  // in it yet — otherwise defaulting the tab to it (see `load` above) could pick a currency
+  // the toggle itself doesn't offer, stranding the view on an empty tab with no way out.
+  const currencies = React.useMemo(() => {
+    const keys = Object.keys(ledgerByCurrency);
+    return clinicInfo?.currency && !keys.includes(clinicInfo.currency) ? [...keys, clinicInfo.currency] : keys;
+  }, [ledgerByCurrency, clinicInfo]);
   const rows = React.useMemo(
     () => (currency ? ledgerByCurrency[currency] || [] : []),
     [currency, ledgerByCurrency],
@@ -2039,6 +2088,19 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
     return map;
   }, [ledgerData]);
 
+  // `doc_no -> "Service A, Service B"`, so a payment's allocations popover can show what
+  // was actually paid for instead of a bare invoice number — same fallback order as the
+  // ledger row label itself (`buildPatientLedger`) for invoices with no item breakdown.
+  const serviceLabelByDocNo = React.useMemo(() => {
+    const map = new Map<string, string>();
+    for (const i of ledgerData?.invoices || []) {
+      const docNo = i.doc_no || i.invoice_doc_no || i.id;
+      const names = (ledgerData?.invoiceItemsByInvoice[i.id] || []).map((it) => it.service_name).filter(Boolean);
+      map.set(docNo, names.length > 0 ? names.join(', ') : (i.notes || i.invoice_ref || docNo));
+    }
+    return map;
+  }, [ledgerData]);
+
   // Invoices with an outstanding balance — offered as targets for a payment's allocations.
   const pendingInvoices = React.useMemo<PendingInvoiceLite[]>(() => {
     return (ledgerData?.invoices || [])
@@ -2055,10 +2117,6 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
 
   const searchInputRef = React.useRef<HTMLInputElement>(null);
   React.useEffect(() => { if (searchOpen) searchInputRef.current?.focus(); }, [searchOpen]);
-
-  // With both search and the period filter controlled from a host header, and Print/Refresh
-  // hidden, the toolbar can be empty — skip it entirely so it doesn't take a blank row.
-  const showToolbar = !isDateRangeControlled || !isSearchControlled || !!onViewStatement || currencies.length > 1 || !hideToolbarActions;
 
   const toolbar = (
     <div className="flex flex-wrap items-center gap-2">
@@ -2093,14 +2151,12 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
           <ScrollText className="h-3.5 w-3.5" />{t('viewStatement')}
         </Button>
       )}
-      {currencies.length > 1 && (
-        <Select value={currency ?? undefined} onValueChange={setCurrency}>
-          <SelectTrigger className="h-8 w-24 text-xs"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {currencies.map((c) => <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      )}
+      <Select value={currency ?? undefined} onValueChange={setCurrency}>
+        <SelectTrigger className="h-8 w-24 text-xs"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {currencies.map((c) => <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>)}
+        </SelectContent>
+      </Select>
       {!hideToolbarActions && (
         <div className="ml-auto flex items-center gap-1">
           {onPrintSummary && (
@@ -2131,7 +2187,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
     <>
       <Card className="h-full flex flex-col min-h-0">
         <CardContent className="flex-1 flex flex-col min-h-0 gap-3 p-4">
-          {showToolbar && toolbar}
+          {toolbar}
 
           {/* Both axes scroll on this one container so the sticky header stays column-
               aligned with the cards when the panel is too narrow to fit every column —
@@ -2278,7 +2334,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
                               )}
                             </div>
                             {showAllocationsLink && (
-                              <RowAllocationsPopover row={row} invoiceDocNoById={invoiceDocNoById} onHighlight={setHighlightedDocNos} />
+                              <RowAllocationsPopover row={row} invoiceDocNoById={invoiceDocNoById} serviceLabelByDocNo={serviceLabelByDocNo} onHighlight={setHighlightedDocNos} />
                             )}
                           </div>
                           <div className="w-24 shrink-0 text-right text-sm tabular-nums">
@@ -2288,7 +2344,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
                             )}
                           </div>
                           <div className="w-24 shrink-0 text-right text-sm tabular-nums">{fmtAmountZero(row.haber, row.currency)}</div>
-                          <div className="w-24 shrink-0 text-right text-sm font-semibold tabular-nums">{fmtAmount(row.runningBalance, row.currency)}</div>
+                          <div className="w-24 shrink-0 text-right text-sm font-semibold tabular-nums">{fmtAmountZero(row.runningBalance, row.currency)}</div>
                         </div>
                         {selected && (
                           <div

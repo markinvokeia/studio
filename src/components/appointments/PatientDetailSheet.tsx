@@ -19,6 +19,8 @@ import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
 import { useFinanceViewPreference } from '@/hooks/use-finance-view-preference';
+import { usePrintDocument } from '@/hooks/usePrintDocument';
+import { useToast } from '@/hooks/use-toast';
 import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
 import type { User } from '@/lib/types';
 import {
@@ -83,6 +85,9 @@ export function PatientDetailSheet({
   const { user: currentUser } = useAuth();
   const [financeView] = useFinanceViewPreference(currentUser?.id);
   const { open: openAccountStatement } = usePatientLedgerSheet();
+  const { printFinancialSummary, printLedger } = usePrintDocument();
+  const { toast } = useToast();
+  const [isPrintingFinancialSummary, setIsPrintingFinancialSummary] = React.useState(false);
   const isDoctorMode = mode === 'doctor';
   const [activeTab, setActiveTab] = React.useState<PatientSheetMacroTab>(
     isDoctorMode ? 'clinical' : mapInitialTabToMacroTab(initialTab)
@@ -110,6 +115,28 @@ export function PatientDetailSheet({
     is_active: true,
     avatar: '',
   };
+
+  // "Personalizado" prints the unified ledger as shown; "Normal" prints the backend's
+  // financial-summary report — same split PatientLedgerSheet's own Print button uses.
+  const handlePrintFinancialSummary = React.useCallback(async () => {
+    if (isPrintingFinancialSummary) return;
+    setIsPrintingFinancialSummary(true);
+    try {
+      if (financeView === 'unified') {
+        await printLedger(userId, userName);
+      } else {
+        await printFinancialSummary(userId);
+      }
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: t('financialSummaryDialog.errorTitle'),
+        description: error?.message === 'no_data' ? t('financialSummaryDialog.errorNoData') : t('financialSummaryDialog.errorGeneric'),
+      });
+    } finally {
+      setIsPrintingFinancialSummary(false);
+    }
+  }, [userId, userName, isPrintingFinancialSummary, financeView, printLedger, printFinancialSummary, toast, t]);
 
   React.useEffect(() => {
     if (!isDoctorMode || !open || !userId) return;
@@ -251,6 +278,7 @@ export function PatientDetailSheet({
               onCreateQuote={() => setQuickTreatmentDialogMode('quote')}
               onCreateTreatment={() => setQuickTreatmentDialogMode('invoice')}
               onCreatePayment={() => setIsPrepaidDialogOpen(true)}
+              onPrintSummary={handlePrintFinancialSummary}
               onViewStatement={() => openAccountStatement(userId, userName)}
             />
           }

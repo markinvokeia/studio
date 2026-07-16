@@ -8,13 +8,13 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "fb0385f1-d108-4998-90f6-70abe5290ec5",
+      "id": "c6d16373-4d5f-4129-9674-5ce2c51a689f",
       "name": "GET /reports/balance-mensual",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -96,
-        128
+        1040,
+        1024
       ],
       "webhookId": "b139e26f-05df-46f6-a032-6f47ec332bb4",
       "credentials": {
@@ -32,13 +32,13 @@
           "queryReplacement": "={{ [$('query').first().json?.date_from, $('query').first().json?.date_to, $('query').first().json?.currency || null, $('query').first().json?.doctor_ids || null, $('query').first().json?.doc_type || null] }}"
         }
       },
-      "id": "24e53452-e854-4e80-82a1-34034238058d",
+      "id": "6fee5cfc-0df7-4f53-a0e3-fd530e08d3e2",
       "name": "Query Balance Producido",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        368,
-        -64
+        1504,
+        832
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -57,13 +57,13 @@
           "queryReplacement": "={{ [$('query').first().json?.date_from, $('query').first().json?.date_to, $('query').first().json?.currency || null, $('query').first().json?.doctor_ids || null, $('query').first().json?.doc_type || null] }}"
         }
       },
-      "id": "5e981484-ac5f-47fc-b30f-e0ab78af3885",
+      "id": "6ff9ac7f-8168-4c60-b7d5-c4769b3c25bc",
       "name": "Query Balance Cobrado",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        368,
-        128
+        1504,
+        1024
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -82,13 +82,13 @@
           "queryReplacement": "={{ [$('query').first().json?.date_from, $('query').first().json?.date_to, $('query').first().json?.currency || null, $('query').first().json?.doctor_ids || null, $('query').first().json?.doc_type || null] }}"
         }
       },
-      "id": "296a0e77-be89-4de1-b46a-f199c11d63f0",
+      "id": "134edb5c-3529-4594-a073-ec63d9cd5f53",
       "name": "Query Balance Pendiente",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        368,
-        320
+        1504,
+        1216
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -103,13 +103,13 @@
       "parameters": {
         "jsCode": "const producido = $('Query Balance Producido').all()\n  .map(i => i.json)\n  .filter(r => r && r.fecha)\n  .map(r => ({\n    fecha: r.fecha,\n    doctor_id: r.doctor_id || null,\n    doctor_name: r.doctor_name,\n    patient_name: r.patient_name || '',\n    service_name: r.service_name,\n    invoice_doc_no: r.invoice_doc_no,\n    currency: r.currency,\n    importe: Number(r.importe || 0),\n  }));\n\nconst cobrado = $('Query Balance Cobrado').all()\n  .map(i => i.json)\n  .filter(r => r && r.fecha)\n  .map(r => ({\n    fecha: r.fecha,\n    doctor_id: r.doctor_id || null,\n    doctor_name: r.doctor_name,\n    patient_name: r.patient_name || '',\n    invoice_doc_no: r.invoice_doc_no || '',\n    payment_method: r.payment_method || 'N/D',\n    currency: r.currency,\n    importe: Number(r.importe || 0),\n  }));\n\nconst pendiente = $('Query Balance Pendiente').all()\n  .map(i => i.json)\n  .filter(r => r && r.currency)\n  .map(r => ({\n    doctor_id: r.doctor_id || null,\n    doctor_name: r.doctor_name,\n    currency: r.currency,\n    total_facturado: Number(r.total_facturado || 0),\n    total_cobrado: Number(r.total_cobrado || 0),\n    saldo: Number(r.saldo || 0),\n  }));\n\nconst total_producido = producido.reduce((s, r) => s + r.importe, 0);\nconst total_cobrado   = cobrado.reduce((s, r) => s + r.importe, 0);\nconst total_pendiente = pendiente.reduce((s, r) => s + r.saldo, 0);\nconst num_doctores = new Set(pendiente.map(r => r.doctor_id).filter(Boolean)).size;\n\nreturn [{ json: {\n  summary: { total_producido, total_cobrado, total_pendiente, num_doctores },\n  producido,\n  cobrado,\n  pendiente\n} }];"
       },
-      "id": "7f007445-fef2-47e0-8782-15ecc0b703f5",
+      "id": "b768c98e-c9cc-4037-8b43-eace8991e018",
       "name": "Build Balance Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        832,
-        64
+        1968,
+        960
       ],
       "onError": "continueErrorOutput"
     },
@@ -121,13 +121,13 @@
           "responseCode": 200
         }
       },
-      "id": "7cc7998f-5cd7-410c-8776-c5c2bcf3eacf",
+      "id": "f875b480-6fa5-4db9-94f0-f18ca96ce30c",
       "name": "Respond Balance Mensual",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1072,
-        -16
+        2208,
+        880
       ]
     },
     {
@@ -148,10 +148,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        1072,
-        176
+        2208,
+        1072
       ],
-      "id": "22d9af5c-d2cd-48e9-bd82-6fccd05ef81b",
+      "id": "19173cfc-6349-4691-911a-ae601358c65b",
       "name": "Error"
     },
     {
@@ -195,10 +195,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        128,
-        128
+        1264,
+        1024
       ],
-      "id": "105ecc95-a9f1-4c0a-9b01-aa83ef944ba3",
+      "id": "c0bfca12-f19f-4de2-85fa-45cc5b6a6a35",
       "name": "query"
     },
     {
@@ -208,10 +208,10 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        608,
-        112
+        1744,
+        1008
       ],
-      "id": "33d706d2-ad12-4d04-b86d-72d24906a37c",
+      "id": "bbe1beed-78aa-44b2-a295-5a95178dde14",
       "name": "Merge",
       "alwaysOutputData": true,
       "onError": "continueErrorOutput"
@@ -399,7 +399,7 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "020558c9-4203-4ee9-901a-e7d1d0d78454",
+  "versionId": "1ea01586-f921-4214-b787-27393a8bd74a",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"

@@ -4309,6 +4309,13 @@
     "initialPasswordSentTitle": "Correo enviado",
     "initialPasswordSentDescription": "Se ha enviado un correo con el enlace para establecer la contraseña.",
     "initialPasswordError": "Ocurrió un error inesperado. Intente de nuevo.",
+    "toggleStatus": {
+      "successTitle": "Éxito",
+      "activatedDescription": "El usuario {name} ha sido activado.",
+      "deactivatedDescription": "El usuario {name} ha sido desactivado.",
+      "errorTitle": "Error",
+      "errorDescription": "No se pudo actualizar el estado del usuario."
+    },
     "tabs": {
       "roles": "Roles",
       "quotes": "Presupuestos",

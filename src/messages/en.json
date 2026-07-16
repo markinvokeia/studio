@@ -4332,6 +4332,13 @@
     "initialPasswordSentTitle": "Email sent",
     "initialPasswordSentDescription": "An email with the password setup link has been sent.",
     "initialPasswordError": "An unexpected error occurred. Please try again.",
+    "toggleStatus": {
+      "successTitle": "Success",
+      "activatedDescription": "User {name} has been activated.",
+      "deactivatedDescription": "User {name} has been deactivated.",
+      "errorTitle": "Error",
+      "errorDescription": "Could not update user status."
+    },
     "tabs": {
       "roles": "Roles",
       "quotes": "Quotes",
@@ -5220,7 +5227,7 @@
     "showingForQuote": "Showing payments for quote"
   },
   "SystemUserColumns": {
-    "name": "Nombre",
+    "name": "Name",
     "email": "Email",
     "phone": "Phone",
     "identity_document": "Identity Document",

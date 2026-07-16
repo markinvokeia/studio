@@ -371,16 +371,18 @@ export default function SystemUsersPage() {
       });
 
       toast({
-        title: 'Success',
-        description: `User ${user.name} has been ${user.is_active ? 'deactivated' : 'activated'}.`,
+        title: t('SystemUsersPage.toggleStatus.successTitle'),
+        description: user.is_active
+          ? t('SystemUsersPage.toggleStatus.deactivatedDescription', { name: user.name })
+          : t('SystemUsersPage.toggleStatus.activatedDescription', { name: user.name }),
       });
 
       loadUsers();
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'Could not update user status.',
+        title: t('SystemUsersPage.toggleStatus.errorTitle'),
+        description: t('SystemUsersPage.toggleStatus.errorDescription'),
       });
       console.error(error);
     }
