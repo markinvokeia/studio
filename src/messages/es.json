@@ -4286,7 +4286,16 @@
         "identityMaxLength": "El documento de identidad debe tener 10 caracteres o menos.",
         "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono.",
         "genericError": "Ocurrió un error inesperado. Por favor, inténtelo de nuevo.",
-        "serverError": "Error del servidor, por favor inténtelo más tarde."
+        "serverError": "Error del servidor, por favor inténtelo más tarde.",
+        "errorTitle": "Error al crear el usuario",
+        "uniqueConflict": "Los siguientes campos ya están registrados: {fields}",
+        "fields": {
+          "email": "Correo electrónico",
+          "phone_number": "Teléfono",
+          "identity_document": "Documento de identidad",
+          "internal_id": "ID interno",
+          "name": "Nombre"
+        }
       },
       "editSave": "Guardar",
       "serverError": "Error del servidor, por favor inténtelo más tarde.",
@@ -4784,6 +4793,9 @@
       "sessionTypeClinical": "Sesión Clínica",
       "sessionTypeAppointment": "Cita",
       "upcomingAppointment": "Próxima",
+      "apptCalendar": "Calendario",
+      "apptDoctor": "Doctor",
+      "apptDurationMin": "{min} min",
       "quote": "Presupuesto",
       "addFirstSession": "Agregar primera sesión",
       "toast": {

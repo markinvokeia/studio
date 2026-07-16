@@ -2319,31 +2319,106 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                         if (item.kind === 'appointment') {
                                             const appt = item.data;
                                             const isFuture = item.date > new Date();
+                                            const parseHM = (s?: string) => (s ? format(parseISO(s.replace(/Z$/, '')), 'HH:mm') : '');
+                                            const startLabel = appt.time || parseHM(appt.start?.dateTime);
+                                            const endLabel = parseHM(appt.end?.dateTime);
+                                            const durationMin = appt.start?.dateTime && appt.end?.dateTime
+                                                ? Math.max(0, Math.round((parseISO(appt.end.dateTime.replace(/Z$/, '')).getTime() - parseISO(appt.start.dateTime.replace(/Z$/, '')).getTime()) / 60000))
+                                                : null;
+                                            const treatmentNames = (appt.services ?? []).map((s) => s.name).filter(Boolean);
+                                            const ApptStatusIcon = getStatusIcon(appt.status, appt.cancellation_reason);
+                                            const apptStatusVariant = (STATUS_BADGE_VARIANT[appt.status] ?? 'default') as
+                                                'default' | 'success' | 'destructive' | 'info' | 'warning' | 'secondary' | 'outline';
+                                            const apptStatusBadge = (
+                                                <Badge variant={apptStatusVariant} className="capitalize gap-1 text-xs px-2 py-0.5 self-start shrink-0">
+                                                    <ApptStatusIcon className="h-3 w-3" />
+                                                    {appt.status === 'cancelled' && appt.cancellation_reason
+                                                        ? tReason(appt.cancellation_reason)
+                                                        : tStatus(appt.status)}
+                                                </Badge>
+                                            );
+                                            const apptTypeBadge = (
+                                                <Badge variant="secondary" className={cn('text-xs px-1.5 py-0 leading-relaxed', isFuture ? 'bg-violet-100 text-violet-700 dark:bg-violet-950/40 dark:text-violet-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400')}>
+                                                    {t('sessionTypeAppointment')}
+                                                </Badge>
+                                            );
+                                            const apptUpcomingBadge = isFuture ? (
+                                                <Badge variant="secondary" className="text-xs bg-violet-200 text-violet-800 dark:bg-violet-900/60 dark:text-violet-300 px-1.5 py-0 leading-relaxed font-medium">
+                                                    {t('upcomingAppointment')}
+                                                </Badge>
+                                            ) : null;
+                                            const apptIcon = (
+                                                <div className={cn('w-5 h-5 rounded-full border-2 border-background shadow-sm flex items-center justify-center shrink-0 mt-0.5', isFuture ? 'bg-violet-50 dark:bg-violet-950' : 'bg-blue-50 dark:bg-blue-950')}>
+                                                    {isFuture ? <CalendarSync className="h-3 w-3 text-violet-500" /> : <CalendarCheck className="h-3 w-3 text-blue-500" />}
+                                                </div>
+                                            );
+                                            if (isDoctorMode) {
+                                                // Sin clic: toda la info visible una sola vez. Arriba: Tipo + Fecha/horas; debajo: el resto.
+                                                return (
+                                                    <div key={key} className="flex items-start gap-2 px-2.5 py-2 border-b last:border-b-0 border-l-2 border-l-transparent">
+                                                        {apptIcon}
+                                                        <div className="flex-1 min-w-0 space-y-1.5">
+                                                            <div className="flex items-start justify-between gap-2">
+                                                                <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                                                                    {apptTypeBadge}
+                                                                    {apptUpcomingBadge}
+                                                                    <span className="text-xs font-medium text-foreground">
+                                                                        {format(item.date, 'dd/MM/yyyy')}{startLabel && ` · ${startLabel}`}{endLabel && ` → ${endLabel}`}
+                                                                    </span>
+                                                                    {durationMin != null && (
+                                                                        <span className="text-xs text-muted-foreground">({t('apptDurationMin', { min: durationMin })})</span>
+                                                                    )}
+                                                                </div>
+                                                                {apptStatusBadge}
+                                                            </div>
+                                                            <div className="space-y-1 text-xs">
+                                                                {appt.calendar_name && (
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <span className="text-muted-foreground shrink-0">{t('apptCalendar')}:</span>
+                                                                        <span className="text-foreground truncate">{appt.calendar_name}</span>
+                                                                    </div>
+                                                                )}
+                                                                {appt.doctorName && (
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <span className="text-muted-foreground shrink-0">{t('apptDoctor')}:</span>
+                                                                        <span className="text-foreground truncate">{appt.doctorName}</span>
+                                                                    </div>
+                                                                )}
+                                                                {treatmentNames.length > 0 && (
+                                                                    <div className="flex items-start gap-1.5">
+                                                                        <span className="text-muted-foreground shrink-0">{t('treatments')}:</span>
+                                                                        <span className="text-foreground">{treatmentNames.join(', ')}</span>
+                                                                    </div>
+                                                                )}
+                                                                {appt.notes && (
+                                                                    <div className="flex items-start gap-1.5">
+                                                                        <span className="text-muted-foreground shrink-0">{t('notes')}:</span>
+                                                                        <span className="text-foreground whitespace-pre-wrap">{appt.notes}</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }
                                             return (
-                                                <div key={key}
+                                                <div
+                                                    key={key}
                                                     className={cn(
                                                         'flex items-start gap-2 px-2.5 py-2 cursor-pointer border-b last:border-b-0 transition-colors border-l-2',
                                                         isSelected ? 'bg-primary/5 border-l-primary' : 'border-l-transparent hover:bg-muted/50',
                                                     )}
-                                                    onClick={() => { setSelectedItemKey(isSelected ? null : key); openApptPanel(appt); }}
+                                                    onClick={() => {
+                                                        setSelectedItemKey(isSelected ? null : key);
+                                                        openApptPanel(appt);
+                                                    }}
                                                 >
-                                                    <div className={cn('w-5 h-5 rounded-full border-2 border-background shadow-sm flex items-center justify-center shrink-0 mt-0.5', isFuture ? 'bg-violet-50 dark:bg-violet-950' : 'bg-blue-50 dark:bg-blue-950')}>
-                                                        {isFuture
-                                                            ? <CalendarSync className="h-3 w-3 text-violet-500" />
-                                                            : <CalendarCheck className="h-3 w-3 text-blue-500" />
-                                                        }
-                                                    </div>
+                                                    {apptIcon}
                                                     <div className="flex-1 min-w-0 flex flex-row items-start justify-between gap-2">
                                                         <div className="min-w-0">
                                                             <div className="flex items-center gap-1 flex-wrap">
-                                                                <Badge variant="secondary" className={cn('text-xs px-1.5 py-0 leading-relaxed', isFuture ? 'bg-violet-100 text-violet-700 dark:bg-violet-950/40 dark:text-violet-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400')}>
-                                                                    {t('sessionTypeAppointment')}
-                                                                </Badge>
-                                                                {isFuture && (
-                                                                    <Badge variant="secondary" className="text-xs bg-violet-200 text-violet-800 dark:bg-violet-900/60 dark:text-violet-300 px-1.5 py-0 leading-relaxed font-medium">
-                                                                        {t('upcomingAppointment')}
-                                                                    </Badge>
-                                                                )}
+                                                                {apptTypeBadge}
+                                                                {apptUpcomingBadge}
                                                                 <span className="text-xs text-muted-foreground">{format(item.date, 'dd/MM/yy')}</span>
                                                                 {appt.quote_doc_no && (
                                                                     <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-1.5 py-0 leading-relaxed font-mono">
@@ -2359,54 +2434,120 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                             <p className="text-xs font-medium truncate mt-0.5">{appt.summary}</p>
                                                             {appt.doctorName && <p className="text-xs text-muted-foreground truncate">{appt.doctorName}</p>}
                                                         </div>
-                                                        {(() => {
-                                                            const StatusIcon = getStatusIcon(appt.status, appt.cancellation_reason);
-                                                            const statusVariant = (STATUS_BADGE_VARIANT[appt.status] ?? 'default') as
-                                                                'default' | 'success' | 'destructive' | 'info' | 'warning' | 'secondary' | 'outline';
-                                                            return (
-                                                                <Badge variant={statusVariant} className="capitalize gap-1 text-xs px-2 py-0.5 self-start shrink-0 mt-0.5">
-                                                                    <StatusIcon className="h-3 w-3" />
-                                                                    {appt.status === 'cancelled' && appt.cancellation_reason
-                                                                        ? tReason(appt.cancellation_reason)
-                                                                        : tStatus(appt.status)}
-                                                                </Badge>
-                                                            );
-                                                        })()}
+                                                        {apptStatusBadge}
                                                     </div>
                                                 </div>
                                             );
                                         }
                                         const session = item.data as PatientSession;
                                         const Icon = session.tipo_sesion === 'odontograma' ? Smile : Stethoscope;
+                                        // Modo doctor: las sesiones clínicas (no odontograma) se muestran inline, sin clic.
+                                        const inlineDoctorSession = isDoctorMode && session.tipo_sesion !== 'odontograma';
+                                        const sessionIcon = (
+                                            <div className="w-5 h-5 rounded-full border-2 border-background shadow-sm bg-card flex items-center justify-center shrink-0 mt-0.5">
+                                                <Icon className={cn('h-3 w-3', session.tipo_sesion === 'odontograma' ? 'text-purple-500' : 'text-primary')} />
+                                            </div>
+                                        );
+                                        const sessionTypeBadge = (
+                                            <Badge variant="secondary" className={cn('text-xs px-1.5 py-0 leading-relaxed', session.tipo_sesion === 'odontograma' ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400' : 'bg-primary/10 text-primary')}>
+                                                {session.tipo_sesion === 'odontograma' ? t('sessionTypeOdontogram') : t('sessionTypeClinical')}
+                                            </Badge>
+                                        );
+                                        const sessionColorDot = showSessionColor && session.color ? (
+                                            <span
+                                                className="mt-1 block h-3 w-3 shrink-0 rounded-full border"
+                                                style={{ backgroundColor: session.color }}
+                                                aria-label={`${tPatientHistory('columns.color')}: ${session.color}`}
+                                                title={session.color}
+                                            />
+                                        ) : null;
+                                        if (inlineDoctorSession) {
+                                            // Sin clic: todo visible una vez. Arriba: Tipo + Fecha; debajo: el resto (Próxima cita al final si hay).
+                                            const planProximaCita = parsePlanProximaCita(session.plan_proxima_cita);
+                                            const treatmentLabels = (session.tratamientos ?? [])
+                                                .map((tr: any) => [tr.numero_diente ? `${tr.numero_diente}:` : '', tr.descripcion].filter(Boolean).join(' '))
+                                                .filter(Boolean);
+                                            const hasNextPlan = (!!planProximaCita && planProximaCita.trim() !== '') || !!session.fecha_proxima_cita;
+                                            return (
+                                                <div key={key} className="flex items-start gap-2 px-2.5 py-2 border-b last:border-b-0 border-l-2 border-l-transparent">
+                                                    {sessionIcon}
+                                                    <div className="flex-1 min-w-0 space-y-1.5">
+                                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                                            {sessionTypeBadge}
+                                                            <span className="text-xs font-medium text-foreground">{formatDate(session.fecha_sesion)}</span>
+                                                        </div>
+                                                        <div className="space-y-1 text-xs">
+                                                            {session.procedimiento_realizado && (
+                                                                <div className="flex items-start gap-1.5">
+                                                                    <span className="text-muted-foreground shrink-0">{t('procedure')}:</span>
+                                                                    <span className="text-foreground whitespace-pre-wrap">{session.procedimiento_realizado}</span>
+                                                                </div>
+                                                            )}
+                                                            {(session.nombre_doctor || session.doctor_name) && (
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <span className="text-muted-foreground shrink-0">{t('apptDoctor')}:</span>
+                                                                    <span className="text-foreground truncate">{session.nombre_doctor || session.doctor_name}</span>
+                                                                </div>
+                                                            )}
+                                                            {session.diagnostico && session.diagnostico.trim() !== '' && (
+                                                                <div className="flex items-start gap-1.5">
+                                                                    <span className="text-muted-foreground shrink-0">{t('diagnosis')}:</span>
+                                                                    <span className="text-foreground whitespace-pre-wrap">{session.diagnostico}</span>
+                                                                </div>
+                                                            )}
+                                                            {session.notas_clinicas && session.notas_clinicas.trim() !== '' && (
+                                                                <div className="flex items-start gap-1.5">
+                                                                    <span className="text-muted-foreground shrink-0">{t('notes')}:</span>
+                                                                    <span className="text-foreground whitespace-pre-wrap">{session.notas_clinicas}</span>
+                                                                </div>
+                                                            )}
+                                                            {treatmentLabels.length > 0 && (
+                                                                <div className="flex items-start gap-1.5">
+                                                                    <span className="text-muted-foreground shrink-0">{t('treatments')}:</span>
+                                                                    <span className="text-foreground">{treatmentLabels.join(', ')}</span>
+                                                                </div>
+                                                            )}
+                                                            {hasNextPlan && (
+                                                                <div className="flex items-start gap-1.5">
+                                                                    <span className="text-muted-foreground shrink-0">{t('nextPlan')}:</span>
+                                                                    <span className="text-foreground whitespace-pre-wrap">
+                                                                        {planProximaCita}
+                                                                        {session.fecha_proxima_cita && ` (${format(parseISO(session.fecha_proxima_cita), 'dd/MM/yyyy')})`}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    {sessionColorDot}
+                                                </div>
+                                            );
+                                        }
                                         return (
-                                            <div key={key}
+                                            <div
+                                                key={key}
                                                 className={cn('flex items-start gap-2 px-2.5 py-2 cursor-pointer border-b last:border-b-0 transition-colors border-l-2', isSelected ? 'bg-primary/5 border-l-primary' : 'border-l-transparent hover:bg-muted/50')}
                                                 onClick={() => {
                                                     setSelectedItemKey(isSelected ? null : key);
                                                     setSessionDetailData(session);
                                                     if (session.tipo_sesion === 'odontograma') {
                                                         setIsOdontogramViewerOpen(true);
-                                                    } else {
+                                                    } else if (!isDoctorMode) {
                                                         setIsSessionDetailSheetOpen(true);
                                                     }
                                                 }}
                                             >
-                                                <div className="w-5 h-5 rounded-full border-2 border-background shadow-sm bg-card flex items-center justify-center shrink-0 mt-0.5">
-                                                    <Icon className={cn('h-3 w-3', session.tipo_sesion === 'odontograma' ? 'text-purple-500' : 'text-primary')} />
-                                                </div>
+                                                {sessionIcon}
                                                 <div className="flex flex-1 min-w-0 items-start justify-between gap-3">
                                                     <div className="min-w-0 flex-1">
                                                         <div className="flex items-center gap-1 flex-wrap">
-                                                            <Badge variant="secondary" className={cn('text-xs px-1.5 py-0 leading-relaxed', session.tipo_sesion === 'odontograma' ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400' : 'bg-primary/10 text-primary')}>
-                                                                {session.tipo_sesion === 'odontograma' ? t('sessionTypeOdontogram') : t('sessionTypeClinical')}
-                                                            </Badge>
+                                                            {sessionTypeBadge}
                                                             <span className="text-xs text-muted-foreground">{formatDate(session.fecha_sesion)}</span>
-                                                            {session.quote_doc_no && (
+                                                            {!isDoctorMode && session.quote_doc_no && (
                                                                 <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-1.5 py-0 leading-relaxed font-mono">
                                                                     {session.quote_doc_no}
                                                                 </Badge>
                                                             )}
-                                                            {session.invoice_id && (
+                                                            {!isDoctorMode && session.invoice_id && (
                                                                 <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-1.5 py-0 leading-relaxed font-mono">
                                                                     <FileText className="h-2.5 w-2.5 mr-0.5" />#{session.invoice_id}
                                                                 </Badge>
@@ -2417,14 +2558,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                             <p className="text-xs text-muted-foreground truncate">{session.nombre_doctor || session.doctor_name}</p>
                                                         )}
                                                     </div>
-                                                    {showSessionColor && session.color && (
-                                                        <span
-                                                            className="mt-1 block h-3 w-3 shrink-0 rounded-full border"
-                                                            style={{ backgroundColor: session.color }}
-                                                            aria-label={`${tPatientHistory('columns.color')}: ${session.color}`}
-                                                            title={session.color}
-                                                        />
-                                                    )}
+                                                    {sessionColorDot}
                                                 </div>
                                             </div>
                                         );

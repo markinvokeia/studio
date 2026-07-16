@@ -4309,7 +4309,16 @@
         "identityMaxLength": "Identity document must be 10 characters or less.",
         "emailOrPhoneRequired": "You must provide at least an email address or a phone number.",
         "genericError": "An unexpected error occurred. Please try again.",
-        "serverError": "Server error, please try again later."
+        "serverError": "Server error, please try again later.",
+        "errorTitle": "Error creating user",
+        "uniqueConflict": "The following fields are already registered: {fields}",
+        "fields": {
+          "email": "Email",
+          "phone_number": "Phone",
+          "identity_document": "Identity document",
+          "internal_id": "Internal ID",
+          "name": "Name"
+        }
       },
       "editSave": "Save",
       "serverError": "Server error, please try again later.",
@@ -4807,6 +4816,9 @@
       "sessionTypeClinical": "Clinical Session",
       "sessionTypeAppointment": "Appointment",
       "upcomingAppointment": "Upcoming",
+      "apptCalendar": "Calendar",
+      "apptDoctor": "Doctor",
+      "apptDurationMin": "{min} min",
       "quote": "Quote",
       "addFirstSession": "Add first session",
       "toast": {
