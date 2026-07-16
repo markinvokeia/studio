@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { DatePickerInput } from '@/components/ui/date-picker';
+import { DialogCancelButton } from '@/components/ui/dialog';
 import { DoctorSelector } from '@/components/ui/doctor-selector';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -137,6 +138,10 @@ interface PatientInfoTabProps {
   initialName?: string;
   /** Called after a successful save with the updated (or newly created) patient. */
   onSaved?: (updated: User) => void;
+  /** Show the guarded Cancel action supplied by dialog hosts in custom calendar mode. */
+  showCancelAction?: boolean;
+  /** Reports whether this form or its embedded group selector has unsaved changes. */
+  onDirtyChange?: (isDirty: boolean) => void;
 }
 
 /**
@@ -144,7 +149,16 @@ interface PatientInfoTabProps {
  * Fetches the patient and mutual societies by id when not preloaded, so it can be
  * embedded anywhere (patient quick view, patients page) with only a user_id.
  */
-export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutualSocietiesProp, showNotes = true, initialName, onSaved }: PatientInfoTabProps) {
+export function PatientInfoTab({
+  userId,
+  user: userProp,
+  mutualSocieties: mutualSocietiesProp,
+  showNotes = true,
+  initialName,
+  onSaved,
+  showCancelAction = false,
+  onDirtyChange,
+}: PatientInfoTabProps) {
   const isCreateMode = !userId && !userProp;
   const t = useTranslations();
   const { toast } = useToast();
@@ -155,6 +169,7 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
   const [saveError, setSaveError] = React.useState<string | null>(null);
   const [responsibleContactName, setResponsibleContactName] = React.useState('');
   const [doctorDisplayName, setDoctorDisplayName] = React.useState('');
+  const [groupsDirty, setGroupsDirty] = React.useState(false);
   // Create mode: groups picked before the patient exists, assigned right after the upsert.
   const [pendingGroupIds, setPendingGroupIds] = React.useState<string[]>([]);
 
@@ -167,6 +182,15 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
     },
   });
   const isDependent = infoForm.watch('is_dependent');
+  const isDirty = infoForm.formState.isDirty || groupsDirty;
+
+  React.useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  React.useEffect(() => () => {
+    onDirtyChange?.(false);
+  }, [onDirtyChange]);
 
   React.useEffect(() => {
     let active = true;
@@ -272,6 +296,7 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
         sex: data.sex ?? null,
       };
       setUser(updated);
+      infoForm.reset(data);
       onSaved?.(updated);
     } catch (e: any) {
       setSaveError(e instanceof Error ? e.message : t('UsersPage.createDialog.validation.genericError'));
@@ -367,8 +392,8 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
             </FormItem>
           )} />
           {userId
-            ? <PatientGroupsField patientId={userId} />
-            : <PatientGroupsField value={pendingGroupIds} onChange={setPendingGroupIds} />}
+            ? <PatientGroupsField patientId={userId} onDirtyChange={setGroupsDirty} />
+            : <PatientGroupsField value={pendingGroupIds} onChange={setPendingGroupIds} onDirtyChange={setGroupsDirty} />}
           <FormField control={infoForm.control} name="doctor_id" render={({ field }) => (
             <FormItem>
               <FormLabel>{t('UsersPage.createDialog.doctor')}</FormLabel>
@@ -442,7 +467,12 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
           )} />
         </div>
         {/* Status-bar footer, outside the scroll area */}
-        <div className="flex flex-none justify-end border-t bg-card px-3 py-2">
+        <div className="flex flex-none justify-end gap-2 border-t bg-card px-3 py-2">
+          {showCancelAction && (
+            <DialogCancelButton size="sm" disabled={isSaving}>
+              {t('UsersPage.createDialog.cancel')}
+            </DialogCancelButton>
+          )}
           <Button type="submit" size="sm" disabled={isSaving}>
             {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('UsersPage.notes.saving')}</> : t('UsersPage.notes.save')}
           </Button>

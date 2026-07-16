@@ -16,6 +16,8 @@ interface PatientCreateDialogProps {
   initialName?: string;
   /** Called with the newly created patient (id resolved) after a successful save. */
   onCreated: (user: User) => void;
+  /** Show the guarded Cancel action used when opened from custom calendar mode. */
+  showCancelAction?: boolean;
 }
 
 /**
@@ -23,12 +25,22 @@ interface PatientCreateDialogProps {
  * quick view, in create mode. Used by flows that need a richer form than an
  * inline mini-create (e.g. the calendar's inline appointment draft).
  */
-export function PatientCreateDialog({ open, onOpenChange, initialName, onCreated }: PatientCreateDialogProps) {
+export function PatientCreateDialog({ open, onOpenChange, initialName, onCreated, showCancelAction = false }: PatientCreateDialogProps) {
   const t = useTranslations('UsersPage.createDialog');
+  const [isPatientFormDirty, setIsPatientFormDirty] = React.useState(false);
+
+  React.useEffect(() => {
+    if (open) setIsPatientFormDirty(false);
+  }, [initialName, open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent maxWidth="xl" className="p-0">
+      <DialogContent
+        maxWidth="xl"
+        className="p-0"
+        confirmOnClose={showCancelAction}
+        isDirty={isPatientFormDirty}
+      >
         <DialogHeader className="border-b px-6 py-4">
           <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription>{t('description')}</DialogDescription>
@@ -38,6 +50,8 @@ export function PatientCreateDialog({ open, onOpenChange, initialName, onCreated
           {open && (
             <PatientInfoTab
               initialName={initialName}
+              showCancelAction={showCancelAction}
+              onDirtyChange={setIsPatientFormDirty}
               onSaved={(created) => {
                 onCreated(created);
                 onOpenChange(false);

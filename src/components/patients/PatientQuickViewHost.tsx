@@ -17,21 +17,35 @@ import { usePatientView } from '@/stores/patient-view-store';
  * quick centered dialog with just the patient info form instead of the sheet.
  */
 export function PatientQuickViewHost() {
-  const { isOpen, userId, userName, userEmail, userPhone, initialTab, infoOnly, close } = usePatientView();
+  const { isOpen, userId, userName, userEmail, userPhone, initialTab, infoOnly, showCancelAction, close } = usePatientView();
   const t = useTranslations('AppointmentsPage');
+  const [isPatientFormDirty, setIsPatientFormDirty] = React.useState(false);
+
+  React.useEffect(() => {
+    if (isOpen) setIsPatientFormDirty(false);
+  }, [isOpen, userId]);
 
   if (!userId) return null;
 
   if (infoOnly) {
     return (
       <Dialog open={isOpen} onOpenChange={(o) => { if (!o) close(); }}>
-        <DialogContent maxWidth="xl" className="p-0">
+        <DialogContent
+          maxWidth="xl"
+          className="p-0"
+          confirmOnClose={showCancelAction}
+          isDirty={isPatientFormDirty}
+        >
           <DialogHeader className="border-b px-6 py-4">
             <DialogTitle className="truncate">{userName}</DialogTitle>
             <DialogDescription>{t('contextMenu.patientData')}</DialogDescription>
           </DialogHeader>
           <DialogBody className="flex min-h-0 flex-col overflow-hidden p-0">
-            <PatientInfoTab userId={userId} />
+            <PatientInfoTab
+              userId={userId}
+              showCancelAction={showCancelAction}
+              onDirtyChange={setIsPatientFormDirty}
+            />
           </DialogBody>
         </DialogContent>
       </Dialog>

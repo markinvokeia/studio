@@ -15,6 +15,8 @@ type PatientViewStore = {
   initialTab?: PatientDetailTab;
   /** Show only the "Información" tab content: no tab strip, no quick actions. */
   infoOnly?: boolean;
+  /** Show the guarded Cancel action used by patient forms opened from custom calendar mode. */
+  showCancelAction?: boolean;
   open: (patient: {
     userId: string;
     userName: string;
@@ -22,6 +24,7 @@ type PatientViewStore = {
     userPhone?: string;
     initialTab?: PatientDetailTab;
     infoOnly?: boolean;
+    showCancelAction?: boolean;
   }) => void;
   close: () => void;
 };
@@ -34,7 +37,24 @@ export const usePatientView = create<PatientViewStore>((set) => ({
   userPhone: undefined,
   initialTab: undefined,
   infoOnly: false,
-  open: ({ userId, userName, userEmail, userPhone, initialTab, infoOnly }) =>
-    set({ isOpen: true, userId, userName, userEmail, userPhone, initialTab, infoOnly: infoOnly ?? false }),
-  close: () => set({ isOpen: false, userId: null, userName: '', initialTab: undefined, infoOnly: false }),
+  showCancelAction: false,
+  open: ({ userId, userName, userEmail, userPhone, initialTab, infoOnly, showCancelAction }) =>
+    set({
+      isOpen: true,
+      userId,
+      userName,
+      userEmail,
+      userPhone,
+      initialTab,
+      infoOnly: infoOnly ?? false,
+      showCancelAction: showCancelAction ?? false,
+    }),
+  close: () => set({
+    isOpen: false,
+    userId: null,
+    userName: '',
+    initialTab: undefined,
+    infoOnly: false,
+    showCancelAction: false,
+  }),
 }));

@@ -125,6 +125,42 @@ interface NotifActCallbacks {
     onInvoice: (patientId: string, patientName: string, items?: SessionPreloadedService[], notifId?: string) => void | Promise<void>;
 }
 
+interface InlineAppointmentDraftState {
+    date: Date;
+    context?: { groupBy: 'doctor' | 'calendar' | 'sede'; value: string };
+    durationMin: number;
+    patient: UserType | null;
+    services: Service[];
+    doctor: UserType | null;
+    calendar: CalendarType | null;
+    notes: string;
+    color?: string;
+    colorTouched?: boolean;
+    /** Set when the inline card is editing an existing appointment (vs creating). */
+    editing?: Appointment | null;
+    /** When true, saving reschedules instead of updating the original appointment. */
+    rescheduling?: boolean;
+    /** Stable signature used to detect changes made after the inline window opened. */
+    initialSignature: string;
+}
+
+function getInlineDraftSignature(draft: Omit<InlineAppointmentDraftState, 'initialSignature'>): string {
+    return JSON.stringify({
+        date: draft.date.getTime(),
+        durationMin: draft.durationMin,
+        patientId: draft.patient?.id ? String(draft.patient.id) : '',
+        serviceIds: draft.services.map((service) => String(service.id)),
+        doctorId: draft.doctor?.id ? String(draft.doctor.id) : '',
+        calendarId: draft.calendar?.id ? String(draft.calendar.id) : '',
+        notes: draft.notes,
+        color: draft.color ?? '',
+    });
+}
+
+function createInlineDraftState(draft: Omit<InlineAppointmentDraftState, 'initialSignature'>): InlineAppointmentDraftState {
+    return { ...draft, initialSignature: getInlineDraftSignature(draft) };
+}
+
 function NotificationActDeepLink({ onQuote, onSchedule, onInvoice }: NotifActCallbacks) {
     const searchParams = useSearchParams();
     // Keep callbacks in a ref so they don't need to be listed as deps.
@@ -546,6 +582,7 @@ export default function AppointmentsPage() {
     const tPanel = useTranslations('AppointmentPanel');
     const tInline = useTranslations('AppointmentsPage.inlineCreate');
     const tGaps = useTranslations('Calendar.gaps');
+    const tConfirmClose = useTranslations('ConfirmCloseDialog');
     const locale = useLocale();
     const gapsDateLocale = locale === 'es' ? es : enUS;
 
@@ -1005,7 +1042,7 @@ export default function AppointmentsPage() {
         if (isCustomMode) {
             const calId = personalizedCalendarId ?? firstVisibleCalendarId ?? null;
             const calendar = calId ? (calendars.find((c) => String(c.id) === String(calId)) ?? null) : null;
-            setInlineDraft({
+            setInlineDraft(createInlineDraftState({
                 date: new Date(),
                 context: calId ? { groupBy: 'calendar', value: String(calId) } : undefined,
                 durationMin: slotDuration,
@@ -1015,7 +1052,7 @@ export default function AppointmentsPage() {
                 calendar,
                 notes: '',
                 ...getInitialDraftColor(calendar),
-            });
+            }));
             return;
         }
         setIsReschedulingMode(false);
@@ -1083,24 +1120,9 @@ export default function AppointmentsPage() {
     }, [doctors, calendars]);
 
     // ── In-canvas (inline) appointment creation ─────────────────────────────
-    const [inlineDraft, setInlineDraft] = React.useState<{
-        date: Date;
-        context?: { groupBy: 'doctor' | 'calendar' | 'sede'; value: string };
-        durationMin: number;
-        patient: UserType | null;
-        services: Service[];
-        doctor: UserType | null;
-        calendar: CalendarType | null;
-        notes: string;
-        color?: string;
-        colorTouched?: boolean;
-        /** Set when the inline card is editing an existing appointment (vs creating). */
-        editing?: Appointment | null;
-        /** When true (with `editing` set), saving reschedules (cancel old + create new)
-         *  instead of updating in place. Used by custom mode's reschedule flow. */
-        rescheduling?: boolean;
-    } | null>(null);
+    const [inlineDraft, setInlineDraft] = React.useState<InlineAppointmentDraftState | null>(null);
     const [isSavingInline, setIsSavingInline] = React.useState(false);
+    const [isInlineDiscardConfirmOpen, setIsInlineDiscardConfirmOpen] = React.useState(false);
     const [inlineDebt, setInlineDebt] = React.useState<{ currency: string; amount: number }[]>([]);
     const [inlineCancelledCount, setInlineCancelledCount] = React.useState(0);
     // "New patient" full-form dialog opened from the inline draft's patient picker.
@@ -1265,7 +1287,27 @@ export default function AppointmentsPage() {
         }
     }, [inlineDraft, toast, tToasts, rescheduleAppointment, user?.id, calendars, isDateTimeBlocked]);
 
-    const renderInlineDraft = React.useCallback(() => {
+    const isInlineDraftDirty = (
+        inlineDraft
+            ? getInlineDraftSignature(inlineDraft) !== inlineDraft.initialSignature
+            : false
+    );
+
+    const closeInlineDraft = () => {
+        setIsInlineDiscardConfirmOpen(false);
+        setInlineDraft(null);
+    };
+
+    const requestInlineDraftClose = () => {
+        if (!inlineDraft || isSavingInline) return;
+        if (isInlineDraftDirty) {
+            setIsInlineDiscardConfirmOpen(true);
+            return;
+        }
+        closeInlineDraft();
+    };
+
+    const renderInlineDraft = () => {
         if (!inlineDraft) return null;
         const draftStart = inlineDraft.date.getTime();
         const draftEnd = addMinutes(inlineDraft.date, inlineDraft.durationMin || 30).getTime();
@@ -1332,7 +1374,7 @@ export default function AppointmentsPage() {
                 onViewStatement={inlineDraft.patient ? () => openAccountStatement(inlineDraft.patient!.id, inlineDraft.patient!.name) : undefined}
                 isSaving={isSavingInline}
                 onSave={handleSaveInlineDraft}
-                onCancel={() => setInlineDraft(null)}
+                onCancel={requestInlineDraftClose}
                 accentColor={accentColor}
                 canCreatePatient={canCreateInlinePatient}
                 canEditPatient={canEditInlinePatient}
@@ -1344,26 +1386,35 @@ export default function AppointmentsPage() {
                     userPhone: inlineDraft.patient!.phone_number || undefined,
                     initialTab: 'info',
                     infoOnly: true,
+                    showCancelAction: calendarMode === 'custom',
                 }) : undefined}
                 title={isRescheduling ? tReschedule('dialogTitle') : isEditing ? tInline('editTitle') : undefined}
                 saveLabel={isRescheduling ? tReschedule('submit') : isEditing ? tInline('update') : undefined}
             />
         );
-    }, [inlineDraft, doctors, calendars, appointments, inlineDebt, inlineCancelledCount, isSavingInline, handleSaveInlineDraft, openAccountStatement, openPatientView, canCreateInlinePatient, canEditInlinePatient, calendarMode, slotDuration, tInline, tReschedule, setInlineCreatePatient]);
+    };
 
-    // Esc closes the inline draft only when it is still empty (untouched) — no
-    // patient, no services and no notes — so accidental opens dismiss without
-    // losing any data the user has entered.
+    // Esc follows the same guarded close path as Cancel and X. Radix layers get
+    // first refusal so an open picker or nested dialog closes before the draft.
     React.useEffect(() => {
         if (!inlineDraft) return;
         const onKeyDown = (e: KeyboardEvent) => {
-            if (e.key !== 'Escape' || isSavingInline) return;
-            const isEmpty = !inlineDraft.patient && inlineDraft.services.length === 0 && !inlineDraft.notes.trim();
-            if (isEmpty) setInlineDraft(null);
+            if (e.key !== 'Escape' || e.defaultPrevented || isSavingInline || isInlineDiscardConfirmOpen) return;
+            const openLayer = document.querySelector('[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"]');
+            if (openLayer) return;
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            if (isInlineDraftDirty) {
+                // Open after the Escape event finishes so the newly mounted
+                // AlertDialog cannot consume the same key press and close itself.
+                window.setTimeout(() => setIsInlineDiscardConfirmOpen(true), 0);
+            } else {
+                setInlineDraft(null);
+            }
         };
         window.addEventListener('keydown', onKeyDown);
         return () => window.removeEventListener('keydown', onKeyDown);
-    }, [inlineDraft, isSavingInline]);
+    }, [inlineDraft, isInlineDiscardConfirmOpen, isInlineDraftDirty, isSavingInline]);
 
     // Left-click on an empty slot → the centered inline draft in custom mode.
     // Outside custom mode, the saved inline preference still applies only to time grids.
@@ -1375,7 +1426,7 @@ export default function AppointmentsPage() {
             const draftCalendarId = context?.groupBy === 'calendar' ? context.value : customCalendarId;
             const draftCalendar = draftCalendarId ? (calendars.find((c) => String(c.id) === String(draftCalendarId)) ?? null) : null;
             const draftContext = context ?? (draftCalendarId ? { groupBy: 'calendar' as const, value: String(draftCalendarId) } : undefined);
-            setInlineDraft({ date, context: draftContext, durationMin: slotDuration, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '', ...getInitialDraftColor(draftCalendar) });
+            setInlineDraft(createInlineDraftState({ date, context: draftContext, durationMin: slotDuration, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '', ...getInitialDraftColor(draftCalendar) }));
             return;
         }
         prepareSlot(date, context);
@@ -1417,7 +1468,7 @@ export default function AppointmentsPage() {
                 : groupBy === 'calendar'
                     ? { groupBy: 'calendar' as const, value: String(appointment.calendar_source_id) }
                     : undefined;
-        setInlineDraft({
+        setInlineDraft(createInlineDraftState({
             date: start,
             context,
             durationMin,
@@ -1430,7 +1481,7 @@ export default function AppointmentsPage() {
             colorTouched: true,
             editing: appointment,
             rescheduling,
-        });
+        }));
         return true;
     }, [calendarSettings?.inline_appointment_creation, currentView, doctors, calendars, groupBy, calendarMode, isCustomMode]);
 
@@ -2725,7 +2776,7 @@ export default function AppointmentsPage() {
             const draftCalendarId = context?.groupBy === 'calendar' ? context.value : customCalendarId;
             const draftCalendar = draftCalendarId ? (calendars.find((c) => String(c.id) === String(draftCalendarId)) ?? null) : null;
             const draftContext = context ?? (draftCalendarId ? { groupBy: 'calendar' as const, value: String(draftCalendarId) } : undefined);
-            setInlineDraft({ date: gap.start, context: draftContext, durationMin: slotDuration, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '', ...getInitialDraftColor(draftCalendar) });
+            setInlineDraft(createInlineDraftState({ date: gap.start, context: draftContext, durationMin: slotDuration, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '', ...getInitialDraftColor(draftCalendar) }));
             setGapsActive(false);
             setSelectedGap(null);
             return;
@@ -3138,7 +3189,7 @@ export default function AppointmentsPage() {
 
         // ── "custom" mode layout ──────────────────────────────────────────────
         // Patient submenu first, then the appointment statuses, then edit/delete,
-        // then the reassignment actions (reschedule / doctor / room).
+        // then color and doctor/room reassignment actions.
         if (calendarMode === 'custom') {
             return (
                 <>
@@ -3192,6 +3243,7 @@ export default function AppointmentsPage() {
                                     userPhone: appointment.patientPhone || undefined,
                                     initialTab: 'info',
                                     infoOnly: true,
+                                    showCancelAction: true,
                                 })}
                                 className="flex items-center gap-2 cursor-pointer"
                             >
@@ -3237,7 +3289,6 @@ export default function AppointmentsPage() {
                             {colorSwatchGrid}
                         </ContextMenuSubContent>
                     </ContextMenuSub>
-                    {rescheduleItem}
                     {doctorSubmenu}
                     {calendarSubmenu}
                 </>
@@ -4193,6 +4244,7 @@ export default function AppointmentsPage() {
                 open={inlineCreatePatient.open}
                 onOpenChange={(o) => setInlineCreatePatient((s) => ({ ...s, open: o }))}
                 initialName={inlineCreatePatient.initialName}
+                showCancelAction={isCustomMode}
                 onCreated={(created) => {
                     setInlineDraft((d) => {
                         if (!d) return d;
@@ -4204,6 +4256,32 @@ export default function AppointmentsPage() {
                     });
                 }}
             />
+            <AlertDialog
+                open={isInlineDiscardConfirmOpen}
+                onOpenChange={(open) => {
+                    // Closing is explicit so the Escape that opened this guard
+                    // cannot also dismiss it in the same keyboard interaction.
+                    if (open) setIsInlineDiscardConfirmOpen(true);
+                }}
+            >
+                <AlertDialogContent onEscapeKeyDown={(event) => event.preventDefault()}>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{tConfirmClose('title')}</AlertDialogTitle>
+                    </AlertDialogHeader>
+                    <AlertDialogDescription>{tConfirmClose('description')}</AlertDialogDescription>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setIsInlineDiscardConfirmOpen(false)}>
+                            {tConfirmClose('cancel')}
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={closeInlineDraft}
+                        >
+                            {tConfirmClose('confirm')}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
             {inlineFutureConfirm && (
                 <FutureAppointmentsConfirmDialog
                     open={!!inlineFutureConfirm}

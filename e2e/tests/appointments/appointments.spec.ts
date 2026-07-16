@@ -38,6 +38,15 @@ const T = {
     save: 'Guardar',
   },
   editAppointment: 'Editar cita',
+  rescheduleAppointment: 'Reagendar',
+  patientData: 'Datos del paciente',
+  patientName: 'Paciente Contexto',
+  cancel: 'Cancelar',
+  discardChanges: 'Descartar cambios',
+  keepEditing: 'Seguir editando',
+  addPatient: 'Adicionar usuario',
+  editPatient: 'Editar usuario',
+  createPatient: 'Crear Nuevo Paciente',
   panelTabs: {
     info: 'Información',
     patient: 'Paciente',
@@ -1304,6 +1313,146 @@ test.describe('Citas', () => {
       expect(count).toBeGreaterThanOrEqual(11);
 
       await page.keyboard.press('Escape');
+    });
+
+    test('modo custom protege el cierre de pacientes y de la edición inline', async ({ page }, testInfo) => {
+      test.skip(testInfo.project.name !== 'chromium', 'La cobertura desktop evita duplicar este flujo en mobile');
+
+      await page.route(/\/calendar_settings\/search(?:\?.*)?$/, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            default_view: 'day',
+            grouped_by: 'none',
+            check_availability: false,
+            filter_doctors_by_service: false,
+            block_unavailable: false,
+            hour_height: 96,
+            slot_duration: 15,
+            event_label_format: 'time_patient_service',
+            default_sede: '',
+            mode: 'custom',
+          }),
+        });
+      });
+      await page.route(/\/calendars(?:\?.*)?$/, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify([{
+            id: 'custom-calendar-e2e',
+            name: 'Agenda E2E',
+            is_active: true,
+            color: '#7c3aed',
+          }]),
+        });
+      });
+      await page.route(/\/users_appointments(?:\?.*)?$/, async (route) => {
+        const start = new URL(route.request().url()).searchParams.get('startingDateAndTime');
+        const day = start?.slice(0, 10) ?? '2026-01-01';
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify([{
+            id: 'custom-context-menu-appointment',
+            patient_id: 'custom-context-patient',
+            patient_name: T.patientName,
+            doctor_id: '',
+            summary: 'Control',
+            start_time: `${day}T10:00:00`,
+            end_time: `${day}T10:30:00`,
+            status: 'scheduled',
+            calendar_source_id: 'custom-calendar-e2e',
+          }]),
+        });
+      });
+      await page.route(/\/filter_users(?:\?.*)?$/, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify([{
+            data: [{
+              user_id: 'custom-context-patient',
+              name: T.patientName,
+              email: 'paciente-contexto@example.com',
+              phone_number: '099111222',
+              is_active: true,
+            }],
+          }]),
+        });
+      });
+      await page.route(/\/mutual-societies(?:\?.*)?$/, async (route) => {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+      });
+      await page.route(/\/grupos_paciente(?:\?.*)?$/, async (route) => {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+      });
+      await page.route(/\/paciente\/grupos(?:\?.*)?$/, async (route) => {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+      });
+
+      await page.reload();
+      await page.getByRole('button', { name: T.today }).waitFor({ state: 'visible', timeout: 30_000 });
+
+      const appointment = page.getByTestId('calendar-day-event').filter({ hasText: T.patientName }).first();
+      await expect(appointment).toBeVisible({ timeout: 10_000 });
+      await appointment.click({ button: 'right' });
+
+      await expect(page.getByRole('menuitem', { name: T.rescheduleAppointment })).toHaveCount(0);
+      const patientSubmenu = page.getByRole('menuitem', { name: T.patientName });
+      await patientSubmenu.hover();
+      await page.getByRole('menuitem', { name: T.patientData }).click();
+
+      const patientDialog = page.getByRole('dialog').filter({ hasText: T.patientData });
+      await expect(patientDialog).toBeVisible({ timeout: 10_000 });
+      const cancelButton = patientDialog.getByRole('button', { name: T.cancel, exact: true });
+      await expect(cancelButton).toBeVisible();
+
+      const nameInput = patientDialog.getByRole('textbox', { name: 'Nombre', exact: true });
+      await nameInput.fill('Paciente con cambios');
+      await cancelButton.click();
+
+      const confirmDialog = page.getByRole('alertdialog');
+      await expect(confirmDialog.getByText(`¿${T.discardChanges}?`)).toBeVisible();
+      await confirmDialog.getByRole('button', { name: T.keepEditing }).click();
+      await expect(patientDialog).toBeVisible();
+      await expect(nameInput).toHaveValue('Paciente con cambios');
+
+      await cancelButton.click();
+      await confirmDialog.getByRole('button', { name: T.discardChanges }).click();
+      await expect(patientDialog).not.toBeVisible();
+
+      await appointment.dblclick();
+      const inlineDraft = page.getByTestId('calendar-inline-draft-overlay');
+      await expect(inlineDraft).toBeVisible({ timeout: 5_000 });
+
+      await inlineDraft.getByTitle(T.editPatient).click();
+      const editPatientDialog = page.getByRole('dialog').filter({ hasText: T.patientData });
+      await expect(editPatientDialog.getByRole('button', { name: T.cancel, exact: true })).toBeVisible();
+      await editPatientDialog.getByRole('button', { name: T.cancel, exact: true }).click();
+      await expect(editPatientDialog).not.toBeVisible();
+
+      await inlineDraft.getByTitle(T.addPatient).click();
+      const createPatientDialog = page.getByRole('dialog', { name: T.createPatient });
+      await expect(createPatientDialog.getByRole('button', { name: T.cancel, exact: true })).toBeVisible();
+      await createPatientDialog.getByRole('button', { name: T.cancel, exact: true }).click();
+      await expect(createPatientDialog).not.toBeVisible();
+
+      // Sin cambios, Escape debe cerrar directamente la edición inline.
+      await page.keyboard.press('Escape');
+      await expect(inlineDraft).not.toBeVisible();
+
+      await appointment.dblclick();
+      await expect(inlineDraft).toBeVisible({ timeout: 5_000 });
+      await inlineDraft.locator('textarea').fill('Cambio pendiente en la cita');
+
+      // Cancelar y X comparten el mismo callback protegido; comprobamos el
+      // descarte desde Cancelar y dejamos Escape limpio cubierto arriba.
+      await inlineDraft.getByRole('button', { name: T.cancel, exact: true }).last().click();
+      await expect(confirmDialog.getByText(`¿${T.discardChanges}?`)).toBeVisible();
+      await confirmDialog.getByRole('button', { name: T.discardChanges }).click();
+      await expect(inlineDraft).not.toBeVisible();
     });
 
     test('en modo custom sólo el doble clic abre la edición inline de una cita', async ({ page }) => {

@@ -24,6 +24,8 @@ interface PatientGroupsFieldProps {
     value?: string[];
     /** Deferred mode: called with the selected group ids on every change. */
     onChange?: (groupIds: string[]) => void;
+    /** Reports whether the local group selection differs from its saved baseline. */
+    onDirtyChange?: (isDirty: boolean) => void;
 }
 
 type GroupOption = { id: string; name: string };
@@ -78,7 +80,7 @@ export async function savePatientGroups(patientId: string, groupIds: string[]): 
     if (error) throw new Error(typeof error === 'string' ? error : 'Failed to save patient groups');
 }
 
-export function PatientGroupsField({ patientId, value, onChange }: PatientGroupsFieldProps) {
+export function PatientGroupsField({ patientId, value, onChange, onDirtyChange }: PatientGroupsFieldProps) {
     const t = useTranslations('UsersPage.patientGroups');
     const { toast } = useToast();
     const { hasPermission } = usePermissions();
@@ -102,7 +104,7 @@ export function PatientGroupsField({ patientId, value, onChange }: PatientGroups
                 .then((all) => {
                     if (cancelled) return;
                     setSelectedIds(value ?? []);
-                    setInitialIds([]);
+                    setInitialIds(value ?? []);
                     setGroups(all.sort((a, b) => a.name.localeCompare(b.name)));
                 })
                 .finally(() => { if (!cancelled) setIsLoading(false); });
@@ -129,6 +131,14 @@ export function PatientGroupsField({ patientId, value, onChange }: PatientGroups
         const initialSet = new Set(initialIds);
         return selectedIds.some((id) => !initialSet.has(id));
     }, [selectedIds, initialIds]);
+
+    React.useEffect(() => {
+        onDirtyChange?.(isDirty);
+    }, [isDirty, onDirtyChange]);
+
+    React.useEffect(() => () => {
+        onDirtyChange?.(false);
+    }, [onDirtyChange]);
 
     const toggleGroup = (id: string) => {
         const next = selectedIds.includes(id)
