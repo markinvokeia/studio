@@ -1552,12 +1552,15 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
 
   const handleManualRefresh = React.useCallback(() => { void load(true); }, [load]);
 
-  // Data currencies plus the clinic's configured default, even if this patient has no rows
-  // in it yet — otherwise defaulting the tab to it (see `load` above) could pick a currency
-  // the toggle itself doesn't offer, stranding the view on an empty tab with no way out.
+  // Both supported currencies are always offered in the toggle, regardless of whether this
+  // patient has rows in either — the filter must stay usable (and default correctly, see
+  // `load` above) even for a patient with no records yet.
   const currencies = React.useMemo(() => {
-    const keys = Object.keys(ledgerByCurrency);
-    return clinicInfo?.currency && !keys.includes(clinicInfo.currency) ? [...keys, clinicInfo.currency] : keys;
+    const keys = new Set(Object.keys(ledgerByCurrency));
+    keys.add('UYU');
+    keys.add('USD');
+    if (clinicInfo?.currency) keys.add(clinicInfo.currency);
+    return Array.from(keys);
   }, [ledgerByCurrency, clinicInfo]);
   const rows = React.useMemo(
     () => (currency ? ledgerByCurrency[currency] || [] : []),
