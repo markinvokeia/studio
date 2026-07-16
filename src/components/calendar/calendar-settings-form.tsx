@@ -147,8 +147,8 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
 
   const viewOptions = ['day', '2_days', '3_days', 'week', 'month', 'agenda'];
   const groupOptions = ['none', 'doctor', 'calendar'];
-  // Custom mode forces calendar grouping (one agenda at a time), a single sede scope
-  // and the default event label — so those selectors are hidden.
+  // Custom mode forces calendar grouping (one agenda at a time) and the default
+  // event label, so only those selectors are hidden. Sede remains configurable.
   const isCustomMode = (settings.mode ?? DEFAULT_CALENDAR_MODE) === 'custom';
 
   return (
@@ -262,7 +262,7 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
           </Select>
         </div>
 
-        {sedes.length > 0 && !isCustomMode && (
+        {sedes.length > 0 && (
           <div className="space-y-1.5">
             <SettingHeader icon={Building2} label={t('sede')} help={t('help.sede')} htmlFor="default-sede" />
             <Select
