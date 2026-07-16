@@ -278,7 +278,8 @@
     "placeholder": "Search patient by name or phone…",
     "searching": "Searching…",
     "noResults": "No patients found.",
-    "hint": "Type to search for a patient."
+    "hint": "Type to search for a patient.",
+    "createPatient": "Create patient {name}"
   },
   "ConfirmCloseDialog": {
     "title": "Discard changes?",

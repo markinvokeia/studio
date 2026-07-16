@@ -278,7 +278,8 @@
     "placeholder": "Buscar paciente por nombre o teléfono…",
     "searching": "Buscando…",
     "noResults": "No se encontraron pacientes.",
-    "hint": "Escribe para buscar un paciente."
+    "hint": "Escribe para buscar un paciente.",
+    "createPatient": "Crear paciente {name}"
   },
   "ConfirmCloseDialog": {
     "title": "¿Descartar cambios?",
