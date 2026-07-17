@@ -3,6 +3,7 @@ import * as z from 'zod';
 
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
+import { DEFAULT_PHONE_COUNTRY } from '@/lib/countries';
 import type { MutualSociety, User } from '@/lib/types';
 
 // ── Patient form schema ──────────────────────────────────────────────────────
@@ -15,7 +16,7 @@ export const userFormSchema = (t: (key: string) => string) => z.object({
   }, { message: t('UsersPage.createDialog.validation.emailInvalid') }),
   phone: z.string().optional().refine((val) => {
     if (!val || val.trim() === '') return true;
-    return isValidPhoneNumber(val);
+    return isValidPhoneNumber(val, DEFAULT_PHONE_COUNTRY);
   }, { message: t('UsersPage.createDialog.validation.phoneInvalid') }),
   identity_document: z.string()
     .regex(/^\d*$/, { message: t('UsersPage.createDialog.validation.identityInvalid') })

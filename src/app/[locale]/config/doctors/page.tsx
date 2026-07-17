@@ -33,6 +33,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Calendar, User, UserRole } from '@/lib/types';
+import { DEFAULT_PHONE_COUNTRY } from '@/lib/countries';
 import api from '@/services/api';
 import { useLicenseStore } from '@/stores/license-store';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -61,7 +62,7 @@ const doctorFormSchema = (t: (key: string) => string) => z.object({
   }, { message: t('DoctorsPage.createDialog.validation.emailInvalid') }),
   phone: z.string().optional().refine(val => {
     if (!val || val.trim() === '') return true;
-    return isValidPhoneNumber(val);
+    return isValidPhoneNumber(val, DEFAULT_PHONE_COUNTRY);
   }, { message: t('DoctorsPage.createDialog.validation.phoneInvalid') }),
   identity_document: z.string()
     .regex(/^\d*$/, { message: t('DoctorsPage.createDialog.validation.identityInvalid') })

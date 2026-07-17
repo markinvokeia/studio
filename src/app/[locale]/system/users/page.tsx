@@ -32,6 +32,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Role, User, UserRole, UserRoleAssignment } from '@/lib/types';
+import { DEFAULT_PHONE_COUNTRY } from '@/lib/countries';
 import { api } from '@/services/api';
 import { extractCreatedUserId, sendFirstTimePasswordToken } from '@/services/users';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -57,7 +58,7 @@ const userFormSchema = (t: (key: string) => string) => z.object({
   }, { message: t('SystemUsersPage.createDialog.validation.emailInvalid') }),
   phone: z.string().optional().refine(val => {
     if (!val || val.trim() === '') return true;
-    return isValidPhoneNumber(val);
+    return isValidPhoneNumber(val, DEFAULT_PHONE_COUNTRY);
   }, { message: t('SystemUsersPage.createDialog.validation.phoneInvalid') }),
   identity_document: z.string()
     .regex(/^\d*$/, { message: t('SystemUsersPage.createDialog.validation.identityInvalid') })

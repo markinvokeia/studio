@@ -6,6 +6,9 @@ export type Country = {
   label: string;
 };
 
+/** Country used to interpret phone numbers that lack a leading `+` (legacy data, default UI selection). */
+export const DEFAULT_PHONE_COUNTRY: CountryCode = 'UY';
+
 export const countries: Country[] = [
     { "value": "AF", "label": "Afghanistan" },
     { "value": "AL", "label": "Albania" },

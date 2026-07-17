@@ -39,6 +39,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Role, User, UserRole, UserRoleAssignment } from '@/lib/types';
+import { DEFAULT_PHONE_COUNTRY } from '@/lib/countries';
 import { api } from '@/services/api';
 import { extractCreatedUserId, sendFirstTimePasswordToken } from '@/services/users';
 import { useCheckFirstPassword } from '@/hooks/use-check-first-password';
@@ -109,7 +110,7 @@ const staffFormSchema = (t: (key: string) => string) =>
         .refine(
           (val) => {
             if (!val || val.trim() === '') return true;
-            return isValidPhoneNumber(val);
+            return isValidPhoneNumber(val, DEFAULT_PHONE_COUNTRY);
           },
           { message: t('SystemUsersPage.createDialog.validation.phoneInvalid') },
         ),
@@ -158,7 +159,7 @@ const detailFormSchema = (t: (key: string) => string) =>
         .refine(
           (val) => {
             if (!val || val.trim() === '') return true;
-            return isValidPhoneNumber(val);
+            return isValidPhoneNumber(val, DEFAULT_PHONE_COUNTRY);
           },
           { message: t('SystemUsersPage.createDialog.validation.phoneInvalid') },
         ),

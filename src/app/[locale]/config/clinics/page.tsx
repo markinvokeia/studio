@@ -19,6 +19,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Clinic, Sede } from '@/lib/types';
+import { DEFAULT_PHONE_COUNTRY } from '@/lib/countries';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { isValidPhoneNumber } from 'libphonenumber-js';
@@ -216,7 +217,7 @@ export default function ClinicsPage() {
     const handleSaveChanges = async () => {
         if (!clinic) return;
         const phone = clinic.phone_number?.trim();
-        if (phone && !isValidPhoneNumber(phone)) { setPhoneError(tc('validation.phoneInvalid')); return; }
+        if (phone && !isValidPhoneNumber(phone, DEFAULT_PHONE_COUNTRY)) { setPhoneError(tc('validation.phoneInvalid')); return; }
         setPhoneError(null);
         setIsSaving(true);
         const formData = new FormData();

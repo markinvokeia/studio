@@ -53,6 +53,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { User, UserFinancial } from '@/lib/types';
 import { cn, isValidString } from '@/lib/utils';
+import { DEFAULT_PHONE_COUNTRY } from '@/lib/countries';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
@@ -79,11 +80,11 @@ const providerFormSchema = (t: (key: string) => string) => z.object({
   }, { message: t('ProvidersPage.createDialog.validation.emailInvalid') }),
   phone: z.string().optional().refine(val => {
     if (!val || val.trim() === '') return true;
-    return isValidPhoneNumber(val);
+    return isValidPhoneNumber(val, DEFAULT_PHONE_COUNTRY);
   }, { message: t('ProvidersPage.createDialog.validation.phoneInvalid') }),
   alternative_phone: z.string().optional().refine(val => {
     if (!val || val.trim() === '') return true;
-    return isValidPhoneNumber(val);
+    return isValidPhoneNumber(val, DEFAULT_PHONE_COUNTRY);
   }, { message: t('ProvidersPage.createDialog.validation.alternativePhoneInvalid') }),
   identity_document: z.string()
     .min(1, { message: t('ProvidersPage.createDialog.validation.identityRequired') })
