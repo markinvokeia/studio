@@ -47,7 +47,7 @@ const quoteFormSchema = (t: (key: string) => string) => z.object({
     user_id: z.string().min(1, t('validation.userRequired')),
     doctor_id: z.string().optional(),
     total: z.coerce.number().min(0, t('validation.totalPositive')),
-    currency: z.enum(['UYU', 'USD', 'URU']).default('USD'),
+    currency: z.enum(['UYU', 'USD']).default('USD'),
     status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'pending', 'confirmed',
         'Draft', 'Sent', 'Accepted', 'Rejected', 'Pending', 'Confirmed']),
     payment_status: z.enum(['unpaid', 'paid', 'partial', 'partially_paid',

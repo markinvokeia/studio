@@ -70,7 +70,7 @@ const quoteFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
     user_id: z.string().min(1, t('validation.userRequired')),
     total: z.coerce.number().min(0, t('validation.totalPositive')),
-    currency: z.enum(['UYU', 'USD', 'URU']).default('USD'),
+    currency: z.enum(['UYU', 'USD']).default('USD'),
     status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'pending', 'confirmed',
         'Draft', 'Sent', 'Accepted', 'Rejected', 'Pending', 'Confirmed']),
     payment_status: z.enum(['unpaid', 'paid', 'partial', 'partially_paid',
@@ -755,13 +755,12 @@ function QuotesPageContent() {
             'not_invoiced': 'not invoiced', 'partially_invoiced': 'partially invoiced',
             'Pending': 'not invoiced',
         };
-        const currencyMap: Record<string, string> = { 'URU': 'UYU' };
         const quoteCurrency = quote.currency || 'UYU';
         return {
             status: (statusMap[quote.status] || quote.status.toLowerCase()),
             payment_status: (paymentStatusMap[quote.payment_status] || quote.payment_status),
             billing_status: (billingStatusMap[quote.billing_status] || quote.billing_status),
-            currency: (currencyMap[quoteCurrency] || quoteCurrency),
+            currency: quoteCurrency,
         };
     };
 
@@ -1454,7 +1453,7 @@ function QuotesPageContent() {
                                         onTabClick={(tab) => setActiveTab(tab.id)}
                                     />
                                     <div className="flex-1 min-w-0 overflow-y-auto flex flex-col min-h-0 px-0 pt-4 pb-8 sm:py-3 sm:px-3">
-                                            {activeTab === 'items' && (
+                                        {activeTab === 'items' && (
                                             <div className="m-0 h-full flex flex-col">
                                                 <QuoteItemsTable
                                                     items={quoteItems}
@@ -1472,8 +1471,8 @@ function QuotesPageContent() {
                                                     extraButtons={quoteItemToolbarActions}
                                                 />
                                             </div>
-                                            )}
-                                            {/* hidden: orders tab
+                                        )}
+                                        {/* hidden: orders tab
                                             <TabsContent value="orders" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col pr-2">
                                                 <div className="flex-1 min-h-[400px] flex flex-col">
                                                     <div className="flex items-center justify-between mb-2 flex-none">
@@ -1523,7 +1522,7 @@ function QuotesPageContent() {
                                                 )}
                                             </TabsContent>
                                             */}
-                                            {activeTab === 'invoices' && (
+                                        {activeTab === 'invoices' && (
                                             <div className="relative m-0 h-full overflow-hidden flex flex-col">
                                                 <InvoicesTable
                                                     invoices={invoices}
@@ -1586,8 +1585,8 @@ function QuotesPageContent() {
                                                     )}
                                                 </ResizableSheet>
                                             </div>
-                                            )}
-                                            {activeTab === 'payments' && (
+                                        )}
+                                        {activeTab === 'payments' && (
                                             <div className="relative m-0 h-full flex flex-col overflow-hidden">
                                                 <PaymentsTable
                                                     payments={payments}
@@ -1631,8 +1630,8 @@ function QuotesPageContent() {
                                                     )}
                                                 </ResizableSheet>
                                             </div>
-                                            )}
-                                            {activeTab === 'notes' && (
+                                        )}
+                                        {activeTab === 'notes' && (
                                             <div className="m-0 h-full p-4">
                                                 {selectedQuote?.notes ? (
                                                     <div className="whitespace-pre-wrap text-sm">{selectedQuote.notes}</div>
@@ -1640,7 +1639,7 @@ function QuotesPageContent() {
                                                     <p className="text-muted-foreground text-sm">{t('notes.noNotes')}</p>
                                                 )}
                                             </div>
-                                            )}
+                                        )}
                                     </div>
                                 </CardContent>
                             </Card>
@@ -1866,22 +1865,22 @@ function QuotesPageContent() {
                                                                                 isSales={false}
                                                                                 value={field.value}
                                                                                 selectedServiceName={quoteForm.getValues(`items.${index}.service_name`) || undefined}
-                                                                            onValueChange={(serviceId, service) => {
-                                                                                field.onChange(serviceId);
-                                                                                if (service) {
-                                                                                    const quantity = quoteForm.getValues(`items.${index}.quantity`) || 1;
-                                                                                    const servicePrice = Number(service.price);
-                                                                                    quoteForm.setValue(`items.${index}.service_name`, service.name, { shouldDirty: true });
-                                                                                    quoteForm.setValue(`items.${index}.unit_price`, servicePrice, { shouldDirty: true, shouldValidate: true });
-                                                                                    quoteForm.setValue(`items.${index}.total`, servicePrice * quantity, { shouldDirty: true, shouldValidate: true });
-                                                                                }
-                                                                            }}
-                                                                            placeholder={t('itemDialog.searchService') || 'Buscar servicio...'}
-                                                                            triggerText={t('quoteDialog.items.selectService') || 'Seleccionar servicio'}
-                                                                        />
-                                                                        <FormMessage />
-                                                                    </FormItem>
-                                                                )} />
+                                                                                onValueChange={(serviceId, service) => {
+                                                                                    field.onChange(serviceId);
+                                                                                    if (service) {
+                                                                                        const quantity = quoteForm.getValues(`items.${index}.quantity`) || 1;
+                                                                                        const servicePrice = Number(service.price);
+                                                                                        quoteForm.setValue(`items.${index}.service_name`, service.name, { shouldDirty: true });
+                                                                                        quoteForm.setValue(`items.${index}.unit_price`, servicePrice, { shouldDirty: true, shouldValidate: true });
+                                                                                        quoteForm.setValue(`items.${index}.total`, servicePrice * quantity, { shouldDirty: true, shouldValidate: true });
+                                                                                    }
+                                                                                }}
+                                                                                placeholder={t('itemDialog.searchService') || 'Buscar servicio...'}
+                                                                                triggerText={t('quoteDialog.items.selectService') || 'Seleccionar servicio'}
+                                                                            />
+                                                                            <FormMessage />
+                                                                        </FormItem>
+                                                                    )} />
                                                                 </div>
                                                             </td>
                                                             <td className="p-1">

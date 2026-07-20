@@ -75,7 +75,7 @@ const quoteFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
     user_id: z.string().min(1, t('validation.userRequired')),
     total: z.coerce.number().min(0, t('validation.totalPositive')),
-    currency: z.enum(['UYU', 'USD', 'URU']).default('USD'),
+    currency: z.enum(['UYU', 'USD']).default('USD'),
     status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'pending', 'confirmed',
         'Draft', 'Sent', 'Accepted', 'Rejected', 'Pending', 'Confirmed']),
     payment_status: z.enum(['unpaid', 'paid', 'partial', 'partially_paid',
@@ -978,12 +978,11 @@ export default function QuotesPage() {
             'not_invoiced': 'not invoiced', 'partially_invoiced': 'partially invoiced',
             'Pending': 'not invoiced',
         };
-        const currencyMap: Record<string, string> = { 'URU': 'UYU' };
         return {
             status: (statusMap[quote.status] || quote.status.toLowerCase()) as any,
             payment_status: (paymentStatusMap[quote.payment_status] || quote.payment_status) as any,
             billing_status: (billingStatusMap[quote.billing_status] || quote.billing_status) as any,
-            currency: (currencyMap[quote.currency || ''] || quote.currency || 'USD') as any,
+            currency: (quote.currency || 'USD') as any,
         };
     };
 

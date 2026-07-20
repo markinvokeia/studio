@@ -32,7 +32,7 @@ async function getOrders(): Promise<Order[]> {
             quote_doc_no: apiOrder.quote_doc_no || 'N/A',
             user_name: apiOrder.user_name || 'N/A',
             status: apiOrder.status,
-            currency: apiOrder.currency || 'URU',
+            currency: apiOrder.currency || 'UYU',
             notes: apiOrder.notes || '',
             createdAt: apiOrder.createdAt || new Date().toISOString().split('T')[0],
             updatedAt: apiOrder.updatedAt || new Date().toISOString().split('T')[0],
