@@ -7083,6 +7083,41 @@
       "openErrorDescription": "Permite las ventanas emergentes e inténtalo nuevamente."
     }
   },
+  "PatientActionsMenu": {
+    "sendReminder": "Enviar recordatorio"
+  },
+  "WhatsAppTemplateSendDialog": {
+    "title": "Enviar recordatorio por WhatsApp",
+    "description": "Selecciona la plantilla a enviar al paciente.",
+    "missingPhone": "El paciente no tiene un teléfono registrado.",
+    "templateLabel": "Plantilla",
+    "templates": {
+      "birthday": {
+        "label": "Cumpleaños",
+        "description": "Saludo de cumpleaños."
+      },
+      "appointment_reminder": {
+        "label": "Próxima cita",
+        "description": "Recordatorio de la cita seleccionada."
+      },
+      "invoice_due": {
+        "label": "Factura a vencer",
+        "description": "Recordatorio de la factura pendiente más próxima a vencer."
+      }
+    },
+    "appointmentLabel": "Cita",
+    "loadingAppointments": "Buscando próximas citas...",
+    "noAppointments": "Este paciente no tiene citas próximas agendadas.",
+    "cancel": "Cancelar",
+    "send": "Enviar",
+    "sending": "Enviando...",
+    "toast": {
+      "sendSuccessTitle": "Mensaje enviado",
+      "sendSuccessDescription": "El recordatorio se envió correctamente por WhatsApp.",
+      "sendErrorTitle": "Error al enviar el mensaje",
+      "sendErrorDescription": "No se pudo enviar el recordatorio. Inténtalo nuevamente."
+    }
+  },
   "DentalRecord": {
     "title": "Expediente Médico",
     "tab": {

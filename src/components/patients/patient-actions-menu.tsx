@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { CalendarIcon, CheckCircle, ChevronDown, ClipboardList, CreditCard, FileText, Mail, MoreHorizontal, Plus, Receipt, SlidersHorizontal, Smile, Stethoscope, ToggleLeft, Upload, XCircle, Zap } from 'lucide-react';
+import { BellRing, CalendarIcon, CheckCircle, ChevronDown, ClipboardList, CreditCard, FileText, Mail, MoreHorizontal, Plus, Receipt, SlidersHorizontal, Smile, Stethoscope, ToggleLeft, Upload, XCircle, Zap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import {
@@ -44,6 +44,8 @@ export interface PatientActionsMenuProps {
   // More actions
   onEmail: () => void;
   onWhatsApp: () => void;
+  /** Send a YCloud WhatsApp template (birthday/appointment reminder/invoice due). Only shown when the caller has permission and provides a handler. */
+  onSendWhatsAppTemplate?: () => void;
   onToggleDischarge: () => void;
   onToggleActivate: () => void;
   onPreferences: () => void;
@@ -72,6 +74,7 @@ export function PatientActionsMenu({
   onCreateAppointment,
   onEmail,
   onWhatsApp,
+  onSendWhatsAppTemplate,
   onToggleDischarge,
   onToggleActivate,
   onPreferences,
@@ -171,6 +174,11 @@ export function PatientActionsMenu({
                 {hasPhone && (
                   <DropdownMenuItem onClick={onWhatsApp}>
                     <WhatsAppIcon className="h-4 w-4 mr-2" />WhatsApp
+                  </DropdownMenuItem>
+                )}
+                {hasPhone && onSendWhatsAppTemplate && (
+                  <DropdownMenuItem onClick={onSendWhatsAppTemplate}>
+                    <BellRing className="h-4 w-4 mr-2" />{t('PatientActionsMenu.sendReminder')}
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />

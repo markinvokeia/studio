@@ -7103,6 +7103,41 @@
       "openErrorDescription": "Please allow pop-ups and try again."
     }
   },
+  "PatientActionsMenu": {
+    "sendReminder": "Send reminder"
+  },
+  "WhatsAppTemplateSendDialog": {
+    "title": "Send WhatsApp reminder",
+    "description": "Select the template to send to the patient.",
+    "missingPhone": "This patient doesn't have a phone number on file.",
+    "templateLabel": "Template",
+    "templates": {
+      "birthday": {
+        "label": "Birthday",
+        "description": "Birthday greeting."
+      },
+      "appointment_reminder": {
+        "label": "Upcoming appointment",
+        "description": "Reminder for the selected appointment."
+      },
+      "invoice_due": {
+        "label": "Invoice due",
+        "description": "Reminder for the pending invoice closest to its due date."
+      }
+    },
+    "appointmentLabel": "Appointment",
+    "loadingAppointments": "Loading upcoming appointments...",
+    "noAppointments": "This patient has no upcoming appointments scheduled.",
+    "cancel": "Cancel",
+    "send": "Send",
+    "sending": "Sending...",
+    "toast": {
+      "sendSuccessTitle": "Message sent",
+      "sendSuccessDescription": "The WhatsApp reminder was sent successfully.",
+      "sendErrorTitle": "Error sending message",
+      "sendErrorDescription": "Could not send the reminder. Please try again."
+    }
+  },
   "DentalRecord": {
     "title": "Medical Record",
     "tab": {

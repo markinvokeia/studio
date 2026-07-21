@@ -1511,6 +1511,16 @@ export type CommunicationLog = {
   notes?: string;
 };
 
+/** YCloud WhatsApp template codes sendable to a patient from their profile */
+export type WhatsAppTemplateCode = 'birthday' | 'appointment_reminder' | 'invoice_due';
+
+export type WhatsAppTemplateSendPayload = {
+  id: string; // patient id
+  template_code: WhatsAppTemplateCode;
+  /** Required only for 'appointment_reminder' — the appointment whose date/hour/professional fill the template */
+  appointment_id?: string;
+};
+
 export type AlertScheduleRun = {
   id: number;
   run_date: string;

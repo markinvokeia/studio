@@ -45,6 +45,7 @@ export interface FuturePatientAppointment {
   date: string; // yyyy-MM-dd
   time: string; // HH:mm
   room: string; // calendar_name / consultorio
+  doctorName: string;
   start: Date;
 }
 
@@ -95,12 +96,14 @@ export async function fetchFuturePatientAppointments(
         const calendarSourceId = apiAppt.calendar_source_id != null ? String(apiAppt.calendar_source_id) : '';
         const calendar = calendars.find((c) => String(c.id) === calendarSourceId);
         const room = apiAppt.organizer?.displayName || calendar?.name || apiAppt.calendar_name || '';
+        const doctorName = apiAppt.doctor_name || apiAppt.doctorName || apiAppt.doctorname || '';
 
         return {
           id: String(apiAppt.appointment_id || apiAppt.appointmentId || apiAppt.appointmentid || apiAppt.id || ''),
           date: format(start, 'yyyy-MM-dd'),
           time: format(start, 'HH:mm'),
           room,
+          doctorName,
           start,
         };
       })

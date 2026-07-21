@@ -19,6 +19,7 @@ import { DatePickerInput } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { EmailComposerDialog } from '@/components/email-composer-dialog';
 import { WhatsAppComposerDialog } from '@/components/whatsapp-composer-dialog';
+import { WhatsAppTemplateSendDialog } from '@/components/patients/whatsapp-template-send-dialog';
 import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
 import { InvoiceFormDialog } from '@/components/tables/invoices-table';
 import { PrepaidFormDialog } from '@/components/sales/payments/PrepaidFormDialog';
@@ -29,8 +30,10 @@ import { fetchPatientById } from '@/components/patients/patient-form-utils';
 import { fetchReassignCalendars, fetchReassignDoctors } from '@/lib/appointment-reassign';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
+import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import type { Calendar as CalendarType, PatientDischarge, User } from '@/lib/types';
 
 interface PatientQuickActionsProps {
@@ -53,6 +56,8 @@ export function PatientQuickActions({ userId, userName, userEmail, userPhone, on
   const t = useTranslations();
   const { toast } = useToast();
   const { open: openBillingWizard } = useBillingWizard();
+  const { hasPermission } = usePermissions();
+  const canSendWhatsAppTemplate = hasPermission(PATIENTS_PERMISSIONS.SEND_WHATSAPP_TEMPLATE);
 
   const [patient, setPatient] = React.useState<User | null>(null);
   const [currentDischarge, setCurrentDischarge] = React.useState<PatientDischarge | null>(null);
@@ -63,6 +68,7 @@ export function PatientQuickActions({ userId, userName, userEmail, userPhone, on
   const [isAppointmentOpen, setIsAppointmentOpen] = React.useState(false);
   const [isEmailOpen, setIsEmailOpen] = React.useState(false);
   const [isWhatsAppOpen, setIsWhatsAppOpen] = React.useState(false);
+  const [isWhatsAppTemplateOpen, setIsWhatsAppTemplateOpen] = React.useState(false);
   const [isPreferencesOpen, setIsPreferencesOpen] = React.useState(false);
 
   const [isDischargeOpen, setIsDischargeOpen] = React.useState(false);
@@ -168,6 +174,7 @@ export function PatientQuickActions({ userId, userName, userEmail, userPhone, on
         onCreateAppointment={openAppointment}
         onEmail={() => setIsEmailOpen(true)}
         onWhatsApp={() => setIsWhatsAppOpen(true)}
+        onSendWhatsAppTemplate={canSendWhatsAppTemplate ? () => setIsWhatsAppTemplateOpen(true) : undefined}
         onToggleDischarge={currentDischarge ? handleCancelDischarge : () => setIsDischargeOpen(true)}
         onToggleActivate={handleToggleActivate}
         onPreferences={() => setIsPreferencesOpen(true)}
@@ -191,6 +198,15 @@ export function PatientQuickActions({ userId, userName, userEmail, userPhone, on
       )}
       {userPhone && (
         <WhatsAppComposerDialog open={isWhatsAppOpen} onOpenChange={setIsWhatsAppOpen} phone={userPhone} recipientName={userName} />
+      )}
+      {userPhone && (
+        <WhatsAppTemplateSendDialog
+          open={isWhatsAppTemplateOpen}
+          onOpenChange={setIsWhatsAppTemplateOpen}
+          patientId={userId}
+          patientName={userName}
+          patientPhone={userPhone}
+        />
       )}
 
       <Dialog open={isPreferencesOpen} onOpenChange={setIsPreferencesOpen}>

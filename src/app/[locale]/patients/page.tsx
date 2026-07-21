@@ -90,6 +90,7 @@ import { AlertTriangle, CalendarIcon, Check, CheckCircle, ChevronDown, ChevronsU
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import { EmailComposerDialog } from '@/components/email-composer-dialog';
 import { WhatsAppComposerDialog } from '@/components/whatsapp-composer-dialog';
+import { WhatsAppTemplateSendDialog } from '@/components/patients/whatsapp-template-send-dialog';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import * as React from 'react';
@@ -515,6 +516,7 @@ export default function UsersPage() {
   const canCreateNote = hasPermission(PATIENTS_PERMISSIONS.CREATE_NOTE);
   const canUpdateNote = hasPermission(PATIENTS_PERMISSIONS.UPDATE_NOTE);
   const canDeleteNote = hasPermission(PATIENTS_PERMISSIONS.DELETE_NOTE);
+  const canSendWhatsAppTemplate = hasPermission(PATIENTS_PERMISSIONS.SEND_WHATSAPP_TEMPLATE);
 
   const [mutualSocieties, setMutualSocieties] = React.useState<MutualSociety[]>([]);
   const [isLoadingMutualSocieties, setIsLoadingMutualSocieties] = React.useState(false);
@@ -555,6 +557,7 @@ export default function UsersPage() {
   const [isPrepaidDialogOpen, setIsPrepaidDialogOpen] = React.useState(false);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = React.useState(false);
   const [isWhatsAppDialogOpen, setIsWhatsAppDialogOpen] = React.useState(false);
+  const [isWhatsAppTemplateDialogOpen, setIsWhatsAppTemplateDialogOpen] = React.useState(false);
   const [treatmentContactCtx, setTreatmentContactCtx] = React.useState<TreatmentContactContext | null>(null);
   const [isRightExpanded, setIsRightExpanded] = React.useState(false);
   const [dependantContactInfo, setDependantContactInfo] = React.useState<DependantContactInfo | null>(null);
@@ -1408,6 +1411,7 @@ export default function UsersPage() {
                         onCreateAppointment={() => { loadApptData(); setIsAppointmentDialogOpen(true); }}
                         onEmail={() => setIsEmailDialogOpen(true)}
                         onWhatsApp={() => setIsWhatsAppDialogOpen(true)}
+                        onSendWhatsAppTemplate={canSendWhatsAppTemplate ? () => setIsWhatsAppTemplateDialogOpen(true) : undefined}
                         onToggleDischarge={currentDischarge ? handleCancelDischarge : () => setIsDischargeDialogOpen(true)}
                         onToggleActivate={() => handleToggleActivate(selectedUser)}
                         onPreferences={() => setIsPreferencesOpen(true)}
@@ -2011,6 +2015,16 @@ export default function UsersPage() {
           phone={effectivePatientPhone || ''}
           recipientName={selectedUser.name}
           treatmentContext={treatmentContactCtx ?? undefined}
+        />
+      )}
+
+      {selectedUser && (
+        <WhatsAppTemplateSendDialog
+          open={isWhatsAppTemplateDialogOpen}
+          onOpenChange={setIsWhatsAppTemplateDialogOpen}
+          patientId={selectedUser.id}
+          patientName={selectedUser.name}
+          patientPhone={effectivePatientPhone || ''}
         />
       )}
     </>
