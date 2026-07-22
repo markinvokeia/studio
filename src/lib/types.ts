@@ -1424,6 +1424,8 @@ export type AlertRule = {
   auto_send_sms: boolean;
   email_template_id?: string;
   sms_template_id?: string;
+  /** FK to a CommunicationTemplate with type='WHATSAPP' — its `code` is sent as-is as the YCloud template name */
+  whatsapp_template_id?: string;
   is_active: boolean;
   display_config?: AlertDisplayField[];
   ui_display_config?: { fields: AlertDisplayField[] };
@@ -1451,8 +1453,15 @@ export type AlertInstance = {
   updated_at?: string;
 };
 
+/** Business entity a WHATSAPP template's variables are resolved from — see docs/whatsapp-templates-alerts-design.md */
+export type WhatsAppTemplateEntityType = 'patient' | 'appointment' | 'invoice';
+
+/** Maps each variable name as it appears in the Meta/YCloud template to a resolver field key (e.g. "patient.name", "invoice.due_date_formatted") */
+export type WhatsAppVariablesSchema = Record<string, string>;
+
 export type CommunicationTemplate = {
   id?: string;
+  /** For type='WHATSAPP', this is the exact template name approved in Meta/YCloud — not a free internal code */
   code: string;
   name: string;
   type: 'EMAIL' | 'SMS' | 'DOCUMENT' | 'WHATSAPP';
@@ -1460,7 +1469,11 @@ export type CommunicationTemplate = {
   subject?: string;
   body_html?: string;
   body_text?: string;
-  variables_schema?: any;
+  variables_schema?: WhatsAppVariablesSchema | any;
+  /** Only type='WHATSAPP'. Language of the template in Meta/YCloud, e.g. "es" */
+  provider_language?: string;
+  /** Only type='WHATSAPP'. See WhatsAppTemplateEntityType */
+  entity_type?: WhatsAppTemplateEntityType;
   default_sender?: string;
   attachments_config?: any;
   is_active: boolean;
@@ -1511,14 +1524,21 @@ export type CommunicationLog = {
   notes?: string;
 };
 
-/** YCloud WhatsApp template codes sendable to a patient from their profile */
+/** UI-only curated key for the patient-profile "send reminder" dialog — maps to a live CommunicationTemplate.code, see whatsapp-template-send-dialog.tsx */
 export type WhatsAppTemplateCode = 'birthday' | 'appointment_reminder' | 'invoice_due';
 
 export type WhatsAppTemplateSendPayload = {
   id: string; // patient id
-  template_code: WhatsAppTemplateCode;
-  /** Required only for 'appointment_reminder' — the appointment whose date/hour/professional fill the template */
+  /** CommunicationTemplate.code (type='WHATSAPP') — the exact Meta/YCloud template name */
+  template_code: string;
+  /** Backwards-compat alias for reference_table='appointments' + reference_id — prefer reference_table/reference_id */
   appointment_id?: string;
+  /** Business entity the template's variables resolve from, e.g. "appointments" | "invoices" */
+  reference_table?: string;
+  reference_id?: string;
+  /** When sending from an alert: ties the send to alert_actions for audit trail. performed_by is then required. */
+  alert_instance_id?: string;
+  performed_by?: string;
 };
 
 export type AlertScheduleRun = {

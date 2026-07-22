@@ -59,6 +59,7 @@ const ruleFormSchema = (t: (key: string) => string) => z.object({
     auto_send_sms: z.boolean().default(false),
     email_template_id: z.coerce.number().int().optional(),
     sms_template_id: z.coerce.number().int().optional(),
+    whatsapp_template_id: z.coerce.number().int().optional(),
     is_active: z.boolean().default(true),
 });
 
@@ -136,6 +137,16 @@ async function getSmsTemplates(): Promise<any[]> {
     }
 }
 
+async function getWhatsAppTemplates(): Promise<any[]> {
+    try {
+        const response = await api.get(API_ROUTES.SYSTEM.COMMUNICATION_TEMPLATES, { search: '', page: '1', limit: '1000', is_active: 'true', type: 'whatsapp' });
+        return Array.isArray(response) ? response.filter((item: any) => Object.keys(item).length > 0) : (response.data || []);
+    } catch (error) {
+        console.error('Error fetching WhatsApp templates:', error);
+        return [];
+    }
+}
+
 export default function AlertRulesPage() {
     const t = useTranslations('AlertRulesPage');
     const tValidation = useTranslations('AlertRulesPage.validation');
@@ -154,6 +165,7 @@ export default function AlertRulesPage() {
     const [selectedTable, setSelectedTable] = React.useState<string>('');
     const [emailTemplates, setEmailTemplates] = React.useState<any[]>([]);
     const [smsTemplates, setSmsTemplates] = React.useState<any[]>([]);
+    const [whatsappTemplates, setWhatsappTemplates] = React.useState<any[]>([]);
     const [conditions, setConditions] = React.useState<Array<{ id: string, column: string, operator: string, value: string, logic?: 'AND' | 'OR' }>>([]);
     const [displayFields, setDisplayFields] = React.useState<Array<{ id: string, label: string, source_column: string, type: string }>>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -255,12 +267,13 @@ export default function AlertRulesPage() {
     const loadData = React.useCallback(async () => {
         setIsRefreshing(true);
         try {
-            const [fetchedRules, fetchedCategories, fetchedTables, fetchedEmailTemplates, fetchedSmsTemplates] = await Promise.all([
+            const [fetchedRules, fetchedCategories, fetchedTables, fetchedEmailTemplates, fetchedSmsTemplates, fetchedWhatsappTemplates] = await Promise.all([
                 getRules(),
                 getCategories(),
                 getTablesAndColumns(),
                 getEmailTemplates(),
-                getSmsTemplates()
+                getSmsTemplates(),
+                getWhatsAppTemplates()
             ]);
             const mappedRules = fetchedRules.data.map(rule => ({
                 ...rule,
@@ -272,6 +285,7 @@ export default function AlertRulesPage() {
             setTablesAndColumns(fetchedTables);
             setEmailTemplates(fetchedEmailTemplates);
             setSmsTemplates(fetchedSmsTemplates);
+            setWhatsappTemplates(fetchedWhatsappTemplates);
         } catch (error) {
             console.error('Error loading data:', error);
         } finally {
@@ -301,7 +315,7 @@ export default function AlertRulesPage() {
         setSelectedTable('');
         setConditions([]);
         setDisplayFields([]);
-        form.reset({ code: '', name: '', description: '', is_active: true, priority: 'MEDIUM', source_table: '', table_id_field: '', user_id_field: '', recurrence_type: undefined, email_template_id: undefined, sms_template_id: undefined, days_before: 0, days_after: 0 });
+        form.reset({ code: '', name: '', description: '', is_active: true, priority: 'MEDIUM', source_table: '', table_id_field: '', user_id_field: '', recurrence_type: undefined, email_template_id: undefined, sms_template_id: undefined, whatsapp_template_id: undefined, days_before: 0, days_after: 0 });
         setSubmissionError(null);
         setIsDialogOpen(true);
     };
@@ -330,6 +344,7 @@ export default function AlertRulesPage() {
             days_after: rule.days_after ?? 0,
             email_template_id: rule.email_template_id ? parseInt(rule.email_template_id) : undefined,
             sms_template_id: rule.sms_template_id ? parseInt(rule.sms_template_id) : undefined,
+            whatsapp_template_id: rule.whatsapp_template_id ? parseInt(rule.whatsapp_template_id) : undefined,
             user_id_field: (rule as any).user_id_field || '',
         });
         setSubmissionError(null);
@@ -360,6 +375,7 @@ export default function AlertRulesPage() {
             days_after: rule.days_after ?? 0,
             email_template_id: rule.email_template_id ? parseInt(rule.email_template_id) : undefined,
             sms_template_id: rule.sms_template_id ? parseInt(rule.sms_template_id) : undefined,
+            whatsapp_template_id: rule.whatsapp_template_id ? parseInt(rule.whatsapp_template_id) : undefined,
             user_id_field: (rule as any).user_id_field || '',
         });
         setSubmissionError(null);
@@ -428,6 +444,7 @@ export default function AlertRulesPage() {
                 created_by: 1,
                 email_template_id: values.email_template_id ?? null,
                 sms_template_id: values.sms_template_id ?? null,
+                whatsapp_template_id: values.whatsapp_template_id ?? null,
             };
             if (editingRule) {
                 (data as any).id = parseInt(editingRule.id);
@@ -1012,7 +1029,7 @@ export default function AlertRulesPage() {
                                 })}
                             </div>
 
-                            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
                                 <FormField
                                     control={form.control}
                                     name="email_template_id"
@@ -1047,6 +1064,26 @@ export default function AlertRulesPage() {
                                                 </FormControl>
                                                 <SelectContent>
                                                     {smsTemplates.map(tmp => <SelectItem key={tmp.id} value={tmp.id.toString()}>{tmp.name}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="whatsapp_template_id"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('dialog.whatsappTemplate')}</FormLabel>
+                                            <Select onValueChange={(val) => field.onChange(val ? parseInt(val) : undefined)} value={field.value?.toString()}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder={t('dialog.selectWhatsappTemplate')} />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {whatsappTemplates.map(tmp => <SelectItem key={tmp.id} value={tmp.id.toString()}>{tmp.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage />

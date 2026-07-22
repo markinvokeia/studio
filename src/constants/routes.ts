@@ -137,6 +137,8 @@ export const API_ROUTES = {
     PATIENT_DISCHARGE_CANCEL: '/patient/discharge/cancel',
     /** Sends a YCloud WhatsApp template message (birthday, appointment_reminder, invoice_due) to a patient */
     PATIENTS_SEND_WHATSAPP_TEMPLATE: '/patients/send_whatsapp_template',
+    /** Lists WhatsApp templates as returned by YCloud (raw) — used to search/select a template's exact name + language when configuring a CommunicationTemplate */
+    WHATSAPP_TEMPLATES: '/whatsapp-templates',
     CLINIC_UPDATE: '/clinic/update',
     AVAILABILITY_EXCEPTIONS_SEARCH: '/availability_exceptions/search',
     AVAILABILITY_EXCEPTIONS_UPSERT: '/availability_exceptions/upsert',

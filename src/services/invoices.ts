@@ -3,6 +3,41 @@ import { normalizeApiResponse } from '@/lib/api-utils';
 import type { Invoice } from '@/lib/types';
 import { api } from './api';
 
+export interface PendingPatientInvoice {
+    id: string;
+    docNo: string;
+    dueDate: string; // yyyy-MM-dd
+    amount: number;
+    currency: string;
+}
+
+/**
+ * Fetches a patient's unpaid invoices that have a due date set, sorted by due date ascending.
+ * Used to let staff pick which specific invoice a WhatsApp "invoice due" reminder should reference
+ * (see whatsapp-template-send-dialog.tsx — the send flow now always requires a specific invoice id,
+ * it no longer resolves "nearest due invoice" implicitly server-side).
+ */
+export async function fetchPatientDueInvoices(userId: string): Promise<PendingPatientInvoice[]> {
+    if (!userId) return [];
+    try {
+        const data = await api.get(API_ROUTES.USER_INVOICES, { user_id: userId });
+        const rows: any[] = Array.isArray(data) ? data : (data?.invoices || data?.data || []);
+        return rows
+            .filter((row) => (row.type || 'invoice') === 'invoice' && (row.payment_state || row.payment_status) !== 'paid' && row.due_date)
+            .map((row) => ({
+                id: String(row.id),
+                docNo: row.doc_no || '',
+                dueDate: String(row.due_date).slice(0, 10),
+                amount: Number(row.total || 0) - Number(row.paid_amount || 0),
+                currency: row.currency || 'UYU',
+            }))
+            .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+    } catch (error) {
+        console.error('Failed to fetch patient due invoices:', error);
+        return [];
+    }
+}
+
 // Confirmar factura
 export async function confirmInvoice(invoiceId: string): Promise<Invoice> {
     return api.post(API_ROUTES.SALES.INVOICES_CONFIRM, { id: parseInt(invoiceId, 10) }) as Promise<Invoice>;

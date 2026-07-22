@@ -23,6 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 import { fetchFuturePatientAppointments, type FuturePatientAppointment } from '@/services/appointments';
+import { fetchPatientDueInvoices, type PendingPatientInvoice } from '@/services/invoices';
 import type { WhatsAppTemplateCode } from '@/lib/types';
 
 interface WhatsAppTemplateSendDialogProps {
@@ -37,6 +38,14 @@ const TEMPLATE_ICONS: Record<WhatsAppTemplateCode, React.ElementType> = {
   birthday: CakeIcon,
   appointment_reminder: CalendarClock,
   invoice_due: Receipt,
+};
+
+// UI key (stable, used for i18n/icons) -> CommunicationTemplate.code (must match the exact Meta/YCloud template name).
+// "appointment_reminder" the UI concept is named "date_remember" on Meta's side (typo kept as-is — it's the real approved name).
+const API_TEMPLATE_CODE: Record<WhatsAppTemplateCode, string> = {
+  birthday: 'birthday',
+  appointment_reminder: 'date_remember',
+  invoice_due: 'invoice_due',
 };
 
 export function WhatsAppTemplateSendDialog({
@@ -56,6 +65,10 @@ export function WhatsAppTemplateSendDialog({
   const [appointmentsLoaded, setAppointmentsLoaded] = React.useState(false);
   const [isLoadingAppointments, setIsLoadingAppointments] = React.useState(false);
   const [appointmentId, setAppointmentId] = React.useState('');
+  const [invoices, setInvoices] = React.useState<PendingPatientInvoice[]>([]);
+  const [invoicesLoaded, setInvoicesLoaded] = React.useState(false);
+  const [isLoadingInvoices, setIsLoadingInvoices] = React.useState(false);
+  const [invoiceId, setInvoiceId] = React.useState('');
   const [isSending, setIsSending] = React.useState(false);
 
   React.useEffect(() => {
@@ -64,6 +77,9 @@ export function WhatsAppTemplateSendDialog({
       setAppointmentId('');
       setAppointments([]);
       setAppointmentsLoaded(false);
+      setInvoiceId('');
+      setInvoices([]);
+      setInvoicesLoaded(false);
       setIsSending(false);
     }
   }, [open]);
@@ -80,19 +96,39 @@ export function WhatsAppTemplateSendDialog({
       .finally(() => setIsLoadingAppointments(false));
   }, [templateCode, appointmentsLoaded, patientId]);
 
+  React.useEffect(() => {
+    if (templateCode !== 'invoice_due' || invoicesLoaded || !patientId) return;
+    setIsLoadingInvoices(true);
+    fetchPatientDueInvoices(patientId)
+      .then((rows) => {
+        setInvoices(rows);
+        setInvoicesLoaded(true);
+        if (rows.length === 1) setInvoiceId(rows[0].id);
+      })
+      .finally(() => setIsLoadingInvoices(false));
+  }, [templateCode, invoicesLoaded, patientId]);
+
+  const REFERENCE_TABLE: Partial<Record<WhatsAppTemplateCode, string>> = {
+    appointment_reminder: 'appointments',
+    invoice_due: 'invoices',
+  };
+
   const canSend = !!patientPhone
     && !!templateCode
     && (templateCode !== 'appointment_reminder' || !!appointmentId)
+    && (templateCode !== 'invoice_due' || !!invoiceId)
     && !isSending;
 
   const handleSend = async () => {
     if (!canSend || !templateCode) return;
     setIsSending(true);
     try {
+      const referenceId = templateCode === 'appointment_reminder' ? appointmentId : templateCode === 'invoice_due' ? invoiceId : undefined;
       await api.post(API_ROUTES.PATIENTS_SEND_WHATSAPP_TEMPLATE, {
         id: patientId,
-        template_code: templateCode,
-        appointment_id: templateCode === 'appointment_reminder' ? appointmentId : undefined,
+        template_code: API_TEMPLATE_CODE[templateCode],
+        reference_table: referenceId ? REFERENCE_TABLE[templateCode] : undefined,
+        reference_id: referenceId,
       });
       toast({ title: t('toast.sendSuccessTitle'), description: t('toast.sendSuccessDescription') });
       onOpenChange(false);
@@ -180,6 +216,43 @@ export function WhatsAppTemplateSendDialog({
                         </p>
                         <p className="text-xs text-muted-foreground leading-tight">
                           {appt.doctorName}{appt.room ? ` · ${appt.room}` : ''}
+                        </p>
+                      </div>
+                    </label>
+                  ))}
+                </RadioGroup>
+              )}
+            </div>
+          )}
+
+          {templateCode === 'invoice_due' && (
+            <div className="space-y-2">
+              <Label>{t('invoiceLabel')}</Label>
+              {isLoadingInvoices ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {t('loadingInvoices')}
+                </div>
+              ) : invoices.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-2">{t('noInvoices')}</p>
+              ) : (
+                <RadioGroup value={invoiceId} onValueChange={setInvoiceId} className="max-h-56 overflow-y-auto">
+                  {invoices.map((inv) => (
+                    <label
+                      key={inv.id}
+                      htmlFor={`wa-invoice-${inv.id}`}
+                      className={cn(
+                        'flex items-center gap-3 rounded-lg border px-3 py-2 cursor-pointer transition-colors',
+                        invoiceId === inv.id ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
+                      )}
+                    >
+                      <RadioGroupItem value={inv.id} id={`wa-invoice-${inv.id}`} />
+                      <div className="min-w-0 text-sm">
+                        <p className="font-medium leading-tight">
+                          {inv.docNo || inv.id} · {inv.currency} {inv.amount.toFixed(2)}
+                        </p>
+                        <p className="text-xs text-muted-foreground leading-tight capitalize">
+                          {format(new Date(`${inv.dueDate}T00:00:00`), "d 'de' MMMM, yyyy", { locale: dateLocale })}
                         </p>
                       </div>
                     </label>

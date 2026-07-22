@@ -5628,6 +5628,8 @@
       "selectEmailTemplate": "Seleccionar Plantilla de Correo",
       "smsTemplate": "Plantilla de SMS",
       "selectSmsTemplate": "Seleccionar Plantilla de SMS",
+      "whatsappTemplate": "Plantilla de WhatsApp",
+      "selectWhatsappTemplate": "Seleccionar Plantilla de WhatsApp",
       "saving": "Guardando",
       "userIdField": "Campo de ID de usuario",
       "selectUserIdField": "Seleccionar campo de ID de usuario",
@@ -5733,7 +5735,46 @@
       "version": "Versión",
       "defaultSender": "Enviador por defecto",
       "close": "Cerrar",
-      "namePlaceholder": "ej. Nombre template"
+      "namePlaceholder": "ej. Nombre template",
+      "whatsapp": {
+        "entityType": "Tipo de entidad",
+        "selectEntityType": "Selecciona el tipo de entidad",
+        "entityTypes": {
+          "patient": "Paciente",
+          "appointment": "Cita",
+          "invoice": "Factura"
+        },
+        "searchLabel": "Template de Meta/YCloud",
+        "searchPlaceholder": "Buscar por nombre de template...",
+        "searchButton": "Buscar",
+        "loadingTemplates": "Cargando templates desde YCloud...",
+        "noResults": "No se encontraron templates coincidentes.",
+        "selectPrompt": "Selecciona el template exacto aprobado en Meta.",
+        "status": {
+          "APPROVED": "Aprobado",
+          "PENDING": "Pendiente",
+          "REJECTED": "Rechazado",
+          "unknown": "Estado desconocido"
+        },
+        "language": "Idioma",
+        "selectedTemplate": "Template seleccionado",
+        "previewLabel": "Vista previa del template",
+        "variablesTitle": "Mapeo de variables",
+        "variablesDescription": "Indica de dónde sale el valor de cada variable del template.",
+        "selectSourceField": "Selecciona el campo de origen",
+        "noVariables": "Este template no tiene variables.",
+        "searchFirst": "Busca y selecciona un template de Meta/YCloud para configurar sus variables.",
+        "fieldLabels": {
+          "patientName": "Nombre del paciente",
+          "clinicName": "Nombre de la clínica",
+          "appointmentDate": "Fecha de la cita",
+          "appointmentHour": "Hora de la cita",
+          "appointmentProfessionalName": "Nombre del profesional",
+          "invoiceDocNo": "Número de factura",
+          "invoiceAmount": "Monto de la factura",
+          "invoiceDueDate": "Fecha de vencimiento de la factura"
+        }
+      }
     },
     "deleteDialog": {
       "title": "Eliminar Plantilla",
@@ -7018,28 +7059,21 @@
     }
   },
   "AlertWhatsAppComposerDialog": {
-    "title": "Mensaje de WhatsApp de alerta",
-    "description": "Revisa el contenido y ábrelo en WhatsApp.",
+    "title": "Enviar WhatsApp",
+    "description": "Confirma el destinatario y la plantilla a enviar.",
     "phone": "Teléfono",
-    "message": "Mensaje",
-    "messagePlaceholder": "Escribe tu mensaje aquí...",
+    "templateLabel": "Plantilla",
     "missingPhone": "Esta alerta no tiene teléfono del paciente.",
-    "unknownPatient": "paciente",
+    "missingTemplate": "La regla de esta alerta no tiene una plantilla de WhatsApp configurada.",
+    "missingPerformedBy": "No se pudo identificar al usuario actual para registrar esta acción.",
     "cancel": "Cancelar",
-    "open": "Abrir WhatsApp",
-    "opening": "Abriendo...",
-    "template": {
-      "greeting": "Hola {name}.",
-      "intro": "Nos comunicamos contigo por esta alerta:",
-      "alertTitle": "Alerta",
-      "summary": "Resumen",
-      "alertDate": "Fecha de alerta",
-      "eventDate": "Fecha de evento",
-      "closing": "Si necesitas más información, no dudes en contactarnos."
-    },
+    "send": "Enviar",
+    "sending": "Enviando...",
     "toast": {
-      "openErrorTitle": "No se pudo abrir WhatsApp",
-      "openErrorDescription": "Permite las ventanas emergentes e inténtalo nuevamente."
+      "sendSuccessTitle": "Mensaje enviado",
+      "sendSuccessDescription": "El mensaje de WhatsApp se envió correctamente.",
+      "sendErrorTitle": "Error al enviar el mensaje",
+      "sendErrorDescription": "No se pudo enviar el mensaje. Inténtalo nuevamente."
     }
   },
   "EmailComposerDialog": {
@@ -7108,6 +7142,9 @@
     "appointmentLabel": "Cita",
     "loadingAppointments": "Buscando próximas citas...",
     "noAppointments": "Este paciente no tiene citas próximas agendadas.",
+    "invoiceLabel": "Factura",
+    "loadingInvoices": "Buscando facturas pendientes...",
+    "noInvoices": "Este paciente no tiene facturas pendientes con vencimiento.",
     "cancel": "Cancelar",
     "send": "Enviar",
     "sending": "Enviando...",

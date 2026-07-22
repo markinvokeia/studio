@@ -5649,6 +5649,8 @@
       "selectEmailTemplate": "Select Email Template",
       "smsTemplate": "SMS Template",
       "selectSmsTemplate": "Select SMS Template",
+      "whatsappTemplate": "WhatsApp Template",
+      "selectWhatsappTemplate": "Select WhatsApp Template",
       "saving": "Saving",
       "userIdField": "User ID Field",
       "selectUserIdField": "Select User ID Field",
@@ -5754,7 +5756,46 @@
       },
       "defaultSender": "Default Sender",
       "close": "Close",
-      "namePlaceholder": "e.g. Template name"
+      "namePlaceholder": "e.g. Template name",
+      "whatsapp": {
+        "entityType": "Entity type",
+        "selectEntityType": "Select entity type",
+        "entityTypes": {
+          "patient": "Patient",
+          "appointment": "Appointment",
+          "invoice": "Invoice"
+        },
+        "searchLabel": "Meta/YCloud template",
+        "searchPlaceholder": "Search by template name...",
+        "searchButton": "Search",
+        "loadingTemplates": "Loading templates from YCloud...",
+        "noResults": "No matching templates found.",
+        "selectPrompt": "Select the exact template approved in Meta.",
+        "status": {
+          "APPROVED": "Approved",
+          "PENDING": "Pending",
+          "REJECTED": "Rejected",
+          "unknown": "Unknown status"
+        },
+        "language": "Language",
+        "selectedTemplate": "Selected template",
+        "previewLabel": "Template preview",
+        "variablesTitle": "Variable mapping",
+        "variablesDescription": "Map each variable in the template to where its value comes from.",
+        "selectSourceField": "Select source field",
+        "noVariables": "This template has no variables.",
+        "searchFirst": "Search and select a template from Meta/YCloud to configure its variables.",
+        "fieldLabels": {
+          "patientName": "Patient name",
+          "clinicName": "Clinic name",
+          "appointmentDate": "Appointment date",
+          "appointmentHour": "Appointment time",
+          "appointmentProfessionalName": "Professional name",
+          "invoiceDocNo": "Invoice number",
+          "invoiceAmount": "Invoice amount",
+          "invoiceDueDate": "Invoice due date"
+        }
+      }
     },
     "deleteDialog": {
       "title": "Delete Template",
@@ -7038,28 +7079,21 @@
     }
   },
   "AlertWhatsAppComposerDialog": {
-    "title": "Alert WhatsApp message",
-    "description": "Review the message and open it in WhatsApp.",
+    "title": "Send WhatsApp",
+    "description": "Confirm the recipient and template to send.",
     "phone": "Phone",
-    "message": "Message",
-    "messagePlaceholder": "Write your message here...",
+    "templateLabel": "Template",
     "missingPhone": "This alert has no patient phone.",
-    "unknownPatient": "patient",
+    "missingTemplate": "This alert's rule has no WhatsApp template configured.",
+    "missingPerformedBy": "Could not identify the current user to log this action.",
     "cancel": "Cancel",
-    "open": "Open WhatsApp",
-    "opening": "Opening...",
-    "template": {
-      "greeting": "Hi {name}.",
-      "intro": "We are contacting you about this alert:",
-      "alertTitle": "Alert",
-      "summary": "Summary",
-      "alertDate": "Alert date",
-      "eventDate": "Event date",
-      "closing": "Please contact us if you need more information."
-    },
+    "send": "Send",
+    "sending": "Sending...",
     "toast": {
-      "openErrorTitle": "Could not open WhatsApp",
-      "openErrorDescription": "Please allow pop-ups and try again."
+      "sendSuccessTitle": "Message sent",
+      "sendSuccessDescription": "The WhatsApp message was sent successfully.",
+      "sendErrorTitle": "Error sending message",
+      "sendErrorDescription": "Could not send the message. Please try again."
     }
   },
   "EmailComposerDialog": {
@@ -7128,6 +7162,9 @@
     "appointmentLabel": "Appointment",
     "loadingAppointments": "Loading upcoming appointments...",
     "noAppointments": "This patient has no upcoming appointments scheduled.",
+    "invoiceLabel": "Invoice",
+    "loadingInvoices": "Loading pending invoices...",
+    "noInvoices": "This patient has no pending invoices with a due date.",
     "cancel": "Cancel",
     "send": "Send",
     "sending": "Sending...",

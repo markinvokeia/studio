@@ -36,29 +36,63 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Separator } from '@/components/ui/separator';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, Bold, BookCopy, Code2, Copy, Eye, Italic, List, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { AlertTriangle, Bold, BookCopy, CheckCircle2, Code2, Copy, Eye, HelpCircle, Italic, List, Loader2, MoreHorizontal, Pencil, Search, Trash2, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 
 const templateFormSchema = (t: (key: string) => string) => z.object({
-    id: z.union([z.string(), z.number()]).optional(),
+    id: z.union([z.string(), z.number()]).nullish(),
     code: z.string().min(1, t('validation.codeRequired')),
     name: z.string().min(1, t('validation.nameRequired')),
     type: z.enum(['EMAIL', 'SMS', 'DOCUMENT', 'WHATSAPP']),
-    category_id: z.coerce.number().optional(),
-    subject: z.string().optional(),
-    body_html: z.string().optional(),
-    body_text: z.string().optional(),
-    variables_schema: z.any().optional(),
-    default_sender: z.string().optional(),
-    attachments_config: z.any().optional(),
+    category_id: z.coerce.number().nullish(),
+    subject: z.string().nullish(),
+    body_html: z.string().nullish(),
+    body_text: z.string().nullish(),
+    variables_schema: z.any().nullish(),
+    provider_language: z.string().nullish(),
+    entity_type: z.enum(['patient', 'appointment', 'invoice']).nullish(),
+    default_sender: z.string().nullish(),
+    attachments_config: z.any().nullish(),
     is_active: z.boolean().default(true),
-    version: z.coerce.number().optional(),
-    created_at: z.string().optional(),
-    updated_at: z.string().optional(),
+    version: z.coerce.number().nullish(),
+    created_at: z.string().nullish(),
+    updated_at: z.string().nullish(),
 });
+
+// entity_type -> resolver field keys the n8n send flow can populate (docs/whatsapp-templates-alerts-design.md).
+// Growing this list requires adding the matching resolution logic server-side; it's not just frontend config.
+const WHATSAPP_ENTITY_FIELD_KEYS: Record<'patient' | 'appointment' | 'invoice', string[]> = {
+    patient: ['patient.name', 'clinic.name'],
+    appointment: ['patient.name', 'clinic.name', 'appointment.date', 'appointment.hour', 'appointment.professional_name'],
+    invoice: ['patient.name', 'clinic.name', 'invoice.doc_no', 'invoice.amount_formatted', 'invoice.due_date_formatted'],
+};
+
+// Resolver field key (dotted, used in variables_schema) -> i18n key under dialog.whatsapp.fieldLabels.
+// next-intl treats "." in message keys as nesting, so the translation keys can't contain the dot themselves.
+const WHATSAPP_FIELD_LABEL_KEYS: Record<string, string> = {
+    'patient.name': 'patientName',
+    'clinic.name': 'clinicName',
+    'appointment.date': 'appointmentDate',
+    'appointment.hour': 'appointmentHour',
+    'appointment.professional_name': 'appointmentProfessionalName',
+    'invoice.doc_no': 'invoiceDocNo',
+    'invoice.amount_formatted': 'invoiceAmount',
+    'invoice.due_date_formatted': 'invoiceDueDate',
+};
+
+async function fetchYCloudTemplates(): Promise<any[]> {
+    try {
+        const response = await api.get(API_ROUTES.WHATSAPP_TEMPLATES);
+        if (Array.isArray(response)) return response;
+        return response?.data || response?.templates || [];
+    } catch (error) {
+        console.error('Failed to fetch YCloud templates:', error);
+        return [];
+    }
+}
 
 type TemplateFormValues = z.infer<ReturnType<typeof templateFormSchema>>;
 
@@ -178,7 +212,73 @@ export default function CommunicationTemplatesPage() {
     });
 
     const watchedBodyHtml = form.watch('body_html');
+    const watchedType = form.watch('type');
+    const watchedCode = form.watch('code');
+    const watchedProviderLanguage = form.watch('provider_language');
+    const watchedEntityType = form.watch('entity_type') as 'patient' | 'appointment' | 'invoice' | undefined;
+    const watchedVariablesSchema = (form.watch('variables_schema') || {}) as Record<string, string>;
     const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+
+    // WhatsApp template search (YCloud) — used to pick the exact Meta-approved template name + language for `code`/`provider_language`.
+    const [waAllTemplates, setWaAllTemplates] = React.useState<any[] | null>(null);
+    const [waLoadingTemplates, setWaLoadingTemplates] = React.useState(false);
+    const [waSearchQuery, setWaSearchQuery] = React.useState('');
+    const [waSelectedTemplate, setWaSelectedTemplate] = React.useState<any | null>(null);
+
+    const ensureWaTemplatesLoaded = React.useCallback(async () => {
+        if (waAllTemplates !== null || waLoadingTemplates) return;
+        setWaLoadingTemplates(true);
+        const list = await fetchYCloudTemplates();
+        setWaAllTemplates(list);
+        setWaLoadingTemplates(false);
+    }, [waAllTemplates, waLoadingTemplates]);
+
+    React.useEffect(() => {
+        if (isDialogOpen && watchedType === 'WHATSAPP') ensureWaTemplatesLoaded();
+    }, [isDialogOpen, watchedType, ensureWaTemplatesLoaded]);
+
+    // Auto-select the live YCloud match for a template already saved with a code/provider_language (edit flow).
+    React.useEffect(() => {
+        if (!isDialogOpen || watchedType !== 'WHATSAPP' || !waAllTemplates || waSelectedTemplate || !watchedCode) return;
+        const match = waAllTemplates.find(tpl => tpl.name === watchedCode && (!watchedProviderLanguage || tpl.language === watchedProviderLanguage));
+        if (match) setWaSelectedTemplate(match);
+    }, [isDialogOpen, watchedType, waAllTemplates, waSelectedTemplate, watchedCode, watchedProviderLanguage]);
+
+    const waFilteredResults = React.useMemo(() => {
+        if (!waAllTemplates) return [];
+        const q = waSearchQuery.trim().toLowerCase();
+        const matches = q ? waAllTemplates.filter(tpl => String(tpl.name).toLowerCase().includes(q)) : waAllTemplates;
+        return matches.slice(0, 20);
+    }, [waAllTemplates, waSearchQuery]);
+
+    const waBodyText = React.useMemo(() => {
+        const bodyComponent = Array.isArray(waSelectedTemplate?.components)
+            ? waSelectedTemplate.components.find((c: any) => String(c.type).toUpperCase() === 'BODY')
+            : null;
+        return bodyComponent?.text || '';
+    }, [waSelectedTemplate]);
+
+    const handleSelectWaTemplate = (tpl: any) => {
+        setWaSelectedTemplate(tpl);
+        form.setValue('code', tpl.name, { shouldValidate: true, shouldDirty: true });
+        form.setValue('provider_language', tpl.language, { shouldDirty: true });
+
+        const bodyComponent = Array.isArray(tpl.components) ? tpl.components.find((c: any) => String(c.type).toUpperCase() === 'BODY') : null;
+        const placeholderNames = new Set<string>();
+        if (typeof bodyComponent?.text === 'string') {
+            const found = bodyComponent.text.match(/\{\{\s*([^{}]+?)\s*\}\}/g) || [];
+            found.forEach((m: string) => placeholderNames.add(m.replace(/[{}]/g, '').trim()));
+        }
+        const prevSchema = (form.getValues('variables_schema') || {}) as Record<string, string>;
+        const nextSchema: Record<string, string> = {};
+        placeholderNames.forEach(name => { nextSchema[name] = prevSchema[name] || ''; });
+        form.setValue('variables_schema', nextSchema, { shouldDirty: true, shouldValidate: true });
+    };
+
+    const handleWaVariableFieldChange = (varName: string, fieldKey: string) => {
+        const current = (form.getValues('variables_schema') || {}) as Record<string, string>;
+        form.setValue('variables_schema', { ...current, [varName]: fieldKey }, { shouldDirty: true });
+    };
 
     const insertText = (text: string) => {
         const textarea = textareaRef.current;
@@ -255,6 +355,8 @@ export default function CommunicationTemplatesPage() {
 
     const handleCreate = () => {
         setEditingTemplate(null);
+        setWaSelectedTemplate(null);
+        setWaSearchQuery('');
         form.reset({
             code: '',
             name: '',
@@ -265,6 +367,8 @@ export default function CommunicationTemplatesPage() {
             body_text: '',
             default_sender: '',
             variables_schema: {},
+            provider_language: '',
+            entity_type: undefined,
             attachments_config: {},
             version: 1
         });
@@ -274,6 +378,8 @@ export default function CommunicationTemplatesPage() {
 
     const handleEdit = (template: CommunicationTemplate) => {
         setEditingTemplate(template);
+        setWaSelectedTemplate(null);
+        setWaSearchQuery(template.type === 'WHATSAPP' ? template.code : '');
         form.reset({
             ...template,
             version: (template.version || 1) + 1
@@ -289,6 +395,8 @@ export default function CommunicationTemplatesPage() {
 
     const handleDuplicate = (template: CommunicationTemplate) => {
         setEditingTemplate(null);
+        setWaSelectedTemplate(null);
+        setWaSearchQuery(template.type === 'WHATSAPP' ? template.code : '');
         form.reset({
             ...template,
             id: undefined,
@@ -316,6 +424,10 @@ export default function CommunicationTemplatesPage() {
         } catch (error) {
             toast({ title: t('toast.errorTitle'), description: error instanceof Error ? error.message : 'Failed to delete template', variant: 'destructive' });
         }
+    };
+
+    const onInvalidSubmit = () => {
+        setSubmissionError(t('validation.badRequest'));
     };
 
     const onSubmit = async (values: TemplateFormValues) => {
@@ -532,7 +644,7 @@ export default function CommunicationTemplatesPage() {
                         <DialogTitle>{editingTemplate ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 px-6 max-h-[70vh] overflow-y-auto">
+                        <form onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)} className="space-y-4 py-4 px-6 max-h-[70vh] overflow-y-auto">
                             {submissionError && (
                                 <Alert variant="destructive">
                                     <AlertTriangle className="h-4 w-4" />
@@ -551,7 +663,13 @@ export default function CommunicationTemplatesPage() {
                                 <FormField control={form.control} name="code" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>{t('dialog.code')}</FormLabel>
-                                        <FormControl><Input {...field} /></FormControl>
+                                        <FormControl>
+                                            <Input
+                                                {...field}
+                                                readOnly={watchedType === 'WHATSAPP'}
+                                                className={watchedType === 'WHATSAPP' ? 'bg-muted font-mono text-xs' : undefined}
+                                            />
+                                        </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )} />
@@ -593,71 +711,184 @@ export default function CommunicationTemplatesPage() {
                             <FormField control={form.control} name="subject" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>{t('dialog.subject')}</FormLabel>
-                                    <FormControl><Input {...field} /></FormControl>
+                                    <FormControl><Input {...field} value={field.value || ''} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )} />
                             <FormField control={form.control} name="default_sender" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>{t('dialog.defaultSender')}</FormLabel>
-                                    <FormControl><Input {...field} placeholder="sender@example.com" /></FormControl>
+                                    <FormControl><Input {...field} value={field.value || ''} placeholder="sender@example.com" /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )} />
 
-                            <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                    <FormLabel>{t('dialog.body')}</FormLabel>
-                                    <div className="flex items-center gap-2">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="outline" size="sm"><Code2 className="mr-2 h-4 w-4" /> {t('dialog.variables.title')}</Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent>
-                                                {Object.entries(getAvailableVariables(t)).map(([group, vars]) => (
-                                                    <React.Fragment key={group}>
-                                                        <DropdownMenuLabel className="capitalize">
-                                                            {t(`dialog.variables.${group}`)}
-                                                        </DropdownMenuLabel>
-                                                        {Object.entries(vars).map(([key, variable]) => (
-                                                            <DropdownMenuItem key={key} onSelect={() => insertText(`{{${group}.${variable.value}}}`)}>
-                                                                {variable.label}
-                                                            </DropdownMenuItem>
-                                                        ))}
-                                                        <DropdownMenuSeparator />
-                                                    </React.Fragment>
-                                                ))}
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                        <div className="flex items-center space-x-1 border rounded-md p-1">
-                                            <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => wrapText(['<strong>', '</strong>'])}><Bold className="h-4 w-4" /></Button>
-                                            <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => wrapText(['<em>', '</em>'])}><Italic className="h-4 w-4" /></Button>
-                                            <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => insertText('<ul>\n  <li>Item 1</li>\n</ul>')}><List className="h-4 w-4" /></Button>
-                                        </div>
-                                        <div className="flex items-center space-x-2">
-                                            <Switch id="preview-mode" checked={showPreview} onCheckedChange={setShowPreview} />
-                                            <Label htmlFor="preview-mode">{t('dialog.preview.title')}</Label>
-                                        </div>
-                                    </div>
-                                </div>
-                                {showPreview ? (
-                                    <div className="h-64 rounded-md border bg-muted p-4 overflow-y-auto" dangerouslySetInnerHTML={{ __html: watchedBodyHtml?.replace(/{{(.*?)}}/g, (match, p1) => `<span class="bg-primary/20 text-primary-foreground rounded px-1">${p1.trim()}</span>`) || '' }} />
-                                ) : (
-                                    <FormField control={form.control} name="body_html" render={({ field }) => (
+                            {watchedType === 'WHATSAPP' ? (
+                                <div className="space-y-4">
+                                    <FormField control={form.control} name="entity_type" render={({ field }) => (
                                         <FormItem>
-                                            <FormControl>
-                                                <Textarea
-                                                    {...field}
-                                                    ref={textareaRef}
-                                                    rows={12}
-                                                    className="font-mono"
-                                                />
-                                            </FormControl>
+                                            <FormLabel>{t('dialog.whatsapp.entityType')}</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value || undefined}>
+                                                <FormControl><SelectTrigger><SelectValue placeholder={t('dialog.whatsapp.selectEntityType')} /></SelectTrigger></FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="patient">{t('dialog.whatsapp.entityTypes.patient')}</SelectItem>
+                                                    <SelectItem value="appointment">{t('dialog.whatsapp.entityTypes.appointment')}</SelectItem>
+                                                    <SelectItem value="invoice">{t('dialog.whatsapp.entityTypes.invoice')}</SelectItem>
+                                                </SelectContent>
+                                            </Select>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
-                                )}
-                            </div>
+
+                                    <div className="space-y-2">
+                                        <Label>{t('dialog.whatsapp.searchLabel')}</Label>
+                                        <div className="flex items-center gap-2">
+                                            <div className="relative flex-1">
+                                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                                <Input
+                                                    value={waSearchQuery}
+                                                    onChange={(e) => setWaSearchQuery(e.target.value)}
+                                                    placeholder={t('dialog.whatsapp.searchPlaceholder')}
+                                                    className="pl-8"
+                                                />
+                                            </div>
+                                            <Button type="button" variant="outline" size="sm" onClick={ensureWaTemplatesLoaded} disabled={waLoadingTemplates}>
+                                                {waLoadingTemplates ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                                                <span className="ml-2 hidden sm:inline">{t('dialog.whatsapp.searchButton')}</span>
+                                            </Button>
+                                        </div>
+
+                                        {waLoadingTemplates ? (
+                                            <p className="text-xs text-muted-foreground py-2">{t('dialog.whatsapp.loadingTemplates')}</p>
+                                        ) : waAllTemplates && waAllTemplates.length > 0 ? (
+                                            waFilteredResults.length === 0 ? (
+                                                <p className="text-xs text-muted-foreground py-2">{t('dialog.whatsapp.noResults')}</p>
+                                            ) : (
+                                                <div className="max-h-40 overflow-y-auto rounded-md border divide-y">
+                                                    {waFilteredResults.map((tpl, idx) => {
+                                                        const isSelected = waSelectedTemplate?.name === tpl.name && waSelectedTemplate?.language === tpl.language;
+                                                        const StatusIcon = tpl.status === 'APPROVED' ? CheckCircle2 : tpl.status === 'REJECTED' ? XCircle : HelpCircle;
+                                                        return (
+                                                            <button
+                                                                type="button"
+                                                                key={`${tpl.name}-${tpl.language}-${idx}`}
+                                                                onClick={() => handleSelectWaTemplate(tpl)}
+                                                                className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/50 ${isSelected ? 'bg-primary/5' : ''}`}
+                                                            >
+                                                                <StatusIcon className={`h-4 w-4 flex-none ${tpl.status === 'APPROVED' ? 'text-green-600' : tpl.status === 'REJECTED' ? 'text-destructive' : 'text-muted-foreground'}`} />
+                                                                <span className="font-mono flex-1 truncate">{tpl.name}</span>
+                                                                <Badge variant="outline" className="flex-none">{tpl.language}</Badge>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )
+                                        ) : null}
+                                    </div>
+
+                                    {waSelectedTemplate && (
+                                        <div className="space-y-3 rounded-md border p-3 bg-muted/30">
+                                            <div className="flex items-center justify-between">
+                                                <p className="text-sm font-medium">{t('dialog.whatsapp.selectedTemplate')}: <span className="font-mono">{waSelectedTemplate.name}</span></p>
+                                                <Badge variant={waSelectedTemplate.status === 'APPROVED' ? 'success' : waSelectedTemplate.status === 'REJECTED' ? 'destructive' : 'outline'}>
+                                                    {t(`dialog.whatsapp.status.${waSelectedTemplate.status || 'unknown'}` as any)}
+                                                </Badge>
+                                            </div>
+                                            {waBodyText && (
+                                                <div>
+                                                    <Label className="text-xs text-muted-foreground">{t('dialog.whatsapp.previewLabel')}</Label>
+                                                    <pre className="mt-1 whitespace-pre-wrap text-xs bg-background rounded p-2 border">{waBodyText}</pre>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    <div className="space-y-2">
+                                        <Label>{t('dialog.whatsapp.variablesTitle')}</Label>
+                                        <p className="text-xs text-muted-foreground">{t('dialog.whatsapp.variablesDescription')}</p>
+                                        {Object.keys(watchedVariablesSchema).length === 0 ? (
+                                            <p className="text-xs text-muted-foreground py-2">
+                                                {waSelectedTemplate ? t('dialog.whatsapp.noVariables') : t('dialog.whatsapp.searchFirst')}
+                                            </p>
+                                        ) : (
+                                            <div className="space-y-2">
+                                                {Object.keys(watchedVariablesSchema).map((varName) => (
+                                                    <div key={varName} className="flex items-center gap-2">
+                                                        <code className="text-xs bg-muted rounded px-2 py-1 flex-none w-32 truncate">{`{{${varName}}}`}</code>
+                                                        <Select
+                                                            value={watchedVariablesSchema[varName] || undefined}
+                                                            onValueChange={(val) => handleWaVariableFieldChange(varName, val)}
+                                                            disabled={!watchedEntityType}
+                                                        >
+                                                            <SelectTrigger className="flex-1"><SelectValue placeholder={t('dialog.whatsapp.selectSourceField')} /></SelectTrigger>
+                                                            <SelectContent>
+                                                                {(watchedEntityType ? WHATSAPP_ENTITY_FIELD_KEYS[watchedEntityType] : []).map((key) => (
+                                                                    <SelectItem key={key} value={key}>{t(`dialog.whatsapp.fieldLabels.${WHATSAPP_FIELD_LABEL_KEYS[key]}` as any)}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <FormLabel>{t('dialog.body')}</FormLabel>
+                                        <div className="flex items-center gap-2">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="outline" size="sm"><Code2 className="mr-2 h-4 w-4" /> {t('dialog.variables.title')}</Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent>
+                                                    {Object.entries(getAvailableVariables(t)).map(([group, vars]) => (
+                                                        <React.Fragment key={group}>
+                                                            <DropdownMenuLabel className="capitalize">
+                                                                {t(`dialog.variables.${group}`)}
+                                                            </DropdownMenuLabel>
+                                                            {Object.entries(vars).map(([key, variable]) => (
+                                                                <DropdownMenuItem key={key} onSelect={() => insertText(`{{${group}.${variable.value}}}`)}>
+                                                                    {variable.label}
+                                                                </DropdownMenuItem>
+                                                            ))}
+                                                            <DropdownMenuSeparator />
+                                                        </React.Fragment>
+                                                    ))}
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                            <div className="flex items-center space-x-1 border rounded-md p-1">
+                                                <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => wrapText(['<strong>', '</strong>'])}><Bold className="h-4 w-4" /></Button>
+                                                <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => wrapText(['<em>', '</em>'])}><Italic className="h-4 w-4" /></Button>
+                                                <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => insertText('<ul>\n  <li>Item 1</li>\n</ul>')}><List className="h-4 w-4" /></Button>
+                                            </div>
+                                            <div className="flex items-center space-x-2">
+                                                <Switch id="preview-mode" checked={showPreview} onCheckedChange={setShowPreview} />
+                                                <Label htmlFor="preview-mode">{t('dialog.preview.title')}</Label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {showPreview ? (
+                                        <div className="h-64 rounded-md border bg-muted p-4 overflow-y-auto" dangerouslySetInnerHTML={{ __html: watchedBodyHtml?.replace(/{{(.*?)}}/g, (match, p1) => `<span class="bg-primary/20 text-primary-foreground rounded px-1">${p1.trim()}</span>`) || '' }} />
+                                    ) : (
+                                        <FormField control={form.control} name="body_html" render={({ field }) => (
+                                            <FormItem>
+                                                <FormControl>
+                                                    <Textarea
+                                                        {...field}
+                                                        value={field.value || ''}
+                                                        ref={textareaRef}
+                                                        rows={12}
+                                                        className="font-mono"
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )} />
+                                    )}
+                                </div>
+                            )}
 
                             <FormField control={form.control} name="is_active" render={({ field }) => (
                                 <FormItem className="flex flex-row items-center space-x-3 space-y-0 pt-2">
@@ -668,7 +899,7 @@ export default function CommunicationTemplatesPage() {
                         </form>
                     </Form>
                     <DialogFooter>
-                        <Button type="button" onClick={() => form.handleSubmit(onSubmit)()}>{editingTemplate ? t('dialog.save') : t('dialog.create')}</Button>
+                        <Button type="button" onClick={() => form.handleSubmit(onSubmit, onInvalidSubmit)()}>{editingTemplate ? t('dialog.save') : t('dialog.create')}</Button>
                         <DialogCancelButton>{t('dialog.cancel')}</DialogCancelButton>
                     </DialogFooter>
                 </DialogContent>

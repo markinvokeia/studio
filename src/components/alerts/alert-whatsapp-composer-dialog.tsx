@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { MessageCircle, Send, X } from 'lucide-react';
+import { Loader2, MessageCircle, Send, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
   Dialog,
@@ -15,18 +15,26 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { useClinicInfo } from '@/hooks/useClinicInfo';
-import { useCommunicationTemplates, substituteTokens } from '@/hooks/useCommunicationTemplates';
+import { api } from '@/services/api';
+import { API_ROUTES } from '@/constants/routes';
 import { AlertInstance } from '@/lib/types';
-import { WHATSAPP_TEMPLATE_DEFAULTS } from '@/lib/whatsapp-template-defaults';
-import { formatDate, formatDateTime } from '@/lib/utils';
 
 interface AlertWhatsAppComposerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   alert: AlertInstance | null;
+  /** CommunicationTemplate.code (type='WHATSAPP') resolved from the alert's rule — null if the rule has no template configured */
+  templateCode: string | null;
+  templateName?: string;
+  /** Current user id — required by the backend when alert_instance_id is sent (alert_actions.performed_by is NOT NULL) */
+  performedBy?: string;
+}
+
+function getAlertUserId(alert: AlertInstance | null): string {
+  if (alert?.patient_id) return alert.patient_id;
+  const id = alert?.details_json?.patient?.id ?? alert?.details_json?.patient_id;
+  return typeof id === 'string' ? id : '';
 }
 
 function getPatientPhone(alert: AlertInstance | null): string {
@@ -39,75 +47,50 @@ function getRecipientName(alert: AlertInstance | null): string {
   return typeof name === 'string' && name.trim() !== '' ? name : '';
 }
 
-export function AlertWhatsAppComposerDialog({ open, onOpenChange, alert }: AlertWhatsAppComposerDialogProps) {
+export function AlertWhatsAppComposerDialog({ open, onOpenChange, alert, templateCode, templateName, performedBy }: AlertWhatsAppComposerDialogProps) {
   const t = useTranslations('AlertWhatsAppComposerDialog');
   const { toast } = useToast();
 
-  const clinic = useClinicInfo();
-  const commTemplates = useCommunicationTemplates();
-  const [message, setMessage] = React.useState('');
-  const [isOpening, setIsOpening] = React.useState(false);
-  const userEdited = React.useRef(false);
-
-  const phone = React.useMemo(() => getPatientPhone(alert), [alert]);
-  const recipientName = React.useMemo(() => getRecipientName(alert), [alert]);
-  const normalizedPhone = React.useMemo(() => phone.trim().replace(/^\+/, '').replace(/\D/g, ''), [phone]);
-
-  const isAppointment = alert?.reference_table === 'appointments';
-  const appt = alert?.details_json?.appointment;
+  const [isSending, setIsSending] = React.useState(false);
 
   React.useEffect(() => {
-    if (!open) { setMessage(''); setIsOpening(false); userEdited.current = false; return; }
-    if (userEdited.current) return;
-    const vars: Record<string, string> = {
-      patient_name: recipientName || t('unknownPatient'),
-      clinic_name: clinic?.name || '',
-      clinic_phone: clinic?.phone || '',
-    };
-    let tplCode: string;
-    let defaultText: string;
-    if (isAppointment) {
-      vars.appointment_date = appt?.date || appt?.scheduled_date || formatDate(alert?.event_date);
-      vars.appointment_time = appt?.time || appt?.start_time || '';
-      vars.doctor_name = appt?.doctor_name || appt?.provider_name || '';
-      vars.location = appt?.location || '';
-      tplCode = 'APPOINTMENT_REMINDER_WHATSAPP';
-      defaultText = WHATSAPP_TEMPLATE_DEFAULTS.whatsapp_appointment_reminder;
-    } else {
-      vars.alert_title = alert?.title || '';
-      vars.alert_summary = alert?.summary || '';
-      vars.alert_date = alert?.alert_date ? formatDateTime(alert.alert_date) : '';
-      tplCode = 'ALERT_FOLLOWUP_WHATSAPP';
-      defaultText = WHATSAPP_TEMPLATE_DEFAULTS.whatsapp_alert_followup;
-    }
-    const tpl = commTemplates[tplCode];
-    setMessage(substituteTokens(tpl?.body_text || defaultText, vars));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, alert, clinic, commTemplates, recipientName, isAppointment, t]);
+    if (!open) setIsSending(false);
+  }, [open]);
 
-  const handleOpenWhatsApp = async () => {
-    if (!normalizedPhone || isOpening) return;
+  const patientId = React.useMemo(() => getAlertUserId(alert), [alert]);
+  const phone = React.useMemo(() => getPatientPhone(alert), [alert]);
+  const recipientName = React.useMemo(() => getRecipientName(alert), [alert]);
 
-    setIsOpening(true);
+  const canSend = !!alert && !!patientId && !!phone && !!templateCode && !!performedBy && !isSending;
 
+  const handleSend = async () => {
+    if (!canSend || !alert || !templateCode) return;
+    setIsSending(true);
     try {
-      const url = `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`;
-      window.open(url, '_blank', 'noopener');
+      await api.post(API_ROUTES.PATIENTS_SEND_WHATSAPP_TEMPLATE, {
+        id: patientId,
+        template_code: templateCode,
+        reference_table: alert.reference_table || undefined,
+        reference_id: alert.reference_id || undefined,
+        alert_instance_id: alert.id,
+        performed_by: performedBy,
+      });
+      toast({ title: t('toast.sendSuccessTitle'), description: t('toast.sendSuccessDescription') });
       onOpenChange(false);
-    } catch {
+    } catch (error) {
       toast({
         variant: 'destructive',
-        title: t('toast.openErrorTitle'),
-        description: t('toast.openErrorDescription'),
+        title: t('toast.sendErrorTitle'),
+        description: error instanceof Error ? error.message : t('toast.sendErrorDescription'),
       });
     } finally {
-      setIsOpening(false);
+      setIsSending(false);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg" confirmOnClose isDirty={userEdited.current}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-base flex items-center gap-2">
             <MessageCircle className="h-4 w-4 text-primary" />
@@ -121,29 +104,28 @@ export function AlertWhatsAppComposerDialog({ open, onOpenChange, alert }: Alert
           <div className="space-y-2">
             <Label htmlFor="alert-whatsapp-phone">{t('phone')}</Label>
             <Input id="alert-whatsapp-phone" value={phone} readOnly className="bg-muted/50" />
-            {!normalizedPhone ? <p className="text-xs text-destructive">{t('missingPhone')}</p> : null}
+            {!phone ? <p className="text-xs text-destructive">{t('missingPhone')}</p> : null}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="alert-whatsapp-message">{t('message')}</Label>
-            <Textarea
-              id="alert-whatsapp-message"
-              value={message}
-              onChange={(event) => { setMessage(event.target.value); userEdited.current = true; }}
-              placeholder={t('messagePlaceholder')}
-              rows={7}
-            />
+            <Label>{t('templateLabel')}</Label>
+            <Input value={templateName || templateCode || ''} readOnly className="bg-muted/50" />
+            {!templateCode ? <p className="text-xs text-destructive">{t('missingTemplate')}</p> : null}
           </div>
+
+          {!performedBy && templateCode ? (
+            <p className="text-xs text-destructive">{t('missingPerformedBy')}</p>
+          ) : null}
         </div>
 
         <DialogFooter>
-          <DialogCancelButton variant="outline" disabled={isOpening}>
+          <DialogCancelButton variant="outline" disabled={isSending}>
             <X className="h-4 w-4 mr-1" />
             {t('cancel')}
           </DialogCancelButton>
-          <Button onClick={handleOpenWhatsApp} disabled={!normalizedPhone || isOpening}>
-            <Send className="h-4 w-4 mr-1" />
-            {isOpening ? t('opening') : t('open')}
+          <Button onClick={handleSend} disabled={!canSend}>
+            {isSending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
+            {isSending ? t('sending') : t('send')}
           </Button>
         </DialogFooter>
       </DialogContent>

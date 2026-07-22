@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Can } from '@/components/auth/Can';
 import { useAlertNotifications, AlertNotificationsProvider } from '@/context/alert-notifications-context';
+import { useAuth } from '@/context/AuthContext';
 import { API_ROUTES } from '@/constants/routes';
 import { ALERT_CENTER_PERMISSIONS } from '@/constants/permissions';
 import { toast } from '@/hooks/use-toast';
@@ -271,6 +272,38 @@ function AlertsCenterPageContent() {
     const [isAlertWhatsAppDialogOpen, setIsAlertWhatsAppDialogOpen] = React.useState(false);
     const [alertForWhatsAppComposer, setAlertForWhatsAppComposer] = React.useState<AlertInstance | null>(null);
     const [alertStatistics, setAlertStatistics] = React.useState<AlertStatistics>(EMPTY_STATISTICS);
+    const { user } = useAuth();
+    // rule_id -> { code, name } of the WhatsApp CommunicationTemplate configured on that AlertRule (see AlertRule.whatsapp_template_id)
+    const [whatsappTemplateByRuleId, setWhatsappTemplateByRuleId] = React.useState<Record<string, { code: string; name: string }>>({});
+
+    React.useEffect(() => {
+        const loadWhatsAppTemplateMap = async () => {
+            try {
+                const [rulesRes, templatesRes] = await Promise.all([
+                    api.get(API_ROUTES.SYSTEM.ALERT_RULES, { search: '', page: '1', limit: '1000', is_active: 'true' }),
+                    api.get(API_ROUTES.SYSTEM.COMMUNICATION_TEMPLATES, { search: '', page: '1', limit: '1000', is_active: 'true', type: 'whatsapp' }),
+                ]);
+                const rules: any[] = Array.isArray(rulesRes) ? rulesRes.filter(r => Object.keys(r).length > 0) : [];
+                const templates: any[] = Array.isArray(templatesRes) ? templatesRes.filter(t => Object.keys(t).length > 0) : [];
+                const templateById = new Map(templates.map(tpl => [String(tpl.id), tpl]));
+                const map: Record<string, { code: string; name: string }> = {};
+                rules.forEach(rule => {
+                    if (!rule.whatsapp_template_id) return;
+                    const tpl = templateById.get(String(rule.whatsapp_template_id));
+                    if (tpl) map[String(rule.id)] = { code: tpl.code, name: tpl.name };
+                });
+                setWhatsappTemplateByRuleId(map);
+            } catch (error) {
+                console.error('Failed to load WhatsApp template map:', error);
+            }
+        };
+        loadWhatsAppTemplateMap();
+    }, []);
+
+    const getAlertWhatsAppTemplate = React.useCallback((alert: AlertInstance): { code: string; name: string } | null => {
+        if (alert.rule_id === undefined || alert.rule_id === null) return null;
+        return whatsappTemplateByRuleId[String(alert.rule_id)] || null;
+    }, [whatsappTemplateByRuleId]);
 
 
     const loadAlerts = React.useCallback(async () => {
@@ -614,7 +647,7 @@ function AlertsCenterPageContent() {
                                                             const email = getAlertEmail(alert);
                                                             const phone = getAlertPhone(alert);
                                                             const emailEnabled = Boolean(email);
-                                                            const whatsappEnabled = Boolean(phone);
+                                                            const whatsappEnabled = Boolean(phone) && Boolean(getAlertWhatsAppTemplate(alert));
 
                                                             return (
                                                                 <>
@@ -927,6 +960,9 @@ function AlertsCenterPageContent() {
                     }
                 }}
                 alert={alertForWhatsAppComposer}
+                templateCode={alertForWhatsAppComposer ? getAlertWhatsAppTemplate(alertForWhatsAppComposer)?.code || null : null}
+                templateName={alertForWhatsAppComposer ? getAlertWhatsAppTemplate(alertForWhatsAppComposer)?.name : undefined}
+                performedBy={user?.id}
             />
 
             {/* Floating Bulk Actions Bar */}

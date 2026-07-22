@@ -1,0 +1,800 @@
+{
+  "name": "Alert Scheduler",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "triggered_by"
+            },
+            {
+              "name": "target_date"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        192,
+        0
+      ],
+      "id": "71cdfa93-4671-4e1a-b467-c47dd255665e",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT ar.*\nFROM public.alert_rules ar\nWHERE ar.is_active = true\n  AND (\n    (\n      ar.next_execution_at IS NULL\n      OR CAST(ar.next_execution_at AS DATE) <= CAST($1 AS DATE)\n    )\n    OR (\n      $2 ILIKE 'MANUAL'\n    )\n  );",
+        "options": {
+          "queryReplacement": "={{ [$('When Executed by Another Workflow').item.json.target_date, $('When Executed by Another Workflow').item.json.triggered_by] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        624,
+        0
+      ],
+      "id": "35011d56-88f5-4d04-9b8f-0595298c5cb9",
+      "name": "Select alert rules",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "95bf0b69-2ecf-4f11-b2f1-61578c134731",
+              "leftValue": "={{ $json.isEmpty() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1488,
+        176
+      ],
+      "id": "bfd9e215-c9a9-4d4f-9dcf-692e97d51078",
+      "name": "Has results?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.alert_instances (\n  rule_id, \n  reference_table, \n  reference_id, \n  patient_id, \n  alert_date, \n  event_date, \n  title, \n  priority,\n  details_json,\n  status,\n  summary\n) \nVALUES (\n  $1, $2, $3, $4, $5, '{{ $now }}', $6, $7, $8,\n  'PENDING', $9\n)\nON CONFLICT (rule_id, reference_table, reference_id, alert_date) \nDO NOTHING\nRETURNING *;",
+        "options": {
+          "queryReplacement": "={{ [$json.rule_id, $json.reference_table, $json.reference_id, $json.user_id, $json.alert_date, $json.title, $json.priority, $json.details_json, $json.description] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1712,
+        48
+      ],
+      "id": "6c815f29-8131-4dbf-9876-f910cf30a9be",
+      "name": "Create alert instance",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "{{ $json.dynamicQuery }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1264,
+        288
+      ],
+      "id": "eee53302-b2cb-4dc7-ad2b-db3897418163",
+      "name": "Execute dynamic query",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "alert_schedule_runs",
+          "mode": "list",
+          "cachedResultName": "alert_schedule_runs"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_date": "={{ $json.target_date }}",
+            "started_at": "={{ $now }}",
+            "status": "RUNNING",
+            "rules_processed": 0,
+            "alerts_created": 0,
+            "alerts_skipped": 0,
+            "emails_queued": 0,
+            "emails_sent": 0,
+            "sms_sent": 0,
+            "errors_count": 0,
+            "triggered_by": "={{ $json.triggered_by }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "run_date",
+              "displayName": "run_date",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "started_at",
+              "displayName": "started_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "completed_at",
+              "displayName": "completed_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "rules_processed",
+              "displayName": "rules_processed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "alerts_created",
+              "displayName": "alerts_created",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "alerts_skipped",
+              "displayName": "alerts_skipped",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "emails_queued",
+              "displayName": "emails_queued",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "emails_sent",
+              "displayName": "emails_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sms_sent",
+              "displayName": "sms_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "errors_count",
+              "displayName": "errors_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "error_details",
+              "displayName": "error_details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "execution_log",
+              "displayName": "execution_log",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "triggered_by",
+              "displayName": "triggered_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        416,
+        0
+      ],
+      "id": "86d83963-0cc3-4475-8ef5-6dcf32773f6c",
+      "name": "Register schedule run",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "alert_schedule_runs",
+          "mode": "list",
+          "cachedResultName": "alert_schedule_runs"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Register schedule run').first().json.id }}",
+            "completed_at": "={{ $now }}",
+            "status": "COMPLETED",
+            "rules_processed": "={{ $json.rules_processed }}",
+            "alerts_created": "={{ $json.alerts_created }}",
+            "alerts_skipped": "={{ $json.alerts_skipped }}",
+            "emails_queued": "={{ $json.emails_queued }}",
+            "emails_sent": "={{ $json.emails_sent }}",
+            "sms_sent": "={{ $json.sms_sent }}",
+            "errors_count": "={{ $json.errors_count }}",
+            "error_details": "={{ {error_details: $json.error_details} }}",
+            "execution_log": "={{ $json.execution_log_summary }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "run_date",
+              "displayName": "run_date",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "started_at",
+              "displayName": "started_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "completed_at",
+              "displayName": "completed_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "rules_processed",
+              "displayName": "rules_processed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "alerts_created",
+              "displayName": "alerts_created",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "alerts_skipped",
+              "displayName": "alerts_skipped",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "emails_queued",
+              "displayName": "emails_queued",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "emails_sent",
+              "displayName": "emails_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "sms_sent",
+              "displayName": "sms_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "errors_count",
+              "displayName": "errors_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "error_details",
+              "displayName": "error_details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "execution_log",
+              "displayName": "execution_log",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "triggered_by",
+              "displayName": "triggered_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1488,
+        -128
+      ],
+      "id": "d518e904-be37-404e-89ef-817a5dad4d3b",
+      "name": "Update schedule run",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "let metrics = {\n    rules_processed: 0,\n    alerts_created: 0,\n    alerts_skipped: 0,\n    emails_queued: 0,\n    emails_sent: 0,\n    sms_sent: 0,\n    errors_count: 0,\n    error_details: [],\n    execution_log_summary: []\n};\n\nconst items = Array.isArray($input.all()) ? $input.all() : [$input.all()];\nmetrics.rules_processed = items.length;\n\nfor (const item of items) {\n    const data = item.json;\n\n    if (data.success === false) {\n        metrics.errors_count++;\n        metrics.error_details.push(`Error en ejecución: ${data.error || 'Sin detalle'}`);\n        continue;\n    }\n\n    if (data.execution_log && Array.isArray(data.execution_log)) {\n        for (const log of data.execution_log) {\n            if (Object.keys(log).length === 0) {\n                metrics.alerts_skipped++;\n                continue;\n            }\n\n            if (log.id) {\n                metrics.alerts_created++;\n\n                if (log.status === \"PENDING\") {\n                    if (log.details_json?.patient?.email && log.details_json.patient.email !== \"null\") {\n                        metrics.emails_queued++;\n                    }\n                }\n\n                // if (log.details_json?.patient?.phone) metrics.sms_sent++;\n\n                metrics.execution_log_summary.push({\n                    id: log.id,\n                    rule_id: log.rule_id,\n                    title: log.title,\n                    status: log.status,\n                    patient: log.details_json?.patient?.full_name || \"N/A\"\n                });\n            } else {\n                metrics.alerts_skipped++;\n            }\n        }\n    }\n}\n\nreturn [{\n    json: metrics\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1264,
+        -128
+      ],
+      "id": "03d65dcb-274a-42d6-8f5a-367ed825ea49",
+      "name": "Calculate metrics"
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = [];\nconst target_date = $('When Executed by Another Workflow').first().json.target_date;\n\nfor (const item of items) {\n  const rule = item.json;\n\n  const conditionConfig = rule.condition_config || {};\n  const conditions = conditionConfig.conditions || [];\n  const userIdField = conditionConfig.user_id_field !== undefined ? conditionConfig.user_id_field : null;\n  \n  const daysBefore = rule.days_before || 0;\n  const daysAfter = rule.days_after || 0;\n\n  const dateOffsetSql = ` + INTERVAL '${daysBefore} days' - INTERVAL '${daysAfter} days'`;\n\n  let isYearlyRecurring = false;\n\n  const whereClauses = conditions.map((c, index) => {\n    let val = c.value;\n\n    if (typeof val === 'string' && val.includes('{{') && val.includes('}}')) {\n      const cleanVar = val.replace(/[{{\\\\s}}]/g, '').toUpperCase();\n      \n      const dateMappings = {\n        'TODAY_NO_YEAR':  `TO_CHAR('${target_date}'::date${dateOffsetSql}, 'MM-DD')`,\n        'TODAY':          `('${target_date}'::date${dateOffsetSql})::date`,\n        'TOMORROW':       `('${target_date}'::date + INTERVAL '1 day'${dateOffsetSql})::date`,\n        'YESTERDAY':      `('${target_date}'::date - INTERVAL '1 day'${dateOffsetSql})::date`,\n        'WEEK_START':     `(DATE_TRUNC('week', '${target_date}'::date)${dateOffsetSql})::date`,\n        'WEEK_END':       `(DATE_TRUNC('week', '${target_date}'::date) + INTERVAL '6 days'${dateOffsetSql})::date`,\n        'DOW':            `EXTRACT(DOW FROM '${target_date}'::date${dateOffsetSql})`,\n        'MONTH_START':    `(DATE_TRUNC('month', '${target_date}'::date)${dateOffsetSql})::date`,\n        'MONTH_END':      `(DATE_TRUNC('month', '${target_date}'::date) + INTERVAL '1 month - 1 day'${dateOffsetSql})::date`,\n        'YEAR_START':     `(DATE_TRUNC('year', '${target_date}'::date)${dateOffsetSql})::date`,\n        'YEAR_END':       `(DATE_TRUNC('year', '${target_date}'::date) + INTERVAL '1 year - 1 day'${dateOffsetSql})::date`\n      };\n\n      const baseKey = Object.keys(dateMappings).find(key => cleanVar.startsWith(key));\n\n      if (baseKey) {\n        let baseSql = dateMappings[baseKey];\n        const arithmetic = cleanVar.replace(baseKey, '');\n        \n        if (arithmetic) {\n          val = `(${baseSql} ${arithmetic})`;\n        } else {\n          val = baseSql;\n        }\n      }\n    } else if (typeof val === 'string') {\n      val = `'${val}'`;\n    }\n\n    const columnSql = val.includes('MM-DD') ? `TO_CHAR(t.${c.column}, 'MM-DD')` : `t.${c.column}`;\n\n    if (columnSql.includes('MM-DD')) {\n      isYearlyRecurring = true;\n    }\n\n    let clause = \"\";\n    if (c.operator.toUpperCase() === 'BETWEEN') {\n      const startRange = `'${target_date}'::date`;\n      const endRange = val;\n      clause = `${columnSql} BETWEEN ${startRange} AND ${endRange}`;\n    } else {\n      clause = `${columnSql} ${c.operator} ${val}`;\n    }\n\n    return `${c.logic === undefined ? '' : c.logic} ${clause}`;\n\n    const logic = index === 0 ? '' : (c.logic || '');\n    return `${logic} ${clause}`.trim();\n  });\n\n  const shouldJoinUser = userIdField !== null;\n  const u = shouldJoinUser ? 'u' : 't';\n  \n  const userJoinClause = shouldJoinUser \n    ? `LEFT JOIN public.users u ON t.${userIdField} = u.id` \n    : '';\n\n  const finalUserId = shouldJoinUser ? `t.${userIdField}` : 't.id';\n\n  const yearlyDedupClause = isYearlyRecurring \n    ? `AND EXTRACT(YEAR FROM ai.alert_date) = EXTRACT(YEAR FROM CAST('${target_date}' AS DATE))` \n    : '';\n\n  const duplicatePrevention = `NOT EXISTS (\n    SELECT 1 FROM public.alert_instances ai \n    WHERE ai.rule_id::text = '${rule.id}'::text \n      AND ai.reference_table = '${rule.source_table}' \n      AND ai.reference_id::text = t.id::text\n      ${yearlyDedupClause}\n  )`;\n\n  const whereSql = whereClauses.length > 0 \n    ? `WHERE (${whereClauses.join(' ')}) AND ${duplicatePrevention}` \n    : `WHERE ${duplicatePrevention}`;\n\n  const dynamicQuery = `\n    SELECT \n      '${rule.id}' as rule_id,\n      '${rule.source_table}' as reference_table,\n      t.id as reference_id,\n      ${finalUserId} as user_id,\n      CAST('${target_date}' AS DATE) as alert_date,\n      '${rule.name}' as title,\n      '${rule.priority}' as priority,\n      '${rule.description}' as description,\n      jsonb_build_object(\n        'data', to_jsonb(t.*),\n        'patient', jsonb_build_object(\n          'full_name', ${u}.name,\n          'email', ${u}.email,\n          'phone', ${u}.phone_number,\n          'document_id', ${u}.identity_document\n        ),\n        'clinic', jsonb_build_object(\n          'name', c.name,\n          'address', c.address,\n          'phone', c.phone,\n          'email', c.email\n        )\n      ) as details_json\n    FROM ${rule.source_table} t\n    ${userJoinClause}\n    CROSS JOIN (SELECT * FROM public.clinic LIMIT 1) c\n    ${whereSql}\n  `;\n\n  results.push({\n    json: { ...rule, dynamicQuery }\n  });\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        0
+      ],
+      "id": "59a6bdb1-1ef3-41a5-901b-812df0930373",
+      "name": "Build dynamic query"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1040,
+        0
+      ],
+      "id": "cb824406-fa75-442b-bdc4-59fc9eacaad9",
+      "name": "Loop Over Results"
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  success: true,\n  execution_log: $input.all().map(item => item.json)\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2192,
+        368
+      ],
+      "id": "32022e81-5f7d-4048-93b4-4fdf33f3e881",
+      "name": "Success"
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  success: false,\n  error_details: $input.all().map(item => item.json)\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2192,
+        592
+      ],
+      "id": "f81d74a4-7437-4f65-866a-30a651fa46f9",
+      "name": "Failed"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE public.alert_rules\nSET \n    next_execution_at = CASE \n        WHEN recurrence_type = 'DAILY'   THEN (CAST($1 AS TIMESTAMP) + INTERVAL '1 day')\n        WHEN recurrence_type = 'WEEKLY'  THEN (CAST($1 AS TIMESTAMP) + INTERVAL '1 week')\n        WHEN recurrence_type = 'MONTHLY' THEN (CAST($1 AS TIMESTAMP) + INTERVAL '1 month')\n        WHEN recurrence_type = 'ONCE'    THEN NULL\n        ELSE next_execution_at \n    END,\n    is_active = CASE \n        WHEN recurrence_type = 'ONCE' THEN false\n        ELSE is_active \n    END,\n    updated_at = CURRENT_TIMESTAMP\nWHERE id = $2;",
+        "options": {
+          "queryReplacement": "={{ [$('When Executed by Another Workflow').first().json.target_date, $('Loop Over Results').item.json.id] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1968,
+        368
+      ],
+      "id": "063e957d-4553-450a-aa3b-a59195740390",
+      "name": "Update rule next execution",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "triggered_by": "MANUAL",
+          "target_date": "2026-01-15"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Register schedule run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select alert rules": {
+      "main": [
+        [
+          {
+            "node": "Build dynamic query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has results?": {
+      "main": [
+        [
+          {
+            "node": "Create alert instance",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update rule next execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create alert instance": {
+      "main": [
+        [
+          {
+            "node": "Update rule next execution",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute dynamic query": {
+      "main": [
+        [
+          {
+            "node": "Has results?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Register schedule run": {
+      "main": [
+        [
+          {
+            "node": "Select alert rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate metrics": {
+      "main": [
+        [
+          {
+            "node": "Update schedule run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build dynamic query": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Results": {
+      "main": [
+        [
+          {
+            "node": "Calculate metrics",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Execute dynamic query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Success": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Failed": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update rule next execution": {
+      "main": [
+        [
+          {
+            "node": "Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "a6b03846-5aa9-4494-84d8-71658159444d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
+  },
+  "nodeGroups": [],
+  "id": "dhPqjw7baYQImPyk",
+  "tags": []
+}
