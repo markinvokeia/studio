@@ -25,6 +25,7 @@ import { PhoneInput } from '@/components/ui/phone-input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UserLogs } from '@/components/users/user-logs';
 import { UserRoles } from '@/components/users/user-roles';
+import { UserPreferencesTab } from '@/components/users/user-preferences-tab';
 import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useLicenseStore } from '@/stores/license-store';
@@ -651,6 +652,7 @@ export default function SystemUsersPage() {
                       <TabsTrigger value="details">{t('SystemUsersPage.tabs.details')}</TabsTrigger>
                       {canViewRoles && <TabsTrigger value="roles">{t('SystemUsersPage.tabs.roles')}</TabsTrigger>}
                       {canViewLogs && <TabsTrigger value="logs">{t('SystemUsersPage.tabs.logs')}</TabsTrigger>}
+                      {canUpdate && <TabsTrigger value="preferences">{t('SystemUsersPage.tabs.preferences')}</TabsTrigger>}
                     </TabsList>
                     <div className="flex-1 overflow-auto mt-4">
                       <TabsContent value="details" className="m-0">
@@ -708,6 +710,11 @@ export default function SystemUsersPage() {
                       {canViewLogs && (
                         <TabsContent value="logs" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
                           <UserLogs userId={selectedUser.id} />
+                        </TabsContent>
+                      )}
+                      {canUpdate && (
+                        <TabsContent value="preferences" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                          <UserPreferencesTab user={selectedUser} />
                         </TabsContent>
                       )}
                     </div>

@@ -2330,6 +2330,9 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
                                   {docNumbersLabel(row, t) && (
                                     <span className="truncate text-xs text-muted-foreground">{docNumbersLabel(row, t)}</span>
                                   )}
+                                  {row.dueDate && (
+                                    <span className="truncate text-xs text-muted-foreground">{t('docLine.dueDate')}: {formatDisplayDate(row.dueDate)}</span>
+                                  )}
                                   {row.notes && (
                                     <span className="truncate text-[11px] italic text-muted-foreground/80">{row.notes}</span>
                                   )}

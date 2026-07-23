@@ -66,7 +66,7 @@ import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
 import { QuickTreatmentDialog } from '@/components/financial/quick-treatment-dialog';
 import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/components/users/clinic-history-viewer';
 import { PatientInstructionsSection } from '@/components/medical-instructions/patient-instructions-section';
-import { UserCommunicationPreferences } from '@/components/users/user-communication-preferences';
+import { UserPreferencesTab } from '@/components/users/user-preferences-tab';
 import { PatientFinanceSection } from '@/components/users/patient-finance-section';
 import { UserTreatmentPlans, type TreatmentContactContext } from '@/components/users/user-treatment-plans';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
@@ -517,6 +517,7 @@ export default function UsersPage() {
   const canUpdateNote = hasPermission(PATIENTS_PERMISSIONS.UPDATE_NOTE);
   const canDeleteNote = hasPermission(PATIENTS_PERMISSIONS.DELETE_NOTE);
   const canSendWhatsAppTemplate = hasPermission(PATIENTS_PERMISSIONS.SEND_WHATSAPP_TEMPLATE);
+  const canUpdate = hasPermission(PATIENTS_PERMISSIONS.UPDATE);
 
   const [mutualSocieties, setMutualSocieties] = React.useState<MutualSociety[]>([]);
   const [isLoadingMutualSocieties, setIsLoadingMutualSocieties] = React.useState(false);
@@ -538,7 +539,6 @@ export default function UsersPage() {
   });
   const [patientAllergies, setPatientAllergies] = React.useState<Array<{ id?: number; alergeno: string; reaccion_descrita: string }>>([]);
   const [patientConditions, setPatientConditions] = React.useState<Array<{ id?: number; nombre: string; nivel_alerta?: number }>>([]);
-  const [isPreferencesOpen, setIsPreferencesOpen] = React.useState(false);
   const [createSessionTrigger, setCreateSessionTrigger] = React.useState(0);
   const [createOdontogramTrigger, setCreateOdontogramTrigger] = React.useState(0);
   const [sessionPrefill, setSessionPrefill] = React.useState<SessionPrefillData | null>(null);
@@ -1103,7 +1103,6 @@ export default function UsersPage() {
       setCurrentDischarge(null);
       setPatientAllergies([]);
       setPatientConditions([]);
-      setIsPreferencesOpen(false);
       setCreateSessionTrigger(0);
       setCreateOdontogramTrigger(0);
       setCreateDocumentTrigger(0);
@@ -1414,7 +1413,7 @@ export default function UsersPage() {
                         onSendWhatsAppTemplate={canSendWhatsAppTemplate ? () => setIsWhatsAppTemplateDialogOpen(true) : undefined}
                         onToggleDischarge={currentDischarge ? handleCancelDischarge : () => setIsDischargeDialogOpen(true)}
                         onToggleActivate={() => handleToggleActivate(selectedUser)}
-                        onPreferences={() => setIsPreferencesOpen(true)}
+                        onPreferences={() => { setActiveTab('info'); setActiveInfoSubTab('preferences'); }}
                       />
 
                       {/* Expand/collapse button — always visible */}
@@ -1453,6 +1452,7 @@ export default function UsersPage() {
                         onClinicalSubTabChange={setActiveClinicalSubTab}
                         showDocuments={canViewHistory}
                         showNotes={canViewNotes}
+                        showPreferences={canUpdate}
                         activeInfoSubTab={activeInfoSubTab}
                         onInfoSubTabChange={setActiveInfoSubTab}
                         infoContent={
@@ -1472,6 +1472,9 @@ export default function UsersPage() {
                             user={selectedUser}
                             onUpdate={handleUpdateNotes}
                           />
+                        }
+                        preferencesContent={
+                          <UserPreferencesTab user={selectedUser} showFinanceView />
                         }
                         anamnesisContent={
                           <AnamnesisViewer
@@ -1902,17 +1905,6 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isPreferencesOpen} onOpenChange={setIsPreferencesOpen}>
-        <DialogContent className="sm:max-w-[520px]">
-          <DialogHeader>
-            <DialogTitle>{t('UserCommunicationPreferences.title')}</DialogTitle>
-            <DialogDescription>{t('UserCommunicationPreferences.description')}</DialogDescription>
-          </DialogHeader>
-          <DialogBody className="px-6 py-4">
-            {selectedUser && <UserCommunicationPreferences user={selectedUser} autoSave compact />}
-          </DialogBody>
-        </DialogContent>
-      </Dialog>
 
       {selectedUser && (
         <PrepaidFormDialog

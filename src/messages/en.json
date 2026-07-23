@@ -33,7 +33,8 @@
       "invoice": "Invoice",
       "treatment": "Treatment",
       "payment": "Payment",
-      "creditNote": "Credit note"
+      "creditNote": "Credit note",
+      "dueDate": "Due date"
     },
     "openingBalance": {
       "label": "Opening balance",
@@ -4010,7 +4011,8 @@
       "details": "Detalles",
       "availability": "Availability",
       "exceptions": "Exceptions",
-      "calendars": "Calendars with access"
+      "calendars": "Calendars with access",
+      "preferences": "Preferences"
     },
     "calendarAccess": {
       "title": "Calendars with access",
@@ -4348,7 +4350,8 @@
       "logs": "Logs",
       "history": "Clinic History",
       "notes": "Notes",
-      "details": "Details"
+      "details": "Details",
+      "preferences": "Preferences"
     },
     "detailsFor": "Details for {name}",
     "close": "Close details",
@@ -4390,7 +4393,8 @@
     "tabs": {
       "details": "Details",
       "roles": "Roles",
-      "logs": "History"
+      "logs": "History",
+      "preferences": "Preferences"
     },
     "noSelection": "Select a user to view their details",
     "columns": {
@@ -6288,7 +6292,8 @@
     "financeView": {
       "unified": "Custom",
       "tabs": "Normal"
-    }
+    },
+    "calendarSection": "Calendar"
   },
   "UserCommunicationPreferences": {
     "title": "Preferences",

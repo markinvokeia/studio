@@ -10,7 +10,7 @@ import { PatientSubTabNav } from '@/components/patients/patient-subtab-nav'
 import { cn } from '@/lib/utils'
 
 export type PatientMacroTab = 'info' | 'clinical' | 'financial'
-export type InfoSubTab = 'details' | 'notes'
+export type InfoSubTab = 'details' | 'notes' | 'preferences'
 export type ClinicalSubTab = 'anamnesis' | 'clinical-history' | 'treatment-plans' | 'medical-instructions' | 'documents'
 
 interface PatientDetailMainContentProps {
@@ -22,8 +22,10 @@ interface PatientDetailMainContentProps {
   onClinicalSubTabChange: (tab: ClinicalSubTab) => void
   showDocuments: boolean
   showNotes: boolean
+  showPreferences: boolean
   infoContent: React.ReactNode
   notesContent: React.ReactNode
+  preferencesContent: React.ReactNode
   anamnesisContent: React.ReactNode
   clinicalHistoryContent: React.ReactNode
   treatmentPlansContent: React.ReactNode
@@ -41,8 +43,10 @@ export function PatientDetailMainContent({
   onClinicalSubTabChange,
   showDocuments,
   showNotes,
+  showPreferences,
   infoContent,
   notesContent,
+  preferencesContent,
   anamnesisContent,
   clinicalHistoryContent,
   treatmentPlansContent,
@@ -61,7 +65,8 @@ export function PatientDetailMainContent({
   const infoTabs = React.useMemo(() => [
     { id: 'details', label: t('tabs.details') },
     ...(showNotes ? [{ id: 'notes', label: t('tabs.notes') }] : []),
-  ], [showNotes, t])
+    ...(showPreferences ? [{ id: 'preferences', label: t('tabs.preferences') }] : []),
+  ], [showNotes, showPreferences, t])
 
   const clinicalTabs = React.useMemo(() => [
     { id: 'anamnesis', label: t('tabs.anamnesis') },
@@ -98,6 +103,7 @@ export function PatientDetailMainContent({
             />
             {activeInfoSubTab === 'details' && <div className="min-h-0 flex-1">{infoContent}</div>}
             {activeInfoSubTab === 'notes' && notesContent}
+            {activeInfoSubTab === 'preferences' && preferencesContent}
           </div>
         )}
 

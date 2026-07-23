@@ -33,7 +33,8 @@
       "invoice": "Factura",
       "treatment": "Tratamiento",
       "payment": "Pago",
-      "creditNote": "Nota de crédito"
+      "creditNote": "Nota de crédito",
+      "dueDate": "Vencimiento"
     },
     "openingBalance": {
       "label": "Saldo anterior",
@@ -3987,7 +3988,8 @@
       "details": "Detalles",
       "availability": "Disponibilidad",
       "exceptions": "Excepciones",
-      "calendars": "Calendarios con acceso"
+      "calendars": "Calendarios con acceso",
+      "preferences": "Preferencias"
     },
     "calendarAccess": {
       "title": "Calendarios con acceso",
@@ -4325,7 +4327,8 @@
       "logs": "Registros",
       "history": "Historia Clínica",
       "notes": "Notas",
-      "details": "Detalles"
+      "details": "Detalles",
+      "preferences": "Preferencias"
     },
     "detailsFor": "Detalles para {name}",
     "close": "Cerrar detalles",
@@ -4367,7 +4370,8 @@
     "tabs": {
       "details": "Detalles",
       "roles": "Roles",
-      "logs": "Historial"
+      "logs": "Historial",
+      "preferences": "Preferencias"
     },
     "noSelection": "Selecciona un usuario para ver sus detalles",
     "columns": {
@@ -6268,7 +6272,8 @@
     "financeView": {
       "unified": "Personalizado",
       "tabs": "Normal"
-    }
+    },
+    "calendarSection": "Calendario"
   },
   "UserCommunicationPreferences": {
     "title": "Preferencias",

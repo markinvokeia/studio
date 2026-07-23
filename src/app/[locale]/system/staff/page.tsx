@@ -32,6 +32,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UserLogs } from '@/components/users/user-logs';
 import { UserRoles } from '@/components/users/user-roles';
+import { UserPreferencesTab } from '@/components/users/user-preferences-tab';
 import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useLicenseStore } from '@/stores/license-store';
@@ -944,6 +945,11 @@ export default function StaffPage() {
                           {t('StaffPage.tabs.logs')}
                         </TabsTrigger>
                       )}
+                      {canUpdate && (
+                        <TabsTrigger value="preferences">
+                          {t('StaffPage.tabs.preferences')}
+                        </TabsTrigger>
+                      )}
                     </TabsList>
                     <div className="flex-1 overflow-auto mt-4">
                       <TabsContent value="details" className="m-0">
@@ -1095,6 +1101,14 @@ export default function StaffPage() {
                           className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col"
                         >
                           <UserLogs userId={selectedUser.id} />
+                        </TabsContent>
+                      )}
+                      {canUpdate && (
+                        <TabsContent
+                          value="preferences"
+                          className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col"
+                        >
+                          <UserPreferencesTab user={selectedUser} />
                         </TabsContent>
                       )}
                     </div>

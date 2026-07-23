@@ -299,7 +299,15 @@ export function PatientInfoTab({
       infoForm.reset(data);
       onSaved?.(updated);
     } catch (e: any) {
-      setSaveError(e instanceof Error ? e.message : t('UsersPage.createDialog.validation.genericError'));
+      const errorData = e?.data?.error || (Array.isArray(e?.data) && e.data[0]?.error);
+      if (errorData?.code === 'unique_conflict' && errorData?.conflictedFields) {
+        const fields = errorData.conflictedFields.map((f: string) => t(`UsersPage.createDialog.validation.fields.${f}`)).join(', ');
+        setSaveError(t('UsersPage.createDialog.validation.uniqueConflict', { fields }));
+      } else if (e?.status >= 500) {
+        setSaveError(t('UsersPage.createDialog.validation.serverError'));
+      } else {
+        setSaveError(errorData?.message || (e instanceof Error ? e.message : t('UsersPage.createDialog.validation.genericError')));
+      }
     } finally {
       setIsSaving(false);
     }

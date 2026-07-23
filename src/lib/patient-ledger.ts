@@ -42,6 +42,9 @@ export type LedgerRow = {
   /** Denormalized doctor name matching `doctorId`, for display/prefill without an extra
    *  lookup (e.g. the inline editor's DoctorSelector). */
   doctorName?: string;
+  /** The billed invoice's due date — only set once an item is invoiced (`due_date`
+   *  lives on `Invoice`, not `Quote`), matching what the "Normal" tabs view shows. */
+  dueDate?: string;
 };
 
 function round2(n: number): number {
@@ -119,6 +122,7 @@ export function buildPatientLedger(params: {
           unitPrice: item.unit_price,
           doctorId: invoice.doctor_id || quote.doctor_id || undefined,
           doctorName: invoice.doctor_name || quote.doctor_name || undefined,
+          dueDate: invoice.due_date || undefined,
         });
       } else {
         const currency = quote.currency || 'USD';
@@ -178,6 +182,7 @@ export function buildPatientLedger(params: {
           unitPrice: item.unit_price,
           doctorId: invoice.doctor_id || undefined,
           doctorName: invoice.doctor_name || undefined,
+          dueDate: invoice.due_date || undefined,
         });
       }
     } else if (items.length === 0) {
@@ -192,6 +197,7 @@ export function buildPatientLedger(params: {
         currency,
         debe: round2(invoice.total || 0),
         haber: 0,
+        dueDate: invoice.due_date || undefined,
       });
     }
   }

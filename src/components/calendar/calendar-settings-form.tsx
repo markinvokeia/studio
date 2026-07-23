@@ -35,6 +35,9 @@ interface CalendarSettingsFormProps {
   /** When provided, the parent owns the settings: the form uses this value and
    *  does NOT fetch on mount (prevents reloads from clobbering live toggles). */
   value?: CalendarSettings;
+  /** When provided, reads/writes this user's calendar settings instead of the
+   *  logged-in user's (falls back to the JWT-derived user server-side when omitted). */
+  userId?: string;
 }
 
 const ALL_SEDES_VALUE = '__all__';
@@ -80,7 +83,7 @@ function SettingHeader({
   );
 }
 
-export function CalendarSettingsForm({ onSettingsChange, className, showTitle = false, sedes = [], value }: CalendarSettingsFormProps) {
+export function CalendarSettingsForm({ onSettingsChange, className, showTitle = false, sedes = [], value, userId }: CalendarSettingsFormProps) {
   const t = useTranslations('AppointmentsPage.settings');
   const controlled = value !== undefined;
   const [settings, setSettings] = React.useState<CalendarSettings>(value ?? DEFAULT_CALENDAR_SETTINGS);
@@ -99,12 +102,12 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
 
     const loadSettings = async () => {
       try {
-        const data = await api.get(API_ROUTES.CALENDAR_SETTINGS_SEARCH);
+        const data = await api.get(API_ROUTES.CALENDAR_SETTINGS_SEARCH, userId ? { user_id: userId } : undefined);
         const existingSettings = normalizeCalendarSettings(data);
         const nextSettings = existingSettings ?? DEFAULT_CALENDAR_SETTINGS;
 
         if (!existingSettings) {
-          await api.post(API_ROUTES.CALENDAR_SETTINGS_UPSERT, nextSettings);
+          await api.post(API_ROUTES.CALENDAR_SETTINGS_UPSERT, userId ? { ...nextSettings, user_id: userId } : nextSettings);
         }
 
         if (!isMounted) {
@@ -127,7 +130,7 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
     return () => {
       isMounted = false;
     };
-  }, [onSettingsChange, controlled]);
+  }, [onSettingsChange, controlled, userId]);
 
   const updateSettings = async (updates: Partial<CalendarSettings>) => {
     const newSettings = { ...settings, ...updates };
@@ -135,7 +138,7 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
     onSettingsChange?.(newSettings);
 
     try {
-      await api.post(API_ROUTES.CALENDAR_SETTINGS_UPSERT, newSettings);
+      await api.post(API_ROUTES.CALENDAR_SETTINGS_UPSERT, userId ? { ...newSettings, user_id: userId } : newSettings);
     } catch (error) {
       console.error('Failed to save calendar settings:', error);
     }
