@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { endOfMonth, format, parseISO, startOfMonth } from 'date-fns';
+import { addMonths, endOfMonth, format, parseISO, startOfMonth } from 'date-fns';
 import { Banknote, Check, ChevronDown, FileMinus, FileText, History, Link2, ListChecks, Loader2, Pencil, Plus, Printer, Receipt, RefreshCw, ScrollText, Search, Trash2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { DateRange } from 'react-day-picker';
@@ -549,7 +549,7 @@ function EditorControls({ submitting, onCancel, disabled }: { submitting: boolea
  * type. Secondary fields flow onto an aligned second line that leaves the Debe/Haber/
  * controls columns empty so nothing shifts.
  */
-function InlineEditorShell({ docLabel, dateSlot, mainSlot, debeSlot, haberSlot, controls, secondLine, belowSlot }: {
+function InlineEditorShell({ docLabel, dateSlot, mainSlot, debeSlot, haberSlot, controls, secondLine, secondLineLeft, belowSlot }: {
   docLabel: React.ReactNode;
   dateSlot: React.ReactNode;
   mainSlot: React.ReactNode;
@@ -557,24 +557,46 @@ function InlineEditorShell({ docLabel, dateSlot, mainSlot, debeSlot, haberSlot, 
   haberSlot: React.ReactNode;
   controls: React.ReactNode;
   secondLine?: React.ReactNode;
+  /** Optional field stacked under the `docLabel` badge, in line 2's own w-32 column below
+   *  the date column (e.g. a treatment's due date) — kept level with `secondLine`'s
+   *  tooth/doctor/notes instead of inside `dateSlot`, so line 1 never grows taller than
+   *  its single-line fields and leaves an empty gap above line 2. */
+  secondLineLeft?: React.ReactNode;
   /** Optional full-width area rendered below both lines (e.g. the payment allocations). */
   belowSlot?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-lg border border-primary/50 bg-primary/5 px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
-      {/* Line 1: date · main fields · Debe · Haber · confirm/cancel */}
-      <div className="flex items-center gap-3">
+    <div className="relative rounded-lg border border-primary/50 bg-primary/5 px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
+      {/* Confirm/cancel are pinned to the top-right corner via absolute positioning,
+          outside the wrapping flex flow below — otherwise, once that flow wraps (e.g.
+          `mainSlot` dropping to its own line on narrow viewports), they'd wrap along
+          with it and end up wherever Debe/Haber happened to land instead of staying in a
+          fixed, predictable spot. `pr-24` on the row below reserves the same horizontal
+          space so wrapped content never renders underneath them. */}
+      <div className="absolute right-3 top-2.5 flex items-center gap-1">{controls}</div>
+      {/* Line 1: date · main fields · Debe · Haber. `items-start` keeps every column's
+          top row flush together, since `mainSlot` can wrap onto a second internal line
+          (e.g. quantity dropping under currency+service) on narrow viewports without
+          pulling the single-line columns down to its vertical center. `flex-wrap` lets
+          columns drop to their own line instead of overflowing/clipping on narrow
+          viewports. No explicit `min-w` on the mainSlot column below — an author-set
+          min-width replaces the browser's automatic content-based minimum instead of
+          adding to it, so it let the column shrink below what its own children need,
+          overflowing into Debe's column rather than wrapping. Leaving it unset
+          (`flex-1` alone) restores the correct automatic minimum, which adapts to
+          whatever `mainSlot` actually contains per editor. */}
+      <div className="flex flex-wrap items-start gap-3 pr-24">
         <div className="w-32 shrink-0 text-sm text-muted-foreground">{dateSlot}</div>
-        <div className="min-w-[10rem] flex-1">{mainSlot}</div>
+        <div className="flex-1">{mainSlot}</div>
         <div className="w-24 shrink-0">{debeSlot}</div>
         <div className="w-24 shrink-0">{haberSlot}</div>
-        <div className="flex w-24 shrink-0 items-center justify-end gap-1">{controls}</div>
       </div>
-      {/* Line 2: type badge (under the date) · secondary fields */}
+      {/* Line 2: type badge + optional secondLineLeft (under the date) · secondary fields */}
       {secondLine && (
-        <div className="mt-2 flex items-start gap-3">
-          <div className="flex w-32 shrink-0 items-center">
-            <Badge variant="outline" className="text-[10px]">{docLabel}</Badge>
+        <div className="mt-2 flex flex-wrap items-start gap-3">
+          <div className="flex w-32 shrink-0 flex-col gap-1.5">
+            <Badge variant="outline" className="w-fit text-[10px]">{docLabel}</Badge>
+            {secondLineLeft}
           </div>
           <div className="flex min-w-[10rem] flex-1 flex-wrap items-center gap-2">{secondLine}</div>
           <div className="w-24 shrink-0" />
@@ -593,8 +615,20 @@ function DisabledAmountCell() {
   return <div className="flex h-8 items-center justify-end pr-1 text-sm text-muted-foreground">0,00</div>;
 }
 
+/** One labeled field on its own full-width line, for the `<sm` stacked editor layout —
+ *  see `QuoteInvoiceInlineEditor`'s narrow render path. */
+function StackedField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</span>
+      {children}
+    </div>
+  );
+}
+
 const quoteEditorSchema = z.object({
   created_at: z.date(),
+  due_date: z.date().optional(),
   currency: z.enum(['UYU', 'USD']),
   service_id: z.string().min(1),
   service_name: z.string().optional(),
@@ -673,6 +707,15 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
     resolver: zodResolver(quoteEditorSchema),
     defaultValues: {
       created_at: editInvoice?.createdAt ? new Date(editInvoice.createdAt) : editRow?.date ? new Date(editRow.date) : new Date(),
+      // New treatments default their due date to one month out; editing an existing one
+      // just carries over whatever it already has (or nothing, if it never had one).
+      due_date: editInvoice?.due_date
+        ? new Date(editInvoice.due_date)
+        : editRow?.dueDate
+          ? new Date(editRow.dueDate)
+          : (!isEdit && doc === 'invoice')
+            ? addMonths(new Date(), 1)
+            : undefined,
       currency: ((editInvoice?.currency || editQuote?.currency || editRow?.currency) as 'UYU' | 'USD' | undefined) || (currency as 'UYU' | 'USD'),
       service_id: editItem?.service_id || editRow?.serviceId || '',
       service_name: editItem?.service_name || editRow?.label || '',
@@ -685,15 +728,23 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
   });
   const watchedName = form.watch('service_name');
   const createdAt = form.watch('created_at');
+  const dueDate = form.watch('due_date');
   const selectedCurrency = form.watch('currency');
 
   const onSubmit = async (values: QuoteEditorValues) => {
     if (submitting) return;
+    // Only a billed treatment (`doc === 'invoice'`) offers a due date at all — a
+    // presupuesto has no invoice behind it yet, so `values.due_date` stays undefined there.
+    if (values.due_date && values.due_date <= values.created_at) {
+      toast({ title: t('errors.dueDateBeforeIssue'), variant: 'destructive' });
+      return;
+    }
     setSubmitting(true);
     try {
       const qty = values.quantity || 1;
       const tooth = values.tooth_number ? Number(values.tooth_number) : null;
       const createdAtIso = toLocalISOString(preserveTimeIfToday(values.created_at));
+      const dueDateIso = values.due_date ? toLocalISOString(preserveTimeIfToday(values.due_date)) : undefined;
       if (isEdit && editKind === 'quote') {
         // doctor/notes live on the quote itself, not on quote_items — patched first via a
         // QUOTES_UPSERT by id, carrying over the quote's other required columns unchanged
@@ -763,6 +814,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
             total: editInvoice.total,
             currency: editInvoice.currency,
             created_at: createdAtIso,
+            due_date: dueDateIso,
             notes: values.description || '',
             is_historical: editInvoice.is_historical ?? false,
             items: siblingItems,
@@ -809,6 +861,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
           total,
           currency: values.currency,
           created_at: createdAtIso,
+          due_date: dueDateIso,
           notes: values.description || '',
           is_historical: editInvoice?.is_historical ?? false,
           items,
@@ -851,6 +904,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
             total: qty * values.unit_price,
             currency: values.currency,
             created_at: createdAtIso,
+            due_date: dueDateIso,
             notes: values.description || '',
             is_historical: false,
             items: [item],
@@ -871,6 +925,11 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)}>
+      {/* ≥sm: the compact row layout below, which relies on flex-wrap reflow. Below
+          `sm` that reflow scatters fields in a hard-to-follow order (see the narrow
+          layout further down), so the two are mutually exclusive via Tailwind's
+          responsive display utilities rather than one layout trying to serve both. */}
+      <div className="hidden sm:block">
       <InlineEditorShell
         docLabel={t(doc === 'quote' ? 'inline.addQuote' : 'inline.addTreatment')}
         dateSlot={
@@ -885,6 +944,12 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
           )
         }
         mainSlot={
+          // No `flex-wrap` here on purpose: wrapping removes this column's natural
+          // min-content width, so the *outer* row (which does wrap) never learns it
+          // needs to push Precio/Total/controls to their own line — it just keeps
+          // cramming this column narrower forever. Staying non-wrapping lets the outer
+          // row's own flex-wrap trigger properly and hand this column the full row width
+          // once Precio/Total/controls drop below it.
           <div className="flex items-center gap-2">
             {isEdit ? (
               <Badge variant="outline" className="h-8 shrink-0 px-2.5 text-xs">{selectedCurrency}</Badge>
@@ -914,13 +979,9 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
                 className="h-8"
               />
             </div>
-            <Input
-              type="number"
-              placeholder={t('fields.tooth')}
-              aria-label={t('fields.tooth')}
-              className="h-8 w-16 shrink-0 text-sm"
-              {...form.register('tooth_number')}
-            />
+            {/* Quantity stays on this row, next to Precio/Total — it's part of that same
+                debe calculation. Tooth moves to the second row (with doctor/notes) instead,
+                since it's descriptive metadata, not part of the price row. */}
             <Input
               type="number"
               min={1}
@@ -943,8 +1004,26 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
         }
         haberSlot={<DisabledAmountCell />}
         controls={<EditorControls submitting={submitting} onCancel={onCancel} />}
+        // Due date only applies to a billed treatment — a presupuesto has no invoice
+        // behind it yet, so `doc === 'quote'` never renders this.
+        secondLineLeft={doc === 'invoice' && (
+          <DatePickerInput
+            value={dueDate ? format(dueDate, 'yyyy-MM-dd') : undefined}
+            onChange={(iso) => form.setValue('due_date', iso ? parseISO(iso) : undefined, { shouldValidate: true })}
+            disabledDays={(date) => date <= createdAt}
+            placeholder={t('fields.dueDate')}
+            className="h-8 w-full text-xs"
+          />
+        )}
         secondLine={
           <>
+            <Input
+              type="number"
+              placeholder={t('fields.tooth')}
+              aria-label={t('fields.tooth')}
+              className="h-8 w-20 shrink-0 text-sm"
+              {...form.register('tooth_number')}
+            />
             <div className="min-w-[10rem] flex-1">
               <DoctorSelector
                 value={form.watch('doctor_id')}
@@ -967,6 +1046,123 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
           </>
         }
       />
+      </div>
+      {/* <sm: an explicit, fixed field order (one per line, labeled) instead of the row
+          layout above. Debe/Haber's disabled placeholder is dropped here — it's just an
+          alignment filler on the row layout, not a real field, and would only read as a
+          confusing "Total: 0,00" with no context in a stacked form. */}
+      <div className="relative rounded-lg border border-primary/50 bg-primary/5 px-3 py-2.5 sm:hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="absolute right-3 top-2.5 flex items-center gap-1">
+          <EditorControls submitting={submitting} onCancel={onCancel} />
+        </div>
+        <div className="flex flex-col gap-3 pr-20">
+          <Badge variant="outline" className="w-fit text-[10px]">{t(doc === 'quote' ? 'inline.addQuote' : 'inline.addTreatment')}</Badge>
+          <StackedField label={t('fields.date')}>
+            {isDateReadOnly ? (
+              <span className="text-xs text-muted-foreground">{formatDisplayDate(editRow!.date)}</span>
+            ) : (
+              <DatePickerInput
+                value={format(createdAt, 'yyyy-MM-dd')}
+                onChange={(iso) => iso && form.setValue('created_at', parseISO(iso))}
+                className="h-8 text-xs"
+              />
+            )}
+          </StackedField>
+          {/* Due date only applies to a billed treatment — a presupuesto has no invoice
+              behind it yet, so `doc === 'quote'` never renders this. */}
+          {doc === 'invoice' && (
+            <StackedField label={t('fields.dueDate')}>
+              <DatePickerInput
+                value={dueDate ? format(dueDate, 'yyyy-MM-dd') : undefined}
+                onChange={(iso) => form.setValue('due_date', iso ? parseISO(iso) : undefined, { shouldValidate: true })}
+                disabledDays={(date) => date <= createdAt}
+                placeholder={t('fields.dueDate')}
+                className="h-8 text-xs"
+              />
+            </StackedField>
+          )}
+          <StackedField label={t('fields.currency')}>
+            {isEdit ? (
+              <Badge variant="outline" className="h-8 w-fit px-2.5 text-xs">{selectedCurrency}</Badge>
+            ) : (
+              <Select value={selectedCurrency} onValueChange={(v) => form.setValue('currency', v as 'UYU' | 'USD', { shouldValidate: true })}>
+                <SelectTrigger className="h-8 w-24 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="UYU">UYU</SelectItem>
+                  <SelectItem value="USD">USD</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          </StackedField>
+          <StackedField label={t('fields.service')}>
+            <ServiceSelector
+              isSales
+              value={form.watch('service_id')}
+              selectedServiceName={watchedName}
+              onValueChange={(serviceId, service) => {
+                form.setValue('service_id', serviceId, { shouldValidate: true });
+                if (service) {
+                  form.setValue('service_name', service.name);
+                  form.setValue('unit_price', Number(service.price) || 0);
+                }
+              }}
+              placeholder={t('fields.searchService')}
+              triggerText={t('fields.selectService')}
+              className="h-8"
+            />
+          </StackedField>
+          <StackedField label={t('fields.tooth')}>
+            <Input
+              type="number"
+              placeholder={t('fields.tooth')}
+              aria-label={t('fields.tooth')}
+              className="h-8 text-sm"
+              {...form.register('tooth_number')}
+            />
+          </StackedField>
+          <StackedField label={t('fields.quantity')}>
+            <Input
+              type="number"
+              min={1}
+              placeholder={t('fields.quantity')}
+              aria-label={t('fields.quantity')}
+              className="h-8 text-sm"
+              {...form.register('quantity')}
+            />
+          </StackedField>
+          <StackedField label={t('fields.price')}>
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              aria-label={t('fields.price')}
+              className="h-8 text-sm"
+              {...form.register('unit_price')}
+            />
+          </StackedField>
+          <StackedField label={t('fields.doctor')}>
+            <DoctorSelector
+              value={form.watch('doctor_id')}
+              selectedDoctorName={doctorName}
+              onValueChange={(doctorId, doctor) => {
+                form.setValue('doctor_id', doctorId);
+                setDoctorName(doctor?.name || '');
+              }}
+              placeholder={t('fields.searchDoctor')}
+              triggerText={t('fields.selectDoctor')}
+              className="h-8"
+            />
+          </StackedField>
+          <StackedField label={t('fields.notes')}>
+            <Input
+              placeholder={t('fields.notes')}
+              aria-label={t('fields.notes')}
+              className="h-8 text-sm"
+              {...form.register('description')}
+            />
+          </StackedField>
+        </div>
+      </div>
     </form>
   );
 }

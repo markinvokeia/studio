@@ -4,7 +4,6 @@ import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { Bell, BellRing, CalendarClock, Columns3, Receipt, Rows3 } from 'lucide-react';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CalendarSettingsForm } from '@/components/calendar/calendar-settings-form';
 import { UserCommunicationPreferences } from '@/components/users/user-communication-preferences';
 import { API_ROUTES } from '@/constants/routes';
@@ -19,6 +18,16 @@ interface UserPreferencesTabProps {
   /** Show the appointment alert style toggle (doctors only). */
   showAlertStyle?: boolean;
   sedes?: Sede[];
+}
+
+/** Small section label — icon + uppercase title, no card chrome (matches calendar-settings-form). */
+function SectionHeading({ icon: Icon, label }: { icon: React.ComponentType<{ className?: string }>; label: string }) {
+  return (
+    <div className="flex items-center gap-1.5 mb-2">
+      <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+      <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{label}</span>
+    </div>
+  );
 }
 
 /**
@@ -73,110 +82,68 @@ export function UserPreferencesTab({ user, showFinanceView = false, showAlertSty
   };
 
   return (
-    <div className="space-y-4">
-      <Card className="shadow-sm border-0">
-        <CardHeader className="p-4">
-          <div className="flex items-start gap-3">
-            <div className="header-icon-circle mt-0.5">
-              <Bell className="h-5 w-5" />
-            </div>
-            <CardTitle className="text-lg">{t('notificationsSection')}</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="p-4 pt-0">
-          <UserCommunicationPreferences user={user} autoSave />
-        </CardContent>
-      </Card>
+    <div className="space-y-5 divide-y divide-border/50">
+      <div>
+        <SectionHeading icon={Bell} label={t('notificationsSection')} />
+        <UserCommunicationPreferences user={user} autoSave compact />
+      </div>
 
       {showFinanceView && (
-        <Card className="shadow-sm border-0">
-          <CardHeader className="p-4">
-            <div className="flex items-start gap-3">
-              <div className="header-icon-circle mt-0.5">
-                <Receipt className="h-5 w-5" />
-              </div>
-              <CardTitle className="text-lg">{t('financeViewSection')}</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="p-4 pt-0 space-y-3">
-            <div>
-              <p className="text-sm font-medium text-foreground">{t('financeViewLabel')}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{t('financeViewDescription')}</p>
-            </div>
-            <div className="flex gap-2">
-              {(['tabs', 'unified'] as PatientFinanceView[]).map((view) => (
-                <button
-                  key={view}
-                  type="button"
-                  disabled={isLoading}
-                  onClick={() => setFinanceView(view)}
-                  className={cn(
-                    'flex flex-1 flex-col items-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-medium transition-all',
-                    financeView === view
-                      ? 'border-primary bg-primary/8 text-primary'
-                      : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/40 hover:text-foreground',
-                  )}
-                >
-                  {view === 'unified' ? <Rows3 className="h-5 w-5" /> : <Columns3 className="h-5 w-5" />}
-                  {t(`financeView.${view}` as any)}
-                </button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="pt-5">
+          <SectionHeading icon={Receipt} label={t('financeViewSection')} />
+          <p className="text-xs text-muted-foreground mb-2">{t('financeViewDescription')}</p>
+          <div className="flex gap-2">
+            {(['tabs', 'unified'] as PatientFinanceView[]).map((view) => (
+              <button
+                key={view}
+                type="button"
+                disabled={isLoading}
+                onClick={() => setFinanceView(view)}
+                className={cn(
+                  'flex flex-1 flex-col items-center gap-1.5 rounded-lg border px-3 py-2.5 text-xs font-medium transition-all',
+                  financeView === view
+                    ? 'border-primary bg-primary/8 text-primary'
+                    : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/40 hover:text-foreground',
+                )}
+              >
+                {view === 'unified' ? <Rows3 className="h-4 w-4" /> : <Columns3 className="h-4 w-4" />}
+                {t(`financeView.${view}` as any)}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       {showAlertStyle && (
-        <Card className="shadow-sm border-0">
-          <CardHeader className="p-4">
-            <div className="flex items-start gap-3">
-              <div className="header-icon-circle mt-0.5">
-                <BellRing className="h-5 w-5" />
-              </div>
-              <CardTitle className="text-lg">{t('workspaceSection')}</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="p-4 pt-0 space-y-3">
-            <div>
-              <p className="text-sm font-medium text-foreground">{t('alertStyleLabel')}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{t('alertStyleDescription')}</p>
-            </div>
-            <div className="flex gap-2">
-              {(['modal', 'toast'] as DoctorAlertStyle[]).map((style) => (
-                <button
-                  key={style}
-                  type="button"
-                  disabled={isLoading}
-                  onClick={() => setAlertStyle(style)}
-                  className={cn(
-                    'flex flex-1 flex-col items-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-medium transition-all',
-                    alertStyle === style
-                      ? 'border-primary bg-primary/8 text-primary'
-                      : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/40 hover:text-foreground',
-                  )}
-                >
-                  {style === 'modal' ? <BellRing className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
-                  {t(`alertStyle.${style}` as any)}
-                </button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="pt-5">
+          <SectionHeading icon={BellRing} label={t('workspaceSection')} />
+          <p className="text-xs text-muted-foreground mb-2">{t('alertStyleDescription')}</p>
+          <div className="flex gap-2">
+            {(['modal', 'toast'] as DoctorAlertStyle[]).map((style) => (
+              <button
+                key={style}
+                type="button"
+                disabled={isLoading}
+                onClick={() => setAlertStyle(style)}
+                className={cn(
+                  'flex flex-1 flex-col items-center gap-1.5 rounded-lg border px-3 py-2.5 text-xs font-medium transition-all',
+                  alertStyle === style
+                    ? 'border-primary bg-primary/8 text-primary'
+                    : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/40 hover:text-foreground',
+                )}
+              >
+                {style === 'modal' ? <BellRing className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
+                {t(`alertStyle.${style}` as any)}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
-      <Card className="shadow-sm border-0">
-        <CardHeader className="p-4">
-          <div className="flex items-start gap-3">
-            <div className="header-icon-circle mt-0.5">
-              <CalendarClock className="h-5 w-5" />
-            </div>
-            <CardTitle className="text-lg">{t('calendarSection')}</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="p-4 pt-0">
-          <CalendarSettingsForm userId={user.id} sedes={sedes} />
-        </CardContent>
-      </Card>
+      <div className="pt-5">
+        <SectionHeading icon={CalendarClock} label={t('calendarSection')} />
+        <CalendarSettingsForm userId={user.id} sedes={sedes} />
+      </div>
     </div>
   );
 }

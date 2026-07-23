@@ -23,7 +23,6 @@ import { api } from '@/services/api';
 import { usePatientView } from '@/stores/patient-view-store';
 import { BulkActionsFloatingBar } from '@/components/alerts/bulk-actions-floating-bar';
 import { AlertEmailComposerDialog } from '@/components/alerts/alert-email-composer-dialog';
-import { AlertWhatsAppComposerDialog } from '@/components/alerts/alert-whatsapp-composer-dialog';
 import { cn } from '@/lib/utils';
 import {
     AlertTriangle,
@@ -43,7 +42,8 @@ import {
     UserPlus,
     XCircle,
     MessageCircle,
-    BellRing
+    BellRing,
+    Loader2
 } from 'lucide-react';
 import { ChevronLeftIcon, ChevronRightIcon, DoubleArrowLeftIcon, DoubleArrowRightIcon } from '@radix-ui/react-icons';
 import { useTranslations } from 'next-intl';
@@ -271,8 +271,7 @@ function AlertsCenterPageContent() {
     const [alertsForNote, setAlertsForNote] = React.useState<string[]>([]);
     const [isAlertEmailDialogOpen, setIsAlertEmailDialogOpen] = React.useState(false);
     const [alertForEmailComposer, setAlertForEmailComposer] = React.useState<AlertInstance | null>(null);
-    const [isAlertWhatsAppDialogOpen, setIsAlertWhatsAppDialogOpen] = React.useState(false);
-    const [alertForWhatsAppComposer, setAlertForWhatsAppComposer] = React.useState<AlertInstance | null>(null);
+    const [sendingWhatsAppAlertIds, setSendingWhatsAppAlertIds] = React.useState<Set<string>>(new Set());
     const [alertStatistics, setAlertStatistics] = React.useState<AlertStatistics>(EMPTY_STATISTICS);
     const { user } = useAuth();
     // rule_id -> { code, name } of the WhatsApp CommunicationTemplate configured on that AlertRule (see AlertRule.whatsapp_template_id)
@@ -452,10 +451,46 @@ function AlertsCenterPageContent() {
         setIsAlertEmailDialogOpen(true);
     }, []);
 
-    const openAlertWhatsAppComposer = React.useCallback((alert: AlertInstance) => {
-        setAlertForWhatsAppComposer(alert);
-        setIsAlertWhatsAppDialogOpen(true);
+    const getAlertPatientId = React.useCallback((alert: AlertInstance): string => {
+        if (alert.patient_id) return alert.patient_id;
+        const id = alert.details_json?.patient?.id ?? alert.details_json?.patient_id;
+        return typeof id === 'string' ? id : '';
     }, []);
+
+    const sendAlertWhatsApp = React.useCallback(async (alert: AlertInstance) => {
+        const template = getAlertWhatsAppTemplate(alert);
+        const phone = getAlertPhone(alert);
+        const patientId = getAlertPatientId(alert);
+        if (!template || !phone || !patientId || !user?.id) return;
+
+        setSendingWhatsAppAlertIds(prev => new Set(prev).add(alert.id));
+        try {
+            await api.post(API_ROUTES.PATIENTS_SEND_WHATSAPP_TEMPLATE, {
+                id: patientId,
+                template_code: template.code,
+                reference_table: alert.reference_table || undefined,
+                reference_id: alert.reference_id || undefined,
+                alert_instance_id: alert.id,
+                performed_by: user.id,
+            });
+            refreshAlerts();
+            await loadAlerts();
+            toast({ title: t('toast.whatsappSent'), description: t('toast.whatsappSentDescription', { count: 1 }) });
+        } catch (error) {
+            console.error('Failed to send WhatsApp message:', error);
+            toast({
+                title: t('toast.whatsappSendFailed'),
+                description: error instanceof Error ? error.message : t('toast.whatsappSendFailedDescription'),
+                variant: 'destructive',
+            });
+        } finally {
+            setSendingWhatsAppAlertIds(prev => {
+                const next = new Set(prev);
+                next.delete(alert.id);
+                return next;
+            });
+        }
+    }, [getAlertWhatsAppTemplate, getAlertPhone, getAlertPatientId, user, refreshAlerts, loadAlerts, t]);
 
     const handleSelectAlert = (alertId: string, checked: boolean) => {
         setSelectedAlerts(prev =>
@@ -675,6 +710,7 @@ function AlertsCenterPageContent() {
                                                             const phone = getAlertPhone(alert);
                                                             const emailEnabled = Boolean(email);
                                                             const whatsappEnabled = Boolean(phone) && Boolean(getAlertWhatsAppTemplate(alert));
+                                                            const whatsappSending = sendingWhatsAppAlertIds.has(alert.id);
 
                                                             return (
                                                                 <>
@@ -701,10 +737,14 @@ function AlertsCenterPageContent() {
                                                                 <Can permission={ALERT_CENTER_PERMISSIONS.SEND_WHATSAPP}>
                                                                     <DropdownMenuLabel>{t('actionsGroups.communication')}</DropdownMenuLabel>
                                                                     <DropdownMenuItem
-                                                                        onClick={() => openAlertWhatsAppComposer(alert)}
-                                                                        disabled={!whatsappEnabled}
+                                                                        onClick={() => sendAlertWhatsApp(alert)}
+                                                                        disabled={!whatsappEnabled || whatsappSending}
                                                                     >
-                                                                        <MessageCircle className="mr-2 h-4 w-4" />
+                                                                        {whatsappSending ? (
+                                                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                                        ) : (
+                                                                            <MessageCircle className="mr-2 h-4 w-4" />
+                                                                        )}
                                                                         {whatsappEnabled ? t('actions.sendWhatsApp') : t('actions.sendWhatsAppUnavailable')}
                                                                     </DropdownMenuItem>
                                                                 </Can>
@@ -976,20 +1016,6 @@ function AlertsCenterPageContent() {
                     }
                 }}
                 alert={alertForEmailComposer}
-            />
-
-            <AlertWhatsAppComposerDialog
-                open={isAlertWhatsAppDialogOpen}
-                onOpenChange={(open) => {
-                    setIsAlertWhatsAppDialogOpen(open);
-                    if (!open) {
-                        setAlertForWhatsAppComposer(null);
-                    }
-                }}
-                alert={alertForWhatsAppComposer}
-                templateCode={alertForWhatsAppComposer ? getAlertWhatsAppTemplate(alertForWhatsAppComposer)?.code || null : null}
-                templateName={alertForWhatsAppComposer ? getAlertWhatsAppTemplate(alertForWhatsAppComposer)?.name : undefined}
-                performedBy={user?.id}
             />
 
             {/* Floating Bulk Actions Bar */}

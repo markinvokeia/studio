@@ -54,6 +54,7 @@
     },
     "fields": {
       "date": "Date",
+      "currency": "Currency",
       "service": "Treatment",
       "searchService": "Search treatment...",
       "selectService": "Select treatment",
@@ -68,7 +69,11 @@
       "method": "Payment method",
       "selectMethod": "Select method",
       "notes": "Notes",
-      "historical": "Historical"
+      "historical": "Historical",
+      "dueDate": "Due date"
+    },
+    "errors": {
+      "dueDateBeforeIssue": "The due date must be after the issue date"
     },
     "columns": {
       "date": "Date",
@@ -7082,24 +7087,6 @@
       "sendSuccessDescription": "The alert email was sent successfully.",
       "sendErrorTitle": "Error sending email",
       "sendErrorDescription": "Could not send the alert email. Please try again."
-    }
-  },
-  "AlertWhatsAppComposerDialog": {
-    "title": "Send WhatsApp",
-    "description": "Confirm the recipient and template to send.",
-    "phone": "Phone",
-    "templateLabel": "Template",
-    "missingPhone": "This alert has no patient phone.",
-    "missingTemplate": "This alert's rule has no WhatsApp template configured.",
-    "missingPerformedBy": "Could not identify the current user to log this action.",
-    "cancel": "Cancel",
-    "send": "Send",
-    "sending": "Sending...",
-    "toast": {
-      "sendSuccessTitle": "Message sent",
-      "sendSuccessDescription": "The WhatsApp message was sent successfully.",
-      "sendErrorTitle": "Error sending message",
-      "sendErrorDescription": "Could not send the message. Please try again."
     }
   },
   "EmailComposerDialog": {

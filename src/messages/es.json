@@ -54,6 +54,7 @@
     },
     "fields": {
       "date": "Fecha",
+      "currency": "Moneda",
       "service": "Tratamiento",
       "searchService": "Buscar tratamiento...",
       "selectService": "Seleccionar tratamiento",
@@ -68,7 +69,11 @@
       "method": "Método de pago",
       "selectMethod": "Seleccionar método",
       "notes": "Notas",
-      "historical": "Histórico"
+      "historical": "Histórico",
+      "dueDate": "Vencimiento"
+    },
+    "errors": {
+      "dueDateBeforeIssue": "El vencimiento debe ser posterior a la fecha de emisión"
     },
     "columns": {
       "date": "Fecha",
@@ -7062,24 +7067,6 @@
       "sendSuccessDescription": "El correo de alerta se envió correctamente.",
       "sendErrorTitle": "Error al enviar correo",
       "sendErrorDescription": "No se pudo enviar el correo de alerta. Inténtalo nuevamente."
-    }
-  },
-  "AlertWhatsAppComposerDialog": {
-    "title": "Enviar WhatsApp",
-    "description": "Confirma el destinatario y la plantilla a enviar.",
-    "phone": "Teléfono",
-    "templateLabel": "Plantilla",
-    "missingPhone": "Esta alerta no tiene teléfono del paciente.",
-    "missingTemplate": "La regla de esta alerta no tiene una plantilla de WhatsApp configurada.",
-    "missingPerformedBy": "No se pudo identificar al usuario actual para registrar esta acción.",
-    "cancel": "Cancelar",
-    "send": "Enviar",
-    "sending": "Enviando...",
-    "toast": {
-      "sendSuccessTitle": "Mensaje enviado",
-      "sendSuccessDescription": "El mensaje de WhatsApp se envió correctamente.",
-      "sendErrorTitle": "Error al enviar el mensaje",
-      "sendErrorDescription": "No se pudo enviar el mensaje. Inténtalo nuevamente."
     }
   },
   "EmailComposerDialog": {
