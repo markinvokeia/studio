@@ -20,6 +20,7 @@ import { toast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { AlertInstance, AlertAction, AlertCategory } from '@/lib/types';
 import { api } from '@/services/api';
+import { usePatientView } from '@/stores/patient-view-store';
 import { BulkActionsFloatingBar } from '@/components/alerts/bulk-actions-floating-bar';
 import { AlertEmailComposerDialog } from '@/components/alerts/alert-email-composer-dialog';
 import { AlertWhatsAppComposerDialog } from '@/components/alerts/alert-whatsapp-composer-dialog';
@@ -237,6 +238,7 @@ function AlertsCenterPageContent() {
     const t = useTranslations('AlertsCenterPage');
     const { hasPermission } = usePermissions();
     const { refreshAlerts } = useAlertNotifications();
+    const { open: openPatient } = usePatientView();
     const [alerts, setAlerts] = React.useState<AlertInstance[]>([]);
     const [alertActions, setAlertActions] = React.useState<AlertAction[]>([]);
     const [alertCategories, setAlertCategories] = React.useState<AlertCategory[]>([]);
@@ -432,6 +434,19 @@ function AlertsCenterPageContent() {
         return typeof phone === 'string' ? phone.trim() : '';
     }, []);
 
+    const openPatientFromAlert = React.useCallback((alert: AlertInstance) => {
+        if (!alert.patient_id) return;
+        const patient = alert.details_json?.patient;
+        openPatient({
+            userId: alert.patient_id,
+            userName: patient?.full_name || alert.patient_name || '',
+            userEmail: (typeof patient?.email === 'string' && patient.email.trim()) || undefined,
+            userPhone: (typeof patient?.phone === 'string' && patient.phone.trim())
+                || (typeof patient?.phone_number === 'string' && patient.phone_number.trim())
+                || undefined,
+        });
+    }, [openPatient]);
+
     const openAlertEmailComposer = React.useCallback((alert: AlertInstance) => {
         setAlertForEmailComposer(alert);
         setIsAlertEmailDialogOpen(true);
@@ -613,7 +628,19 @@ function AlertsCenterPageContent() {
                                                 <div className="flex-1 min-w-0 flex flex-col gap-2">
                                                     {/* Row 1: title + details */}
                                                     <div>
-                                                        <p className="font-semibold leading-snug">{alert.title}</p>
+                                                        {alert.patient_id ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => openPatientFromAlert(alert)}
+                                                                title={t('actions.viewPatient')}
+                                                                className="group flex items-start gap-1.5 text-left font-semibold leading-snug text-primary hover:underline focus-visible:underline focus-visible:outline-none"
+                                                            >
+                                                                <span>{alert.title}</span>
+                                                                <User className="mt-0.5 h-3.5 w-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100" />
+                                                            </button>
+                                                        ) : (
+                                                            <p className="font-semibold leading-snug">{alert.title}</p>
+                                                        )}
                                                         {renderDisplayFields(alert, (alert as any).ui_display_config?.fields || [])}
                                                         {(() => {
                                                             const actions = alert.actions || [];

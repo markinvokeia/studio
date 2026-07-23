@@ -5501,6 +5501,7 @@
     },
     "actions": {
       "sendEmail": "Send Email",
+      "viewPatient": "View patient profile",
       "sendEmailUnavailable": "Patient has no email",
       "markCompleted": "Mark as Completed",
       "sendSms": "Send SMS",

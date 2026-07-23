@@ -5480,6 +5480,7 @@
     },
     "actions": {
       "sendEmail": "Enviar Correo",
+      "viewPatient": "Ver perfil del paciente",
       "sendEmailUnavailable": "El paciente no tiene correo",
       "markCompleted": "Marcar como Completada",
       "sendSms": "Enviar SMS",

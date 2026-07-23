@@ -137,6 +137,27 @@ export async function getMutualSocietiesList(): Promise<MutualSociety[]> {
 }
 
 // Maps a user from the FILTER_USERS / USERS search response into a partial User.
+/**
+ * Normalizes an API birth date to the `YYYY-MM-DD` string the form/date picker
+ * expects. The users endpoint returns the field as `birthday` in ISO timestamp
+ * form (e.g. "2006-07-23T00:00:00.000Z"); we take the calendar-date portion so
+ * no timezone conversion can shift the day.
+ */
+function normalizeBirthDate(value: unknown): string {
+  if (typeof value !== 'string' || value.trim() === '') return '';
+  const trimmed = value.trim();
+  // ISO timestamp or plain YYYY-MM-DD: take the date portion as-is.
+  const isoMatch = trimmed.match(/^(\d{4}-\d{2}-\d{2})(?:[T ]|$)/);
+  if (isoMatch) return isoMatch[1];
+  // DD/MM/YYYY → YYYY-MM-DD.
+  const dmy = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (dmy) {
+    const [, day, month, year] = dmy;
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+  return trimmed;
+}
+
 function mapSearchUser(apiUser: any): User {
   return {
     id: String(apiUser.user_id ?? apiUser.id ?? ''),
@@ -146,7 +167,7 @@ function mapSearchUser(apiUser: any): User {
     is_active: apiUser.is_active ?? true,
     avatar: '',
     identity_document: apiUser.identity_document || '',
-    birth_date: apiUser.birth_date || '',
+    birth_date: normalizeBirthDate(apiUser.birth_date ?? apiUser.birthday),
     address: apiUser.address || '',
     notes: apiUser.notes || '',
     mutual_society_id: apiUser.mutual_society_id ?? undefined,
