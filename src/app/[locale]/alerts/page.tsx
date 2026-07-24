@@ -128,6 +128,40 @@ const buildAlertTitle = (title: string, patientName?: string): string => {
     return normalizedTitle ? `${normalizedTitle} - ${patientName}` : patientName;
 };
 
+const getAlertPatientIdValue = (alert: any): string => {
+    if (alert?.patient_id) return alert.patient_id;
+    const id = alert?.details_json?.patient?.id ?? alert?.details_json?.patient_id;
+    if (typeof id === 'string') return id;
+    if (typeof id === 'number') return String(id);
+    return '';
+};
+
+type PatientContact = { email: string; phone: string };
+
+// Batch-fetches current contact info for the given patient ids. Called every time alerts are
+// (re)loaded so Email/WhatsApp enablement always reflects the live patient record, not a cache
+// that could go stale if a patient's phone/email changes between reloads.
+const fetchPatientContacts = async (patientIds: string[]): Promise<Record<string, PatientContact>> => {
+    if (patientIds.length === 0) return {};
+    try {
+        const response = await api.post(API_ROUTES.USER_CONTACT, { ids: patientIds });
+        const contacts: any[] = Array.isArray(response) ? response : [];
+        const map: Record<string, PatientContact> = {};
+        contacts.forEach((c) => {
+            if (!c?.id) return;
+            const phone = (typeof c.phone_number === 'string' && c.phone_number.trim())
+                || (typeof c.alternative_phone === 'string' && c.alternative_phone.trim())
+                || '';
+            map[String(c.id)] = { email: typeof c.email === 'string' ? c.email.trim() : '', phone };
+        });
+        patientIds.forEach(id => { if (!(id in map)) map[id] = { email: '', phone: '' }; });
+        return map;
+    } catch (error) {
+        console.error('Failed to fetch patient contact info:', error);
+        return {};
+    }
+};
+
 const fetchAlerts = async (status?: string, priority?: string, page: number = 1, limit: number = 50) => {
     try {
         const query: Record<string, string> = {};
@@ -276,6 +310,11 @@ function AlertsCenterPageContent() {
     const { user } = useAuth();
     // rule_id -> { code, name } of the WhatsApp CommunicationTemplate configured on that AlertRule (see AlertRule.whatsapp_template_id)
     const [whatsappTemplateByRuleId, setWhatsappTemplateByRuleId] = React.useState<Record<string, { code: string; name: string }>>({});
+    // patient_id -> current email/phone fetched live from the patient record.
+    // `alert.details_json.patient` is a snapshot taken when the alert was generated, so it can go
+    // stale if the patient's contact info changes afterwards — Email/WhatsApp enablement must reflect
+    // the real record, not that snapshot.
+    const [patientContactByPatientId, setPatientContactByPatientId] = React.useState<Record<string, { email: string; phone: string }>>({});
 
     React.useEffect(() => {
         const loadWhatsAppTemplateMap = async () => {
@@ -322,6 +361,10 @@ function AlertsCenterPageContent() {
             setTotalPages(actionsTotalPages);
             setAlertCategories(categoriesData);
             setAlertStatistics(statisticsData);
+
+            const patientIds = Array.from(new Set(alertsData.alerts.map(getAlertPatientIdValue).filter(Boolean)));
+            const contactMap = await fetchPatientContacts(patientIds);
+            setPatientContactByPatientId(contactMap);
         } catch (error) {
             console.error('Failed to load alerts:', error);
         } finally {
@@ -349,6 +392,19 @@ function AlertsCenterPageContent() {
         };
         loadActions();
     }, [page, limit]);
+
+    // Auto-completes a single alert after a successful Email/WhatsApp send. Kept separate from
+    // markAsCompleted (no bulk-loading state, no toast) so a completion failure never masks the
+    // send success toast the user already saw.
+    const completeAlertSilently = React.useCallback(async (alertId: string) => {
+        try {
+            await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_COMPLETE, { ids: [alertId] });
+            refreshAlerts();
+            await loadAlerts();
+        } catch (error) {
+            console.error('Failed to auto-complete alert after communication was sent:', error);
+        }
+    }, [refreshAlerts, loadAlerts]);
 
     const markAsCompleted = React.useCallback(async (alertIds: string[]) => {
         setBulkActionLoading('complete');
@@ -423,38 +479,33 @@ function AlertsCenterPageContent() {
         }
     };
 
+    const getAlertPatientId = React.useCallback((alert: AlertInstance): string => getAlertPatientIdValue(alert), []);
+
     const getAlertEmail = React.useCallback((alert: AlertInstance): string => {
-        const email = alert.details_json?.patient?.email;
-        return typeof email === 'string' ? email.trim() : '';
-    }, []);
+        const patientId = getAlertPatientId(alert);
+        return patientContactByPatientId[patientId]?.email || '';
+    }, [getAlertPatientId, patientContactByPatientId]);
 
     const getAlertPhone = React.useCallback((alert: AlertInstance): string => {
-        const phone = alert.details_json?.patient?.phone || alert.details_json?.patient?.phone_number;
-        return typeof phone === 'string' ? phone.trim() : '';
-    }, []);
+        const patientId = getAlertPatientId(alert);
+        return patientContactByPatientId[patientId]?.phone || '';
+    }, [getAlertPatientId, patientContactByPatientId]);
 
     const openPatientFromAlert = React.useCallback((alert: AlertInstance) => {
         if (!alert.patient_id) return;
         const patient = alert.details_json?.patient;
+        const contact = patientContactByPatientId[getAlertPatientId(alert)];
         openPatient({
             userId: alert.patient_id,
             userName: patient?.full_name || alert.patient_name || '',
-            userEmail: (typeof patient?.email === 'string' && patient.email.trim()) || undefined,
-            userPhone: (typeof patient?.phone === 'string' && patient.phone.trim())
-                || (typeof patient?.phone_number === 'string' && patient.phone_number.trim())
-                || undefined,
+            userEmail: contact?.email || undefined,
+            userPhone: contact?.phone || undefined,
         });
-    }, [openPatient]);
+    }, [openPatient, patientContactByPatientId, getAlertPatientId]);
 
     const openAlertEmailComposer = React.useCallback((alert: AlertInstance) => {
         setAlertForEmailComposer(alert);
         setIsAlertEmailDialogOpen(true);
-    }, []);
-
-    const getAlertPatientId = React.useCallback((alert: AlertInstance): string => {
-        if (alert.patient_id) return alert.patient_id;
-        const id = alert.details_json?.patient?.id ?? alert.details_json?.patient_id;
-        return typeof id === 'string' ? id : '';
     }, []);
 
     const sendAlertWhatsApp = React.useCallback(async (alert: AlertInstance) => {
@@ -473,9 +524,8 @@ function AlertsCenterPageContent() {
                 alert_instance_id: alert.id,
                 performed_by: user.id,
             });
-            refreshAlerts();
-            await loadAlerts();
             toast({ title: t('toast.whatsappSent'), description: t('toast.whatsappSentDescription', { count: 1 }) });
+            await completeAlertSilently(alert.id);
         } catch (error) {
             console.error('Failed to send WhatsApp message:', error);
             toast({
@@ -490,7 +540,7 @@ function AlertsCenterPageContent() {
                 return next;
             });
         }
-    }, [getAlertWhatsAppTemplate, getAlertPhone, getAlertPatientId, user, refreshAlerts, loadAlerts, t]);
+    }, [getAlertWhatsAppTemplate, getAlertPhone, getAlertPatientId, user, completeAlertSilently, t]);
 
     const handleSelectAlert = (alertId: string, checked: boolean) => {
         setSelectedAlerts(prev =>
@@ -1016,6 +1066,10 @@ function AlertsCenterPageContent() {
                     }
                 }}
                 alert={alertForEmailComposer}
+                patientEmail={alertForEmailComposer ? getAlertEmail(alertForEmailComposer) : ''}
+                onSent={() => {
+                    if (alertForEmailComposer) completeAlertSilently(alertForEmailComposer.id);
+                }}
             />
 
             {/* Floating Bulk Actions Bar */}

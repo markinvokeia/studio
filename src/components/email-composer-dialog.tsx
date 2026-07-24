@@ -50,6 +50,8 @@ interface EmailComposerDialogProps {
   missingToMessage?: string;
   /** Warning shown inside the dialog when `userId` is empty */
   missingUserIdMessage?: string;
+  /** Called right after a successful send, before the dialog closes */
+  onSent?: () => void;
 }
 
 type ViewMode = 'edit' | 'source' | 'preview';
@@ -67,6 +69,7 @@ export function EmailComposerDialog({
   description,
   missingToMessage,
   missingUserIdMessage,
+  onSent,
 }: EmailComposerDialogProps) {
   const t = useTranslations('EmailComposerDialog');
   const { toast } = useToast();
@@ -165,6 +168,7 @@ export function EmailComposerDialog({
     try {
       await api.post(API_ROUTES.USERS_SEND_EMAIL, { id: userId, subject, bodyHTML: html });
       toast({ title: t('toast.sendSuccessTitle'), description: t('toast.sendSuccessDescription') });
+      onSent?.();
       onOpenChange(false);
     } catch (error) {
       toast({
