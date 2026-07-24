@@ -316,6 +316,88 @@ textarea::placeholder {
   }
 }
 
+/* ── Responsive patient ledger (container query) ─────────────────────────
+   The ledger panel (patient-finance-section.tsx / PatientLedgerSheet) can be
+   narrow even on a wide viewport — a fixed sidebar + a moderately-sized
+   window/sheet routinely leaves it well under 640px, so a `sm:` viewport
+   breakpoint can't tell "narrow panel" from "wide panel" apart. Sizing off
+   the panel's own width instead fixes that. */
+.patient-ledger-container {
+  container-type: inline-size;
+  container-name: patient-ledger;
+}
+
+.patient-ledger-col-header {
+  display: none;
+}
+
+.patient-ledger-row-min-w {
+  min-width: 0;
+}
+
+.patient-ledger-amounts {
+  display: flex;
+}
+
+.patient-ledger-amount-cell {
+  flex: 1 1 0%;
+  text-align: left;
+}
+
+.patient-ledger-amount-label {
+  display: block;
+}
+
+.patient-ledger-footer {
+  flex-direction: column;
+}
+
+.patient-ledger-footer-totals {
+  display: grid;
+}
+
+.patient-ledger-footer-total-cell {
+  text-align: right;
+}
+
+@container patient-ledger (min-width: 40rem) {
+  .patient-ledger-col-header {
+    display: flex;
+  }
+
+  .patient-ledger-row-min-w {
+    min-width: max-content;
+  }
+
+  .patient-ledger-amounts {
+    display: contents;
+  }
+
+  .patient-ledger-amount-cell {
+    flex: none;
+    width: 6rem;
+    text-align: right;
+  }
+
+  .patient-ledger-amount-label {
+    display: none;
+  }
+
+  .patient-ledger-footer {
+    flex-direction: row;
+    align-items: flex-end;
+  }
+
+  .patient-ledger-footer-totals {
+    display: contents;
+  }
+
+  .patient-ledger-footer-total-cell {
+    width: 6rem;
+    flex: none;
+  }
+}
+
 @media print {
   /* A4 page size with comfortable margins */
   @page {

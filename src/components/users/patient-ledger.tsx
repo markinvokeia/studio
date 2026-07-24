@@ -2309,19 +2309,18 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
   return (
     <>
       <Card className="h-full flex flex-col min-h-0">
-        <CardContent className="flex-1 flex flex-col min-h-0 gap-3 p-4">
+        <CardContent className="patient-ledger-container flex-1 flex flex-col min-h-0 gap-3 p-4">
           {toolbar}
 
-          {/* Both axes scroll on this one container so the sticky header stays column-
-              aligned with the cards when the panel is too narrow to fit every column —
-              Tailwind's `sm:` breakpoints track viewport width, not this (often-narrower)
-              panel's own width, so they can't be relied on here; a horizontal scrollbar
-              is more reliable than trying to squeeze/wrap the columns at any width. */}
+          {/* Below a ~640px *panel* width (a container query on `patient-ledger-container`
+              above, not the viewport — the sidebar routinely leaves this panel narrow even
+              on a wide window) the rows switch to a stacked card layout, so the sticky
+              header and the horizontal-scroll-forcing min-width only kick in above that. */}
           <div className="min-h-0 flex-1 overflow-auto">
             {/* px-2 gives the selected-row ring room so it isn't clipped by the scroll
                 container's edges; header and rows share the padding so columns stay aligned. */}
-            <div className="w-full min-w-max px-2">
-              <div className="sticky top-0 z-10 flex items-center gap-3 bg-card px-3 py-2 text-xs font-medium text-muted-foreground">
+            <div className="patient-ledger-row-min-w w-full px-2">
+              <div className="patient-ledger-col-header sticky top-0 z-10 items-center gap-3 bg-card px-3 py-2 text-xs font-medium text-muted-foreground">
                 <div className="w-32 shrink-0">{t('columns.date')}</div>
                 <div className="min-w-[10rem] flex-1">{t('columns.treatment')}</div>
                 <div className="w-24 shrink-0 text-right">{t('columns.debit')}</div>
@@ -2426,7 +2425,10 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
                           onClick={isBalanceRow ? undefined : () => { setCreateDoc(null); setEditingItemRowId(null); setEditingPaymentRowId(null); setEditingCreditNoteRow(null); setSelectedRowId(selected ? null : row.id); }}
                           onKeyDown={isBalanceRow ? undefined : (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setCreateDoc(null); setEditingItemRowId(null); setEditingPaymentRowId(null); setEditingCreditNoteRow(null); setSelectedRowId(selected ? null : row.id); } }}
                           className={cn(
-                            'flex items-center gap-3 border px-3 py-2.5',
+                            // Below `sm` this wraps onto two lines: date/title on the first,
+                            // Debe/Haber/Saldo (as a full-width mini-grid, see below) on the
+                            // second — no more forced horizontal scroll to see the balance.
+                            'flex flex-wrap items-center gap-3 border px-3 py-2.5',
                             isBalanceRow ? 'cursor-default italic' : 'cursor-pointer',
                             cardAccentClass(row),
                             selected ? 'rounded-t-lg border-b-0' : 'rounded-lg',
@@ -2463,14 +2465,29 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
                               <RowAllocationsPopover row={row} invoiceDocNoById={invoiceDocNoById} serviceLabelByDocNo={serviceLabelByDocNo} onHighlight={setHighlightedDocNos} />
                             )}
                           </div>
-                          <div className="w-24 shrink-0 text-right text-sm tabular-nums">
-                            {fmtAmountZero(row.debe, row.currency)}
-                            {row.status === 'presupuestado' && (
-                              <div className="text-[10px] font-normal not-italic text-muted-foreground">{t('footer.notCounted')}</div>
-                            )}
+                          {/* Debe/Haber/Saldo: `patient-ledger-amounts` becomes `display:contents`
+                              once the panel is wide enough, so these three cells rejoin the row
+                              as plain fixed-width columns (matching the header above) with no
+                              extra box of their own; below that width it's a real full-width flex
+                              row that forces itself onto a new line, and each cell gets its own
+                              label since the column header is hidden there. */}
+                          <div className="patient-ledger-amounts w-full items-center gap-2 border-t border-border/60 pt-2">
+                            <div className="patient-ledger-amount-cell text-sm tabular-nums">
+                              <div className="patient-ledger-amount-label text-[9px] font-medium uppercase tracking-wide text-muted-foreground">{t('columns.debit')}</div>
+                              {fmtAmountZero(row.debe, row.currency)}
+                              {row.status === 'presupuestado' && (
+                                <div className="text-[10px] font-normal not-italic text-muted-foreground">{t('footer.notCounted')}</div>
+                              )}
+                            </div>
+                            <div className="patient-ledger-amount-cell text-sm tabular-nums">
+                              <div className="patient-ledger-amount-label text-[9px] font-medium uppercase tracking-wide text-muted-foreground">{t('columns.credit')}</div>
+                              {fmtAmountZero(row.haber, row.currency)}
+                            </div>
+                            <div className="patient-ledger-amount-cell text-sm font-semibold tabular-nums">
+                              <div className="patient-ledger-amount-label text-[9px] font-medium uppercase tracking-wide text-muted-foreground">{t('columns.balance')}</div>
+                              {fmtAmountZero(row.runningBalance, row.currency)}
+                            </div>
                           </div>
-                          <div className="w-24 shrink-0 text-right text-sm tabular-nums">{fmtAmountZero(row.haber, row.currency)}</div>
-                          <div className="w-24 shrink-0 text-right text-sm font-semibold tabular-nums">{fmtAmountZero(row.runningBalance, row.currency)}</div>
                         </div>
                         {selected && (
                           <div
@@ -2514,10 +2531,12 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
             </div>
           )}
 
-          {/* Footer: create buttons on the left; Total Debe / Total Haber / Saldo Final
-              column totals on the right, each aligned under its ledger column (pr-5 matches
-              the rows' right inset: wrapper px-2 + card px-3). */}
-          <div className="flex shrink-0 items-end gap-3 border-t pl-1 pr-5 pt-3">
+          {/* Footer: create buttons; Total Debe / Total Haber / Saldo Final. Below the same
+              panel-width threshold as the rows, the totals drop to their own full-width
+              3-column row under the buttons (still no horizontal scroll needed); above it
+              they sit inline on the right, each aligned under its ledger column (pr-5
+              matches the rows' right inset: wrapper px-2 + card px-3). */}
+          <div className="patient-ledger-footer flex shrink-0 gap-3 border-t pl-1 pr-5 pt-3">
             <div className="flex flex-1 flex-wrap items-center gap-2">
               {canCreateQuote && (
                 <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => { setSelectedRowId(null); setEditingItemRowId(null); setEditingPaymentRowId(null); setEditingCreditNoteRow(null); setCreateDoc('quote'); }}>
@@ -2535,27 +2554,29 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
                 </Button>
               )}
             </div>
-            <div className="w-24 shrink-0 text-right">
-              <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t('footer.totalDebit')}</div>
-              <div className="text-sm font-semibold tabular-nums">{fmtAmountZero(totals.totalDebe, currency || 'USD')}</div>
-            </div>
-            <div className="w-24 shrink-0 text-right">
-              <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t('footer.totalCredit')}</div>
-              <div className="text-sm font-semibold tabular-nums">{fmtAmountZero(totals.totalHaber, currency || 'USD')}</div>
-            </div>
-            <div className="w-24 shrink-0 text-right">
-              <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t('footer.finalBalance')}</div>
-              <div
-                className={cn(
-                  'text-sm font-semibold tabular-nums',
-                  totals.finalBalance > 0.005
-                    ? 'text-red-600 dark:text-red-400'
-                    : totals.finalBalance < -0.005
-                      ? 'text-emerald-600 dark:text-emerald-400'
-                      : 'text-foreground',
-                )}
-              >
-                {fmtAmountZero(totals.finalBalance, currency || 'USD')}
+            <div className="patient-ledger-footer-totals grid grid-cols-3 gap-2">
+              <div className="patient-ledger-footer-total-cell text-right">
+                <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t('footer.totalDebit')}</div>
+                <div className="text-sm font-semibold tabular-nums">{fmtAmountZero(totals.totalDebe, currency || 'USD')}</div>
+              </div>
+              <div className="patient-ledger-footer-total-cell text-right">
+                <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t('footer.totalCredit')}</div>
+                <div className="text-sm font-semibold tabular-nums">{fmtAmountZero(totals.totalHaber, currency || 'USD')}</div>
+              </div>
+              <div className="patient-ledger-footer-total-cell text-right">
+                <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t('footer.finalBalance')}</div>
+                <div
+                  className={cn(
+                    'text-sm font-semibold tabular-nums',
+                    totals.finalBalance > 0.005
+                      ? 'text-red-600 dark:text-red-400'
+                      : totals.finalBalance < -0.005
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : 'text-foreground',
+                  )}
+                >
+                  {fmtAmountZero(totals.finalBalance, currency || 'USD')}
+                </div>
               </div>
             </div>
           </div>
