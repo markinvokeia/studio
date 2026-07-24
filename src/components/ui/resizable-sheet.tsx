@@ -16,6 +16,9 @@ interface ResizableSheetProps {
   side?: 'left' | 'right';
   /** Open maximized to full screen by default (re-applied each time it opens). */
   defaultFullscreen?: boolean;
+  /** Bump this number to force the sheet into fullscreen (e.g. when a host tab that needs
+   *  the full width becomes active). The user can still restore afterwards via the toggle. */
+  fullscreenSignal?: number;
 }
 
 export function ResizableSheet({
@@ -28,6 +31,7 @@ export function ResizableSheet({
   storageKey = 'resizable-sheet-width',
   side = 'right',
   defaultFullscreen = false,
+  fullscreenSignal,
 }: ResizableSheetProps) {
   const [width, setWidth] = React.useState(defaultWidth);
   const [isResizing, setIsResizing] = React.useState(false);
@@ -39,6 +43,11 @@ export function ResizableSheet({
   React.useEffect(() => {
     if (open && defaultFullscreen) setIsFullscreen(true);
   }, [open, defaultFullscreen]);
+
+  // Host-driven fullscreen request: whenever the signal changes to a truthy value, maximize.
+  React.useEffect(() => {
+    if (fullscreenSignal) setIsFullscreen(true);
+  }, [fullscreenSignal]);
 
   React.useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);

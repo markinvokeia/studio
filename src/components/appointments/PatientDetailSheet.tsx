@@ -169,6 +169,14 @@ export function PatientDetailSheet({
     }
   }, [clinicalHistoryDefaultView, initialTab, isDoctorMode, open, userId]);
 
+  // The Finance tab's account statement needs the full width to render without horizontal
+  // scroll — maximize the sheet whenever that tab becomes active (bumping the signal each
+  // time so re-entering the tab re-maximizes; the user can still restore via the toggle).
+  const [financeFullscreenSignal, setFinanceFullscreenSignal] = React.useState(0);
+  React.useEffect(() => {
+    if (open && activeTab === 'financial') setFinanceFullscreenSignal((n) => n + 1);
+  }, [open, activeTab]);
+
   return (
     <ResizableSheet
       open={open}
@@ -177,6 +185,7 @@ export function PatientDetailSheet({
       minWidth={520}
       maxWidth={1300}
       storageKey="patient-detail-sheet-width"
+      fullscreenSignal={financeFullscreenSignal}
     >
       <div className="flex flex-col h-full overflow-hidden">
         {/* Header */}

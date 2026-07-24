@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { addMonths, endOfMonth, format, parseISO, startOfMonth } from 'date-fns';
-import { Banknote, Check, ChevronDown, FileMinus, FileText, History, Link2, ListChecks, Loader2, Pencil, Plus, Printer, Receipt, RefreshCw, ScrollText, Search, Trash2, X } from 'lucide-react';
+import { Banknote, Calendar, CalendarClock, Check, ChevronDown, CreditCard, FileMinus, FileText, Hash, History, Link2, ListChecks, Loader2, Pencil, Plus, Printer, Receipt, RefreshCw, ScrollText, Search, Stethoscope, StickyNote, Trash2, UserRound, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { DateRange } from 'react-day-picker';
 
@@ -543,85 +543,126 @@ function EditorControls({ submitting, onCancel, disabled }: { submitting: boolea
   );
 }
 
+/** Small leading icon that keeps an inline-editor field identifiable even after a chosen
+ *  value replaces its placeholder. The wrapped control must leave room for it — add
+ *  `pl-7` to that control's own className. */
+function FieldIcon({ icon: Icon, children, className }: {
+  icon: React.ComponentType<{ className?: string }>;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn('relative', className)}>
+      <Icon className="pointer-events-none absolute left-2 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+      {children}
+    </div>
+  );
+}
+
+/** Tooth glyph for the "Pieza" field — lucide-react has no dental icon. */
+function ToothIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+      <path d="M12 5.5c-1.5-1.6-3.3-2.3-5-2C4.6 4 3.3 6.2 3.6 9c.2 1.6.7 2.6 1 4 .4 1.7.3 3.6.9 5.3.3.8.8 1.7 1.6 1.7 1.2 0 1.3-2.2 1.6-3.6.3-1.4.6-2.7 1.7-2.7s1.4 1.3 1.7 2.7c.3 1.4.4 3.6 1.6 3.6.8 0 1.3-.9 1.6-1.7.6-1.7.5-3.6.9-5.3.3-1.4.8-2.4 1-4 .3-2.8-1-5-3.4-5.5-1.7-.3-3.5.4-5 2Z" />
+    </svg>
+  );
+}
+
 /**
- * Lays out an inline editor line on the same column grid as the ledger rows so the
- * Debe/Haber editors always sit under the Debit/Credit columns, whatever the document
- * type. Secondary fields flow onto an aligned second line that leaves the Debe/Haber/
- * controls columns empty so nothing shifts.
+ * Combined currency + amount control. Collapsed, it reads as just the currency symbol
+ * ($ / U$) next to the amount, so the row stays compact. Clicking it expands an inline
+ * currency selector beside the amount input, where there's room to change either; it
+ * collapses again once focus/click moves elsewhere. When `currencyLocked` (edit mode, or
+ * a credit note bound to one currency) the selector never shows — only the amount edits.
  */
-function InlineEditorShell({ docLabel, dateSlot, mainSlot, debeSlot, haberSlot, controls, secondLine, secondLineLeft, belowSlot }: {
-  docLabel: React.ReactNode;
-  dateSlot: React.ReactNode;
-  mainSlot: React.ReactNode;
-  debeSlot: React.ReactNode;
-  haberSlot: React.ReactNode;
+function CurrencyAmountInput({ amount, currency, onAmountChange, onCurrencyChange, currencyLocked, placeholder, ariaLabel, className }: {
+  amount: number;
+  currency: 'UYU' | 'USD';
+  onAmountChange: (v: number) => void;
+  onCurrencyChange?: (c: 'UYU' | 'USD') => void;
+  currencyLocked?: boolean;
+  placeholder?: string;
+  ariaLabel?: string;
+  className?: string;
+}) {
+  const [editing, setEditing] = React.useState(false);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!editing) return;
+    const onDown = (e: MouseEvent) => {
+      const target = e.target as Element | null;
+      if (containerRef.current?.contains(target as Node)) return;
+      // The currency <Select>'s dropdown is portaled outside the container — clicking an
+      // option must not count as "outside" and collapse the editor mid-selection.
+      if (target?.closest?.('[data-radix-popper-content-wrapper]')) return;
+      setEditing(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [editing]);
+
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        aria-label={ariaLabel}
+        onClick={() => setEditing(true)}
+        className={cn('flex h-8 items-center gap-1 rounded-md border border-input bg-background px-2 text-sm tabular-nums transition-colors hover:bg-muted/50', className)}
+      >
+        <span className="shrink-0 text-xs font-medium text-muted-foreground">{currencySymbol(currency)}</span>
+        <span className="flex-1 text-right">{fmtNumber2(amount || 0)}</span>
+      </button>
+    );
+  }
+
+  return (
+    <div ref={containerRef} className={cn('flex items-center gap-1', className)}>
+      {currencyLocked || !onCurrencyChange ? (
+        <span className="flex h-8 shrink-0 items-center px-1 text-xs font-medium text-muted-foreground">{currencySymbol(currency)}</span>
+      ) : (
+        <Select value={currency} onValueChange={(v) => onCurrencyChange(v as 'UYU' | 'USD')}>
+          <SelectTrigger className="h-8 w-[4.5rem] shrink-0 px-2 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="UYU">$ UYU</SelectItem>
+            <SelectItem value="USD">U$ USD</SelectItem>
+          </SelectContent>
+        </Select>
+      )}
+      <FormattedNumberInput
+        value={amount}
+        onChange={onAmountChange}
+        placeholder={placeholder || '0.00'}
+        className="h-8 flex-1 text-right text-sm"
+      />
+    </div>
+  );
+}
+
+/**
+ * Inline-editor frame: a highlighted card whose header states the action ("Nuevo/Editar
+ * <tipo>") with the save/cancel controls pinned top-right, and the fields laid out on up
+ * to two wrapping lines below. `flex-wrap` keeps every field readable at any width
+ * instead of clipping or overflowing the ledger columns.
+ */
+function InlineEditorShell({ title, controls, line1, line2, belowSlot }: {
+  title: React.ReactNode;
   controls: React.ReactNode;
-  secondLine?: React.ReactNode;
-  /** Optional field stacked under the `docLabel` badge, in line 2's own w-32 column below
-   *  the date column (e.g. a treatment's due date) — kept level with `secondLine`'s
-   *  tooth/doctor/notes instead of inside `dateSlot`, so line 1 never grows taller than
-   *  its single-line fields and leaves an empty gap above line 2. */
-  secondLineLeft?: React.ReactNode;
+  line1: React.ReactNode;
+  line2?: React.ReactNode;
   /** Optional full-width area rendered below both lines (e.g. the payment allocations). */
   belowSlot?: React.ReactNode;
 }) {
   return (
     <div className="relative rounded-lg border border-primary/50 bg-primary/5 px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
-      {/* Confirm/cancel are pinned to the top-right corner via absolute positioning,
-          outside the wrapping flex flow below — otherwise, once that flow wraps (e.g.
-          `mainSlot` dropping to its own line on narrow viewports), they'd wrap along
-          with it and end up wherever Debe/Haber happened to land instead of staying in a
-          fixed, predictable spot. `pr-24` on the row below reserves the same horizontal
-          space so wrapped content never renders underneath them. */}
-      <div className="absolute right-3 top-2.5 flex items-center gap-1">{controls}</div>
-      {/* Line 1: date · main fields · Debe · Haber. `items-start` keeps every column's
-          top row flush together, since `mainSlot` can wrap onto a second internal line
-          (e.g. quantity dropping under currency+service) on narrow viewports without
-          pulling the single-line columns down to its vertical center. `flex-wrap` lets
-          columns drop to their own line instead of overflowing/clipping on narrow
-          viewports. No explicit `min-w` on the mainSlot column below — an author-set
-          min-width replaces the browser's automatic content-based minimum instead of
-          adding to it, so it let the column shrink below what its own children need,
-          overflowing into Debe's column rather than wrapping. Leaving it unset
-          (`flex-1` alone) restores the correct automatic minimum, which adapts to
-          whatever `mainSlot` actually contains per editor. */}
-      <div className="flex flex-wrap items-start gap-3 pr-24">
-        <div className="w-32 shrink-0 text-sm text-muted-foreground">{dateSlot}</div>
-        <div className="flex-1">{mainSlot}</div>
-        <div className="w-24 shrink-0">{debeSlot}</div>
-        <div className="w-24 shrink-0">{haberSlot}</div>
+      {/* Header: "Nuevo/Editar <tipo>" on the left, sticky save/cancel top-right. */}
+      <div className="mb-2.5 flex items-center justify-between gap-2">
+        <span className="text-xs font-semibold uppercase tracking-wide text-primary">{title}</span>
+        <div className="flex shrink-0 items-center gap-1">{controls}</div>
       </div>
-      {/* Line 2: type badge + optional secondLineLeft (under the date) · secondary fields */}
-      {secondLine && (
-        <div className="mt-2 flex flex-wrap items-start gap-3">
-          <div className="flex w-32 shrink-0 flex-col gap-1.5">
-            <Badge variant="outline" className="w-fit text-[10px]">{docLabel}</Badge>
-            {secondLineLeft}
-          </div>
-          <div className="flex min-w-[10rem] flex-1 flex-wrap items-center gap-2">{secondLine}</div>
-          <div className="w-24 shrink-0" />
-          <div className="w-24 shrink-0" />
-          <div className="w-24 shrink-0" />
-        </div>
-      )}
+      <div className="flex flex-wrap items-center gap-2">{line1}</div>
+      {line2 && <div className="mt-2 flex flex-wrap items-center gap-2">{line2}</div>}
       {belowSlot}
-    </div>
-  );
-}
-
-/** A disabled "0" placeholder for the Debe/Haber column that's not active in a given
- *  editor, keeping the row visually complete and aligned. */
-function DisabledAmountCell() {
-  return <div className="flex h-8 items-center justify-end pr-1 text-sm text-muted-foreground">0,00</div>;
-}
-
-/** One labeled field on its own full-width line, for the `<sm` stacked editor layout —
- *  see `QuoteInvoiceInlineEditor`'s narrow render path. */
-function StackedField({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</span>
-      {children}
     </div>
   );
 }
@@ -923,46 +964,30 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
     }
   };
 
+  const editorTitle = `${t(isEdit ? 'inline.edit' : 'inline.new')} ${t(doc === 'quote' ? 'inline.addQuote' : 'inline.addTreatment')}`;
+
   return (
     <form onSubmit={form.handleSubmit(onSubmit)}>
-      {/* ≥sm: the compact row layout below, which relies on flex-wrap reflow. Below
-          `sm` that reflow scatters fields in a hard-to-follow order (see the narrow
-          layout further down), so the two are mutually exclusive via Tailwind's
-          responsive display utilities rather than one layout trying to serve both. */}
-      <div className="hidden sm:block">
       <InlineEditorShell
-        docLabel={t(doc === 'quote' ? 'inline.addQuote' : 'inline.addTreatment')}
-        dateSlot={
-          isDateReadOnly ? (
-            <span className="text-xs text-muted-foreground">{formatDisplayDate(editRow!.date)}</span>
-          ) : (
-            <DatePickerInput
-              value={format(createdAt, 'yyyy-MM-dd')}
-              onChange={(iso) => iso && form.setValue('created_at', parseISO(iso))}
-              className="h-8 text-xs"
-            />
-          )
-        }
-        mainSlot={
-          // No `flex-wrap` here on purpose: wrapping removes this column's natural
-          // min-content width, so the *outer* row (which does wrap) never learns it
-          // needs to push Precio/Total/controls to their own line — it just keeps
-          // cramming this column narrower forever. Staying non-wrapping lets the outer
-          // row's own flex-wrap trigger properly and hand this column the full row width
-          // once Precio/Total/controls drop below it.
-          <div className="flex items-center gap-2">
-            {isEdit ? (
-              <Badge variant="outline" className="h-8 shrink-0 px-2.5 text-xs">{selectedCurrency}</Badge>
+        title={editorTitle}
+        controls={<EditorControls submitting={submitting} onCancel={onCancel} />}
+        // Line 1: creation date · service · quantity · price+currency.
+        line1={
+          <>
+            {isDateReadOnly ? (
+              <FieldIcon icon={Calendar} className="w-36">
+                <span className="flex h-8 items-center pl-7 text-xs text-muted-foreground">{formatDisplayDate(editRow!.date)}</span>
+              </FieldIcon>
             ) : (
-              <Select value={selectedCurrency} onValueChange={(v) => form.setValue('currency', v as 'UYU' | 'USD', { shouldValidate: true })}>
-                <SelectTrigger className="h-8 w-20 shrink-0 text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="UYU">UYU</SelectItem>
-                  <SelectItem value="USD">USD</SelectItem>
-                </SelectContent>
-              </Select>
+              <FieldIcon icon={Calendar} className="w-36">
+                <DatePickerInput
+                  value={format(createdAt, 'yyyy-MM-dd')}
+                  onChange={(iso) => iso && form.setValue('created_at', parseISO(iso))}
+                  className="h-8 pl-7 text-xs"
+                />
+              </FieldIcon>
             )}
-            <div className="min-w-[8rem] flex-1">
+            <FieldIcon icon={Stethoscope} className="min-w-[10rem] flex-1">
               <ServiceSelector
                 isSales
                 value={form.watch('service_id')}
@@ -972,59 +997,59 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
                   if (service) {
                     form.setValue('service_name', service.name);
                     form.setValue('unit_price', Number(service.price) || 0);
+                    // Currency defaults to the service's own currency on a new line; on an
+                    // existing one the currency is fixed, so leave it untouched.
+                    if (!isEdit && service.currency) {
+                      form.setValue('currency', service.currency, { shouldValidate: true });
+                    }
                   }
                 }}
                 placeholder={t('fields.searchService')}
                 triggerText={t('fields.selectService')}
-                className="h-8"
+                className="h-8 pl-7"
               />
-            </div>
-            {/* Quantity stays on this row, next to Precio/Total — it's part of that same
-                debe calculation. Tooth moves to the second row (with doctor/notes) instead,
-                since it's descriptive metadata, not part of the price row. */}
-            <Input
-              type="number"
-              min={1}
-              placeholder={t('fields.quantity')}
-              aria-label={t('fields.quantity')}
-              className="h-8 w-14 shrink-0 text-sm"
-              {...form.register('quantity')}
+            </FieldIcon>
+            <FieldIcon icon={Hash} className="w-[5.5rem]">
+              <Input
+                type="number"
+                min={1}
+                placeholder={t('fields.quantity')}
+                aria-label={t('fields.quantity')}
+                className="h-8 pl-7 text-sm"
+                {...form.register('quantity')}
+              />
+            </FieldIcon>
+            {/* Single price+currency control: currency defaults to the service's and only
+                surfaces its selector when the field is clicked to edit (edit mode keeps it
+                fixed). */}
+            <CurrencyAmountInput
+              amount={form.watch('unit_price')}
+              currency={selectedCurrency}
+              onAmountChange={(v) => form.setValue('unit_price', v, { shouldValidate: true })}
+              onCurrencyChange={(c) => form.setValue('currency', c, { shouldValidate: true })}
+              currencyLocked={isEdit}
+              ariaLabel={t('fields.price')}
+              className="w-40"
             />
-          </div>
+          </>
         }
-        debeSlot={
-          <Input
-            type="number"
-            step="0.01"
-            min="0"
-            aria-label={t('fields.price')}
-            className="h-8 text-right text-sm"
-            {...form.register('unit_price')}
-          />
-        }
-        haberSlot={<DisabledAmountCell />}
-        controls={<EditorControls submitting={submitting} onCancel={onCancel} />}
-        // Due date only applies to a billed treatment — a presupuesto has no invoice
-        // behind it yet, so `doc === 'quote'` never renders this.
-        secondLineLeft={doc === 'invoice' && (
-          <DatePickerInput
-            value={dueDate ? format(dueDate, 'yyyy-MM-dd') : undefined}
-            onChange={(iso) => form.setValue('due_date', iso ? parseISO(iso) : undefined, { shouldValidate: true })}
-            disabledDays={(date) => date <= createdAt}
-            placeholder={t('fields.dueDate')}
-            className="h-8 w-full text-xs"
-          />
-        )}
-        secondLine={
+        // Line 2: due date (billed treatments only) · doctor · notes · tooth.
+        line2={
           <>
-            <Input
-              type="number"
-              placeholder={t('fields.tooth')}
-              aria-label={t('fields.tooth')}
-              className="h-8 w-20 shrink-0 text-sm"
-              {...form.register('tooth_number')}
-            />
-            <div className="min-w-[10rem] flex-1">
+            {/* Due date only applies to a billed treatment — a presupuesto has no invoice
+                behind it yet, so `doc === 'quote'` never renders this. */}
+            {doc === 'invoice' && (
+              <FieldIcon icon={CalendarClock} className="w-36">
+                <DatePickerInput
+                  value={dueDate ? format(dueDate, 'yyyy-MM-dd') : undefined}
+                  onChange={(iso) => form.setValue('due_date', iso ? parseISO(iso) : undefined, { shouldValidate: true })}
+                  disabledDays={(date) => date <= createdAt}
+                  placeholder={t('fields.dueDate')}
+                  className="h-8 pl-7 text-xs"
+                />
+              </FieldIcon>
+            )}
+            <FieldIcon icon={UserRound} className="min-w-[10rem] flex-1">
               <DoctorSelector
                 value={form.watch('doctor_id')}
                 selectedDoctorName={doctorName}
@@ -1034,135 +1059,29 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
                 }}
                 placeholder={t('fields.searchDoctor')}
                 triggerText={t('fields.selectDoctor')}
-                className="h-8"
+                className="h-8 pl-7"
               />
-            </div>
-            <Input
-              placeholder={t('fields.notes')}
-              aria-label={t('fields.notes')}
-              className="h-8 min-w-[10rem] flex-1 text-sm"
-              {...form.register('description')}
-            />
+            </FieldIcon>
+            <FieldIcon icon={StickyNote} className="min-w-[10rem] flex-1">
+              <Input
+                placeholder={t('fields.notes')}
+                aria-label={t('fields.notes')}
+                className="h-8 pl-7 text-sm"
+                {...form.register('description')}
+              />
+            </FieldIcon>
+            <FieldIcon icon={ToothIcon} className="w-[6.5rem]">
+              <Input
+                type="number"
+                placeholder={t('fields.tooth')}
+                aria-label={t('fields.tooth')}
+                className="h-8 pl-7 text-sm"
+                {...form.register('tooth_number')}
+              />
+            </FieldIcon>
           </>
         }
       />
-      </div>
-      {/* <sm: an explicit, fixed field order (one per line, labeled) instead of the row
-          layout above. Debe/Haber's disabled placeholder is dropped here — it's just an
-          alignment filler on the row layout, not a real field, and would only read as a
-          confusing "Total: 0,00" with no context in a stacked form. */}
-      <div className="relative rounded-lg border border-primary/50 bg-primary/5 px-3 py-2.5 sm:hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="absolute right-3 top-2.5 flex items-center gap-1">
-          <EditorControls submitting={submitting} onCancel={onCancel} />
-        </div>
-        <div className="flex flex-col gap-3 pr-20">
-          <Badge variant="outline" className="w-fit text-[10px]">{t(doc === 'quote' ? 'inline.addQuote' : 'inline.addTreatment')}</Badge>
-          <StackedField label={t('fields.date')}>
-            {isDateReadOnly ? (
-              <span className="text-xs text-muted-foreground">{formatDisplayDate(editRow!.date)}</span>
-            ) : (
-              <DatePickerInput
-                value={format(createdAt, 'yyyy-MM-dd')}
-                onChange={(iso) => iso && form.setValue('created_at', parseISO(iso))}
-                className="h-8 text-xs"
-              />
-            )}
-          </StackedField>
-          {/* Due date only applies to a billed treatment — a presupuesto has no invoice
-              behind it yet, so `doc === 'quote'` never renders this. */}
-          {doc === 'invoice' && (
-            <StackedField label={t('fields.dueDate')}>
-              <DatePickerInput
-                value={dueDate ? format(dueDate, 'yyyy-MM-dd') : undefined}
-                onChange={(iso) => form.setValue('due_date', iso ? parseISO(iso) : undefined, { shouldValidate: true })}
-                disabledDays={(date) => date <= createdAt}
-                placeholder={t('fields.dueDate')}
-                className="h-8 text-xs"
-              />
-            </StackedField>
-          )}
-          <StackedField label={t('fields.currency')}>
-            {isEdit ? (
-              <Badge variant="outline" className="h-8 w-fit px-2.5 text-xs">{selectedCurrency}</Badge>
-            ) : (
-              <Select value={selectedCurrency} onValueChange={(v) => form.setValue('currency', v as 'UYU' | 'USD', { shouldValidate: true })}>
-                <SelectTrigger className="h-8 w-24 text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="UYU">UYU</SelectItem>
-                  <SelectItem value="USD">USD</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
-          </StackedField>
-          <StackedField label={t('fields.service')}>
-            <ServiceSelector
-              isSales
-              value={form.watch('service_id')}
-              selectedServiceName={watchedName}
-              onValueChange={(serviceId, service) => {
-                form.setValue('service_id', serviceId, { shouldValidate: true });
-                if (service) {
-                  form.setValue('service_name', service.name);
-                  form.setValue('unit_price', Number(service.price) || 0);
-                }
-              }}
-              placeholder={t('fields.searchService')}
-              triggerText={t('fields.selectService')}
-              className="h-8"
-            />
-          </StackedField>
-          <StackedField label={t('fields.tooth')}>
-            <Input
-              type="number"
-              placeholder={t('fields.tooth')}
-              aria-label={t('fields.tooth')}
-              className="h-8 text-sm"
-              {...form.register('tooth_number')}
-            />
-          </StackedField>
-          <StackedField label={t('fields.quantity')}>
-            <Input
-              type="number"
-              min={1}
-              placeholder={t('fields.quantity')}
-              aria-label={t('fields.quantity')}
-              className="h-8 text-sm"
-              {...form.register('quantity')}
-            />
-          </StackedField>
-          <StackedField label={t('fields.price')}>
-            <Input
-              type="number"
-              step="0.01"
-              min="0"
-              aria-label={t('fields.price')}
-              className="h-8 text-sm"
-              {...form.register('unit_price')}
-            />
-          </StackedField>
-          <StackedField label={t('fields.doctor')}>
-            <DoctorSelector
-              value={form.watch('doctor_id')}
-              selectedDoctorName={doctorName}
-              onValueChange={(doctorId, doctor) => {
-                form.setValue('doctor_id', doctorId);
-                setDoctorName(doctor?.name || '');
-              }}
-              placeholder={t('fields.searchDoctor')}
-              triggerText={t('fields.selectDoctor')}
-              className="h-8"
-            />
-          </StackedField>
-          <StackedField label={t('fields.notes')}>
-            <Input
-              placeholder={t('fields.notes')}
-              aria-label={t('fields.notes')}
-              className="h-8 text-sm"
-              {...form.register('description')}
-            />
-          </StackedField>
-        </div>
-      </div>
     </form>
   );
 }
@@ -1434,55 +1353,53 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
   return (
     <form onSubmit={form.handleSubmit(onSubmit)}>
       <InlineEditorShell
-        docLabel={t(isEdit ? 'inline.editPayment' : 'inline.addPayment')}
-        dateSlot={
-          <DatePickerInput
-            value={format(createdAt, 'yyyy-MM-dd')}
-            onChange={(iso) => iso && form.setValue('created_at', parseISO(iso))}
-            className="h-8 text-xs"
-          />
-        }
-        mainSlot={
-          <div className="flex items-center gap-2">
-            {isEdit ? (
-              <Badge variant="outline" className="h-8 shrink-0 px-2.5 text-xs">{selectedCurrency}</Badge>
-            ) : (
-              <Select value={selectedCurrency} onValueChange={(v) => form.setValue('currency', v as 'UYU' | 'USD', { shouldValidate: true })}>
-                <SelectTrigger className="h-8 w-20 shrink-0 text-xs"><SelectValue /></SelectTrigger>
+        title={`${t(isEdit ? 'inline.edit' : 'inline.new')} ${t('inline.addPayment')}`}
+        controls={<EditorControls submitting={submitting} onCancel={onCancel} disabled={hasInvalidAllocation} />}
+        // Line 1: date · payment method · amount+currency (the "haber").
+        line1={
+          <>
+            <FieldIcon icon={Calendar} className="w-36">
+              <DatePickerInput
+                value={format(createdAt, 'yyyy-MM-dd')}
+                onChange={(iso) => iso && form.setValue('created_at', parseISO(iso))}
+                className="h-8 pl-7 text-xs"
+              />
+            </FieldIcon>
+            <FieldIcon icon={CreditCard} className="min-w-[10rem] flex-1">
+              <Select value={form.watch('payment_method_id')} onValueChange={(v) => form.setValue('payment_method_id', v, { shouldValidate: true })}>
+                <SelectTrigger className="h-8 pl-7 text-sm"><SelectValue placeholder={t('fields.selectMethod')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="UYU">UYU</SelectItem>
-                  <SelectItem value="USD">USD</SelectItem>
+                  {paymentMethods.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
                 </SelectContent>
               </Select>
-            )}
-            <Select value={form.watch('payment_method_id')} onValueChange={(v) => form.setValue('payment_method_id', v, { shouldValidate: true })}>
-              <SelectTrigger className="h-8 flex-1 text-sm"><SelectValue placeholder={t('fields.selectMethod')} /></SelectTrigger>
-              <SelectContent>
-                {paymentMethods.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-        }
-        debeSlot={<DisabledAmountCell />}
-        haberSlot={
-          <FormattedNumberInput
-            value={form.watch('payment_amount')}
-            onChange={(v) => form.setValue('payment_amount', v, { shouldValidate: true })}
-            placeholder="0.00"
-            className="h-8 text-right text-sm"
-          />
-        }
-        controls={<EditorControls submitting={submitting} onCancel={onCancel} disabled={hasInvalidAllocation} />}
-        secondLine={
-          <>
-            <Input
-              placeholder={t('fields.notes')}
-              aria-label={t('fields.notes')}
-              className="h-8 min-w-[8rem] flex-1 text-sm"
-              {...form.register('notes')}
+            </FieldIcon>
+            {/* Amount + currency: shows just "$/U$ 0,00" until clicked, then reveals the
+                currency selector alongside the amount (fixed currency in edit mode). */}
+            <CurrencyAmountInput
+              amount={form.watch('payment_amount')}
+              currency={selectedCurrency}
+              onAmountChange={(v) => form.setValue('payment_amount', v, { shouldValidate: true })}
+              onCurrencyChange={(c) => form.setValue('currency', c, { shouldValidate: true })}
+              currencyLocked={isEdit}
+              ariaLabel={t('fields.amount')}
+              className="w-40"
             />
-            <label className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
+          </>
+        }
+        // Line 2: notes · historical · pending-treatment picker.
+        line2={
+          <>
+            <FieldIcon icon={StickyNote} className="min-w-[10rem] flex-1">
+              <Input
+                placeholder={t('fields.notes')}
+                aria-label={t('fields.notes')}
+                className="h-8 pl-7 text-sm"
+                {...form.register('notes')}
+              />
+            </FieldIcon>
+            <label className="flex h-8 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
               <Checkbox checked={isHistorical} onCheckedChange={(c) => form.setValue('is_historical', !!c)} />
+              <History className="h-3.5 w-3.5" />
               {t('fields.historical')}
             </label>
             {!isEdit && (
@@ -1622,42 +1539,49 @@ function CreditNoteInlineEditor({ row, userId, parentInvoiceId, maxCreditable, o
   return (
     <form onSubmit={form.handleSubmit(onSubmit)}>
       <InlineEditorShell
-        docLabel={t('docLine.creditNote')}
-        dateSlot={<span className="text-xs text-muted-foreground">{formatDisplayDate(row.date)}</span>}
-        mainSlot={
-          <div className="flex items-center gap-2">
-            <span className="min-w-0 flex-1 truncate text-sm">{row.label}</span>
-            <Input
-              type="number"
-              min={1}
-              aria-label={t('dialogs.creditNote.quantity')}
-              className="h-8 w-16 shrink-0 text-sm"
-              {...form.register('quantity')}
-            />
-            <Input
-              type="number"
-              min={0}
-              step="0.01"
-              aria-label={t('dialogs.creditNote.unitPrice')}
-              className="h-8 w-24 shrink-0 text-right text-sm"
-              {...form.register('unit_price')}
-            />
-          </div>
-        }
-        debeSlot={<DisabledAmountCell />}
-        haberSlot={
-          <div className="flex h-8 items-center justify-end pr-1 text-sm font-medium tabular-nums">
-            {fmtNumber2(round2(quantity * unitPrice))}
-          </div>
-        }
+        title={`${t('inline.edit')} ${t('docLine.creditNote')}`}
         controls={<EditorControls submitting={submitting} onCancel={onCancel} />}
-        secondLine={
-          <Input
-            placeholder={t('fields.notes')}
-            aria-label={t('fields.notes')}
-            className="h-8 min-w-[10rem] flex-1 text-sm"
-            {...form.register('notes')}
-          />
+        // Line 1: date (read-only) · credited service (read-only) · quantity · unit price ·
+        // resulting credit total.
+        line1={
+          <>
+            <FieldIcon icon={Calendar} className="w-36">
+              <span className="flex h-8 items-center pl-7 text-xs text-muted-foreground">{formatDisplayDate(row.date)}</span>
+            </FieldIcon>
+            <FieldIcon icon={Stethoscope} className="min-w-[10rem] flex-1">
+              <span className="flex h-8 min-w-0 items-center truncate pl-7 text-sm">{row.label}</span>
+            </FieldIcon>
+            <FieldIcon icon={Hash} className="w-[5.5rem]">
+              <Input
+                type="number"
+                min={1}
+                aria-label={t('dialogs.creditNote.quantity')}
+                className="h-8 pl-7 text-sm"
+                {...form.register('quantity')}
+              />
+            </FieldIcon>
+            <CurrencyAmountInput
+              amount={form.watch('unit_price')}
+              currency={row.currency as 'UYU' | 'USD'}
+              onAmountChange={(v) => form.setValue('unit_price', v, { shouldValidate: true })}
+              currencyLocked
+              ariaLabel={t('dialogs.creditNote.unitPrice')}
+              className="w-36"
+            />
+            <span className="flex h-8 items-center gap-1 text-sm font-medium tabular-nums text-muted-foreground">
+              = {currencySymbol(row.currency)}{fmtNumber2(round2(quantity * unitPrice))}
+            </span>
+          </>
+        }
+        line2={
+          <FieldIcon icon={StickyNote} className="min-w-[10rem] flex-1">
+            <Input
+              placeholder={t('fields.notes')}
+              aria-label={t('fields.notes')}
+              className="h-8 pl-7 text-sm"
+              {...form.register('notes')}
+            />
+          </FieldIcon>
         }
       />
     </form>
