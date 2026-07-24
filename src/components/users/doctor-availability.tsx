@@ -48,6 +48,12 @@ const availabilityFormSchema = (t: (key: string) => string) => z.object({
 }, {
     message: t('dayOfWeekRequired'),
     path: ["day_of_week"],
+}).refine(data => {
+    if (!data.start_time || !data.end_time) return true;
+    return data.end_time > data.start_time;
+}, {
+    message: t('endTimeAfterStartTime'),
+    path: ["end_time"],
 });
 
 type AvailabilityFormValues = z.infer<ReturnType<typeof availabilityFormSchema>>;

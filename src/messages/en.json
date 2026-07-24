@@ -4085,6 +4085,7 @@
       "recurrenceRequired": "Recurrence is required.",
       "startTimeRequired": "Start time is required.",
       "endTimeRequired": "End time is required.",
+      "endTimeAfterStartTime": "End time must be later than start time.",
       "startDateRequired": "Start date is required.",
       "dayOfWeekRequired": "Day of week is required for weekly or biweekly recurrence."
     },

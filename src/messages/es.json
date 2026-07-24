@@ -4062,6 +4062,7 @@
       "recurrenceRequired": "La recurrencia es obligatoria.",
       "startTimeRequired": "La hora de inicio es obligatoria.",
       "endTimeRequired": "La hora de fin es obligatoria.",
+      "endTimeAfterStartTime": "La hora de fin debe ser mayor que la hora de inicio.",
       "startDateRequired": "La fecha de inicio es obligatoria.",
       "dayOfWeekRequired": "El día de la semana es obligatorio para recurrencia semanal o quincenal."
     },
