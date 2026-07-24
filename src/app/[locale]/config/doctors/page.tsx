@@ -33,7 +33,7 @@ import { DoctorCalendarsTab } from '@/components/calendar/doctor-calendars-tab';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
-import { Calendar, User, UserRole } from '@/lib/types';
+import { Calendar, Sede, User, UserRole } from '@/lib/types';
 import { DEFAULT_PHONE_COUNTRY } from '@/lib/countries';
 import api from '@/services/api';
 import { useLicenseStore } from '@/stores/license-store';
@@ -277,6 +277,7 @@ export default function DoctorsPage() {
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [showOnlyActive, setShowOnlyActive] = React.useState(true);
   const [calendars, setCalendars] = React.useState<Calendar[]>([]);
+  const [sedes, setSedes] = React.useState<Sede[]>([]);
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
   const [isDetailCalendarOpen, setIsDetailCalendarOpen] = React.useState(false);
 
@@ -291,6 +292,13 @@ export default function DoctorsPage() {
         color: c.color,
       })));
     }).catch(() => setCalendars([]));
+  }, []);
+
+  React.useEffect(() => {
+    api.get(API_ROUTES.SEDES, { page: '1', limit: '200' }).then((data: any) => {
+      const raw = Array.isArray(data) ? data : (data.sedes || data.data || []);
+      setSedes(raw);
+    }).catch(() => setSedes([]));
   }, []);
 
   const form = useForm<DoctorFormValues>({
@@ -718,7 +726,7 @@ export default function DoctorsPage() {
                     <DoctorAvailabilityExceptions userId={selectedUser.id} />
                   )}
                   {activeTab === 'preferences' && canUpdateDoctor && (
-                    <UserPreferencesTab user={selectedUser} showAlertStyle />
+                    <UserPreferencesTab user={selectedUser} showAlertStyle sedes={sedes} />
                   )}
                 </div>
               </CardContent>

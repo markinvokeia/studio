@@ -104,11 +104,11 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
       try {
         const data = await api.get(API_ROUTES.CALENDAR_SETTINGS_SEARCH, userId ? { user_id: userId } : undefined);
         const existingSettings = normalizeCalendarSettings(data);
+        // Use defaults locally when the user has no saved settings yet — don't
+        // upsert them until the user actually changes an option (avoids a
+        // duplicate-create race when this form mounts more than once, e.g.
+        // switching the selected doctor).
         const nextSettings = existingSettings ?? DEFAULT_CALENDAR_SETTINGS;
-
-        if (!existingSettings) {
-          await api.post(API_ROUTES.CALENDAR_SETTINGS_UPSERT, userId ? { ...nextSettings, user_id: userId } : nextSettings);
-        }
 
         if (!isMounted) {
           return;
@@ -138,7 +138,15 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
     onSettingsChange?.(newSettings);
 
     try {
-      await api.post(API_ROUTES.CALENDAR_SETTINGS_UPSERT, userId ? { ...newSettings, user_id: userId } : newSettings);
+      const response = await api.post(API_ROUTES.CALENDAR_SETTINGS_UPSERT, userId ? { ...newSettings, user_id: userId } : newSettings);
+      // The upsert response carries back the record's `id` (needed so the next
+      // save updates the existing row instead of leaving the id unset). Merge
+      // it into local + parent state rather than requiring a page reload.
+      const saved = normalizeCalendarSettings((response as { data?: unknown })?.data);
+      if (saved) {
+        setSettings(saved);
+        onSettingsChange?.(saved);
+      }
     } catch (error) {
       console.error('Failed to save calendar settings:', error);
     }

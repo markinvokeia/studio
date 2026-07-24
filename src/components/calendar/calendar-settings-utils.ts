@@ -78,13 +78,9 @@ export async function getCalendarSettings(): Promise<CalendarSettings> {
   try {
     const data = await api.get(API_ROUTES.CALENDAR_SETTINGS_SEARCH);
     const existingSettings = normalizeCalendarSettings(data);
-    const nextSettings = existingSettings ?? DEFAULT_CALENDAR_SETTINGS;
-
-    if (!existingSettings) {
-      await api.post(API_ROUTES.CALENDAR_SETTINGS_UPSERT, nextSettings);
-    }
-
-    return nextSettings;
+    // Don't upsert defaults just because none exist yet — only persist once
+    // the user actually changes an option, to avoid duplicate-create races.
+    return existingSettings ?? DEFAULT_CALENDAR_SETTINGS;
   } catch (error) {
     console.error('Failed to fetch calendar settings:', error);
     return DEFAULT_CALENDAR_SETTINGS;
