@@ -792,12 +792,45 @@ export default function StaffPage() {
     } catch (error: any) {
       const errorData =
         error.data?.error || (Array.isArray(error.data) && error.data[0]?.error);
-      setDetailError(
-        errorData?.message ||
-          (error instanceof Error
-            ? error.message
-            : t('SystemUsersPage.createDialog.validation.genericError')),
-      );
+      if (errorData?.code === 'unique_conflict' && errorData?.conflictedFields) {
+        const fields = errorData.conflictedFields
+          .map((f: string) =>
+            t(`SystemUsersPage.createDialog.validation.fields.${f}`),
+          )
+          .join(', ');
+        setDetailError(
+          t('SystemUsersPage.createDialog.validation.uniqueConflict', { fields }),
+        );
+      } else if (
+        (error.status === 400 || error.status === 409) &&
+        errorData?.errors
+      ) {
+        const errors = Array.isArray(errorData.errors) ? errorData.errors : [];
+        if (errors.length > 0) {
+          errors.forEach((err: { field: any; message: string }) => {
+            if (err.field) {
+              detailForm.setError(err.field as keyof DetailFormValues, {
+                type: 'manual',
+                message: err.message,
+              });
+            }
+          });
+        } else {
+          setDetailError(
+            errorData?.message ||
+              t('SystemUsersPage.createDialog.validation.genericError'),
+          );
+        }
+      } else if (error.status >= 500) {
+        setDetailError(t('SystemUsersPage.createDialog.validation.serverError'));
+      } else {
+        setDetailError(
+          errorData?.message ||
+            (error instanceof Error
+              ? error.message
+              : t('SystemUsersPage.createDialog.validation.genericError')),
+        );
+      }
     } finally {
       setIsSavingDetail(false);
     }

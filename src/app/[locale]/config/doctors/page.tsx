@@ -471,7 +471,28 @@ export default function DoctorsPage() {
       setUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
     } catch (error: any) {
       const errorData = error.data?.error || (Array.isArray(error.data) && error.data[0]?.error);
-      setDetailError(errorData?.message || (error instanceof Error ? error.message : t('DoctorsPage.createDialog.validation.genericError')));
+      if (errorData?.code === 'unique_conflict' && errorData?.conflictedFields) {
+        const fields = errorData.conflictedFields.map((f: string) => t(`DoctorsPage.createDialog.validation.fields.${f}`)).join(', ');
+        setDetailError(t('DoctorsPage.createDialog.validation.uniqueConflict', { fields }));
+      } else if ((error.status === 400 || error.status === 409) && errorData?.errors) {
+        const errors = Array.isArray(errorData.errors) ? errorData.errors : [];
+        if (errors.length > 0) {
+          errors.forEach((err: { field: any; message: string }) => {
+            if (err.field) {
+              detailForm.setError(err.field as keyof DoctorFormValues, {
+                type: 'manual',
+                message: err.message,
+              });
+            }
+          });
+        } else {
+          setDetailError(errorData?.message || t('DoctorsPage.createDialog.validation.genericError'));
+        }
+      } else if (error.status >= 500) {
+        setDetailError(t('DoctorsPage.createDialog.validation.serverError'));
+      } else {
+        setDetailError(errorData?.message || (error instanceof Error ? error.message : t('DoctorsPage.createDialog.validation.genericError')));
+      }
     } finally {
       setIsSavingDetail(false);
     }

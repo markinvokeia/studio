@@ -3569,11 +3569,14 @@
         "identityMaxLength": "El documento de identidad debe tener 10 caracteres o menos.",
         "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono.",
         "fields": {
-          "identity_document": "RUT"
+          "identity_document": "RUT",
+          "email": "Correo Electrónico",
+          "phone": "Teléfono"
         },
         "uniqueConflict": "Los siguientes campos ya están registrados: {fields}",
         "errorTitle": "Error Actualizando Detalles",
         "serverError": "Error del servidor, por favor inténtelo más tarde.",
+        "genericError": "Ocurrió un error inesperado. Inténtalo de nuevo.",
         "identityRequired": "El documento de identidad es obligatorio"
       },
       "editTitle": "Editar Proveedor",
@@ -3978,7 +3981,15 @@
         "identityInvalid": "Documento de identidad inválido.",
         "identityRequired": "La cedula de identidad es requerida.",
         "identityMaxLength": "Documento de identidad debe tener como máximo 10 caracteres.",
-        "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono."
+        "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono.",
+        "genericError": "Ocurrió un error inesperado. Inténtalo de nuevo.",
+        "serverError": "Error del servidor, inténtalo de nuevo más tarde.",
+        "uniqueConflict": "Los siguientes campos ya están registrados: {fields}",
+        "fields": {
+          "email": "Correo Electrónico",
+          "phone": "Teléfono",
+          "identity_document": "Documento de Identidad"
+        }
       },
       "defaultCalendar": "Consultorio por defecto",
       "selectCalendar": "Seleccionar consultorio...",
@@ -4301,6 +4312,7 @@
         "uniqueConflict": "Los siguientes campos ya están registrados: {fields}",
         "fields": {
           "email": "Correo electrónico",
+          "phone": "Teléfono",
           "phone_number": "Teléfono",
           "identity_document": "Documento de identidad",
           "internal_id": "ID interno",

@@ -3592,11 +3592,14 @@
         "identityMaxLength": "Identity document must be 10 characters or less.",
         "emailOrPhoneRequired": "You must provide at least an email address or a phone number.",
         "fields": {
-          "identity_document": "RUT"
+          "identity_document": "RUT",
+          "email": "Email",
+          "phone": "Phone"
         },
         "uniqueConflict": "The following fields are already registered: {fields}",
         "errorTitle": "Error Updating Details",
         "serverError": "Server error, please try again later.",
+        "genericError": "An unexpected error occurred. Please try again.",
         "identityRequired": "Identity document is required"
       },
       "editTitle": "Edit Provider",
@@ -3999,7 +4002,15 @@
         "identityInvalid": "Invalid identity document.",
         "identityRequired": "Identity is required.",
         "identityMaxLength": "Identity document must be at most 10 characters long.",
-        "emailOrPhoneRequired": "You must provide at least an email address or a phone number."
+        "emailOrPhoneRequired": "You must provide at least an email address or a phone number.",
+        "genericError": "An unexpected error occurred. Please try again.",
+        "serverError": "Server error, please try again later.",
+        "uniqueConflict": "The following fields are already registered: {fields}",
+        "fields": {
+          "email": "Email",
+          "phone": "Phone",
+          "identity_document": "Identity Document"
+        }
       },
       "SuccessActivateDescription": "The doctor has been activated sucessfully",
       "SuccessDeactivateDescription": "The doctor has been deactivated sucessfully",
@@ -4324,6 +4335,7 @@
         "uniqueConflict": "The following fields are already registered: {fields}",
         "fields": {
           "email": "Email",
+          "phone": "Phone",
           "phone_number": "Phone",
           "identity_document": "Identity document",
           "internal_id": "Internal ID",
