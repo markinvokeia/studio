@@ -299,12 +299,8 @@ const NotesTab = ({ user, onUpdate }: { user: User; onUpdate: (notes: string) =>
 
   return (
     <Card className="h-full flex flex-col shadow-none border-0">
-      <CardHeader className="flex flex-row items-center justify-between flex-none p-4 pb-2">
-        <div className="min-w-0 flex-1">
-          <CardTitle className="text-lg text-foreground font-bold">{t('UsersPage.notes.title')}</CardTitle>
-          <CardDescription className="text-sm text-muted-foreground">{t('UsersPage.notes.description')}</CardDescription>
-        </div>
-        <div className="flex items-center gap-2 ml-2">
+      <CardHeader className="flex flex-row items-center justify-end flex-none p-4 pb-2">
+        <div className="flex items-center gap-2">
           {!isEditing && (
             <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
               {t('UsersPage.notes.edit')}
@@ -917,23 +913,8 @@ export default function UsersPage() {
 
   const handleUpdateNotes = async (notes: string) => {
     if (!selectedUser) return;
-    const updatedUser = { ...selectedUser, notes };
-    await upsertUser({
-      id: selectedUser.id,
-      name: selectedUser.name,
-      email: selectedUser.email || '',
-      phone: selectedUser.phone_number || '',
-      identity_document: selectedUser.identity_document || '',
-      birth_date: selectedUser.birth_date || '',
-      notes,
-      is_active: selectedUser.is_active,
-      mutual_society_id: selectedUser.mutual_society_id ? String(selectedUser.mutual_society_id) : '',
-      is_dependent: selectedUser.is_dependent ?? false,
-      responsible_contact_id: selectedUser.responsible_contact_id || null,
-      doctor_id: selectedUser.doctor_id || null,
-      sex: selectedUser.sex ?? null,
-    });
-    setSelectedUser(updatedUser);
+    await api.post(API_ROUTES.USER_NOTES, { id: selectedUser.id, notes });
+    setSelectedUser({ ...selectedUser, notes });
     setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, notes } : u));
   };
 

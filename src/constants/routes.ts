@@ -354,6 +354,7 @@ export const API_ROUTES = {
     ORDER_INVOICE: '/order/invoice',
     USER_DEPENDANT: '/user_dependant',
     USERS_UPSERT: '/users/upsert',
+    USER_NOTES: '/user/notes',
     USERS_ACTIVATE: '/users/activate',
     USERS_SEND_EMAIL: '/users/send_email',
     ROLES_USER_ROLES: '/roles/user_roles',
