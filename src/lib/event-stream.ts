@@ -5,7 +5,7 @@ export type EventHandler = (eventType: string, data: unknown) => void;
 
 const RETRY_DELAYS = [2_000, 5_000, 15_000, 30_000];
 
-export function connectEventStream(userId: string, onEvent: EventHandler): () => void {
+export function connectEventStream(userId: string, onEvent: EventHandler, channels: string[] = []): () => void {
   const clientId = getClientId();
   const apiKey = getEventPusherKey();
 
@@ -18,9 +18,11 @@ export function connectEventStream(userId: string, onEvent: EventHandler): () =>
   let retryCount = 0;
   let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
+  const channelsParam = channels.length > 0 ? `&channels=${encodeURIComponent(channels.join(','))}` : '';
+
   function connect() {
     fetchEventSource(
-      `/events/stream?client_id=${encodeURIComponent(clientId)}&user_ids=${encodeURIComponent(userId)}`,
+      `/events/stream?client_id=${encodeURIComponent(clientId)}&user_ids=${encodeURIComponent(userId)}${channelsParam}`,
       {
         headers: { 'X-Api-Key': apiKey },
         signal: ctrl.signal,

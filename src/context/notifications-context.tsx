@@ -10,6 +10,7 @@ import { useDoctorAlertStyle } from '@/hooks/use-doctor-alert-style';
 import { useEventStream } from '@/hooks/use-event-stream';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeAppointmentStatus } from '@/constants/appointment-status';
+import { getChannelsForRoles } from '@/constants/notification-channels';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 import type {
@@ -78,6 +79,7 @@ interface BackendNotification {
   appointment_id?: string | null;
   session_id?: number | null;
   patient_id?: string | null;
+  channels?: string[];
   metadata: Record<string, any>;
   created_at: string;
 }
@@ -260,8 +262,9 @@ export function useNotifications() {
 // ── Provider ──────────────────────────────────────────────────────────────────
 
 export function NotificationsProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, roleNames } = useAuth();
   const userId = user?.id ? String(user.id) : null;
+  const channels = React.useMemo(() => getChannelsForRoles(roleNames), [roleNames]);
   const { toast } = useToast();
   const [alertStyle, setAlertStyle] = useDoctorAlertStyle(user?.id);
   const alertStyleRef = React.useRef(alertStyle);
@@ -369,7 +372,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     }
   }, [fetchNotifications]);
 
-  useEventStream(userId, handleSSEEvent);
+  useEventStream(userId, handleSSEEvent, channels);
 
   // ── Global alert queue (modal / toast) ───────────────────────────────────
 
