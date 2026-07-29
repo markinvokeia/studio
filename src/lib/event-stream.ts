@@ -18,7 +18,7 @@ export function connectEventStream(userId: string, onEvent: EventHandler, channe
   let retryCount = 0;
   let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
-  const channelsParam = channels.length > 0 ? `&channels=${encodeURIComponent(channels.join(','))}` : '';
+  const channelsParam = channels.map((channel) => `&channels=${encodeURIComponent(channel)}`).join('');
 
   function connect() {
     fetchEventSource(
