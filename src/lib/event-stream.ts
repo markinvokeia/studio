@@ -26,8 +26,12 @@ export function connectEventStream(userId: string, onEvent: EventHandler, channe
       {
         headers: { 'X-Api-Key': apiKey },
         signal: ctrl.signal,
+        openWhenHidden: true,
 
-        onopen: async () => {
+        onopen: async (response) => {
+          if (!response.ok || !response.headers.get('content-type')?.startsWith('text/event-stream')) {
+            throw new Error(`[event-stream] unexpected open response: ${response.status}`);
+          }
           retryCount = 0;
         },
 
