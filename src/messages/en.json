@@ -74,7 +74,8 @@
       "dueDate": "Due date"
     },
     "errors": {
-      "dueDateBeforeIssue": "The due date must be after the issue date"
+      "dueDateBeforeIssue": "The due date must be after the issue date",
+      "negativeTooth": "The tooth number cannot be negative"
     },
     "columns": {
       "date": "Date",
@@ -5613,6 +5614,7 @@
       "smsSendFailedDescription": "An error occurred while sending SMS. Please try again.",
       "whatsappSent": "WhatsApp Sent",
       "whatsappSentDescription": "WhatsApp message sent to {count} alert(s).",
+      "whatsappBulkResultDescription": "{sent} sent, {skipped} skipped, {failed} failed.",
       "whatsappSendFailed": "Failed to send WhatsApp",
       "whatsappSendFailedDescription": "An error occurred while sending WhatsApp message. Please try again.",
       "callRegistered": "Call Registered",

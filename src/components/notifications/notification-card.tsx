@@ -44,8 +44,13 @@ import type {
 function RelativeTime({ iso }: { iso: string }) {
   const [label, setLabel] = React.useState('');
   React.useEffect(() => {
+    // The API sends a 'Z'-suffixed string but the wall-clock digits are already local
+    // time, not true UTC (see the date-formatting skill). Parsing with the 'Z' intact
+    // makes date-fns treat it as a real UTC instant, inflating the elapsed time shown
+    // here by the client's UTC offset (3h in GMT-3).
+    const localIso = iso.replace('Z', '');
     const update = () =>
-      setLabel(formatDistanceToNow(parseISO(iso), { addSuffix: true, locale: es }));
+      setLabel(formatDistanceToNow(parseISO(localIso), { addSuffix: true, locale: es }));
     update();
     const id = setInterval(update, 60_000);
     return () => clearInterval(id);

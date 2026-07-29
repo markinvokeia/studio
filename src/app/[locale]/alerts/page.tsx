@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -23,7 +23,7 @@ import { api } from '@/services/api';
 import { usePatientView } from '@/stores/patient-view-store';
 import { BulkActionsFloatingBar } from '@/components/alerts/bulk-actions-floating-bar';
 import { AlertEmailComposerDialog } from '@/components/alerts/alert-email-composer-dialog';
-import { cn } from '@/lib/utils';
+import { cn, formatDisplayDate } from '@/lib/utils';
 import {
     AlertTriangle,
     Calendar,
@@ -34,7 +34,6 @@ import {
     FileText,
     Filter,
     Mail, MessageSquare,
-    MoreHorizontal,
     Phone, Printer,
     RefreshCw,
     Stethoscope,
@@ -70,6 +69,14 @@ const getFieldValue = (alert: AlertInstance, sourceColumn: string): any => {
 
 const formatFieldValue = (value: any, type: string): string => {
     if (value === null || value === undefined) return '-';
+
+    // Date-only strings (e.g. a birthday "1969-07-29") have no real time component, so
+    // parsing them with `new Date()` treats them as UTC midnight and shifts them back a
+    // day once converted to a negative-offset timezone (e.g. GMT-3). Format them from
+    // their y/m/d parts instead of going through a Date/toLocaleString conversion.
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return formatDisplayDate(value);
+    }
 
     if (type === 'datetime' || (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value))) {
         const date = value instanceof Date ? value : new Date(value);
@@ -291,7 +298,7 @@ function AlertsCenterPageContent() {
     const [snoozeDate, setSnoozeDate] = React.useState<string>('');
     const [page, setPage] = React.useState<number>(1);
     const [limit, setLimit] = React.useState<number>(50);
-    const [bulkActionLoading, setBulkActionLoading] = React.useState<'complete' | 'email' | 'snooze' | null>(null);
+    const [bulkActionLoading, setBulkActionLoading] = React.useState<'complete' | 'email' | 'snooze' | 'whatsapp' | null>(null);
     const [totalPages, setTotalPages] = React.useState<number>(1);
     const [alertsPage, setAlertsPage] = React.useState<number>(1);
     const [alertsLimit, setAlertsLimit] = React.useState<number>(50);
@@ -542,6 +549,78 @@ function AlertsCenterPageContent() {
         }
     }, [getAlertWhatsAppTemplate, getAlertPhone, getAlertPatientId, user, completeAlertSilently, t]);
 
+    // Bulk WhatsApp send, done entirely client-side: there is no bulk backend endpoint for
+    // this (only Complete/Ignore/Snooze have one), so this loops the same per-patient
+    // send endpoint the single-alert button already uses — sequentially, not in parallel,
+    // since firing many WhatsApp template sends at once risks tripping YCloud/Meta rate
+    // limits. One bad phone/template only skips that alert, it never aborts the rest.
+    const sendBulkWhatsApp = React.useCallback(async (alertIds: string[]) => {
+        if (!user?.id || alertIds.length === 0) return;
+        setBulkActionLoading('whatsapp');
+        try {
+            const targets = alertIds
+                .map(id => alerts.find(a => a.id === id))
+                .filter((a): a is AlertInstance => !!a);
+
+            let sent = 0;
+            let skipped = 0;
+            let failed = 0;
+            const sentIds: string[] = [];
+
+            for (const alert of targets) {
+                const template = getAlertWhatsAppTemplate(alert);
+                const phone = getAlertPhone(alert);
+                const patientId = getAlertPatientId(alert);
+                if (!template || !phone || !patientId) {
+                    skipped += 1;
+                    continue;
+                }
+                try {
+                    await api.post(API_ROUTES.PATIENTS_SEND_WHATSAPP_TEMPLATE, {
+                        id: patientId,
+                        template_code: template.code,
+                        reference_table: alert.reference_table || undefined,
+                        reference_id: alert.reference_id || undefined,
+                        alert_instance_id: alert.id,
+                        performed_by: user.id,
+                    });
+                    sent += 1;
+                    sentIds.push(alert.id);
+                } catch (error) {
+                    console.error(`Failed to send WhatsApp for alert ${alert.id}:`, error);
+                    failed += 1;
+                }
+            }
+
+            if (sentIds.length > 0) {
+                await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_COMPLETE, { ids: sentIds });
+            }
+            setSelectedAlerts(prev => prev.filter(id => !sentIds.includes(id)));
+            refreshAlerts();
+            await loadAlerts();
+
+            toast({
+                title: t('toast.whatsappSent'),
+                description: t('toast.whatsappBulkResultDescription', { sent, skipped, failed }),
+            });
+        } catch (error) {
+            console.error('Failed to send bulk WhatsApp messages:', error);
+            toast({
+                title: t('toast.whatsappSendFailed'),
+                description: error instanceof Error ? error.message : t('toast.whatsappSendFailedDescription'),
+                variant: 'destructive',
+            });
+        } finally {
+            setBulkActionLoading(null);
+        }
+    }, [user, alerts, getAlertWhatsAppTemplate, getAlertPhone, getAlertPatientId, refreshAlerts, loadAlerts, t]);
+
+    const selectedWhatsAppEligibleCount = React.useMemo(() => {
+        return alerts.filter(a =>
+            selectedAlerts.includes(a.id) && Boolean(getAlertPhone(a)) && Boolean(getAlertWhatsAppTemplate(a))
+        ).length;
+    }, [alerts, selectedAlerts, getAlertPhone, getAlertWhatsAppTemplate]);
+
     const handleSelectAlert = (alertId: string, checked: boolean) => {
         setSelectedAlerts(prev =>
             checked ? [...prev, alertId] : prev.filter(id => id !== alertId)
@@ -753,8 +832,8 @@ function AlertsCenterPageContent() {
                                                             {t(`status.${alert.status.toLowerCase()}` as any)}
                                                         </div>
                                                     </div>
-                                                    {/* Row 3: action buttons — icon-only, same row */}
-                                                    <div className="flex items-center gap-1 border-t border-border/50 pt-2">
+                                                    {/* Row 3: action buttons — icon-only, all actions inline, same row */}
+                                                    <div className="flex items-center gap-1 border-t border-border/50 pt-2 flex-wrap">
                                                         {(() => {
                                                             const email = getAlertEmail(alert);
                                                             const phone = getAlertPhone(alert);
@@ -776,46 +855,39 @@ function AlertsCenterPageContent() {
                                                                 <Mail className="h-4 w-4" />
                                                             </Button>
                                                         </Can>
-                                                        <Can permission={ALERT_CENTER_PERMISSIONS.COMPLETE}>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8" title={t('actions.markCompleted')} onClick={() => markAsCompleted([alert.id])}><CheckCircle className="h-4 w-4" /></Button>
+                                                        {statusFilter !== '' && (
+                                                            <Can permission={ALERT_CENTER_PERMISSIONS.COMPLETE}>
+                                                                <Button variant="ghost" size="icon" className="h-8 w-8" title={t('actions.markCompleted')} onClick={() => markAsCompleted([alert.id])}><CheckCircle className="h-4 w-4" /></Button>
+                                                            </Can>
+                                                        )}
+                                                        <Can permission={ALERT_CENTER_PERMISSIONS.SEND_WHATSAPP}>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8"
+                                                                title={whatsappEnabled ? t('actions.sendWhatsApp') : t('actions.sendWhatsAppUnavailable')}
+                                                                onClick={() => sendAlertWhatsApp(alert)}
+                                                                disabled={!whatsappEnabled || whatsappSending}
+                                                            >
+                                                                {whatsappSending ? (
+                                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                                ) : (
+                                                                    <MessageCircle className="h-4 w-4" />
+                                                                )}
+                                                            </Button>
                                                         </Can>
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent>
-                                                                <Can permission={ALERT_CENTER_PERMISSIONS.SEND_WHATSAPP}>
-                                                                    <DropdownMenuLabel>{t('actionsGroups.communication')}</DropdownMenuLabel>
-                                                                    <DropdownMenuItem
-                                                                        onClick={() => sendAlertWhatsApp(alert)}
-                                                                        disabled={!whatsappEnabled || whatsappSending}
-                                                                    >
-                                                                        {whatsappSending ? (
-                                                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                                        ) : (
-                                                                            <MessageCircle className="mr-2 h-4 w-4" />
-                                                                        )}
-                                                                        {whatsappEnabled ? t('actions.sendWhatsApp') : t('actions.sendWhatsAppUnavailable')}
-                                                                    </DropdownMenuItem>
-                                                                </Can>
-                                                                <Can permission={ALERT_CENTER_PERMISSIONS.REGISTER_CALL}>
-                                                                    <DropdownMenuItem onClick={() => { setAlertsToRegisterCall([alert.id]); setRegisterCallDialogOpen(true); }}><Phone className="mr-2 h-4 w-4" />{t('actions.registerCall')}</DropdownMenuItem>
-                                                                </Can>
-                                                                <Can permission={ALERT_CENTER_PERMISSIONS.SNOOZE}>
-                                                                    <DropdownMenuSeparator />
-                                                                    <DropdownMenuLabel>{t('actionsGroups.management')}</DropdownMenuLabel>
-                                                                    <DropdownMenuItem onClick={() => { setAlertsToSnooze([alert.id]); setSnoozeDialogOpen(true); }}><Clock className="mr-2 h-4 w-4" />{t('actions.snooze')}</DropdownMenuItem>
-                                                                </Can>
-                                                                <Can permission={ALERT_CENTER_PERMISSIONS.IGNORE}>
-                                                                    <DropdownMenuItem onClick={() => { setAlertsToIgnore([alert.id]); setIgnoreDialogOpen(true); }}><XCircle className="mr-2 h-4 w-4" />{t('actions.ignore')}</DropdownMenuItem>
-                                                                </Can>
-                                                                <Can permission={ALERT_CENTER_PERMISSIONS.ADD_NOTES}>
-                                                                    <DropdownMenuSeparator />
-                                                                    <DropdownMenuLabel>{t('actionsGroups.other')}</DropdownMenuLabel>
-                                                                    <DropdownMenuItem onClick={() => { setAlertsForNote([alert.id]); setAddNoteDialogOpen(true); }}><FileText className="mr-2 h-4 w-4" />{t('actions.addNote')}</DropdownMenuItem>
-                                                                </Can>
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
+                                                        <Can permission={ALERT_CENTER_PERMISSIONS.REGISTER_CALL}>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8" title={t('actions.registerCall')} onClick={() => { setAlertsToRegisterCall([alert.id]); setRegisterCallDialogOpen(true); }}><Phone className="h-4 w-4" /></Button>
+                                                        </Can>
+                                                        <Can permission={ALERT_CENTER_PERMISSIONS.SNOOZE}>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8" title={t('actions.snooze')} onClick={() => { setAlertsToSnooze([alert.id]); setSnoozeDialogOpen(true); }}><Clock className="h-4 w-4" /></Button>
+                                                        </Can>
+                                                        <Can permission={ALERT_CENTER_PERMISSIONS.IGNORE}>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8" title={t('actions.ignore')} onClick={() => { setAlertsToIgnore([alert.id]); setIgnoreDialogOpen(true); }}><XCircle className="h-4 w-4" /></Button>
+                                                        </Can>
+                                                        <Can permission={ALERT_CENTER_PERMISSIONS.ADD_NOTES}>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8" title={t('actions.addNote')} onClick={() => { setAlertsForNote([alert.id]); setAddNoteDialogOpen(true); }}><FileText className="h-4 w-4" /></Button>
+                                                        </Can>
                                                                 </>
                                                             );
                                                         })()}
@@ -1083,10 +1155,13 @@ function AlertsCenterPageContent() {
                         if (alert) openAlertEmailComposer(alert);
                     }}
                     onSnooze={() => { if (!bulkActionLoading) { setAlertsToSnooze(selectedAlerts); setSnoozeDialogOpen(true); } }}
+                    onSendWhatsApp={() => sendBulkWhatsApp(selectedAlerts)}
                     onDeselectAll={() => setSelectedAlerts([])}
                     canComplete={hasPermission(ALERT_CENTER_PERMISSIONS.COMPLETE)}
                     canSendEmail={hasPermission(ALERT_CENTER_PERMISSIONS.SEND_EMAIL)}
                     canSnooze={hasPermission(ALERT_CENTER_PERMISSIONS.SNOOZE)}
+                    canSendWhatsApp={hasPermission(ALERT_CENTER_PERMISSIONS.SEND_WHATSAPP)}
+                    whatsAppEligibleCount={selectedWhatsAppEligibleCount}
                 />
             </Can>
 

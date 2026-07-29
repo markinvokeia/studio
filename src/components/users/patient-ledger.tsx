@@ -780,6 +780,10 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
       toast({ title: t('errors.dueDateBeforeIssue'), variant: 'destructive' });
       return;
     }
+    if (values.tooth_number && Number(values.tooth_number) < 0) {
+      toast({ title: t('errors.negativeTooth'), variant: 'destructive' });
+      return;
+    }
     setSubmitting(true);
     try {
       const qty = values.quantity || 1;
@@ -1073,6 +1077,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
             <FieldIcon icon={ToothIcon} className="w-[6.5rem]">
               <Input
                 type="number"
+                min={0}
                 placeholder={t('fields.tooth')}
                 aria-label={t('fields.tooth')}
                 className="h-8 pl-7 text-sm"

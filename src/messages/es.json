@@ -74,7 +74,8 @@
       "dueDate": "Vencimiento"
     },
     "errors": {
-      "dueDateBeforeIssue": "El vencimiento debe ser posterior a la fecha de emisión"
+      "dueDateBeforeIssue": "El vencimiento debe ser posterior a la fecha de emisión",
+      "negativeTooth": "El número de pieza no puede ser negativo"
     },
     "columns": {
       "date": "Fecha",
@@ -5592,6 +5593,7 @@
       "smsSendFailedDescription": "Ocurrió un error al enviar el SMS. Por favor, inténtelo de nuevo.",
       "whatsappSent": "WhatsApp Enviado",
       "whatsappSentDescription": "Mensaje de WhatsApp enviado a {count} alerta(s).",
+      "whatsappBulkResultDescription": "{sent} enviado(s), {skipped} omitido(s), {failed} fallido(s).",
       "whatsappSendFailed": "Error al enviar WhatsApp",
       "whatsappSendFailedDescription": "Ocurrió un error al enviar el mensaje de WhatsApp. Por favor, inténtelo de nuevo.",
       "callRegistered": "Llamada Registrada",

@@ -344,6 +344,7 @@ export type InvoiceItem = {
   quantity: number;
   unit_price: number;
   total: number;
+  tooth_number?: number;
   quote_item_id?: string | number;
   step_id?: string;
   steps?: string;

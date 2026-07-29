@@ -73,6 +73,7 @@ function normalizeInvoiceItem(raw: any): InvoiceItem {
     unit_price: parseFloat(raw.unit_price) || 0,
     quantity: parseInt(raw.quantity, 10) || 1,
     total: parseFloat(raw.total) || 0,
+    tooth_number: raw.tooth_number ?? undefined,
     quote_item_id: raw.quote_item_id != null ? String(raw.quote_item_id) : undefined,
     step_id: raw.step_id != null ? String(raw.step_id) : undefined,
     steps: raw.steps != null ? String(raw.steps) : undefined,
