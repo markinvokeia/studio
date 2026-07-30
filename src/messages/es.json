@@ -5456,6 +5456,10 @@
       "medium": "Media"
     },
     "dailyAlerts": "Alertas Diarias",
+    "fieldValues": {
+      "yes": "Sí",
+      "no": "No"
+    },
     "pagination": {
       "showing": "Mostrando",
       "of": "de",
@@ -5519,6 +5523,11 @@
       "sendEmail": "Enviar Correo",
       "sendSms": "Enviar SMS",
       "sendWhatsApp": "Enviar WhatsApp",
+      "complete": "Marcada como Completada",
+      "ignore": "Ignorada",
+      "note": "Nota Agregada",
+      "call": "Llamada Registrada",
+      "snooze": "Pospuesta",
       "performedAt": "Realizado el",
       "status": "Estado",
       "resultMessage": "Resultado",

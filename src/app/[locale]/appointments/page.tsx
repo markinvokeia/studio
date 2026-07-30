@@ -1491,9 +1491,16 @@ export default function AppointmentsPage() {
         if (openInlineDraftForAppointment(appointment, false)) {
             return;
         }
-        setEditingAppointment(appointment);
-        setIsReschedulingMode(false);
-        setCreateOpen(true);
+        // Deferred: often called from a ContextMenuItem's onSelect. Radix's menu and
+        // this dialog both lock document.body's pointer-events while open/closing;
+        // opening the dialog in the same tick the menu starts its (animated) unmount
+        // races that lock and can leave the dialog unclosable. Letting the menu
+        // finish unwinding first (next tick) avoids the overlap.
+        setTimeout(() => {
+            setEditingAppointment(appointment);
+            setIsReschedulingMode(false);
+            setCreateOpen(true);
+        }, 0);
     }, [openInlineDraftForAppointment]);
 
     const handleCreateAppointmentFromSlot = React.useCallback((slot: CalendarSlotContextMenuContext) => {

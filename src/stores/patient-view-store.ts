@@ -38,8 +38,13 @@ export const usePatientView = create<PatientViewStore>((set) => ({
   initialTab: undefined,
   infoOnly: false,
   showCancelAction: false,
+  // Deferred: `open` is often called from a ContextMenuItem's onSelect. Radix's
+  // menu and this sheet both lock document.body's pointer-events while
+  // open/closing; opening the sheet in the same tick the menu starts its
+  // (animated) unmount races that lock and can leave the sheet unclosable.
+  // Letting the menu finish unwinding first (next tick) avoids the overlap.
   open: ({ userId, userName, userEmail, userPhone, initialTab, infoOnly, showCancelAction }) =>
-    set({
+    setTimeout(() => set({
       isOpen: true,
       userId,
       userName,
@@ -48,7 +53,7 @@ export const usePatientView = create<PatientViewStore>((set) => ({
       initialTab,
       infoOnly: infoOnly ?? false,
       showCancelAction: showCancelAction ?? false,
-    }),
+    }), 0),
   close: () => set({
     isOpen: false,
     userId: null,

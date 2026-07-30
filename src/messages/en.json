@@ -5477,6 +5477,10 @@
       "medium": "Medium"
     },
     "dailyAlerts": "Daily Alerts",
+    "fieldValues": {
+      "yes": "Yes",
+      "no": "No"
+    },
     "pagination": {
       "showing": "Showing",
       "of": "of",
@@ -5497,9 +5501,9 @@
       },
       "priorityOptions": {
         "low": "Low",
-        "medium": "Media",
-        "high": "Alta",
-        "critical": "Crítica"
+        "medium": "Medium",
+        "high": "High",
+        "critical": "Critical"
       }
     },
     "categories": {
@@ -5540,6 +5544,11 @@
       "sendEmail": "Send Email",
       "sendSms": "Send SMS",
       "sendWhatsApp": "Send WhatsApp",
+      "complete": "Marked as Completed",
+      "ignore": "Ignored",
+      "note": "Note Added",
+      "call": "Call Registered",
+      "snooze": "Snoozed",
       "performedAt": "Performed at",
       "status": "Status",
       "resultMessage": "Result",

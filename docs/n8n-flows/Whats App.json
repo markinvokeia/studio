@@ -585,7 +585,7 @@
       "alwaysOutputData": true,
       "credentials": {
         "ycloudApi": {
-          "id": "1x5CBW2rMW7V6vCt",
+          "id": "8nG0oELF586Izfjs",
           "name": "YCloud account"
         }
       }
@@ -627,7 +627,7 @@
       "name": "Send via YCloud1",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "H5zbiBMT148GZMcX",
+          "id": "sbG4KRFma7CZn1M6",
           "name": "YCloud API KEY"
         }
       }
@@ -1877,7 +1877,7 @@
       ],
       "credentials": {
         "ycloudApi": {
-          "id": "1x5CBW2rMW7V6vCt",
+          "id": "8nG0oELF586Izfjs",
           "name": "YCloud account"
         }
       },
@@ -1919,7 +1919,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = $input.first().json;\nconst body = input.body || {};\nconst patientId = String(body.patient_id || '').trim();\nconst serviceName = String(body.service_name || '').trim();\nconst desiredDate = String(body.desired_date || '').trim();\nconst desiredTime = String(body.desired_time || '').trim();\nconst sedeId = String(body.sede_id || '').trim();\n\nif (!patientId) {\n  return [{ json: { __error: true, code: 403, message: 'patient_id is required' } }];\n}\n\nif (!serviceName || !desiredDate) {\n  return [{ json: { __error: true, code: 400, message: 'service_name and desired_date are required' } }];\n}\n\nreturn [{\n  json: {\n    patient_id: patientId,\n    service_name: serviceName,\n    preferred_doctor_name: body.preferred_doctor_name || '',\n    desired_date: desiredDate,\n    desired_time: desiredTime,\n    sede_id: sedeId\n  }\n}];"
+        "jsCode": "const input = $input.first().json;\nconst body = input.body || {};\nconst patientId = String(body.patient_id || '').trim();\nconst desiredDate = String(body.desired_date || '').trim();\nconst desiredTime = String(body.desired_time || '').trim();\nconst sedeId = String(body.sede_id || '').trim();\n\nif (!patientId) {\n  return [{ json: { __error: true, code: 403, message: 'patient_id is required' } }];\n}\n\nif (!desiredDate) {\n  return [{ json: { __error: true, code: 400, message: 'desired_date is required' } }];\n}\n\nreturn [{\n  json: {\n    patient_id: patientId,\n    preferred_doctor_name: body.preferred_doctor_name || '',\n    desired_date: desiredDate,\n    desired_time: desiredTime,\n    sede_id: sedeId\n  }\n}];"
       },
       "id": "0f8767bc-ca80-4344-885b-f1ec3b938c5d",
       "name": "Resolve Service & Window",
@@ -1983,9 +1983,9 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT id, name, duration_minutes, price, currency\nFROM service_catalog\nWHERE is_active = true\n  AND name ILIKE '%' || $1 || '%'\nORDER BY name\nLIMIT 1;",
+        "query": "SELECT id, name, duration_minutes, price, currency\nFROM service_catalog\nWHERE is_active = true\n  AND lower(name) = lower($1)\nLIMIT 1;",
         "options": {
-          "queryReplacement": "={{ [ $('Resolve Service & Window').item.json.service_name ] }}"
+          "queryReplacement": "={{ [ 'Consulta general' ] }}"
         }
       },
       "id": "5a370ebb-e504-47aa-a120-ec29bea639d0",
@@ -2907,7 +2907,7 @@
       "alwaysOutputData": true,
       "credentials": {
         "ycloudApi": {
-          "id": "1x5CBW2rMW7V6vCt",
+          "id": "8nG0oELF586Izfjs",
           "name": "YCloud account"
         }
       }
@@ -3031,7 +3031,7 @@
         "url": "={{ $env.N8N_URL || 'https://n8n-project-n8n.7ig1i3.easypanel.host' }}/webhook/agent-tools/check-availability",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  patient_id: $(\"Build Agent Context\").first().json.patient_id,\n  service_name: \"Consulta general\",\n  desired_date: $fromAI(\n    \"desired_date\",\n    \"Fecha deseada en formato YYYY-MM-DD\",\n    \"string\",\n  ),\n  desired_time: $fromAI(\n    \"desired_time\",\n    \"Hora deseada en formato HH:mm 24hs; dejar vacío si el paciente no especificó hora\",\n    \"string\",\n    \"\",\n  ),\n  sede_id: $fromAI(\n    \"sede_id\",\n    \"ID de la sede, SOLO si el paciente pidió explícitamente una sede/sucursal en particular; dejar vacío para que el sistema elija automáticamente la sede con disponibilidad\",\n    \"string\",\n    \"\",\n  ),\n  preferred_doctor_name: $fromAI(\n    \"preferred_doctor_name\",\n    \"Nombre del profesional preferido, SOLO si el paciente lo mencionó espontáneamente; dejar vacío si no\",\n    \"string\",\n    \"\",\n  ),\n}); }}",
+        "jsonBody": "={{ JSON.stringify({\n  patient_id: $(\"Build Agent Context\").first().json.patient_id,\n  desired_date: $fromAI(\n    \"desired_date\",\n    \"Fecha deseada en formato YYYY-MM-DD\",\n    \"string\",\n  ),\n  desired_time: $fromAI(\n    \"desired_time\",\n    \"Hora deseada en formato HH:mm 24hs; dejar vacío si el paciente no especificó hora\",\n    \"string\",\n    \"\",\n  ),\n  sede_id: $fromAI(\n    \"sede_id\",\n    \"ID de la sede, SOLO si el paciente pidió explícitamente una sede/sucursal en particular; dejar vacío para que el sistema elija automáticamente la sede con disponibilidad\",\n    \"string\",\n    \"\",\n  ),\n  preferred_doctor_name: $fromAI(\n    \"preferred_doctor_name\",\n    \"Nombre del profesional preferido, SOLO si el paciente lo mencionó espontáneamente; dejar vacío si no\",\n    \"string\",\n    \"\",\n  ),\n}); }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequestTool",
@@ -3412,257 +3412,34 @@
     }
   ],
   "pinData": {
-    "POST agent-tools/get-account-status1": [
-      {
-        "json": {
-          "headers": {
-            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
-            "user-agent": "axios/1.16.1",
-            "content-length": "53",
-            "accept": "application/json, text/plain, */*",
-            "accept-encoding": "gzip, compress, deflate, br",
-            "content-type": "application/json",
-            "x-forwarded-for": "172.18.0.1",
-            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
-            "x-forwarded-port": "443",
-            "x-forwarded-proto": "https",
-            "x-forwarded-server": "d4e738525fe6",
-            "x-real-ip": "172.18.0.1"
-          },
-          "params": {},
-          "query": {},
-          "body": {
-            "patient_id": "283f09c7-7ba6-4eed-ad56-7b3be0c19909"
-          },
-          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/agent-tools/get-account-status",
-          "executionMode": "production"
-        },
-        "pairedItem": {
-          "item": 0
-        }
-      }
-    ],
-    "GET /whatsapp-templates": [
-      {
-        "json": {
-          "headers": {
-            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
-            "content-length": "72",
-            "accept": "application/json",
-            "accept-encoding": "gzip, deflate, br, zstd",
-            "accept-language": "en-US,en;q=0.5",
-            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3ODM0Mzg4ODB9.qGRCYRCSlhWJNSer2oElP1ryEoZKltSvY5IySjdONAw",
-            "cache-control": "no-cache",
-            "content-type": "application/json",
-            "origin": "http://localhost:3000",
-            "pragma": "no-cache",
-            "priority": "u=1, i",
-            "referer": "http://localhost:3000/",
-            "sec-ch-ua": "\"Not;A=Brand\";v=\"8\", \"Chromium\";v=\"150\", \"Brave\";v=\"150\"",
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": "\"Windows\"",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "cross-site",
-            "sec-gpc": "1",
-            "x-forwarded-for": "177.3.104.80",
-            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
-            "x-forwarded-port": "443",
-            "x-forwarded-proto": "https",
-            "x-forwarded-server": "d4e738525fe6",
-            "x-real-ip": "177.3.104.80"
-          },
-          "params": {},
-          "query": {},
-          "body": {
-            "id": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
-            "template_code": "birthday"
-          },
-          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/patients/send_whatsapp_template",
-          "executionMode": "production",
-          "jwtPayload": {
-            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
-            "email": "raidel@invokeia.com",
-            "expiresIn": "24h",
-            "iat": 1783438880
-          }
-        }
-      }
-    ],
-    "POST /patients/send_whatsapp_template": [
-      {
-        "json": {
-          "headers": {
-            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
-            "content-length": "206",
-            "accept": "application/json",
-            "accept-encoding": "gzip, deflate, br, zstd",
-            "accept-language": "en-US,en;q=0.5",
-            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3ODM0Mzg4ODB9.qGRCYRCSlhWJNSer2oElP1ryEoZKltSvY5IySjdONAw",
-            "cache-control": "no-cache",
-            "content-type": "application/json",
-            "origin": "http://localhost:3000",
-            "pragma": "no-cache",
-            "priority": "u=1, i",
-            "referer": "http://localhost:3000/",
-            "sec-ch-ua": "\"Not;A=Brand\";v=\"8\", \"Chromium\";v=\"150\", \"Brave\";v=\"150\"",
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": "\"Windows\"",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "cross-site",
-            "sec-gpc": "1",
-            "x-forwarded-for": "177.3.104.80",
-            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
-            "x-forwarded-port": "443",
-            "x-forwarded-proto": "https",
-            "x-forwarded-server": "d4e738525fe6",
-            "x-real-ip": "177.3.104.80"
-          },
-          "params": {},
-          "query": {},
-          "body": {
-            "id": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
-            "template_code": "invoice_due",
-            "reference_table": "invoices",
-            "reference_id": "38018",
-            "alert_instance_id": 9832,
-            "performed_by": "283f09c7-7ba6-4eed-ad56-7b3be0c19909"
-          },
-          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/patients/send_whatsapp_template",
-          "executionMode": "production",
-          "jwtPayload": {
-            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
-            "email": "raidel@invokeia.com",
-            "expiresIn": "24h",
-            "iat": 1783438880
-          }
-        },
-        "pairedItem": {
-          "item": 0
-        }
-      }
-    ],
-    "POST wa-message-received": [
-      {
-        "json": {
-          "headers": {
-            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
-            "user-agent": "Go-http-client/2.0",
-            "content-length": "493",
-            "accept-encoding": "gzip",
-            "baggage": "Eagleeye-Prpc=,Eagleeye-Pappname=1fof0zltrv1@d3b96e44a5c9fa6",
-            "content-type": "application/json",
-            "traceparent": "00-ea0d06e996806b61c977b98a064293ea-7fd092f2bc9ed49e-00",
-            "x-forwarded-for": "8.219.65.77",
-            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
-            "x-forwarded-port": "443",
-            "x-forwarded-proto": "https",
-            "x-forwarded-server": "d4e738525fe6",
-            "x-real-ip": "8.219.65.77",
-            "x-webhook-endpoint-id": "6a441ff8d956c76ad0896a0a",
-            "ycloud-signature": "t=1784905250,s=e10080bb888b47144d117debeead7133e56fe0f2ff20c1546d6f7e6ca2869116"
-          },
-          "params": {},
-          "query": {},
-          "body": {
-            "id": "evt_6a637e2262e5d53b48d42100",
-            "type": "whatsapp.inbound_message.received",
-            "apiVersion": "v2",
-            "createTime": "2026-07-24T15:00:50.908Z",
-            "whatsappInboundMessage": {
-              "id": "6a637e22aff1a13d352b4a69",
-              "wamid": "wamid.HBgMNTU0MTg0NDA5NjUzFQIAEhgWM0VCMEVGRUZEMDk2N0JBNzY3RTM5QwA=",
-              "wabaId": "1466271758269817",
-              "from": "+554184409653",
-              "fromUserId": "BR.869688276195823",
-              "customerProfile": {
-                "name": "Raidel"
-              },
-              "to": "+59894024661",
-              "sendTime": "2026-07-24T15:00:49.000Z",
-              "type": "text",
-              "text": {
-                "body": "a las 3"
-              }
-            }
-          },
-          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/wa-message-received",
-          "executionMode": "production"
-        },
-        "binary": {
-          "data": {
-            "data": "eyJpZCI6ImV2dF82YTYzN2UyMjYyZTVkNTNiNDhkNDIxMDAiLCJ0eXBlIjoid2hhdHNhcHAuaW5ib3VuZF9tZXNzYWdlLnJlY2VpdmVkIiwiYXBpVmVyc2lvbiI6InYyIiwiY3JlYXRlVGltZSI6IjIwMjYtMDctMjRUMTU6MDA6NTAuOTA4WiIsIndoYXRzYXBwSW5ib3VuZE1lc3NhZ2UiOnsiaWQiOiI2YTYzN2UyMmFmZjFhMTNkMzUyYjRhNjkiLCJ3YW1pZCI6IndhbWlkLkhCZ01OVFUwTVRnME5EQTVOalV6RlFJQUVoZ1dNMFZDTUVWR1JVWkVNRGsyTjBKQk56WTNSVE01UXdBPSIsIndhYmFJZCI6IjE0NjYyNzE3NTgyNjk4MTciLCJmcm9tIjoiKzU1NDE4NDQwOTY1MyIsImZyb21Vc2VySWQiOiJCUi44Njk2ODgyNzYxOTU4MjMiLCJjdXN0b21lclByb2ZpbGUiOnsibmFtZSI6IlJhaWRlbCJ9LCJ0byI6Iis1OTg5NDAyNDY2MSIsInNlbmRUaW1lIjoiMjAyNi0wNy0yNFQxNTowMDo0OS4wMDBaIiwidHlwZSI6InRleHQiLCJ0ZXh0Ijp7ImJvZHkiOiJhIGxhcyAzIn19fQ==",
-            "mimeType": "application/json"
-          }
-        },
-        "pairedItem": {
-          "item": 0
-        }
-      }
-    ],
     "POST agent-tools/create-appointment": [
       {
         "json": {
           "headers": {
-            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
-            "user-agent": "n8n",
-            "content-length": "189",
-            "accept": "application/json,text/html,application/xhtml+xml,application/xml,text/*;q=0.9, image/*;q=0.8, */*;q=0.7",
-            "accept-encoding": "gzip, compress, deflate, br",
-            "content-type": "application/json",
+            "host": "n8n-test.invokeia.com",
+            "x-real-ip": "172.18.0.1",
             "x-forwarded-for": "172.18.0.1",
-            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
-            "x-forwarded-port": "443",
             "x-forwarded-proto": "https",
-            "x-forwarded-server": "d4e738525fe6",
-            "x-real-ip": "172.18.0.1"
+            "connection": "upgrade",
+            "content-length": "190",
+            "accept": "application/json,text/html,application/xhtml+xml,application/xml,text/*;q=0.9, image/*;q=0.8, */*;q=0.7",
+            "content-type": "application/json",
+            "user-agent": "n8n",
+            "accept-encoding": "gzip, compress, deflate, br"
           },
           "params": {},
           "query": {},
           "body": {
-            "patient_id": "840c03d0-a170-44d1-ae06-126161a4e6f4",
+            "patient_id": "a57138b3-9b95-43af-b761-ec542599392d",
             "assignee_id": "",
-            "calendar_source_id": "3",
+            "calendar_source_id": "1",
             "date": "2026-07-30",
-            "time": "10:00",
+            "time": "09:00",
             "services": "Consulta general",
-            "notes": "Revisión completa"
+            "notes": "sangrado de encías"
           },
-          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/agent-tools/create-appointment",
+          "webhookUrl": "https://n8n-test.invokeia.com/webhook/agent-tools/create-appointment",
           "executionMode": "production"
-        }
-      }
-    ],
-    "POST agent-tools/get-upcoming-appointments1": [
-      {
-        "json": {
-          "headers": {
-            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
-            "user-agent": "n8n",
-            "content-length": "53",
-            "accept": "application/json,text/html,application/xhtml+xml,application/xml,text/*;q=0.9, image/*;q=0.8, */*;q=0.7",
-            "accept-encoding": "gzip, compress, deflate, br",
-            "content-type": "application/json",
-            "x-forwarded-for": "172.18.0.1",
-            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
-            "x-forwarded-port": "443",
-            "x-forwarded-proto": "https",
-            "x-forwarded-server": "d4e738525fe6",
-            "x-real-ip": "172.18.0.1"
-          },
-          "params": {},
-          "query": {},
-          "body": {
-            "patient_id": "283f09c7-7ba6-4eed-ad56-7b3be0c19909"
-          },
-          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/agent-tools/get-upcoming-appointments",
-          "executionMode": "production"
-        },
-        "pairedItem": {
-          "item": 0
         }
       }
     ]
@@ -5090,7 +4867,7 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "d199d48d-d1f4-49e5-9209-7cf2d371ebb7",
+  "versionId": "a47ef68b-ee4d-4d31-aaa8-4a102b675f8e",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"

@@ -67,7 +67,16 @@ const getFieldValue = (alert: AlertInstance, sourceColumn: string): any => {
     return value;
 };
 
-const formatFieldValue = (value: any, type: string): string => {
+type DisplayFieldHelpers = {
+    yesLabel: string;
+    noLabel: string;
+    // Translates known enum-like column values (e.g. invoice payment_status) into the current
+    // locale. Returns undefined when the column isn't a recognized enum, so the raw value falls
+    // through untouched instead of showing a translation-missing artifact.
+    translateStatus: (sourceColumn: string, raw: string) => string | undefined;
+};
+
+const formatFieldValue = (value: any, type: string, sourceColumn: string, helpers: DisplayFieldHelpers): string => {
     if (value === null || value === undefined) return '-';
 
     // Date-only strings (e.g. a birthday "1969-07-29") have no real time component, so
@@ -92,20 +101,25 @@ const formatFieldValue = (value: any, type: string): string => {
             }
             return String(value);
         case 'boolean':
-            return value ? 'Sí' : 'No';
-        default:
+            return value ? helpers.yesLabel : helpers.noLabel;
+        default: {
+            if (typeof value === 'string') {
+                const translated = helpers.translateStatus(sourceColumn, value);
+                if (translated) return translated;
+            }
             return String(value ?? '-');
+        }
     }
 };
 
-const renderDisplayFields = (alert: AlertInstance, fields: DisplayField[]) => {
+const renderDisplayFields = (alert: AlertInstance, fields: DisplayField[], helpers: DisplayFieldHelpers) => {
     if (!fields || fields.length === 0) return null;
-    
+
     return (
         <div className="mt-1 flex items-center gap-3 flex-wrap text-xs">
             {fields.map((field, idx) => {
                 const value = getFieldValue(alert, field.source_column);
-                const formattedValue = formatFieldValue(value, field.type);
+                const formattedValue = formatFieldValue(value, field.type, field.source_column, helpers);
                 return (
                     <span key={idx} className="flex items-center gap-1">
                         <span className="text-muted-foreground">{field.label}:</span>
@@ -277,6 +291,10 @@ const SummaryCard = ({ title, count, accentColor }: { title: string, count: numb
 
 function AlertsCenterPageContent() {
     const t = useTranslations('AlertsCenterPage');
+    // Invoice payment_status values (unpaid/paid/partial/partially_paid) shown in alert display
+    // fields are the same enum as the Invoices page, so reuse its translations instead of
+    // duplicating them here.
+    const tPaymentStatus = useTranslations('InvoicesPage.status');
     const { hasPermission } = usePermissions();
     const { refreshAlerts } = useAlertNotifications();
     const { open: openPatient } = usePatientView();
@@ -663,6 +681,22 @@ function AlertsCenterPageContent() {
         );
     };
 
+    const translateFieldStatus = React.useCallback((sourceColumn: string, raw: string): string | undefined => {
+        const column = sourceColumn.split('.').pop() || sourceColumn;
+        if (column !== 'payment_status') return undefined;
+        try {
+            return tPaymentStatus(raw.toLowerCase() as any);
+        } catch {
+            return undefined;
+        }
+    }, [tPaymentStatus]);
+
+    const displayFieldHelpers = React.useMemo(() => ({
+        yesLabel: t('fieldValues.yes'),
+        noLabel: t('fieldValues.no'),
+        translateStatus: translateFieldStatus,
+    }), [t, translateFieldStatus]);
+
     const summaryCounts = {
         total: Number(alertStatistics.total_alertas_activas),
         critical: Number(alertStatistics.alertas_criticas),
@@ -805,20 +839,29 @@ function AlertsCenterPageContent() {
                                                         ) : (
                                                             <p className="font-semibold leading-snug">{alert.title}</p>
                                                         )}
-                                                        {renderDisplayFields(alert, (alert as any).ui_display_config?.fields || [])}
+                                                        {renderDisplayFields(alert, (alert as any).ui_display_config?.fields || [], displayFieldHelpers)}
                                                         {(() => {
                                                             const actions = alert.actions || [];
                                                             return actions.length > 0 ? (
                                                                 <div className="mt-1 flex items-center gap-1 flex-wrap">
                                                                     <span className="text-xs text-muted-foreground">{t('actionHistory.title')}:</span>
-                                                                    {actions.map(action => (
-                                                                        <span key={action.id} className="text-xs px-2 py-0.5 bg-muted rounded-full">
-                                                                            {action.action_type === 'SEND_EMAIL' && t('actionHistory.sendEmail')}
-                                                                            {action.action_type === 'SEND_SMS' && t('actionHistory.sendSms')}
-                                                                            {action.action_type === 'SEND_WHATSAPP' && t('actionHistory.sendWhatsApp')}
-                                                                            {action.action_type !== 'SEND_EMAIL' && action.action_type !== 'SEND_SMS' && action.action_type !== 'SEND_WHATSAPP' && action.action_type}
-                                                                        </span>
-                                                                    ))}
+                                                                    {actions.map(action => {
+                                                                        const knownActionLabels: Record<string, string> = {
+                                                                            SEND_EMAIL: t('actionHistory.sendEmail'),
+                                                                            SEND_SMS: t('actionHistory.sendSms'),
+                                                                            SEND_WHATSAPP: t('actionHistory.sendWhatsApp'),
+                                                                            COMPLETE: t('actionHistory.complete'),
+                                                                            IGNORE: t('actionHistory.ignore'),
+                                                                            NOTE: t('actionHistory.note'),
+                                                                            CALL: t('actionHistory.call'),
+                                                                            SNOOZE: t('actionHistory.snooze'),
+                                                                        };
+                                                                        return (
+                                                                            <span key={action.id} className="text-xs px-2 py-0.5 bg-muted rounded-full">
+                                                                                {knownActionLabels[action.action_type] ?? action.action_type}
+                                                                            </span>
+                                                                        );
+                                                                    })}
                                                                 </div>
                                                             ) : null;
                                                         })()}

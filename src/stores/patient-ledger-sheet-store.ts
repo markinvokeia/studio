@@ -18,6 +18,12 @@ export const usePatientLedgerSheet = create<PatientLedgerSheetStore>((set) => ({
   isOpen: false,
   userId: null,
   userName: undefined,
-  open: (userId, userName) => set({ isOpen: true, userId, userName }),
+  // Deferred: `open` is frequently called from a ContextMenu/DropdownMenu item's
+  // onSelect. Radix's menu and this sheet both lock `document.body`'s
+  // pointer-events while open/closing, and mounting the sheet in the same tick
+  // the menu starts its (animated, delayed) unmount races that lock — leaving
+  // pointer-events stuck at "none" and the sheet unclosable. Letting the menu
+  // finish unwinding first (next tick) avoids the overlap entirely.
+  open: (userId, userName) => setTimeout(() => set({ isOpen: true, userId, userName }), 0),
   close: () => set({ isOpen: false, userId: null, userName: undefined }),
 }));
