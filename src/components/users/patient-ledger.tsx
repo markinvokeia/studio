@@ -585,39 +585,8 @@ function CurrencyAmountInput({ amount, currency, onAmountChange, onCurrencyChang
   ariaLabel?: string;
   className?: string;
 }) {
-  const [editing, setEditing] = React.useState(false);
-  const containerRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    if (!editing) return;
-    const onDown = (e: MouseEvent) => {
-      const target = e.target as Element | null;
-      if (containerRef.current?.contains(target as Node)) return;
-      // The currency <Select>'s dropdown is portaled outside the container — clicking an
-      // option must not count as "outside" and collapse the editor mid-selection.
-      if (target?.closest?.('[data-radix-popper-content-wrapper]')) return;
-      setEditing(false);
-    };
-    document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
-  }, [editing]);
-
-  if (!editing) {
-    return (
-      <button
-        type="button"
-        aria-label={ariaLabel}
-        onClick={() => setEditing(true)}
-        className={cn('flex h-8 items-center gap-1 rounded-md border border-input bg-background px-2 text-sm tabular-nums transition-colors hover:bg-muted/50', className)}
-      >
-        <span className="shrink-0 text-xs font-medium text-muted-foreground">{currencySymbol(currency)}</span>
-        <span className="flex-1 text-right">{fmtNumber2(amount || 0)}</span>
-      </button>
-    );
-  }
-
   return (
-    <div ref={containerRef} className={cn('flex items-center gap-1', className)}>
+    <div className={cn('flex items-center gap-1', className)}>
       {currencyLocked || !onCurrencyChange ? (
         <span className="flex h-8 shrink-0 items-center px-1 text-xs font-medium text-muted-foreground">{currencySymbol(currency)}</span>
       ) : (
@@ -634,6 +603,7 @@ function CurrencyAmountInput({ amount, currency, onAmountChange, onCurrencyChang
         onChange={onAmountChange}
         placeholder={placeholder || '0.00'}
         className="h-8 flex-1 text-right text-sm"
+        aria-label={ariaLabel}
       />
     </div>
   );
@@ -1112,11 +1082,13 @@ export type PendingInvoiceLite = {
 
 /**
  * Inline editor for a Nuevo Pago — creates a single payment via `INVOICE_PAYMENT`
- * (`is_prepaid: true`). When the user picks "seleccionar tratamientos pendientes" it
- * additionally sends `invoice_allocations` so the backend books that one payment against
- * the chosen invoices (oldest-first by default, user-adjustable). The allocated sum may be
- * less than the total payment — the remainder is booked as credit via `is_prepaid: true` —
- * but it can never exceed it.
+ * (`is_prepaid: true`), always sending `invoice_allocations` so the backend books it against
+ * outstanding invoices (in the payment's currency). By default this allocation is FIFO
+ * (oldest pending invoice first) computed silently — the panel isn't shown. If the user
+ * picks "seleccionar tratamientos pendientes" they take over that distribution by hand
+ * (still starting from the same FIFO default). The allocated sum may be less than the total
+ * payment — the remainder is booked as credit via `is_prepaid: true` — but it can never
+ * exceed it.
  *
  * In edit mode (`editRow`/`editPayment` set) saving instead calls
  * `PAYMENT_EDIT_WITH_REALLOCATION`: the backend updates the payment row in place (so no
@@ -1290,7 +1262,11 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
       }
       return;
     }
-    const invoiceAllocations = Object.entries(alloc)
+    // Manual mode uses whatever the user built in `alloc`; otherwise (panel never opened)
+    // fall back to a silent FIFO distribution over the pending invoices — same default the
+    // manual panel itself starts from, just applied without the user opening it.
+    const allocSource = showAllocations ? alloc : distributeFifo(values.payment_amount);
+    const invoiceAllocations = Object.entries(allocSource)
       .filter(([, a]) => a > 0.005)
       .map(([id, a]) => ({ invoice_id: Number(id), amount: a }));
     if (showAllocations) {

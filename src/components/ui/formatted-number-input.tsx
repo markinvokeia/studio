@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import { Input } from './input';
-import { cn } from '@/lib/utils';
 
 interface FormattedNumberInputProps {
   value: number | string | null | undefined;
@@ -12,6 +11,7 @@ interface FormattedNumberInputProps {
   placeholder?: string;
   disabled?: boolean;
   id?: string;
+  'aria-label'?: string;
 }
 
 function toNumber(value: number | string | null | undefined) {
@@ -23,9 +23,24 @@ function toNumber(value: number | string | null | undefined) {
   return undefined;
 }
 
-function formatValue(value: number | string | null | undefined) {
-  const numericValue = toNumber(value);
-  return numericValue !== undefined ? numericValue.toFixed(2) : '';
+/**
+ * Digit string representing the amount in cents (e.g. "12345" -> 123.45). Typing/deleting
+ * a digit always affects the rightmost end of this string — a calculator/POS-style amount
+ * mask — so the caret position never matters: entering a digit shifts the existing digits
+ * left instead of silently being dropped once the two decimal places are already full
+ * (which is what a plain "slice the decimals to 2 chars" approach did before).
+ */
+function amountToDigits(value: number | string | null | undefined): string {
+  const n = toNumber(value);
+  if (n === undefined) return '';
+  const cents = Math.round(Math.abs(n) * 100);
+  return String(cents);
+}
+
+function digitsToDisplay(digits: string): string {
+  const padded = digits.padStart(3, '0');
+  const intPart = padded.slice(0, -2).replace(/^0+(?=\d)/, '');
+  return `${intPart}.${padded.slice(-2)}`;
 }
 
 export function FormattedNumberInput({
@@ -36,55 +51,55 @@ export function FormattedNumberInput({
   placeholder,
   disabled,
   id,
+  'aria-label': ariaLabel,
 }: FormattedNumberInputProps) {
   const isFocused = React.useRef(false);
-
-  const [inputValue, setInputValue] = React.useState(() => formatValue(value));
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const [digits, setDigits] = React.useState(() => amountToDigits(value));
+  const [negative, setNegative] = React.useState(() => (toNumber(value) ?? 0) < 0);
 
   React.useEffect(() => {
     if (!isFocused.current) {
-      setInputValue(formatValue(value));
+      setDigits(amountToDigits(value));
+      setNegative((toNumber(value) ?? 0) < 0);
     }
   }, [value]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value;
-    const sanitized = allowNegative 
-      ? rawValue.replace(/[^0-9.-]/g, '')
-      : rawValue.replace(/[^0-9.]/g, '');
-    
-    const parts = sanitized.split('.');
-    let formatted = parts[0];
-    if (parts.length > 1) {
-      formatted += '.' + parts[1].slice(0, 2);
+  // The mask always grows/shrinks from the right, so the caret is re-parked at the end
+  // after every edit — leaving it wherever the browser put it would be meaningless once
+  // the digits have been reformatted.
+  React.useEffect(() => {
+    if (isFocused.current && inputRef.current) {
+      const end = inputRef.current.value.length;
+      inputRef.current.setSelectionRange(end, end);
     }
-    setInputValue(formatted);
-    const numValue = formatted === '' ? 0 : parseFloat(formatted);
-    onChange(isNaN(numValue) ? 0 : numValue);
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    const isNeg = allowNegative && /^\s*-/.test(raw);
+    const nextDigits = raw.replace(/[^0-9]/g, '').replace(/^0+(?=\d)/, '').slice(0, 12);
+    setDigits(nextDigits);
+    setNegative(isNeg);
+    const cents = nextDigits === '' ? 0 : parseInt(nextDigits, 10);
+    onChange((isNeg ? -1 : 1) * cents / 100);
   };
 
-  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    isFocused.current = false;
-    const numValue = parseFloat(e.target.value);
-    if (!isNaN(numValue) && (allowNegative ? true : numValue >= 0)) {
-      onChange(numValue);
-      setInputValue(numValue.toFixed(2));
-    } else if (e.target.value !== '') {
-      onChange(0);
-      setInputValue('');
-    }
-  };
+  const display = digits === '' ? '' : `${negative ? '-' : ''}${digitsToDisplay(digits)}`;
 
   return (
     <Input
       id={id}
+      ref={inputRef}
       className={className}
       placeholder={placeholder}
       disabled={disabled}
-      value={inputValue}
+      value={display}
       onChange={handleChange}
       onFocus={() => { isFocused.current = true; }}
-      onBlur={handleBlur}
+      onBlur={() => { isFocused.current = false; }}
+      inputMode="decimal"
+      aria-label={ariaLabel}
     />
   );
 }
