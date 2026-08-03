@@ -6043,6 +6043,15 @@
       "runNowErrorTitle": "Execution Error",
       "runNowErrorDescription": "An error occurred while executing the scheduler. Please try again."
     },
+    "whatsappFollowup": {
+      "title": "WhatsApp Follow-up",
+      "description": "Automatically retry an inactive WhatsApp conversation with the patient.",
+      "enable": "Enable automatic follow-up",
+      "enableDescription": "When the assistant sent the last message and the patient hasn't replied, try to resume the conversation once.",
+      "delayHoursLabel": "Wait time before retrying (hours)",
+      "delayHoursHint": "Between 1 and 24 hours",
+      "delayHoursInvalid": "Must be a whole number between 1 and 24"
+    },
     "email": {
       "title": "Email Configuration",
       "description": "Set up the SMTP provider for sending emails.",

@@ -17,10 +17,14 @@ import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
+import { SystemConfiguration } from '@/lib/types';
 import { api } from '@/services/api';
 import { Settings } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+
+const WHATSAPP_FOLLOWUP_ENABLED_KEY = 'whatsapp_followup_enabled';
+const WHATSAPP_FOLLOWUP_DELAY_HOURS_KEY = 'whatsapp_followup_delay_hours';
 
 export default function AlertsConfigPage() {
   const t = useTranslations('AlertsConfigPage');
@@ -44,6 +48,13 @@ export default function AlertsConfigPage() {
     },
   });
 
+  const [whatsappFollowup, setWhatsappFollowup] = React.useState({
+    enabled: true,
+    delayHours: 4,
+  });
+  const [whatsappFollowupIds, setWhatsappFollowupIds] = React.useState<{ enabled?: string; delayHours?: string }>({});
+  const [whatsappFollowupError, setWhatsappFollowupError] = React.useState<string | null>(null);
+
   // Load configuration on mount
   React.useEffect(() => {
     const loadConfig = async () => {
@@ -57,7 +68,24 @@ export default function AlertsConfigPage() {
         // Use default values if loading fails
       }
     };
+    const loadWhatsappFollowup = async () => {
+      try {
+        const data = await api.get(API_ROUTES.SYSTEM.CONFIGS);
+        const configsData: SystemConfiguration[] = Array.isArray(data) ? data : (data.configs || data.data || data.result || []);
+        const enabledRow = configsData.find((c) => c.key === WHATSAPP_FOLLOWUP_ENABLED_KEY);
+        const delayHoursRow = configsData.find((c) => c.key === WHATSAPP_FOLLOWUP_DELAY_HOURS_KEY);
+        setWhatsappFollowup({
+          enabled: enabledRow ? enabledRow.value === 'true' : true,
+          delayHours: delayHoursRow ? Number(delayHoursRow.value) : 4,
+        });
+        setWhatsappFollowupIds({ enabled: enabledRow?.id, delayHours: delayHoursRow?.id });
+      } catch (error) {
+        console.error('Error loading WhatsApp follow-up configuration:', error);
+        // Use default values if loading fails
+      }
+    };
     loadConfig();
+    loadWhatsappFollowup();
   }, []);
 
   const handleRunSchedulerNow = async () => {
@@ -78,12 +106,45 @@ export default function AlertsConfigPage() {
   };
 
   const handleSaveChanges = async () => {
+    if (
+      whatsappFollowup.enabled &&
+      (!Number.isInteger(whatsappFollowup.delayHours) || whatsappFollowup.delayHours < 1 || whatsappFollowup.delayHours > 24)
+    ) {
+      setWhatsappFollowupError(t('whatsappFollowup.delayHoursInvalid'));
+      return;
+    }
+    setWhatsappFollowupError(null);
+
     try {
       const sanitizedConfig = {
         scheduler: config.scheduler,
         retention: config.retention,
       };
-      await api.post(API_ROUTES.SYSTEM.ALERT_CONFIG_WEBHOOK, sanitizedConfig);
+      const [, enabledResult, delayHoursResult] = await Promise.all([
+        api.post(API_ROUTES.SYSTEM.ALERT_CONFIG_WEBHOOK, sanitizedConfig),
+        api.post(API_ROUTES.SYSTEM.CONFIGS_UPSERT, {
+          id: whatsappFollowupIds.enabled,
+          key: WHATSAPP_FOLLOWUP_ENABLED_KEY,
+          value: String(whatsappFollowup.enabled),
+          data_type: 'boolean',
+          description: 'Habilita el reintento automático de conversaciones de WhatsApp inactivas',
+          is_public: false,
+        }),
+        api.post(API_ROUTES.SYSTEM.CONFIGS_UPSERT, {
+          id: whatsappFollowupIds.delayHours,
+          key: WHATSAPP_FOLLOWUP_DELAY_HOURS_KEY,
+          value: String(whatsappFollowup.delayHours),
+          data_type: 'number',
+          description: 'Horas de inactividad antes de reintentar retomar la conversación de WhatsApp (entre 1 y 24)',
+          is_public: false,
+        }),
+      ]);
+      const enabledId = Array.isArray(enabledResult) ? enabledResult[0]?.id : enabledResult?.id;
+      const delayHoursId = Array.isArray(delayHoursResult) ? delayHoursResult[0]?.id : delayHoursResult?.id;
+      setWhatsappFollowupIds((prev) => ({
+        enabled: enabledId ?? prev.enabled,
+        delayHours: delayHoursId ?? prev.delayHours,
+      }));
       toast({
         title: t('toast.saveSuccessTitle'),
         description: t('toast.saveSuccessDescription'),
@@ -171,6 +232,54 @@ export default function AlertsConfigPage() {
                   </div>
                 </div>
                 <Button variant="outline" onClick={handleRunSchedulerNow}>{t('scheduler.runNow')}</Button>
+              </CardContent>
+            </AccordionContent>
+          </Card>
+        </AccordionItem>
+
+        <AccordionItem value="item-whatsapp-followup">
+          <Card>
+            <AccordionTrigger className="p-6">
+              <CardHeader className="p-0 text-left">
+                <CardTitle>{t('whatsappFollowup.title')}</CardTitle>
+                <CardDescription>{t('whatsappFollowup.description')}</CardDescription>
+              </CardHeader>
+            </AccordionTrigger>
+            <AccordionContent>
+              <CardContent className="space-y-4 pt-0 bg-card">
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="enable-whatsapp-followup">{t('whatsappFollowup.enable')}</Label>
+                    <p className="text-sm text-muted-foreground">{t('whatsappFollowup.enableDescription')}</p>
+                  </div>
+                  <Switch
+                    id="enable-whatsapp-followup"
+                    checked={whatsappFollowup.enabled}
+                    onCheckedChange={(checked) => setWhatsappFollowup(prev => ({ ...prev, enabled: checked }))}
+                  />
+                </div>
+                {whatsappFollowup.enabled && (
+                  <div className="space-y-2">
+                    <Label htmlFor="whatsapp-followup-delay-hours">{t('whatsappFollowup.delayHoursLabel')}</Label>
+                    <Input
+                      id="whatsapp-followup-delay-hours"
+                      type="number"
+                      min={1}
+                      max={24}
+                      step={1}
+                      value={whatsappFollowup.delayHours}
+                      onChange={(e) => {
+                        setWhatsappFollowupError(null);
+                        setWhatsappFollowup(prev => ({ ...prev, delayHours: parseInt(e.target.value) || 0 }));
+                      }}
+                      className="max-w-[160px]"
+                    />
+                    <p className="text-sm text-muted-foreground">{t('whatsappFollowup.delayHoursHint')}</p>
+                    {whatsappFollowupError && (
+                      <p className="text-sm font-medium text-destructive">{whatsappFollowupError}</p>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </AccordionContent>
           </Card>
