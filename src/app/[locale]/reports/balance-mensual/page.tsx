@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DoctorSelector } from '@/components/ui/doctor-selector';
+import { PatientGroupSelector } from '@/components/ui/patient-group-selector';
 import { DateRangePresets } from '@/components/reports/date-range-presets';
 import { ReportDataTable } from '@/components/reports/report-data-table';
 import { ReportKPICard } from '@/components/reports/report-kpi-card';
@@ -22,6 +23,7 @@ import type {
 } from '@/lib/types';
 import { fmtMultiCurrency } from '@/lib/utils';
 import type { DoctorOption } from '@/services/doctors';
+import type { GroupOption } from '@/services/patientGroups';
 import type { ColumnDef } from '@tanstack/react-table';
 import { endOfMonth, format, startOfMonth } from 'date-fns';
 import { useTranslations } from 'next-intl';
@@ -61,6 +63,25 @@ function groupByDay<T extends DayRow>(rows: T[]): DayGroup<T>[] {
     }));
 }
 
+// Buckets rows by patient group name for the export sheets — a row whose
+// patient belongs to several of the filtered groups is duplicated into each
+// group's bucket, so every group's sheet is complete on its own
+function bucketRowsByGroup<T extends { patient_groups?: { name: string }[] }>(
+  rows: T[],
+  fallbackLabel: string,
+): [string, T[]][] {
+  const map = new Map<string, T[]>();
+  for (const r of rows) {
+    const names = r.patient_groups && r.patient_groups.length > 0 ? r.patient_groups.map((g) => g.name) : [fallbackLabel];
+    for (const name of names) {
+      const arr = map.get(name) ?? [];
+      arr.push(r);
+      map.set(name, arr);
+    }
+  }
+  return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
+}
+
 function totalByCurrency(rows: DayRow[]): Record<string, number> {
   return rows.reduce<Record<string, number>>((acc, r) => {
     acc[r.currency] = (acc[r.currency] || 0) + Number(r.importe || 0);
@@ -95,6 +116,8 @@ export default function BalanceMensualPage() {
   const [currency, setCurrency] = useState('all');
   const [selectedDoctors, setSelectedDoctors] = useState<DoctorOption[]>([]);
   const doctorIds = selectedDoctors.map((d) => d.id);
+  const [selectedGroups, setSelectedGroups] = useState<GroupOption[]>([]);
+  const groupIds = selectedGroups.map((g) => g.id);
   const [docType, setDocType] = useState<DocType>('all');
   // Sub-tab used only to organize the on-screen blocks when the doc-type
   // filter is "all" — the filter itself still governs which data is shown
@@ -114,12 +137,13 @@ export default function BalanceMensualPage() {
       };
       if (currency !== 'all') query.currency = currency;
       if (doctorIds.length > 0) query.doctor_ids = doctorIds.join(',');
+      if (groupIds.length > 0) query.group_ids = groupIds.join(',');
       const res = await api.get(API_ROUTES.REPORTS.BALANCE_MENSUAL, query);
       setData(res?.data ?? null);
     } finally {
       setIsLoading(false);
     }
-  }, [dateRange, currency, doctorIds]);
+  }, [dateRange, currency, doctorIds, groupIds]);
 
   const showProducido = docType === 'all' || docType === 'producido';
   const showCobrado = docType === 'all' || docType === 'cobrado';
@@ -260,27 +284,46 @@ export default function BalanceMensualPage() {
     : [];
   const showPerDoctorPrint = doctorNames.length > 1;
 
-  // ── Export: one sheet per doctor within each document-type group. Excel
-  // gets one .xlsx workbook per type (Producido.xlsx, Cobrado.xlsx, ...), each
-  // with a sheet per doctor; CSV has no concept of multiple files per type, so
-  // it flattens to one file per (tipo, médico) combo, e.g. "producido_Dr_Juan" ─
+  // ── Export: one sheet per doctor within each document-type group — unless a
+  // patient-group filter is active, in which case sheets are organized by
+  // patient group instead (a patient in several selected groups is duplicated
+  // into each group's sheet). Excel gets one .xlsx workbook per type
+  // (Producido.xlsx, Cobrado.xlsx, ...), each with a sheet per doctor/group;
+  // CSV flattens to one file per (tipo, médico/grupo) combo ─────────────────
+  const isGroupFiltered = groupIds.length > 0;
+  const noGroupLabel = t('no_group');
+
   const producidoSheets = showProducido
-    ? Array.from(new Set(producido.map((r) => r.doctor_name))).sort((a, b) => a.localeCompare(b)).map((name) => {
-        const rows = producido.filter((r) => r.doctor_name === name);
-        return { name, sections: [{ columns: producidoExportCols, rows: buildProducidoRows(groupByDay(rows), totalByCurrency(rows)) }] };
-      })
+    ? isGroupFiltered
+      ? bucketRowsByGroup(producido, noGroupLabel).map(([name, rows]) => ({
+          name, sections: [{ columns: producidoExportCols, rows: buildProducidoRows(groupByDay(rows), totalByCurrency(rows)) }],
+        }))
+      : Array.from(new Set(producido.map((r) => r.doctor_name))).sort((a, b) => a.localeCompare(b)).map((name) => {
+          const rows = producido.filter((r) => r.doctor_name === name);
+          return { name, sections: [{ columns: producidoExportCols, rows: buildProducidoRows(groupByDay(rows), totalByCurrency(rows)) }] };
+        })
     : [];
   const cobradoSheets = showCobrado
-    ? Array.from(new Set(cobrado.map((r) => r.doctor_name))).sort((a, b) => a.localeCompare(b)).map((name) => {
-        const rows = cobrado.filter((r) => r.doctor_name === name);
-        return { name, sections: [{ columns: cobradoExportCols, rows: buildCobradoRows(groupByDay(rows), totalByCurrency(rows)) }] };
-      })
+    ? isGroupFiltered
+      ? bucketRowsByGroup(cobrado, noGroupLabel).map(([name, rows]) => ({
+          name, sections: [{ columns: cobradoExportCols, rows: buildCobradoRows(groupByDay(rows), totalByCurrency(rows)) }],
+        }))
+      : Array.from(new Set(cobrado.map((r) => r.doctor_name))).sort((a, b) => a.localeCompare(b)).map((name) => {
+          const rows = cobrado.filter((r) => r.doctor_name === name);
+          return { name, sections: [{ columns: cobradoExportCols, rows: buildCobradoRows(groupByDay(rows), totalByCurrency(rows)) }] };
+        })
     : [];
+  const pendientePorGrupo = data?.pendiente_por_grupo ?? [];
   const pendienteSheets = showPendiente
-    ? Array.from(new Set(pendiente.map((r) => r.doctor_name))).sort((a, b) => a.localeCompare(b)).map((name) => {
-        const rows = pendiente.filter((r) => r.doctor_name === name);
-        return { name, sections: [{ columns: pendienteExportCols, rows: buildPendienteRows(rows) }] };
-      })
+    ? isGroupFiltered
+      ? Array.from(new Set(pendientePorGrupo.map((r) => r.group_name))).sort((a, b) => a.localeCompare(b)).map((name) => {
+          const rows = pendientePorGrupo.filter((r) => r.group_name === name);
+          return { name, sections: [{ columns: pendienteExportCols, rows: buildPendienteRows(rows) }] };
+        })
+      : Array.from(new Set(pendiente.map((r) => r.doctor_name))).sort((a, b) => a.localeCompare(b)).map((name) => {
+          const rows = pendiente.filter((r) => r.doctor_name === name);
+          return { name, sections: [{ columns: pendienteExportCols, rows: buildPendienteRows(rows) }] };
+        })
     : [];
 
   const withTypePrefix = (typeLabel: string, sheets: { name: string; sections: ExportSection[] }[]) =>
@@ -334,6 +377,27 @@ export default function BalanceMensualPage() {
           </Button>
         )}
       </div>
+      <div className="flex items-center gap-1">
+        <PatientGroupSelector
+          values={groupIds}
+          selectedGroups={selectedGroups}
+          onValuesChange={(_, groups) => setSelectedGroups(groups)}
+          triggerText={t('all_groups')}
+          className="h-8 w-52 text-xs"
+        />
+        {selectedGroups.length > 0 && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            onClick={() => setSelectedGroups([])}
+            aria-label={t('all_groups')}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
       <Select value={currency} onValueChange={setCurrency}>
         <SelectTrigger className="h-8 w-24 text-xs">
           <SelectValue />
@@ -363,6 +427,7 @@ export default function BalanceMensualPage() {
     filterParts.push(`${format(dateRange.from, 'dd/MM/yyyy')} al ${format(dateRange.to, 'dd/MM/yyyy')}`);
   }
   if (selectedDoctors.length > 0) filterParts.push(selectedDoctors.map((d) => d.name).join(', '));
+  if (selectedGroups.length > 0) filterParts.push(selectedGroups.map((g) => g.name).join(', '));
   if (currency !== 'all') filterParts.push(currency);
   if (docType !== 'all') filterParts.push(docTypeTag);
   const dateRangeDescription = filterParts.length > 0 ? (

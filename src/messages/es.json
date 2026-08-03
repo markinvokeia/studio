@@ -7711,6 +7711,8 @@
     "title": "Balance Mensual",
     "description": "Cierre del mes: lo producido y lo cobrado, por médico y período",
     "all_doctors": "Todos los médicos",
+    "all_groups": "Todos los grupos",
+    "no_group": "Sin grupo",
     "all_currencies": "Todas",
     "doc_type_all": "Todos",
     "doc_type_producido": "Producido",

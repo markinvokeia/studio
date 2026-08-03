@@ -2453,6 +2453,10 @@ export interface ReportKPIsResponse {
 }
 
 // R-21: Balance Mensual (Producido / Cobrado / Pendiente por médico)
+export interface ReportBalanceMensualPatientGroup {
+  id: string;
+  name: string;
+}
 export interface ReportBalanceMensualProducidoRow {
   fecha: string;
   doctor_id: string;
@@ -2462,6 +2466,9 @@ export interface ReportBalanceMensualProducidoRow {
   invoice_doc_no: string;
   currency: string;
   importe: number;
+  // Only populated when the request filtered by patient group — the group(s)
+  // (among those requested) that this row's patient belongs to
+  patient_groups?: ReportBalanceMensualPatientGroup[];
 }
 export interface ReportBalanceMensualCobradoRow {
   fecha: string;
@@ -2472,6 +2479,7 @@ export interface ReportBalanceMensualCobradoRow {
   payment_method: string;
   currency: string;
   importe: number;
+  patient_groups?: ReportBalanceMensualPatientGroup[];
 }
 export interface ReportBalanceMensualPendienteRow {
   doctor_id: string;
@@ -2480,6 +2488,12 @@ export interface ReportBalanceMensualPendienteRow {
   total_facturado: number;
   total_cobrado: number;
   saldo: number;
+}
+// Same shape as ReportBalanceMensualPendienteRow, broken down further by
+// patient group — only present when the request filtered by patient group
+export interface ReportBalanceMensualPendienteGrupoRow extends ReportBalanceMensualPendienteRow {
+  group_id: string;
+  group_name: string;
 }
 export interface ReportBalanceMensualSummary {
   total_producido: number;
@@ -2492,6 +2506,7 @@ export interface ReportBalanceMensualResponse {
   producido: ReportBalanceMensualProducidoRow[];
   cobrado: ReportBalanceMensualCobradoRow[];
   pendiente: ReportBalanceMensualPendienteRow[];
+  pendiente_por_grupo?: ReportBalanceMensualPendienteGrupoRow[];
 }
 
 // ── Licensing ────────────────────────────────────────────────────────────────

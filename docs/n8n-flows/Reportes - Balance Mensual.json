@@ -8,13 +8,13 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "c6d16373-4d5f-4129-9674-5ce2c51a689f",
+      "id": "8c7261ac-ecaa-4924-b54a-f94dcde7370f",
       "name": "GET /reports/balance-mensual",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        1040,
-        1024
+        1952,
+        1536
       ],
       "webhookId": "b139e26f-05df-46f6-a032-6f47ec332bb4",
       "credentials": {
@@ -27,18 +27,18 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT\n  TO_CHAR(i.created_at, 'YYYY-MM-DD') AS fecha,\n  i.doctor_id,\n  COALESCE(doc.name, 'Sin médico') AS doctor_name,\n  COALESCE(pat.name, '')          AS patient_name,\n  COALESCE(sc.name, 'Servicio')   AS service_name,\n  i.doc_no                        AS invoice_doc_no,\n  i.currency,\n  ii.total                        AS importe\nFROM invoice_items ii\nJOIN invoices i        ON i.id = ii.invoice_id\nLEFT JOIN users pat    ON pat.id = i.user_id\nLEFT JOIN users doc    ON doc.id = i.doctor_id\nLEFT JOIN service_catalog sc ON sc.id = ii.service_id\nWHERE i.is_sales = true\n  AND i.type   = 'invoice'\n  AND i.status = 'booked'\n  AND i.created_at::date BETWEEN $1::date AND $2::date\n  AND ($3::varchar IS NULL OR i.currency = $3::varchar)\n  AND ($4::uuid[] IS NULL OR i.doctor_id = ANY($4::uuid[]))\nORDER BY fecha ASC, doctor_name ASC, i.doc_no ASC",
+        "query": "SELECT\n  TO_CHAR(i.created_at, 'YYYY-MM-DD') AS fecha,\n  i.doctor_id,\n  COALESCE(doc.name, 'Sin médico') AS doctor_name,\n  COALESCE(pat.name, '')          AS patient_name,\n  COALESCE(sc.name, 'Servicio')   AS service_name,\n  i.doc_no                        AS invoice_doc_no,\n  i.currency,\n  CASE WHEN $5::uuid[] IS NULL THEN NULL ELSE (\n    SELECT COALESCE(json_agg(json_build_object('id', g.id, 'name', g.name) ORDER BY g.name), '[]'::json)\n    FROM group_patients gp JOIN groups g ON g.id = gp.group_id\n    WHERE gp.patient_id = i.user_id AND gp.group_id = ANY($5::uuid[])\n  ) END                           AS patient_groups,\n  ii.total                        AS importe\nFROM invoice_items ii\nJOIN invoices i        ON i.id = ii.invoice_id\nLEFT JOIN users pat    ON pat.id = i.user_id\nLEFT JOIN users doc    ON doc.id = i.doctor_id\nLEFT JOIN service_catalog sc ON sc.id = ii.service_id\nWHERE i.is_sales = true\n  AND i.type   = 'invoice'\n  AND i.status = 'booked'\n  AND i.created_at::date BETWEEN $1::date AND $2::date\n  AND ($3::varchar IS NULL OR i.currency = $3::varchar)\n  AND ($4::uuid[] IS NULL OR i.doctor_id = ANY($4::uuid[]))\n  AND ($5::uuid[] IS NULL OR EXISTS (\n    SELECT 1 FROM group_patients gp WHERE gp.patient_id = i.user_id AND gp.group_id = ANY($5::uuid[])\n  ))\nORDER BY fecha ASC, doctor_name ASC, i.doc_no ASC",
         "options": {
-          "queryReplacement": "={{ [$('query').first().json?.date_from, $('query').first().json?.date_to, $('query').first().json?.currency || null, $('query').first().json?.doctor_ids || null, $('query').first().json?.doc_type || null] }}"
+          "queryReplacement": "={{ [$('query').first().json?.date_from, $('query').first().json?.date_to, $('query').first().json?.currency || null, $('query').first().json?.doctor_ids || null, $('query').first().json?.group_ids || null] }}"
         }
       },
-      "id": "6fee5cfc-0df7-4f53-a0e3-fd530e08d3e2",
+      "id": "8cb3f942-fde8-45e2-80ed-0052cb195f0a",
       "name": "Query Balance Producido",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        1504,
-        832
+        2416,
+        1440
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -52,18 +52,18 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT\n  TO_CHAR(p.created_at, 'YYYY-MM-DD') AS fecha,\n  p.doctor_id,\n  COALESCE(doc.name, 'Sin médico')       AS doctor_name,\n  COALESCE(pat.name, '')                 AS patient_name,\n  inv.doc_no                             AS invoice_doc_no,\n  COALESCE(pm.name, p.method, 'N/D')     AS payment_method,\n  p.currency,\n  p.amount                               AS importe\nFROM payments p\nLEFT JOIN users pat            ON pat.id = p.user_id\nLEFT JOIN users doc            ON doc.id = p.doctor_id\nLEFT JOIN invoices inv         ON inv.id = p.invoice_id\nLEFT JOIN payment_methods pm   ON pm.id = p.payment_method_id\nWHERE p.is_sales = true\n  AND p.created_at::date BETWEEN $1::date AND $2::date\n  AND ($3::varchar IS NULL OR p.currency = $3::varchar)\n  AND ($4::uuid[] IS NULL OR p.doctor_id = ANY($4::uuid[]))\nORDER BY fecha ASC, doctor_name ASC",
+        "query": "SELECT\n  TO_CHAR(p.created_at, 'YYYY-MM-DD') AS fecha,\n  p.doctor_id,\n  COALESCE(doc.name, 'Sin médico')       AS doctor_name,\n  COALESCE(pat.name, '')                 AS patient_name,\n  inv.doc_no                             AS invoice_doc_no,\n  COALESCE(pm.name, p.method, 'N/D')     AS payment_method,\n  p.currency,\n  CASE WHEN $5::uuid[] IS NULL THEN NULL ELSE (\n    SELECT COALESCE(json_agg(json_build_object('id', g.id, 'name', g.name) ORDER BY g.name), '[]'::json)\n    FROM group_patients gp JOIN groups g ON g.id = gp.group_id\n    WHERE gp.patient_id = p.user_id AND gp.group_id = ANY($5::uuid[])\n  ) END                                  AS patient_groups,\n  p.amount                               AS importe\nFROM payments p\nLEFT JOIN users pat            ON pat.id = p.user_id\nLEFT JOIN users doc            ON doc.id = p.doctor_id\nLEFT JOIN invoices inv         ON inv.id = p.invoice_id\nLEFT JOIN payment_methods pm   ON pm.id = p.payment_method_id\nWHERE p.is_sales = true\n  AND p.created_at::date BETWEEN $1::date AND $2::date\n  AND ($3::varchar IS NULL OR p.currency = $3::varchar)\n  AND ($4::uuid[] IS NULL OR p.doctor_id = ANY($4::uuid[]))\n  AND ($5::uuid[] IS NULL OR EXISTS (\n    SELECT 1 FROM group_patients gp WHERE gp.patient_id = p.user_id AND gp.group_id = ANY($5::uuid[])\n  ))\nORDER BY fecha ASC, doctor_name ASC",
         "options": {
-          "queryReplacement": "={{ [$('query').first().json?.date_from, $('query').first().json?.date_to, $('query').first().json?.currency || null, $('query').first().json?.doctor_ids || null, $('query').first().json?.doc_type || null] }}"
+          "queryReplacement": "={{ [$('query').first().json?.date_from, $('query').first().json?.date_to, $('query').first().json?.currency || null, $('query').first().json?.doctor_ids || null, $('query').first().json?.group_ids || null] }}"
         }
       },
-      "id": "6ff9ac7f-8168-4c60-b7d5-c4769b3c25bc",
+      "id": "aac89191-9639-4e5f-8cf2-1a391adbb39a",
       "name": "Query Balance Cobrado",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        1504,
-        1024
+        2416,
+        1632
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -76,15 +76,15 @@
     },
     {
       "parameters": {
-        "jsCode": "const producido = $('Query Balance Producido').all()\n  .map(i => i.json)\n  .filter(r => r && r.fecha)\n  .map(r => ({\n    fecha: r.fecha,\n    doctor_id: r.doctor_id || null,\n    doctor_name: r.doctor_name,\n    patient_name: r.patient_name || '',\n    service_name: r.service_name,\n    invoice_doc_no: r.invoice_doc_no,\n    currency: r.currency,\n    importe: Number(r.importe || 0),\n  }));\n\nconst cobrado = $('Query Balance Cobrado').all()\n  .map(i => i.json)\n  .filter(r => r && r.fecha)\n  .map(r => ({\n    fecha: r.fecha,\n    doctor_id: r.doctor_id || null,\n    doctor_name: r.doctor_name,\n    patient_name: r.patient_name || '',\n    invoice_doc_no: r.invoice_doc_no || '',\n    payment_method: r.payment_method || 'N/D',\n    currency: r.currency,\n    importe: Number(r.importe || 0),\n  }));\n\n// Pendiente = Producido - Cobrado del mismo período, agrupado por médico + moneda,\n// para que el saldo siempre cuadre con los totales mostrados en pantalla\nconst groups = new Map();\nconst ensure = (doctorId, doctorName, currency) => {\n  const k = `${doctorId || 'null'}|${doctorName}|${currency}`;\n  if (!groups.has(k)) {\n    groups.set(k, { doctor_id: doctorId, doctor_name: doctorName, currency, total_facturado: 0, total_cobrado: 0 });\n  }\n  return groups.get(k);\n};\nfor (const r of producido) {\n  ensure(r.doctor_id, r.doctor_name, r.currency).total_facturado += r.importe;\n}\nfor (const r of cobrado) {\n  ensure(r.doctor_id, r.doctor_name, r.currency).total_cobrado += r.importe;\n}\nconst pendiente = [...groups.values()]\n  .map(g => ({ ...g, saldo: g.total_facturado - g.total_cobrado }))\n  .sort((a, b) => a.doctor_name.localeCompare(b.doctor_name) || a.currency.localeCompare(b.currency));\n\nconst total_producido = producido.reduce((s, r) => s + r.importe, 0);\nconst total_cobrado   = cobrado.reduce((s, r) => s + r.importe, 0);\nconst total_pendiente = total_producido - total_cobrado;\nconst num_doctores = new Set(pendiente.map(r => r.doctor_id).filter(Boolean)).size;\n\nreturn [{ json: {\n  summary: { total_producido, total_cobrado, total_pendiente, num_doctores },\n  producido,\n  cobrado,\n  pendiente\n} }];"
+        "jsCode": "// patient_groups comes back as a JSON column — usually already parsed by the\n// postgres node, but parse defensively in case it arrives as a string\nconst parseGroups = (v) => {\n  if (Array.isArray(v)) return v;\n  if (typeof v === 'string') { try { return JSON.parse(v) || []; } catch { return []; } }\n  return [];\n};\n\nconst producido = $('Query Balance Producido').all()\n  .map(i => i.json)\n  .filter(r => r && r.fecha)\n  .map(r => ({\n    fecha: r.fecha,\n    doctor_id: r.doctor_id || null,\n    doctor_name: r.doctor_name,\n    patient_name: r.patient_name || '',\n    service_name: r.service_name,\n    invoice_doc_no: r.invoice_doc_no,\n    currency: r.currency,\n    importe: Number(r.importe || 0),\n    patient_groups: parseGroups(r.patient_groups),\n  }));\n\nconst cobrado = $('Query Balance Cobrado').all()\n  .map(i => i.json)\n  .filter(r => r && r.fecha)\n  .map(r => ({\n    fecha: r.fecha,\n    doctor_id: r.doctor_id || null,\n    doctor_name: r.doctor_name,\n    patient_name: r.patient_name || '',\n    invoice_doc_no: r.invoice_doc_no || '',\n    payment_method: r.payment_method || 'N/D',\n    currency: r.currency,\n    importe: Number(r.importe || 0),\n    patient_groups: parseGroups(r.patient_groups),\n  }));\n\n// Pendiente = Producido - Cobrado del mismo período, agrupado por médico + moneda,\n// para que el saldo siempre cuadre con los totales mostrados en pantalla\nconst groups = new Map();\nconst ensure = (doctorId, doctorName, currency) => {\n  const k = `${doctorId || 'null'}|${doctorName}|${currency}`;\n  if (!groups.has(k)) {\n    groups.set(k, { doctor_id: doctorId, doctor_name: doctorName, currency, total_facturado: 0, total_cobrado: 0 });\n  }\n  return groups.get(k);\n};\nfor (const r of producido) {\n  ensure(r.doctor_id, r.doctor_name, r.currency).total_facturado += r.importe;\n}\nfor (const r of cobrado) {\n  ensure(r.doctor_id, r.doctor_name, r.currency).total_cobrado += r.importe;\n}\nconst pendiente = [...groups.values()]\n  .map(g => ({ ...g, saldo: g.total_facturado - g.total_cobrado }))\n  .sort((a, b) => a.doctor_name.localeCompare(b.doctor_name) || a.currency.localeCompare(b.currency));\n\n// Pendiente por grupo de paciente — misma resta pero desglosada además por cada\n// grupo (entre los filtrados) al que pertenece el paciente de cada línea. Un\n// paciente en varios grupos aporta su línea a cada uno (se espera que sume más\n// que el total general en ese caso, es intencional).\nconst groupBuckets = new Map();\nconst ensureGroupBucket = (groupId, groupName, doctorId, doctorName, currency) => {\n  const k = `${groupId}|${doctorId || 'null'}|${currency}`;\n  if (!groupBuckets.has(k)) {\n    groupBuckets.set(k, { group_id: groupId, group_name: groupName, doctor_id: doctorId, doctor_name: doctorName, currency, total_facturado: 0, total_cobrado: 0 });\n  }\n  return groupBuckets.get(k);\n};\nfor (const r of producido) {\n  for (const g of r.patient_groups) {\n    ensureGroupBucket(g.id, g.name, r.doctor_id, r.doctor_name, r.currency).total_facturado += r.importe;\n  }\n}\nfor (const r of cobrado) {\n  for (const g of r.patient_groups) {\n    ensureGroupBucket(g.id, g.name, r.doctor_id, r.doctor_name, r.currency).total_cobrado += r.importe;\n  }\n}\nconst pendiente_por_grupo = [...groupBuckets.values()]\n  .map(g => ({ ...g, saldo: g.total_facturado - g.total_cobrado }))\n  .sort((a, b) => a.group_name.localeCompare(b.group_name) || a.doctor_name.localeCompare(b.doctor_name) || a.currency.localeCompare(b.currency));\n\nconst total_producido = producido.reduce((s, r) => s + r.importe, 0);\nconst total_cobrado   = cobrado.reduce((s, r) => s + r.importe, 0);\nconst total_pendiente = total_producido - total_cobrado;\nconst num_doctores = new Set(pendiente.map(r => r.doctor_id).filter(Boolean)).size;\n\nreturn [{ json: {\n  summary: { total_producido, total_cobrado, total_pendiente, num_doctores },\n  producido,\n  cobrado,\n  pendiente,\n  pendiente_por_grupo\n} }];"
       },
-      "id": "b768c98e-c9cc-4037-8b43-eace8991e018",
+      "id": "5611c872-7720-4a3d-9cfd-dd2098b42d42",
       "name": "Build Balance Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1968,
-        960
+        2880,
+        1440
       ],
       "onError": "continueErrorOutput"
     },
@@ -96,13 +96,13 @@
           "responseCode": 200
         }
       },
-      "id": "f875b480-6fa5-4db9-94f0-f18ca96ce30c",
+      "id": "fdda1f2d-8d1d-4bb6-897a-dce203c74ae1",
       "name": "Respond Balance Mensual",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        2208,
-        880
+        3104,
+        1360
       ]
     },
     {
@@ -123,10 +123,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        2208,
-        1072
+        3104,
+        1552
       ],
-      "id": "19173cfc-6349-4691-911a-ae601358c65b",
+      "id": "ab21f259-05b8-4919-9d37-98a841f3ad05",
       "name": "Error"
     },
     {
@@ -162,6 +162,12 @@
               "name": "doc_type",
               "value": "={{ $json.query.doc_type || null }}",
               "type": "string"
+            },
+            {
+              "id": "b2c4e5f6-7a8b-4c1d-9e0f-1a2b3c4d5e6f",
+              "name": "group_ids",
+              "value": "={{ $json.query.group_ids ? $json.query.group_ids.split(\",\") : null }}",
+              "type": "array"
             }
           ]
         },
@@ -170,23 +176,21 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1264,
-        1024
+        2176,
+        1536
       ],
-      "id": "c0bfca12-f19f-4de2-85fa-45cc5b6a6a35",
+      "id": "bfd5f313-b755-4619-ae5a-ca6e4a24341d",
       "name": "query"
     },
     {
-      "parameters": {
-        "numberInputs": 2
-      },
+      "parameters": {},
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        1744,
-        1008
+        2656,
+        1536
       ],
-      "id": "bbe1beed-78aa-44b2-a295-5a95178dde14",
+      "id": "9c89320a-d65c-4ce7-9d36-d3e1f03068b7",
       "name": "Merge",
       "alwaysOutputData": true,
       "onError": "continueErrorOutput"
@@ -351,7 +355,7 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "1ea01586-f921-4214-b787-27393a8bd74a",
+  "versionId": "0e9a4c64-38f1-4413-be02-0a3bb24e0e60",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"

@@ -7731,6 +7731,8 @@
     "title": "Monthly Balance",
     "description": "Month close: what was produced and what was collected, by doctor and period",
     "all_doctors": "All doctors",
+    "all_groups": "All groups",
+    "no_group": "No group",
     "all_currencies": "All",
     "doc_type_all": "All",
     "doc_type_producido": "Produced",
