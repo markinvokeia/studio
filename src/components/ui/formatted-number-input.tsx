@@ -23,24 +23,61 @@ function toNumber(value: number | string | null | undefined) {
   return undefined;
 }
 
-/**
- * Digit string representing the amount in cents (e.g. "12345" -> 123.45). Typing/deleting
- * a digit always affects the rightmost end of this string — a calculator/POS-style amount
- * mask — so the caret position never matters: entering a digit shifts the existing digits
- * left instead of silently being dropped once the two decimal places are already full
- * (which is what a plain "slice the decimals to 2 chars" approach did before).
- */
-function amountToDigits(value: number | string | null | undefined): string {
+/** Canonical 2-decimal text for a committed value (shown while not focused, and on blur). */
+function formatForDisplay(value: number | string | null | undefined): string {
   const n = toNumber(value);
-  if (n === undefined) return '';
-  const cents = Math.round(Math.abs(n) * 100);
-  return String(cents);
+  return n === undefined ? '' : n.toFixed(2);
 }
 
-function digitsToDisplay(digits: string): string {
-  const padded = digits.padStart(3, '0');
-  const intPart = padded.slice(0, -2).replace(/^0+(?=\d)/, '');
-  return `${intPart}.${padded.slice(-2)}`;
+/** Best-effort numeric value of whatever's currently typed, mid-edit text included
+ *  ("12.", "-", "" all parse to 0 rather than NaN). */
+function parseAmountText(text: string): number {
+  const n = Number(text);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/**
+ * Strips `raw` down to a valid amount string (digits, at most one decimal separator, at
+ * most 2 decimal places, and a leading `-` only when negatives are allowed) while keeping
+ * the caret glued to the character it was next to — every dropped character before the
+ * caret shifts it left by one, instead of the caret being reset to some fixed spot.
+ */
+function sanitizeAmountText(raw: string, caret: number, allowNegative: boolean): { text: string; caret: number } {
+  let sawDot = false;
+  let decimals = 0;
+  let hasMinus = false;
+  let out = '';
+  let droppedBeforeCaret = 0;
+
+  for (let i = 0; i < raw.length; i++) {
+    const ch = raw[i];
+    let kept = false;
+
+    if (ch === '-') {
+      if (allowNegative && !hasMinus && out.length === 0) {
+        hasMinus = true;
+        out += '-';
+        kept = true;
+      }
+    } else if (ch >= '0' && ch <= '9') {
+      if (!sawDot) {
+        out += ch;
+        kept = true;
+      } else if (decimals < 2) {
+        out += ch;
+        decimals++;
+        kept = true;
+      }
+    } else if ((ch === '.' || ch === ',') && !sawDot) {
+      sawDot = true;
+      out += '.';
+      kept = true;
+    }
+
+    if (!kept && i < caret) droppedBeforeCaret++;
+  }
+
+  return { text: out, caret: Math.max(0, caret - droppedBeforeCaret) };
 }
 
 export function FormattedNumberInput({
@@ -55,37 +92,32 @@ export function FormattedNumberInput({
 }: FormattedNumberInputProps) {
   const isFocused = React.useRef(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
-  const [digits, setDigits] = React.useState(() => amountToDigits(value));
-  const [negative, setNegative] = React.useState(() => (toNumber(value) ?? 0) < 0);
+  const pendingCaret = React.useRef<number | null>(null);
+  const [text, setText] = React.useState(() => formatForDisplay(value));
 
   React.useEffect(() => {
-    if (!isFocused.current) {
-      setDigits(amountToDigits(value));
-      setNegative((toNumber(value) ?? 0) < 0);
-    }
+    if (!isFocused.current) setText(formatForDisplay(value));
   }, [value]);
 
-  // The mask always grows/shrinks from the right, so the caret is re-parked at the end
-  // after every edit — leaving it wherever the browser put it would be meaningless once
-  // the digits have been reformatted.
-  React.useEffect(() => {
-    if (isFocused.current && inputRef.current) {
-      const end = inputRef.current.value.length;
-      inputRef.current.setSelectionRange(end, end);
+  // Restore the caret to where `sanitizeAmountText` computed it should land — needed
+  // because replacing the value wholesale (rather than a plain in-place edit) makes the
+  // browser's own caret tracking unreliable once characters get dropped.
+  React.useLayoutEffect(() => {
+    if (pendingCaret.current !== null && inputRef.current) {
+      const pos = pendingCaret.current;
+      inputRef.current.setSelectionRange(pos, pos);
+      pendingCaret.current = null;
     }
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
-    const isNeg = allowNegative && /^\s*-/.test(raw);
-    const nextDigits = raw.replace(/[^0-9]/g, '').replace(/^0+(?=\d)/, '').slice(0, 12);
-    setDigits(nextDigits);
-    setNegative(isNeg);
-    const cents = nextDigits === '' ? 0 : parseInt(nextDigits, 10);
-    onChange((isNeg ? -1 : 1) * cents / 100);
+    const caret = e.target.selectionStart ?? raw.length;
+    const { text: sanitized, caret: nextCaret } = sanitizeAmountText(raw, caret, allowNegative);
+    pendingCaret.current = nextCaret;
+    setText(sanitized);
+    onChange(parseAmountText(sanitized));
   };
-
-  const display = digits === '' ? '' : `${negative ? '-' : ''}${digitsToDisplay(digits)}`;
 
   return (
     <Input
@@ -94,10 +126,13 @@ export function FormattedNumberInput({
       className={className}
       placeholder={placeholder}
       disabled={disabled}
-      value={display}
+      value={text}
       onChange={handleChange}
       onFocus={() => { isFocused.current = true; }}
-      onBlur={() => { isFocused.current = false; }}
+      onBlur={() => {
+        isFocused.current = false;
+        setText(text === '' || text === '-' ? '' : formatForDisplay(parseAmountText(text)));
+      }}
       inputMode="decimal"
       aria-label={ariaLabel}
     />

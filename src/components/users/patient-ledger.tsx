@@ -586,12 +586,12 @@ function CurrencyAmountInput({ amount, currency, onAmountChange, onCurrencyChang
   className?: string;
 }) {
   return (
-    <div className={cn('flex items-center gap-1', className)}>
+    <div className={cn('flex items-center gap-1.5', className)}>
       {currencyLocked || !onCurrencyChange ? (
         <span className="flex h-8 shrink-0 items-center px-1 text-xs font-medium text-muted-foreground">{currencySymbol(currency)}</span>
       ) : (
         <Select value={currency} onValueChange={(v) => onCurrencyChange(v as 'UYU' | 'USD')}>
-          <SelectTrigger className="h-8 w-[4.5rem] shrink-0 px-2 text-xs"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-8 w-[5.5rem] shrink-0 px-2 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="UYU">$ UYU</SelectItem>
             <SelectItem value="USD">U$ USD</SelectItem>
@@ -602,7 +602,7 @@ function CurrencyAmountInput({ amount, currency, onAmountChange, onCurrencyChang
         value={amount}
         onChange={onAmountChange}
         placeholder={placeholder || '0.00'}
-        className="h-8 flex-1 text-right text-sm"
+        className="h-8 min-w-[5.5rem] flex-1 text-right text-sm"
         aria-label={ariaLabel}
       />
     </div>
@@ -1003,7 +1003,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
               onCurrencyChange={(c) => form.setValue('currency', c, { shouldValidate: true })}
               currencyLocked={isEdit}
               ariaLabel={t('fields.price')}
-              className="w-40"
+              className="w-52"
             />
           </>
         }
@@ -1363,7 +1363,7 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
               onCurrencyChange={(c) => form.setValue('currency', c, { shouldValidate: true })}
               currencyLocked={isEdit}
               ariaLabel={t('fields.amount')}
-              className="w-40"
+              className="w-52"
             />
           </>
         }

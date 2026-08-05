@@ -105,7 +105,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "WITH all_transactions AS (\n    -- BLOQUE 1: PAGOS DIRECTOS\n    SELECT \n        p.id AS transaction_id,\n        p.created_at,\n        u.name AS user_name,\n        p.doc_no AS transaction_doc_no,\n        p.doc_no AS source_doc_no,\n        i.doc_no AS invoice_doc_no,\n        'direct_payment' AS transaction_type,\n        ABS(COALESCE(p.converted_amount, p.amount)) AS amount_applied, \n        ABS(p.amount) AS source_amount,\n        p.currency AS source_currency,\n        p.exchange_rate,\n        pm.name AS payment_method_name,\n        pm.code AS payment_method_code,\n        p.is_sales,\n        p.doc_no,\n        p.invoice_id,\n        p.notes,\n        p.is_historical,\n        p.external_id\n    FROM payments p\n    INNER JOIN users u ON p.user_id = u.id\n    LEFT JOIN invoices i ON p.invoice_id = i.id\n    LEFT JOIN payment_methods pm ON p.payment_method_id = pm.id\n\n    UNION ALL\n\n    -- BLOQUE 2: ASIGNACIONES DE ANTICIPOS (BILLETERA VIRTUAL)\n    SELECT \n        pa.id AS transaction_id,\n        pa.created_at,\n        u.name AS user_name,\n        CONCAT(orig_p.doc_no, '-A', pa.id) AS transaction_doc_no, \n        orig_p.doc_no AS source_doc_no,\n        i.doc_no AS invoice_doc_no,\n        'payment_allocation' AS transaction_type,\n        ABS(pa.target_amount) AS amount_applied,\n        ABS(pa.amount) AS source_amount,\n        orig_p.currency AS source_currency,\n        pa.exchange_rate,\n        pm.name AS payment_method_name,\n        pm.code AS payment_method_code,\n        orig_p.is_sales,\n        null AS doc_no,\n        pa.invoice_id,\n        '' AS notes,\n        false AS is_historical,\n        null AS external_id\n    FROM payment_allocations pa\n    JOIN payments orig_p ON pa.payment_id = orig_p.id\n    LEFT JOIN invoices i ON pa.invoice_id = i.id\n    LEFT JOIN users u ON i.user_id = u.id\n    LEFT JOIN payment_methods pm ON orig_p.payment_method_id = pm.id\n    WHERE \n        (orig_p.invoice_id IS DISTINCT FROM pa.invoice_id)\n\n    UNION ALL\n\n    -- BLOQUE 3: ASIGNACIONES DE NOTAS DE CRÉDITO\n    SELECT \n        ia.id AS transaction_id,\n        ia.created_at,\n        u.name AS user_name,\n        CONCAT(nc.doc_no, '-A', ia.id) AS transaction_doc_no, \n        nc.doc_no AS source_doc_no,\n        target_i.doc_no AS invoice_doc_no,\n        'credit_note_allocation' AS transaction_type,\n        ABS(ia.target_amount) AS amount_applied,\n        ABS(ia.amount) AS source_amount,\n        nc.currency AS source_currency,\n        ia.exchange_rate,\n        'Credit Note' AS payment_method_name,\n        'CN' AS payment_method_code,\n        TRUE AS is_sales,\n        null AS doc_no,\n        ia.target_id AS invoice_id,\n        '' AS notes,\n        false AS is_historical,\n        null AS external_id\n    FROM invoice_allocations ia\n    JOIN invoices nc ON ia.source_id = nc.id\n    JOIN invoices target_i ON ia.target_id = target_i.id\n    JOIN users u ON target_i.user_id = u.id\n),\nfiltered_data AS (\n    SELECT \n        *,\n        COUNT(*) OVER() as total_items\n    FROM all_transactions\n    WHERE is_sales = $1\n      AND (user_name ILIKE '%' || $2 || '%' \n           OR transaction_doc_no ILIKE '%' || $2 || '%' \n           OR source_doc_no ILIKE '%' || $2 || '%'\n           OR invoice_doc_no ILIKE '%' || $2 || '%')\n      AND (\n        $7 IS NULL OR $7 = 'all'\n        OR ($7 = 'prepaid'          AND transaction_type = 'direct_payment'  AND invoice_id IS NULL)\n        OR ($7 = 'direct_payment'   AND transaction_type = 'direct_payment'  AND invoice_id IS NOT NULL)\n        OR ($7 = 'payment_allocation'      AND transaction_type = 'payment_allocation')\n        OR ($7 = 'credit_note_allocation'  AND transaction_type = 'credit_note_allocation')\n      )\n)\nSELECT * FROM filtered_data\nWHERE \n  ($5 IS NULL OR TO_CHAR(created_at, 'YYYY-MM-DD') >= $5)\n  AND ($6 IS NULL OR TO_CHAR(created_at, 'YYYY-MM-DD') <= $6)\nORDER BY created_at DESC, transaction_id DESC\nLIMIT $3 OFFSET ($4 - 1) * $3;",
+        "query": "WITH all_transactions AS (\n    -- BLOQUE 1: PAGOS DIRECTOS\n    SELECT \n        p.id AS transaction_id,\n        p.created_at,\n        u.name AS user_name,\n        p.doc_no AS transaction_doc_no,\n        p.doc_no AS source_doc_no,\n        i.doc_no AS invoice_doc_no,\n        'direct_payment' AS transaction_type,\n        ABS(COALESCE(p.converted_amount, p.amount)) AS amount_applied, \n        ABS(p.amount) AS source_amount,\n        p.currency AS source_currency,\n        p.exchange_rate,\n        pm.name AS payment_method_name,\n        pm.code AS payment_method_code,\n        p.is_sales,\n        p.doc_no,\n        p.invoice_id,\n        p.notes,\n        p.is_historical,\n        p.external_id,\n        p.doctor_id\n    FROM payments p\n    INNER JOIN users u ON p.user_id = u.id\n    LEFT JOIN invoices i ON p.invoice_id = i.id\n    LEFT JOIN payment_methods pm ON p.payment_method_id = pm.id\n\n    UNION ALL\n\n    -- BLOQUE 2: ASIGNACIONES DE ANTICIPOS (BILLETERA VIRTUAL)\n    SELECT \n        pa.id AS transaction_id,\n        pa.created_at,\n        u.name AS user_name,\n        CONCAT(orig_p.doc_no, '-A', pa.id) AS transaction_doc_no, \n        orig_p.doc_no AS source_doc_no,\n        i.doc_no AS invoice_doc_no,\n        'payment_allocation' AS transaction_type,\n        ABS(pa.target_amount) AS amount_applied,\n        ABS(pa.amount) AS source_amount,\n        orig_p.currency AS source_currency,\n        pa.exchange_rate,\n        pm.name AS payment_method_name,\n        pm.code AS payment_method_code,\n        orig_p.is_sales,\n        null AS doc_no,\n        pa.invoice_id,\n        '' AS notes,\n        false AS is_historical,\n        null AS external_id,\n        null AS doctor_id\n    FROM payment_allocations pa\n    JOIN payments orig_p ON pa.payment_id = orig_p.id\n    LEFT JOIN invoices i ON pa.invoice_id = i.id\n    LEFT JOIN users u ON i.user_id = u.id\n    LEFT JOIN payment_methods pm ON orig_p.payment_method_id = pm.id\n    WHERE \n        (orig_p.invoice_id IS DISTINCT FROM pa.invoice_id)\n\n    UNION ALL\n\n    -- BLOQUE 3: ASIGNACIONES DE NOTAS DE CRÉDITO\n    SELECT \n        ia.id AS transaction_id,\n        ia.created_at,\n        u.name AS user_name,\n        CONCAT(nc.doc_no, '-A', ia.id) AS transaction_doc_no, \n        nc.doc_no AS source_doc_no,\n        target_i.doc_no AS invoice_doc_no,\n        'credit_note_allocation' AS transaction_type,\n        ABS(ia.target_amount) AS amount_applied,\n        ABS(ia.amount) AS source_amount,\n        nc.currency AS source_currency,\n        ia.exchange_rate,\n        'Credit Note' AS payment_method_name,\n        'CN' AS payment_method_code,\n        TRUE AS is_sales,\n        null AS doc_no,\n        ia.target_id AS invoice_id,\n        '' AS notes,\n        false AS is_historical,\n        null AS external_id,\n        null AS doctor_id\n    FROM invoice_allocations ia\n    JOIN invoices nc ON ia.source_id = nc.id\n    JOIN invoices target_i ON ia.target_id = target_i.id\n    JOIN users u ON target_i.user_id = u.id\n),\nfiltered_data AS (\n    SELECT \n        *,\n        COUNT(*) OVER() as total_items\n    FROM all_transactions\n    WHERE is_sales = $1\n      AND (user_name ILIKE '%' || $2 || '%' \n           OR transaction_doc_no ILIKE '%' || $2 || '%' \n           OR source_doc_no ILIKE '%' || $2 || '%'\n           OR invoice_doc_no ILIKE '%' || $2 || '%')\n      AND (\n        $7 IS NULL OR $7 = 'all'\n        OR ($7 = 'prepaid'          AND transaction_type = 'direct_payment'  AND invoice_id IS NULL)\n        OR ($7 = 'direct_payment'   AND transaction_type = 'direct_payment'  AND invoice_id IS NOT NULL)\n        OR ($7 = 'payment_allocation'      AND transaction_type = 'payment_allocation')\n        OR ($7 = 'credit_note_allocation'  AND transaction_type = 'credit_note_allocation')\n      )\n)\nSELECT * FROM filtered_data\nWHERE \n  ($5 IS NULL OR TO_CHAR(created_at, 'YYYY-MM-DD') >= $5)\n  AND ($6 IS NULL OR TO_CHAR(created_at, 'YYYY-MM-DD') <= $6)\nORDER BY created_at DESC, transaction_id DESC\nLIMIT $3 OFFSET ($4 - 1) * $3;",
         "options": {
           "queryReplacement": "={{ [$json.query.is_sales === 'true', $json.query.search || '', $json.query.limit, $json.query.page, $json.query.date_from, $json.query.date_to, $json.query.type || 'all'] }}"
         }
@@ -8228,6 +8228,1801 @@
       ],
       "id": "19749b40-834c-4f84-a477-fe17a240cc60",
       "name": "Format allocations"
+    },
+    {
+      "parameters": {
+        "content": "## Editar tratamiento con cobros aplicados\n\nReemplaza a `invoices/upsert` cuando la factura ya tiene pagos o notas de\ncrédito aplicados. No toca caja: solo reacomoda a qué factura está\nimputado lo que ya se cobró.\n\nVer `docs/reconciliacion-allocations-edicion.md` (Flujo A) para el\nrazonamiento completo.",
+        "height": 320,
+        "width": 412
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2672,
+        2768
+      ],
+      "id": "161dbf19-3bf7-41b6-bdbb-5a97abae4b2c",
+      "name": "Sticky Note - Flujo A"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "invoice/items/edit-with-reallocation",
+        "authentication": "jwtAuth",
+        "responseMode": "lastNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -2640,
+        3152
+      ],
+      "id": "d0192b94-f9ed-4357-b902-6024d52a3688",
+      "name": "invoice/items/edit-with-reallocation",
+      "webhookId": "42d96e9d-564f-42fb-a4ce-1a3f963b6874",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "71cab453-dac6-40de-a655-152b3e6ba49c",
+              "leftValue": "={{ $json.body.invoice_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "484207b8-fd3c-43d4-b6d8-ce510ce8a986",
+              "leftValue": "={{ $json.body.item_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "6c4291b5-491b-4d92-b45f-f1aa128ef5ed",
+              "leftValue": "={{ $json.body.service_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "0d35b604-a436-44c5-95fd-344713aae757",
+              "leftValue": "={{ $json.body.quantity }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "3c0805f6-a90d-48d3-8ee4-2494f276a1fd",
+              "leftValue": "={{ $json.body.unit_price }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -2400,
+        3136
+      ],
+      "id": "def6bd3e-394d-45b6-a223-096b0e2f4ebe",
+      "name": "Datos requeridos?"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"message\": \"invoice_id, item_id, service_id, quantity y unit_price son requeridos\",\n  \"code\": 400,\n  \"error\": true\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2160,
+        3232
+      ],
+      "id": "eceb9bbc-6d8d-43ab-85db-ce267bc20951",
+      "name": "Error: datos requeridos"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "invoices",
+          "mode": "list",
+          "cachedResultName": "invoices"
+        },
+        "limit": 1,
+        "where": {
+          "values": [
+            {
+              "column": "id",
+              "value": "={{ $('invoice/items/edit-with-reallocation').item.json.body.invoice_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -2160,
+        3040
+      ],
+      "id": "bc0a87d0-f5b4-4d08-97f4-c40f1c5ed5c9",
+      "name": "Get Invoice",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6f0fb9d1-68e4-4744-ab97-8889ced0f60d",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1920,
+        3040
+      ],
+      "id": "bc002011-90a3-497d-90b7-b742854dd868",
+      "name": "Factura existe?"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"message\": \"Factura no encontrada\",\n  \"code\": 404,\n  \"error\": true\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1696,
+        3136
+      ],
+      "id": "44cb75d9-ee38-4784-8a31-a1f840e0499f",
+      "name": "Error: factura no encontrada"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "invoice_items",
+          "mode": "list",
+          "cachedResultName": "invoice_items"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('invoice/items/edit-with-reallocation').item.json.body.item_id }}",
+            "service_id": "={{ $('invoice/items/edit-with-reallocation').item.json.body.service_id }}",
+            "quantity": "={{ $('invoice/items/edit-with-reallocation').item.json.body.quantity }}",
+            "unit_price": "={{ $('invoice/items/edit-with-reallocation').item.json.body.unit_price }}",
+            "total": "={{ $('invoice/items/edit-with-reallocation').item.json.body.total }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "invoice_id",
+              "displayName": "invoice_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "order_item_id",
+              "displayName": "order_item_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "quantity",
+              "displayName": "quantity",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "unit_price",
+              "displayName": "unit_price",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "total",
+              "displayName": "total",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "service_id",
+              "displayName": "service_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "steps",
+              "displayName": "steps",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -1696,
+        2944
+      ],
+      "id": "67fe7778-78ab-4cfa-8494-4176268b1dd3",
+      "name": "Update Invoice Item",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, payment_id AS origin_id, 'payment' AS origin_type, amount, allocated_currency,\n       target_amount, exchange_rate, created_at\nFROM public.payment_allocations\nWHERE invoice_id = $1\nORDER BY created_at ASC, id ASC;",
+        "options": {
+          "queryReplacement": "={{ $('invoice/items/edit-with-reallocation').item.json.body.invoice_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -1216,
+        2944
+      ],
+      "id": "12862d44-27fe-4c8d-b6f7-a5f2570244ae",
+      "name": "Get Payment Allocations",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, source_id AS origin_id, 'credit_note' AS origin_type, amount, allocated_currency,\n       target_amount, exchange_rate, created_at\nFROM public.invoice_allocations\nWHERE target_id = $1\nORDER BY created_at ASC, id ASC;",
+        "options": {
+          "queryReplacement": "={{ $('invoice/items/edit-with-reallocation').item.json.body.invoice_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -960,
+        2944
+      ],
+      "id": "544ecd9b-866b-447b-8960-24a7fc21b92f",
+      "name": "Get Invoice Allocations",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM public.payment_allocations\nWHERE invoice_id = $1;",
+        "options": {
+          "queryReplacement": "={{ $('invoice/items/edit-with-reallocation').item.json.body.invoice_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -720,
+        2944
+      ],
+      "id": "3ef45e02-f485-40a7-aa5a-a8a17012ea0f",
+      "name": "Delete Payment Allocations",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM public.invoice_allocations\nWHERE target_id = $1;",
+        "options": {
+          "queryReplacement": "={{ $('invoice/items/edit-with-reallocation').item.json.body.invoice_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -480,
+        2944
+      ],
+      "id": "a24a737b-8f6c-48f2-9706-5bcc4f4be562",
+      "name": "Delete Invoice Allocations",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const invoiceId = Number($('invoice/items/edit-with-reallocation').first().json.body.invoice_id);\nconst newTotal = Number($('Recalculate Invoice Total4').first().json.total);\n\nconst paymentRows = $('Get Payment Allocations').all().map((i) => i.json);\nconst creditRows = $('Get Invoice Allocations').all().map((i) => i.json);\n\n// FIFO por fecha de aplicación original; empate por id ascendente.\nconst pool = [...paymentRows, ...creditRows].sort((a, b) => {\n  const ta = new Date(a.created_at).getTime();\n  const tb = new Date(b.created_at).getTime();\n  if (ta !== tb) return ta - tb;\n  return Number(a.id) - Number(b.id);\n});\n\nconst poolTotal = pool.reduce((sum, row) => sum + Number(row.amount), 0);\n\nlet remaining = newTotal;\nconst toReinsert = [];\n\nfor (const row of pool) {\n  if (remaining <= 0.0001) break;\n  const rowAmount = Number(row.amount);\n  const take = Math.min(rowAmount, remaining);\n  if (take <= 0.0001) continue;\n\n  // Proporción del monto original que efectivamente entra — se aplica también\n  // al target_amount para no perder la relación de tipo de cambio original.\n  const ratio = take / rowAmount;\n\n  toReinsert.push({\n    invoice_id: invoiceId,\n    origin_type: row.origin_type,\n    origin_id: row.origin_id,\n    amount: Math.round(take * 100) / 100,\n    allocated_currency: row.allocated_currency,\n    target_amount: Math.round(Number(row.target_amount) * ratio * 100) / 100,\n    exchange_rate: row.exchange_rate,\n    new_total: newTotal,\n    pool_total: Math.round(poolTotal * 100) / 100,\n  });\n\n  remaining = Math.round((remaining - take) * 100) / 100;\n}\n\nconst reinsertedTotal = toReinsert.reduce((s, r) => s + r.amount, 0);\nconst releasedAmount = Math.round((poolTotal - reinsertedTotal) * 100) / 100;\nfor (const item of toReinsert) item.released_amount = releasedAmount;\n\nif (toReinsert.length === 0) {\n  // No había nada que reasignar (o el nuevo total es 0) — igual se emite un\n  // item \"vacío\" con la metadata necesaria para armar la respuesta final; el\n  // loop de más abajo lo hace pasar sin insertar nada.\n  return [{\n    json: {\n      invoice_id: invoiceId,\n      new_total: newTotal,\n      pool_total: Math.round(poolTotal * 100) / 100,\n      released_amount: releasedAmount,\n      _empty: true,\n    },\n  }];\n}\n\nreturn toReinsert.map((item) => ({ json: item }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -240,
+        2944
+      ],
+      "id": "83e11675-0403-4264-b592-f454ad9fb28e",
+      "name": "Merge & Reallocate FIFO"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        0,
+        2944
+      ],
+      "id": "f86e0e0d-073d-46ca-b897-aea807464569",
+      "name": "Loop Over Reinsert Items"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "38bac66e-13fe-4de0-a5ea-6463b6cd3bd5",
+              "leftValue": "={{ $json.origin_type }}",
+              "rightValue": "payment",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        240,
+        3040
+      ],
+      "id": "a2d2fbdc-843c-445e-aec0-0b8905ea6b29",
+      "name": "Es pago?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "934eb8f9-2d03-478f-a791-8f6227cf69aa",
+              "leftValue": "={{ $json.origin_type }}",
+              "rightValue": "credit_note",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        3152
+      ],
+      "id": "1b652575-ba23-4d42-901a-846cc6d82e5b",
+      "name": "Es nota de credito?"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "payment_allocations",
+          "mode": "list",
+          "cachedResultName": "payment_allocations"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "invoice_id": "={{ $json.invoice_id }}",
+            "payment_id": "={{ $json.origin_id }}",
+            "amount": "={{ $json.amount }}",
+            "allocated_currency": "={{ $json.allocated_currency }}",
+            "target_amount": "={{ $json.target_amount }}",
+            "exchange_rate": "={{ $json.exchange_rate }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "payment_id",
+              "displayName": "payment_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "invoice_id",
+              "displayName": "invoice_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "amount",
+              "displayName": "amount",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "allocated_currency",
+              "displayName": "allocated_currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "target_amount",
+              "displayName": "target_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "exchange_rate",
+              "displayName": "exchange_rate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        480,
+        2944
+      ],
+      "id": "643553b6-3b7c-416d-9b6d-725871d66331",
+      "name": "Insert Payment Allocation",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "invoice_allocations",
+          "mode": "list",
+          "cachedResultName": "invoice_allocations"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "target_id": "={{ $json.invoice_id }}",
+            "source_id": "={{ $json.origin_id }}",
+            "amount": "={{ $json.amount }}",
+            "allocated_currency": "={{ $json.allocated_currency }}",
+            "target_amount": "={{ $json.target_amount }}",
+            "exchange_rate": "={{ $json.exchange_rate }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "source_id",
+              "displayName": "source_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "target_id",
+              "displayName": "target_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "amount",
+              "displayName": "amount",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "created_by",
+              "displayName": "created_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "allocated_currency",
+              "displayName": "allocated_currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "target_amount",
+              "displayName": "target_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "exchange_rate",
+              "displayName": "exchange_rate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        720,
+        3056
+      ],
+      "id": "40c7e146-ddee-49db-9269-481f3cc850bd",
+      "name": "Insert Invoice Allocation",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const source = $('Merge & Reallocate FIFO').all().map((i) => i.json);\nconst meta = source[0] || {};\n\nconst grouped = {};\nfor (const item of source) {\n  if (item._empty) continue;\n  const key = item.origin_type + ':' + item.origin_id;\n  if (!grouped[key]) grouped[key] = { origin_type: item.origin_type, origin_id: item.origin_id, amount: 0 };\n  grouped[key].amount = Math.round((grouped[key].amount + Number(item.amount)) * 100) / 100;\n}\n\nreturn [{\n  json: {\n    success: true,\n    invoice_id: meta.invoice_id,\n    new_total: meta.new_total,\n    reallocated: Object.values(grouped),\n    released_amount: meta.released_amount,\n    code: 200,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        2848
+      ],
+      "id": "4de6b336-a9cb-4dc6-be5a-9cfeef9b6d10",
+      "name": "Build Response"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE public.invoices\nSET total = (\n    SELECT COALESCE(SUM(total), 0)\n    FROM public.invoice_items\n    WHERE invoice_id = $1\n)\nWHERE id = $1\nRETURNING id, total;",
+        "options": {
+          "queryReplacement": "={{ $('invoice/items/edit-with-reallocation').item.json.body.invoice_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -1456,
+        2944
+      ],
+      "id": "34dbe019-e4e6-438b-b194-075f8b9bf853",
+      "name": "Recalculate Invoice Total4",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Editar pago con allocations\n\nReemplaza el enfoque de \"deshacer y recrear\" (payment/undo + invoice/payment):\nhace un UPDATE en el lugar sobre el mismo id, reusa la validación de sesión\nde caja de payments/edit (extendida a monto, no solo método), y reasigna\nFIFO las allocations existentes contra el nuevo monto.\n\nVer docs/reconciliacion-allocations-edicion.md (Flujo B).",
+        "height": 340,
+        "width": 640
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2672,
+        3424
+      ],
+      "id": "3b83d1aa-6443-4968-8cfd-1b448bd71994",
+      "name": "Sticky Note - Flujo B"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payment/edit-with-reallocation",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*",
+          "rawBody": true
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -2640,
+        3808
+      ],
+      "id": "7a658ac2-6ae2-4e54-a15d-06b68f4d0e5a",
+      "name": "payment/edit-with-reallocation",
+      "webhookId": "24df633f-6221-480f-a5d7-24606287dff2",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "985ee562-fcd5-414f-aff2-2f61adf8dd7b",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -2160,
+        3808
+      ],
+      "id": "8372d90f-375a-4b41-a079-c368ff84bacf",
+      "name": "Pago existe?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $('payment/edit-with-reallocation').first().json.body;\nconst current = $('Get payment1').first().json;\n\nconst currentAmount = Math.abs(Number(current.amount));\nconst newAmount = Math.abs(Number(body.amount));\nconst methodChanged = String(body.payment_method_id) !== String(current.payment_method_id);\nconst amountChanged = Math.abs(newAmount - currentAmount) > 0.0001;\n\nreturn [{\n  json: {\n    payment_id: current.id,\n    needs_cash_check: methodChanged || amountChanged,\n    method_changed: methodChanged,\n    amount_changed: amountChanged,\n    new_payment_method_id: body.payment_method_id,\n    new_amount: newAmount,\n    new_payment_date: body.payment_date,\n    new_notes: body.notes || '',\n    new_is_historical: !!body.is_historical,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1920,
+        3808
+      ],
+      "id": "06d787b2-fed7-4e7c-b1cd-4e5e7fb515f1",
+      "name": "Detectar cambios"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "dd33586c-710f-4808-91af-b08e2273a892",
+              "leftValue": "={{ $json.needs_cash_check }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1680,
+        3808
+      ],
+      "id": "20b493b8-e4bb-4ba4-8810-68110e7c3858",
+      "name": "Necesita validar caja?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c060beb7-8d98-466d-8cf3-9dd67d830e0e",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1184,
+        3648
+      ],
+      "id": "55b2edfd-3a74-47df-8b7f-bbb21182fa5f",
+      "name": "Metodo nuevo existe?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payment = $('Get payment1').first().json;\nconst activeSessionId = $json.data ? $json.data.id : null;\nconst hasOwnSession = payment.cash_session_id !== null && payment.cash_session_id !== undefined;\n// Un pago que nunca tuvo sesión de caja (histórico) no tiene nada que proteger;\n// uno que sí tuvo, solo se puede editar si esa sesión sigue siendo la activa.\nconst sessionOk = !hasOwnSession || (activeSessionId !== null && Number(activeSessionId) === Number(payment.cash_session_id));\n\nreturn [{ json: { session_ok: sessionOk, active_session_id: activeSessionId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -704,
+        3648
+      ],
+      "id": "902ad2c2-be60-4d37-b47a-e270e9110f26",
+      "name": "Evaluar sesion de caja"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "51d862bc-08cc-441e-904d-c272dc4d84a8",
+              "leftValue": "={{ $json.session_ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -464,
+        3648
+      ],
+      "id": "83d02f00-5f79-4027-a241-bdc4eb2258f6",
+      "name": "Sesion de caja OK?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f5a80ef0-2d53-4b55-a46e-893de8e08b29",
+              "leftValue": "={{ $('Get new payment method1').first().json.code.toUpperCase() }}",
+              "rightValue": "CASH",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        16,
+        3648
+      ],
+      "id": "c4fd7a8f-f010-44b2-a247-bf18b36bbcbf",
+      "name": "Metodo final es CASH?"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "payments",
+          "mode": "list",
+          "cachedResultName": "payments"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Get payment1').first().json.id }}",
+            "payment_method_id": "={{ $('Detectar cambios').first().json.new_payment_method_id }}",
+            "amount": "={{ (Number($('Get payment1').first().json.amount) < 0 ? -1 : 1) * Number($('Detectar cambios').first().json.new_amount) }}",
+            "converted_amount": "={{ (Number($('Get payment1').first().json.amount) < 0 ? -1 : 1) * Number($('Detectar cambios').first().json.new_amount) * Number($('Get payment1').first().json.exchange_rate || 1) }}",
+            "created_at": "={{ $('Detectar cambios').first().json.new_payment_date }}",
+            "notes": "={{ $('Detectar cambios').first().json.new_notes }}",
+            "is_historical": "={{ $('Detectar cambios').first().json.new_is_historical }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        736,
+        3808
+      ],
+      "id": "f0ae3273-06eb-4797-a18c-3e085a291c23",
+      "name": "Update Payment In Place",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, invoice_id, amount, allocated_currency, target_amount, exchange_rate, created_at\nFROM public.payment_allocations\nWHERE payment_id = $1\nORDER BY created_at ASC, id ASC;",
+        "options": {
+          "queryReplacement": "={{ $('Get payment1').first().json.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        976,
+        3808
+      ],
+      "id": "343b58bf-00da-411a-b9af-8ab0c4d50ddd",
+      "name": "Get Payment Allocations (Pago)",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM public.payment_allocations\nWHERE payment_id = $1;",
+        "options": {
+          "queryReplacement": "={{ $('Get payment1').first().json.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1216,
+        3808
+      ],
+      "id": "7750ccfc-d0f0-4ff5-bd27-16f5202c2c78",
+      "name": "Delete Payment Allocations (Pago)",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const paymentId = Number($('Get payment1').first().json.id);\nconst newAmount = Math.abs(Number($('Detectar cambios').first().json.new_amount));\n\nconst rows = $('Get Payment Allocations (Pago)').all().map((i) => i.json);\nconst pool = [...rows].sort((a, b) => {\n  const ta = new Date(a.created_at).getTime();\n  const tb = new Date(b.created_at).getTime();\n  if (ta !== tb) return ta - tb;\n  return Number(a.id) - Number(b.id);\n});\n\nconst poolTotal = pool.reduce((sum, row) => sum + Number(row.amount), 0);\n\nlet remaining = newAmount;\nconst toReinsert = [];\n\nfor (const row of pool) {\n  if (remaining <= 0.0001) break;\n  const rowAmount = Number(row.amount);\n  const take = Math.min(rowAmount, remaining);\n  if (take <= 0.0001) continue;\n\n  // Misma lógica que el Flujo A: se preserva la proporción del tipo de\n  // cambio / target_amount original, no se recalcula de nuevo.\n  const ratio = take / rowAmount;\n\n  toReinsert.push({\n    payment_id: paymentId,\n    invoice_id: row.invoice_id,\n    amount: Math.round(take * 100) / 100,\n    allocated_currency: row.allocated_currency,\n    target_amount: Math.round(Number(row.target_amount) * ratio * 100) / 100,\n    exchange_rate: row.exchange_rate,\n  });\n\n  remaining = Math.round((remaining - take) * 100) / 100;\n}\n\nconst reinsertedTotal = toReinsert.reduce((s, r) => s + r.amount, 0);\nconst releasedAmount = Math.round((poolTotal - reinsertedTotal) * 100) / 100;\n\nif (toReinsert.length === 0) {\n  return [{\n    json: {\n      payment_id: paymentId,\n      new_amount: newAmount,\n      pool_total: Math.round(poolTotal * 100) / 100,\n      released_amount: releasedAmount,\n      _empty: true,\n    },\n  }];\n}\n\nreturn toReinsert.map((item) => ({\n  json: { ...item, new_amount: newAmount, released_amount: releasedAmount },\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1456,
+        3808
+      ],
+      "id": "58a4c329-990a-4910-8daa-191655cee74d",
+      "name": "Reallocate FIFO (Pago)"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1696,
+        3808
+      ],
+      "id": "cda1c4f3-93f7-42f5-ab21-1f0a7ea8c469",
+      "name": "Loop Over Reinsert Items (Pago)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d77d4d76-c56a-41bb-ab3b-480bd7ea76e0",
+              "leftValue": "={{ $json.invoice_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1936,
+        3968
+      ],
+      "id": "e7446931-49f9-43ce-9749-a438f42e55fe",
+      "name": "Tiene factura?"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "payment_allocations",
+          "mode": "list",
+          "cachedResultName": "payment_allocations"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "payment_id": "={{ $json.payment_id }}",
+            "invoice_id": "={{ $json.invoice_id }}",
+            "amount": "={{ $json.amount }}",
+            "allocated_currency": "={{ $json.allocated_currency }}",
+            "target_amount": "={{ $json.target_amount }}",
+            "exchange_rate": "={{ $json.exchange_rate }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2176,
+        3968
+      ],
+      "id": "eaf0b730-c5db-4eb5-a01d-15cf5e7aad8b",
+      "name": "Insert Payment Allocation (Pago)",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const source = $('Reallocate FIFO (Pago)').all().map((i) => i.json);\nconst meta = source[0] || {};\nconst reallocated = source.filter((i) => !i._empty).map((i) => ({ invoice_id: i.invoice_id, amount: i.amount }));\n\nreturn [{\n  json: {\n    success: true,\n    payment_id: meta.payment_id,\n    new_amount: meta.new_amount,\n    reallocated,\n    released_amount: meta.released_amount,\n    code: 200,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1936,
+        3648
+      ],
+      "id": "a8bdd8b7-b392-473c-a577-b19242ae8e73",
+      "name": "Build Response (Pago)"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT p.*, pm.code AS payment_method_code\nFROM public.payments p\nLEFT JOIN public.payment_methods pm ON pm.id = p.payment_method_id\nWHERE p.id = $1\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ $json.body.payment_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -2400,
+        3808
+      ],
+      "id": "7b4d1454-e227-4570-9e49-d3a468f0d931",
+      "name": "Get payment1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"error\": \"Payment not found\"\n}",
+        "options": {
+          "responseCode": 404,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -1920,
+        4048
+      ],
+      "id": "ae16bf77-1804-42f4-8750-2ed46f6e4ca1",
+      "name": "Error: "
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.payment_methods WHERE id = $1 LIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ $('Detectar cambios').item.json.new_payment_method_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -1440,
+        3648
+      ],
+      "id": "1c020de1-8b01-4031-b691-241558ab0a4c",
+      "name": "Get new payment method1",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"error\": \"Payment method not found\"\n}",
+        "options": {
+          "responseCode": 404,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -944,
+        3888
+      ],
+      "id": "38f12f90-6967-4a9d-ad19-8972df012a1f",
+      "name": "Error: 4043"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "Dwt3WdobiGtSwEcH",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/Dwt3WdobiGtSwEcH",
+          "cachedResultName": "Is Cash session active workflow"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user_id": "={{ $('payment/edit-with-reallocation').first().json.jwtPayload.userId }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "authorization",
+              "displayName": "authorization",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        -944,
+        3648
+      ],
+      "id": "45a8651b-bad1-4f80-86f8-dd2325e5d0da",
+      "name": "Get active cash session1"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"error\": \"Can't edit the payment because is from old cash session\"\n}",
+        "options": {
+          "responseCode": 400,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -224,
+        3888
+      ],
+      "id": "7b7e9e2c-51f3-44b6-8717-a24c3141f7ef",
+      "name": "Error: 401"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM public.cash_movements\nWHERE payment_id = $1;",
+        "options": {
+          "queryReplacement": "={{ $('Get payment1').first().json.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -224,
+        3648
+      ],
+      "id": "0620636b-86a8-4352-b51e-eeb35fdcc06c",
+      "name": "Remove cash movement1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT i.doc_no AS invoice_doc_no, o.doc_no AS order_doc_no\nFROM public.invoices i\nLEFT JOIN public.orders o ON o.id = i.order_id\nWHERE i.id = $1\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ $('Get payment1').first().json.invoice_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        256,
+        3488
+      ],
+      "id": "cb3edbed-1eac-4d4b-a58c-0c84a8a4321f",
+      "name": "Get payment description1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "cash_movements",
+          "mode": "list",
+          "cachedResultName": "cash_movements"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "amount": "={{ $('Detectar cambios').first().json.new_amount }}",
+            "created_at": "={{ $now.toISO() }}",
+            "payment_method_id": "={{ $('Detectar cambios').first().json.new_payment_method_id }}",
+            "cash_session_id": "={{ $('Evaluar sesion de caja').first().json.active_session_id }}",
+            "payment_id": "={{ $('Get payment1').first().json.id }}",
+            "description": "=Pago editado — factura: {{ $json.invoice_doc_no || \"N/A\" }}\nOrden: {{ $json.order_doc_no || \"N/A\" }}",
+            "user_id": "={{ $('Get payment1').first().json.user_id }}",
+            "type": "INFLOW",
+            "currency": "={{ $('Get payment1').first().json.currency }}",
+            "is_sales": "={{ $('Get payment1').first().json.is_sales }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        496,
+        3488
+      ],
+      "id": "ed756f02-1834-4b21-a9b6-f943302372b6",
+      "name": "Registrar Movimiento Caja1",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2176,
+        3648
+      ],
+      "id": "6a6d1565-d9ca-4ae2-82c2-c2417a8f4581",
+      "name": "OK: "
+    },
+    {
+      "parameters": {
+        "content": "## Forzar payment_state manualmente\n\nUsado por \"Finalizado\" (fuerza a 'paid' sin importar paid_amount real) y por su\nreversión (recalcula 'partial'/'unpaid' desde el frontend). Solo cambia\ninvoices.payment_state — no toca paid_amount ni ninguna allocation.\n\nVer docs/finalizado-manual-tratamiento.md.",
+        "height": 300,
+        "width": 600
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2656,
+        4224
+      ],
+      "id": "ccc18988-cf25-49e6-80e0-1ff41a5fb11f",
+      "name": "Sticky Note - Flujo C"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "invoice/payment-state/set",
+        "authentication": "jwtAuth",
+        "responseMode": "lastNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -2640,
+        4704
+      ],
+      "id": "8c38b185-58eb-4ada-8173-6c5aac225e77",
+      "name": "invoice/payment-state/set",
+      "webhookId": "aaf3d27a-77af-4651-b210-4e762025ca35",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d4e66cee-5fa5-4042-b411-221f65c26ba9",
+              "leftValue": "={{ $json.body.invoice_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "8a056ed5-f292-4110-8b53-4f5d1592dc0a",
+              "leftValue": "={{ ['paid', 'partial', 'unpaid'] }}",
+              "rightValue": "={{ $json.body.payment_state }}",
+              "operator": {
+                "type": "array",
+                "operation": "contains",
+                "rightType": "any"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -2400,
+        4704
+      ],
+      "id": "35c89386-fb6c-4d2d-be6e-fea39180c1e0",
+      "name": "Datos validos?"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"message\": \"invoice_id es requerido y payment_state debe ser paid, partial o unpaid\",\n  \"code\": 400,\n  \"error\": true\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2160,
+        4800
+      ],
+      "id": "39f2baee-fc79-4932-bf05-069d2d943038",
+      "name": "Error: datos invalidos"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE public.invoices\nSET payment_state = $1\nWHERE id = $2\nRETURNING id, payment_state;",
+        "options": {
+          "queryReplacement": "={{ [$('invoice/payment-state/set').item.json.body.payment_state, $('invoice/payment-state/set').item.json.body.invoice_id] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -1696,
+        4496
+      ],
+      "id": "c96d4c37-24e9-4f36-8aba-713a2c991cf1",
+      "name": "Set Payment State",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"success\": true,\n  \"invoice_id\": {{ $json.id }},\n  \"payment_state\": \"{{ $json.payment_state }}\",\n  \"code\": 200\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1456,
+        4496
+      ],
+      "id": "54de703b-bcc0-4c5b-9a05-d2334584d1ab",
+      "name": "Success"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "invoices",
+          "mode": "list",
+          "cachedResultName": "invoices"
+        },
+        "limit": 1,
+        "where": {
+          "values": [
+            {
+              "column": "id",
+              "value": "={{ $('invoice/payment-state/set').item.json.body.invoice_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -2160,
+        4592
+      ],
+      "id": "cd7dd590-bbf5-47d4-831c-3fe1f1dbec26",
+      "name": "Get Invoice1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ab4eb030-74e6-4825-b7d7-84aeb53e7fd6",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1920,
+        4592
+      ],
+      "id": "fdff5a0c-23ae-4509-b53d-5cb0694b9df5",
+      "name": "Factura existe?1"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"message\": \"Factura no encontrada\",\n  \"code\": 404,\n  \"error\": true\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1696,
+        4688
+      ],
+      "id": "71f1fb0d-5bfa-451e-b6c2-6c4693a8a9f2",
+      "name": "Error: factura no encontrada1"
     }
   ],
   "pinData": {
@@ -12803,6 +14598,113 @@
           "item": 0
         }
       }
+    ],
+    "invoice/items/edit-with-reallocation": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
+            "content-length": "117",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.5",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3ODM0Mzg4ODB9.qGRCYRCSlhWJNSer2oElP1ryEoZKltSvY5IySjdONAw",
+            "cache-control": "no-cache",
+            "content-type": "application/json",
+            "origin": "http://localhost:3000",
+            "pragma": "no-cache",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/",
+            "sec-ch-ua": "\"Not;A=Brand\";v=\"8\", \"Chromium\";v=\"150\", \"Brave\";v=\"150\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "sec-gpc": "1",
+            "x-forwarded-for": "177.3.104.80",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "d4e738525fe6",
+            "x-real-ip": "177.3.104.80"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "invoice_id": "597",
+            "item_id": "726",
+            "service_id": "867",
+            "quantity": 1,
+            "unit_price": 500,
+            "total": 500,
+            "tooth_number": null
+          },
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice/items/edit-with-reallocation",
+          "executionMode": "production",
+          "jwtPayload": {
+            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "email": "raidel@invokeia.com",
+            "expiresIn": "24h",
+            "iat": 1783438880
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "invoice/payment-state/set": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
+            "content-length": "41",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.5",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3ODM0Mzg4ODB9.qGRCYRCSlhWJNSer2oElP1ryEoZKltSvY5IySjdONAw",
+            "cache-control": "no-cache",
+            "content-type": "application/json",
+            "origin": "http://localhost:3000",
+            "pragma": "no-cache",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/",
+            "sec-ch-ua": "\"Not;A=Brand\";v=\"8\", \"Chromium\";v=\"150\", \"Brave\";v=\"150\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "sec-gpc": "1",
+            "x-forwarded-for": "177.3.104.80",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "d4e738525fe6",
+            "x-real-ip": "177.3.104.80"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "invoice_id": 621,
+            "payment_state": "paid"
+          },
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoice/payment-state/set",
+          "executionMode": "production",
+          "jwtPayload": {
+            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "email": "raidel@invokeia.com",
+            "expiresIn": "24h",
+            "iat": 1783438880
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
     ]
   },
   "connections": {
@@ -14856,6 +16758,577 @@
           }
         ]
       ]
+    },
+    "invoice/items/edit-with-reallocation": {
+      "main": [
+        [
+          {
+            "node": "Datos requeridos?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Datos requeridos?": {
+      "main": [
+        [
+          {
+            "node": "Get Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: datos requeridos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Invoice": {
+      "main": [
+        [
+          {
+            "node": "Factura existe?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Factura existe?": {
+      "main": [
+        [
+          {
+            "node": "Update Invoice Item",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: factura no encontrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Invoice Item": {
+      "main": [
+        [
+          {
+            "node": "Recalculate Invoice Total4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Payment Allocations": {
+      "main": [
+        [
+          {
+            "node": "Get Invoice Allocations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Invoice Allocations": {
+      "main": [
+        [
+          {
+            "node": "Delete Payment Allocations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Payment Allocations": {
+      "main": [
+        [
+          {
+            "node": "Delete Invoice Allocations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Invoice Allocations": {
+      "main": [
+        [
+          {
+            "node": "Merge & Reallocate FIFO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge & Reallocate FIFO": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Reinsert Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Reinsert Items": {
+      "main": [
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Es pago?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Es pago?": {
+      "main": [
+        [
+          {
+            "node": "Insert Payment Allocation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Es nota de credito?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Payment Allocation": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Reinsert Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Es nota de credito?": {
+      "main": [
+        [
+          {
+            "node": "Insert Invoice Allocation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Reinsert Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Invoice Allocation": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Reinsert Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recalculate Invoice Total4": {
+      "main": [
+        [
+          {
+            "node": "Get Payment Allocations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "payment/edit-with-reallocation": {
+      "main": [
+        [
+          {
+            "node": "Get payment1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pago existe?": {
+      "main": [
+        [
+          {
+            "node": "Detectar cambios",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detectar cambios": {
+      "main": [
+        [
+          {
+            "node": "Necesita validar caja?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Necesita validar caja?": {
+      "main": [
+        [
+          {
+            "node": "Get new payment method1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Payment In Place",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Metodo nuevo existe?": {
+      "main": [
+        [
+          {
+            "node": "Get active cash session1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: 4043",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluar sesion de caja": {
+      "main": [
+        [
+          {
+            "node": "Sesion de caja OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sesion de caja OK?": {
+      "main": [
+        [
+          {
+            "node": "Remove cash movement1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: 401",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Metodo final es CASH?": {
+      "main": [
+        [
+          {
+            "node": "Get payment description1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Payment In Place",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Payment In Place": {
+      "main": [
+        [
+          {
+            "node": "Get Payment Allocations (Pago)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Payment Allocations (Pago)": {
+      "main": [
+        [
+          {
+            "node": "Delete Payment Allocations (Pago)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Payment Allocations (Pago)": {
+      "main": [
+        [
+          {
+            "node": "Reallocate FIFO (Pago)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reallocate FIFO (Pago)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Reinsert Items (Pago)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Reinsert Items (Pago)": {
+      "main": [
+        [
+          {
+            "node": "Build Response (Pago)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Tiene factura?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tiene factura?": {
+      "main": [
+        [
+          {
+            "node": "Insert Payment Allocation (Pago)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Reinsert Items (Pago)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Payment Allocation (Pago)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Reinsert Items (Pago)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Response (Pago)": {
+      "main": [
+        [
+          {
+            "node": "OK: ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get payment1": {
+      "main": [
+        [
+          {
+            "node": "Pago existe?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get new payment method1": {
+      "main": [
+        [
+          {
+            "node": "Metodo nuevo existe?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get active cash session1": {
+      "main": [
+        [
+          {
+            "node": "Evaluar sesion de caja",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove cash movement1": {
+      "main": [
+        [
+          {
+            "node": "Metodo final es CASH?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get payment description1": {
+      "main": [
+        [
+          {
+            "node": "Registrar Movimiento Caja1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar Movimiento Caja1": {
+      "main": [
+        [
+          {
+            "node": "Update Payment In Place",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "invoice/payment-state/set": {
+      "main": [
+        [
+          {
+            "node": "Datos validos?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Datos validos?": {
+      "main": [
+        [
+          {
+            "node": "Get Invoice1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: datos invalidos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Payment State": {
+      "main": [
+        [
+          {
+            "node": "Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Invoice1": {
+      "main": [
+        [
+          {
+            "node": "Factura existe?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Factura existe?1": {
+      "main": [
+        [
+          {
+            "node": "Set Payment State",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: factura no encontrada1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
@@ -14863,7 +17336,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "e0bafca8-e302-4b43-9014-92f66212593e",
+  "versionId": "382ffe08-80e2-461f-87dd-7fa0dd34934c",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
