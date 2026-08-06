@@ -22,16 +22,16 @@ function money(amount: number): string {
 }
 
 /** Always shows a number (0 → "$0,00") — used for Debe/Haber. */
-function fmtZero(amount: number, currency: string): string {
+export function fmtZero(amount: number, currency: string): string {
   return `${currencySymbol(currency)}${money(amount)}`;
 }
 
 /** Dash for zero — used for the running/final balance. */
-function fmtDash(amount: number, currency: string): string {
+export function fmtDash(amount: number, currency: string): string {
   return amount ? `${currencySymbol(currency)}${money(amount)}` : '—';
 }
 
-function statusLabel(row: LedgerRow, t: (key: string) => string): string {
+export function statusLabel(row: LedgerRow, t: (key: string) => string): string {
   if (row.kind === 'balance') return '';
   if (row.kind === 'payment') return t('status.pago');
   if (row.status === 'notaCredito') return t('status.notaCredito');
@@ -40,7 +40,7 @@ function statusLabel(row: LedgerRow, t: (key: string) => string): string {
   return t('statusControl.enCurso');
 }
 
-function docNumbersLabel(row: LedgerRow, t: (key: string) => string): string | null {
+export function docNumbersLabel(row: LedgerRow, t: (key: string) => string): string | null {
   if (row.kind === 'balance') return null;
   if (row.kind === 'payment') return row.docNo ? `${t('docLine.payment')}: ${row.docNo}` : null;
   if (row.status === 'notaCredito') return row.docNo ? `${t('docLine.creditNote')}: ${row.docNo}` : null;
@@ -59,7 +59,7 @@ function rowTint(row: LedgerRow): React.CSSProperties {
   return base;
 }
 
-function computeTotals(rows: LedgerRow[]) {
+export function computeTotals(rows: LedgerRow[]) {
   const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
   return {
     totalDebe: round2(rows.reduce((s, r) => s + (r.kind === 'balance' || r.status === 'presupuestado' ? 0 : r.debe), 0)),

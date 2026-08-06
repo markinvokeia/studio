@@ -20,6 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { PatientGroupsField, savePatientGroups } from '@/components/patients/patient-groups-field';
+import { useReadOnly } from '@/components/patient-portal/read-only-context';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { MutualSociety, User } from '@/lib/types';
@@ -140,6 +141,11 @@ interface PatientInfoTabProps {
   onSaved?: (updated: User) => void;
   /** Show the guarded Cancel action supplied by dialog hosts in custom calendar mode. */
   showCancelAction?: boolean;
+  /**
+   * Habilita la edición aun dentro del portal de sólo lectura. El email queda
+   * bloqueado igual: es la credencial con la que el paciente recibe su código.
+   */
+  allowEdit?: boolean;
   /** Reports whether this form or its embedded group selector has unsaved changes. */
   onDirtyChange?: (isDirty: boolean) => void;
 }
@@ -157,9 +163,17 @@ export function PatientInfoTab({
   initialName,
   onSaved,
   showCancelAction = false,
+  allowEdit = false,
   onDirtyChange,
 }: PatientInfoTabProps) {
   const isCreateMode = !userId && !userProp;
+  // Portal del paciente. Con `allowEdit` el paciente sí puede actualizar sus
+  // propios datos: sólo se bloquea el email.
+  const isPortal = useReadOnly();
+  const readOnly = isPortal && !allowEdit;
+  // El email identifica al paciente y es a donde llega el código de acceso:
+  // cambiarlo desde el portal lo dejaría afuera de su propia cuenta.
+  const lockEmail = isPortal;
   const t = useTranslations();
   const { toast } = useToast();
   const [user, setUser] = React.useState<User | null>(userProp ?? null);
@@ -328,7 +342,10 @@ export function PatientInfoTab({
           pinned to the bottom edge when the form overflows. No content shows
           through the footer. */}
       <form onSubmit={infoForm.handleSubmit(handleSave)} className="flex max-h-full min-h-0 flex-col">
-        <div className="min-h-0 space-y-4 overflow-y-auto p-2">
+        {/* `fieldset disabled` desactiva de una sola vez todos los controles del
+            portal del paciente. `min-w-0` neutraliza el `min-inline-size: min-content`
+            que el navegador aplica a los fieldset y que rompería el flex. */}
+        <fieldset disabled={readOnly} className="min-h-0 min-w-0 space-y-4 overflow-y-auto p-2">
           {saveError && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
@@ -388,7 +405,12 @@ export function PatientInfoTab({
           <FormField control={infoForm.control} name="email" render={({ field }) => (
             <FormItem>
               <FormLabel>{t('UsersPage.createDialog.email')}</FormLabel>
-              <FormControl><Input type="email" placeholder={t('UsersPage.createDialog.emailPlaceholder')} {...field} /></FormControl>
+              <FormControl>
+                <Input type="email" placeholder={t('UsersPage.createDialog.emailPlaceholder')} {...field} disabled={lockEmail} />
+              </FormControl>
+              {lockEmail && (
+                <p className="text-xs text-muted-foreground">{t('PatientPortal.info.emailLocked')}</p>
+              )}
               <FormMessage />
             </FormItem>
           )} />
@@ -399,10 +421,12 @@ export function PatientInfoTab({
               <FormMessage />
             </FormItem>
           )} />
-          {userId
+          {/* Grupos, doctor asignado, dependencia y estado son campos de gestión
+              interna: el paciente no los ve ni los edita en su portal. */}
+          {!isPortal && (userId
             ? <PatientGroupsField patientId={userId} onDirtyChange={setGroupsDirty} />
-            : <PatientGroupsField value={pendingGroupIds} onChange={setPendingGroupIds} onDirtyChange={setGroupsDirty} />}
-          <FormField control={infoForm.control} name="doctor_id" render={({ field }) => (
+            : <PatientGroupsField value={pendingGroupIds} onChange={setPendingGroupIds} onDirtyChange={setGroupsDirty} />)}
+          {!isPortal && <FormField control={infoForm.control} name="doctor_id" render={({ field }) => (
             <FormItem>
               <FormLabel>{t('UsersPage.createDialog.doctor')}</FormLabel>
               <FormControl>
@@ -424,7 +448,7 @@ export function PatientInfoTab({
               )}
               <FormMessage />
             </FormItem>
-          )} />
+          )} />}
           <FormField control={infoForm.control} name="mutual_society_id" render={({ field }) => (
             <FormItem>
               <FormLabel>{t('UsersPage.mutualSociety.select')}</FormLabel>
@@ -442,13 +466,15 @@ export function PatientInfoTab({
               <FormMessage />
             </FormItem>
           )} />
-          <FormField control={infoForm.control} name="is_dependent" render={({ field }) => (
-            <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-              <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-              <FormLabel>{t('UsersPage.createDialog.isDependent')}</FormLabel>
-            </FormItem>
-          )} />
-          {isDependent ? (
+          {!isPortal && (
+            <FormField control={infoForm.control} name="is_dependent" render={({ field }) => (
+              <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                <FormLabel>{t('UsersPage.createDialog.isDependent')}</FormLabel>
+              </FormItem>
+            )} />
+          )}
+          {!isPortal && isDependent ? (
             <ResponsibleContactField
               form={infoForm}
               currentUserId={userId}
@@ -467,24 +493,29 @@ export function PatientInfoTab({
               </FormItem>
             )} />
           )}
-          <FormField control={infoForm.control} name="is_active" render={({ field }) => (
-            <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-              <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-              <FormLabel>{t('UsersPage.createDialog.isActive')}</FormLabel>
-            </FormItem>
-          )} />
-        </div>
-        {/* Status-bar footer, outside the scroll area */}
-        <div className="flex flex-none justify-end gap-2 border-t bg-card px-3 py-2">
-          {showCancelAction && (
-            <DialogCancelButton size="sm" disabled={isSaving}>
-              {t('UsersPage.createDialog.cancel')}
-            </DialogCancelButton>
+          {/* Estado administrativo — no tiene sentido para el paciente en su propio portal */}
+          {!isPortal && (
+            <FormField control={infoForm.control} name="is_active" render={({ field }) => (
+              <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                <FormLabel>{t('UsersPage.createDialog.isActive')}</FormLabel>
+              </FormItem>
+            )} />
           )}
-          <Button type="submit" size="sm" disabled={isSaving}>
-            {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('UsersPage.notes.saving')}</> : t('UsersPage.notes.save')}
-          </Button>
-        </div>
+        </fieldset>
+        {/* Status-bar footer, outside the scroll area */}
+        {!readOnly && (
+          <div className="flex flex-none justify-end gap-2 border-t bg-card px-3 py-2">
+            {showCancelAction && (
+              <DialogCancelButton size="sm" disabled={isSaving}>
+                {t('UsersPage.createDialog.cancel')}
+              </DialogCancelButton>
+            )}
+            <Button type="submit" size="sm" disabled={isSaving || (isPortal && !isDirty)}>
+              {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('UsersPage.notes.saving')}</> : t('UsersPage.notes.save')}
+            </Button>
+          </div>
+        )}
       </form>
     </Form>
   );

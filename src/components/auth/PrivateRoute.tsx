@@ -3,7 +3,9 @@
 import { Header } from '@/components/header';
 import { LicenseExpirationBanner, LicenseExpiredBanner } from '@/components/license/LicenseExpirationBanner';
 import { LicenseExpiredScreen } from '@/components/license/LicenseExpiredScreen';
+import { PatientPortalLayout } from '@/components/patient-portal/patient-portal-layout';
 import { useAuth } from '@/context/AuthContext';
+import { usePatientPortal } from '@/hooks/usePatientPortal';
 import { usePermissions } from '@/hooks/usePermissions';
 import { cn } from '@/lib/utils';
 import { navItems, type NavItem } from '@/config/nav';
@@ -47,18 +49,35 @@ export function PrivateRoute({
 }: PrivateRouteProps) {
   const { user, isLoading } = useAuth();
   const { hasPermission, hasAllPermissions, hasAnyPermission } = usePermissions();
+  const { hasPatientRole, isPatientOnly } = usePatientPortal();
   const pathname = usePathname();
   const router = useRouter();
   const locale = useLocale();
 
-  const isPublicPage = pathname === `/${locale}/login` || pathname.startsWith(`/${locale}/reset-password`) || pathname.startsWith(`/${locale}/set-first-password`);
+  const isPublicPage = pathname === `/${locale}/login` || pathname === `/${locale}/patient-login` || pathname.startsWith(`/${locale}/reset-password`) || pathname.startsWith(`/${locale}/set-first-password`);
   const isTVScreenPage = pathname === `/${locale}/tv-display/screen`;
+  const isPatientPortalPage = pathname.startsWith(`/${locale}/my-profile`);
 
   React.useEffect(() => {
     if (!isLoading) {
       if (!user && !isPublicPage) {
-        router.replace(`/${locale}/login`);
+        // Un paciente que pierde la sesión vuelve a SU login, no al del staff.
+        router.replace(`/${locale}/${isPatientPortalPage ? 'patient-login' : 'login'}`);
       } else if (user && isPublicPage && !pathname.startsWith(`/${locale}/reset-password`) && !pathname.startsWith(`/${locale}/set-first-password`)) {
+        // Quien se autenticó por la landing de pacientes va al portal, aunque
+        // además sea staff: es la puerta por la que decidió entrar.
+        //
+        // Sin este `||` había una carrera: el wizard navega a /my-profile y este
+        // efecto, disparado por el mismo cambio de `user`, mandaba a `/`. El
+        // ganador era impredecible y por eso el paciente caía en la raíz.
+        const cameFromPatientLogin = pathname === `/${locale}/patient-login`;
+        router.replace(cameFromPatientLogin || isPatientOnly ? `/${locale}/my-profile` : `/${locale}`);
+      } else if (user && isPatientOnly && !isPatientPortalPage) {
+        // Confinamiento duro, sólo para quien no tiene ningún rol de staff: no
+        // accede a ninguna página del dashboard aunque escriba la URL a mano.
+        router.replace(`/${locale}/my-profile`);
+      } else if (user && !hasPatientRole && isPatientPortalPage) {
+        // Sin rol de paciente no hay perfil que mostrar: vuelve al dashboard.
         router.replace(`/${locale}`);
       } else if (user && !isPublicPage) {
         const effectivePath = pathname.startsWith(`/${locale}`)
@@ -72,7 +91,7 @@ export function PrivateRoute({
         }
       }
     }
-  }, [user, isLoading, isPublicPage, pathname, router, locale, hasPermission, hasAnyPermission]);
+  }, [user, isLoading, isPublicPage, hasPatientRole, isPatientOnly, isPatientPortalPage, pathname, router, locale, hasPermission, hasAnyPermission]);
 
   if (isLoading && !isPublicPage) {
     return (
@@ -98,6 +117,17 @@ export function PrivateRoute({
     // TV screen page renders without nav/sidebar layout
     if (isTVScreenPage) {
       return <>{children}</>;
+    }
+
+    // Evita el flash de UI mientras corre alguno de los redirects de arriba:
+    // el paciente puro fuera del portal, o alguien sin rol de paciente dentro.
+    if ((isPatientOnly && !isPatientPortalPage) || (!hasPatientRole && isPatientPortalPage)) {
+      return null;
+    }
+
+    // Portal del paciente: shell propio (sin sidebar ni header) y modo solo lectura.
+    if (isPatientPortalPage) {
+      return <PatientPortalLayout>{children}</PatientPortalLayout>;
     }
 
     // Prevent flash: if on root and user has no dashboard access, wait for the redirect
