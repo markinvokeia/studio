@@ -4,7 +4,7 @@ import React from 'react';
 
 import type { Locale } from 'date-fns';
 import { format, parseISO } from 'date-fns';
-import { BellRing, CheckCircle2, Clock, Stethoscope, FileText } from 'lucide-react';
+import { BellRing, CheckCircle2, Clock, Stethoscope, FileText, Users } from 'lucide-react';
 
 import { Checkbox } from '@/components/ui/checkbox';
 import { getStatusIcon } from '@/components/appointments/status-icons';
@@ -14,7 +14,7 @@ import type { AppointmentStatus, CalendarReminderPriority, CalendarReminderStatu
 
 import type { CalendarBreakpoint, CalendarEvent } from './calendar-types';
 import { formatEventTime } from './calendar-utils';
-import { getReminderCardStyle, getReminderPriorityColor, isReminderDone } from './reminder-visuals';
+import { getReminderCardStyle, getReminderPriorityColor, isGeneralReminder, isReminderDone } from './reminder-visuals';
 
 function StatusBadge({
   status,
@@ -119,7 +119,8 @@ export function CalendarScheduleView({
               const reminderIsDone = isReminderDone(reminderStatus);
               const reminderColor = getReminderPriorityColor(reminderPriority);
               const reminderCardStyle = isReminder ? getReminderCardStyle(event.color, reminderIsDone) : {};
-              const ReminderIcon = isNote ? FileText : reminderIsDone ? CheckCircle2 : BellRing;
+              const reminderIsGeneral = isReminder && isGeneralReminder(event.data);
+              const ReminderIcon = isNote ? FileText : reminderIsDone ? CheckCircle2 : reminderIsGeneral ? Users : BellRing;
               const status = (rawStatus?.toLowerCase() as AppointmentStatus | undefined) ?? undefined;
               const cancellationReason = (event.data?.cancellation_reason as CancellationReason | undefined) ?? null;
               const appointmentId: string = event.data?.id ?? event.id;

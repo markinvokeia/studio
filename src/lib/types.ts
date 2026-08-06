@@ -666,6 +666,8 @@ export type CalendarReminderStatus = 'pending' | 'done' | 'dismissed' | 'cancell
 
 export type CalendarItemType = 'note' | 'reminder';
 
+export type CalendarReminderVisibility = 'personal' | 'clinic';
+
 export type CalendarReminder = {
   id: string;
   type: CalendarItemType;
@@ -677,7 +679,7 @@ export type CalendarReminder = {
   color?: string | null;
   priority: CalendarReminderPriority;
   status: CalendarReminderStatus;
-  visibility: 'clinic';
+  visibility: CalendarReminderVisibility;
   raise_alert?: boolean;
   alert_instance_id?: number | null;
   created_by?: string | null;

@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { format, parseISO } from 'date-fns';
-import { BellRing, Calendar, CalendarDays, CheckCircle2, Clock, Edit, FileText, Flag, Info, Receipt, ShoppingCart, Sparkles, Trash2 } from 'lucide-react';
+import { BellRing, Calendar, CalendarDays, CheckCircle2, Clock, Edit, FileText, Flag, Info, Receipt, ShoppingCart, Sparkles, Trash2, Users } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 
@@ -18,6 +18,7 @@ interface ReminderPanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   reminder: CalendarReminder | null;
+  currentUserId?: string | null;
   onEdit: (reminder: CalendarReminder) => void;
   onMarkDone: (reminder: CalendarReminder) => void;
   onDelete: (reminder: CalendarReminder) => void;
@@ -92,6 +93,7 @@ export function ReminderPanel({
   open,
   onOpenChange,
   reminder,
+  currentUserId,
   onEdit,
   onMarkDone,
   onDelete,
@@ -160,6 +162,8 @@ export function ReminderPanel({
   const endTime = formatLocalTime(reminder.end_datetime);
   const isDone = reminder.status === 'done';
   const isNote = reminder.type === 'note';
+  const isGeneral = reminder.visibility === 'clinic';
+  const isOwner = !reminder.created_by || reminder.created_by === currentUserId;
   const ItemIcon = isNote ? FileText : BellRing;
 
   const displayTitle = enhancement?.title ?? reminder.title;
@@ -207,6 +211,12 @@ export function ReminderPanel({
                 >
                   {t(`status.${reminder.status}`)}
                 </span>
+                {isGeneral && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-transparent bg-purple-500 px-2.5 py-0.5 text-xs font-semibold text-white">
+                    <Users className="h-3 w-3" />
+                    {t('generalBadge')}
+                  </span>
+                )}
               </SheetDescription>
             </div>
           </div>
@@ -275,20 +285,24 @@ export function ReminderPanel({
                   tooltipText={t('enhanceTooltip')}
                 />
               )}
-              {!isDone && (
+              {isOwner && !isDone && (
                 <Button variant="outline" className="gap-2" onClick={() => onMarkDone(reminder)}>
                   <CheckCircle2 className="h-4 w-4" />
                   {t('markDone')}
                 </Button>
               )}
-              <Button variant="outline" className="gap-2" onClick={() => onEdit(reminderForEdit)}>
-                <Edit className="h-4 w-4" />
-                {t('edit')}
-              </Button>
-              <Button variant="destructive" className="gap-2" onClick={() => onDelete(reminder)}>
-                <Trash2 className="h-4 w-4" />
-                {t('delete')}
-              </Button>
+              {isOwner && (
+                <Button variant="outline" className="gap-2" onClick={() => onEdit(reminderForEdit)}>
+                  <Edit className="h-4 w-4" />
+                  {t('edit')}
+                </Button>
+              )}
+              {isOwner && (
+                <Button variant="destructive" className="gap-2" onClick={() => onDelete(reminder)}>
+                  <Trash2 className="h-4 w-4" />
+                  {t('delete')}
+                </Button>
+              )}
             </div>
           </div>
         </div>

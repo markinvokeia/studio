@@ -46,7 +46,7 @@ export function normalizeReminder(rawReminder: Record<string, unknown>): Calenda
     status:             (['pending', 'done', 'dismissed', 'cancelled'] as string[]).includes(rawReminder.status as string)
                           ? (rawReminder.status as CalendarReminder['status'])
                           : 'pending',
-    visibility:         'clinic',
+    visibility:         rawReminder.visibility === 'personal' ? 'personal' : 'clinic',
     raise_alert:        Boolean(rawReminder.raise_alert),
     alert_instance_id:  (rawReminder.alert_instance_id ?? rawReminder.alertInstanceId ?? null) as number | null,
     created_by:         (rawReminder.created_by ?? rawReminder.createdBy ?? null) as string | null,

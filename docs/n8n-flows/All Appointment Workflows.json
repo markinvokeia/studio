@@ -6354,6 +6354,12 @@
               "name": "code",
               "value": 200,
               "type": "number"
+            },
+            {
+              "id": "40f8e9e4-9e83-41cc-afad-47cc05812c6f",
+              "name": "data",
+              "value": "={{ $json }}",
+              "type": "object"
             }
           ]
         },
@@ -6412,8 +6418,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        2832,
-        272
+        2800,
+        336
       ],
       "id": "fad166e0-824b-44de-8887-f4dff8ce2701",
       "name": "If26"
@@ -6477,8 +6483,8 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        2608,
-        256
+        2592,
+        336
       ],
       "id": "ea6ccf0a-0b12-4954-aeae-f5b44d9dcaa4",
       "name": "calendar_settings/upsert",
@@ -6488,8 +6494,7 @@
           "id": "C6sB1r7ab5H5EmJj",
           "name": "JWT Auth account"
         }
-      },
-      "onError": "continueErrorOutput"
+      }
     },
     {
       "parameters": {
@@ -6561,7 +6566,7 @@
           "mappingMode": "defineBelow",
           "value": {
             "id": "={{ $json.body.id }}",
-            "user_id": "={{ $json.jwtPayload.userId }}",
+            "user_id": "={{ $json.body.user_id || $json.jwtPayload.userId }}",
             "check_availability": "={{ $json.body.check_availability }}",
             "default_view": "={{ $json.body.default_view }}",
             "grouped_by": "={{ $json.body.grouped_by }}",
@@ -6768,7 +6773,7 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "user_id": "={{ $json.jwtPayload.userId }}",
+            "user_id": "={{ $json.body.user_id || $json.jwtPayload.userId }}",
             "check_availability": "={{ $json.body.check_availability }}",
             "created_at": "={{ $now.toISO() }}",
             "updated_at": "={{ $now.toISO() }}",
@@ -7009,7 +7014,7 @@
         "operation": "executeQuery",
         "query": "SELECT\n  c.id,\n  c.user_id,\n  c.default_view,\n  c.grouped_by,\n  c.check_availability,\n  c.filter_doctors_by_service,\n  c.created_at,\n  c.updated_at,\n  c.hour_height,\n  c.event_label_format,\n  c.default_sede,\n  c.block_unavailable,\n  c.inline_appointment_creation,\n  c.slot_duration,\n  c.mode\nFROM\n  calendar_settings c\nINNER JOIN users u ON c.user_id = u.id\nWHERE\n  COALESCE($1, '') = '' OR\n  (\n    u.id = $1\n  )\nORDER BY\n  c.created_at DESC\nLIMIT 1;",
         "options": {
-          "queryReplacement": "={{ [ $json.jwtPayload.userId || null ] }}"
+          "queryReplacement": "={{ [ $json.query.user_id || $json.jwtPayload.userId || null ] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
@@ -7020,7 +7025,7 @@
       ],
       "id": "ce77226e-049f-4c0f-aa11-e71722f5d268",
       "name": "Select calendar_settings",
-      "alwaysOutputData": false,
+      "alwaysOutputData": true,
       "credentials": {
         "postgres": {
           "id": "6b7Sjdnppbfve8ka",
@@ -7266,7 +7271,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT\n  id::text AS id,\n  title,\n  description,\n  start_datetime::text AS start_datetime,\n  end_datetime::text AS end_datetime,\n  color,\n  priority,\n  status,\n  visibility,\n  raise_alert,\n  alert_instance_id,\n  calendar_id,\n  type,\n  created_by::text AS created_by,\n  created_at::text AS created_at,\n  updated_at::text AS updated_at,\n  completed_at::text AS completed_at,\n  completed_by::text AS completed_by\nFROM reminders\nWHERE ({{ $json.from_sql }}::timestamp IS NULL OR start_datetime >= {{ $json.from_sql }}::timestamp)\n  AND ({{ $json.to_sql }}::timestamp IS NULL OR start_datetime <= {{ $json.to_sql }}::timestamp)\n  AND ({{ $json.status_sql }}::text IS NULL OR status = {{ $json.status_sql }}::text)\n  AND ({{ $json.include_cancelled }}::boolean OR status <> 'cancelled')\n  AND created_by = {{ $json.created_by_sql }}\nORDER BY start_datetime ASC, created_at ASC;",
+        "query": "SELECT\n  id::text AS id,\n  title,\n  description,\n  start_datetime::text AS start_datetime,\n  end_datetime::text AS end_datetime,\n  color,\n  priority,\n  status,\n  visibility,\n  raise_alert,\n  alert_instance_id,\n  calendar_id,\n  type,\n  created_by::text AS created_by,\n  created_at::text AS created_at,\n  updated_at::text AS updated_at,\n  completed_at::text AS completed_at,\n  completed_by::text AS completed_by\nFROM reminders\nWHERE ({{ $json.from_sql }}::timestamp IS NULL OR start_datetime >= {{ $json.from_sql }}::timestamp)\n  AND ({{ $json.to_sql }}::timestamp IS NULL OR start_datetime <= {{ $json.to_sql }}::timestamp)\n  AND ({{ $json.status_sql }}::text IS NULL OR status = {{ $json.status_sql }}::text)\n  AND ({{ $json.include_cancelled }}::boolean OR status <> 'cancelled')\n  AND (created_by = {{ $json.created_by_sql }} OR visibility = 'clinic')\nORDER BY start_datetime ASC, created_at ASC;",
         "options": {}
       },
       "type": "n8n-nodes-base.postgres",
@@ -7286,7 +7291,7 @@
     },
     {
       "parameters": {
-        "content": "## Reminders – Get\n\n**GET** `/webhook/reminders`\n\nReturns internal calendar reminders.\n\n**Query params:**\n- `from`: optional ISO/local datetime lower bound for `start_datetime`\n- `to`: optional ISO/local datetime upper bound for `start_datetime`\n- `status`: optional status filter (`pending`, `done`, `dismissed`, `cancelled`)\n- `include_cancelled`: optional boolean; default false\n\n**Response 200:** array of reminders using the frontend contract:\n`id`, `title`, `description`, `start_datetime`, `end_datetime`, `color`, `priority`, `status`, `visibility`, `raise_alert`, `alert_instance_id`, `created_by`, `created_at`, `updated_at`.",
+        "content": "## Reminders – Get\n\n**GET** `/webhook/reminders`\n\nReturns internal calendar reminders: the caller's own reminders (`created_by = jwt userId`) plus every `visibility = 'clinic'` reminder from any creator.\n\n**Query params:**\n- `from`: optional ISO/local datetime lower bound for `start_datetime`\n- `to`: optional ISO/local datetime upper bound for `start_datetime`\n- `status`: optional status filter (`pending`, `done`, `dismissed`, `cancelled`)\n- `include_cancelled`: optional boolean; default false\n\n**Response 200:** array of reminders using the frontend contract:\n`id`, `title`, `description`, `start_datetime`, `end_datetime`, `color`, `priority`, `status`, `visibility` (`personal`|`clinic`), `raise_alert`, `alert_instance_id`, `created_by`, `created_at`, `updated_at`.",
         "height": 420,
         "width": 520,
         "color": 4
@@ -7343,8 +7348,10 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "DELETE FROM reminders\nWHERE id = '{{ $json.id }}'::uuid\nRETURNING id::text AS id;",
-        "options": {}
+        "query": "DELETE FROM reminders\nWHERE id = $1::uuid AND created_by = $2::uuid\nRETURNING id::text AS id;",
+        "options": {
+          "queryReplacement": "={{ [$json.id, $json.actor_id] }}"
+        }
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
@@ -7380,7 +7387,7 @@
     },
     {
       "parameters": {
-        "content": "## Reminders – Delete\n\n**POST** `/webhook/reminders/delete`\n\nDeletes an internal reminder.\n\n**Request body:**\n```json\n{ \"id\": \"reminder-uuid\" }\n```\n\nThis workflow only deletes the `reminders` row. Alert generation/cleanup is intentionally handled by the alert workflows/rules.\n\n**Response 200:**\n```json\n{ \"success\": true, \"code\": 200, \"id\": \"...\" }\n```",
+        "content": "## Reminders – Delete\n\n**POST** `/webhook/reminders/delete`\n\nDeletes an internal reminder. Only the creator (`created_by`, from the JWT) may delete it — a reminder owned by someone else, or a nonexistent id, returns 403.\n\n**Request body:**\n```json\n{ \"id\": \"reminder-uuid\" }\n```\n\nThis workflow only deletes the `reminders` row. Alert generation/cleanup is intentionally handled by the alert workflows/rules.\n\n**Response 200:**\n```json\n{ \"success\": true, \"code\": 200, \"id\": \"...\" }\n```",
         "height": 420,
         "width": 520,
         "color": 4
@@ -7420,7 +7427,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = $input.first().json.body ?? $input.first().json;\nconst id = String(body.id ?? '').trim();\nif (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {\n  throw new Error('Valid id is required');\n}\nreturn [{ json: { id } }];"
+        "jsCode": "const input = $input.first().json;\nconst body = input.body ?? input;\nconst id = String(body.id ?? '').trim();\nif (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {\n  throw new Error('Valid id is required');\n}\nconst actorId = String(input.jwtPayload?.userId ?? input.jwtPayload?.sub ?? '').trim();\nif (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(actorId)) {\n  throw new Error('Valid jwt userId is required');\n}\nreturn [{ json: { id, actor_id: actorId } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -7433,7 +7440,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const rows = $input.all().map(item => item.json).filter(row => row.id);\nconst parsedId = $('Parse Input3').first().json.id;\nreturn [{ json: { success: true, code: 200, id: rows[0]?.id || parsedId } }];"
+        "jsCode": "const rows = $input.all().map(item => item.json).filter(row => row.id);\nif (rows.length === 0) {\n  return [{ json: { error: true, code: 403, message: 'No autorizado para eliminar este recordatorio' } }];\n}\nreturn [{ json: { success: true, code: 200, id: rows[0].id } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -7777,7 +7784,7 @@
         "operation": "executeQuery",
         "query": "INSERT INTO public.notifications (\n  user_id, type, status, priority, appointment_id, session_id, patient_id, metadata, created_at, read_at\n)\nVALUES (\n  $1, 'appointment_status_change', 'pending', 'MEDIUM', $2, null, $3, $4, $5, null\n)\nRETURNING *;",
         "options": {
-          "queryReplacement": "={{ [$json.assignee_id, $json.id, $json.patient_id, $json, $now] }}"
+          "queryReplacement": "={{ [$json.assignee_id, $json.id, $json.patient_id, { ...$json, previous_status: $('Check Current Status').first().json.from_status }, $now] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
@@ -8406,7 +8413,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = $input.first().json;\nconst body = input.body ?? input;\n\nconst UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\nconst LOCAL_DATETIME_PATTERN = /^\\d{4}-\\d{2}-\\d{2}[T ]\\d{2}:\\d{2}(?::\\d{2}(?:\\.\\d{1,6})?)?$/;\nconst HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;\n\nconst requireUuid = (value, field) => {\n  const text = String(value ?? '').trim();\n  if (!UUID_PATTERN.test(text)) throw new Error(`${field} must be a valid UUID`);\n  return text;\n};\n\nconst optionalUuid = (value, field) => {\n  if (value == null || value === '') return null;\n  return requireUuid(value, field);\n};\n\nconst localDateTime = (value, field, required = true) => {\n  if (value == null || value === '') {\n    if (required) throw new Error(`${field} is required`);\n    return null;\n  }\n  const text = String(value).trim();\n  if (!LOCAL_DATETIME_PATTERN.test(text)) {\n    throw new Error(`${field} must be a local datetime without Z or timezone offset`);\n  }\n  return text.replace(' ', 'T');\n};\n\nconst actorId = requireUuid(input.jwtPayload?.userId ?? input.jwtPayload?.sub, 'jwt userId');\nconst id = optionalUuid(body.id, 'id');\nconst type = String(body.type ?? 'reminder').trim().toLowerCase();\nconst priority = String(body.priority ?? 'MEDIUM').trim().toUpperCase();\nconst status = String(body.status ?? 'pending').trim().toLowerCase();\n\nif (!['note', 'reminder'].includes(type)) throw new Error(`Invalid type: ${body.type}`);\nif (!['LOW', 'MEDIUM', 'HIGH'].includes(priority)) throw new Error(`Invalid priority: ${body.priority}`);\nif (!['pending', 'done', 'dismissed', 'cancelled'].includes(status)) throw new Error(`Invalid status: ${body.status}`);\n\nconst title = String(body.title ?? '').trim();\nif (!title) throw new Error('title is required');\n\nlet calendarId = null;\nif (body.calendar_id != null && body.calendar_id !== '') {\n  calendarId = String(body.calendar_id).trim();\n  if (!/^[1-9]\\d*$/.test(calendarId)) throw new Error(`Invalid calendar_id: ${body.calendar_id}`);\n}\n\nconst defaultColors = { LOW: '#3b82f6', MEDIUM: '#f59e0b', HIGH: '#ef4444' };\nconst requestedColor = String(body.color ?? '').trim();\nif (requestedColor && !HEX_COLOR_PATTERN.test(requestedColor)) {\n  throw new Error(`Invalid color: ${body.color}`);\n}\n\nreturn [{\n  json: {\n    id,\n    type,\n    calendar_id: calendarId,\n    title,\n    description: body.description == null || body.description === '' ? null : String(body.description),\n    start_datetime: localDateTime(body.start_datetime, 'start_datetime'),\n    end_datetime: localDateTime(body.end_datetime, 'end_datetime', false),\n    color: (requestedColor || defaultColors[priority]).toLowerCase(),\n    priority,\n    status,\n    raise_alert: type === 'reminder' && body.raise_alert === true,\n    actor_id: actorId\n  }\n}];"
+        "jsCode": "const input = $input.first().json;\nconst body = input.body ?? input;\n\nconst UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\nconst LOCAL_DATETIME_PATTERN = /^\\d{4}-\\d{2}-\\d{2}[T ]\\d{2}:\\d{2}(?::\\d{2}(?:\\.\\d{1,6})?)?$/;\nconst HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;\n\nconst requireUuid = (value, field) => {\n  const text = String(value ?? '').trim();\n  if (!UUID_PATTERN.test(text)) throw new Error(`${field} must be a valid UUID`);\n  return text;\n};\n\nconst optionalUuid = (value, field) => {\n  if (value == null || value === '') return null;\n  return requireUuid(value, field);\n};\n\nconst localDateTime = (value, field, required = true) => {\n  if (value == null || value === '') {\n    if (required) throw new Error(`${field} is required`);\n    return null;\n  }\n  const text = String(value).trim();\n  if (!LOCAL_DATETIME_PATTERN.test(text)) {\n    throw new Error(`${field} must be a local datetime without Z or timezone offset`);\n  }\n  return text.replace(' ', 'T');\n};\n\nconst actorId = requireUuid(input.jwtPayload?.userId ?? input.jwtPayload?.sub, 'jwt userId');\nconst id = optionalUuid(body.id, 'id');\nconst type = String(body.type ?? 'reminder').trim().toLowerCase();\nconst priority = String(body.priority ?? 'MEDIUM').trim().toUpperCase();\nconst status = String(body.status ?? 'pending').trim().toLowerCase();\n\nif (!['note', 'reminder'].includes(type)) throw new Error(`Invalid type: ${body.type}`);\nif (!['LOW', 'MEDIUM', 'HIGH'].includes(priority)) throw new Error(`Invalid priority: ${body.priority}`);\nif (!['pending', 'done', 'dismissed', 'cancelled'].includes(status)) throw new Error(`Invalid status: ${body.status}`);\n\nconst visibility = String(body.visibility ?? 'personal').trim().toLowerCase();\nif (!['personal', 'clinic'].includes(visibility)) throw new Error(`Invalid visibility: ${body.visibility}`);\n\nconst title = String(body.title ?? '').trim();\nif (!title) throw new Error('title is required');\n\nlet calendarId = null;\nif (body.calendar_id != null && body.calendar_id !== '') {\n  calendarId = String(body.calendar_id).trim();\n  if (!/^[1-9]\\d*$/.test(calendarId)) throw new Error(`Invalid calendar_id: ${body.calendar_id}`);\n}\n\nconst defaultColors = { LOW: '#3b82f6', MEDIUM: '#f59e0b', HIGH: '#ef4444' };\nconst requestedColor = String(body.color ?? '').trim();\nif (requestedColor && !HEX_COLOR_PATTERN.test(requestedColor)) {\n  throw new Error(`Invalid color: ${body.color}`);\n}\n\nreturn [{\n  json: {\n    id,\n    type,\n    calendar_id: calendarId,\n    title,\n    description: body.description == null || body.description === '' ? null : String(body.description),\n    start_datetime: localDateTime(body.start_datetime, 'start_datetime'),\n    end_datetime: localDateTime(body.end_datetime, 'end_datetime', false),\n    color: (requestedColor || defaultColors[priority]).toLowerCase(),\n    priority,\n    status,\n    visibility,\n    raise_alert: type === 'reminder' && body.raise_alert === true,\n    actor_id: actorId\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -8420,9 +8427,9 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO public.reminders AS existing (\n  id,\n  type,\n  calendar_id,\n  title,\n  description,\n  start_datetime,\n  end_datetime,\n  color,\n  priority,\n  status,\n  visibility,\n  raise_alert,\n  created_by,\n  completed_at,\n  completed_by,\n  created_at,\n  updated_at\n) VALUES (\n  COALESCE($1::uuid, gen_random_uuid()),\n  $2::character varying,\n  $3::bigint,\n  $4::text,\n  $5::text,\n  $6::timestamp,\n  $7::timestamp,\n  $8::character varying,\n  $9::character varying,\n  $10::character varying,\n  'clinic',\n  CASE WHEN $2::text = 'note' THEN FALSE ELSE $11::boolean END,\n  $12::uuid,\n  CASE WHEN $10::text = 'done' THEN NOW() ELSE NULL END,\n  CASE WHEN $10::text = 'done' THEN $12::uuid ELSE NULL END,\n  NOW(),\n  NOW()\n)\nON CONFLICT (id) DO UPDATE\nSET type           = EXCLUDED.type,\n    calendar_id    = EXCLUDED.calendar_id,\n    title          = EXCLUDED.title,\n    description    = EXCLUDED.description,\n    start_datetime = EXCLUDED.start_datetime,\n    end_datetime   = EXCLUDED.end_datetime,\n    color          = EXCLUDED.color,\n    priority       = EXCLUDED.priority,\n    status         = EXCLUDED.status,\n    visibility     = EXCLUDED.visibility,\n    raise_alert    = CASE WHEN EXCLUDED.type = 'note' THEN FALSE ELSE EXCLUDED.raise_alert END,\n    completed_at   = CASE\n                       WHEN EXCLUDED.status = 'done' THEN COALESCE(existing.completed_at, NOW())\n                       ELSE NULL\n                     END,\n    completed_by   = CASE\n                       WHEN EXCLUDED.status = 'done' THEN COALESCE(existing.completed_by, EXCLUDED.completed_by)\n                       ELSE NULL\n                     END,\n    updated_at     = NOW()\nRETURNING\n  id::text AS id,\n  type,\n  calendar_id::text AS calendar_id,\n  title,\n  description,\n  start_datetime::text AS start_datetime,\n  end_datetime::text AS end_datetime,\n  color,\n  priority,\n  status,\n  visibility,\n  raise_alert,\n  alert_instance_id,\n  created_by::text AS created_by,\n  created_at::text AS created_at,\n  updated_at::text AS updated_at,\n  completed_at::text AS completed_at,\n  completed_by::text AS completed_by;",
+        "query": "INSERT INTO public.reminders AS existing (\n  id,\n  type,\n  calendar_id,\n  title,\n  description,\n  start_datetime,\n  end_datetime,\n  color,\n  priority,\n  status,\n  visibility,\n  raise_alert,\n  created_by,\n  completed_at,\n  completed_by,\n  created_at,\n  updated_at\n) VALUES (\n  COALESCE($1::uuid, gen_random_uuid()),\n  $2::character varying,\n  $3::bigint,\n  $4::text,\n  $5::text,\n  $6::timestamp,\n  $7::timestamp,\n  $8::character varying,\n  $9::character varying,\n  $10::character varying,\n  $13::character varying,\n  CASE WHEN $2::text = 'note' THEN FALSE ELSE $11::boolean END,\n  $12::uuid,\n  CASE WHEN $10::text = 'done' THEN NOW() ELSE NULL END,\n  CASE WHEN $10::text = 'done' THEN $12::uuid ELSE NULL END,\n  NOW(),\n  NOW()\n)\nON CONFLICT (id) DO UPDATE\nSET type           = EXCLUDED.type,\n    calendar_id    = EXCLUDED.calendar_id,\n    title          = EXCLUDED.title,\n    description    = EXCLUDED.description,\n    start_datetime = EXCLUDED.start_datetime,\n    end_datetime   = EXCLUDED.end_datetime,\n    color          = EXCLUDED.color,\n    priority       = EXCLUDED.priority,\n    status         = EXCLUDED.status,\n    visibility     = EXCLUDED.visibility,\n    raise_alert    = CASE WHEN EXCLUDED.type = 'note' THEN FALSE ELSE EXCLUDED.raise_alert END,\n    completed_at   = CASE\n                       WHEN EXCLUDED.status = 'done' THEN COALESCE(existing.completed_at, NOW())\n                       ELSE NULL\n                     END,\n    completed_by   = CASE\n                       WHEN EXCLUDED.status = 'done' THEN COALESCE(existing.completed_by, EXCLUDED.completed_by)\n                       ELSE NULL\n                     END,\n    updated_at     = NOW()\nWHERE existing.created_by = EXCLUDED.created_by\nRETURNING\n  id::text AS id,\n  type,\n  calendar_id::text AS calendar_id,\n  title,\n  description,\n  start_datetime::text AS start_datetime,\n  end_datetime::text AS end_datetime,\n  color,\n  priority,\n  status,\n  visibility,\n  raise_alert,\n  alert_instance_id,\n  created_by::text AS created_by,\n  created_at::text AS created_at,\n  updated_at::text AS updated_at,\n  completed_at::text AS completed_at,\n  completed_by::text AS completed_by;",
         "options": {
-          "queryReplacement": "={{ [ $json.id, $json.type, $json.calendar_id, $json.title, $json.description, $json.start_datetime, $json.end_datetime, $json.color, $json.priority, $json.status, $json.raise_alert, $json.actor_id ] }}"
+          "queryReplacement": "={{ [ $json.id, $json.type, $json.calendar_id, $json.title, $json.description, $json.start_datetime, $json.end_datetime, $json.color, $json.priority, $json.status, $json.raise_alert, $json.actor_id, $json.visibility ] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
@@ -8442,7 +8449,71 @@
     },
     {
       "parameters": {
-        "content": "## Reminders – Upsert\n\n**POST** `/webhook/reminders/upsert`\n\nCreates or updates a note or reminder. PostgreSQL receives every dynamic value through prepared-statement parameters; no request value is interpolated into SQL.\n\n**Request body:**\n```json\n{\n  \"id\": \"optional-uuid\",\n  \"type\": \"note | reminder\",\n  \"calendar_id\": \"42 | null\",\n  \"title\": \"Llamar a laboratorio\",\n  \"description\": \"Detalles opcionales\",\n  \"start_datetime\": \"2026-05-13T13:45:00\",\n  \"end_datetime\": \"2026-05-13T14:00:00\",\n  \"color\": \"#5484ed\",\n  \"priority\": \"MEDIUM\",\n  \"status\": \"pending\",\n  \"raise_alert\": true\n}\n```\n\n`calendar_id` is nullable. `created_by` and completion ownership come from the authenticated JWT, never from the request body. Notes always persist with `raise_alert = false`. Alert scheduling remains the responsibility of the alert workflows; this endpoint does not create `alert_instances`.\n\nThe INSERT/UPDATE uses `RETURNING`, so a second SELECT is unnecessary.",
+        "jsCode": "const rows = $input.all();\nif (rows.length === 0) {\n  return [{ json: { __error: true, code: 403, message: 'No autorizado para modificar este recordatorio' } }];\n}\nreturn [{ json: { ...rows[0].json } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6656,
+        128
+      ],
+      "id": "7b1c2f4a-9e3d-4b6a-8f0a-2c1d5e7a9b31",
+      "name": "Check Ownership"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "id": "5c8e6f2b-1a4d-4e9c-8b3a-7d0f2c6e4a19"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        6720,
+        128
+      ],
+      "id": "9d4a1e6c-3b7f-4a2d-9e5c-1f8b6d0a3c72",
+      "name": "Has Error? (Reminder Ownership)"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ error: true, code: $json.code, message: $json.message }) }}",
+        "options": {
+          "responseCode": "={{ $json.code }}"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        6784,
+        256
+      ],
+      "id": "2e6b8d0f-4c9a-4b1e-8d3f-6a2c9e0b7d54",
+      "name": "Respond 403"
+    },
+    {
+      "parameters": {
+        "content": "## Reminders – Upsert\n\n**POST** `/webhook/reminders/upsert`\n\nCreates or updates a note or reminder. PostgreSQL receives every dynamic value through prepared-statement parameters; no request value is interpolated into SQL.\n\n**Request body:**\n```json\n{\n  \"id\": \"optional-uuid\",\n  \"type\": \"note | reminder\",\n  \"calendar_id\": \"42 | null\",\n  \"title\": \"Llamar a laboratorio\",\n  \"description\": \"Detalles opcionales\",\n  \"start_datetime\": \"2026-05-13T13:45:00\",\n  \"end_datetime\": \"2026-05-13T14:00:00\",\n  \"color\": \"#5484ed\",\n  \"priority\": \"MEDIUM\",\n  \"status\": \"pending\",\n  \"raise_alert\": true,\n  \"visibility\": \"personal | clinic\"\n}\n```\n\n`calendar_id` is nullable. `created_by` and completion ownership come from the authenticated JWT, never from the request body. Notes always persist with `raise_alert = false`. `visibility` defaults to `personal` (only the creator sees/gets notified); `clinic` is visible to and notifies all active staff. Editing/deleting an existing reminder is only allowed for its creator — a mismatched owner returns 403. Alert scheduling remains the responsibility of the alert workflows; this endpoint does not create `alert_instances`.\n\nThe INSERT/UPDATE uses `RETURNING`, so a second SELECT is unnecessary.",
         "height": 650,
         "width": 620,
         "color": 4
@@ -8467,8 +8538,8 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        6784,
-        128
+        6848,
+        64
       ],
       "id": "dc212917-970e-4f4a-95b6-b6063269603f",
       "name": "Respond 202"
@@ -9074,6 +9145,69 @@
             "expiresIn": "24h",
             "iat": 1778170749
           }
+        }
+      }
+    ],
+    "calendar_settings/upsert": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+            "content-length": "415",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3ODI1MTMxMTl9.zzQ83widCIuyJvFMQX8cI1hWE9jSKyUVkRU6vAYsueU",
+            "cache-control": "no-cache",
+            "content-type": "application/json",
+            "origin": "http://localhost:3000",
+            "pragma": "no-cache",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/es/system/users",
+            "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"macOS\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "186.54.85.70",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "d4e738525fe6",
+            "x-real-ip": "186.54.85.70"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "default_view": "day",
+            "grouped_by": "none",
+            "check_availability": false,
+            "filter_doctors_by_service": false,
+            "block_unavailable": false,
+            "hour_height": 80,
+            "slot_duration": 15,
+            "event_label_format": "time_patient_notes",
+            "default_sede": "",
+            "mode": "custom",
+            "id": "11",
+            "user_id": "fffad98c-c056-4c69-b1b7-1a26284fe799",
+            "created_at": "2026-07-23T14:34:17.436Z",
+            "updated_at": "2026-07-23T14:38:06.985Z",
+            "inline_appointment_creation": true
+          },
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/calendar_settings/upsert",
+          "executionMode": "production",
+          "jwtPayload": {
+            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "email": "raidel@invokeia.com",
+            "expiresIn": "24h",
+            "iat": 1782513119
+          }
+        },
+        "pairedItem": {
+          "item": 0
         }
       }
     ]
@@ -11022,6 +11156,35 @@
       "main": [
         [
           {
+            "node": "Check Ownership",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Ownership": {
+      "main": [
+        [
+          {
+            "node": "Has Error? (Reminder Ownership)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Error? (Reminder Ownership)": {
+      "main": [
+        [
+          {
+            "node": "Respond 403",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Respond 202",
             "type": "main",
             "index": 0
@@ -11035,7 +11198,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "bab5b2e8-5322-4de1-a8a5-3e9f39b83568",
+  "versionId": "d5c71b3c-17fe-40b2-aafd-d1059504dbe1",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"

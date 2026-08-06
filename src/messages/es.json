@@ -5309,6 +5309,12 @@
     "timeLabel": "Hora",
     "durationLabel": "Duración (min)",
     "priorityLabel": "Prioridad",
+    "visibilityLabel": "Alcance",
+    "visibility": {
+      "personal": "Personal",
+      "general": "General (todo el staff)"
+    },
+    "generalBadge": "General",
     "calendarLabel": "Calendario",
     "noCalendar": "Sin calendario",
     "groupedItems": "Notas y recordatorios",

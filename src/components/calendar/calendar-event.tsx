@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { BellRing, CheckCircle2, FileText } from 'lucide-react';
+import { BellRing, CheckCircle2, FileText, Users } from 'lucide-react';
 
 import {
   ContextMenu,
@@ -18,7 +18,7 @@ import { getStatusIcon } from '@/components/appointments/status-icons';
 
 import type { CalendarEvent } from './calendar-types';
 import { formatEventTime, getReadableTextColor } from './calendar-utils';
-import { getReminderCardStyle, getReminderPriorityColor, isReminderDone } from './reminder-visuals';
+import { getReminderCardStyle, getReminderPriorityColor, isGeneralReminder, isReminderDone } from './reminder-visuals';
 
 interface CalendarEventChipProps {
   event: CalendarEvent;
@@ -43,7 +43,8 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
   const reminderStatus = event.data?.status as CalendarReminderStatus | undefined;
   const reminderPriority = event.data?.priority as CalendarReminderPriority | undefined;
   const reminderIsDone = isReminderDone(reminderStatus);
-  const ReminderIcon = isNote ? FileText : reminderIsDone ? CheckCircle2 : BellRing;
+  const reminderIsGeneral = isReminder && isGeneralReminder(event.data);
+  const ReminderIcon = isNote ? FileText : reminderIsDone ? CheckCircle2 : reminderIsGeneral ? Users : BellRing;
   const status = (rawStatus?.toLowerCase() as AppointmentStatus | undefined) ?? undefined;
   const cancellationReason = (event.data?.cancellation_reason as CancellationReason | undefined) ?? null;
   const isCancelled = status === 'cancelled';

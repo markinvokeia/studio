@@ -13,6 +13,7 @@ import {
   ListChecks,
   Loader2,
   Stethoscope,
+  Users,
   X,
   Zap,
 } from 'lucide-react';
@@ -23,6 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { normalizeAppointmentStatus, STATUS_BADGE_VARIANT } from '@/constants/appointment-status';
 import { API_ROUTES } from '@/constants/routes';
+import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/notifications-context';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { fetchAppointmentBillingState } from '@/services/billing-preflight';
@@ -560,10 +562,14 @@ function NewAppointmentCard({ notification }: { notification: NewAppointmentNoti
 
 function ReminderCard({ notification }: { notification: ReminderPanelNotification }) {
   const { dismissNotification } = useNotifications();
+  const { user } = useAuth();
   const t = useTranslations('Notifications');
+  const tReminders = useTranslations('Reminders');
   const { reminder, createdAt } = notification;
   const [isDone, setIsDone] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
+  const isGeneral = reminder.visibility === 'clinic';
+  const isOwner = !reminder.created_by || reminder.created_by === user?.id;
 
   const priorityAccent =
     reminder.priority === 'HIGH'
@@ -621,25 +627,33 @@ function ReminderCard({ notification }: { notification: ReminderPanelNotificatio
             <Badge variant="outline" className="text-[10px] capitalize">
               {t(`priority_${reminder.priority.toLowerCase()}`)}
             </Badge>
+            {isGeneral && (
+              <Badge className="gap-1 bg-purple-500 text-[10px] text-white hover:bg-purple-500">
+                <Users className="h-2.5 w-2.5" />
+                {tReminders('generalBadge')}
+              </Badge>
+            )}
           </div>
 
-          <Button
-            variant={isDone ? 'default' : 'outline'}
-            size="sm"
-            className={cn(
-              'mt-3 h-7 w-full justify-start gap-2 text-[11px] transition-colors',
-              isDone && 'bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-500',
-            )}
-            onClick={handleMarkDone}
-            disabled={isLoading || isDone}
-          >
-            {isLoading ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Check className={cn('h-3.5 w-3.5', isDone ? 'text-white' : 'text-emerald-600')} />
-            )}
-            {isDone ? t('reminderDone') : t('actionMarkDone')}
-          </Button>
+          {isOwner && (
+            <Button
+              variant={isDone ? 'default' : 'outline'}
+              size="sm"
+              className={cn(
+                'mt-3 h-7 w-full justify-start gap-2 text-[11px] transition-colors',
+                isDone && 'bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-500',
+              )}
+              onClick={handleMarkDone}
+              disabled={isLoading || isDone}
+            >
+              {isLoading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Check className={cn('h-3.5 w-3.5', isDone ? 'text-white' : 'text-emerald-600')} />
+              )}
+              {isDone ? t('reminderDone') : t('actionMarkDone')}
+            </Button>
+          )}
         </div>
       </div>
     </CardWrapper>

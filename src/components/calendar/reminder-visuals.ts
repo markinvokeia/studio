@@ -1,6 +1,6 @@
 import type * as React from 'react';
 
-import type { CalendarReminderPriority, CalendarReminderStatus } from '@/lib/types';
+import type { CalendarReminder, CalendarReminderPriority, CalendarReminderStatus } from '@/lib/types';
 
 import { getReadableTextColor } from './calendar-utils';
 
@@ -20,6 +20,10 @@ export function getReminderPriorityColor(priority?: CalendarReminderPriority | n
 
 export function isReminderDone(status?: CalendarReminderStatus | string | null) {
   return status === 'done';
+}
+
+export function isGeneralReminder(reminder?: Pick<CalendarReminder, 'visibility'> | null) {
+  return reminder?.visibility === 'clinic';
 }
 
 export function getReminderCardStyle(color?: string | null, done = false): React.CSSProperties {

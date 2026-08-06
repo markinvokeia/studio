@@ -35,7 +35,7 @@ import { useLocalAI } from '@/hooks/use-local-ai';
 import { getPriorityColor } from '@/lib/reminders';
 import { cn, toLocalISOString } from '@/lib/utils';
 
-import type { Calendar, CalendarItemType, CalendarReminder, CalendarReminderPriority } from '@/lib/types';
+import type { Calendar, CalendarItemType, CalendarReminder, CalendarReminderPriority, CalendarReminderVisibility } from '@/lib/types';
 
 export interface ReminderFormValues {
   type: CalendarItemType;
@@ -46,6 +46,7 @@ export interface ReminderFormValues {
   end_datetime: string;
   color: string;
   priority: CalendarReminderPriority;
+  visibility: CalendarReminderVisibility;
 }
 
 interface ReminderFormDialogProps {
@@ -110,6 +111,7 @@ export function ReminderFormDialog({
   const [time, setTime] = React.useState(format(new Date(), 'HH:mm'));
   const [duration, setDuration] = React.useState(String(DEFAULT_DURATION_MINUTES));
   const [priority, setPriority] = React.useState<CalendarReminderPriority>('MEDIUM');
+  const [visibility, setVisibility] = React.useState<CalendarReminderVisibility>('personal');
   const [calendarId, setCalendarId] = React.useState<string | null>(null);
   const [color, setColor] = React.useState(getPriorityColor('MEDIUM'));
   const [error, setError] = React.useState<string | null>(null);
@@ -132,6 +134,7 @@ export function ReminderFormDialog({
     setTime(format(start, 'HH:mm'));
     setDuration(String(durationMinutes));
     setPriority(nextPriority);
+    setVisibility(editingReminder?.visibility ?? 'personal');
     setCalendarId(editingReminder?.calendar_id ?? initialCalendarId);
     setColor(persistedColor ?? getPriorityColor(nextPriority));
     isColorManuallySelectedRef.current = persistedColor !== null;
@@ -201,6 +204,7 @@ export function ReminderFormDialog({
       end_datetime: toLocalISOString(addMinutes(start, durationMinutes)),
       color,
       priority,
+      visibility: itemType === 'reminder' ? visibility : 'personal',
     });
     onOpenChange(false);
   };
@@ -283,6 +287,21 @@ export function ReminderFormDialog({
                     <SelectItem value="LOW">{t('priority.low')}</SelectItem>
                     <SelectItem value="MEDIUM">{t('priority.medium')}</SelectItem>
                     <SelectItem value="HIGH">{t('priority.high')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {!isNote && (
+              <div className="space-y-2">
+                <Label>{t('visibilityLabel')}</Label>
+                <Select value={visibility} onValueChange={(value) => setVisibility(value as CalendarReminderVisibility)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="personal">{t('visibility.personal')}</SelectItem>
+                    <SelectItem value="clinic">{t('visibility.general')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

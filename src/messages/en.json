@@ -5331,6 +5331,12 @@
     "timeLabel": "Time",
     "durationLabel": "Duration (min)",
     "priorityLabel": "Priority",
+    "visibilityLabel": "Scope",
+    "visibility": {
+      "personal": "Personal",
+      "general": "General (entire staff)"
+    },
+    "generalBadge": "General",
     "calendarLabel": "Calendar",
     "noCalendar": "No calendar",
     "groupedItems": "Notes and reminders",

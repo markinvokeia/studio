@@ -1726,7 +1726,7 @@ export default function AppointmentsPage() {
             color: values.color,
             priority: values.priority,
             status: editingReminder?.status ?? 'pending',
-            visibility: 'clinic',
+            visibility: values.visibility,
             created_by: editingReminder?.created_by ?? null,
             created_at: editingReminder?.created_at ?? now,
             updated_at: editingReminder ? now : null,
@@ -1754,7 +1754,7 @@ export default function AppointmentsPage() {
                 color: values.color,
                 priority: values.priority,
                 status: editingReminder?.status ?? 'pending',
-                visibility: 'clinic',
+                visibility: values.visibility,
                 raise_alert: editingReminder?.raise_alert ?? true,
                 created_by: editingReminder?.created_by ?? user?.id ?? undefined,
             });
@@ -1842,6 +1842,10 @@ export default function AppointmentsPage() {
             refreshCalendarDataRef.current();
         }
     }, [tReminders, toast]);
+
+    const isReminderOwner = React.useCallback((reminder: CalendarReminder) => (
+        !reminder.created_by || reminder.created_by === user?.id
+    ), [user]);
 
     const handleEdit = (appointment: Appointment) => {
         if (calendarMode === 'custom' && openInlineDraftForAppointment(appointment, false)) {
@@ -3024,6 +3028,8 @@ export default function AppointmentsPage() {
 
         if (eventData.kind === 'reminder') {
             const reminder = eventData as CalendarReminder;
+            const canManage = isReminderOwner(reminder);
+            if (!canManage) return null;
             return (
                 <>
                     {colorSwatchGrid}
@@ -4415,6 +4421,7 @@ export default function AppointmentsPage() {
                 open={isReminderPanelOpen}
                 onOpenChange={setIsReminderPanelOpen}
                 reminder={selectedReminder}
+                currentUserId={user?.id}
                 onEdit={handleEditReminder}
                 onMarkDone={handleMarkReminderDone}
                 onDelete={handleDeleteReminder}
