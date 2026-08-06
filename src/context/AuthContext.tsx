@@ -9,6 +9,11 @@ import api from '@/services/api';
 interface AuthContextType {
   user: AuthUser | null;
   login: (email: string, password: string) => Promise<void>;
+  /**
+   * Inicia sesión con un token ya emitido, sin email/password. Lo usa el portal
+   * del paciente, donde el JWT llega de `/api/auth/patient/verify-code`.
+   */
+  loginWithToken: (token: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
   activeCashSession: any | null;
@@ -144,6 +149,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await checkActiveSession();
   };
 
+  const loginWithToken = async (token: string) => {
+    localStorage.setItem('token', token);
+
+    const authUser = await fetchAuthUser();
+    if (!authUser) {
+      localStorage.removeItem('token');
+      throw new Error('No se pudo cargar la sesión del usuario.');
+    }
+
+    const basicUser = {
+      id: authUser.id,
+      name: authUser.name,
+      email: authUser.email,
+    };
+    setUser(authUser);
+    localStorage.setItem('user', JSON.stringify(basicUser));
+
+    await checkActiveSession();
+  };
+
   const logout = async () => {
     try {
       await api.post(API_ROUTES.LOGOUT, {});
@@ -161,6 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={{
       user,
       login,
+      loginWithToken,
       logout,
       isLoading,
       activeCashSession,

@@ -1,0 +1,406 @@
+{
+  "name": "Patient Portal — Register",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "api/auth/patient/register",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-validate",
+      "name": "Validar Datos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        280,
+        300
+      ],
+      "parameters": {
+        "jsCode": "\n// Valida el payload mínimo de auto-registro: nombre, teléfono y email.\nconst body = $input.first().json.body || $input.first().json || {};\n\nconst name  = String(body.name || '').trim();\nconst phone = String(body.phone || '').trim();\nconst email = String(body.email || '').trim().toLowerCase();\n\n// El teléfono es opcional: sirve para que la clínica pueda contactarlo, pero\n// no bloquea el registro. El email sí es obligatorio: es la credencial del\n// paciente y a donde llega el código de acceso.\nif (!name || !email) {\n  return [{ json: { __respond: true, statusCode: 400,\n                    body: { message: 'Nombre y email son obligatorios.' } } }];\n}\n\nreturn [{ json: {\n  name, email,\n  phone: phone || null,\n  identity_document: String(body.identity_document || '').replace(/\\D/g, '') || null,\n  birth_date: String(body.birth_date || '').trim() || null,\n  address: String(body.address || '').trim() || null,\n  // '__no_match__' evita que un teléfono vacío colisione con filas sin teléfono.\n  phone_digits: phone ? phone.replace(/\\D/g, '') : '__no_match__',\n} }];\n"
+      }
+    },
+    {
+      "id": "node-conflict",
+      "name": "Buscar Conflictos",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        460,
+        300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    bool_or(lower(email) = $1) AS email_taken,\n    bool_or(regexp_replace(coalesce(phone_number, ''), '\\D', '', 'g') = $2) AS phone_taken,\n    bool_or($3 IS NOT NULL AND identity_document = $3) AS document_taken\nFROM public.users",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.email, $json.phone_digits, $json.identity_document ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "id": "node-check",
+      "name": "Evaluar Conflictos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        300
+      ],
+      "parameters": {
+        "jsCode": "\n// El frontend ya sabe leer este formato de conflicto (ver patient-form-utils.ts).\nconst row = $input.first().json || {};\nconst conflicted = [];\nif (row.email_taken)    conflicted.push('email');\nif (row.phone_taken)    conflicted.push('phone');\nif (row.document_taken) conflicted.push('identity_document');\n\nif (conflicted.length) {\n  return [{ json: { __respond: true, statusCode: 409, body: {\n    error: { code: 'unique_conflict', conflictedFields: conflicted },\n    message: 'Ya existe una cuenta con esos datos.',\n  } } }];\n}\n\nreturn [{ json: { ...$('Validar Datos').first().json, __respond: false } }];\n"
+      }
+    },
+    {
+      "id": "node-if",
+      "name": "¿Sin Conflictos?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        820,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ok",
+              "operator": {
+                "type": "boolean",
+                "operation": "false"
+              },
+              "leftValue": "={{ $json.__respond }}",
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "node-insert",
+      "name": "Crear Usuario",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1000,
+        220
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.users\n    (name, email, phone_number, identity_document, birthday, address,\n     is_active, is_sales, is_portal_user)\nVALUES ($1, $2, $3, $4, NULLIF($5, '')::date, $6, TRUE, TRUE, FALSE)\nRETURNING id, name, email",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.name, $json.email, $json.phone, $json.identity_document, $json.birth_date, $json.address ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "node-role",
+      "name": "Asignar Rol Paciente",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1180,
+        220
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.user_roles (user_id, role_id, is_active)\nSELECT $1::uuid, r.id, TRUE FROM public.roles r WHERE r.name = 'Paciente'\nON CONFLICT (user_id, role_id) DO UPDATE SET is_active = TRUE\nRETURNING user_id",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "id": "node-gen",
+      "name": "Generar Código",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1380,
+        220
+      ],
+      "parameters": {
+        "jsCode": "function maskEmail(email) {\n  if (!email) return null;\n  const [user, domain] = String(email).split('@');\n  if (!domain) return null;\n  const head = user.slice(0, 1);\n  const tail = user.length > 1 ? user.slice(-1) : '';\n  return `${head}***${tail}@${domain}`;\n}\n\n// Genera y persiste el código para el usuario recién creado.\nconst created = $('Crear Usuario').first().json;\nlet code;\ndo {\n  code = String(Math.floor(100000 + Math.random() * 900000));\n} while (/^(\\d)\\1{5}$/.test(code));\n\nreturn [{ json: {\n  user_id: created.id,\n  user_name: created.name,\n  target_email: created.email,\n  code,\n  masked_email: maskEmail(created.email),\n} }];\n"
+      }
+    },
+    {
+      "id": "node-store",
+      "name": "Guardar Código",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1560,
+        220
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE public.users SET\n    login_code            = encode(digest($2 || id::text, 'sha256'), 'hex'),\n    login_code_expires_at = NOW() + interval '10 minutes',\n    login_code_attempts   = 0,\n    login_code_sent_at    = NOW()\nWHERE id = $1::uuid\nRETURNING id",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.user_id, $json.code ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "id": "node-email",
+      "name": "Enviar Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1740,
+        220
+      ],
+      "parameters": {
+        "fromEmail": "SMTP_FROM_EMAIL",
+        "toEmail": "={{ $('Generar Código').first().json.target_email }}",
+        "subject": "=Tu código de acceso: {{ $('Generar Código').first().json.code }}",
+        "emailFormat": "html",
+        "html": "=<div style=\"font-family:system-ui,-apple-system,sans-serif;max-width:480px;margin:0 auto;padding:24px\"><h2 style=\"margin:0 0 8px\">Hola {{ $('Generar Código').first().json.user_name }}</h2><p style=\"color:#555;margin:0 0 24px\">Este es tu código para entrar a tu portal de paciente:</p><p style=\"font-size:32px;font-weight:700;letter-spacing:8px;text-align:center;margin:0 0 24px\">{{ $('Generar Código').first().json.code }}</p><p style=\"color:#777;font-size:13px;margin:0\">El código vence en 10 minutos. Si no fuiste vos quien lo pidió, ignorá este mensaje.</p></div>",
+        "options": {}
+      },
+      "credentials": {
+        "smtp": {
+          "id": "SMTP_CREDENTIAL_ID",
+          "name": "SMTP"
+        }
+      }
+    },
+    {
+      "id": "node-format",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        220
+      ],
+      "parameters": {
+        "jsCode": "\nconst ctx = $('Generar Código').first().json;\nreturn [{ json: { statusCode: 200, body: {\n  created: true,\n  user_id: ctx.user_id,\n  sent: true,\n  masked_email: ctx.masked_email,\n  expires_in: 600,\n} } }];\n"
+      }
+    },
+    {
+      "id": "node-error",
+      "name": "Formatear Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        420
+      ],
+      "parameters": {
+        "jsCode": "return [{ json: { statusCode: $json.statusCode, body: $json.body } }];"
+      }
+    },
+    {
+      "id": "node-respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        2100,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Datos": {
+      "main": [
+        [
+          {
+            "node": "Buscar Conflictos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Conflictos": {
+      "main": [
+        [
+          {
+            "node": "Evaluar Conflictos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluar Conflictos": {
+      "main": [
+        [
+          {
+            "node": "¿Sin Conflictos?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Sin Conflictos?": {
+      "main": [
+        [
+          {
+            "node": "Crear Usuario",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Formatear Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear Usuario": {
+      "main": [
+        [
+          {
+            "node": "Asignar Rol Paciente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Asignar Rol Paciente": {
+      "main": [
+        [
+          {
+            "node": "Generar Código",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generar Código": {
+      "main": [
+        [
+          {
+            "node": "Guardar Código",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar Código": {
+      "main": [
+        [
+          {
+            "node": "Enviar Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar Email": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Error": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Credencial 'Postgres' en los nodos Postgres (POSTGRES_CREDENTIAL_ID).\n2. Credencial 'SMTP' en 'Enviar Email' (SMTP_CREDENTIAL_ID) + SMTP_FROM_EMAIL.\n3. Webhook PÚBLICO (noauth).\n4. RECOMENDADO: agregar un nodo de rate-limit por IP al inicio (5 registros\n   cada 15 min). Cada registro crea una fila REAL en users que después ve el staff.\n\nRUTA: POST https://<tu-n8n>/webhook/api/auth/patient/register\n\nREQUEST:\n{ \"name\": \"Juan Pérez\", \"phone\": \"+59899123456\", \"email\": \"juan@gmail.com\",\n  \"identity_document\": \"12345678\", \"birth_date\": \"1985-03-12\", \"address\": \"...\" }\n   → sólo name y email son obligatorios; phone es opcional.\n\nRESPONSE (200): { \"created\": true, \"user_id\": \"...\", \"sent\": true,\n                  \"masked_email\": \"j***n@gmail.com\", \"expires_in\": 600 }\nRESPONSE (409): { \"error\": { \"code\": \"unique_conflict\",\n                             \"conflictedFields\": [\"email\"] } }\n   → este formato es el que ya sabe leer el frontend.\n\nNOTA: is_sales = TRUE es lo que hace que el usuario aparezca como paciente en\n/users?filter_type=PACIENTE, igual que hace upsertUser() en el frontend.\n\nCONTRATO: docs/patient-portal.md §2.4"
+  }
+}

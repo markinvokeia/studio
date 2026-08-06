@@ -283,6 +283,14 @@ export default function LoginPage() {
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : tLogin('signIn')}
                 </Button>
+                <Button
+                  variant="link"
+                  type="button"
+                  onClick={() => router.push(`/${locale}/patient-login`)}
+                  className="h-auto w-full p-0 text-xs text-muted-foreground"
+                >
+                  {tLogin('patientPortalLink')}
+                </Button>
               </form>
             ) : (
               <form onSubmit={handleRecoverySubmit} className="space-y-4">

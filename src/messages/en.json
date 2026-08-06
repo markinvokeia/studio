@@ -412,7 +412,8 @@
     "ReportEstadoRes": "Income Statement",
     "ReportKPIs": "Clinic KPIs",
     "ReportBalanceMensual": "Monthly Balance",
-    "Sedes": "Branches"
+    "Sedes": "Branches",
+    "PatientsPortal": "Patient Portal"
   },
   "TVDisplayPage": {
     "title": "TV Display",
@@ -644,7 +645,8 @@
     "success": {
       "title": "Success",
       "description": "Your password has been changed successfully."
-    }
+    },
+    "viewAsPatient": "View as patient"
   },
   "OpenCashSessionWidget": {
     "checkingStatus": "Checking cash session status...",
@@ -3726,7 +3728,8 @@
       "invalidCredentials": "The credentials you entered are incorrect. Please check your email and password and try again.",
       "emailNotFound": "The email address entered does not exist in our system. Please check the email and try again.",
       "unexpected": "An unexpected error occurred. Please try again later."
-    }
+    },
+    "patientPortalLink": "Are you a patient? Go to your portal"
   },
   "ClinicDetailsPage": {
     "title": "Clinic Details",
@@ -4972,7 +4975,9 @@
         "left": "Left",
         "overlays": "Overlay",
         "whole": "Whole"
-      }
+      },
+      "apptTime": "Time",
+      "apptServices": "Services"
     },
     "anamnesis": {
       "personalTitle": "Personal Information",
@@ -8150,6 +8155,317 @@
       "description": "Are you sure you want to delete \"{name}\"? This action is irreversible.",
       "cancel": "Cancel",
       "delete": "Delete"
+    }
+  },
+  "PatientLogin": {
+    "toggleTheme": "Toggle theme",
+    "back": "Back",
+    "identify": {
+      "title": "Access your portal",
+      "description": "Enter your email, phone or ID number. We'll send you a code — no password needed.",
+      "label": "Email, phone or ID number",
+      "placeholder": "john@example.com, 099 123 456 or 12345678",
+      "submit": "Continue",
+      "staffLink": "Are you staff? Sign in here",
+      "hint": "Any of the three works.",
+      "newPatient": "I'm new, I'm not registered",
+      "reason": "We use this to check whether you're already a patient here. If you are, we'll load your history, appointments and account balance; if it's your first time, we'll ask for just a few details."
+    },
+    "needEmail": {
+      "title": "We need your email",
+      "description": "We found you, but there's no email on file. Enter one so we can send your code.",
+      "label": "Email address",
+      "submit": "Send code",
+      "reason": "We don't have an email on file for you yet. We need it to send your access code — and to remind you about upcoming appointments."
+    },
+    "register": {
+      "title": "Create your account",
+      "description": "We couldn't find you in the system. These details are enough to get started.",
+      "name": "Full name",
+      "namePlaceholder": "John Smith",
+      "phone": "Phone",
+      "email": "Email address",
+      "optionalToggle": "Optional details (you can fill these in later)",
+      "document": "ID number",
+      "birthDate": "Date of birth",
+      "address": "Address",
+      "submit": "Create account and send my code",
+      "reason": "Your name, phone and email go to the clinic's team so they can reach you directly about your appointment or anything that comes up. We don't share them with anyone else.",
+      "optionalSuffix": "(optional)"
+    },
+    "code": {
+      "title": "Enter your code",
+      "description": "We sent a 6-digit code to {email}. It expires in 10 minutes.",
+      "submit": "Sign in",
+      "resend": "Resend code",
+      "resendIn": "You can resend the code in {seconds}s",
+      "resentTitle": "Code resent",
+      "resentDescription": "Check your inbox, including the spam folder.",
+      "reason": "Only you can access your inbox. That's why we ask for the code: it guarantees nobody else can see your information or act on your behalf without your consent.",
+      "pasteHint": "Check your inbox and copy the 6-digit code we sent you. You can paste it straight into the first box."
+    },
+    "fields": {
+      "email": "Email address",
+      "phone": "Phone",
+      "identity_document": "ID number"
+    },
+    "validation": {
+      "nameRequired": "Name is required",
+      "phoneInvalid": "Phone number is not valid",
+      "emailRequired": "Email is required",
+      "emailInvalid": "Email is not valid",
+      "documentDigits": "ID number can only contain digits",
+      "documentMax": "ID number cannot exceed 10 digits"
+    },
+    "errors": {
+      "title": "Error",
+      "unexpected": "Something went wrong. Please try again.",
+      "invalidCode": "That code is invalid or has expired. Request a new one.",
+      "alreadyRegistered": "An account already exists with: {fields}. Go back and sign in with it."
+    },
+    "genericClinicName": "our clinic",
+    "or": "or",
+    "header": {
+      "tagline": "Patient portal"
+    },
+    "hero": {
+      "badge": "Book your appointment in a minute",
+      "title": "Welcome to {clinic}",
+      "subtitle": "Book and manage your appointments, check your clinical history and your account balance — anytime, from anywhere.",
+      "cta": "Go to my portal",
+      "staffCta": "I'm staff",
+      "perks": {
+        "appointments": "Book and reschedule appointments",
+        "history": "Check your clinical history",
+        "finance": "See your account balance"
+      },
+      "videoTitle": "Welcome video from {clinic}"
+    },
+    "info": {
+      "title": "Where to find us",
+      "address": "Address",
+      "phone": "Phone",
+      "email": "Email",
+      "hours": "Opening hours"
+    },
+    "weekdays": {
+      "sunday": "Sunday",
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday"
+    },
+    "disabled": {
+      "title": "Portal unavailable",
+      "description": "{clinic} hasn't enabled online patient access yet. Get in touch and we'll help you out."
+    },
+    "footer": {
+      "contact": "Contact",
+      "rights": "All rights reserved.",
+      "poweredBy": "Powered by Invoke IA"
+    },
+    "booking": {
+      "title": "Choose your appointment",
+      "description": "Pick the day and time that suits you best.",
+      "reason": "Only times with real availability are shown. Once you confirm, the clinic receives your request and confirms it by email."
+    },
+    "booked": {
+      "title": "Your appointment is booked!",
+      "description": "See you then.",
+      "reason": "",
+      "when": "{date} at {time}",
+      "emailSent": "We emailed the appointment details to you and to the clinic. If you need to change it, get in touch with us.",
+      "done": "Done"
+    },
+    "startOver": "Start over"
+  },
+  "PatientPortal": {
+    "subtitle": "My profile",
+    "logout": "Sign out",
+    "toggleTheme": "Toggle theme",
+    "accessDenied": {
+      "title": "Access denied",
+      "description": "Your account doesn't have access to the patient portal."
+    },
+    "tabs": {
+      "info": "My Information",
+      "appointments": "My Appointments",
+      "appointmentsShort": "Appointments",
+      "clinical": "History",
+      "financial": "Finances",
+      "infoSubtitle": "Your personal and contact details",
+      "appointmentsSubtitle": "Upcoming appointments and new requests",
+      "clinicalSubtitle": "Clinical history, treatments and documents",
+      "financialSubtitle": "Your account statement"
+    },
+    "subTabs": {
+      "history": "Clinical history",
+      "anamnesis": "Anamnesis",
+      "treatmentPlans": "Treatment plans",
+      "treatmentPlansShort": "Plans",
+      "instructions": "Medical instructions",
+      "instructionsShort": "Instructions",
+      "documents": "Documents"
+    },
+    "appointments": {
+      "upcomingCount": "{count, plural, =0 {No upcoming appointments} one {# upcoming appointment} other {# upcoming appointments}}",
+      "book": "Book appointment",
+      "reschedule": "Reschedule",
+      "cancel": "Cancel",
+      "empty": "You have no upcoming appointments. Past ones are in your History.",
+      "loadError": "We couldn't load your appointments. Please try again.",
+      "cancelDialog": {
+        "title": "Cancel this appointment?",
+        "description": "You're about to cancel your appointment on {date} at {time}. The clinic will be notified.",
+        "noteLabel": "Reason (optional)",
+        "notePlaceholder": "Briefly tell us why you can't make it",
+        "back": "Back",
+        "confirm": "Yes, cancel appointment",
+        "successTitle": "Appointment cancelled",
+        "successDescription": "We've notified the clinic. You can book a new one anytime.",
+        "errorTitle": "We couldn't cancel the appointment"
+      },
+      "nextOne": "Your next appointment",
+      "doctor": "Practitioner",
+      "room": "Room",
+      "service": "Reason"
+    },
+    "assistant": {
+      "open": "Open assistant",
+      "close": "Close",
+      "title": "Assistant",
+      "subtitle": "Questions about the clinic and your profile",
+      "placeholder": "Type your question…",
+      "noAnswer": "I couldn't find an answer. Try rephrasing your question.",
+      "error": "We couldn't reach the assistant. Please try again.",
+      "suggestions": {
+        "nextAppointment": "When is my next appointment?",
+        "balance": "How much do I owe?",
+        "hours": "What are the clinic's opening hours?"
+      }
+    },
+    "onboarding": {
+      "title": "Hi, {name}",
+      "description": "You have no appointments booked. Request one now and we'll show you your full profile right after.",
+      "skip": "I'll do it later",
+      "bookedTitle": "Request sent!",
+      "bookedDescription": "The clinic will confirm it shortly. You can now view your profile.",
+      "goToProfile": "Go to my profile"
+    },
+    "backToStaff": "Back to staff view",
+    "booking": {
+      "title": "Request an appointment",
+      "description": "Pick the day and time that suits you best. Only available times are shown.",
+      "pickDay": "Which day works for you?",
+      "pickTime": "Pick a time",
+      "previousDays": "Previous days",
+      "nextDays": "Next days",
+      "availableCount": "{count, plural, =0 {No times available} one {# time available} other {# times available}}",
+      "closedDay": "The clinic is closed that day. Try another one.",
+      "noneAvailable": "No times left that day. Try another one.",
+      "slotTaken": "Time unavailable",
+      "reasonLabel": "What's going on?",
+      "reasonPlaceholder": "Briefly tell us the reason: discomfort, check-up, urgent care…",
+      "reasonHint": "It helps us prepare your visit and set aside the right amount of time.",
+      "confirm": "Confirm request",
+      "pendingNotice": "The clinic will confirm your appointment. We'll email you.",
+      "loadError": "We couldn't load the available times. Please try again.",
+      "successTitle": "Request sent!",
+      "successDescription": "The clinic will confirm your appointment shortly.",
+      "errorTitle": "We couldn't create the appointment",
+      "back": "Back",
+      "pickSede": "Which location would you like?",
+      "rescheduleTitle": "Reschedule appointment",
+      "replacing": "You're replacing your appointment on {date} at {time}. Pick the new time and we'll cancel the old one.",
+      "confirmReschedule": "Confirm the change",
+      "rescheduledTitle": "Appointment rescheduled!",
+      "rescheduledDescription": "We cancelled the previous one and the clinic will confirm the new appointment.",
+      "rescheduledPartialTitle": "New one booked, but the old one is still active",
+      "rescheduledPartialDescription": "We couldn't cancel your previous appointment. Please contact the clinic so they can remove it.",
+      "steps": {
+        "sede": "Location",
+        "slot": "Time",
+        "confirm": "Confirm"
+      },
+      "summary": {
+        "title": "Appointment summary",
+        "when": "When",
+        "who": "You'll be seen by",
+        "where": "Where"
+      }
+    },
+    "info": {
+      "emailLocked": "Your email can't be changed here — it's where your access code is sent. Ask the clinic if you need to update it."
+    },
+    "finance": {
+      "loadError": "We couldn't load your account statement. Please try again.",
+      "empty": "You have no account activity yet."
+    },
+    "footer": {
+      "whatsapp": "Message on WhatsApp",
+      "noSchedules": "Hours to be confirmed",
+      "viewSchedules": "View hours",
+      "mailSubject": "Enquiry from the portal — {sede}",
+      "collapse": "Hide",
+      "expand": "View contact details"
+    }
+  },
+  "PatientPortalConfigPage": {
+    "title": "Patient Portal",
+    "description": "Control what your patients can do from their self-service portal.",
+    "save": "Save",
+    "saved": "Settings saved",
+    "saveError": "We couldn't save the settings",
+    "loadError": "We couldn't load the settings",
+    "readOnlyNotice": "You don't have permission to change these settings.",
+    "fields": {
+      "enabled": {
+        "label": "Allow patients to access the portal",
+        "help": "Enables the public /patient-login page. When off, patients see a notice that the portal is unavailable and cannot identify themselves or book."
+      },
+      "onlineBooking": {
+        "label": "Allow online appointment booking",
+        "help": "Lets patients pick a day and time from the free slots in the agenda. When off, they can only view their information — the clinic keeps booking appointments."
+      },
+      "appointmentsOnly": {
+        "label": "Portal is for booking appointments only",
+        "help": "Patients identify themselves and go straight to the agenda. They're never asked for a code and never reach their clinical history, finances or personal details. Useful to offer online booking without opening the rest of the record.",
+        "activeNotice": "With this on, no patient will see their profile — only the booking screen. Access codes are not sent either."
+      },
+      "video": {
+        "label": "Welcome video",
+        "help": "Shown on the /patient-login landing. You can paste a YouTube link, an Instagram reel, a Vimeo video or the URL of an .mp4 file. Leave it empty to use a generic Invoke IA video.",
+        "placeholder": "https://youtube.com/watch?v=… or https://instagram.com/reel/…",
+        "hint": "Accepts YouTube, Instagram, Vimeo or a video file. Leave empty to use the default video.",
+        "unsupported": "We couldn't recognise that link. Check it's from YouTube, Instagram, Vimeo or an .mp4 file."
+      },
+      "message": {
+        "label": "Welcome message",
+        "help": "Replaces the text next to the title on the portal landing. Leave it empty to use the system default.",
+        "placeholder": "Book and manage your appointments anytime…",
+        "hint": "Leave empty to use the default text."
+      }
+    },
+    "qr": {
+      "test": "Try it",
+      "download": "Download"
+    },
+    "flier": {
+      "print": "Print flyer",
+      "staff": {
+        "badge": "Access · Staff",
+        "title": "Access your workspace",
+        "body": "Scan the QR code with your phone's camera to enter the platform and manage your day to day.",
+        "footer": "Platform powered by"
+      },
+      "patient": {
+        "badge": "Booking · Online",
+        "title": "Book online, no phone calls",
+        "body": "Sign in today to book appointments whenever you want and manage your details and bookings from your phone. Just scan the QR.",
+        "footer": "Bookings powered by"
+      }
     }
   }
 }

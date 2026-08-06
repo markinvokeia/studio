@@ -2612,3 +2612,132 @@ export interface Subscription {
   notes?: string;
   createdAt: string;
 }
+
+// ---------------------------------------------------------------------------
+// Portal del paciente (/my-profile) — ver docs/patient-portal.md
+// ---------------------------------------------------------------------------
+
+/**
+ * Datos públicos de la clínica que alimentan la landing /patient-login.
+ * Los sirve un endpoint sin autenticación — nunca debe incluir datos sensibles.
+ */
+export type PublicClinicInfo = {
+  name: string;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  /** Logo como data URI. `null` ⇒ la landing cae al isotipo de Invoke IA. */
+  logo_url: string | null;
+  /** Video de bienvenida. `null` ⇒ el genérico de Invoke IA. */
+  welcome_video_url: string | null;
+  /** Texto del hero. `null` ⇒ copy por defecto traducido. */
+  welcome_message: string | null;
+  /** `false` ⇒ la clínica no habilitó el portal; la landing muestra el aviso. */
+  patient_portal_enabled: boolean;
+  /** `false` ⇒ el paciente puede consultar pero no reservar. */
+  online_booking_enabled: boolean;
+  /**
+   * `true` ⇒ el portal es exclusivamente para reservar: se pide el identificador
+   * y se pasa a la agenda, sin OTP ni acceso al perfil.
+   */
+  appointments_only: boolean;
+  /** Horarios de atención de la clínica, si no están cargados por sede. */
+  schedules?: PublicClinicSchedule[];
+};
+
+/**
+ * Sede tal como la ve un visitante del portal, desde `/sedes_noauth`.
+ * Los horarios se piden aparte, a `/schedules_noauth?sede_id=`.
+ */
+export type PublicSede = {
+  id: string;
+  name: string;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  schedules: PublicClinicSchedule[];
+};
+
+export type PublicClinicSchedule = {
+  /** 0 = domingo … 6 = sábado */
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+};
+
+/** Respuesta de POST /api/auth/patient/identify. Nunca trae datos del paciente. */
+export type PatientIdentifyResponse = {
+  found: boolean;
+  /**
+   * Sólo cuando `found`. Decide si se le pide OTP para entrar al portal o si se
+   * lo manda directo a reservar (ver docs/patient-portal.md §3).
+   */
+  has_upcoming_appointments?: boolean;
+  /** users.id — necesario para reservar sin sesión. Sólo cuando `found`. */
+  user_id?: string | null;
+  /** Nombre del paciente, para saludarlo antes de pedirle el código. */
+  name?: string | null;
+  /** El paciente existe pero no tiene email cargado: hay que pedírselo antes de enviar el código. */
+  needs_email: boolean;
+  /** Email enmascarado (j***z@gmail.com) para que el usuario confirme el destino. */
+  masked_email: string | null;
+};
+
+/** Respuesta de POST /api/auth/patient/send-code. */
+export type PatientSendCodeResponse = {
+  sent: boolean;
+  masked_email: string | null;
+  /** Vigencia del código en segundos (600 = 10 min). */
+  expires_in?: number;
+};
+
+/** Respuesta de POST /api/auth/patient/verify-code. El token es el mismo JWT que emite /api/auth/login. */
+export type PatientVerifyCodeResponse = {
+  token: string;
+  user: Pick<User, 'id' | 'name' | 'email'>;
+  /** true cuando el paciente se acaba de registrar: el portal le abre la reserva de cita. */
+  is_new?: boolean;
+};
+
+/** Cuerpo de POST /api/auth/patient/register. Sólo name y email son obligatorios. */
+export type PatientRegisterPayload = {
+  name: string;
+  email: string;
+  /** Opcional: sirve para que la clínica pueda contactarlo, pero no bloquea el registro. */
+  phone?: string;
+  identity_document?: string;
+  birth_date?: string;
+  address?: string;
+};
+
+export type PatientRegisterResponse = PatientSendCodeResponse & {
+  created: boolean;
+  user_id: string;
+  name?: string;
+  email?: string;
+};
+
+/** Ajustes de Configuración → Portal del Paciente. */
+export type PatientPortalConfig = {
+  patient_portal_enabled: boolean;
+  online_booking_enabled: boolean;
+  appointments_only: boolean;
+  welcome_video_url: string;
+  welcome_message: string;
+};
+
+export type PatientAiActionType = 'open_booking' | 'open_tab' | 'none';
+
+export type PatientAiAction = {
+  type: PatientAiActionType;
+  payload?: { tab?: string; appointment_id?: string } | null;
+};
+
+/** Respuesta de POST /ai/patient/query — misma forma que DoctorAiQueryResponse. */
+export type PatientAiQueryResponse = {
+  answer?: string;
+  output?: string;
+  speak_text?: string;
+  suggestions?: string[];
+  action?: PatientAiAction | null;
+};

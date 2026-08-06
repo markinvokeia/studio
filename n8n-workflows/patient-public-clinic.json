@@ -1,0 +1,117 @@
+{
+  "name": "Patient Portal — Public Clinic Info",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "api/public/clinic",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-pg",
+      "name": "Buscar Clínica",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        340,
+        300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- La tabla es public.clinic (singular) y sus columnas de contacto son\n-- address / phone / email. El baseline de Liquibase declara \"clinics\" con\n-- location / phone_number / contact_email, pero está desactualizado.\nSELECT\n    c.id,\n    c.name,\n    c.address,\n    COALESCE(c.phone, '')                      AS phone,\n    COALESCE(c.email, '')                      AS email,\n    COALESCE(c.patient_portal_enabled, FALSE)            AS patient_portal_enabled,\n    COALESCE(c.patient_portal_online_booking, TRUE)      AS online_booking_enabled,\n    COALESCE(c.patient_portal_appointments_only, FALSE)  AS appointments_only,\n    c.welcome_video_url,\n    c.welcome_message,\n    (\n      -- Horarios sin sede asignada: valen para toda la clínica.\n      SELECT json_agg(json_build_object(\n               'day_of_week', s.day_of_week,\n               'start_time',  to_char(s.start_time, 'HH24:MI'),\n               'end_time',    to_char(s.end_time,   'HH24:MI')\n             ) ORDER BY s.day_of_week, s.start_time)\n      FROM public.clinic_schedules s\n      WHERE s.sede_id IS NULL\n    ) AS schedules\nFROM public.clinic c\nWHERE c.is_active IS NOT FALSE\nORDER BY c.id\nLIMIT 1",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "continueOnFail": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "node-format",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        580,
+        300
+      ],
+      "parameters": {
+        "jsCode": "\n// Arma el payload público. NUNCA agregar campos sensibles: este endpoint es\n// accesible sin token por cualquiera que abra /patient-login.\nconst rows = $input.all().map(i => i.json).filter(r => r && r.name);\nconst clinic = rows[0];\n\nif (!clinic) {\n  return [{ json: { statusCode: 404, body: { message: 'No hay una clínica configurada.' } } }];\n}\n\n// El logo se adjunta como data URI por el nodo siguiente si existe el binario.\nreturn [{ json: { statusCode: 200, body: {\n  name: clinic.name,\n  address: clinic.address || null,\n  phone: clinic.phone || null,\n  email: clinic.email || null,\n  logo_url: null,\n  welcome_video_url: clinic.welcome_video_url || null,\n  welcome_message: clinic.welcome_message || null,\n  patient_portal_enabled: clinic.patient_portal_enabled === true,\n  // Modos del portal — deciden el flujo de /patient-login (ver §3).\n  online_booking_enabled: clinic.online_booking_enabled !== false,\n  appointments_only: clinic.appointments_only === true,\n  schedules: clinic.schedules || [],\n} } }];\n"
+      }
+    },
+    {
+      "id": "node-respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        820,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Buscar Clínica",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Clínica": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Credencial 'Postgres' en 'Buscar Clínica' (POSTGRES_CREDENTIAL_ID).\n2. Webhook PÚBLICO (noauth): lo consume la landing /patient-login, donde el\n   visitante todavía no tiene token.\n3. Activar el workflow.\n\nRUTA: GET https://<tu-n8n>/webhook/api/public/clinic\n\nRESPONSE:\n{\n  \"name\": \"Clínica Dental Ejemplo\",\n  \"address\": \"Av. Italia 1234\",\n  \"phone\": \"+598 2600 0000\",\n  \"email\": \"hola@clinica.com\",\n  \"logo_url\": null,\n  \"welcome_video_url\": null,\n  \"welcome_message\": null,\n  \"patient_portal_enabled\": true,\n  \"online_booking_enabled\": true,\n  \"appointments_only\": false,\n  \"schedules\": [ { \"day_of_week\": 1, \"start_time\": \"09:00\", \"end_time\": \"18:00\" } ]\n}\n\nLOGO (opcional, mejora recomendada):\nEste flujo devuelve logo_url = null. Para servir el logo, agregar antes de\n'Formatear Respuesta' la misma lectura de binario que usa /clinic/logo y\nconvertirla a data URI:\n    logo_url = 'data:' + mimetype + ';base64,' + base64\nSi queda en null, la landing cae al isotipo de Invoke IA — no rompe nada.\n\nSEGURIDAD:\nEndpoint SIN autenticación. No agregar campos sensibles (RUT, facturación,\nids internos, datos de pacientes o de staff).\n\nTABLAS: public.clinic (SINGULAR) y public.clinic_schedules.\nColumnas de contacto: address / phone / email (NO location / phone_number /\ncontact_email — eso es lo que dice el baseline de Liquibase, que está\ndesactualizado respecto de la BD real).\n\nREQUISITOS: database/scripts/066 y 067 (los flags de modo salen del 067).\nCONTRATO:   docs/patient-portal.md §2.6"
+  }
+}

@@ -41,6 +41,7 @@ import { useAlertNotifications } from '@/context/alert-notifications-context';
 import { useAuth } from '@/context/AuthContext';
 import { useTableDensity } from '@/hooks/use-table-density';
 import { useToast } from '@/hooks/use-toast';
+import { usePatientPortal } from '@/hooks/usePatientPortal';
 import { usePermissions } from '@/hooks/usePermissions';
 import { rememberLocale } from '@/lib/locale';
 import { filterNavByPermissions } from '@/lib/permissions';
@@ -52,6 +53,7 @@ import {
     Check,
     ChevronDown,
     Globe,
+    HeartPulse,
     KeyRound,
     LogOut,
     Menu,
@@ -93,6 +95,8 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
     const [density, setDensity] = useTableDensity();
     const { logout, user } = useAuth();
     const { hasPermission, permissions, roles } = usePermissions();
+    // Quien es paciente además de staff puede alternar a su propio perfil.
+    const { isDualRole } = usePatientPortal();
     const { toast } = useToast();
     const { pendingCount } = useAlertNotifications();
 
@@ -260,6 +264,15 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                                             <span>{tHeader('preferences')}</span>
                                         </DropdownMenuItem>
                                     </Link>
+                                    {isDualRole && (
+                                        <DropdownMenuItem
+                                            onClick={() => router.push(`/${locale}/my-profile`)}
+                                            className="rounded-lg font-medium"
+                                        >
+                                            <HeartPulse className="mr-2 h-4 w-4" />
+                                            <span>{tHeader('viewAsPatient')}</span>
+                                        </DropdownMenuItem>
+                                    )}
                                     <DropdownMenuSeparator />
                                     <>
                                         <DropdownMenuLabel className="px-2 pt-1 pb-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -500,6 +513,8 @@ function MobileNav() {
     const { theme, setTheme } = useTheme();
     const { logout, user } = useAuth();
     const { hasPermission, permissions, roles } = usePermissions();
+    // Quien es paciente además de staff puede alternar a su propio perfil.
+    const { isDualRole } = usePatientPortal();
     const { toast } = useToast();
     const { pendingCount } = useAlertNotifications();
 
@@ -787,6 +802,16 @@ function MobileNav() {
                                             <Settings2 className="h-4 w-4 shrink-0" />
                                             <span>{tHeader('preferences')}</span>
                                         </Link>
+                                        {isDualRole && (
+                                            <Link
+                                                href={`/${locale}/my-profile`}
+                                                onClick={() => { setIsOpen(false); setMobileFooterPanel(null); }}
+                                                className="flex items-center gap-3 px-2 py-2 rounded-lg text-sm text-[var(--nav-text-muted)] hover:text-[var(--nav-foreground)] hover:bg-[var(--nav-hover-bg)] transition-colors"
+                                            >
+                                                <HeartPulse className="h-4 w-4 shrink-0" />
+                                                <span>{tHeader('viewAsPatient')}</span>
+                                            </Link>
+                                        )}
                                         <button
                                             type="button"
                                             onClick={() => { handleLogoutClick(); setIsOpen(false); setMobileFooterPanel(null); }}
