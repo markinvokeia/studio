@@ -589,16 +589,26 @@ function ReminderCard({ notification }: { notification: ReminderPanelNotificatio
     setIsLoading(true);
     try {
       const now = new Date().toISOString();
-      await api.post(API_ROUTES.REMINDERS_UPSERT, {
-        ...reminder,
-        status: 'done',
-        raise_alert: reminder.raise_alert ?? true,
-        updated_at: now,
-        completed_at: now,
-      });
+      // Always resolve the caller's own notification. Only the reminder's creator
+      // also completes the shared reminder — a non-owner completing their copy of a
+      // "clinic" reminder must not silence it for the rest of the staff.
+      const requests: Promise<unknown>[] = [
+        api.post(API_ROUTES.NOTIFICATIONS_STATUS, { ids: [notification.id], status: 'done' }),
+      ];
+      if (isOwner) {
+        requests.push(api.post(API_ROUTES.REMINDERS_UPSERT, {
+          ...reminder,
+          status: 'done',
+          raise_alert: reminder.raise_alert ?? true,
+          updated_at: now,
+          completed_at: now,
+        }));
+      }
+      await Promise.all(requests);
       setIsDone(true);
-      // Small delay so the user sees the ✓ before the card disappears
-      setTimeout(() => dismissNotification(notification.id), 600);
+      // Small delay so the user sees the ✓ before the card disappears. The status
+      // is already 'done' server-side, so remove locally without re-posting 'read'.
+      setTimeout(() => dismissNotification(notification.id, 'done'), 600);
     } catch {
       // Silent — dismiss anyway so the panel stays clean
       dismissNotification(notification.id);
@@ -635,24 +645,25 @@ function ReminderCard({ notification }: { notification: ReminderPanelNotificatio
             )}
           </div>
 
-          {isOwner && (
-            <Button
-              variant={isDone ? 'default' : 'outline'}
-              size="sm"
-              className={cn(
-                'mt-3 h-7 w-full justify-start gap-2 text-[11px] transition-colors',
-                isDone && 'bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-500',
-              )}
-              onClick={handleMarkDone}
-              disabled={isLoading || isDone}
-            >
-              {isLoading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Check className={cn('h-3.5 w-3.5', isDone ? 'text-white' : 'text-emerald-600')} />
-              )}
-              {isDone ? t('reminderDone') : t('actionMarkDone')}
-            </Button>
+          <Button
+            variant={isDone ? 'default' : 'outline'}
+            size="sm"
+            className={cn(
+              'mt-3 h-7 w-full justify-start gap-2 text-[11px] transition-colors',
+              isDone && 'bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-500',
+            )}
+            onClick={handleMarkDone}
+            disabled={isLoading || isDone}
+          >
+            {isLoading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Check className={cn('h-3.5 w-3.5', isDone ? 'text-white' : 'text-emerald-600')} />
+            )}
+            {isDone ? t('reminderDone') : t('actionMarkDone')}
+          </Button>
+          {isGeneral && !isOwner && !isDone && (
+            <p className="mt-1 text-[10px] text-muted-foreground">{t('markDoneOwnCopyHint')}</p>
           )}
         </div>
       </div>

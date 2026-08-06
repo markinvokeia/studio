@@ -558,6 +558,7 @@
     "priority_medium": "Media",
     "priority_high": "Alta",
     "actionMarkDone": "Marcar como hecho",
+    "markDoneOwnCopyHint": "Se marca como hecho solo para vos; el resto del staff lo sigue viendo.",
     "reminderDone": "Marcado como hecho",
     "newAppointmentTime": "Hora: {time}",
     "actionViewWorkspace": "Ver en workspace",

@@ -83,6 +83,7 @@
           "cachedResultUrl": "/workflow/W5SZnwkaTigFrHO6",
           "cachedResultName": "Events"
         },
+        "mode": "each",
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {

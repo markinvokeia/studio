@@ -558,6 +558,7 @@
     "priority_medium": "Medium",
     "priority_high": "High",
     "actionMarkDone": "Mark as done",
+    "markDoneOwnCopyHint": "Marks it as done only for you; the rest of the staff still sees it.",
     "reminderDone": "Marked as done",
     "newAppointmentTime": "Time: {time}",
     "actionViewWorkspace": "View in workspace",

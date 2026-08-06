@@ -235,7 +235,7 @@ interface NotificationsContextValue {
   setAlertStyle: (style: DoctorAlertStyle) => void;
   openPanel: () => void;
   closePanel: () => void;
-  dismissNotification: (id: string) => void;
+  dismissNotification: (id: string, status?: 'read' | 'done') => void;
   clearAll: () => void;
   refreshNotifications: () => void;
   markSessionAction: (notificationId: string, action: 'quote' | 'invoice' | 'schedule') => void;
@@ -444,8 +444,8 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
   // ── Actions ───────────────────────────────────────────────────────────────
 
-  const dismissNotification = React.useCallback((id: string) => {
-    void api.post(API_ROUTES.NOTIFICATIONS_STATUS, { ids: [id], status: 'read' }).catch(() => {});
+  const dismissNotification = React.useCallback((id: string, status: 'read' | 'done' = 'read') => {
+    void api.post(API_ROUTES.NOTIFICATIONS_STATUS, { ids: [id], status }).catch(() => {});
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   }, []);
 
