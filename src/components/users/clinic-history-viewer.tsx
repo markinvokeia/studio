@@ -49,7 +49,7 @@ import { getStatusIcon } from '@/components/appointments/status-icons';
 import { useAppointmentStatus } from '@/hooks/use-appointment-status';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { AllergyItem, FamilyHistoryItem, MedicationCatalogItem, MedicationItem, PatientHabits as PatientHabitsType, PersonalHistoryItem, useClinicHistory } from '@/hooks/useClinicHistory';
+import { AllergyItem, ClinicDocument, FamilyHistoryItem, MedicationCatalogItem, MedicationItem, PatientHabits as PatientHabitsType, PersonalHistoryItem, SessionAttachmentDocument, useClinicHistory } from '@/hooks/useClinicHistory';
 import { Appointment, AppointmentStatus, Calendar, CancellationReason, PatientSession, SessionPrefillData } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -384,24 +384,38 @@ export function AnamnesisViewer({ userId, onClinicalDataChange }: { userId: stri
 }
 
 export function DocumentsViewer({ userId, createTrigger = 0, documentsOnly = false }: { userId: string; createTrigger?: number; documentsOnly?: boolean }) {
-    const { documents, isLoadingDocuments, uploadDocument, deleteDocument, getDocumentContent, refreshAll, fetchDocuments } = useClinicHistory();
+    const {
+        documents, isLoadingDocuments, uploadDocument, deleteDocument, getDocumentContent,
+        sessionAttachments, isLoadingSessionAttachments, getSessionAttachment,
+        refreshAll, fetchDocuments, fetchSessionAttachments,
+    } = useClinicHistory();
 
     React.useEffect(() => {
         if (!userId) return;
         // documentsOnly skips the full clinic-history reload (anamnesis, allergies…)
         // for hosts that only show the documents gallery.
-        if (documentsOnly) fetchDocuments(userId);
-        else refreshAll(userId);
-    }, [userId, refreshAll, fetchDocuments, documentsOnly]);
+        if (documentsOnly) {
+            fetchDocuments(userId);
+            fetchSessionAttachments(userId);
+        } else {
+            refreshAll(userId);
+        }
+    }, [userId, refreshAll, fetchDocuments, fetchSessionAttachments, documentsOnly]);
+
+    const galleryItems = React.useMemo<GalleryItem[]>(() => [
+        ...documents.map((doc): GalleryItem => ({ origin: 'document', ...doc })),
+        ...sessionAttachments.map((att): GalleryItem => ({ origin: 'session', ...att })),
+    ], [documents, sessionAttachments]);
 
     return (
         <EnhancedDocumentsGallery
-            documents={documents}
-            isLoading={isLoadingDocuments}
+            documents={galleryItems}
+            isLoading={isLoadingDocuments || isLoadingSessionAttachments}
             userId={userId}
             uploadDocument={uploadDocument}
             deleteDocument={deleteDocument}
             getDocumentContent={getDocumentContent}
+            getSessionAttachment={getSessionAttachment}
             createTrigger={createTrigger}
         />
     );
@@ -2979,17 +2993,20 @@ function DocumentViewerModal({ isOpen, onOpenChange, document, documentContent, 
 }
 
 // Enhanced Documents Gallery with thumbnails and viewer
+type GalleryItem = ({ origin: 'document' } & ClinicDocument) | ({ origin: 'session' } & SessionAttachmentDocument);
+
 interface EnhancedDocumentsGalleryProps {
-    documents: any[];
+    documents: GalleryItem[];
     isLoading: boolean;
     userId: string;
     uploadDocument: (userId: string, file: File) => Promise<void>;
     deleteDocument: (userId: string, docId: string) => Promise<void>;
     getDocumentContent: (userId: string, docId: string) => Promise<Blob>;
+    getSessionAttachment: (sessionId: string, attachmentId: string) => Promise<Blob>;
     createTrigger?: number;
 }
 
-function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument, deleteDocument, getDocumentContent, createTrigger = 0 }: EnhancedDocumentsGalleryProps) {
+function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument, deleteDocument, getDocumentContent, getSessionAttachment, createTrigger = 0 }: EnhancedDocumentsGalleryProps) {
     const t = useTranslations('ClinicHistoryPage');
     const { toast } = useToast();
     const [isUploadDialogOpen, setIsUploadDialogOpen] = React.useState(false);
@@ -3039,17 +3056,19 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument
         }
     };
 
-    const handleViewDocument = async (doc: any) => {
+    const handleViewDocument = async (doc: GalleryItem) => {
         setSelectedDocument({
             id: doc.id,
-            name: doc.nombre || doc.name || 'Document',
-            mimeType: doc.mimeType || doc.tipo || ''
+            name: doc.nombre || 'Document',
+            mimeType: doc.mimeType || ''
         });
         setIsViewerOpen(true);
         setDocumentContent(null);
         setIsLoadingDocument(true);
         try {
-            const blob = await getDocumentContent(userId, doc.id);
+            const blob = doc.origin === 'session'
+                ? await getSessionAttachment(doc.sesion_id, doc.id)
+                : await getDocumentContent(userId, doc.id);
             const url = URL.createObjectURL(blob);
             setDocumentContent(url);
         } catch (error) {
@@ -3063,7 +3082,7 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument
     const formatDate = (dateString: string | null | undefined) => {
         if (!dateString) return '';
         try {
-            const [y, m, d] = dateString.split('-');
+            const [y, m, d] = dateString.split('T')[0].split('-');
             return format(new Date(Number(y), Number(m) - 1, Number(d)), 'PP');
         } catch {
             return '';
@@ -3102,10 +3121,10 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument
                 ) : documents.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {documents.map((doc, idx) => {
-                            const isImage = isImageFile(doc.nombre || doc.name || '');
-                            const docName = doc.nombre || doc.name || 'Document';
+                            const docName = doc.nombre || 'Document';
+                            const isSession = doc.origin === 'session';
                             return (
-                                <Card key={idx} className="overflow-hidden">
+                                <Card key={`${doc.origin}-${doc.id}-${idx}`} className="overflow-hidden">
                                     <CardContent className="p-0 flex flex-col justify-between h-full">
                                         <div className="relative aspect-video w-full bg-muted cursor-pointer group" onClick={() => handleViewDocument(doc)}>
                                             {doc.thumbnail_url ? (
@@ -3124,13 +3143,21 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument
                                                     <FileText className="h-10 w-10 text-muted-foreground" />
                                                 </div>
                                             )}
+                                            <Badge
+                                                variant={isSession ? 'secondary' : 'outline'}
+                                                className="absolute left-2 top-2 pointer-events-none bg-background/90"
+                                            >
+                                                {isSession
+                                                    ? t('documents.sessionBadge', { date: formatDate(doc.fecha_sesion) })
+                                                    : t('documents.documentBadge')}
+                                            </Badge>
                                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                 <Eye className="h-6 w-6 text-white" />
                                             </div>
                                         </div>
                                         <div className="p-3">
                                             <p className="font-semibold text-sm truncate leading-tight" title={docName}>{docName}</p>
-                                            <p className="text-xs text-muted-foreground mt-1">{doc.mimeType || doc.tipo || ''}</p>
+                                            <p className="text-xs text-muted-foreground mt-1">{doc.mimeType || ''}</p>
                                         </div>
                                         <div className="flex justify-end p-1 pt-0">
                                             <DropdownMenu>
@@ -3140,10 +3167,17 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent>
-                                                    <DropdownMenuItem onClick={() => handleDelete(doc)} className="text-destructive">
-                                                        <Trash2 className="mr-2 h-4 w-4" />
-                                                        {t('documents.delete') || 'Delete'}
-                                                    </DropdownMenuItem>
+                                                    {isSession ? (
+                                                        <DropdownMenuItem onClick={() => handleViewDocument(doc)}>
+                                                            <Eye className="mr-2 h-4 w-4" />
+                                                            {t('documents.view')}
+                                                        </DropdownMenuItem>
+                                                    ) : (
+                                                        <DropdownMenuItem onClick={() => handleDelete(doc)} className="text-destructive">
+                                                            <Trash2 className="mr-2 h-4 w-4" />
+                                                            {t('documents.delete') || 'Delete'}
+                                                        </DropdownMenuItem>
+                                                    )}
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                         </div>

@@ -118,6 +118,7 @@ export const API_ROUTES = {
         SESSIONS_UPSERT: '/sesiones/upsert',
         SESSIONS_DELETE: '/sesiones/delete',
         SESSIONS_ATTACHMENT: '/sesiones/attachment',
+        SESSIONS_ATTACHMENTS_BY_PATIENT: '/sesiones/attachments-by-patient',
         USERS_DOCUMENTS: '/api/users/documents',
         USERS_DOCUMENT: '/api/users/document',
         USERS_IMPORT: '/api/users/import',

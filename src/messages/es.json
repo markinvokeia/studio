@@ -4722,7 +4722,9 @@
       "confirmDelete": "¿Estás seguro de que deseas eliminar este documento?",
       "dragDropBold": "Haz clic para subir",
       "dragDropNormal": "o arrastra y suelta",
-      "dragDropSubtext": "PDF, PNG, JPG o GIF (MÁX. 10MB)"
+      "dragDropSubtext": "PDF, PNG, JPG o GIF (MÁX. 10MB)",
+      "documentBadge": "Documento",
+      "sessionBadge": "Sesión · {date}"
     },
     "selectPatientTitle": "Seleccionar un Paciente",
     "selectPatientDescription": "Por favor seleccione un paciente para ver su historial médico",

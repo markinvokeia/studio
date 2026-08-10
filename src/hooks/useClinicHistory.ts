@@ -17,6 +17,16 @@ export interface ClinicDocument {
     hasThumbnail?: boolean;
 }
 
+export interface SessionAttachmentDocument {
+    id: string;
+    nombre: string;
+    mimeType?: string;
+    thumbnail_url?: string;
+    fecha_subida: string;
+    sesion_id: string;
+    fecha_sesion: string;
+}
+
 export interface PersonalHistoryItem {
     id?: number;
     padecimiento_id?: string;
@@ -105,6 +115,8 @@ interface UseClinicHistoryReturn {
     isLoadingPatientHabits: boolean;
     documents: ClinicDocument[];
     isLoadingDocuments: boolean;
+    sessionAttachments: SessionAttachmentDocument[];
+    isLoadingSessionAttachments: boolean;
 
     // Catalogs
     ailmentsCatalog: Ailment[];
@@ -120,6 +132,7 @@ interface UseClinicHistoryReturn {
     fetchPatientSessions: (userId: string) => Promise<void>;
     fetchPatientHabits: (userId: string) => Promise<void>;
     fetchDocuments: (userId: string) => Promise<void>;
+    fetchSessionAttachments: (userId: string) => Promise<void>;
     fetchAilmentsCatalog: () => Promise<void>;
     fetchMedicationsCatalog: (search: string) => Promise<void>;
     refreshAll: (userId: string) => Promise<void>;
@@ -199,6 +212,9 @@ export function useClinicHistory(): UseClinicHistoryReturn {
     const [documents, setDocuments] = useState<ClinicDocument[]>([]);
     const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
 
+    const [sessionAttachments, setSessionAttachments] = useState<SessionAttachmentDocument[]>([]);
+    const [isLoadingSessionAttachments, setIsLoadingSessionAttachments] = useState(false);
+
     // Catalog states
     const [ailmentsCatalog, setAilmentsCatalog] = useState<Ailment[]>([]);
     const [isLoadingAilmentsCatalog, setIsLoadingAilmentsCatalog] = useState(false);
@@ -218,7 +234,7 @@ export function useClinicHistory(): UseClinicHistoryReturn {
 
     const loading = isLoadingPersonalHistory || isLoadingFamilyHistory || isLoadingAllergies ||
         isLoadingMedications || isLoadingPatientSessions || isLoadingPatientHabits ||
-        isLoadingDocuments;
+        isLoadingDocuments || isLoadingSessionAttachments;
 
     // Fetch functions
     const fetchPersonalHistory = useCallback(async (userId: string) => {
@@ -400,6 +416,30 @@ export function useClinicHistory(): UseClinicHistoryReturn {
         }
     }, []);
 
+    const fetchSessionAttachments = useCallback(async (userId: string, silent = false) => {
+        if (!userId) return;
+        if (!silent) setIsLoadingSessionAttachments(true);
+        try {
+            const data = await api.get(API_ROUTES.CLINIC_HISTORY.SESSIONS_ATTACHMENTS_BY_PATIENT, { user_id: userId });
+            const rows: any[] = Array.isArray(data) ? data : (data?.data || data?.result || []);
+            const mapped = rows.map((row: any): SessionAttachmentDocument => ({
+                id: String(row.id),
+                nombre: row.file_name || '',
+                mimeType: row.mime_type || '',
+                thumbnail_url: row.thumbnail_link || '',
+                fecha_subida: row.created_at || '',
+                sesion_id: String(row.sesion_id),
+                fecha_sesion: row.fecha_sesion || '',
+            }));
+            setSessionAttachments(mapped);
+        } catch (error) {
+            console.error("Failed to fetch session attachments:", error);
+            if (!silent) setSessionAttachments([]);
+        } finally {
+            if (!silent) setIsLoadingSessionAttachments(false);
+        }
+    }, []);
+
     const fetchAilmentsCatalog = useCallback(async () => {
         setIsLoadingAilmentsCatalog(true);
         try {
@@ -463,8 +503,9 @@ export function useClinicHistory(): UseClinicHistoryReturn {
             fetchPatientSessions(userId),
             fetchPatientHabits(userId),
             fetchDocuments(userId),
+            fetchSessionAttachments(userId),
         ]);
-    }, [fetchPersonalHistory, fetchFamilyHistory, fetchAllergies, fetchMedications, fetchPatientSessions, fetchPatientHabits, fetchDocuments]);
+    }, [fetchPersonalHistory, fetchFamilyHistory, fetchAllergies, fetchMedications, fetchPatientSessions, fetchPatientHabits, fetchDocuments, fetchSessionAttachments]);
 
     // Personal History CRUD
     const createPersonalHistory = useCallback(async (userId: string, data: { padecimiento_id: string, nombre: string, comentarios: string }) => {
@@ -858,6 +899,8 @@ export function useClinicHistory(): UseClinicHistoryReturn {
         isLoadingPatientHabits,
         documents,
         isLoadingDocuments,
+        sessionAttachments,
+        isLoadingSessionAttachments,
 
         // Catalogs
         ailmentsCatalog,
@@ -873,6 +916,7 @@ export function useClinicHistory(): UseClinicHistoryReturn {
         fetchPatientSessions,
         fetchPatientHabits,
         fetchDocuments,
+        fetchSessionAttachments,
         fetchAilmentsCatalog,
         fetchMedicationsCatalog,
         refreshAll,
