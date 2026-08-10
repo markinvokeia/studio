@@ -351,6 +351,24 @@ export function ClinicSessionDialog({
             setIsQuoteSearchOpen(false);
             setIsQuickQuoteOpen(false);
             setSelectedQuote(null);
+
+            // If the dialog opens with a procedure/plan already filled in (e.g. the
+            // procedure defaulted from the appointment's service name), run the same
+            // AI service-identification flow the typing debounce would trigger.
+            // Otherwise the doctor can complete the session without ever generating
+            // treatment badges, leaving the front desk with incomplete information.
+            if (!existingSession && !annotationMode) {
+                const initialProcedure = prefillData?.procedimiento_realizado || serviceName || '';
+                const initialPlan = prefillData?.plan_proxima_cita || '';
+                if (initialProcedure.trim()) {
+                    prevPrefillProcedureRef.current = prefillData?.procedimiento_realizado;
+                    handleGenerateForProcedure(initialProcedure);
+                }
+                if (initialPlan.trim()) {
+                    prevPrefillPlanRef.current = prefillData?.plan_proxima_cita;
+                    handleGenerateForPlan(initialPlan);
+                }
+            }
             return;
         }
 

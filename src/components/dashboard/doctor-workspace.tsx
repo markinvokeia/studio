@@ -1392,13 +1392,27 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     [quoteItems],
   );
 
+  // In calendar view, an appointment may not be assigned to any doctor, or may be
+  // assigned to a different doctor than the one actually completing it right now.
+  // In that case, default the session's doctor to the logged-in doctor instead of
+  // whatever (or whoever) is configured on the appointment.
+  const isAppointmentUnownedInCalendar = viewMode === 'calendar'
+    && (!selectedAppointment?.doctorId || selectedAppointment.doctorId !== String(user?.id ?? ''));
+
+  const sessionDoctorId = isAppointmentUnownedInCalendar
+    ? String(user?.id ?? '')
+    : selectedAppointment?.doctorId;
+  const sessionDoctorName = isAppointmentUnownedInCalendar
+    ? (user?.name ?? '')
+    : selectedAppointment?.doctorName;
+
   const clinicSessionPrefillData = React.useMemo(() => ({
-    doctor_id: selectedAppointment?.doctorId,
-    doctor_name: selectedAppointment?.doctorName,
+    doctor_id: sessionDoctorId,
+    doctor_name: sessionDoctorName,
     procedimiento_realizado: agentSessionPrefill?.procedimiento_realizado,
     plan_proxima_cita: agentSessionPrefill?.plan_proxima_cita,
     fecha_proxima_cita: agentSessionPrefill?.fecha_proxima_cita,
-  }), [selectedAppointment?.doctorId, selectedAppointment?.doctorName, agentSessionPrefill]);
+  }), [sessionDoctorId, sessionDoctorName, agentSessionPrefill]);
 
   const clinicSessionPrefillTreatments = React.useMemo(
     () => agentSessionTreatments.length > 0 ? agentSessionTreatments : prefillTreatments,
@@ -1490,8 +1504,8 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
       : format(new Date(), 'yyyy-MM-dd');
 
     const data: ClinicSessionFormData = {
-      doctor_id: payload.doctor_id || selectedAppointment.doctorId,
-      doctor_name: payload.doctor_name || selectedAppointment.doctorName || '',
+      doctor_id: payload.doctor_id || sessionDoctorId,
+      doctor_name: payload.doctor_name || sessionDoctorName || '',
       fecha_sesion: fecha,
       procedimiento_realizado: payload.procedimiento_realizado || '',
       plan_proxima_cita: payload.plan_proxima_cita,
@@ -1502,7 +1516,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     };
 
     await handleSaveClinicSession(data);
-  }, [handleSaveClinicSession, linkedSession, prefillTreatments, selectedAppointment]);
+  }, [handleSaveClinicSession, linkedSession, prefillTreatments, selectedAppointment, sessionDoctorId, sessionDoctorName]);
 
   const handleDoctorAgentAction = React.useCallback((action: DoctorAgentAction) => (
     executeDoctorAgentAction(action)
