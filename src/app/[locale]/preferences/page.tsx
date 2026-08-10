@@ -18,8 +18,16 @@ export default function UserPreferencesPage() {
     const { user } = useAuth();
     const { permissions } = usePermissions();
     const isDoctor = React.useMemo(() => hasDoctorWorkspaceAccess(permissions), [permissions]);
-    const { alertStyle, setAlertStyle } = useNotifications();
+    const { alertStyle, setAlertStyle, refreshAlertStyle } = useNotifications();
     const [financeView, setFinanceView] = useFinanceViewPreference(user?.id);
+
+    // The alert-style value in context is only as fresh as its last fetch
+    // (usually app login). An admin may have changed it from another session
+    // since then, so force a refetch every time this page is opened.
+    React.useEffect(() => {
+        refreshAlertStyle();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     if (!user) {
         return null;

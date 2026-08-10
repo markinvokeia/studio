@@ -6,6 +6,8 @@ import { Bell, BellRing, CalendarClock, Columns3, Receipt, Rows3 } from 'lucide-
 
 import { CalendarSettingsForm } from '@/components/calendar/calendar-settings-form';
 import { UserCommunicationPreferences } from '@/components/users/user-communication-preferences';
+import { useAuth } from '@/context/AuthContext';
+import { useNotifications } from '@/context/notifications-context';
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
 import { cn } from '@/lib/utils';
@@ -38,8 +40,15 @@ function SectionHeading({ icon: Icon, label }: { icon: React.ComponentType<{ cla
  */
 export function UserPreferencesTab({ user, showFinanceView = false, showAlertStyle = false, sedes = [] }: UserPreferencesTabProps) {
   const t = useTranslations('PreferencesPage');
+  const { user: authUser } = useAuth();
+  // Editing our own alert style? Route through the shared notifications context
+  // (the same source NotificationsProvider reads from) instead of local state,
+  // so the change takes effect immediately without a page reload.
+  const isSelf = authUser?.id != null && String(authUser.id) === String(user.id);
+  const notificationsCtx = useNotifications();
+
   const [financeView, setFinanceViewState] = React.useState<PatientFinanceView>('unified');
-  const [alertStyle, setAlertStyleState] = React.useState<DoctorAlertStyle>('modal');
+  const [alertStyleState, setAlertStyleState] = React.useState<DoctorAlertStyle>('modal');
   const [isLoading, setIsLoading] = React.useState(showFinanceView || showAlertStyle);
 
   React.useEffect(() => {
@@ -53,7 +62,7 @@ export function UserPreferencesTab({ user, showFinanceView = false, showAlertSty
         if (prefs?.finance_view === 'unified' || prefs?.finance_view === 'tabs') {
           setFinanceViewState(prefs.finance_view);
         }
-        if (prefs?.alert_style === 'modal' || prefs?.alert_style === 'toast') {
+        if (!isSelf && (prefs?.alert_style === 'modal' || prefs?.alert_style === 'toast')) {
           setAlertStyleState(prefs.alert_style);
         }
       })
@@ -65,7 +74,7 @@ export function UserPreferencesTab({ user, showFinanceView = false, showAlertSty
     return () => {
       isMounted = false;
     };
-  }, [user.id, showFinanceView, showAlertStyle]);
+  }, [user.id, showFinanceView, showAlertStyle, isSelf]);
 
   const savePreferences = (updates: UserPreferences) => {
     api.post(API_ROUTES.USER_PREFERENCES, { ...updates, user_id: user.id }).catch(() => {});
@@ -76,7 +85,13 @@ export function UserPreferencesTab({ user, showFinanceView = false, showAlertSty
     savePreferences({ finance_view: view });
   };
 
+  const alertStyle = isSelf ? notificationsCtx.alertStyle : alertStyleState;
+
   const setAlertStyle = (style: DoctorAlertStyle) => {
+    if (isSelf) {
+      notificationsCtx.setAlertStyle(style);
+      return;
+    }
     setAlertStyleState(style);
     savePreferences({ alert_style: style });
   };

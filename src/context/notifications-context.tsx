@@ -233,6 +233,7 @@ interface NotificationsContextValue {
   isPanelOpen: boolean;
   alertStyle: DoctorAlertStyle;
   setAlertStyle: (style: DoctorAlertStyle) => void;
+  refreshAlertStyle: () => void;
   openPanel: () => void;
   closePanel: () => void;
   dismissNotification: (id: string, status?: 'read' | 'done') => void;
@@ -247,6 +248,7 @@ const NotificationsContext = React.createContext<NotificationsContextValue>({
   isPanelOpen: false,
   alertStyle: 'modal',
   setAlertStyle: () => undefined,
+  refreshAlertStyle: () => undefined,
   openPanel: () => undefined,
   closePanel: () => undefined,
   dismissNotification: () => undefined,
@@ -266,7 +268,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   const userId = user?.id ? String(user.id) : null;
   const channels = React.useMemo(() => getChannelsForRoles(roleNames), [roleNames]);
   const { toast } = useToast();
-  const [alertStyle, setAlertStyle] = useDoctorAlertStyle(user?.id);
+  const [alertStyle, setAlertStyle, refreshAlertStyle] = useDoctorAlertStyle(user?.id);
   const alertStyleRef = React.useRef(alertStyle);
   React.useEffect(() => { alertStyleRef.current = alertStyle; }, [alertStyle]);
   const tDW = useTranslations('DoctorWorkspace');
@@ -466,8 +468,8 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   const pendingCount = notifications.length;
 
   const value = React.useMemo<NotificationsContextValue>(
-    () => ({ notifications, pendingCount, isPanelOpen, alertStyle, setAlertStyle, openPanel, closePanel, dismissNotification, clearAll, refreshNotifications, markSessionAction }),
-    [notifications, pendingCount, isPanelOpen, alertStyle, setAlertStyle, openPanel, closePanel, dismissNotification, clearAll, refreshNotifications, markSessionAction],
+    () => ({ notifications, pendingCount, isPanelOpen, alertStyle, setAlertStyle, refreshAlertStyle, openPanel, closePanel, dismissNotification, clearAll, refreshNotifications, markSessionAction }),
+    [notifications, pendingCount, isPanelOpen, alertStyle, setAlertStyle, refreshAlertStyle, openPanel, closePanel, dismissNotification, clearAll, refreshNotifications, markSessionAction],
   );
 
   return (
