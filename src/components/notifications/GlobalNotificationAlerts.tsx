@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { ArrowRight, BellRing, CheckCircle2, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import { ArrowRight, BellRing, CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, Clock, UserCog } from 'lucide-react';
 import { format, isValid, parseISO } from 'date-fns';
 import { useTranslations } from 'next-intl';
 
@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { normalizeAppointmentStatus, STATUS_BADGE_VARIANT } from '@/constants/appointment-status';
 import type {
+  AppointmentReassignedNotification,
+  AppointmentRescheduledNotification,
   AppointmentStatus,
   AppointmentStatusChangeNotification,
   NewAppointmentNotification,
@@ -113,6 +115,72 @@ function StatusChangeBody({ item }: { item: AppointmentStatusChangeNotification 
   );
 }
 
+function RescheduledBody({ item }: { item: AppointmentRescheduledNotification }) {
+  const t = useTranslations('DoctorWorkspace');
+  const tN = useTranslations('Notifications');
+  const { appointment: appt } = item;
+
+  return (
+    <div className="flex flex-col items-center gap-5 px-2 py-4">
+      <div
+        className="grid h-16 w-16 place-items-center rounded-full text-white shadow-lg"
+        style={{ backgroundColor: '#f59e0b', animation: 'global-alert-sway 1.4s ease-in-out infinite' }}
+      >
+        <CalendarClock className="h-8 w-8" />
+      </div>
+      <div className="space-y-1 text-center">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          {t('rescheduleAlerts.singleTitle')}
+        </p>
+        <p className="text-xl font-bold leading-tight text-foreground">
+          {appt.patientName || tN('unknownPatient')}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {appt.services?.length
+            ? appt.services.map((s) => s.name).join(', ')
+            : appt.service_name || appt.summary || t('appointmentAlerts.unknownService')}
+        </p>
+        {appt.time && (
+          <p className="text-sm font-semibold text-amber-700">{appt.time}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ReassignedBody({ item }: { item: AppointmentReassignedNotification }) {
+  const t = useTranslations('DoctorWorkspace');
+  const tN = useTranslations('Notifications');
+  const { appointment: appt } = item;
+
+  return (
+    <div className="flex flex-col items-center gap-5 px-2 py-4">
+      <div
+        className="grid h-16 w-16 place-items-center rounded-full text-white shadow-lg"
+        style={{ backgroundColor: '#14b8a6', animation: 'global-alert-sway 1.4s ease-in-out infinite' }}
+      >
+        <UserCog className="h-8 w-8" />
+      </div>
+      <div className="space-y-1 text-center">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          {t('reassignAlerts.singleTitle')}
+        </p>
+        <p className="text-xl font-bold leading-tight text-foreground">
+          {appt.patientName || tN('unknownPatient')}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {appt.services?.length
+            ? appt.services.map((s) => s.name).join(', ')
+            : appt.service_name || appt.summary || t('appointmentAlerts.unknownService')}
+        </p>
+        {appt.time && (
+          <p className="text-sm font-semibold text-teal-700">{appt.time}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function SessionCompletedBody({ item }: { item: SessionCompletedNotification }) {
   const t = useTranslations('Notifications');
 
@@ -184,6 +252,8 @@ function ReminderBody({ item }: { item: ReminderPanelNotification }) {
 function NotificationBody({ item }: { item: UnifiedNotification }) {
   if (item.type === 'new_appointment') return <NewAppointmentBody item={item} />;
   if (item.type === 'appointment_status_change') return <StatusChangeBody item={item} />;
+  if (item.type === 'appointment_rescheduled') return <RescheduledBody item={item} />;
+  if (item.type === 'appointment_reassigned') return <ReassignedBody item={item} />;
   if (item.type === 'session_completed') return <SessionCompletedBody item={item} />;
   return <ReminderBody item={item as ReminderPanelNotification} />;
 }
@@ -213,6 +283,8 @@ export function GlobalNotificationAlerts({ items, onDismissAll }: GlobalNotifica
     if (!current) return '';
     if (current.type === 'new_appointment') return tN('newAppointmentTitle');
     if (current.type === 'appointment_status_change') return tN('statusChangedTitle');
+    if (current.type === 'appointment_rescheduled') return tN('appointmentRescheduledTitle');
+    if (current.type === 'appointment_reassigned') return tN('appointmentReassignedTitle');
     if (current.type === 'session_completed') return tN('sessionCompletedAlertTitle');
     return tN('reminderDueTitle');
   }

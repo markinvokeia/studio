@@ -575,6 +575,8 @@
     "nextNotification": "Next",
     "newAppointmentTitle": "New appointment",
     "statusChangedTitle": "Status changed",
+    "appointmentRescheduledTitle": "Appointment rescheduled",
+    "appointmentReassignedTitle": "Appointment reassigned",
     "reminderDueTitle": "Reminder due"
   },
   "Header": {
@@ -1282,6 +1284,14 @@
       "toastDescription": "{patient} · {status}",
       "dismiss": "Dismiss",
       "openFirst": "View first appointment"
+    },
+    "rescheduleAlerts": {
+      "singleTitle": "One of today's appointments was rescheduled",
+      "multipleTitle": "{count} of today's appointments were rescheduled"
+    },
+    "reassignAlerts": {
+      "singleTitle": "An appointment was reassigned to you",
+      "multipleTitle": "{count} appointments were reassigned to you"
     },
     "todayLabel": "Today: {date}",
     "lastUpdated": "Last updated: {time}",

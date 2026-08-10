@@ -575,6 +575,8 @@
     "nextNotification": "Siguiente",
     "newAppointmentTitle": "Nueva cita",
     "statusChangedTitle": "Cambio de estado",
+    "appointmentRescheduledTitle": "Cita reagendada",
+    "appointmentReassignedTitle": "Cita reasignada",
     "reminderDueTitle": "Recordatorio vencido"
   },
   "Header": {
@@ -1282,6 +1284,14 @@
       "toastDescription": "{patient} · {status}",
       "dismiss": "Cerrar aviso",
       "openFirst": "Ver primera cita"
+    },
+    "rescheduleAlerts": {
+      "singleTitle": "Se reagendó una cita de hoy",
+      "multipleTitle": "Se reagendaron {count} citas de hoy"
+    },
+    "reassignAlerts": {
+      "singleTitle": "Te reasignaron una cita",
+      "multipleTitle": "Te reasignaron {count} citas"
     },
     "todayLabel": "Hoy: {date}",
     "lastUpdated": "Última actualización: {time}",

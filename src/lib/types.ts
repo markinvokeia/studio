@@ -727,11 +727,30 @@ export type NewAppointmentNotification = {
   appointment: Appointment;
 };
 
+export type AppointmentRescheduledNotification = {
+  id: string;
+  type: 'appointment_rescheduled';
+  createdAt: string;
+  seen?: boolean;
+  appointment: Appointment;
+  originalAppointmentId: string;
+};
+
+export type AppointmentReassignedNotification = {
+  id: string;
+  type: 'appointment_reassigned';
+  createdAt: string;
+  seen?: boolean;
+  appointment: Appointment;
+};
+
 export type UnifiedNotification =
   | AppointmentStatusChangeNotification
   | SessionCompletedNotification
   | ReminderPanelNotification
-  | NewAppointmentNotification;
+  | NewAppointmentNotification
+  | AppointmentRescheduledNotification
+  | AppointmentReassignedNotification;
 
 // ─────────────────────────────────────────────────────────────────────────────
 

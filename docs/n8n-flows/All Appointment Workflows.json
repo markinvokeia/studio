@@ -7720,7 +7720,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE public.appointments\nSET\n    assignee_id  = $2::UUID\nWHERE id::text = ANY(string_to_array($1, ','))\n  AND status NOT IN ('completed', 'cancelled', 'in_progress')\nRETURNING id;",
+        "query": "UPDATE public.appointments\nSET\n    assignee_id  = $2::UUID\nWHERE id::text = ANY(string_to_array($1, ','))\n  AND status NOT IN ('completed', 'cancelled', 'in_progress')\nRETURNING id, patient_id, assignee_id, start_datetime;",
         "options": {
           "queryReplacement": "={{ [$json.ids, $json.doctor_id] }}"
         }
@@ -7782,9 +7782,9 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO public.notifications (\n  user_id, type, status, priority, appointment_id, session_id, patient_id, metadata, created_at, read_at\n)\nVALUES (\n  $1, 'appointment_status_change', 'pending', 'MEDIUM', $2, null, $3, $4, $5, null\n)\nRETURNING *;",
+        "query": "INSERT INTO public.notifications (\n  user_id, type, status, priority, appointment_id, session_id, patient_id, metadata, created_at, read_at\n)\nSELECT $1, 'appointment_status_change', 'pending', 'MEDIUM', $2, null, $3, $4, $5, null\nWHERE $1 IS NOT NULL AND $6::timestamptz::date = CURRENT_DATE\nRETURNING *;",
         "options": {
-          "queryReplacement": "={{ [$json.assignee_id, $json.id, $json.patient_id, { ...$json, previous_status: $('Check Current Status').first().json.from_status }, $now] }}"
+          "queryReplacement": "={{ [$json.assignee_id, $json.id, $json.patient_id, { ...$json, previous_status: $('Check Current Status').first().json.from_status }, $now, $json.start_datetime] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
@@ -7851,9 +7851,9 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO public.notifications (\n  user_id, type, status, priority, appointment_id, session_id, patient_id, metadata, created_at, read_at\n)\nVALUES (\n  $1, 'new_appointment', 'pending', 'MEDIUM', $2, null, $3, $4, $5, null\n)\nRETURNING *;",
+        "query": "INSERT INTO public.notifications (\n  user_id, type, status, priority, appointment_id, session_id, patient_id, metadata, created_at, read_at\n)\nSELECT $1, 'new_appointment', 'pending', 'MEDIUM', $2, null, $3, $4, $5, null\nWHERE $1 IS NOT NULL AND $6::timestamptz::date = CURRENT_DATE\nRETURNING *;",
         "options": {
-          "queryReplacement": "={{ [$json.assignee_id, $json.id, $json.patient_id, $json, $now] }}"
+          "queryReplacement": "={{ [$json.assignee_id, $json.id, $json.patient_id, $json, $now, $json.start_datetime] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
@@ -8543,6 +8543,251 @@
       ],
       "id": "67f36d28-48c3-4d8e-a911-8b364ef39db9",
       "name": "Respond 202"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.notifications (\n  user_id, type, status, priority, appointment_id, session_id, patient_id, metadata, created_at, read_at\n)\nSELECT $1, 'appointment_rescheduled', 'pending', 'MEDIUM', $2, null, $3, $4, NOW(), null\nWHERE $1 IS NOT NULL AND $5::timestamptz::date = CURRENT_DATE\nRETURNING *;",
+        "options": {
+          "queryReplacement": "={{ [$json.assignee_id, $json.id, $json.patient_id, $json, $json.start_datetime] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3872,
+        2624
+      ],
+      "id": "b1e2c3d4-1111-4a2b-9c3d-e4f5a6b7c8d9",
+      "name": "Insert Reschedule Notification",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "W5SZnwkaTigFrHO6",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/W5SZnwkaTigFrHO6",
+          "cachedResultName": "Events"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_type": "appointment_rescheduled",
+            "user_ids": "={{ [$json.user_id] }}",
+            "channels": "={{ [] }}",
+            "payload": "={{ $json }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "event_type",
+              "displayName": "event_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "user_ids",
+              "displayName": "user_ids",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "channels",
+              "displayName": "channels",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "payload",
+              "displayName": "payload",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        4096,
+        2624
+      ],
+      "id": "b1e2c3d4-2222-4a2b-9c3d-e4f5a6b7c8d9",
+      "name": "Push Reschedule Event"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.notifications (\n  user_id, type, status, priority, appointment_id, session_id, patient_id, metadata, created_at, read_at\n)\nSELECT $1, 'appointment_reassigned', 'pending', 'MEDIUM', $2, null, $3, $4, NOW(), null\nWHERE $1 IS NOT NULL AND $5::timestamptz::date = CURRENT_DATE\nRETURNING *;",
+        "options": {
+          "queryReplacement": "={{ [$json.assignee_id, $json.id, $json.patient_id, $json, $json.start_datetime] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        560,
+        4176
+      ],
+      "id": "c1e2c3d4-1111-4a2b-9c3d-e4f5a6b7c8d9",
+      "name": "Insert Reassign Notification",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "W5SZnwkaTigFrHO6",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/W5SZnwkaTigFrHO6",
+          "cachedResultName": "Events"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_type": "appointment_reassigned",
+            "user_ids": "={{ [$json.user_id] }}",
+            "channels": "={{ [] }}",
+            "payload": "={{ $json }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "event_type",
+              "displayName": "event_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "user_ids",
+              "displayName": "user_ids",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "channels",
+              "displayName": "channels",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "payload",
+              "displayName": "payload",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        784,
+        4176
+      ],
+      "id": "c1e2c3d4-2222-4a2b-9c3d-e4f5a6b7c8d9",
+      "name": "Push Reassign Event"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  p.*,\n  d.name AS doctor_name,\n  pa.name AS patient_name,\n  json_agg(sc.name) AS services\nFROM public.appointments p\nLEFT JOIN public.users d ON p.assignee_id = d.id\nLEFT JOIN public.users pa ON p.patient_id = pa.id\nLEFT JOIN public.appointment_service_catalog ascat ON ascat.appointment_id = p.id\nLEFT JOIN public.service_catalog sc ON ascat.service_id = sc.id\nWHERE p.id = $1\nGROUP BY p.id, d.name, pa.name",
+        "options": {
+          "queryReplacement": "={{ $json.new_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3424,
+        2624
+      ],
+      "id": "b1e2c3d4-3333-4a2b-9c3d-e4f5a6b7c8d9",
+      "name": "Get Reschedule Appointment Data",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: {\n  ...$json,\n  original_appointment_id: $('Apply Reschedule').first().json.old_id,\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3648,
+        2624
+      ],
+      "id": "b1e2c3d4-4444-4a2b-9c3d-e4f5a6b7c8d9",
+      "name": "Merge Reschedule Context"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  p.*,\n  d.name AS doctor_name,\n  pa.name AS patient_name,\n  json_agg(sc.name) AS services\nFROM public.appointments p\nLEFT JOIN public.users d ON p.assignee_id = d.id\nLEFT JOIN public.users pa ON p.patient_id = pa.id\nLEFT JOIN public.appointment_service_catalog ascat ON ascat.appointment_id = p.id\nLEFT JOIN public.service_catalog sc ON ascat.service_id = sc.id\nWHERE p.id = $1\nGROUP BY p.id, d.name, pa.name",
+        "options": {
+          "queryReplacement": "={{ $json.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        352,
+        4176
+      ],
+      "id": "c1e2c3d4-3333-4a2b-9c3d-e4f5a6b7c8d9",
+      "name": "Get Reassign Appointment Data",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
     }
   ],
   "pinData": {
@@ -10920,6 +11165,11 @@
             "node": "Format output3",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Get Reassign Appointment Data",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -11070,6 +11320,11 @@
             "node": "Build Response1",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Get Reschedule Appointment Data",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -11181,6 +11436,61 @@
         [
           {
             "node": "Respond 202",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Reschedule Notification": {
+      "main": [
+        [
+          {
+            "node": "Push Reschedule Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Reassign Notification": {
+      "main": [
+        [
+          {
+            "node": "Push Reassign Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Reschedule Appointment Data": {
+      "main": [
+        [
+          {
+            "node": "Merge Reschedule Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Reschedule Context": {
+      "main": [
+        [
+          {
+            "node": "Insert Reschedule Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Reassign Appointment Data": {
+      "main": [
+        [
+          {
+            "node": "Insert Reassign Notification",
             "type": "main",
             "index": 0
           }

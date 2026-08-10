@@ -14,6 +14,8 @@ import { getChannelsForRoles } from '@/constants/notification-channels';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 import type {
+  AppointmentReassignedNotification,
+  AppointmentRescheduledNotification,
   AppointmentStatus,
   AppointmentStatusChangeNotification,
   DoctorAlertStyle,
@@ -73,7 +75,13 @@ function writeActionsTaken(notifId: string, actions: ('quote' | 'invoice' | 'sch
 
 interface BackendNotification {
   id: number | string;
-  type: 'appointment_status_change' | 'session_completed' | 'new_appointment' | 'reminder';
+  type:
+    | 'appointment_status_change'
+    | 'session_completed'
+    | 'new_appointment'
+    | 'reminder'
+    | 'appointment_rescheduled'
+    | 'appointment_reassigned';
   reminder_id?: string | null;
   status: 'pending' | 'read' | 'dismissed';
   appointment_id?: string | null;
@@ -190,6 +198,21 @@ function normalizeBackendNotification(n: BackendNotification): UnifiedNotificati
         type: 'new_appointment',
         appointment: buildAppointment(normalizeAppointmentStatus(m.status ?? 'scheduled')),
       } satisfies NewAppointmentNotification;
+
+    case 'appointment_rescheduled':
+      return {
+        ...base,
+        type: 'appointment_rescheduled',
+        appointment: buildAppointment(normalizeAppointmentStatus(m.status ?? 'scheduled')),
+        originalAppointmentId: String(m.original_appointment_id ?? ''),
+      } satisfies AppointmentRescheduledNotification;
+
+    case 'appointment_reassigned':
+      return {
+        ...base,
+        type: 'appointment_reassigned',
+        appointment: buildAppointment(normalizeAppointmentStatus(m.status ?? 'scheduled')),
+      } satisfies AppointmentReassignedNotification;
 
     case 'reminder':
       return {
@@ -398,6 +421,8 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     const statusChanges = novel.filter((n): n is AppointmentStatusChangeNotification => n.type === 'appointment_status_change');
     const sessionsDone = novel.filter((n): n is SessionCompletedNotification => n.type === 'session_completed');
     const reminders = novel.filter((n): n is ReminderPanelNotification => n.type === 'reminder');
+    const reschedules = novel.filter((n): n is AppointmentRescheduledNotification => n.type === 'appointment_rescheduled');
+    const reassigns = novel.filter((n): n is AppointmentReassignedNotification => n.type === 'appointment_reassigned');
 
     if (alertStyleRef.current === 'toast') {
       newAppts.forEach((n) => {
@@ -413,6 +438,18 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
             patient: n.appointment.patientName || tN('unknownPatient'),
             status: tStatus(normalizeAppointmentStatus(n.appointment.status)),
           }),
+        });
+      });
+      reschedules.forEach((n) => {
+        toast({
+          title: tDW('rescheduleAlerts.singleTitle'),
+          description: `${n.appointment.patientName || tN('unknownPatient')} · ${n.appointment.time || ''}`,
+        });
+      });
+      reassigns.forEach((n) => {
+        toast({
+          title: tDW('reassignAlerts.singleTitle'),
+          description: `${n.appointment.patientName || tN('unknownPatient')} · ${n.appointment.time || ''}`,
         });
       });
       sessionsDone.forEach((n) => {

@@ -6,6 +6,7 @@ import { es } from 'date-fns/locale';
 import {
   ArrowRight,
   Bell,
+  CalendarClock,
   CalendarPlus,
   Check,
   Clock,
@@ -13,6 +14,7 @@ import {
   ListChecks,
   Loader2,
   Stethoscope,
+  UserCog,
   Users,
   X,
   Zap,
@@ -32,6 +34,8 @@ import { getSalesServices } from '@/services/services';
 import { cn, normalizeTratamiento } from '@/lib/utils';
 import { api } from '@/services/api';
 import type {
+  AppointmentReassignedNotification,
+  AppointmentRescheduledNotification,
   AppointmentStatus,
   AppointmentStatusChangeNotification,
   NewAppointmentNotification,
@@ -558,6 +562,116 @@ function NewAppointmentCard({ notification }: { notification: NewAppointmentNoti
   );
 }
 
+// ── Appointment rescheduled card ──────────────────────────────────────────────
+
+function AppointmentRescheduledCard({ notification }: { notification: AppointmentRescheduledNotification }) {
+  const { dismissNotification, closePanel } = useNotifications();
+  const t = useTranslations('Notifications');
+  const locale = useLocale();
+  const router = useRouter();
+  const { appointment, createdAt } = notification;
+
+  const serviceLabel =
+    appointment.services?.length
+      ? appointment.services.map((s) => s.name).join(', ')
+      : appointment.service_name || appointment.summary || t('unknownService');
+
+  const handleView = () => {
+    closePanel();
+    window.dispatchEvent(new Event('clinic:calendar:refresh'));
+    router.push(`/${locale}/workspace?appointmentId=${appointment.id}`);
+  };
+
+  return (
+    <CardWrapper onDismiss={() => dismissNotification(notification.id)} accent="border-l-[3px] border-l-amber-500/60">
+      <div className="flex items-start gap-3 pr-6">
+        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-500/10">
+          <CalendarClock className="h-3.5 w-3.5 text-amber-600" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs font-semibold text-foreground truncate">
+              {appointment.patientName || t('unknownPatient')}
+            </span>
+            <RelativeTime iso={createdAt} />
+          </div>
+          <p className="mt-0.5 text-[11px] text-muted-foreground truncate">{serviceLabel}</p>
+          {appointment.time && (
+            <p className="mt-1 text-[11px] font-medium text-amber-700">
+              {t('newAppointmentTime', { time: appointment.time })}
+            </p>
+          )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3 h-7 w-full justify-start gap-2 text-[11px]"
+            onClick={handleView}
+          >
+            <ExternalLink className="h-3.5 w-3.5 text-amber-600" />
+            {t('actionViewWorkspace')}
+          </Button>
+        </div>
+      </div>
+    </CardWrapper>
+  );
+}
+
+// ── Appointment reassigned card ───────────────────────────────────────────────
+
+function AppointmentReassignedCard({ notification }: { notification: AppointmentReassignedNotification }) {
+  const { dismissNotification, closePanel } = useNotifications();
+  const t = useTranslations('Notifications');
+  const locale = useLocale();
+  const router = useRouter();
+  const { appointment, createdAt } = notification;
+
+  const serviceLabel =
+    appointment.services?.length
+      ? appointment.services.map((s) => s.name).join(', ')
+      : appointment.service_name || appointment.summary || t('unknownService');
+
+  const handleView = () => {
+    closePanel();
+    window.dispatchEvent(new Event('clinic:calendar:refresh'));
+    router.push(`/${locale}/workspace?appointmentId=${appointment.id}`);
+  };
+
+  return (
+    <CardWrapper onDismiss={() => dismissNotification(notification.id)} accent="border-l-[3px] border-l-teal-500/60">
+      <div className="flex items-start gap-3 pr-6">
+        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-500/10">
+          <UserCog className="h-3.5 w-3.5 text-teal-600" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs font-semibold text-foreground truncate">
+              {appointment.patientName || t('unknownPatient')}
+            </span>
+            <RelativeTime iso={createdAt} />
+          </div>
+          <p className="mt-0.5 text-[11px] text-muted-foreground truncate">{serviceLabel}</p>
+          {appointment.time && (
+            <p className="mt-1 text-[11px] font-medium text-teal-700">
+              {t('newAppointmentTime', { time: appointment.time })}
+            </p>
+          )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3 h-7 w-full justify-start gap-2 text-[11px]"
+            onClick={handleView}
+          >
+            <ExternalLink className="h-3.5 w-3.5 text-teal-600" />
+            {t('actionViewWorkspace')}
+          </Button>
+        </div>
+      </div>
+    </CardWrapper>
+  );
+}
+
 // ── Reminder card ─────────────────────────────────────────────────────────────
 
 function ReminderCard({ notification }: { notification: ReminderPanelNotification }) {
@@ -679,6 +793,10 @@ export function NotificationCard({ notification }: { notification: UnifiedNotifi
       return <NewAppointmentCard notification={notification} />;
     case 'appointment_status_change':
       return <AppointmentStatusCard notification={notification} />;
+    case 'appointment_rescheduled':
+      return <AppointmentRescheduledCard notification={notification} />;
+    case 'appointment_reassigned':
+      return <AppointmentReassignedCard notification={notification} />;
     case 'session_completed':
       return <SessionCompletedCard notification={notification} />;
     case 'reminder':
