@@ -94,14 +94,21 @@ export default function ResetPasswordPage() {
 
         } catch (err: any) {
             let errorMessage = t('errors.generic');
-            if (err.message.includes('400')) {
-                errorMessage = t('errors.invalidPassword');
-            } else if (err.message.includes('401')) {
+            const errText: string | undefined = err.data?.error;
+            if (err.status === 400) {
+                if (errText === 'Invalid token') {
+                    errorMessage = t('errors.invalidToken');
+                } else if (errText?.toLowerCase().includes('password')) {
+                    errorMessage = t('errors.invalidPassword');
+                } else {
+                    errorMessage = t('errors.generic');
+                }
+            } else if (err.status === 401) {
                 errorMessage = t('errors.invalidToken');
-            } else if (err.message.includes('500')) {
+            } else if (err.status === 404) {
+                errorMessage = t('errors.invalidToken');
+            } else if (err.status === 500) {
                 errorMessage = t('errors.serverError');
-            } else {
-                errorMessage = err.message;
             }
             setError(errorMessage);
         } finally {
