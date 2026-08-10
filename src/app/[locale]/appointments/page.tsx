@@ -140,6 +140,10 @@ interface InlineAppointmentDraftState {
     editing?: Appointment | null;
     /** When true, saving reschedules instead of updating the original appointment. */
     rescheduling?: boolean;
+    /** Quote linked on save. Carried from the notification deep-link; the card has no quote field. */
+    quoteId?: string;
+    /** Notification whose 'schedule' action is marked done after a successful save. */
+    notifId?: string;
     /** Stable signature used to detect changes made after the inline window opened. */
     initialSignature: string;
 }
@@ -267,6 +271,24 @@ function getGoogleCalendarColorHex(value?: string | null): string | undefined {
 function getInitialDraftColor(calendar?: CalendarType | null): { color?: string } {
     const color = getGoogleCalendarColorId(calendar?.color);
     return color ? { color } : {};
+}
+
+/**
+ * Parses the `date` carried by the "schedule next appointment" notification
+ * deep-link. Accepts 'yyyy-MM-dd' and full ISO strings (the trailing Z is
+ * dropped so it reads as local time, like everywhere else on this page). When
+ * only a date is given, the current time is used — same rule as the invoke
+ * dialog, which falls back to `format(new Date(), 'HH:mm')`.
+ */
+function parseNotifScheduleDate(raw: string | undefined): Date {
+    const now = new Date();
+    if (!raw) return now;
+    const parsed = parseISO(raw.trim().replace(/Z$/, ''));
+    if (!isValid(parsed)) return now;
+    if (parsed.getHours() !== 0 || parsed.getMinutes() !== 0) {
+        return set(parsed, { seconds: 0, milliseconds: 0 });
+    }
+    return set(parsed, { hours: now.getHours(), minutes: now.getMinutes(), seconds: 0, milliseconds: 0 });
 }
 
 // Builds the label shown on each appointment by concatenating its fields
@@ -1094,6 +1116,7 @@ export default function AppointmentsPage() {
         services?: SessionPreloadedService[];
         quoteId?: string;
         calendarId?: string;
+        notifId?: string;
     } | null>(null);
 
     // Shared slot preparation: stores the slot's initial data (date/time + doctor/calendar
@@ -1267,7 +1290,7 @@ export default function AppointmentsPage() {
                 notes: inlineDraft.notes || '',
                 calendar_source_id: calendar?.id ? String(calendar.id) : '',
                 color: draftColor,
-                quote_id: editing?.quote_id ?? null,
+                quote_id: editing?.quote_id ?? inlineDraft.quoteId ?? null,
             };
             if (editing) {
                 payload.appointment_id = editing.id;
@@ -1278,6 +1301,9 @@ export default function AppointmentsPage() {
             const result = Array.isArray(response) ? response[0] : response;
             if (result?.error || (result?.code && result.code >= 400)) throw new Error(result?.message || 'Failed to save appointment');
             toast({ title: editing ? tToasts('appointmentUpdated') : tToasts('appointmentCreated') });
+            // La notificación se marca solo tras el guardado exitoso (igual que
+            // handleSaveSuccess para el dialog completo).
+            if (inlineDraft.notifId) markSessionAction(inlineDraft.notifId, 'schedule');
             setInlineDraft(null);
             refreshCalendarDataRef.current();
         } catch (error) {
@@ -1285,7 +1311,7 @@ export default function AppointmentsPage() {
         } finally {
             setIsSavingInline(false);
         }
-    }, [inlineDraft, toast, tToasts, rescheduleAppointment, user?.id, calendars, isDateTimeBlocked]);
+    }, [inlineDraft, toast, tToasts, rescheduleAppointment, user?.id, calendars, isDateTimeBlocked, markSessionAction]);
 
     const isInlineDraftDirty = (
         inlineDraft
@@ -2235,6 +2261,11 @@ export default function AppointmentsPage() {
     const [pendingInvoiceNotifId, setPendingInvoiceNotifId] = React.useState<string | undefined>();
     const [pendingScheduleNotifId, setPendingScheduleNotifId] = React.useState<string | undefined>();
     const [scheduleNextResolvedServices, setScheduleNextResolvedServices] = React.useState<Service[] | undefined>();
+    // Deferred open for the "schedule next appointment" deep-link: whether it targets
+    // the full dialog (invoke) or the simplified inline card (custom) depends on the
+    // calendar mode, which is only known once getCalendarSettings() resolves.
+    const [pendingScheduleOpen, setPendingScheduleOpen] = React.useState(false);
+    const scheduleDraftRunRef = React.useRef(0);
 
     // Quote/invoice creation dialogs preloaded with the appointment's patient +
     // services; the freshly created document is linked back to the appointment.
@@ -2305,9 +2336,10 @@ export default function AppointmentsPage() {
         calendarId?: string,
         notifId?: string,
     ) => {
-        setScheduleNextData({ patientId, patientName, date, doctorId, doctorName, services: items, quoteId, calendarId });
-        setPendingScheduleNotifId(notifId);
-        setCreateOpen(true);
+        // La apertura se difiere: en modo personalizado va a la tarjeta simplificada
+        // y en modo invoke al dialog completo, y el modo aún no está cargado aquí.
+        setScheduleNextData({ patientId, patientName, date, doctorId, doctorName, services: items, quoteId, calendarId, notifId });
+        setPendingScheduleOpen(true);
     }, []);
 
     const handleNotifInvoice = React.useCallback(async (patientId: string, patientName: string, items?: SessionPreloadedService[], notifId?: string) => {
@@ -2361,6 +2393,60 @@ export default function AppointmentsPage() {
             quote,
         };
     }, [scheduleNextData, doctors, calendars, scheduleNextResolvedServices]);
+
+    // Modo personalizado: la notificación "agendar próxima cita" abre la tarjeta
+    // simplificada en vez del dialog completo, con la misma pre-carga.
+    const openInlineDraftFromNotifSchedule = React.useCallback(async (data: NonNullable<typeof scheduleNextData>) => {
+        const runId = ++scheduleDraftRunRef.current;
+        const serviceIds = (data.services ?? [])
+            .map((s) => s.service_id)
+            .filter((id): id is string => Boolean(id));
+        let draftServices: Service[] = [];
+        if (serviceIds.length > 0) {
+            // Resolver contra el catálogo ya en memoria; solo pedir a la API si algún
+            // id detectado por la IA quedó fuera de la página cargada.
+            const idSet = new Set(serviceIds.map(String));
+            const local = services.filter((s) => idSet.has(String(s.id)));
+            draftServices = local.length === idSet.size
+                ? local
+                : await fetchServicesByIds(serviceIds).catch(() => local);
+        }
+        if (scheduleDraftRunRef.current !== runId) return; // reemplazado por otra notificación
+
+        const doctor = data.doctorId ? (doctors.find(d => String(d.id) === String(data.doctorId)) ?? null) : null;
+        const calendar = data.calendarId ? (calendars.find(c => String(c.id) === String(data.calendarId)) ?? null) : null;
+        const totalDuration = draftServices.reduce((acc, s) => acc + ((s as any).duration_minutes || 0), 0);
+
+        setEditingAppointment(null);
+        setInlineDraft(createInlineDraftState({
+            date: parseNotifScheduleDate(data.date),
+            context: calendar ? { groupBy: 'calendar', value: String(calendar.id) } : undefined,
+            durationMin: totalDuration > 0 ? totalDuration : slotDuration,
+            patient: { id: data.patientId, name: data.patientName, email: '', phone_number: '', is_active: true, avatar: '' } as UserType,
+            services: draftServices,
+            doctor,
+            calendar,
+            notes: '',
+            quoteId: data.quoteId,
+            notifId: data.notifId,
+            ...getInitialDraftColor(calendar),
+        }));
+    }, [services, doctors, calendars, slotDuration]);
+
+    // El deep-link se dispara al montar, antes de que getCalendarSettings() resuelva,
+    // así que la apertura espera a conocer el modo. Se consume una sola vez.
+    React.useEffect(() => {
+        if (!pendingScheduleOpen || isDataLoading || !scheduleNextData) return;
+        setPendingScheduleOpen(false);
+        if (isCustomMode) {
+            void openInlineDraftFromNotifSchedule(scheduleNextData);
+            // El initialData del dialog no debe seguir apuntando a este payload.
+            setScheduleNextData(null);
+            return;
+        }
+        setPendingScheduleNotifId(scheduleNextData.notifId);
+        setCreateOpen(true);
+    }, [pendingScheduleOpen, isDataLoading, isCustomMode, scheduleNextData, openInlineDraftFromNotifSchedule]);
     // ─────────────────────────────────────────────────────────────────────────
 
     const loadInitialData = React.useCallback(async () => {
