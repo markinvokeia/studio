@@ -97,15 +97,24 @@ export default function SetFirstPasswordPage() {
 
         } catch (err: any) {
             let errorMessage = t('errors.generic');
+            const errText: string | undefined = err.data?.error;
             if (err.status === 400) {
                 const errors: string[] = err.data?.errors;
-                errorMessage = Array.isArray(errors) && errors.length > 0
-                    ? errors.join(' ')
-                    : err.data?.message || t('errors.invalidPassword');
+                if (Array.isArray(errors) && errors.length > 0) {
+                    errorMessage = errors.join(' ');
+                } else if (errText === 'Invalid token' || errText === 'The link has expired. Request a new one') {
+                    errorMessage = t('errors.invalidToken');
+                } else if (err.data?.message) {
+                    errorMessage = err.data.message;
+                } else {
+                    errorMessage = t('errors.generic');
+                }
             } else if (err.status === 401) {
                 errorMessage = t('errors.invalidToken');
             } else if (err.status === 403) {
-                errorMessage = t('errors.alreadySet');
+                errorMessage = errText === 'The token is invalid.' ? t('errors.invalidToken') : t('errors.alreadySet');
+            } else if (err.status === 404) {
+                errorMessage = t('errors.invalidToken');
             } else if (err.status === 500) {
                 errorMessage = t('errors.serverError');
             }
