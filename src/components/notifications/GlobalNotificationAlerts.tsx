@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { ArrowRight, BellRing, CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, Clock, UserCog } from 'lucide-react';
+import { ArrowRight, BellRing, CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, Clock, Pencil, UserCog } from 'lucide-react';
 import { format, isValid, parseISO } from 'date-fns';
 import { useTranslations } from 'next-intl';
 
@@ -14,6 +14,7 @@ import type {
   AppointmentRescheduledNotification,
   AppointmentStatus,
   AppointmentStatusChangeNotification,
+  AppointmentUpdatedNotification,
   NewAppointmentNotification,
   ReminderPanelNotification,
   SessionCompletedNotification,
@@ -181,6 +182,39 @@ function ReassignedBody({ item }: { item: AppointmentReassignedNotification }) {
   );
 }
 
+function UpdatedBody({ item }: { item: AppointmentUpdatedNotification }) {
+  const t = useTranslations('DoctorWorkspace');
+  const tN = useTranslations('Notifications');
+  const { appointment: appt } = item;
+
+  return (
+    <div className="flex flex-col items-center gap-5 px-2 py-4">
+      <div
+        className="grid h-16 w-16 place-items-center rounded-full text-white shadow-lg"
+        style={{ backgroundColor: '#8b5cf6', animation: 'global-alert-sway 1.4s ease-in-out infinite' }}
+      >
+        <Pencil className="h-8 w-8" />
+      </div>
+      <div className="space-y-1 text-center">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          {t('editAlerts.singleTitle')}
+        </p>
+        <p className="text-xl font-bold leading-tight text-foreground">
+          {appt.patientName || tN('unknownPatient')}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {appt.services?.length
+            ? appt.services.map((s) => s.name).join(', ')
+            : appt.service_name || appt.summary || t('appointmentAlerts.unknownService')}
+        </p>
+        {appt.time && (
+          <p className="text-sm font-semibold text-violet-700">{appt.time}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function SessionCompletedBody({ item }: { item: SessionCompletedNotification }) {
   const t = useTranslations('Notifications');
 
@@ -254,6 +288,7 @@ function NotificationBody({ item }: { item: UnifiedNotification }) {
   if (item.type === 'appointment_status_change') return <StatusChangeBody item={item} />;
   if (item.type === 'appointment_rescheduled') return <RescheduledBody item={item} />;
   if (item.type === 'appointment_reassigned') return <ReassignedBody item={item} />;
+  if (item.type === 'appointment_updated') return <UpdatedBody item={item} />;
   if (item.type === 'session_completed') return <SessionCompletedBody item={item} />;
   return <ReminderBody item={item as ReminderPanelNotification} />;
 }
@@ -285,6 +320,7 @@ export function GlobalNotificationAlerts({ items, onDismissAll }: GlobalNotifica
     if (current.type === 'appointment_status_change') return tN('statusChangedTitle');
     if (current.type === 'appointment_rescheduled') return tN('appointmentRescheduledTitle');
     if (current.type === 'appointment_reassigned') return tN('appointmentReassignedTitle');
+    if (current.type === 'appointment_updated') return tN('appointmentUpdatedTitle');
     if (current.type === 'session_completed') return tN('sessionCompletedAlertTitle');
     return tN('reminderDueTitle');
   }

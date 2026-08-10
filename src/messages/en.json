@@ -577,6 +577,7 @@
     "statusChangedTitle": "Status changed",
     "appointmentRescheduledTitle": "Appointment rescheduled",
     "appointmentReassignedTitle": "Appointment reassigned",
+    "appointmentUpdatedTitle": "Appointment updated",
     "reminderDueTitle": "Reminder due"
   },
   "Header": {
@@ -1292,6 +1293,10 @@
     "reassignAlerts": {
       "singleTitle": "An appointment was reassigned to you",
       "multipleTitle": "{count} appointments were reassigned to you"
+    },
+    "editAlerts": {
+      "singleTitle": "One of today's appointments was edited",
+      "multipleTitle": "{count} of today's appointments were edited"
     },
     "todayLabel": "Today: {date}",
     "lastUpdated": "Last updated: {time}",

@@ -577,6 +577,7 @@
     "statusChangedTitle": "Cambio de estado",
     "appointmentRescheduledTitle": "Cita reagendada",
     "appointmentReassignedTitle": "Cita reasignada",
+    "appointmentUpdatedTitle": "Cita editada",
     "reminderDueTitle": "Recordatorio vencido"
   },
   "Header": {
@@ -1292,6 +1293,10 @@
     "reassignAlerts": {
       "singleTitle": "Te reasignaron una cita",
       "multipleTitle": "Te reasignaron {count} citas"
+    },
+    "editAlerts": {
+      "singleTitle": "Se editó una cita de hoy",
+      "multipleTitle": "Se editaron {count} citas de hoy"
     },
     "todayLabel": "Hoy: {date}",
     "lastUpdated": "Última actualización: {time}",

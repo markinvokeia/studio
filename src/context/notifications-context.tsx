@@ -18,6 +18,7 @@ import type {
   AppointmentRescheduledNotification,
   AppointmentStatus,
   AppointmentStatusChangeNotification,
+  AppointmentUpdatedNotification,
   DoctorAlertStyle,
   NewAppointmentNotification,
   ReminderPanelNotification,
@@ -81,7 +82,8 @@ interface BackendNotification {
     | 'new_appointment'
     | 'reminder'
     | 'appointment_rescheduled'
-    | 'appointment_reassigned';
+    | 'appointment_reassigned'
+    | 'appointment_updated';
   reminder_id?: string | null;
   status: 'pending' | 'read' | 'dismissed';
   appointment_id?: string | null;
@@ -213,6 +215,13 @@ function normalizeBackendNotification(n: BackendNotification): UnifiedNotificati
         type: 'appointment_reassigned',
         appointment: buildAppointment(normalizeAppointmentStatus(m.status ?? 'scheduled')),
       } satisfies AppointmentReassignedNotification;
+
+    case 'appointment_updated':
+      return {
+        ...base,
+        type: 'appointment_updated',
+        appointment: buildAppointment(normalizeAppointmentStatus(m.status ?? 'scheduled')),
+      } satisfies AppointmentUpdatedNotification;
 
     case 'reminder':
       return {
@@ -423,6 +432,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     const reminders = novel.filter((n): n is ReminderPanelNotification => n.type === 'reminder');
     const reschedules = novel.filter((n): n is AppointmentRescheduledNotification => n.type === 'appointment_rescheduled');
     const reassigns = novel.filter((n): n is AppointmentReassignedNotification => n.type === 'appointment_reassigned');
+    const edits = novel.filter((n): n is AppointmentUpdatedNotification => n.type === 'appointment_updated');
 
     if (alertStyleRef.current === 'toast') {
       newAppts.forEach((n) => {
@@ -449,6 +459,12 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       reassigns.forEach((n) => {
         toast({
           title: tDW('reassignAlerts.singleTitle'),
+          description: `${n.appointment.patientName || tN('unknownPatient')} · ${n.appointment.time || ''}`,
+        });
+      });
+      edits.forEach((n) => {
+        toast({
+          title: tDW('editAlerts.singleTitle'),
           description: `${n.appointment.patientName || tN('unknownPatient')} · ${n.appointment.time || ''}`,
         });
       });
