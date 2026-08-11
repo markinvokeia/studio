@@ -53,7 +53,7 @@ import { AllergyItem, ClinicDocument, FamilyHistoryItem, MedicationCatalogItem, 
 import { Appointment, AppointmentStatus, Calendar, CancellationReason, PatientSession, SessionPrefillData } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
-import { addMonths, format, isBefore, isValid, parseISO } from 'date-fns';
+import { addYears, format, isBefore, isValid, parseISO } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
 import {
     AlertTriangle,
@@ -171,8 +171,8 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
             const now = new Date();
             const formatDate = (d: Date) => format(d, 'yyyy-MM-dd HH:mm:ss');
             const data = await api.get(API_ROUTES.USERS_APPOINTMENTS, {
-                startingDateAndTime: formatDate(addMonths(now, -12)),
-                endingDateAndTime: formatDate(addMonths(now, 6)),
+                startingDateAndTime: formatDate(addYears(now, -10)),
+                endingDateAndTime: formatDate(addYears(now, 2)),
                 user_id: currentUserId,
             });
             let raw: any[] = [];
