@@ -1,5 +1,7 @@
 'use client';
 
+import { format, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { Calendar, FileText, Loader2, Mic, MicOff, Pencil, Plus, Receipt, ShoppingCart, Trash2, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
@@ -463,10 +465,7 @@ function ExistingNoteCard({
 
     const formattedDate = React.useMemo(() => {
         try {
-            return new Date(note.created_at).toLocaleDateString('es', {
-                day: '2-digit',
-                month: 'short',
-            });
+            return format(parseISO(note.created_at.replace('Z', '')), 'dd MMM', { locale: es });
         } catch {
             return '';
         }

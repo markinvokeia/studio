@@ -15,6 +15,7 @@ import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { useToast } from '@/hooks/use-toast';
 import { ExchangeRateHistoryItem } from '@/lib/types';
+import { formatDisplayDate } from '@/lib/utils';
 import { api } from '@/services/api';
 import { ColumnDef, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { DollarSign, History, RefreshCw } from 'lucide-react';
@@ -183,7 +184,7 @@ export default function CurrenciesPage() {
                     <div className="header-icon-circle flex-none"><History className="h-5 w-5" /></div>
                     <div className="min-w-0 flex-1">
                         <CardTitle className="text-base lg:text-lg truncate">{t('detailsModal.title')}</CardTitle>
-                        <p className="text-xs text-muted-foreground">{selectedItem.fecha ? new Date(selectedItem.fecha).toLocaleDateString('es-ES') : ''}</p>
+                        <p className="text-xs text-muted-foreground">{formatDisplayDate(selectedItem.fecha)}</p>
                     </div>
                 </div>
             </CardHeader>

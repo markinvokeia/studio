@@ -5,34 +5,15 @@ import { Badge } from '@/components/ui/badge';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { CajaSesion } from '@/lib/types';
 import { ColumnDef } from '@tanstack/react-table';
-import { format, parseISO } from 'date-fns';
 import { Eye, Printer } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { createSelectColumn } from '@/components/ui/table-select-column';
+import { formatDisplayDate } from '@/lib/utils';
 
 interface CashSessionsColumnsProps {
     onView: (session: CajaSesion) => void;
     onPrint: (session: CajaSesion) => void;
 }
-
-const formatDate = (dateString?: string): string => {
-    if (!dateString) return 'N/A';
-    try {
-        return format(parseISO(dateString), 'dd/MM/yyyy');
-    } catch (error) {
-        return dateString;
-    }
-};
-
-const formatDateTime = (dateString?: string): string => {
-    if (!dateString) return 'N/A';
-    try {
-        const localDateString = dateString.replace('Z', '');
-        return format(parseISO(localDateString), 'dd/MM/yyyy HH:mm');
-    } catch (error) {
-        return dateString;
-    }
-};
 
 const formatCurrency = (value?: number) => {
     if (value === undefined || value === null) return 'N/A';
@@ -61,12 +42,12 @@ export const CashSessionsColumnsWrapper = ({ onView, onPrint }: CashSessionsColu
         {
             accessorKey: 'fechaApertura',
             header: ({ column }) => <DataTableColumnHeader column={column} title={t('openDate')} />,
-            cell: ({ row }) => formatDate(row.original.fechaApertura)
+            cell: ({ row }) => formatDisplayDate(row.original.fechaApertura)
         },
         {
             accessorKey: 'fechaCierre',
             header: ({ column }) => <DataTableColumnHeader column={column} title={t('closeDate')} />,
-            cell: ({ row }) => formatDate(row.original.fechaCierre || undefined)
+            cell: ({ row }) => formatDisplayDate(row.original.fechaCierre || undefined)
         },
         {
             accessorKey: 'montoApertura',

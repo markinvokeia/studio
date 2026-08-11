@@ -23,13 +23,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/services/api';
 import { AttachedFile, PatientSession, Quote, Service, TreatmentDetail } from '@/lib/types';
-import { addMonths, format, isValid, parseISO } from 'date-fns';
+import { addMonths, format } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
 import { Calendar as CalendarIcon, Check, ChevronsUpDown, File, FilePlus, Link2, Loader2, Palette, Plus, Sparkles, Trash2, Upload, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import * as React from 'react';
 import { API_ROUTES } from '@/constants/routes';
-import { cn, formatDate } from '@/lib/utils';
+import { cn, formatDate, formatDisplayDate } from '@/lib/utils';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { getSalesServices } from '@/services/services';
 import { ensureDoctorOption } from '@/services/doctors';
@@ -986,7 +986,7 @@ export function ClinicSessionDialog({
                                                         <span className="flex items-center gap-2 text-sm">
                                                             <span className="font-medium">{selectedQuote.doc_no}</span>
                                                             <span className="text-muted-foreground">
-                                                                {selectedQuote.createdAt && isValid(parseISO(selectedQuote.createdAt)) ? format(parseISO(selectedQuote.createdAt), 'dd/MM/yyyy') : ''}
+                                                                {selectedQuote.createdAt ? formatDisplayDate(selectedQuote.createdAt) : ''}
                                                             </span>
                                                             <span className="text-muted-foreground">
                                                                 ({new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedQuote.currency || 'USD' }).format(selectedQuote.total)})
@@ -1028,7 +1028,7 @@ export function ClinicSessionDialog({
                                                                     <div className="flex flex-col">
                                                                         <span className="font-medium">{quote.doc_no}</span>
                                                                         <span className="text-xs text-muted-foreground">
-                                                                            {quote.createdAt ? format(parseISO(quote.createdAt), 'dd/MM/yyyy') : ''} • {new Intl.NumberFormat('en-US', { style: 'currency', currency: quote.currency || 'USD' }).format(quote.total)}
+                                                                            {quote.createdAt ? formatDisplayDate(quote.createdAt) : ''} • {new Intl.NumberFormat('en-US', { style: 'currency', currency: quote.currency || 'USD' }).format(quote.total)}
                                                                         </span>
                                                                     </div>
                                                                 </CommandItem>

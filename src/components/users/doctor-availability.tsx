@@ -22,9 +22,10 @@ import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/lib/error-utils';
 import { AvailabilityRule } from '@/lib/types';
+import { formatDate, formatDisplayDate } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { AlertTriangle, CalendarPlus, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -155,8 +156,8 @@ export function DoctorAvailability({ userId }: { userId: string }) {
             day_of_week: rule.day_of_week?.toString(),
             start_time: rule.start_time,
             end_time: rule.end_time,
-            start_date: format(parseISO(rule.start_date), 'yyyy-MM-dd'),
-            end_date: rule.end_date ? format(parseISO(rule.end_date), 'yyyy-MM-dd') : '',
+            start_date: formatDate(rule.start_date),
+            end_date: rule.end_date ? formatDate(rule.end_date) : '',
         });
         setSubmissionError(null);
         setIsDialogOpen(true);
@@ -230,7 +231,7 @@ export function DoctorAvailability({ userId }: { userId: string }) {
                                 </div>
                                 <div className="flex items-center gap-3 text-sm">
                                     <span>{rule.start_time} – {rule.end_time}</span>
-                                    <span className="text-muted-foreground text-xs">{format(parseISO(rule.start_date), 'dd/MM/yyyy')} → {rule.end_date ? format(parseISO(rule.end_date), 'dd/MM/yyyy') : '∞'}</span>
+                                    <span className="text-muted-foreground text-xs">{formatDisplayDate(rule.start_date)} → {rule.end_date ? formatDisplayDate(rule.end_date) : '∞'}</span>
                                 </div>
                             </div>
                             <div className="flex gap-1 flex-none">

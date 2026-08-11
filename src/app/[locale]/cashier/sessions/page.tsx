@@ -18,7 +18,6 @@ import { CajaMovimiento, CajaSesion } from '@/lib/types';
 import { cn, formatDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
 import { ColumnDef, ColumnFiltersState, PaginationState, VisibilityState } from '@tanstack/react-table';
-import { format, parseISO } from 'date-fns';
 import { AlertTriangle, ChevronDown, Printer, RefreshCw, History } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
@@ -220,8 +219,8 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
                 <div className="grid grid-cols-2 gap-4 text-sm">
                     <div><span className="font-semibold">{t('columns.user')}:</span> {session.user_name}</div>
                     <div><span className="font-semibold">{t('columns.cashPoint')}:</span> {session.cash_point_name}</div>
-                    <div><span className="font-semibold">{t('columns.openDate')}:</span> {format(parseISO(session.fechaApertura), 'dd/MM/yyyy HH:mm')}</div>
-                    <div><span className="font-semibold">{t('columns.closeDate')}:</span> {session.fechaCierre ? format(parseISO(session.fechaCierre), 'dd/MM/yyyy HH:mm') : 'N/A'}</div>
+                    <div><span className="font-semibold">{t('columns.openDate')}:</span> {formatDateTime(session.fechaApertura)}</div>
+                    <div><span className="font-semibold">{t('columns.closeDate')}:</span> {session.fechaCierre ? formatDateTime(session.fechaCierre) : 'N/A'}</div>
                 </div>
             </div>
 
@@ -412,7 +411,7 @@ export default function CashSessionsPage() {
                         renderCard={(row: CajaSesion, _isSelected: boolean) => (
                             <DataCard isSelected={_isSelected}
                                 title={row.cash_point_name || row.user_name || 'Sesión'}
-                                subtitle={row.fechaApertura ? new Date(row.fechaApertura).toLocaleString() : ''}
+                                subtitle={row.fechaApertura ? formatDateTime(row.fechaApertura) : ''}
                                 badge={
                                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${(row.estado === 'OPEN' || row.estado === 'ABIERTA') ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>
                                         {row.estado}

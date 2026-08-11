@@ -31,11 +31,11 @@ import { useToast } from '@/hooks/use-toast';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { getErrorMessage } from '@/lib/error-utils';
 import { AvailabilityException, User } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, formatDate, formatDisplayDate } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { AlertTriangle, Check, ChevronsUpDown, Pencil, Trash2, UserX } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -72,7 +72,7 @@ async function getAvailabilityExceptions(pagination: PaginationState, searchQuer
             exceptions: exceptionsData.map((ex: any) => ({
                 ...ex,
                 id: String(ex.id),
-                exception_date: format(parseISO(ex.exception_date), 'yyyy-MM-dd')
+                exception_date: formatDate(ex.exception_date)
             })),
             total
         };
@@ -179,7 +179,7 @@ export default function AvailabilityExceptionsPage() {
         form.reset({
             id: exception.id,
             user_id: exception.user_id,
-            exception_date: format(parseISO(exception.exception_date), 'yyyy-MM-dd'),
+            exception_date: formatDate(exception.exception_date),
             start_time: exception.start_time || '',
             end_time: exception.end_time || '',
             is_available: exception.is_available,
@@ -235,16 +235,13 @@ export default function AvailabilityExceptionsPage() {
         setRowSelection({});
     };
 
-    const formatDate = (date: string | undefined | null) =>
-        date ? format(parseISO(date), 'dd/MM/yyyy') : '-';
-
     const columns: ColumnDef<AvailabilityException>[] = React.useMemo(() => [
         { accessorKey: 'id', header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />, enableHiding: true },
         { accessorKey: 'user_name', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('doctor')} /> },
         {
             accessorKey: 'exception_date',
             header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('date')} />,
-            cell: ({ row }) => <span>{formatDate(row.original.exception_date)}</span>,
+            cell: ({ row }) => <span>{formatDisplayDate(row.original.exception_date)}</span>,
         },
         {
             accessorKey: 'is_available',
@@ -290,7 +287,7 @@ export default function AvailabilityExceptionsPage() {
                     renderCard={(row: AvailabilityException, _isSelected: boolean) => (
                         <DataCard isSelected={_isSelected}
                             title={row.user_name || row.user_id}
-                            subtitle={formatDate(row.exception_date)}
+                            subtitle={formatDisplayDate(row.exception_date)}
                             badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.is_available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{row.is_available ? 'Disponible' : 'No disponible'}</span>}
                             showArrow
                         />
@@ -312,7 +309,7 @@ export default function AvailabilityExceptionsPage() {
                     <div className="header-icon-circle flex-none"><UserX className="h-5 w-5" /></div>
                     <div className="min-w-0 flex-1">
                         <CardTitle className="text-base lg:text-lg truncate">{selectedException.user_name || selectedException.user_id}</CardTitle>
-                        <p className="text-xs text-muted-foreground truncate">{formatDate(selectedException.exception_date)}</p>
+                        <p className="text-xs text-muted-foreground truncate">{formatDisplayDate(selectedException.exception_date)}</p>
                     </div>
                     <div className="flex gap-1 flex-none">
                         <Button size="sm" variant="outline" onClick={() => handleEdit(selectedException)}>
@@ -333,7 +330,7 @@ export default function AvailabilityExceptionsPage() {
                     </div>
                     <div>
                         <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{tColumns('date')}</dt>
-                        <dd className="text-foreground">{formatDate(selectedException.exception_date)}</dd>
+                        <dd className="text-foreground">{formatDisplayDate(selectedException.exception_date)}</dd>
                     </div>
                     <div>
                         <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{tColumns('available')}</dt>

@@ -31,11 +31,11 @@ import { useToast } from '@/hooks/use-toast';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { getErrorMessage } from '@/lib/error-utils';
 import { AvailabilityRule, User } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, formatDate, formatDisplayDate } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { AlertTriangle, CalendarPlus, Check, ChevronsUpDown, Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -205,8 +205,8 @@ export default function DoctorAvailabilityPage() {
             day_of_week: rule.day_of_week?.toString(),
             start_time: rule.start_time,
             end_time: rule.end_time,
-            start_date: format(parseISO(rule.start_date), 'yyyy-MM-dd'),
-            end_date: rule.end_date ? format(parseISO(rule.end_date), 'yyyy-MM-dd') : '',
+            start_date: formatDate(rule.start_date),
+            end_date: rule.end_date ? formatDate(rule.end_date) : '',
         });
         setSubmissionError(null);
         setIsDialogOpen(true);
@@ -259,9 +259,6 @@ export default function DoctorAvailabilityPage() {
 
     const DAY_NAMES = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
 
-    const formatDate = (date: string | undefined | null) =>
-        date ? format(parseISO(date), 'dd/MM/yyyy') : '-';
-
     const columns: ColumnDef<AvailabilityRule>[] = React.useMemo(() => [
         { accessorKey: 'id', header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />, enableHiding: true },
         { accessorKey: 'user_name', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('doctor')} /> },
@@ -283,12 +280,12 @@ export default function DoctorAvailabilityPage() {
         {
             accessorKey: 'start_date',
             header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('startDate')} />,
-            cell: ({ row }) => <span>{formatDate(row.original.start_date)}</span>,
+            cell: ({ row }) => <span>{formatDisplayDate(row.original.start_date)}</span>,
         },
         {
             accessorKey: 'end_date',
             header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('endDate')} />,
-            cell: ({ row }) => <span>{formatDate(row.original.end_date)}</span>,
+            cell: ({ row }) => <span>{formatDisplayDate(row.original.end_date)}</span>,
         },
     ], [tColumns, t]);
 
@@ -345,7 +342,7 @@ export default function DoctorAvailabilityPage() {
                     <div className="header-icon-circle flex-none"><CalendarPlus className="h-5 w-5" /></div>
                     <div className="min-w-0 flex-1">
                         <CardTitle className="text-base lg:text-lg truncate">{selectedRule.user_name || selectedRule.user_id}</CardTitle>
-                        <p className="text-xs text-muted-foreground truncate">{formatDate(selectedRule.start_date)} → {selectedRule.end_date ? formatDate(selectedRule.end_date) : '∞'}</p>
+                        <p className="text-xs text-muted-foreground truncate">{formatDisplayDate(selectedRule.start_date)} → {selectedRule.end_date ? formatDisplayDate(selectedRule.end_date) : '∞'}</p>
                     </div>
                     <div className="flex gap-1 flex-none">
                         <Button size="sm" variant="outline" onClick={() => handleEdit(selectedRule)}>
@@ -387,11 +384,11 @@ export default function DoctorAvailabilityPage() {
                     <div className="grid grid-cols-2 gap-3">
                         <div>
                             <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{tColumns('startDate')}</dt>
-                            <dd className="text-foreground">{formatDate(selectedRule.start_date)}</dd>
+                            <dd className="text-foreground">{formatDisplayDate(selectedRule.start_date)}</dd>
                         </div>
                         <div>
                             <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{tColumns('endDate')}</dt>
-                            <dd className="text-foreground">{formatDate(selectedRule.end_date)}</dd>
+                            <dd className="text-foreground">{formatDisplayDate(selectedRule.end_date)}</dd>
                         </div>
                     </div>
                 </dl>

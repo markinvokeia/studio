@@ -22,6 +22,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/lib/error-utils';
 import { AvailabilityException } from '@/lib/types';
+import { formatDate, formatDisplayDate } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { format, parseISO } from 'date-fns';
@@ -54,7 +55,7 @@ async function getExceptionsForUser(userId: string): Promise<AvailabilityExcepti
         return exceptionsData.map((ex: any) => ({
             ...ex,
             id: String(ex.id),
-            exception_date: format(parseISO(ex.exception_date), 'yyyy-MM-dd'),
+            exception_date: formatDate(ex.exception_date),
         }));
     } catch {
         return [];
@@ -126,7 +127,7 @@ export function DoctorAvailabilityExceptions({ userId }: { userId: string }) {
         form.reset({
             id: ex.id,
             user_id: ex.user_id,
-            exception_date: format(parseISO(ex.exception_date), 'yyyy-MM-dd'),
+            exception_date: formatDate(ex.exception_date),
             start_time: ex.start_time || '',
             end_time: ex.end_time || '',
             is_available: ex.is_available,
@@ -196,7 +197,7 @@ export function DoctorAvailabilityExceptions({ userId }: { userId: string }) {
                         <div key={ex.id} className="flex items-start justify-between rounded-lg border px-4 py-3 gap-4">
                             <div className="flex flex-col gap-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-sm font-medium">{format(parseISO(ex.exception_date), 'dd/MM/yyyy')}</span>
+                                    <span className="text-sm font-medium">{formatDisplayDate(ex.exception_date)}</span>
                                     <Badge variant={ex.is_available ? 'success' : 'destructive'} className="text-xs">
                                         {ex.is_available ? tColumns('yes') : tColumns('no')}
                                     </Badge>

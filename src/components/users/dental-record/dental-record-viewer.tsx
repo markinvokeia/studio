@@ -55,9 +55,9 @@ import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 
-function formatDisplayDate(dateStr: string) {
+function formatLongSessionDate(dateStr: string) {
   try {
-    return format(parseISO(dateStr), "dd 'de' MMMM yyyy", { locale: es });
+    return format(parseISO(dateStr.replace('Z', '')), "dd 'de' MMMM yyyy", { locale: es });
   } catch {
     return dateStr;
   }
@@ -479,7 +479,7 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
               {currentSnapshot.description || t('session.untitled')}
             </span>
             <span className="text-xs text-muted-foreground">
-              {formatDisplayDate(currentSnapshot.date)}
+              {formatLongSessionDate(currentSnapshot.date)}
             </span>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
@@ -689,7 +689,7 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
                   {currentSnapshot.description || t('session.untitled')}
                 </span>
                 <Badge variant="outline" className="text-xs shrink-0">
-                  {formatDisplayDate(currentSnapshot.date)}
+                  {formatLongSessionDate(currentSnapshot.date)}
                 </Badge>
                 {isEditing && (
                   <Badge className="text-xs shrink-0 bg-primary">{t('editing')}</Badge>
@@ -862,7 +862,7 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
                   {currentSnapshot.description || t('session.untitled')}
                 </span>
                 <span className="text-xs text-muted-foreground shrink-0">
-                  {formatDisplayDate(currentSnapshot.date)}
+                  {formatLongSessionDate(currentSnapshot.date)}
                 </span>
               </div>
             )}

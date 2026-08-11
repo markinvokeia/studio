@@ -1,3 +1,8 @@
+---
+name: date-formatting
+description: Use any time a date or datetime is read, displayed, or sent to the backend. Ensures ISO UTC strings from the API are parsed/formatted without unwanted timezone shifts, using the helpers in src/lib/utils.ts (formatDateTime, formatDisplayDate, formatDate, formatHolidayDate, toLocalISOString) instead of new Date(), toLocaleString(), or parseISO().
+---
+
 # Skill: date-formatting
 
 ## Propósito

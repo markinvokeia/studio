@@ -397,7 +397,7 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
                 {t('dischargedUntil', {
                   date: (() => {
                     try {
-                      return format(parseISO(notification.discharge.appointment_date), 'PP', { locale: es });
+                      return format(parseISO(notification.discharge.appointment_date.replace('Z', '')), 'PP', { locale: es });
                     } catch {
                       return notification.discharge.appointment_date;
                     }

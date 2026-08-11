@@ -117,12 +117,12 @@ function sequenceStatusVariant(status: TreatmentSequenceStatus): 'default' | 'se
 
 function formatShortDate(dateStr?: string | null): string {
     if (!dateStr) return '—';
-    try { return format(parseISO(dateStr), 'd MMM', { locale: es }); } catch { return dateStr; }
+    try { return format(parseISO(dateStr.replace('Z', '')), 'd MMM', { locale: es }); } catch { return dateStr; }
 }
 
 function formatLongDate(dateStr?: string | null): string {
     if (!dateStr) return '—';
-    try { return format(parseISO(dateStr), 'd LLL yyyy', { locale: es }); } catch { return dateStr; }
+    try { return format(parseISO(dateStr.replace('Z', '')), 'd LLL yyyy', { locale: es }); } catch { return dateStr; }
 }
 
 function stepStatusIcon(status: TreatmentSequenceStepStatus, cls?: string) {

@@ -30,7 +30,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { Appointment, Calendar as CalendarType, PatientSession, Quote, QuoteItem, Service, TreatmentSequence, TreatmentSequenceStepStatus, User as UserType } from '@/lib/types';
-import { cn, toLocalISOString } from '@/lib/utils';
+import { cn, formatDisplayDate, toLocalISOString } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/services/api';
 import { markLocallyCreated } from '@/hooks/use-appointment-status';
@@ -1273,7 +1273,7 @@ export function AppointmentFormDialog({
                                                     <span className="flex items-center gap-2">
                                                         <span className="font-medium">{appointment.quote.doc_no}</span>
                                                         <span className="text-muted-foreground">
-                                                            {appointment.quote.createdAt && isValid(parseISO(appointment.quote.createdAt)) ? format(parseISO(appointment.quote.createdAt), 'dd/MM/yyyy') : ''}
+                                                            {appointment.quote.createdAt ? formatDisplayDate(appointment.quote.createdAt) : ''}
                                                         </span>
                                                         <span className="text-muted-foreground">
                                                             ({new Intl.NumberFormat('en-US', { style: 'currency', currency: appointment.quote.currency || 'USD' }).format(appointment.quote.total)})
@@ -1303,7 +1303,7 @@ export function AppointmentFormDialog({
                                                         {userQuotes.map(quote => (
                                                             <CommandItem
                                                                 key={quote.id}
-                                                                value={`${quote.doc_no} ${quote.createdAt ? format(parseISO(quote.createdAt), 'dd/MM/yyyy') : ''}`}
+                                                                value={`${quote.doc_no} ${quote.createdAt ? formatDisplayDate(quote.createdAt) : ''}`}
                                                                 onSelect={async () => {
                                                                     setQuoteSearchOpen(false);
                                                                     setAppointment(prev => ({ ...prev, quote }));
@@ -1328,7 +1328,7 @@ export function AppointmentFormDialog({
                                                                 <div className="flex flex-col">
                                                                     <span className="font-medium">{quote.doc_no}</span>
                                                                     <span className="text-xs text-muted-foreground">
-                                                                        {quote.createdAt ? format(parseISO(quote.createdAt), 'dd/MM/yyyy') : ''} • {new Intl.NumberFormat('en-US', { style: 'currency', currency: quote.currency || 'USD' }).format(quote.total)} • {tQuotes(`quoteDialog.${quote.status?.toLowerCase()}`)}
+                                                                        {quote.createdAt ? formatDisplayDate(quote.createdAt) : ''} • {new Intl.NumberFormat('en-US', { style: 'currency', currency: quote.currency || 'USD' }).format(quote.total)} • {tQuotes(`quoteDialog.${quote.status?.toLowerCase()}`)}
                                                                     </span>
                                                                 </div>
                                                             </CommandItem>

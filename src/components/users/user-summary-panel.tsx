@@ -36,7 +36,7 @@ interface UserSummaryPanelProps {
 
 function formatShortDate(dateStr?: string | null): string {
     if (!dateStr) return '—';
-    try { return format(parseISO(dateStr), 'd LLL yyyy', { locale: es }); } catch { return dateStr; }
+    try { return format(parseISO(dateStr.replace('Z', '')), 'd LLL yyyy', { locale: es }); } catch { return dateStr; }
 }
 
 // ─── Financial content ────────────────────────────────────────────────────────
@@ -165,7 +165,7 @@ function TreatmentMilestoneCard({
                     'text-[10px]',
                     isCompleted ? 'text-emerald-400/80' : isCurrent ? 'text-primary/80' : 'text-muted-foreground/70',
                 )}>
-                    {format(parseISO(step.scheduled_date), 'd MMM', { locale: es })}
+                    {format(parseISO(step.scheduled_date.replace('Z', '')), 'd MMM', { locale: es })}
                 </p>
             )}
             {/* Status pill */}

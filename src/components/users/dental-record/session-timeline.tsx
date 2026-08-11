@@ -33,7 +33,7 @@ interface SessionTimelineProps {
 
 function formatSessionDate(dateStr: string) {
   try {
-    return format(parseISO(dateStr), 'dd MMM yyyy', { locale: es });
+    return format(parseISO(dateStr.replace('Z', '')), 'dd MMM yyyy', { locale: es });
   } catch {
     return dateStr;
   }
