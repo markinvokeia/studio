@@ -2526,7 +2526,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                                     <span className="text-muted-foreground shrink-0">{t('nextPlan')}:</span>
                                                                     <span className="text-foreground whitespace-pre-wrap">
                                                                         {planProximaCita}
-                                                                        {session.fecha_proxima_cita && ` (${format(parseISO(session.fecha_proxima_cita), 'dd/MM/yyyy')})`}
+                                                                        {session.fecha_proxima_cita && ` (${formatDate(session.fecha_proxima_cita)})`}
                                                                     </span>
                                                                 </div>
                                                             )}
@@ -2733,7 +2733,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                     <span className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400">
                                                         <CalendarIcon className="h-3 w-3" />
                                                         <span className="font-semibold">{t('nextSessionDate') || 'Fecha'}:</span>
-                                                        {format(parseISO(session.fecha_proxima_cita), 'dd/MM/yyyy')}
+                                                        {formatDate(session.fecha_proxima_cita)}
                                                     </span>
                                                 )}
                                             </div>

@@ -42,10 +42,9 @@ import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { getApiUrl } from '@/lib/runtime-config';
 import type { Ailment, AttachedFile, Document, Medication, PatientSession, User as UserType } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, formatDisplayDate } from '@/lib/utils';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { format, parseISO } from 'date-fns';
 import {
     AlertTriangle,
     CalendarIcon,
@@ -425,13 +424,13 @@ const AnamnesisDashboard = ({
     }, [isAllergyDialogOpen, editingAllergy]);
 
     useEffect(() => {
+        // Date-only field: the backend sends it as UTC midnight, so parsing it as
+        // an instant would pre-fill the previous day in negative-offset zones (and
+        // save it back on submit). The calendar date is read from the string.
         const formatDateForInput = (dateString: string | null) => {
             if (!dateString) return '';
-            try {
-                return format(parseISO(dateString), 'yyyy-MM-dd');
-            } catch (e) {
-                return '';
-            }
+            const [datePart] = dateString.split('T');
+            return /^\d{4}-\d{2}-\d{2}$/.test(datePart) ? datePart : '';
         };
 
         if (isMedicationDialogOpen) {
@@ -788,14 +787,12 @@ const AnamnesisDashboard = ({
     };
 
 
+    // formatDisplayDate reads the calendar date from the string, so date-only
+    // values sent as UTC midnight don't shift a day back in GMT-3.
     const formatDate = (dateString: string | null) => {
         if (!dateString) return '-';
-        try {
-            return format(parseISO(dateString), 'dd/MM/yyyy');
-        } catch (error) {
-            console.error("Invalid date format:", dateString);
-            return '-';
-        }
+        const formatted = formatDisplayDate(dateString);
+        return formatted === 'N/A' || formatted === 'Invalid Date' ? '-' : formatted;
     };
 
     return (
@@ -2186,7 +2183,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
                                                     <span className="flex items-center gap-1">
                                                         <CalendarIcon className="h-3 w-3" />
-                                                        {session.fecha_sesion ? format(parseISO(session.fecha_sesion), 'dd/MM/yyyy') : '-'}
+                                                        {session.fecha_sesion ? formatDisplayDate(session.fecha_sesion) : '-'}
                                                     </span>
                                                     {session.doctor_name && (
                                                         <span className="flex items-center gap-1">
@@ -2232,7 +2229,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                             {session.fecha_proxima_cita && (
                                                 <div className="flex items-start gap-2">
                                                     <span className="font-medium text-foreground shrink-0">{t('nextSessionDate')}:</span>
-                                                    <span className="text-muted-foreground font-medium">{format(parseISO(session.fecha_proxima_cita), 'dd/MM/yyyy')}</span>
+                                                    <span className="text-muted-foreground font-medium">{formatDisplayDate(session.fecha_proxima_cita)}</span>
                                                 </div>
                                             )}
                                             <Collapsible open={isOpen} onOpenChange={() => toggleItem(String(session.sesion_id))}>

@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import { format, isValid, parseISO } from 'date-fns';
 import { ArrowLeft, BookOpenText, ClipboardList, FilePlus2, Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ColumnDef, SortingState } from '@tanstack/react-table';
@@ -21,12 +20,19 @@ import { usePatientHistorySheet } from '@/stores/patient-history-sheet-store';
 import { useTableViewMode } from '@/hooks/use-table-view-mode';
 import { useToast } from '@/hooks/use-toast';
 
+import { formatDisplayDate } from '@/lib/utils';
+
 import type { PatientSession } from '@/lib/types';
 
+/**
+ * Session dates are calendar dates, not instants: the backend sends them as UTC
+ * midnight ("2026-08-10T00:00:00+00:00"). Parsing that as an instant and
+ * formatting it locally shifts the day back in negative-offset zones (UTC-3 →
+ * 09/08), so formatDisplayDate reads the date part straight from the string.
+ */
 const formatSessionDate = (value?: string | null) => {
   if (!value) return '—';
-  const parsed = parseISO(value);
-  return isValid(parsed) ? format(parsed, 'dd/MM/yyyy') : value;
+  return formatDisplayDate(value);
 };
 
 /**

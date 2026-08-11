@@ -7,8 +7,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { API_ROUTES } from '@/constants/routes';
 import { getApiUrl } from '@/lib/runtime-config';
 import type { PatientSession, User as UserType } from '@/lib/types';
+import { formatDisplayDate } from '@/lib/utils';
 import { api } from '@/services/api';
-import { format, parseISO } from 'date-fns';
 import {
   AlertTriangle,
   Award,
@@ -1166,7 +1166,7 @@ const DentalClinicalSystem = () => {
                 <div className="bg-muted/30 rounded-lg p-4 hover:bg-gray-100 transition-colors duration-200">
                   <div className="flex justify-between items-start mb-2">
                     <h4 className="font-semibold text-foreground">{session.procedimiento_realizado}</h4>
-                    <span className="text-sm text-muted-foreground">{session.fecha_sesion ? format(parseISO(session.fecha_sesion), 'dd/MM/yyyy') : ''}</span>
+                    <span className="text-sm text-muted-foreground">{session.fecha_sesion ? formatDisplayDate(session.fecha_sesion) : ''}</span>
                   </div>
                   <div className="space-y-3 text-sm text-foreground">
                     <p><strong className="text-muted-foreground">Diagnóstico:</strong> {session.diagnostico}</p>
@@ -1267,14 +1267,12 @@ const DentalClinicalSystem = () => {
       }
     };
 
+    // formatDisplayDate reads the calendar date from the string, so date-only
+    // values sent as UTC midnight don't shift a day back in GMT-3.
     const formatDate = (dateString: string | null) => {
       if (!dateString) return '-';
-      try {
-        return format(parseISO(dateString), 'dd/MM/yyyy');
-      } catch (error) {
-        console.error("Invalid date format:", dateString);
-        return '-';
-      }
+      const formatted = formatDisplayDate(dateString);
+      return formatted === 'N/A' || formatted === 'Invalid Date' ? '-' : formatted;
     };
 
     const ToothIcon = (props: React.SVGProps<SVGSVGElement>) => (
