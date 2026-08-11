@@ -537,7 +537,7 @@ textarea::placeholder {
     width: 100% !important;
     border-collapse: collapse !important;
     table-layout: fixed !important;
-    font-size: 0.6rem !important;
+    font-size: 0.68rem !important;
   }
   table.ledger-print-table th {
     padding: 3px 5px !important;
@@ -546,7 +546,7 @@ textarea::placeholder {
     background: transparent !important;
     text-align: left !important;
     font-weight: 600 !important;
-    font-size: 0.52rem !important;
+    font-size: 0.58rem !important;
     text-transform: uppercase !important;
     letter-spacing: 0.03em !important;
     color: #6b7280 !important;
@@ -566,10 +566,10 @@ textarea::placeholder {
     white-space: nowrap !important;
     font-variant-numeric: tabular-nums !important;
   }
-  table.ledger-print-table .status { font-size: 0.52rem !important; color: #374151 !important; }
-  table.ledger-print-table .doc { font-size: 0.52rem !important; color: #6b7280 !important; }
-  table.ledger-print-table .notes { font-size: 0.5rem !important; font-style: italic !important; color: #6b7280 !important; }
-  table.ledger-print-table .notcounted { font-size: 0.5rem !important; color: #6b7280 !important; }
+  table.ledger-print-table .status { font-size: 0.58rem !important; color: #374151 !important; }
+  table.ledger-print-table .doc { font-size: 0.58rem !important; color: #6b7280 !important; }
+  table.ledger-print-table .notes { font-size: 0.56rem !important; font-style: italic !important; color: #6b7280 !important; }
+  table.ledger-print-table .notcounted { font-size: 0.56rem !important; color: #6b7280 !important; }
 
   .ledger-print-totals {
     display: flex !important;
@@ -580,12 +580,18 @@ textarea::placeholder {
     border-top: 1.5px solid #9ca3af !important;
   }
   .ledger-print-totals .lbl {
-    font-size: 0.5rem !important;
+    font-size: 0.58rem !important;
     text-transform: uppercase !important;
     letter-spacing: 0.03em !important;
     color: #6b7280 !important;
   }
-  .ledger-print-totals .val { font-size: 0.68rem !important; font-weight: 600 !important; font-variant-numeric: tabular-nums !important; }
+  .ledger-print-totals .val { font-size: 0.78rem !important; font-weight: 600 !important; font-variant-numeric: tabular-nums !important; }
+
+  /* Both "estado de cuenta" print outputs (split report and unified ledger) share this
+     wrapper class so a font bump here applies to just these two, not every print doc
+     that also reuses the generic .print-template-table / .print-template-root classes. */
+  .account-statement-print { font-size: 0.95rem; }
+  .account-statement-print .print-template-table { font-size: 0.82rem; }
 
   /* ── Multi-page print (document templates) ───────────────────────────────── */
   /* The print container is portaled to <body>. Hide every *other* body child with

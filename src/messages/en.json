@@ -270,6 +270,9 @@
     "docTypePayments": "Payments",
     "docTypeCreditNotes": "Credit notes",
     "noEntriesMatch": "No movements match the filters.",
+    "totalCharged": "Total charged",
+    "totalPaid": "Paid",
+    "pendingBalance": "Balance due",
     "balance": "Balance",
     "invoiced": "Invoiced",
     "paid": "Paid",
@@ -8002,7 +8005,6 @@
       "payment_allocation": "Payment Application"
     },
     "financialSummary": {
-      "title": "Financial Summary",
       "to": "to",
       "id": "ID / Tax No.",
       "email": "Email",

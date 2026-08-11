@@ -77,14 +77,14 @@ export function LedgerPrintTemplate({ data }: LedgerPrintTemplateProps) {
   );
 
   return (
-    <div>
+    <div className="account-statement-print">
       {/* Document title + patient — mirrors the sheet header, without any controls. */}
       <div className="flex items-baseline justify-between mb-4 pb-3 border-b border-gray-300">
         <div>
           <h1 className="text-2xl font-bold tracking-tight uppercase">{tStatement('title')}</h1>
-          {periodLabel && <span className="text-xs text-gray-500">{periodLabel}</span>}
+          {periodLabel && <span className="text-sm text-gray-500">{periodLabel}</span>}
         </div>
-        {patientName && <span className="text-sm font-medium text-gray-700">{patientName}</span>}
+        {patientName && <span className="text-base font-medium text-gray-700">{patientName}</span>}
       </div>
 
       {currencies.map((currency) => {
@@ -93,7 +93,7 @@ export function LedgerPrintTemplate({ data }: LedgerPrintTemplateProps) {
         return (
           <section key={currency} className="mb-6">
             {currencies.length > 1 && (
-              <h2 className="text-xs font-semibold text-gray-500 mb-1">{currency}</h2>
+              <h2 className="text-sm font-semibold text-gray-500 mb-1">{currency}</h2>
             )}
             <table className="ledger-print-table">
               <colgroup>
@@ -160,15 +160,15 @@ export function LedgerPrintTemplate({ data }: LedgerPrintTemplateProps) {
             {/* Totals — kept together and, as the last block, landing on the last page. */}
             <div className="ledger-print-totals" style={{ breakInside: 'avoid' }}>
               <div className="text-right">
-                <div className="lbl">{t('footer.totalDebit')}</div>
+                <div className="lbl">{tStatement('totalCharged')}</div>
                 <div className="val">{fmtZero(totals.totalDebe, currency)}</div>
               </div>
               <div className="text-right">
-                <div className="lbl">{t('footer.totalCredit')}</div>
+                <div className="lbl">{tStatement('totalPaid')}</div>
                 <div className="val">{fmtZero(totals.totalHaber, currency)}</div>
               </div>
               <div className="text-right">
-                <div className="lbl">{t('footer.finalBalance')}</div>
+                <div className="lbl">{tStatement('pendingBalance')}</div>
                 <div
                   className="val"
                   style={{

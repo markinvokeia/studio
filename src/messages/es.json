@@ -270,6 +270,9 @@
     "docTypePayments": "Pagos",
     "docTypeCreditNotes": "Notas de crédito",
     "noEntriesMatch": "No hay movimientos que coincidan con los filtros.",
+    "totalCharged": "Total a pagar",
+    "totalPaid": "Entregó",
+    "pendingBalance": "Saldo pendiente",
     "balance": "Saldo",
     "invoiced": "Facturado",
     "paid": "Pagado",
@@ -7982,7 +7985,6 @@
       "payment_allocation": "Aplicación de Pago"
     },
     "financialSummary": {
-      "title": "Resumen Financiero",
       "to": "al",
       "id": "Cédula / RUT",
       "email": "Email",
