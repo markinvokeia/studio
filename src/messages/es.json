@@ -4872,6 +4872,7 @@
         "rescheduled": "Reagendada"
       },
       "noTitle": "Sin título",
+      "apptUnassigned": "No asignado",
       "conditions": {
         "healthy": "Sano",
         "caries": "Caries",

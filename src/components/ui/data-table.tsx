@@ -355,9 +355,10 @@ export function DataTable<TData, TValue>({
                       table.toggleAllPageRowsSelected(false);
                       row.toggleSelected(true);
                     }
+                    onRowClick?.(row.original);
                   }}
                   className={cn(
-                    enableSingleRowSelection ? 'cursor-pointer' : '',
+                    enableSingleRowSelection || onRowClick ? 'cursor-pointer' : '',
                     getRowClassName ? getRowClassName(row.original) : ''
                   )}
                 >

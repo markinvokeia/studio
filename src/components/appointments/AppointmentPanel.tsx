@@ -572,6 +572,7 @@ export function AppointmentPanel({
   const [fetchedDoctors, setFetchedDoctors] = React.useState<User[] | null>(null);
   const [fetchedCalendars, setFetchedCalendars] = React.useState<CalendarType[] | null>(null);
   const [isLoadingTargets, setIsLoadingTargets] = React.useState(false);
+  const [isResolvingCalendarName, setIsResolvingCalendarName] = React.useState(false);
 
   const doctors = React.useMemo(() => doctorsProp ?? fetchedDoctors ?? [], [doctorsProp, fetchedDoctors]);
   const calendars = React.useMemo(() => calendarsProp ?? fetchedCalendars ?? [], [calendarsProp, fetchedCalendars]);
@@ -581,6 +582,24 @@ export function AppointmentPanel({
     setLocalAppointment(null);
     setEditingField(null);
   }, [appointment?.id]);
+
+  // Some callers build the appointment before their calendar list has loaded, so
+  // it arrives with `calendar_source_id` but no `calendar_name`. Resolve the name
+  // as soon as the panel opens instead of waiting for the user to open the picker
+  // (which is why the room looked unassigned until you clicked "edit").
+  const needsCalendarName = !!(appointment?.calendar_source_id && !appointment.calendar_name);
+  React.useEffect(() => {
+    if (!open || !needsCalendarName || calendarsProp || fetchedCalendars !== null) return;
+    let cancelled = false;
+    setIsResolvingCalendarName(true);
+    (async () => {
+      const list = await fetchReassignCalendars();
+      if (!cancelled) setFetchedCalendars(list);
+    })().finally(() => {
+      if (!cancelled) setIsResolvingCalendarName(false);
+    });
+    return () => { cancelled = true; };
+  }, [open, needsCalendarName, calendarsProp, fetchedCalendars]);
 
   const handleEditingChange = React.useCallback(async (field: 'doctor' | 'calendar', open: boolean) => {
     setEditingField(open ? field : null);
@@ -807,6 +826,13 @@ export function AppointmentPanel({
   const durationHHmm = durationMin != null && durationMin > 0
     ? `${String(Math.floor(durationMin / 60)).padStart(2, '0')}:${String(durationMin % 60).padStart(2, '0')}`
     : null;
+  // Prefer the name the caller sent; fall back to the loaded calendar list so the
+  // room always renders when only `calendar_source_id` came through.
+  const resolvedCalendarName = displayAppointment.calendar_name
+    || calendars.find((c) => String(c.id) === String(displayAppointment.calendar_source_id))?.name
+    || null;
+  const calendarValue = resolvedCalendarName
+    ?? (isResolvingCalendarName ? '…' : tPanel('noCalendar'));
   const StatusIcon = getStatusIcon(appointment.status, appointment.cancellation_reason);
   const statusColor = STATUS_ACCENT_COLOR[appointment.status];
   const appointmentCode = `#${appointment.id.slice(0, 8).toUpperCase()}`;
@@ -1085,7 +1111,7 @@ export function AppointmentPanel({
                   <EditableDetailRow
                     icon={MapPin}
                     label={tColumns('calendar')}
-                    value={displayAppointment.calendar_name || tPanel('noCalendar')}
+                    value={calendarValue}
                     editLabel={displayAppointment.calendar_source_id ? tPanel('changeCalendar') : tPanel('assignCalendar')}
                     isEditing={editingField === 'calendar'}
                     onEditingChange={(open) => handleEditingChange('calendar', open)}

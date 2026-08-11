@@ -75,6 +75,7 @@ import {
     Heart,
     Link2,
     Loader2,
+    MapPin,
     MoreHorizontal,
     Pill,
     Plus,
@@ -85,6 +86,7 @@ import {
     Trash2,
     Upload,
     User,
+    UserSquare,
     Wind,
     X,
     ZoomIn,
@@ -146,28 +148,27 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
 
     const [patientAppointments, setPatientAppointments] = React.useState<Appointment[]>([]);
     const [isLoadingPatientAppointments, setIsLoadingPatientAppointments] = React.useState(false);
-    const calendarsRef = React.useRef<Calendar[]>([]);
-
-    React.useEffect(() => {
-        let cancelled = false;
-        (async () => {
-            try {
-                const data = await api.get(API_ROUTES.CALENDARS);
-                const list = Array.isArray(data) ? data : (data?.calendars || data?.data || data?.result || []);
-                if (!cancelled) {
-                    calendarsRef.current = list.map((c: any) => ({ id: String(c.id), name: c.name } as Calendar));
-                }
-            } catch {
-                if (!cancelled) calendarsRef.current = [];
-            }
-        })();
-        return () => { cancelled = true; };
+    // Fetched once and awaited by the appointments mapping — a plain ref filled by
+    // a parallel effect could still be empty when the appointments resolve first,
+    // leaving every appointment without its `calendar_name` (room).
+    const calendarsPromiseRef = React.useRef<Promise<Calendar[]> | null>(null);
+    const loadCalendars = React.useCallback(() => {
+        if (!calendarsPromiseRef.current) {
+            calendarsPromiseRef.current = api.get(API_ROUTES.CALENDARS)
+                .then((data: any) => {
+                    const list = Array.isArray(data) ? data : (data?.calendars || data?.data || data?.result || []);
+                    return list.map((c: any) => ({ id: String(c.id), name: c.name } as Calendar));
+                })
+                .catch(() => [] as Calendar[]);
+        }
+        return calendarsPromiseRef.current;
     }, []);
 
     const fetchPatientAppointments = React.useCallback(async (currentUserId: string) => {
         if (!currentUserId) return;
         setIsLoadingPatientAppointments(true);
         try {
+            const calendarList = await loadCalendars();
             const now = new Date();
             const formatDate = (d: Date) => format(d, 'yyyy-MM-dd HH:mm:ss');
             const data = await api.get(API_ROUTES.USERS_APPOINTMENTS, {
@@ -189,7 +190,7 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
                 if (isNaN(dt.getTime())) return null;
                 const endNode = apiAppt.end_time || apiAppt.end;
                 const calendarSourceId = apiAppt.calendar_source_id != null ? String(apiAppt.calendar_source_id) : '';
-                const calendar = calendarsRef.current.find(c => String(c.id) === calendarSourceId);
+                const calendar = calendarList.find((c: Calendar) => String(c.id) === calendarSourceId);
                 return {
                     id: String(apiAppt.appointment_id || apiAppt.appointmentId || apiAppt.appointmentid || apiAppt.id),
                     patientId: currentUserId,
@@ -236,7 +237,7 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
         } finally {
             setIsLoadingPatientAppointments(false);
         }
-    }, [userName]);
+    }, [userName, loadCalendars]);
 
     React.useEffect(() => {
         if (userId) {
@@ -2446,7 +2447,16 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                                 )}
                                                             </div>
                                                             <p className="text-xs font-medium truncate mt-0.5">{appt.summary}</p>
-                                                            {appt.doctorName && <p className="text-xs text-muted-foreground truncate">{appt.doctorName}</p>}
+                                                            <p className="flex items-center gap-x-3 gap-y-0.5 flex-wrap text-xs text-muted-foreground">
+                                                                <span className="flex items-center gap-1 min-w-0" title={t('apptCalendar')}>
+                                                                    <MapPin className="h-3 w-3 shrink-0" />
+                                                                    <span className="truncate">{appt.calendar_name || t('apptUnassigned')}</span>
+                                                                </span>
+                                                                <span className="flex items-center gap-1 min-w-0" title={t('apptDoctor')}>
+                                                                    <UserSquare className="h-3 w-3 shrink-0" />
+                                                                    <span className="truncate">{appt.doctorName || t('apptUnassigned')}</span>
+                                                                </span>
+                                                            </p>
                                                         </div>
                                                         {apptStatusBadge}
                                                     </div>
