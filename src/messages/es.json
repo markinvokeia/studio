@@ -48,9 +48,9 @@
       "empty": "Sin datos"
     },
     "footer": {
-      "totalDebit": "Total Debe",
-      "totalCredit": "Total Haber",
-      "finalBalance": "Saldo Final",
+      "totalDebit": "Facturado",
+      "totalCredit": "Cobrado",
+      "finalBalance": "Pendiente",
       "notCounted": "no contabiliza"
     },
     "fields": {
