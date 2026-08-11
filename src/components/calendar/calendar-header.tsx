@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
-import { Calendar as DatePickerCalendar } from '@/components/ui/calendar';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 import {
@@ -80,7 +80,7 @@ export function HeaderDatePicker({
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
-        <DatePickerCalendar
+        <DatePicker
           mode="single"
           selected={currentDate}
           defaultMonth={currentDate}

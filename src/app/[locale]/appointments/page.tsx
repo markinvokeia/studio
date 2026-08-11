@@ -708,11 +708,11 @@ export default function AppointmentsPage() {
         const saved = typeof window !== 'undefined' ? window.localStorage.getItem('calendar-zoom') : null;
         if (saved) {
             const v = parseFloat(saved);
-            if (!Number.isNaN(v) && v >= 0.7 && v <= 2.5) setCalendarZoom(v);
+            if (!Number.isNaN(v) && v >= 0.3 && v <= 2.5) setCalendarZoom(v);
         }
     }, []);
     const applyCalendarZoom = React.useCallback((v: number) => {
-        const clamped = Math.min(2.5, Math.max(0.7, Math.round(v * 10) / 10));
+        const clamped = Math.min(2.5, Math.max(0.3, Math.round(v * 10) / 10));
         setCalendarZoom(clamped);
         try { window.localStorage.setItem('calendar-zoom', String(clamped)); } catch { /* ignore */ }
     }, []);

@@ -96,7 +96,7 @@ const Calendar: React.FC<CalendarProps> = ({
     const saved = typeof window !== 'undefined' ? window.localStorage.getItem('calendar-zoom') : null;
     if (saved) {
       const v = parseFloat(saved);
-      if (!Number.isNaN(v) && v >= 0.7 && v <= 2.5) setInternalZoom(v);
+      if (!Number.isNaN(v) && v >= 0.3 && v <= 2.5) setInternalZoom(v);
     }
   }, []);
   const isZoomControlled = controlledZoom !== undefined;

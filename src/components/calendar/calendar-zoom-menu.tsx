@@ -28,7 +28,7 @@ interface CalendarZoomMenuProps {
  * Desktop "Zoom" dropdown (custom mode): +/- controls that scale slot height while the
  * day view keeps the current visible range. Also shows the Ctrl +/- keyboard shortcuts.
  */
-export function CalendarZoomMenu({ zoom, onZoomChange, min = 0.7, max = 2.5, step = 0.1, iconOnly }: CalendarZoomMenuProps) {
+export function CalendarZoomMenu({ zoom, onZoomChange, min = 0.3, max = 2.5, step = 0.1, iconOnly }: CalendarZoomMenuProps) {
   const t = useTranslations('Calendar');
   const clamp = (v: number) => Math.min(max, Math.max(min, Math.round(v * 10) / 10));
   const decrease = () => onZoomChange(clamp(zoom - step));

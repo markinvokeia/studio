@@ -13,6 +13,10 @@ import {
   navigateDate,
 } from '@/components/calendar/calendar-utils';
 
+/** Views whose stored `currentDate` is collapsed to the first day of a multi-day
+ *  block (week or N-day), rather than the specific day the user was on. */
+const MULTI_DAY_VIEWS: CalendarView[] = ['week', '2-day', '3-day', '4-day', '5-day', '6-day'];
+
 interface UseCalendarNavigationOptions {
   onDateChange?: (range: { start: Date; end: Date }) => void;
   onViewChange?: (view: CalendarView) => void;
@@ -62,7 +66,16 @@ export function useCalendarNavigation({
     }
 
     setViewState(newView);
-    setCurrentDateState((date) => getCalendarViewStartDate(date, newView));
+    setCurrentDateState((date) => {
+      // Coming from a week/N-day view, `date` is collapsed to that block's first
+      // day, not the specific day being looked at, so it's not a meaningful day to
+      // land on. Switching to 'day' view from one of these should jump to today,
+      // like clicking the "Today" button would.
+      if (newView === 'day' && MULTI_DAY_VIEWS.includes(view)) {
+        return getCalendarViewStartDate(new Date(), newView);
+      }
+      return getCalendarViewStartDate(date, newView);
+    });
   }, [view]);
 
   // Sync view if initialView changes (e.g. from settings)
