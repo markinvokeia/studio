@@ -28,8 +28,6 @@ export type User = {
   responsible_contact_id?: string;
   responsible_contact_name?: string;
   calendar_source_id?: string;
-  /** Doctor flag: enables browsing appointments of calendars they have access to in the workspace. */
-  can_browse_calendars?: boolean;
   /** Default doctor assigned to this patient. Nullable. */
   doctor_id?: string | null;
   doctor_name?: string;
@@ -149,8 +147,6 @@ export type AuthUser = {
   internal_id?: string | null;
   is_active: boolean;
   roles_and_permissions: UserRoleAndPermission[];
-  /** Doctor flag: enables the "view calendar agendas" switch in the workspace. */
-  can_browse_calendars?: boolean;
 };
 
 export type PatientDischarge = {

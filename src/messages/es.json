@@ -4019,9 +4019,7 @@
       "defaultCalendar": "Consultorio por defecto",
       "selectCalendar": "Seleccionar consultorio...",
       "searchCalendarPlaceholder": "Buscar consultorio...",
-      "noCalendar": "Sin consultorio por defecto",
-      "canBrowseCalendars": "Puede ver agendas de calendarios",
-      "canBrowseCalendarsHint": "Permite a este doctor alternar en su workspace entre sus citas asignadas y las de los calendarios a los que tiene acceso."
+      "noCalendar": "Sin consultorio por defecto"
     },
     "filters": {
       "showOnlyActive": "Mostrar solo activos"

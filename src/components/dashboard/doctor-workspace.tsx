@@ -1036,11 +1036,8 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     () => format(selectedDate, 'EEEE d MMMM', { locale: dateFnsLocale }),
     [selectedDate, dateFnsLocale],
   );
-  // Calendar access: doctors with the `can_browse_calendars` flag and at least one
-  // assigned calendar can switch the agenda between their own appointments and a
-  // shared calendar's appointments. The flag ideally comes from AUTH_ME; if that
-  // endpoint doesn't provide it yet, we fall back to fetching the user's record.
-  const [canBrowseCalendars, setCanBrowseCalendars] = React.useState<boolean>(Boolean(user?.can_browse_calendars));
+  // Calendar access: doctors with at least one assigned calendar can switch the
+  // agenda between their own appointments and a shared calendar's appointments.
   const [accessibleCalendars, setAccessibleCalendars] = React.useState<{ id: string; name: string; color?: string }[]>([]);
   const [viewMode, setViewMode] = React.useState<'mine' | 'calendar'>('mine');
   const [selectedCalendarId, setSelectedCalendarId] = React.useState<string>('');
@@ -1146,42 +1143,10 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     }
   }, [user?.id, viewMode, selectedCalendarId, selectedDate]);
 
-  // Resolve the `can_browse_calendars` flag for the logged-in doctor. Prefer the value
-  // from AUTH_ME; if it isn't present, fetch the user's record from the USERS endpoint.
+  // Load the calendars this doctor has been granted access to. If none, the agenda
+  // source switch is hidden and the doctor only sees their own appointments.
   React.useEffect(() => {
-    if (user?.can_browse_calendars !== undefined) {
-      setCanBrowseCalendars(Boolean(user.can_browse_calendars));
-      return;
-    }
     if (!user?.id) {
-      setCanBrowseCalendars(false);
-      return;
-    }
-    let cancelled = false;
-    api.get(API_ROUTES.USERS, { search: String(user.id), filter_type: 'DOCTOR', limit: '5' })
-      .then((data: any) => {
-        if (cancelled) return;
-        let rows: any[] = [];
-        if (Array.isArray(data) && data.length > 0) {
-          const first = data[0];
-          if (first?.json?.data) rows = first.json.data;
-          else if (first?.data) rows = first.data;
-          else rows = data;
-        } else if (data?.data) {
-          rows = data.data;
-        }
-        const me = rows.find((row: any) => String(row.id) === String(user.id));
-        setCanBrowseCalendars(Boolean(me?.can_browse_calendars));
-      })
-      .catch(() => { if (!cancelled) setCanBrowseCalendars(false); });
-    return () => { cancelled = true; };
-  }, [user?.id, user?.can_browse_calendars]);
-
-  // Load the calendars this doctor has been granted access to. Only when the doctor
-  // has the `can_browse_calendars` flag enabled. If none, the agenda source switch is
-  // hidden and the doctor only sees their own appointments.
-  React.useEffect(() => {
-    if (!user?.id || !canBrowseCalendars) {
       setAccessibleCalendars([]);
       return;
     }
@@ -1203,7 +1168,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
         if (!cancelled) setAccessibleCalendars([]);
       });
     return () => { cancelled = true; };
-  }, [user?.id, canBrowseCalendars]);
+  }, [user?.id]);
 
   // Keep the selected calendar valid: when switching to calendar mode without a
   // selection, default to the first accessible calendar; clear it if access is lost.
@@ -1214,12 +1179,12 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     });
   }, [accessibleCalendars]);
 
-  // If the doctor loses calendar access (flag off / no calendars), fall back to "mine".
+  // If the doctor loses calendar access (no calendars assigned), fall back to "mine".
   React.useEffect(() => {
-    if ((!canBrowseCalendars || accessibleCalendars.length === 0) && viewMode !== 'mine') {
+    if (accessibleCalendars.length === 0 && viewMode !== 'mine') {
       setViewMode('mine');
     }
-  }, [canBrowseCalendars, accessibleCalendars.length, viewMode]);
+  }, [accessibleCalendars.length, viewMode]);
 
   const loadLinkedSession = React.useCallback(async (appointment: Appointment | null, requestId?: number, silent = false) => {
     if (!appointment?.patientId) {
@@ -1828,7 +1793,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                 )}
               </div>
 
-              {canBrowseCalendars && accessibleCalendars.length > 0 && (
+              {accessibleCalendars.length > 0 && (
                 <div className="shrink-0 space-y-2 border-b px-4 py-2.5">
                   <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-0.5">
                     <button

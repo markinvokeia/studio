@@ -4042,9 +4042,7 @@
       "defaultCalendar": "Default Consultorio",
       "selectCalendar": "Select consultorio...",
       "searchCalendarPlaceholder": "Search consultorio...",
-      "noCalendar": "No default consultorio",
-      "canBrowseCalendars": "Can view calendar agendas",
-      "canBrowseCalendarsHint": "Lets this doctor switch in their workspace between their assigned appointments and those of the calendars they have access to."
+      "noCalendar": "No default consultorio"
     },
     "filters": {
       "showOnlyActive": "Show only active"
