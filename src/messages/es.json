@@ -1324,6 +1324,7 @@
       "refresh": "Actualizar",
       "openFullAgenda": "Abrir agenda completa",
       "emptyTitle": "No hay citas para hoy",
+      "emptyTitleOtherDay": "No hay citas para este día",
       "emptyDescription": "Cuando se agenden nuevas citas o cambie el estado de una existente, aparecerán aquí.",
       "hiddenPastAppointments": "{count} citas anteriores ocultas",
       "historyHidden": "Historial",
@@ -1332,7 +1333,8 @@
       "unknownPatient": "Paciente sin nombre",
       "viewPatient": "Paciente",
       "viewContext": "Contexto",
-      "startSession": "Sesión"
+      "startSession": "Sesión",
+      "today": "Hoy"
     },
     "focus": {
       "title": "Paciente en foco",
@@ -1359,6 +1361,7 @@
       "noClinicalSignals": "Sin alergias ni complicaciones registradas.",
       "moreAlertTags": "+{count} más",
       "sessionExistsToday": "Ya existe una sesión clínica registrada para hoy. Solo se permite una sesión por paciente por día.",
+      "sessionOnlyOnAppointmentDay": "Solo puedes completar o editar la sesión clínica el día de la cita.",
       "sessionIsOdontogram": "La sesión registrada para esta cita es de tipo Odontograma. Edítala desde el panel de Odontograma.",
       "workspaceLabel": "Workspace clínico",
       "sessionStatusTitle": "Estado de la sesión",
@@ -1682,6 +1685,7 @@
     "filterPlaceholder": "Filtrar pacientes por correo...",
     "filterByPatient": "Filtrar por paciente...",
     "detailsFor": "Detalles para {name}",
+    "readOnlyBadge": "Solo lectura",
     "doctorWorkspace": {
       "clinicalAlerts": "Alertas clínicas",
       "noAllergies": "Sin alergias registradas."
@@ -4861,6 +4865,7 @@
       "nextSessionPlan": "Plan para la Próxima Sesión",
       "nextSessionDate": "Fecha",
       "addSession": "Agregar sesión",
+      "readOnlyMessage": "Solo puedes visualizar esta ficha. Edición no disponible para citas de otro día.",
       "noSessions": "No hay sesiones registradas",
       "appointmentStatus": {
         "pending": "Pendiente",

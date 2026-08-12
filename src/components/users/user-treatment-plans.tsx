@@ -102,6 +102,7 @@ interface UserTreatmentPlansProps {
     onViewSession?: (sesionId: number) => void;
     onStepCompleted?: (data: SessionPrefillData) => void;
     onContact?: (context: TreatmentContactContext) => void;
+    readOnly?: boolean;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -1090,6 +1091,7 @@ function StepTimeline({
     onViewSession,
     onStepCompleted,
     t,
+    readOnly = false,
 }: {
     sequence: TreatmentSequence;
     patientId: string;
@@ -1099,6 +1101,7 @@ function StepTimeline({
     onViewSession?: (sesionId: number) => void;
     onStepCompleted?: (data: SessionPrefillData) => void;
     t: ReturnType<typeof useTranslations>;
+    readOnly?: boolean;
 }) {
     const [editingStepId, setEditingStepId] = React.useState<string | null>(null);
     const [isAddingStep, setIsAddingStep] = React.useState(false);
@@ -1479,7 +1482,7 @@ function StepTimeline({
                                 {/* Actions */}
                                 <div className="flex items-center gap-0.5 shrink-0 opacity-60 group-hover:opacity-100 transition-opacity">
                                     {/* Schedule button — only for steps without appointment */}
-                                    {!step.appointment_id && step.status !== 'completed' && step.status !== 'cancelled' && (
+                                    {!readOnly && !step.appointment_id && step.status !== 'completed' && step.status !== 'cancelled' && (
                                         <Button
                                             variant="ghost" size="icon"
                                             className="h-6 w-6 text-muted-foreground hover:text-blue-500"
@@ -1503,7 +1506,7 @@ function StepTimeline({
                                     )}
 
                                     {/* Create session — only when no session linked and step not cancelled */}
-                                    {!step.sesion_id && step.status !== 'cancelled' && (
+                                    {!readOnly && !step.sesion_id && step.status !== 'cancelled' && (
                                         <Button
                                             variant="ghost" size="icon"
                                             className="h-6 w-6 text-muted-foreground hover:text-emerald-600"
@@ -1515,7 +1518,7 @@ function StepTimeline({
                                     )}
 
                                     {/* Edit session — only when sesion_id is set */}
-                                    {!!step.sesion_id && (
+                                    {!readOnly && !!step.sesion_id && (
                                         <Button
                                             variant="ghost" size="icon"
                                             className="h-6 w-6 text-muted-foreground hover:text-emerald-600"
@@ -1526,45 +1529,49 @@ function StepTimeline({
                                         </Button>
                                     )}
 
-                                    {/* Edit button */}
-                                    <Button
-                                        variant="ghost" size="icon"
-                                        className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                                        title={t('edit.editStep')}
-                                        onClick={() => { setIsAddingStep(false); setEditingStepId(step.id); }}
-                                    >
-                                        <Pencil className="h-3 w-3" />
-                                    </Button>
-
-                                    {/* More menu */}
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground">
-                                                <MoreHorizontal className="h-3.5 w-3.5" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" className="w-44">
-                                            {/* Status options */}
-                                            {STEP_STATUS_OPTIONS.filter(s => s !== step.status).map(status => (
-                                                <DropdownMenuItem
-                                                    key={status}
-                                                    className="text-xs gap-2"
-                                                    onSelect={() => openStatusDialog(step, status)}
-                                                >
-                                                    {stepStatusIcon(status, 'h-3 w-3')}
-                                                    {t(`stepStatus.${status}`)}
-                                                </DropdownMenuItem>
-                                            ))}
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem
-                                                className="text-xs text-destructive focus:text-destructive gap-2"
-                                                onSelect={() => openDeleteDialog(step)}
+                                    {!readOnly && (
+                                        <>
+                                            {/* Edit button */}
+                                            <Button
+                                                variant="ghost" size="icon"
+                                                className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                                                title={t('edit.editStep')}
+                                                onClick={() => { setIsAddingStep(false); setEditingStepId(step.id); }}
                                             >
-                                                <Trash2 className="h-3 w-3" />
-                                                {t('edit.deleteStep')}
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+                                                <Pencil className="h-3 w-3" />
+                                            </Button>
+
+                                            {/* More menu */}
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground">
+                                                        <MoreHorizontal className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-44">
+                                                    {/* Status options */}
+                                                    {STEP_STATUS_OPTIONS.filter(s => s !== step.status).map(status => (
+                                                        <DropdownMenuItem
+                                                            key={status}
+                                                            className="text-xs gap-2"
+                                                            onSelect={() => openStatusDialog(step, status)}
+                                                        >
+                                                            {stepStatusIcon(status, 'h-3 w-3')}
+                                                            {t(`stepStatus.${status}`)}
+                                                        </DropdownMenuItem>
+                                                    ))}
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem
+                                                        className="text-xs text-destructive focus:text-destructive gap-2"
+                                                        onSelect={() => openDeleteDialog(step)}
+                                                    >
+                                                        <Trash2 className="h-3 w-3" />
+                                                        {t('edit.deleteStep')}
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -1573,7 +1580,7 @@ function StepTimeline({
             ))}
 
             {/* Add step form / button */}
-            {isAddingStep ? (
+            {!readOnly && (isAddingStep ? (
                 <div className="flex gap-3">
                     <div className="flex flex-col items-center shrink-0 w-6">
                         <div className="mt-1"><Circle className="h-4 w-4 text-muted-foreground/40" /></div>
@@ -1597,7 +1604,7 @@ function StepTimeline({
                     <PlusCircle className="h-3.5 w-3.5" />
                     {t('edit.addStep')}
                 </Button>
-            )}
+            ))}
 
             {/* Dialogs */}
             <CascadeDialog
@@ -1826,6 +1833,7 @@ function ActivePlanCard({
     onStepCompleted,
     onContact,
     t,
+    readOnly = false,
 }: {
     sequence: TreatmentSequence;
     patientId: string;
@@ -1836,6 +1844,7 @@ function ActivePlanCard({
     onStepCompleted?: (data: SessionPrefillData) => void;
     onContact?: (context: TreatmentContactContext) => void;
     t: ReturnType<typeof useTranslations>;
+    readOnly?: boolean;
 }) {
     const [expanded, setExpanded] = React.useState(false);
 
@@ -1942,6 +1951,7 @@ function ActivePlanCard({
                             onViewSession={onViewSession}
                             onStepCompleted={onStepCompleted}
                             t={t}
+                            readOnly={readOnly}
                         />
                     </div>
                 </CollapsibleContent>
@@ -1960,6 +1970,7 @@ function CompactSequenceCard({
     onViewSession,
     onStepCompleted,
     t,
+    readOnly = false,
 }: {
     sequence: TreatmentSequence;
     patientId: string;
@@ -1968,6 +1979,7 @@ function CompactSequenceCard({
     onViewSession?: (sesionId: number) => void;
     onStepCompleted?: (data: SessionPrefillData) => void;
     t: ReturnType<typeof useTranslations>;
+    readOnly?: boolean;
 }) {
     const [expanded, setExpanded] = React.useState(false);
     const completedCount = sequence.steps.filter(s => s.status === 'completed').length;
@@ -1998,7 +2010,7 @@ function CompactSequenceCard({
                     <div className="px-3 pb-3 pt-2 border-t border-border">
                         <StepTimeline sequence={sequence} patientId={patientId} onStepsChange={onStepsChange}
                             onViewAppointment={onViewAppointment} onViewSession={onViewSession}
-                            onStepCompleted={onStepCompleted} t={t} />
+                            onStepCompleted={onStepCompleted} t={t} readOnly={readOnly} />
                     </div>
                 </CollapsibleContent>
             </Collapsible>
@@ -2008,7 +2020,7 @@ function CompactSequenceCard({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function UserTreatmentPlans({ userId, onCreateAppointment, onViewAppointment, onViewSession, onStepCompleted, onContact }: UserTreatmentPlansProps) {
+export function UserTreatmentPlans({ userId, onCreateAppointment, onViewAppointment, onViewSession, onStepCompleted, onContact, readOnly = false }: UserTreatmentPlansProps) {
     const t = useTranslations('TreatmentPlans');
     const [sequences, setSequences] = React.useState<TreatmentSequence[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
@@ -2048,7 +2060,7 @@ export function UserTreatmentPlans({ userId, onCreateAppointment, onViewAppointm
                     <p className="font-medium text-sm text-muted-foreground">{t('emptyState')}</p>
                     <p className="text-xs text-muted-foreground max-w-xs">{t('emptyStateDescription')}</p>
                 </div>
-                {onCreateAppointment && (
+                {onCreateAppointment && !readOnly && (
                     <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={onCreateAppointment}>
                         <PlusCircle className="h-3.5 w-3.5" />
                         {t('createAppointment')}
@@ -2075,6 +2087,7 @@ export function UserTreatmentPlans({ userId, onCreateAppointment, onViewAppointm
                     onStepCompleted={onStepCompleted}
                     onContact={onContact}
                     t={t}
+                    readOnly={readOnly}
                 />
             ))}
 
@@ -2099,7 +2112,7 @@ export function UserTreatmentPlans({ userId, onCreateAppointment, onViewAppointm
                                 {historical.map(seq => (
                                     <CompactSequenceCard key={seq.id} sequence={seq} patientId={userId}
                                         onStepsChange={handleStepsChange} onViewAppointment={onViewAppointment}
-                                        onViewSession={onViewSession} onStepCompleted={onStepCompleted} t={t} />
+                                        onViewSession={onViewSession} onStepCompleted={onStepCompleted} t={t} readOnly={readOnly} />
                                 ))}
                             </div>
                         </CollapsibleContent>

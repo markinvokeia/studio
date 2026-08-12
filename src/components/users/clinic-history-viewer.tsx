@@ -129,9 +129,10 @@ interface ClinicHistoryViewerProps {
     onClinicalDataChange?: () => void;
     deepLinkView?: string;
     onEditAppointment?: (appointment: Appointment) => void;
+    readOnly?: boolean;
 }
 
-export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, createOdontogramTrigger = 0, sessionPrefill, onSessionCreated, editSessionId, onClinicalDataChange, onEditAppointment, isDoctorMode = false }: ClinicHistoryViewerProps) {
+export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, createOdontogramTrigger = 0, sessionPrefill, onSessionCreated, editSessionId, onClinicalDataChange, onEditAppointment, isDoctorMode = false, readOnly = false }: ClinicHistoryViewerProps) {
     const {
         patientSessions,
         isLoadingPatientSessions,
@@ -315,12 +316,13 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
                             onAppointmentStatusUpdated={handleAppointmentStatusUpdated}
                             onEditAppointment={onEditAppointment}
                             isDoctorMode={isDoctorMode}
+                            readOnly={readOnly}
                         />
         </div>
     );
 }
 
-export function AnamnesisViewer({ userId, onClinicalDataChange }: { userId: string; onClinicalDataChange?: () => void }) {
+export function AnamnesisViewer({ userId, onClinicalDataChange, readOnly = false }: { userId: string; onClinicalDataChange?: () => void; readOnly?: boolean }) {
     const {
         personalHistory, isLoadingPersonalHistory,
         familyHistory, isLoadingFamilyHistory,
@@ -380,11 +382,12 @@ export function AnamnesisViewer({ userId, onClinicalDataChange }: { userId: stri
             onFetchAilmentsCatalog={fetchAilmentsCatalog}
             onFetchMedicationsCatalog={fetchMedicationsCatalog}
             onClinicalDataChange={onClinicalDataChange}
+            readOnly={readOnly}
         />
     );
 }
 
-export function DocumentsViewer({ userId, createTrigger = 0, documentsOnly = false }: { userId: string; createTrigger?: number; documentsOnly?: boolean }) {
+export function DocumentsViewer({ userId, createTrigger = 0, documentsOnly = false, readOnly = false }: { userId: string; createTrigger?: number; documentsOnly?: boolean; readOnly?: boolean }) {
     const {
         documents, isLoadingDocuments, uploadDocument, deleteDocument, getDocumentContent,
         sessionAttachments, isLoadingSessionAttachments, getSessionAttachment,
@@ -418,6 +421,7 @@ export function DocumentsViewer({ userId, createTrigger = 0, documentsOnly = fal
             getDocumentContent={getDocumentContent}
             getSessionAttachment={getSessionAttachment}
             createTrigger={createTrigger}
+            readOnly={readOnly}
         />
     );
 }
@@ -459,6 +463,8 @@ interface AnamnesisSectionProps {
     onFetchAilmentsCatalog: () => Promise<void>;
     onFetchMedicationsCatalog: (search: string) => Promise<void>;
     onClinicalDataChange?: () => void;
+    /** View-only mode: hides every add/edit/delete affordance, data stays visible. */
+    readOnly?: boolean;
 }
 
 function AnamnesisSection({
@@ -498,6 +504,7 @@ function AnamnesisSection({
     onFetchAilmentsCatalog,
     onFetchMedicationsCatalog,
     onClinicalDataChange,
+    readOnly = false,
 }: AnamnesisSectionProps) {
     const t = useTranslations('ClinicHistoryPage.anamnesis');
     const tHabits = useTranslations('ClinicHistoryPage.habits');
@@ -993,9 +1000,11 @@ function AnamnesisSection({
                         <User className="w-5 h-5 text-primary mr-2" />
                         <h3 className="text-base font-semibold text-card-foreground">{t('personalTitle')}</h3>
                     </div>
-                    <Button variant="default" size="icon" onClick={() => handleOpenPersonalDialog()}>
-                        <Plus className="h-4 w-4" />
-                    </Button>
+                    {!readOnly && (
+                        <Button variant="default" size="icon" onClick={() => handleOpenPersonalDialog()}>
+                            <Plus className="h-4 w-4" />
+                        </Button>
+                    )}
                 </div>
                 <div className="space-y-3">
                     {personalHistory.length > 0 ? (
@@ -1005,14 +1014,16 @@ function AnamnesisSection({
                                     <div className="text-sm font-semibold text-foreground">{item.nombre}</div>
                                     {item.comentarios && <div className="text-sm text-muted-foreground">{item.comentarios}</div>}
                                 </div>
-                                <div className="flex items-center space-x-1">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenPersonalDialog(item)}>
-                                        <Edit3 className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeletePersonal(item)}>
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </div>
+                                {!readOnly && (
+                                    <div className="flex items-center space-x-1">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenPersonalDialog(item)}>
+                                            <Edit3 className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeletePersonal(item)}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         ))
                     ) : (
@@ -1028,9 +1039,11 @@ function AnamnesisSection({
                         <Pill className="w-5 h-5 text-green-500 mr-2" />
                         <h3 className="text-base font-semibold text-card-foreground">{t('medicationsTitle')}</h3>
                     </div>
-                    <Button variant="default" size="icon" onClick={() => handleOpenMedicationDialog()}>
-                        <Plus className="h-4 w-4" />
-                    </Button>
+                    {!readOnly && (
+                        <Button variant="default" size="icon" onClick={() => handleOpenMedicationDialog()}>
+                            <Plus className="h-4 w-4" />
+                        </Button>
+                    )}
                 </div>
                 <div className="space-y-3">
                     {medications.length > 0 ? (
@@ -1050,14 +1063,16 @@ function AnamnesisSection({
                                     )}
                                     {item.motivo && <div className="text-sm text-muted-foreground">{item.motivo}</div>}
                                 </div>
-                                <div className="flex items-center space-x-1">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenMedicationDialog(item)}>
-                                        <Edit3 className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteMedication(item)}>
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </div>
+                                {!readOnly && (
+                                    <div className="flex items-center space-x-1">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenMedicationDialog(item)}>
+                                            <Edit3 className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteMedication(item)}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         ))
                     ) : (
@@ -1073,9 +1088,11 @@ function AnamnesisSection({
                         <Heart className="w-5 h-5 text-red-500 mr-2" />
                         <h3 className="text-base font-semibold text-card-foreground">{t('familyTitle')}</h3>
                     </div>
-                    <Button variant="default" size="icon" onClick={() => handleOpenFamilyDialog()}>
-                        <Plus className="h-4 w-4" />
-                    </Button>
+                    {!readOnly && (
+                        <Button variant="default" size="icon" onClick={() => handleOpenFamilyDialog()}>
+                            <Plus className="h-4 w-4" />
+                        </Button>
+                    )}
                 </div>
                 <div className="space-y-3">
                     {familyHistory.length > 0 ? (
@@ -1086,14 +1103,16 @@ function AnamnesisSection({
                                     <div className="text-sm text-muted-foreground">{t('relative')}: {getRelationshipLabel(item.parentesco)}</div>
                                     {item.comentarios && <div className="text-sm text-muted-foreground">{item.comentarios}</div>}
                                 </div>
-                                <div className="flex items-center space-x-1">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenFamilyDialog(item)}>
-                                        <Edit3 className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteFamily(item)}>
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </div>
+                                {!readOnly && (
+                                    <div className="flex items-center space-x-1">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenFamilyDialog(item)}>
+                                            <Edit3 className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteFamily(item)}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         ))
                     ) : (
@@ -1109,9 +1128,11 @@ function AnamnesisSection({
                         <AlertTriangle className="w-5 h-5 text-yellow-500 mr-2" />
                         <h3 className="text-base font-semibold text-card-foreground">{t('allergiesTitle')}</h3>
                     </div>
-                    <Button variant="default" size="icon" onClick={() => handleOpenAllergyDialog()}>
-                        <Plus className="h-4 w-4" />
-                    </Button>
+                    {!readOnly && (
+                        <Button variant="default" size="icon" onClick={() => handleOpenAllergyDialog()}>
+                            <Plus className="h-4 w-4" />
+                        </Button>
+                    )}
                 </div>
                 <div className="space-y-3">
                     {allergies.length > 0 ? (
@@ -1121,14 +1142,16 @@ function AnamnesisSection({
                                     <div className="text-sm font-semibold text-destructive">{item.alergeno}</div>
                                     {item.reaccion_descrita && <div className="text-sm text-destructive/80">{item.reaccion_descrita}</div>}
                                 </div>
-                                <div className="flex items-center space-x-1">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenAllergyDialog(item)}>
-                                        <Edit3 className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteAllergy(item)}>
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </div>
+                                {!readOnly && (
+                                    <div className="flex items-center space-x-1">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenAllergyDialog(item)}>
+                                            <Edit3 className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteAllergy(item)}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         ))
                     ) : (
@@ -1145,9 +1168,11 @@ function AnamnesisSection({
                             <Wind className="w-5 h-5 text-purple-500 mr-2" />
                             <CardTitle className="text-base font-semibold">{tHabits('title')}</CardTitle>
                         </div>
-                        <Button variant="ghost" size="icon" onClick={() => setIsHabitsEditing(!isHabitsEditing)}>
-                            <Edit3 className="h-4 w-4" />
-                        </Button>
+                        {!readOnly && (
+                            <Button variant="ghost" size="icon" onClick={() => setIsHabitsEditing(!isHabitsEditing)}>
+                                <Edit3 className="h-4 w-4" />
+                            </Button>
+                        )}
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -1778,9 +1803,11 @@ interface TreatmentTimelineProps {
     forcedTypeFilter?: TimelineFilter;
     /** Show the clinical session color at the end of each list item. */
     showSessionColor?: boolean;
+    /** View-only mode: hides session edit/delete and blocks appointment status changes. */
+    readOnly?: boolean;
 }
 
-export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAppointments = false, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, createOdontogramTrigger = 0, onOdontogramTriggerConsumed, sessionPrefill, onSessionCreated, editSessionId, onRefreshAppointments, onAppointmentStatusUpdated, onEditAppointment, isDoctorMode = false, hideToolbar = false, forcedTypeFilter, showSessionColor = false }: TreatmentTimelineProps) {
+export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAppointments = false, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, createOdontogramTrigger = 0, onOdontogramTriggerConsumed, sessionPrefill, onSessionCreated, editSessionId, onRefreshAppointments, onAppointmentStatusUpdated, onEditAppointment, isDoctorMode = false, hideToolbar = false, forcedTypeFilter, showSessionColor = false, readOnly = false }: TreatmentTimelineProps) {
     const t = useTranslations('ClinicHistoryPage.timeline');
     const tDialog = useTranslations('ClinicHistoryPage.sessionDialog');
     const tPage = useTranslations('ClinicHistoryPage');
@@ -1832,9 +1859,10 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
 
     const handleApptStatusChange = React.useCallback(
         (appt: Appointment, newStatus: AppointmentStatus, extra?: { cancellation_reason?: CancellationReason; cancellation_note?: string }) => {
+            if (readOnly) return;
             updateStatus({ appointment: appt, newStatus, ...extra });
         },
-        [updateStatus],
+        [readOnly, updateStatus],
     );
 
     const openApptPanel = React.useCallback(async (appt: Appointment) => {
@@ -2675,7 +2703,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                 onRequestCustomCancellation={(appt) => setPendingCancellation(appt)}
                 onBillingSuccess={handleBillingSuccess}
                 hideBillingAction={isDoctorMode}
-                onEdit={onEditAppointment ? (appt) => { setIsApptPanelOpen(false); onEditAppointment(appt); } : undefined}
+                onEdit={onEditAppointment && !readOnly ? (appt) => { setIsApptPanelOpen(false); onEditAppointment(appt); } : undefined}
             />
             <CancellationNoteDialog
                 open={!!pendingCancellation}
@@ -2813,19 +2841,21 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                     )}
                                 </div>
                             </ScrollArea>
-                            <div className="flex items-center gap-2 px-6 py-4 border-t shrink-0 bg-background">
-                                <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive gap-1.5"
-                                    onClick={() => { handleDeleteSession(session); setIsSessionDetailSheetOpen(false); }}>
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                    {tPage('common.delete')}
-                                </Button>
-                                <div className="flex-1" />
-                                <Button size="sm" variant="outline" className="gap-1.5"
-                                    onClick={() => { handleEditSession(session); setIsSessionDetailSheetOpen(false); }}>
-                                    <Edit3 className="h-3.5 w-3.5" />
-                                    {tPage('common.edit')}
-                                </Button>
-                            </div>
+                            {!readOnly && (
+                                <div className="flex items-center gap-2 px-6 py-4 border-t shrink-0 bg-background">
+                                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive gap-1.5"
+                                        onClick={() => { handleDeleteSession(session); setIsSessionDetailSheetOpen(false); }}>
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                        {tPage('common.delete')}
+                                    </Button>
+                                    <div className="flex-1" />
+                                    <Button size="sm" variant="outline" className="gap-1.5"
+                                        onClick={() => { handleEditSession(session); setIsSessionDetailSheetOpen(false); }}>
+                                        <Edit3 className="h-3.5 w-3.5" />
+                                        {tPage('common.edit')}
+                                    </Button>
+                                </div>
+                            )}
                         </div>
                     );
                 })()}
@@ -2855,6 +2885,8 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                     setIsOdontogramViewerOpen(false);
                                     onRefreshAll?.(userId);
                                 }}
+                                blockNewSession={readOnly}
+                                blockNewSessionMessage={readOnly ? t('readOnlyMessage') : undefined}
                             />
                         )}
                     </div>
@@ -3014,9 +3046,10 @@ interface EnhancedDocumentsGalleryProps {
     getDocumentContent: (userId: string, docId: string) => Promise<Blob>;
     getSessionAttachment: (sessionId: string, attachmentId: string) => Promise<Blob>;
     createTrigger?: number;
+    readOnly?: boolean;
 }
 
-function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument, deleteDocument, getDocumentContent, getSessionAttachment, createTrigger = 0 }: EnhancedDocumentsGalleryProps) {
+function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument, deleteDocument, getDocumentContent, getSessionAttachment, createTrigger = 0, readOnly = false }: EnhancedDocumentsGalleryProps) {
     const t = useTranslations('ClinicHistoryPage');
     const { toast } = useToast();
     const [isUploadDialogOpen, setIsUploadDialogOpen] = React.useState(false);
@@ -3118,10 +3151,12 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument
             <div className="bg-card text-card-foreground rounded-xl shadow-sm p-3 sm:p-6 border-0 w-full min-w-0">
                 <div className="flex items-center justify-between mb-4 gap-2">
                     <h3 className="text-xl font-bold text-card-foreground">{t('tabs.documents')}</h3>
-                    <Button onClick={() => setIsUploadDialogOpen(true)} variant="outline" size="sm">
-                        <Upload className="h-4 w-4 sm:mr-2" />
-                        <span className="hidden sm:inline">{t('documents.add')}</span>
-                    </Button>
+                    {!readOnly && (
+                        <Button onClick={() => setIsUploadDialogOpen(true)} variant="outline" size="sm">
+                            <Upload className="h-4 w-4 sm:mr-2" />
+                            <span className="hidden sm:inline">{t('documents.add')}</span>
+                        </Button>
+                    )}
                 </div>
 
                 {isLoading ? (
@@ -3177,7 +3212,7 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent>
-                                                    {isSession ? (
+                                                    {isSession || readOnly ? (
                                                         <DropdownMenuItem onClick={() => handleViewDocument(doc)}>
                                                             <Eye className="mr-2 h-4 w-4" />
                                                             {t('documents.view')}
@@ -3202,10 +3237,12 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument
                             <FolderArchive className="w-7 h-7 text-muted-foreground" />
                         </div>
                         <p className="text-sm">{t('documents.noDocuments')}</p>
-                        <Button size="sm" variant="outline" onClick={() => setIsUploadDialogOpen(true)}>
-                            <Plus className="w-3 h-3 mr-1" />
-                            {t('documents.add')}
-                        </Button>
+                        {!readOnly && (
+                            <Button size="sm" variant="outline" onClick={() => setIsUploadDialogOpen(true)}>
+                                <Plus className="w-3 h-3 mr-1" />
+                                {t('documents.add')}
+                            </Button>
+                        )}
                     </div>
                 )}
             </div>

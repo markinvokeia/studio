@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -27,7 +28,8 @@ import { cn, formatDate } from '@/lib/utils';
 import { api } from '@/services/api';
 import { updateAppointmentStatusRequest } from '@/services/appointments';
 import { getQuoteItems } from '@/services/quotes';
-import { format, parseISO } from 'date-fns';
+import { format, isSameDay, parseISO, startOfDay } from 'date-fns';
+import { enUS, es } from 'date-fns/locale';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -157,6 +159,10 @@ interface DoctorAgendaTimelineProps {
   isLoading: boolean;
   onSelect: (appointmentId: string) => void;
   selectedAppointmentId?: string | null;
+  /** Whether the agenda currently shown corresponds to today's date. When false, the
+   *  "current time" marker and past-appointment dimming/collapsing are disabled, since
+   *  those only make sense relative to the real-time clock on today's schedule. */
+  isToday: boolean;
 }
 
 function DoctorAgendaTimeline({
@@ -164,6 +170,7 @@ function DoctorAgendaTimeline({
   isLoading,
   onSelect,
   selectedAppointmentId,
+  isToday,
 }: DoctorAgendaTimelineProps) {
   const t = useTranslations('DoctorWorkspace');
   const tStatus = useTranslations('AppointmentStatus');
@@ -172,7 +179,10 @@ function DoctorAgendaTimeline({
   const timeline = React.useMemo(() => {
     const sortedAppointments = [...appointments].sort((left, right) => left.time.localeCompare(right.time));
     const now = new Date();
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    // When viewing a day other than today, there is no meaningful "current time" to plot
+    // against this agenda's minutes, so the sentinel below keeps every appointment out of
+    // the in-progress/past comparisons further down.
+    const currentMinutes = isToday ? now.getHours() * 60 + now.getMinutes() : -1;
 
     const appointmentRanges = sortedAppointments.map((appointment) => {
       const startMinutes = parseTimeToMinutes(appointment.time);
@@ -220,7 +230,7 @@ function DoctorAgendaTimeline({
     let currentTimeTop = 0;
     let showCurrentTime = false;
 
-    if (layouts.length > 0) {
+    if (isToday && layouts.length > 0) {
       const firstLayout = layouts[0];
       const lastLayout = layouts[layouts.length - 1];
 
@@ -264,7 +274,7 @@ function DoctorAgendaTimeline({
       layouts,
       showCurrentTime,
     };
-  }, [appointments]);
+  }, [appointments, isToday]);
 
   const focusAppointmentId = React.useMemo(() => {
     if (timeline.layouts.length === 0) return null;
@@ -410,7 +420,7 @@ function DoctorAgendaTimeline({
   if (appointments.length === 0) {
     return (
       <div className="rounded-[1.75rem] border border-dashed border-border bg-muted/20 p-8 text-center">
-        <p className="text-sm font-medium text-foreground">{t('agenda.emptyTitle')}</p>
+        <p className="text-sm font-medium text-foreground">{t(isToday ? 'agenda.emptyTitle' : 'agenda.emptyTitleOtherDay')}</p>
         <p className="mt-1 text-sm text-muted-foreground">{t('agenda.emptyDescription')}</p>
       </div>
     );
@@ -682,15 +692,14 @@ type WorkspaceAppointmentSource =
   | { mode: 'doctor'; doctorId: string }
   | { mode: 'calendar'; calendarId: string };
 
-async function getAppointmentsForToday(source: WorkspaceAppointmentSource): Promise<Appointment[]> {
-  const now = new Date();
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-  const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+async function getAppointmentsForDate(source: WorkspaceAppointmentSource, targetDate: Date): Promise<Appointment[]> {
+  const dayStart = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 0, 0, 0);
+  const dayEnd = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59);
   const formatDateForAPI = (date: Date) => format(date, 'yyyy-MM-dd HH:mm:ss');
 
   const query: Record<string, string> = {
-    startingDateAndTime: formatDateForAPI(startOfDay),
-    endingDateAndTime: formatDateForAPI(endOfDay),
+    startingDateAndTime: formatDateForAPI(dayStart),
+    endingDateAndTime: formatDateForAPI(dayEnd),
   };
   if (source.mode === 'doctor') query.doctor_id = source.doctorId;
   else query.calendar_source_ids = source.calendarId;
@@ -1016,6 +1025,17 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
 
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
   const [selectedAppointmentId, setSelectedAppointmentId] = React.useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = React.useState<Date>(() => startOfDay(new Date()));
+  const [isDateSelectorOpen, setIsDateSelectorOpen] = React.useState(false);
+  const isViewingToday = React.useMemo(() => isSameDay(selectedDate, new Date()), [selectedDate]);
+  // Clinical sessions can only be created/edited on the appointment's own day: past days
+  // are already closed out, and future appointments haven't happened yet.
+  const isSessionEditingBlockedByDate = !isViewingToday;
+  const dateFnsLocale = locale === 'es' ? es : enUS;
+  const selectedDateLabel = React.useMemo(
+    () => format(selectedDate, 'EEEE d MMMM', { locale: dateFnsLocale }),
+    [selectedDate, dateFnsLocale],
+  );
   // Calendar access: doctors with the `can_browse_calendars` flag and at least one
   // assigned calendar can switch the agenda between their own appointments and a
   // shared calendar's appointments. The flag ideally comes from AUTH_ME; if that
@@ -1097,8 +1117,8 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
       const source: WorkspaceAppointmentSource = useCalendar
         ? { mode: 'calendar', calendarId: selectedCalendarId }
         : { mode: 'doctor', doctorId: String(user.id) };
-      const data = await getAppointmentsForToday(source);
-      const dateKey = formatDate(new Date());
+      const data = await getAppointmentsForDate(source, selectedDate);
+      const dateKey = formatDate(selectedDate);
       const storageKey = getKnownAppointmentsStorageKey(String(user.id), dateKey);
       const previousAppointmentIds = readKnownAppointmentIds(storageKey);
       const previousAppointmentIdsSet = new Set(previousAppointmentIds);
@@ -1124,7 +1144,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
       setIsRefreshing(false);
       setIsLoadingAppointments(false);
     }
-  }, [user?.id, viewMode, selectedCalendarId]);
+  }, [user?.id, viewMode, selectedCalendarId, selectedDate]);
 
   // Resolve the `can_browse_calendars` flag for the logged-in doctor. Prefer the value
   // from AUTH_ME; if it isn't present, fetch the user's record from the USERS endpoint.
@@ -1340,7 +1360,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   }, [loadAppointments]);
 
   const handleSaveClinicSession = React.useCallback(async (data: ClinicSessionFormData) => {
-    if (!selectedAppointment?.patientId) return;
+    if (!selectedAppointment?.patientId || isSessionEditingBlockedByDate) return;
 
     // Obtener sesion_id: para updates ya lo tenemos; para creates lo retorna createSession.
     let sesionId: number | undefined;
@@ -1371,6 +1391,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     await loadAppointments(true);
   }, [
     createSession,
+    isSessionEditingBlockedByDate,
     linkedSession?.archivos_adjuntos,
     linkedSession?.sesion_id,
     loadAppointments,
@@ -1445,6 +1466,13 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
       return { success: false, message: t('focus.ai.actionAppointmentContextMissing') };
     }
 
+    if (
+      (action.type === 'open_odontogram' || action.type === 'open_clinic_session')
+      && isSessionEditingBlockedByDate
+    ) {
+      return { success: false, message: t('focus.sessionOnlyOnAppointmentDay') };
+    }
+
     if (action.type === 'open_odontogram') {
       const payload = action.payload || {};
       if (isMobile) setMobileDetailsOpen(true);
@@ -1474,10 +1502,10 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     }
 
     return { success: false, message: t('focus.ai.actionUnsupported') };
-  }, [isMobile, linkedSession, selectedAppointment, t]);
+  }, [isMobile, isSessionEditingBlockedByDate, linkedSession, selectedAppointment, t]);
 
   const handleOdontogramSessionSaved = React.useCallback(async () => {
-    if (!selectedAppointment) return;
+    if (!selectedAppointment || isSessionEditingBlockedByDate) return;
     if (selectedAppointment.status !== 'completed') {
       markAppointmentLocallyUpdated(String(user?.id ?? ''), selectedAppointment.id);
       updateKnownAppointmentStatus(String(user?.id ?? ''), selectedAppointment.id, 'completed');
@@ -1487,7 +1515,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
       });
     }
     await loadAppointments(true);
-  }, [loadAppointments, selectedAppointment, user?.id]);
+  }, [isSessionEditingBlockedByDate, loadAppointments, selectedAppointment, user?.id]);
 
   const handleClinicSessionOpenChange = React.useCallback((open: boolean) => {
     setClinicSessionOpen(open);
@@ -1497,7 +1525,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   }, [clearAgentSessionDraft]);
 
   const handleAgentDirectSave = React.useCallback(async (payload: DoctorAgentActionPayload) => {
-    if (!selectedAppointment?.patientId) return;
+    if (!selectedAppointment?.patientId || isSessionEditingBlockedByDate) return;
 
     const fecha = selectedAppointment.start?.dateTime
       ? format(parseISO(selectedAppointment.start.dateTime.replace(/Z$/, '')), 'yyyy-MM-dd')
@@ -1516,7 +1544,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     };
 
     await handleSaveClinicSession(data);
-  }, [handleSaveClinicSession, linkedSession, prefillTreatments, selectedAppointment, sessionDoctorId, sessionDoctorName]);
+  }, [handleSaveClinicSession, isSessionEditingBlockedByDate, linkedSession, prefillTreatments, selectedAppointment, sessionDoctorId, sessionDoctorName]);
 
   const handleDoctorAgentAction = React.useCallback((action: DoctorAgentAction) => (
     executeDoctorAgentAction(action)
@@ -1680,7 +1708,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
               </div>
 
               {activePanel === 'sessions' && (
-                <Button size="sm" onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions || isNewSessionBlocked || isOdontogramSession} className="hidden shrink-0 sm:inline-flex" title={isOdontogramSession ? t('focus.sessionIsOdontogram') : isNewSessionBlocked ? t('focus.sessionExistsToday') : undefined}>
+                <Button size="sm" onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions || isNewSessionBlocked || isOdontogramSession || isSessionEditingBlockedByDate} className="hidden shrink-0 sm:inline-flex" title={isOdontogramSession ? t('focus.sessionIsOdontogram') : isSessionEditingBlockedByDate ? t('focus.sessionOnlyOnAppointmentDay') : isNewSessionBlocked ? t('focus.sessionExistsToday') : undefined}>
                   <ClipboardCheck className="h-4 w-4 sm:mr-2" />
                   <span className="hidden sm:inline">{nextActionLabel}</span>
                 </Button>
@@ -1698,7 +1726,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                   />
                 </div>
                 <div className="mt-2 shrink-0 border-t pt-3 sm:hidden">
-                  <Button onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions || isNewSessionBlocked || isOdontogramSession} className="w-full" title={isOdontogramSession ? t('focus.sessionIsOdontogram') : isNewSessionBlocked ? t('focus.sessionExistsToday') : undefined}>
+                  <Button onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions || isNewSessionBlocked || isOdontogramSession || isSessionEditingBlockedByDate} className="w-full" title={isOdontogramSession ? t('focus.sessionIsOdontogram') : isSessionEditingBlockedByDate ? t('focus.sessionOnlyOnAppointmentDay') : isNewSessionBlocked ? t('focus.sessionExistsToday') : undefined}>
                     <ClipboardCheck className="mr-2 h-4 w-4" />
                     {nextActionLabel}
                   </Button>
@@ -1711,13 +1739,14 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                   patientName={selectedAppointment.patientName}
                   doctorId={selectedAppointment.doctorId}
                   doctorName={selectedAppointment.doctorName}
-                  autoStartSession={odontogramAutoStart && !isOdontogramSession}
+                  autoStartSession={odontogramAutoStart && !isOdontogramSession && !isSessionEditingBlockedByDate}
                   autoStartDescription={odontogramPrefill?.description}
                   autoStartNotes={odontogramPrefill?.notes}
                   autoStartMarcaciones={odontogramPrefill?.marcaciones}
                   onSessionSaved={handleOdontogramSessionSaved}
                   autoNavigateToAppointmentSession={isOdontogramSession}
-                  blockNewSession={isOdontogramSession}
+                  blockNewSession={isOdontogramSession || isSessionEditingBlockedByDate}
+                  blockNewSessionMessage={isSessionEditingBlockedByDate ? t('focus.sessionOnlyOnAppointmentDay') : undefined}
                   appointmentId={selectedAppointment.id}
                   hideBillingWizard
                 />
@@ -1758,6 +1787,46 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                   <RefreshCw className={cn('h-4 w-4', isRefreshing && 'animate-spin')} />
                 </Button>
               </CardHeader>
+
+              <div className="shrink-0 flex items-center gap-2 border-b px-4 py-2.5">
+                <Popover open={isDateSelectorOpen} onOpenChange={setIsDateSelectorOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 flex-1 min-w-0 justify-start gap-2 text-xs font-normal capitalize"
+                    >
+                      <CalendarDays className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      <span className="truncate">{selectedDateLabel}</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <DatePicker
+                      mode="single"
+                      selected={selectedDate}
+                      defaultMonth={selectedDate}
+                      locale={dateFnsLocale}
+                      onSelect={(d) => {
+                        if (d) {
+                          setSelectedDate(startOfDay(d));
+                          setIsDateSelectorOpen(false);
+                        }
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                {!isViewingToday && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 shrink-0 text-xs font-medium"
+                    onClick={() => setSelectedDate(startOfDay(new Date()))}
+                  >
+                    {t('agenda.today')}
+                  </Button>
+                )}
+              </div>
 
               {canBrowseCalendars && accessibleCalendars.length > 0 && (
                 <div className="shrink-0 space-y-2 border-b px-4 py-2.5">
@@ -1812,6 +1881,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                   isLoading={isLoadingAppointments}
                   onSelect={(appointmentId) => selectAppointment(appointmentId, true)}
                   selectedAppointmentId={isMobile && !mobileDetailsOpen ? null : selectedAppointment?.id}
+                  isToday={isViewingToday}
                 />
               </CardContent>
             </Card>
@@ -1844,6 +1914,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
           userName={selectedAppointment.patientName || ''}
           mode="doctor"
           clinicalHistoryDefaultView={patientFichaDefaultView}
+          readOnly={isSessionEditingBlockedByDate}
         />
       )}
 

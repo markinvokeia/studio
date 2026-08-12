@@ -27,9 +27,10 @@ interface PatientInstructionsSectionProps {
     userId: string;
     userName?: string;
     createTrigger?: number;
+    readOnly?: boolean;
 }
 
-export function PatientInstructionsSection({ userId, userName, createTrigger = 0 }: PatientInstructionsSectionProps) {
+export function PatientInstructionsSection({ userId, userName, createTrigger = 0, readOnly = false }: PatientInstructionsSectionProps) {
     const t = useTranslations('PatientInstructionsSection');
     const locale = useLocale();
     const dateLocale = locale === 'es' ? es : enUS;
@@ -37,9 +38,9 @@ export function PatientInstructionsSection({ userId, userName, createTrigger = 0
     const { hasPermission } = usePermissions();
 
     const canView = hasPermission(TIMELINE_PERMISSIONS.MEDICAL_INSTRUCTIONS_VIEW);
-    const canCreate = hasPermission(TIMELINE_PERMISSIONS.MEDICAL_INSTRUCTIONS_CREATE);
-    const canUpdate = hasPermission(TIMELINE_PERMISSIONS.MEDICAL_INSTRUCTIONS_UPDATE);
-    const canDelete = hasPermission(TIMELINE_PERMISSIONS.MEDICAL_INSTRUCTIONS_DELETE);
+    const canCreate = hasPermission(TIMELINE_PERMISSIONS.MEDICAL_INSTRUCTIONS_CREATE) && !readOnly;
+    const canUpdate = hasPermission(TIMELINE_PERMISSIONS.MEDICAL_INSTRUCTIONS_UPDATE) && !readOnly;
+    const canDelete = hasPermission(TIMELINE_PERMISSIONS.MEDICAL_INSTRUCTIONS_DELETE) && !readOnly;
 
     const [instructions, setInstructions] = React.useState<PatientMedicalInstruction[]>([]);
     const [isLoading, setIsLoading] = React.useState(false);

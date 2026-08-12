@@ -24,7 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
 import type { User } from '@/lib/types';
 import {
-  AlertTriangle, Mail, Phone, Users,
+  AlertTriangle, Lock, Mail, Phone, Users,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -48,6 +48,8 @@ interface PatientDetailSheetProps {
   mode?: 'default' | 'doctor';
   clinicalHistoryDefaultView?: 'anamnesis' | 'timeline' | 'documents';
   initialTab?: PatientDetailTab | LegacyPatientDetailTab;
+  /** View-only mode: hides every add/edit/delete affordance across the clinical tabs. */
+  readOnly?: boolean;
 }
 
 function mapInitialTabToMacroTab(tab?: PatientDetailTab | LegacyPatientDetailTab): PatientSheetMacroTab {
@@ -80,6 +82,7 @@ export function PatientDetailSheet({
   mode = 'default',
   clinicalHistoryDefaultView,
   initialTab = 'clinical',
+  readOnly = false,
 }: PatientDetailSheetProps) {
   const t = useTranslations('UsersPage');
   const { user: currentUser } = useAuth();
@@ -213,7 +216,15 @@ export function PatientDetailSheet({
               </div>
             </div>
             <div className="min-w-0 flex-1">
-              <SheetTitle className="text-base font-semibold truncate leading-tight">{userName}</SheetTitle>
+              <div className="flex items-center gap-2 min-w-0">
+                <SheetTitle className="text-base font-semibold truncate leading-tight">{userName}</SheetTitle>
+                {readOnly && (
+                  <Badge variant="secondary" className="gap-1 shrink-0 text-[10px] font-normal">
+                    <Lock className="h-3 w-3" />
+                    {t('readOnlyBadge')}
+                  </Badge>
+                )}
+              </div>
               {!isDoctorMode && (
                 <div className="flex items-center gap-3 mt-0.5 flex-wrap">
                   {userEmail && (
@@ -270,11 +281,11 @@ export function PatientDetailSheet({
           onClinicalSubTabChange={setActiveClinicalSubTab}
           isDoctorMode={isDoctorMode}
           infoContent={!isDoctorMode ? <PatientInfoTab userId={userId} /> : undefined}
-          anamnesisContent={<AnamnesisViewer userId={userId} />}
-          clinicalHistoryContent={<ClinicHistoryViewer userId={userId} userName={userName} deepLinkView={clinicalHistoryDefaultView} isDoctorMode={isDoctorMode} createSessionTrigger={createSessionTrigger} createOdontogramTrigger={createOdontogramTrigger} />}
-          treatmentPlansContent={<UserTreatmentPlans userId={userId} userName={userName} />}
-          medicalInstructionsContent={<PatientInstructionsSection userId={userId} userName={userName} />}
-          documentsContent={<DocumentsViewer userId={userId} createTrigger={createDocumentTrigger} />}
+          anamnesisContent={<AnamnesisViewer userId={userId} readOnly={readOnly} />}
+          clinicalHistoryContent={<ClinicHistoryViewer userId={userId} userName={userName} deepLinkView={clinicalHistoryDefaultView} isDoctorMode={isDoctorMode} createSessionTrigger={createSessionTrigger} createOdontogramTrigger={createOdontogramTrigger} readOnly={readOnly} />}
+          treatmentPlansContent={<UserTreatmentPlans userId={userId} userName={userName} readOnly={readOnly} />}
+          medicalInstructionsContent={<PatientInstructionsSection userId={userId} userName={userName} readOnly={readOnly} />}
+          documentsContent={<DocumentsViewer userId={userId} createTrigger={createDocumentTrigger} readOnly={readOnly} />}
           ledgerContent={
             <PatientFinanceSection
               userId={userId}

@@ -1324,6 +1324,7 @@
       "refresh": "Refresh",
       "openFullAgenda": "Open full schedule",
       "emptyTitle": "No appointments for today",
+      "emptyTitleOtherDay": "No appointments for this day",
       "emptyDescription": "When new appointments are scheduled or a status changes, they will appear here.",
       "hiddenPastAppointments": "{count} earlier appointments hidden",
       "historyHidden": "History",
@@ -1332,7 +1333,8 @@
       "unknownPatient": "Unnamed patient",
       "viewPatient": "Patient",
       "viewContext": "Context",
-      "startSession": "Session"
+      "startSession": "Session",
+      "today": "Today"
     },
     "focus": {
       "title": "Patient in focus",
@@ -1359,6 +1361,7 @@
       "noClinicalSignals": "No recorded allergies or complications.",
       "moreAlertTags": "+{count} more",
       "sessionExistsToday": "A clinical session already exists for today. Only one session per patient per day is allowed.",
+      "sessionOnlyOnAppointmentDay": "You can only complete or edit the clinical session on the appointment's day.",
       "sessionIsOdontogram": "The session recorded for this appointment is an Odontogram. Edit it from the Odontogram panel.",
       "workspaceLabel": "Clinical workspace",
       "sessionStatusTitle": "Session status",
@@ -1682,6 +1685,7 @@
     "filterPlaceholder": "Filter patients by email...",
     "filterByPatient": "Filter by patient...",
     "detailsFor": "Details for {name}",
+    "readOnlyBadge": "Read-only",
     "doctorWorkspace": {
       "clinicalAlerts": "Clinical alerts",
       "noAllergies": "No recorded allergies."
@@ -4884,6 +4888,7 @@
       "nextSessionPlan": "Next Session Plan",
       "nextSessionDate": "Date",
       "addSession": "Add Session",
+      "readOnlyMessage": "This record is view-only. Editing is unavailable for appointments on a different day.",
       "noSessions": "No sessions recorded",
       "appointmentStatus": {
         "pending": "Pending",
