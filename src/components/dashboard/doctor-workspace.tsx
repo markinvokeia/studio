@@ -717,18 +717,22 @@ function DoctorAgendaPanel({
 
   if (isSingleDayRange) {
     return (
-      <DoctorAgendaTimeline
-        appointments={groups[0].appointments}
-        isLoading={false}
-        onSelect={onSelect}
-        selectedAppointmentId={selectedAppointmentId}
-        isToday={groups[0].isToday}
-      />
+      <div className="relative isolate">
+        <DoctorAgendaTimeline
+          appointments={groups[0].appointments}
+          isLoading={false}
+          onSelect={onSelect}
+          selectedAppointmentId={selectedAppointmentId}
+          isToday={groups[0].isToday}
+        />
+      </div>
     );
   }
 
   return (
-    <div className="space-y-2">
+    // `isolate` confines every z-index in the grouped agenda to this subtree, so nothing
+    // can paint over the card header, the date filter or the panel next to it.
+    <div className="relative isolate space-y-2">
       <p className="px-1 text-[11px] font-medium text-muted-foreground">
         {t('agenda.rangeSummary', { appointments: appointments.length, days: groups.length })}
       </p>
@@ -739,10 +743,12 @@ function DoctorAgendaPanel({
         return (
           <Collapsible key={group.key} open={isOpen} onOpenChange={() => toggleDay(group.key)}>
             <CollapsibleTrigger asChild>
+              {/* Deliberately not sticky: the day header scrolls with its appointments so it
+                  never floats over the timeline cards or escapes the agenda card. */}
               <button
                 type="button"
                 className={cn(
-                  'sticky top-0 z-40 flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left transition-colors',
+                  'flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left transition-colors',
                   isOpen ? 'border-border bg-muted/70' : 'border-border/50 bg-background hover:bg-muted/40',
                 )}
               >
@@ -772,7 +778,9 @@ function DoctorAgendaPanel({
             </CollapsibleTrigger>
 
             <CollapsibleContent>
-              <div className="pl-1 pr-0.5">
+              {/* `isolate` keeps the timeline's internal z-indexes (dots, current-time
+                  marker, history separator) inside this day's own stacking context. */}
+              <div className="relative isolate pl-1 pr-0.5">
                 <DoctorAgendaTimeline
                   appointments={group.appointments}
                   isLoading={false}
@@ -1216,11 +1224,8 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   const goToToday = React.useCallback(() => {
     handleDateRangeChange(getWorkspacePresetRange('today'), 'today');
   }, [handleDateRangeChange]);
-  // Calendar access: doctors with the `can_browse_calendars` flag and at least one
-  // assigned calendar can switch the agenda between their own appointments and a
-  // shared calendar's appointments. The flag ideally comes from AUTH_ME; if that
-  // endpoint doesn't provide it yet, we fall back to fetching the user's record.
-  const [canBrowseCalendars, setCanBrowseCalendars] = React.useState<boolean>(Boolean(user?.can_browse_calendars));
+  // Calendar access: doctors with at least one assigned calendar can switch the
+  // agenda between their own appointments and a shared calendar's appointments.
   const [accessibleCalendars, setAccessibleCalendars] = React.useState<{ id: string; name: string; color?: string }[]>([]);
   const [viewMode, setViewMode] = React.useState<'mine' | 'calendar'>('mine');
   const [selectedCalendarId, setSelectedCalendarId] = React.useState<string>('');
