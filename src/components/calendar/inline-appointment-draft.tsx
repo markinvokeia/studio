@@ -28,7 +28,6 @@ interface InlineAppointmentDraftProps {
   endTime: string;
   durationMin: number;
   onDurationChange: (min: number) => void;
-  timeStepMinutes?: number;
   onDateChange?: (date: Date) => void;
   /** Refine the start time (HH:mm). When provided, the start becomes editable. */
   onStartTimeChange?: (hours: number, minutes: number) => void;
@@ -272,7 +271,6 @@ export function InlineAppointmentDraft({
   endTime,
   durationMin,
   onDurationChange,
-  timeStepMinutes = 15,
   onDateChange,
   onStartTimeChange,
   color,
@@ -313,7 +311,6 @@ export function InlineAppointmentDraft({
   // input fits on a single line.
   const [editingStart, setEditingStart] = React.useState(false);
   const hasDebt = (patientDebt?.length ?? 0) > 0;
-  const normalizedStep = Math.max(5, Math.min(60, timeStepMinutes || 15));
   const startMinutes = date.getHours() * 60 + date.getMinutes();
   const startTimeValue = format(date, 'HH:mm');
   const formatDurationLabel = React.useCallback((minutes: number) => formatMinutesLabel(minutes, t('hoursShort'), t('minutesShort')), [t]);
@@ -338,7 +335,8 @@ export function InlineAppointmentDraft({
 
   const startTimeOptions = React.useMemo(() => {
     const options: { value: string; label: string }[] = [];
-    for (let minutes = 0; minutes < 24 * 60; minutes += normalizedStep) {
+    const startTimeStep = 5;
+    for (let minutes = 0; minutes < 24 * 60; minutes += startTimeStep) {
       const hours = Math.floor(minutes / 60);
       const mins = minutes % 60;
       const value = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
@@ -349,7 +347,7 @@ export function InlineAppointmentDraft({
       options.sort((a, b) => a.value.localeCompare(b.value));
     }
     return options;
-  }, [normalizedStep, startTimeValue]);
+  }, [startTimeValue]);
 
   const endTimeOptions = React.useMemo(() => {
     const options: { value: string; label: string }[] = [];

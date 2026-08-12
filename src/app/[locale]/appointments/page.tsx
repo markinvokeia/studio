@@ -1357,7 +1357,6 @@ export default function AppointmentsPage() {
                 date={inlineDraft.date}
                 endTime={format(addMinutes(inlineDraft.date, inlineDraft.durationMin || 30), 'HH:mm')}
                 durationMin={inlineDraft.durationMin}
-                timeStepMinutes={slotDuration}
                 onDurationChange={(min) => setInlineDraft((d) => (d ? { ...d, durationMin: min } : d))}
                 onDateChange={(nextDate) => setInlineDraft((d) => (d ? { ...d, date: nextDate } : d))}
                 onStartTimeChange={(h, m) => setInlineDraft((d) => (d ? { ...d, date: set(d.date, { hours: h, minutes: m, seconds: 0, milliseconds: 0 }) } : d))}
