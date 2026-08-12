@@ -2894,6 +2894,7 @@
       "subtotal": "Subtotal",
       "cashOnHand": "Efectivo en Mano",
       "totalOutcome": "Egresos Totales",
+      "totalPos": "POS",
       "transactions": "Transacciones",
       "printOpening": "Imprimir Apertura"
     },

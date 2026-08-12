@@ -483,6 +483,19 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
         return outcome;
     }, [movements]);
 
+    const totalPos = useMemo(() => {
+        const pos: { UYU: number; USD: number } = { UYU: 0, USD: 0 };
+        movements
+            .filter(m => m.tipo === 'INGRESO' && ['CREDIT_CARD', 'DEBIT_CARD'].includes(normalizePaymentMethodCode(m.metodoPago)))
+            .forEach(mov => {
+                const currency = mov.currency as ('UYU' | 'USD');
+                if (pos[currency] !== undefined) {
+                    pos[currency] += mov.monto;
+                }
+            });
+        return pos;
+    }, [movements]);
+
     const allMovements = React.useMemo(() => movements, [movements]);
 
     const handlePrintOpening = async () => {
@@ -576,12 +589,13 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                 </div>
             </CardHeader>
             <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                     {[
                         { title: t('openSession.openingAmount'), accentColor: '#6366f1', extra: <p className="text-[10px] text-muted-foreground mt-1">{formatDateTime(session.fechaApertura)}</p>, amounts: [{ v: openingDetails.totalUYU, c: 'UYU' as const }, { v: openingDetails.totalUSD, c: 'USD' as const }] },
                         { title: t('activeSession.cashOnHand'), accentColor: '#3B82F6', amounts: [{ v: cashOnHand.UYU, c: 'UYU' as const }, { v: cashOnHand.USD, c: 'USD' as const }] },
                         { title: t('activeSession.totalIncome'), accentColor: '#10B981', amounts: [{ v: totalIncome.UYU, c: 'UYU' as const }, { v: totalIncome.USD, c: 'USD' as const }] },
                         { title: t('activeSession.totalOutcome'), accentColor: '#F43F5E', amounts: [{ v: totalOutcome.UYU, c: 'UYU' as const }, { v: totalOutcome.USD, c: 'USD' as const }] },
+                        { title: t('activeSession.totalPos'), accentColor: '#8B5CF6', amounts: [{ v: totalPos.UYU, c: 'UYU' as const }, { v: totalPos.USD, c: 'USD' as const }] },
                     ].map(card => (
                         <div key={card.title} className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
                             <div className="h-[3px] w-full" style={{ background: card.accentColor }} />
