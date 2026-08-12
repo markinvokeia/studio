@@ -456,7 +456,7 @@ export default function UsersPage() {
   const { toast } = useToast();
   const { open: openBillingWizard } = useBillingWizard();
   const { open: openAccountStatement } = usePatientLedgerSheet();
-  const { printFinancialSummary } = usePrintDocument();
+  const { printFinancialSummary, printLedger } = usePrintDocument();
   const searchParams = useSearchParams();
   const initialQ = searchParams.get('q') ?? '';
   const [users, setUsers] = React.useState<any[]>([]);
@@ -918,8 +918,27 @@ export default function UsersPage() {
     setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, notes } : u));
   };
 
-  const handlePrintFinancialSummary = () => {
+  const handlePrintFinancialSummary = async () => {
     if (!selectedUser) return;
+    // "Personalizado" (unified) prints the ledger exactly as shown, same as the appointments
+    // page and the account-statement sheet; only "Normal" needs the date-range dialog below.
+    if (financeView === 'unified') {
+      setIsPrintingFinancialSummary(true);
+      try {
+        await printLedger(selectedUser.id, selectedUser.name);
+      } catch (error: any) {
+        toast({
+          variant: 'destructive',
+          title: t('UsersPage.financialSummaryDialog.errorTitle'),
+          description: error?.message === 'no_data'
+            ? t('UsersPage.financialSummaryDialog.errorNoData')
+            : t('UsersPage.financialSummaryDialog.errorGeneric'),
+        });
+      } finally {
+        setIsPrintingFinancialSummary(false);
+      }
+      return;
+    }
     setFinancialSummaryDateRange({ from: '', to: '' });
     setIsFinancialSummaryDialogOpen(true);
   };
