@@ -1334,7 +1334,26 @@
       "viewPatient": "Paciente",
       "viewContext": "Contexto",
       "startSession": "Sesión",
-      "today": "Hoy"
+      "today": "Hoy",
+      "titleRange": "Agenda del período",
+      "emptyTitleRange": "No hay citas en este período",
+      "rangeSummary": "{appointments, plural, =1 {1 cita} other {# citas}} · {days, plural, =1 {1 día} other {# días}}",
+      "dayAppointmentCount": "{count, plural, =1 {1 cita} other {# citas}}",
+      "readOnlyDay": "Solo lectura (no es hoy)",
+      "dateFilter": {
+        "today": "Hoy",
+        "tomorrow": "Mañana",
+        "week": "Esta semana",
+        "next7": "Próximos 7 días",
+        "month": "Este mes",
+        "nextMonth": "Mes próximo",
+        "prevMonth": "Mes pasado",
+        "modeDay": "Un día",
+        "modeRange": "Período",
+        "hintDay": "Elige un día para ver su agenda.",
+        "hintPickStart": "Marca el día de inicio del período.",
+        "hintPickEnd": "Inicio: {date}. Ahora marca el día de fin."
+      }
     },
     "focus": {
       "title": "Paciente en foco",
@@ -1447,7 +1466,9 @@
         "sessionConfirmCancel": "Cancelar",
         "sessionConfirmSaving": "Guardando...",
         "sessionConfirmSavedOk": "Sesión guardada correctamente."
-      }
+      },
+      "readOnly": "Solo lectura",
+      "readOnlyOnDate": "Solo lectura · {date}"
     },
     "calendarSwitch": {
       "myAppointments": "Mis citas",

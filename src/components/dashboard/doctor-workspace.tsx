@@ -4,6 +4,12 @@ import * as React from 'react';
 
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
 import { DoctorAgentChat } from '@/components/dashboard/doctor-agent-chat';
+import {
+  WorkspaceDateRange,
+  WorkspaceDatePreset,
+  WorkspaceDateRangeFilter,
+  getWorkspacePresetRange,
+} from '@/components/dashboard/workspace-date-range-filter';
 import { PatientDetailSheet } from '@/components/appointments/PatientDetailSheet';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import { CONDITION_MAP } from '@/components/users/dental-record/condition-toolbar';
@@ -11,7 +17,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { DatePicker } from '@/components/ui/date-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -28,7 +33,8 @@ import { cn, formatDate } from '@/lib/utils';
 import { api } from '@/services/api';
 import { updateAppointmentStatusRequest } from '@/services/appointments';
 import { getQuoteItems } from '@/services/quotes';
-import { format, isSameDay, parseISO, startOfDay } from 'date-fns';
+import { format, isSameDay, parseISO } from 'date-fns';
+import type { Locale } from 'date-fns';
 import { enUS, es } from 'date-fns/locale';
 import {
   AlertTriangle,
@@ -41,6 +47,7 @@ import {
   ClipboardCheck,
   FileText,
   Heart,
+  Lock,
   RefreshCw,
   Sparkles,
   Stethoscope,
@@ -590,33 +597,196 @@ function DoctorAgendaTimeline({
   );
 }
 
-function getKnownAppointmentsStorageKey(doctorId: string, dateKey: string): string {
-  return `${KNOWN_APPOINTMENTS_STORAGE_PREFIX}:${doctorId}:${dateKey}`;
+type AgendaDayGroup = {
+  appointments: Appointment[];
+  date: Date;
+  isToday: boolean;
+  key: string;
+};
+
+interface DoctorAgendaPanelProps {
+  appointments: Appointment[];
+  dateLocale: Locale;
+  isLoading: boolean;
+  /** True when the active filter resolves to a single calendar day. */
+  isSingleDayRange: boolean;
+  /** True when that single day is today — drives the "no appointments today" copy. */
+  isRangeToday: boolean;
+  onSelect: (appointmentId: string) => void;
+  selectedAppointmentId?: string | null;
 }
 
-function readKnownAppointmentIds(storageKey: string): string[] {
-  if (typeof window === 'undefined') return [];
+/**
+ * Renders the agenda for the selected period. A single-day range keeps the original
+ * timeline untouched; a multi-day range groups appointments into collapsible day
+ * sections so the doctor can scan a week/month and drill into one day at a time.
+ */
+function DoctorAgendaPanel({
+  appointments,
+  dateLocale,
+  isLoading,
+  isSingleDayRange,
+  isRangeToday,
+  onSelect,
+  selectedAppointmentId,
+}: DoctorAgendaPanelProps) {
+  const t = useTranslations('DoctorWorkspace');
+  const todayKey = formatDate(new Date());
 
-  try {
-    const rawValue = window.localStorage.getItem(storageKey);
-    if (!rawValue) return [];
+  const groups = React.useMemo<AgendaDayGroup[]>(() => {
+    const byDay = new Map<string, Appointment[]>();
 
-    const parsedValue = JSON.parse(rawValue);
-    return Array.isArray(parsedValue) ? parsedValue.map((value) => String(value)) : [];
-  } catch (error) {
-    console.error('Failed to read known doctor appointments:', error);
-    return [];
+    appointments.forEach((appointment) => {
+      const key = formatDate(appointment.date);
+      const existing = byDay.get(key);
+      if (existing) existing.push(appointment);
+      else byDay.set(key, [appointment]);
+    });
+
+    return Array.from(byDay.entries())
+      .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+      .map(([key, dayAppointments]) => {
+        // `key` is a plain yyyy-MM-dd, so appending a zeroed time keeps parseISO in local time.
+        const parsedDate = parseISO(`${key}T00:00:00`);
+
+        return {
+          appointments: [...dayAppointments].sort((left, right) => left.time.localeCompare(right.time)),
+          date: Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate,
+          isToday: key === todayKey,
+          key,
+        };
+      });
+  }, [appointments, todayKey]);
+
+  // Joined keys instead of the group objects themselves: background polling rebuilds the
+  // array every minute, and depending on it would collapse the doctor's open days.
+  const groupKeys = groups.map((group) => group.key).join('|');
+  const [openDays, setOpenDays] = React.useState<string[]>([]);
+
+  React.useEffect(() => {
+    const keys = groupKeys ? groupKeys.split('|') : [];
+    if (keys.length === 0) {
+      setOpenDays([]);
+      return;
+    }
+    setOpenDays(keys.includes(todayKey) ? [todayKey] : [keys[0]]);
+  }, [groupKeys, todayKey]);
+
+  // Keep the day holding the active appointment expanded (deep links, auto-selection).
+  React.useEffect(() => {
+    if (!selectedAppointmentId) return;
+    const owningGroup = groups.find((group) =>
+      group.appointments.some((appointment) => appointment.id === selectedAppointmentId),
+    );
+    if (!owningGroup) return;
+    setOpenDays((current) => (current.includes(owningGroup.key) ? current : [...current, owningGroup.key]));
+  }, [groups, selectedAppointmentId]);
+
+  const toggleDay = React.useCallback((dayKey: string) => {
+    setOpenDays((current) => (
+      current.includes(dayKey)
+        ? current.filter((key) => key !== dayKey)
+        : [...current, dayKey]
+    ));
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-24 w-full rounded-[1.75rem]" />
+        <Skeleton className="h-24 w-full rounded-[1.75rem]" />
+        <Skeleton className="h-24 w-full rounded-[1.75rem]" />
+      </div>
+    );
   }
-}
 
-function writeKnownAppointmentIds(storageKey: string, appointmentIds: string[]) {
-  if (typeof window === 'undefined') return;
+  if (groups.length === 0) {
+    const emptyTitleKey = !isSingleDayRange
+      ? 'agenda.emptyTitleRange'
+      : isRangeToday
+        ? 'agenda.emptyTitle'
+        : 'agenda.emptyTitleOtherDay';
 
-  try {
-    window.localStorage.setItem(storageKey, JSON.stringify(appointmentIds));
-  } catch (error) {
-    console.error('Failed to store known doctor appointments:', error);
+    return (
+      <div className="rounded-[1.75rem] border border-dashed border-border bg-muted/20 p-8 text-center">
+        <p className="text-sm font-medium text-foreground">{t(emptyTitleKey)}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{t('agenda.emptyDescription')}</p>
+      </div>
+    );
   }
+
+  if (isSingleDayRange) {
+    return (
+      <DoctorAgendaTimeline
+        appointments={groups[0].appointments}
+        isLoading={false}
+        onSelect={onSelect}
+        selectedAppointmentId={selectedAppointmentId}
+        isToday={groups[0].isToday}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <p className="px-1 text-[11px] font-medium text-muted-foreground">
+        {t('agenda.rangeSummary', { appointments: appointments.length, days: groups.length })}
+      </p>
+
+      {groups.map((group) => {
+        const isOpen = openDays.includes(group.key);
+
+        return (
+          <Collapsible key={group.key} open={isOpen} onOpenChange={() => toggleDay(group.key)}>
+            <CollapsibleTrigger asChild>
+              <button
+                type="button"
+                className={cn(
+                  'sticky top-0 z-40 flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left transition-colors',
+                  isOpen ? 'border-border bg-muted/70' : 'border-border/50 bg-background hover:bg-muted/40',
+                )}
+              >
+                <ChevronDown
+                  className={cn(
+                    'h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200',
+                    !isOpen && '-rotate-90',
+                  )}
+                />
+                <span className="truncate text-xs font-semibold capitalize text-foreground">
+                  {format(group.date, 'EEEE d MMM', { locale: dateLocale })}
+                </span>
+                {group.isToday ? (
+                  <Badge variant="secondary" className="h-4 shrink-0 px-1.5 text-[10px] font-medium">
+                    {t('agenda.today')}
+                  </Badge>
+                ) : (
+                  <Lock
+                    className="h-3 w-3 shrink-0 text-muted-foreground/60"
+                    aria-label={t('agenda.readOnlyDay')}
+                  />
+                )}
+                <span className="ml-auto shrink-0 text-[11px] font-medium tabular-nums text-muted-foreground">
+                  {t('agenda.dayAppointmentCount', { count: group.appointments.length })}
+                </span>
+              </button>
+            </CollapsibleTrigger>
+
+            <CollapsibleContent>
+              <div className="pl-1 pr-0.5">
+                <DoctorAgendaTimeline
+                  appointments={group.appointments}
+                  isLoading={false}
+                  onSelect={onSelect}
+                  selectedAppointmentId={selectedAppointmentId}
+                  isToday={group.isToday}
+                />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        );
+      })}
+    </div>
+  );
 }
 
 function getAppointmentStatusesStorageKey(doctorId: string, dateKey: string): string {
@@ -692,14 +862,14 @@ type WorkspaceAppointmentSource =
   | { mode: 'doctor'; doctorId: string }
   | { mode: 'calendar'; calendarId: string };
 
-async function getAppointmentsForDate(source: WorkspaceAppointmentSource, targetDate: Date): Promise<Appointment[]> {
-  const dayStart = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 0, 0, 0);
-  const dayEnd = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59);
+async function getAppointmentsForRange(source: WorkspaceAppointmentSource, from: Date, to: Date): Promise<Appointment[]> {
+  const rangeStart = new Date(from.getFullYear(), from.getMonth(), from.getDate(), 0, 0, 0);
+  const rangeEnd = new Date(to.getFullYear(), to.getMonth(), to.getDate(), 23, 59, 59);
   const formatDateForAPI = (date: Date) => format(date, 'yyyy-MM-dd HH:mm:ss');
 
   const query: Record<string, string> = {
-    startingDateAndTime: formatDateForAPI(dayStart),
-    endingDateAndTime: formatDateForAPI(dayEnd),
+    startingDateAndTime: formatDateForAPI(rangeStart),
+    endingDateAndTime: formatDateForAPI(rangeEnd),
   };
   if (source.mode === 'doctor') query.doctor_id = source.doctorId;
   else query.calendar_source_ids = source.calendarId;
@@ -767,7 +937,11 @@ async function getAppointmentsForDate(source: WorkspaceAppointmentSource, target
       } as Appointment;
     })
     .filter((appointment): appointment is Appointment => appointment !== null)
-    .sort((left, right) => left.time.localeCompare(right.time));
+    .sort((left, right) => (
+      left.date === right.date
+        ? left.time.localeCompare(right.time)
+        : left.date.localeCompare(right.date)
+    ));
 }
 
 function DoctorPatientTimeline({ linkedAppointmentId, sessions, isLoading }: DoctorPatientTimelineProps) {
@@ -1025,19 +1199,28 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
 
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
   const [selectedAppointmentId, setSelectedAppointmentId] = React.useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = React.useState<Date>(() => startOfDay(new Date()));
-  const [isDateSelectorOpen, setIsDateSelectorOpen] = React.useState(false);
-  const isViewingToday = React.useMemo(() => isSameDay(selectedDate, new Date()), [selectedDate]);
-  // Clinical sessions can only be created/edited on the appointment's own day: past days
-  // are already closed out, and future appointments haven't happened yet.
-  const isSessionEditingBlockedByDate = !isViewingToday;
-  const dateFnsLocale = locale === 'es' ? es : enUS;
-  const selectedDateLabel = React.useMemo(
-    () => format(selectedDate, 'EEEE d MMMM', { locale: dateFnsLocale }),
-    [selectedDate, dateFnsLocale],
+  const [dateRange, setDateRange] = React.useState<WorkspaceDateRange>(() => getWorkspacePresetRange('today'));
+  const [datePreset, setDatePreset] = React.useState<WorkspaceDatePreset>('today');
+  const isSingleDayRange = React.useMemo(() => isSameDay(dateRange.from, dateRange.to), [dateRange]);
+  const isViewingToday = React.useMemo(
+    () => isSingleDayRange && isSameDay(dateRange.from, new Date()),
+    [dateRange, isSingleDayRange],
   );
-  // Calendar access: doctors with at least one assigned calendar can switch the
-  // agenda between their own appointments and a shared calendar's appointments.
+  const dateFnsLocale = locale === 'es' ? es : enUS;
+
+  const handleDateRangeChange = React.useCallback((range: WorkspaceDateRange, preset: WorkspaceDatePreset) => {
+    setDateRange(range);
+    setDatePreset(preset);
+  }, []);
+
+  const goToToday = React.useCallback(() => {
+    handleDateRangeChange(getWorkspacePresetRange('today'), 'today');
+  }, [handleDateRangeChange]);
+  // Calendar access: doctors with the `can_browse_calendars` flag and at least one
+  // assigned calendar can switch the agenda between their own appointments and a
+  // shared calendar's appointments. The flag ideally comes from AUTH_ME; if that
+  // endpoint doesn't provide it yet, we fall back to fetching the user's record.
+  const [canBrowseCalendars, setCanBrowseCalendars] = React.useState<boolean>(Boolean(user?.can_browse_calendars));
   const [accessibleCalendars, setAccessibleCalendars] = React.useState<{ id: string; name: string; color?: string }[]>([]);
   const [viewMode, setViewMode] = React.useState<'mine' | 'calendar'>('mine');
   const [selectedCalendarId, setSelectedCalendarId] = React.useState<string>('');
@@ -1074,6 +1257,18 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     () => appointments.find((appointment) => appointment.id === selectedAppointmentId) ?? appointments[0] ?? null,
     [appointments, selectedAppointmentId],
   );
+
+  // Clinical sessions can only be created/edited on the appointment's own day: past days
+  // are already closed out, and future appointments haven't happened yet. With a date range
+  // the agenda can mix days, so this is evaluated per selected appointment, not per filter.
+  const selectedAppointmentDate = selectedAppointment?.date
+    ? parseISO(`${formatDate(selectedAppointment.date)}T00:00:00`)
+    : null;
+  const hasValidSelectedDate = Boolean(selectedAppointmentDate && !Number.isNaN(selectedAppointmentDate.getTime()));
+  const isSessionEditingBlockedByDate = !(hasValidSelectedDate && isSameDay(selectedAppointmentDate!, new Date()));
+  const selectedAppointmentDateLabel = hasValidSelectedDate
+    ? format(selectedAppointmentDate!, 'EEEE d MMM', { locale: dateFnsLocale })
+    : '';
 
   React.useEffect(() => {
     if (!isMobile) {
@@ -1114,23 +1309,17 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
       const source: WorkspaceAppointmentSource = useCalendar
         ? { mode: 'calendar', calendarId: selectedCalendarId }
         : { mode: 'doctor', doctorId: String(user.id) };
-      const data = await getAppointmentsForDate(source, selectedDate);
-      const dateKey = formatDate(selectedDate);
-      const storageKey = getKnownAppointmentsStorageKey(String(user.id), dateKey);
-      const previousAppointmentIds = readKnownAppointmentIds(storageKey);
-      const previousAppointmentIdsSet = new Set(previousAppointmentIds);
-      const newAppointments = previousAppointmentIds.length > 0
-        ? data.filter((appointment) => !previousAppointmentIdsSet.has(appointment.id))
-        : [];
-
-      writeKnownAppointmentIds(storageKey, data.map((appointment) => appointment.id));
+      const data = await getAppointmentsForRange(source, dateRange.from, dateRange.to);
+      const todayKey = formatDate(new Date());
 
       React.startTransition(() => {
         setAppointments(data);
         setSelectedAppointmentId((current) => {
           if (current && data.some((appointment) => appointment.id === current)) return current;
           if (initialAppointmentId && data.some((a) => a.id === initialAppointmentId)) return initialAppointmentId;
-          return data[0]?.id ?? null;
+          // On a multi-day range, start on today's agenda when the period includes it.
+          const todayAppointment = data.find((appointment) => formatDate(appointment.date) === todayKey);
+          return todayAppointment?.id ?? data[0]?.id ?? null;
         });
         setLastUpdatedAt(new Date());
       });
@@ -1141,7 +1330,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
       setIsRefreshing(false);
       setIsLoadingAppointments(false);
     }
-  }, [user?.id, viewMode, selectedCalendarId, selectedDate]);
+  }, [user?.id, viewMode, selectedCalendarId, dateRange]);
 
   // Load the calendars this doctor has been granted access to. If none, the agenda
   // source switch is hidden and the doctor only sees their own appointments.
@@ -1628,6 +1817,14 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                       ].filter(Boolean).join(' · ')
                     : t('focus.noClinicalSignals')}
                 </p>
+                {isSessionEditingBlockedByDate && (
+                  <Badge variant="outline" className="mt-1.5 gap-1 text-[10px] font-medium capitalize">
+                    <Lock className="h-3 w-3" />
+                    {selectedAppointmentDateLabel
+                      ? t('focus.readOnlyOnDate', { date: selectedAppointmentDateLabel })
+                      : t('focus.readOnly')}
+                  </Badge>
+                )}
               </div>
             </div>
 
@@ -1744,7 +1941,9 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                     <CalendarDays className="h-4 w-4" />
                   </div>
                   <div>
-                    <CardTitle className="text-sm font-semibold">{t('agenda.title')}</CardTitle>
+                    <CardTitle className="text-sm font-semibold">
+                      {t(isSingleDayRange ? 'agenda.title' : 'agenda.titleRange')}
+                    </CardTitle>
                     <CardDescription className="text-xs">{t('agenda.description')}</CardDescription>
                   </div>
                 </div>
@@ -1754,39 +1953,19 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
               </CardHeader>
 
               <div className="shrink-0 flex items-center gap-2 border-b px-4 py-2.5">
-                <Popover open={isDateSelectorOpen} onOpenChange={setIsDateSelectorOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 flex-1 min-w-0 justify-start gap-2 text-xs font-normal capitalize"
-                    >
-                      <CalendarDays className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                      <span className="truncate">{selectedDateLabel}</span>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <DatePicker
-                      mode="single"
-                      selected={selectedDate}
-                      defaultMonth={selectedDate}
-                      locale={dateFnsLocale}
-                      onSelect={(d) => {
-                        if (d) {
-                          setSelectedDate(startOfDay(d));
-                          setIsDateSelectorOpen(false);
-                        }
-                      }}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <WorkspaceDateRangeFilter
+                  value={dateRange}
+                  preset={datePreset}
+                  onChange={handleDateRangeChange}
+                  dateLocale={dateFnsLocale}
+                  className="flex-1"
+                />
                 {!isViewingToday && (
                   <Button
                     variant="outline"
                     size="sm"
                     className="h-8 shrink-0 text-xs font-medium"
-                    onClick={() => setSelectedDate(startOfDay(new Date()))}
+                    onClick={goToToday}
                   >
                     {t('agenda.today')}
                   </Button>
@@ -1841,12 +2020,14 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
               )}
 
               <CardContent className="flex-1 min-h-0 overflow-y-auto p-4">
-                <DoctorAgendaTimeline
+                <DoctorAgendaPanel
                   appointments={appointments}
+                  dateLocale={dateFnsLocale}
                   isLoading={isLoadingAppointments}
+                  isSingleDayRange={isSingleDayRange}
+                  isRangeToday={isViewingToday}
                   onSelect={(appointmentId) => selectAppointment(appointmentId, true)}
                   selectedAppointmentId={isMobile && !mobileDetailsOpen ? null : selectedAppointment?.id}
-                  isToday={isViewingToday}
                 />
               </CardContent>
             </Card>

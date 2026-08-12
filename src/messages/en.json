@@ -1334,7 +1334,26 @@
       "viewPatient": "Patient",
       "viewContext": "Context",
       "startSession": "Session",
-      "today": "Today"
+      "today": "Today",
+      "titleRange": "Period agenda",
+      "emptyTitleRange": "No appointments in this period",
+      "rangeSummary": "{appointments, plural, =1 {1 appointment} other {# appointments}} · {days, plural, =1 {1 day} other {# days}}",
+      "dayAppointmentCount": "{count, plural, =1 {1 appointment} other {# appointments}}",
+      "readOnlyDay": "Read-only (not today)",
+      "dateFilter": {
+        "today": "Today",
+        "tomorrow": "Tomorrow",
+        "week": "This week",
+        "next7": "Next 7 days",
+        "month": "This month",
+        "nextMonth": "Next month",
+        "prevMonth": "Last month",
+        "modeDay": "Single day",
+        "modeRange": "Period",
+        "hintDay": "Pick a day to see its agenda.",
+        "hintPickStart": "Mark the first day of the period.",
+        "hintPickEnd": "Start: {date}. Now mark the last day."
+      }
     },
     "focus": {
       "title": "Patient in focus",
@@ -1447,7 +1466,9 @@
         "sessionConfirmCancel": "Cancel",
         "sessionConfirmSaving": "Saving...",
         "sessionConfirmSavedOk": "Session saved successfully."
-      }
+      },
+      "readOnly": "Read-only",
+      "readOnlyOnDate": "Read-only · {date}"
     },
     "calendarSwitch": {
       "myAppointments": "My appointments",
