@@ -85,7 +85,6 @@ const LOCALLY_UPDATED_TTL_MS = 120_000;
 const TIMELINE_MIN_BLOCK_HEIGHT = 74;
 const TIMELINE_BASE_GAP = 14;
 const TIMELINE_MAX_GAP = 34;
-const TIMELINE_HIDDEN_MARKER_LANE_HEIGHT = 28;
 
 function getAppointmentStatusVariant(status: AppointmentStatus) {
   return (STATUS_BADGE_VARIANT[status] ?? 'default') as
@@ -167,8 +166,8 @@ interface DoctorAgendaTimelineProps {
   onSelect: (appointmentId: string) => void;
   selectedAppointmentId?: string | null;
   /** Whether the agenda currently shown corresponds to today's date. When false, the
-   *  "current time" marker and past-appointment dimming/collapsing are disabled, since
-   *  those only make sense relative to the real-time clock on today's schedule. */
+   *  "current time" marker and the in-progress highlight are disabled, since those only
+   *  make sense relative to the real-time clock on today's schedule. */
   isToday: boolean;
 }
 
@@ -181,7 +180,6 @@ function DoctorAgendaTimeline({
 }: DoctorAgendaTimelineProps) {
   const t = useTranslations('DoctorWorkspace');
   const tStatus = useTranslations('AppointmentStatus');
-  const [showPastAppointments, setShowPastAppointments] = React.useState(false);
 
   const timeline = React.useMemo(() => {
     const sortedAppointments = [...appointments].sort((left, right) => left.time.localeCompare(right.time));
@@ -283,137 +281,6 @@ function DoctorAgendaTimeline({
     };
   }, [appointments, isToday]);
 
-  const focusAppointmentId = React.useMemo(() => {
-    if (timeline.layouts.length === 0) return null;
-
-    const inProgress = timeline.layouts.find((layout) =>
-      timeline.currentMinutes >= layout.startMinutes && timeline.currentMinutes <= layout.endMinutes,
-    );
-    if (inProgress) return inProgress.appointment.id;
-
-    const upcoming = timeline.layouts.find((layout) => layout.startMinutes >= timeline.currentMinutes);
-    if (upcoming) return upcoming.appointment.id;
-
-    return timeline.layouts[timeline.layouts.length - 1]?.appointment.id ?? null;
-  }, [timeline.currentMinutes, timeline.layouts]);
-
-  const visibleTimeline = React.useMemo(() => {
-    const focusIndex = focusAppointmentId
-      ? timeline.layouts.findIndex((layout) => layout.appointment.id === focusAppointmentId)
-      : -1;
-    const pastCount = Math.max(focusIndex, 0);
-    const firstVisibleLayout = focusIndex >= 0 ? timeline.layouts[focusIndex] : null;
-    const hiddenRangeStart = timeline.layouts[0]?.startMinutes ?? 0;
-    const hiddenRangeEnd = firstVisibleLayout?.startMinutes ?? hiddenRangeStart;
-    const hiddenRangeSpan = Math.max(hiddenRangeEnd - hiddenRangeStart, 1);
-    const hiddenCurrentTimeRatio = !showPastAppointments
-      && pastCount > 0
-      && timeline.currentMinutes >= hiddenRangeStart
-      && timeline.currentMinutes < hiddenRangeEnd
-      ? (timeline.currentMinutes - hiddenRangeStart) / hiddenRangeSpan
-      : null;
-
-    if (timeline.layouts.length === 0) {
-      return {
-        currentTimeTop: timeline.currentTimeTop,
-        hiddenCount: pastCount,
-        hiddenCurrentTimeRatio,
-        isCurrentTimeHiddenBeforeVisible: false,
-        laneOffset: 0,
-        layouts: timeline.layouts,
-        showCurrentTime: timeline.showCurrentTime,
-        timelineHeight: timeline.timelineHeight,
-      };
-    }
-
-    if (showPastAppointments) {
-      return {
-        currentTimeTop: timeline.currentTimeTop,
-        hiddenCount: pastCount,
-        hiddenCurrentTimeRatio,
-        isCurrentTimeHiddenBeforeVisible: false,
-        laneOffset: 0,
-        layouts: timeline.layouts,
-        showCurrentTime: timeline.showCurrentTime,
-        timelineHeight: timeline.timelineHeight,
-      };
-    }
-
-    if (focusIndex <= 0) {
-      return {
-        currentTimeTop: timeline.currentTimeTop,
-        hiddenCount: pastCount,
-        hiddenCurrentTimeRatio,
-        isCurrentTimeHiddenBeforeVisible: false,
-        laneOffset: 0,
-        layouts: timeline.layouts,
-        showCurrentTime: timeline.showCurrentTime,
-        timelineHeight: timeline.timelineHeight,
-      };
-    }
-
-    const focusTop = timeline.layouts[focusIndex].top;
-    const visibleLayouts = timeline.layouts.slice(focusIndex).map((layout) => ({
-      ...layout,
-      top: layout.top - focusTop,
-    }));
-    const lastLayout = visibleLayouts[visibleLayouts.length - 1];
-    const laneOffset = hiddenCurrentTimeRatio != null ? TIMELINE_HIDDEN_MARKER_LANE_HEIGHT : 0;
-    const timelineHeight = (lastLayout?.top ?? 0) + (lastLayout?.height ?? 0) + laneOffset;
-    const isCurrentTimeHiddenBeforeVisible = hiddenCurrentTimeRatio != null;
-
-    return {
-      currentTimeTop: isCurrentTimeHiddenBeforeVisible
-        ? 0
-        : Math.max(timeline.currentTimeTop - focusTop, 0),
-      hiddenCount: pastCount,
-      hiddenCurrentTimeRatio,
-      isCurrentTimeHiddenBeforeVisible,
-      laneOffset,
-      layouts: visibleLayouts,
-      showCurrentTime: timeline.showCurrentTime && !isCurrentTimeHiddenBeforeVisible,
-      timelineHeight,
-    };
-  }, [
-    focusAppointmentId,
-    showPastAppointments,
-    timeline.currentMinutes,
-    timeline.currentTimeTop,
-    timeline.layouts,
-    timeline.showCurrentTime,
-    timeline.timelineHeight,
-  ]);
-
-  React.useEffect(() => {
-    setShowPastAppointments(false);
-  }, [appointments]);
-
-  React.useEffect(() => {
-    if (!selectedAppointmentId || showPastAppointments) return;
-    const focusIndex = timeline.layouts.findIndex((l) => l.appointment.id === focusAppointmentId);
-    if (focusIndex <= 0) return;
-    const isHidden = timeline.layouts.slice(0, focusIndex).some(
-      (l) => l.appointment.id === selectedAppointmentId,
-    );
-    if (isHidden) setShowPastAppointments(true);
-  }, [selectedAppointmentId, focusAppointmentId, timeline.layouts, showPastAppointments]);
-
-  const pastSeparatorTop = (() => {
-    if (!showPastAppointments || visibleTimeline.hiddenCount === 0) return null;
-    const focusIdx = visibleTimeline.layouts.findIndex(
-      (l) => l.appointment.id === focusAppointmentId,
-    );
-    if (focusIdx <= 0) return null;
-    const lastPast = visibleTimeline.layouts[focusIdx - 1];
-    const firstCurrent = visibleTimeline.layouts[focusIdx];
-    return (
-      lastPast.top +
-      lastPast.height +
-      (firstCurrent.top - lastPast.top - lastPast.height) / 2 +
-      visibleTimeline.laneOffset
-    );
-  })();
-
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -436,60 +303,11 @@ function DoctorAgendaTimeline({
   return (
     <div>
       <div className="py-2">
-        {visibleTimeline.hiddenCount > 0 ? (
-          <button
-            type="button"
-            onClick={() => setShowPastAppointments((current) => !current)}
-            className="mb-4 flex w-full items-center gap-3 transition-opacity hover:opacity-80"
-          >
-            <div className="h-px flex-1 bg-border" />
-            <div className="flex items-center gap-1.5 rounded-full border border-border/70 bg-muted/50 px-3 py-1">
-              <span className="text-[11px] font-medium text-muted-foreground">
-                {showPastAppointments
-                  ? t('agenda.hideHistory')
-                  : t('agenda.hiddenPastAppointments', { count: visibleTimeline.hiddenCount })}
-              </span>
-              <ChevronDown
-                className={cn(
-                  'h-3 w-3 text-muted-foreground transition-transform duration-200',
-                  showPastAppointments && 'rotate-180',
-                )}
-              />
-            </div>
-            <div className="h-px flex-1 bg-border" />
-          </button>
-        ) : null}
-
-        <div className="relative" style={{ height: visibleTimeline.timelineHeight }}>
-          {pastSeparatorTop !== null && (
-            <div
-              className="absolute inset-x-0 z-30 flex items-center gap-2"
-              style={{ top: pastSeparatorTop }}
-            >
-              <div className="ml-9 flex-1 border-t border-dashed border-border/60" />
-              <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                {t('agenda.historyHidden')}
-              </span>
-              <div className="w-2 border-t border-dashed border-border/60" />
-            </div>
-          )}
-
+        <div className="relative" style={{ height: timeline.timelineHeight }}>
           <div className="absolute bottom-0 left-4 top-0 w-px bg-gradient-to-b from-border/20 via-border/70 to-border/20" />
 
-          {visibleTimeline.hiddenCurrentTimeRatio != null ? (
-            <div className="absolute inset-x-0 z-20" style={{ top: TIMELINE_HIDDEN_MARKER_LANE_HEIGHT / 2 }}>
-              <div className="relative h-0">
-                <div className="absolute left-4 right-0 top-0 h-px bg-rose-300/90" />
-                <div className="absolute left-4 top-0 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-rose-500 shadow-[0_0_0_4px_rgba(244,63,94,0.12)]" />
-                <span className="absolute top-0 -translate-y-full rounded bg-background/90 px-1 text-[9px] font-bold tabular-nums text-rose-500 leading-none" style={{ left: 'calc(1rem + 0.75rem)' }}>
-                  {timeline.currentTimeLabel}
-                </span>
-              </div>
-            </div>
-          ) : null}
-
-          {visibleTimeline.showCurrentTime && (
-            <div className="absolute inset-x-0 z-20" style={{ top: visibleTimeline.currentTimeTop + visibleTimeline.laneOffset }}>
+          {timeline.showCurrentTime && (
+            <div className="absolute inset-x-0 z-20" style={{ top: timeline.currentTimeTop }}>
               <div className="relative h-0">
                 <div className="absolute left-4 right-0 top-0 border-t border-dashed border-rose-400/60" />
                 <div className="absolute left-4 top-0 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-rose-500 shadow-[0_0_0_4px_rgba(244,63,94,0.12)]" />
@@ -500,11 +318,10 @@ function DoctorAgendaTimeline({
             </div>
           )}
 
-          {visibleTimeline.layouts.map((layout) => {
+          {timeline.layouts.map((layout) => {
             const normalizedStatus = normalizeAppointmentStatus(layout.appointment.status);
             const isSelected = selectedAppointmentId === layout.appointment.id;
             const isInProgress = timeline.currentMinutes >= layout.startMinutes && timeline.currentMinutes <= layout.endMinutes;
-            const isPast = !isInProgress && layout.endMinutes < timeline.currentMinutes;
             const serviceLabel = layout.appointment.services?.length
               ? layout.appointment.services.map((service) => service.name).join(', ')
               : layout.appointment.service_name || layout.appointment.summary || t('agenda.unknownPatient');
@@ -514,7 +331,7 @@ function DoctorAgendaTimeline({
               <div
                 key={layout.key}
                 className="absolute inset-x-0 z-10"
-                style={{ top: layout.top + visibleTimeline.laneOffset, height: layout.height }}
+                style={{ top: layout.top, height: layout.height }}
               >
                 {/* Dot on the vertical line */}
                 <div
@@ -524,13 +341,10 @@ function DoctorAgendaTimeline({
                     top: '1.25rem',
                     width: isInProgress ? '0.875rem' : '0.625rem',
                     height: isInProgress ? '0.875rem' : '0.625rem',
-                    backgroundColor: isPast ? 'hsl(var(--muted-foreground))' : layout.accentColor,
-                    opacity: isPast ? 0.35 : 1,
-                    boxShadow: isInProgress && !isPast
+                    backgroundColor: layout.accentColor,
+                    boxShadow: isInProgress
                       ? `0 0 0 2px hsl(var(--background)), 0 0 0 5px ${layout.accentColor}40`
-                      : isPast
-                        ? `0 0 0 2px hsl(var(--background))`
-                        : `0 0 0 2px hsl(var(--background)), 0 0 0 4px ${layout.accentColor}30`,
+                      : `0 0 0 2px hsl(var(--background)), 0 0 0 4px ${layout.accentColor}30`,
                   }}
                 />
 
@@ -542,9 +356,8 @@ function DoctorAgendaTimeline({
                     'absolute left-9 right-0 h-full rounded-xl text-left transition-all duration-300',
                     'border bg-card',
                     isSelected ? 'shadow-lg' : 'shadow-sm hover:shadow-md border-border/40 hover:border-border/60',
-                    isPast && 'opacity-50',
                   )}
-                  style={isSelected && !isPast ? { borderColor: layout.accentColor } : undefined}
+                  style={isSelected ? { borderColor: layout.accentColor } : undefined}
                 >
                   <div className="relative h-full overflow-hidden rounded-xl">
                     <span
@@ -552,7 +365,7 @@ function DoctorAgendaTimeline({
                       style={{
                         width: isSelected ? '4px' : '2px',
                         backgroundColor: layout.accentColor,
-                        opacity: isPast ? 0.3 : (isSelected ? 1 : 0.4),
+                        opacity: isSelected ? 1 : 0.4,
                       }}
                     />
 
