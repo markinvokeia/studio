@@ -13,6 +13,7 @@ import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/compone
 import { PatientInstructionsSection } from '@/components/medical-instructions/patient-instructions-section';
 import { UserTreatmentPlans } from '@/components/users/user-treatment-plans';
 import { PatientFinanceSection } from '@/components/users/patient-finance-section';
+import type { VisibleLedger } from '@/components/users/patient-ledger';
 import { QuickTreatmentDialog } from '@/components/financial/quick-treatment-dialog';
 import { PrepaidFormDialog } from '@/components/sales/payments/PrepaidFormDialog';
 import { API_ROUTES } from '@/constants/routes';
@@ -88,7 +89,7 @@ export function PatientDetailSheet({
   const { user: currentUser } = useAuth();
   const [financeView] = useFinanceViewPreference(currentUser?.id);
   const { open: openAccountStatement } = usePatientLedgerSheet();
-  const { printFinancialSummary, printLedger } = usePrintDocument();
+  const { printLedger } = usePrintDocument();
   const { toast } = useToast();
   const [isPrintingFinancialSummary, setIsPrintingFinancialSummary] = React.useState(false);
   const isDoctorMode = mode === 'doctor';
@@ -119,17 +120,15 @@ export function PatientDetailSheet({
     avatar: '',
   };
 
-  // "Personalizado" prints the unified ledger as shown; "Normal" prints the backend's
-  // financial-summary report — same split PatientLedgerSheet's own Print button uses.
-  const handlePrintFinancialSummary = React.useCallback(async () => {
+  // The account statement always prints as the unified ledger, whatever the user's
+  // finance_view preference is, so it looks the same from every entry point in the app.
+  // `visible` carries the ledger's active period filter when the print comes from the
+  // unified layout; the tabs layout has no ledger and prints the whole statement.
+  const handlePrintFinancialSummary = React.useCallback(async (visible?: VisibleLedger) => {
     if (isPrintingFinancialSummary) return;
     setIsPrintingFinancialSummary(true);
     try {
-      if (financeView === 'unified') {
-        await printLedger(userId, userName);
-      } else {
-        await printFinancialSummary(userId);
-      }
+      await printLedger(userId, userName, visible);
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -139,7 +138,7 @@ export function PatientDetailSheet({
     } finally {
       setIsPrintingFinancialSummary(false);
     }
-  }, [userId, userName, isPrintingFinancialSummary, financeView, printLedger, printFinancialSummary, toast, t]);
+  }, [userId, userName, isPrintingFinancialSummary, printLedger, toast, t]);
 
   React.useEffect(() => {
     if (!isDoctorMode || !open || !userId) return;

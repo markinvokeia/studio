@@ -113,7 +113,10 @@ interface PatientLedgerProps {
   onCreateQuote?: () => void;
   onCreateTreatment?: () => void;
   onCreatePayment?: () => void;
-  onPrintSummary?: () => void;
+  /** Receives the on-screen snapshot (see `VisibleLedger`) so the host prints exactly the
+   *  period being shown. It's optional because the tabs finance view has no ledger to
+   *  snapshot — there the host gets `undefined` and prints the full statement. */
+  onPrintSummary?: (visible?: VisibleLedger) => void;
   onViewStatement?: () => void;
   /** When true, the internal toolbar hides its Print/Refresh icons — used by the
    *  account-statement sheet, which surfaces them in its own header instead. */
@@ -128,14 +131,19 @@ interface PatientLedgerProps {
   onDateRangeChange?: (range: DateRange | undefined) => void;
 }
 
+/** What's currently on screen — active date range + the per-currency rows exactly as
+ *  displayed (opening-balance row included) — so a host can print a WYSIWYG copy
+ *  instead of re-fetching and re-building the whole (unfiltered) ledger itself. */
+export interface VisibleLedger {
+  dateRange: DateRange | undefined;
+  rowsByCurrency: Record<string, LedgerRow[]>;
+}
+
 /** Imperative handle so hosts (e.g. the account-statement sheet header) can trigger a
  *  reload without owning the ledger's data-loading state. */
 export interface PatientLedgerHandle {
   refresh: () => void;
-  /** What's currently on screen — active date range + the per-currency rows exactly as
-   *  displayed (opening-balance row included) — so a host can print a WYSIWYG copy
-   *  instead of re-fetching and re-building the whole (unfiltered) ledger itself. */
-  getVisibleLedger: () => { dateRange: DateRange | undefined; rowsByCurrency: Record<string, LedgerRow[]> };
+  getVisibleLedger: () => VisibleLedger;
 }
 
 /** Short currency symbol shown in the amount columns: "$" for UYU, "U$" for USD. */
@@ -1687,10 +1695,15 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
     return result;
   }, [ledgerByCurrency, dateRange]);
 
+  const visibleLedger = React.useMemo<VisibleLedger>(
+    () => ({ dateRange, rowsByCurrency: rowsInRangeByCurrency }),
+    [dateRange, rowsInRangeByCurrency],
+  );
+
   React.useImperativeHandle(ref, () => ({
     refresh: () => { void load(true); },
-    getVisibleLedger: () => ({ dateRange, rowsByCurrency: rowsInRangeByCurrency }),
-  }), [load, dateRange, rowsInRangeByCurrency]);
+    getVisibleLedger: () => visibleLedger,
+  }), [load, visibleLedger]);
 
   // Currency used by the inline create editor (ledger's own currency, else clinic default).
   const editorCurrency = currency || clinicInfo?.currency || 'UYU';
@@ -2264,7 +2277,9 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
       {!hideToolbarActions && (
         <div className="ml-auto flex items-center gap-1">
           {onPrintSummary && (
-            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={onPrintSummary}>
+            /* Hand the host the on-screen snapshot so the PDF honours the active period
+               filter instead of re-fetching the whole statement. */
+            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => onPrintSummary(visibleLedger)}>
               <Printer className="h-3.5 w-3.5" />
             </Button>
           )}

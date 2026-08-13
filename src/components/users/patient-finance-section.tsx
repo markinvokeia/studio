@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useTranslations } from 'next-intl';
 
 import { PatientSubTabNav } from '@/components/patients/patient-subtab-nav';
-import { PatientLedger } from '@/components/users/patient-ledger';
+import { PatientLedger, type VisibleLedger } from '@/components/users/patient-ledger';
 import { UserFinancialSummaryStats } from '@/components/users/user-financial-summary-stats';
 import { UserInvoices } from '@/components/users/user-invoices';
 import { UserPayments } from '@/components/users/user-payments';
@@ -29,7 +29,9 @@ interface PatientFinanceSectionProps {
   onCreateQuote?: () => void;
   onCreateTreatment?: () => void;
   onCreatePayment?: () => void;
-  onPrintSummary?: () => void;
+  /** Gets the ledger's on-screen snapshot in the unified layout, so the host can print
+   *  the active period; the tabs layout has no ledger and calls it with `undefined`. */
+  onPrintSummary?: (visible?: VisibleLedger) => void;
   onViewStatement?: () => void;
   /** Called after a quote/invoice change so the parent can refresh anything it derives (e.g. the patient list). */
   onDataChange?: () => void;

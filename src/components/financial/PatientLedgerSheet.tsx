@@ -13,7 +13,6 @@ import { ResizableSheet, SheetTitle, SheetDescription } from '@/components/ui/re
 import { PatientLedger, type PatientLedgerHandle } from '@/components/users/patient-ledger';
 import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
-import { useFinanceViewPreference } from '@/hooks/use-finance-view-preference';
 import { useToast } from '@/hooks/use-toast';
 
 /**
@@ -29,8 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 export function PatientLedgerSheet() {
   const { isOpen, userId, userName, close } = usePatientLedgerSheet();
   const t = useTranslations('AccountStatement');
-  const { printFinancialSummary, printLedger } = usePrintDocument();
-  const [financeView] = useFinanceViewPreference(userId ?? undefined);
+  const { printLedger } = usePrintDocument();
   const { toast } = useToast();
   const [isPrinting, setIsPrinting] = React.useState(false);
   const [searchTerm, setSearchTerm] = React.useState('');
@@ -48,13 +46,9 @@ export function PatientLedgerSheet() {
     if (!userId || isPrinting) return;
     setIsPrinting(true);
     try {
-      // In "Clásico" (unified) mode, print the ledger exactly as shown in this panel;
-      // otherwise fall back to the backend financial-summary report.
-      if (financeView === 'unified') {
-        await printLedger(userId, userName, ledgerRef.current?.getVisibleLedger());
-      } else {
-        await printFinancialSummary(userId);
-      }
+      // Always print the ledger exactly as shown in this panel — the account statement
+      // looks the same regardless of the user's finance_view preference.
+      await printLedger(userId, userName, ledgerRef.current?.getVisibleLedger());
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -64,7 +58,7 @@ export function PatientLedgerSheet() {
     } finally {
       setIsPrinting(false);
     }
-  }, [userId, userName, isPrinting, financeView, printLedger, printFinancialSummary, toast, t]);
+  }, [userId, userName, isPrinting, printLedger, toast, t]);
 
   return (
     <ResizableSheet

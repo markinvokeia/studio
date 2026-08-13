@@ -68,6 +68,7 @@ import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/compone
 import { PatientInstructionsSection } from '@/components/medical-instructions/patient-instructions-section';
 import { UserPreferencesTab } from '@/components/users/user-preferences-tab';
 import { PatientFinanceSection } from '@/components/users/patient-finance-section';
+import type { VisibleLedger } from '@/components/users/patient-ledger';
 import { UserTreatmentPlans, type TreatmentContactContext } from '@/components/users/user-treatment-plans';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import { UserOrders } from '@/components/users/user-orders';
@@ -86,7 +87,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { addMonths, endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, CalendarIcon, Check, CheckCircle, ChevronDown, ChevronsUpDown, ClipboardList, CreditCard, FileText, Loader2, Mail, Maximize2, Minimize2, MoreHorizontal, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, Smile, Stethoscope, ToggleLeft, Upload, Users, X, XCircle, Zap } from 'lucide-react';
+import { AlertTriangle, CalendarIcon, Check, CheckCircle, ChevronDown, ChevronsUpDown, ClipboardList, CreditCard, FileText, Loader2, Mail, Maximize2, Minimize2, MoreHorizontal, Plus, Receipt, ShoppingCart, SlidersHorizontal, Smile, Stethoscope, ToggleLeft, Upload, Users, X, XCircle, Zap } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import { EmailComposerDialog } from '@/components/email-composer-dialog';
 import { WhatsAppComposerDialog } from '@/components/whatsapp-composer-dialog';
@@ -456,7 +457,7 @@ export default function UsersPage() {
   const { toast } = useToast();
   const { open: openBillingWizard } = useBillingWizard();
   const { open: openAccountStatement } = usePatientLedgerSheet();
-  const { printFinancialSummary, printLedger } = usePrintDocument();
+  const { printLedger } = usePrintDocument();
   const searchParams = useSearchParams();
   const initialQ = searchParams.get('q') ?? '';
   const [users, setUsers] = React.useState<any[]>([]);
@@ -472,11 +473,6 @@ export default function UsersPage() {
   const [dischargePreset, setDischargePreset] = React.useState<number | null>(null);
   const [currentDischarge, setCurrentDischarge] = React.useState<PatientDischarge | null>(null);
   const [isSubmittingDischarge, setIsSubmittingDischarge] = React.useState(false);
-  const [isFinancialSummaryDialogOpen, setIsFinancialSummaryDialogOpen] = React.useState(false);
-  const [financialSummaryDateRange, setFinancialSummaryDateRange] = React.useState<{ from: string; to: string }>({
-    from: '',
-    to: '',
-  });
   const [isPrintingFinancialSummary, setIsPrintingFinancialSummary] = React.useState(false);
 
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -918,37 +914,15 @@ export default function UsersPage() {
     setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, notes } : u));
   };
 
-  const handlePrintFinancialSummary = async () => {
-    if (!selectedUser) return;
-    // "Personalizado" (unified) prints the ledger exactly as shown, same as the appointments
-    // page and the account-statement sheet; only "Normal" needs the date-range dialog below.
-    if (financeView === 'unified') {
-      setIsPrintingFinancialSummary(true);
-      try {
-        await printLedger(selectedUser.id, selectedUser.name);
-      } catch (error: any) {
-        toast({
-          variant: 'destructive',
-          title: t('UsersPage.financialSummaryDialog.errorTitle'),
-          description: error?.message === 'no_data'
-            ? t('UsersPage.financialSummaryDialog.errorNoData')
-            : t('UsersPage.financialSummaryDialog.errorGeneric'),
-        });
-      } finally {
-        setIsPrintingFinancialSummary(false);
-      }
-      return;
-    }
-    setFinancialSummaryDateRange({ from: '', to: '' });
-    setIsFinancialSummaryDialogOpen(true);
-  };
-
-  const handlePrintFinancialSummaryWithDates = async () => {
-    if (!selectedUser) return;
+  // The account statement always prints as the unified ledger, regardless of the user's
+  // finance_view preference, so the PDF looks the same from every entry point in the app.
+  // `visible` is the ledger's on-screen snapshot (period filter applied); it only arrives
+  // from the unified layout — the tabs layout has no ledger, so there we print it whole.
+  const handlePrintFinancialSummary = async (visible?: VisibleLedger) => {
+    if (!selectedUser || isPrintingFinancialSummary) return;
     setIsPrintingFinancialSummary(true);
     try {
-      await printFinancialSummary(selectedUser.id, financialSummaryDateRange);
-      setIsFinancialSummaryDialogOpen(false);
+      await printLedger(selectedUser.id, selectedUser.name, visible);
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -1857,49 +1831,6 @@ export default function UsersPage() {
               }}
             >
               {t('ClinicHistoryPage.discharge.cancelButton')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isFinancialSummaryDialogOpen} onOpenChange={setIsFinancialSummaryDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>{t('UsersPage.financialSummaryDialog.title')}</DialogTitle>
-            <DialogDescription>
-              {t('UsersPage.financialSummaryDialog.description')}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogBody>
-            <div className="grid grid-cols-2 gap-4 px-4 pt-4 pb-4">
-              <div className="space-y-2">
-                <Label>{t('UsersPage.financialSummaryDialog.from')}</Label>
-                <DatePickerInput
-                  value={financialSummaryDateRange.from}
-                  onChange={(value) => setFinancialSummaryDateRange(prev => ({ ...prev, from: value }))}
-                  placeholder="dd/mm/aaaa"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>{t('UsersPage.financialSummaryDialog.to')}</Label>
-                <DatePickerInput
-                  value={financialSummaryDateRange.to}
-                  onChange={(value) => setFinancialSummaryDateRange(prev => ({ ...prev, to: value }))}
-                  placeholder="dd/mm/aaaa"
-                />
-              </div>
-            </div>
-          </DialogBody>
-          <DialogFooter>
-            <Button onClick={handlePrintFinancialSummaryWithDates} disabled={isPrintingFinancialSummary}>
-              {isPrintingFinancialSummary ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Printer className="h-4 w-4 mr-2" />}
-              {t('UsersPage.financialSummaryDialog.print')}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setIsFinancialSummaryDialogOpen(false)}
-            >
-              {t('UsersPage.financialSummaryDialog.cancel')}
             </Button>
           </DialogFooter>
         </DialogContent>
