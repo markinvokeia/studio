@@ -16,7 +16,10 @@ const ToastViewport = React.forwardRef<
   <ToastPrimitives.Viewport
     ref={ref}
     className={cn(
-      "fixed top-0 z-[9999] flex max-h-screen w-full flex-col-reverse p-4 pt-[max(1rem,env(safe-area-inset-top))] pointer-events-auto sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col sm:pt-4 md:max-w-[420px]",
+      // `pointer-events-none` en el viewport: aunque esté vacío ocupa una franja fija sobre todo
+      // el ancho y con `auto` se tragaba los toques de la barra superior en mobile. Cada toast
+      // reactiva los eventos por su cuenta (ver `pointer-events-auto` en toastVariants).
+      "fixed top-0 z-[9999] flex max-h-screen w-full flex-col-reverse p-4 pt-[max(1rem,env(safe-area-inset-top))] pointer-events-none sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col sm:pt-4 md:max-w-[420px]",
       className
     )}
     {...props}
