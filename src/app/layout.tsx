@@ -12,6 +12,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  // Necesario para que env(safe-area-inset-*) devuelva valores reales en iPhone.
+  viewportFit: 'cover',
 };
 
 // The app's root layout, which applies to all locales.

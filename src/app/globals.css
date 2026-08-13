@@ -99,6 +99,9 @@
     /* Gris para cabeceras y elementos secundarios */
     --accent: 263 67% 45%;
     --accent-foreground: 0 0% 100%;
+    /* Color de enlaces. Token propio porque en el tema oscuro --primary es un gris de relleno
+       de botón y resulta ilegible como texto. */
+    --link: 263 67% 35%;
     --border: 260 20% 90%;
     --input: 260 20% 90%;
     --ring: 263 67% 35%;
@@ -169,6 +172,7 @@
     /* Gris para cabeceras y elementos secundarios */
     --accent: 240 5% 96%;
     --accent-foreground: 240 10% 10%;
+    --link: 221 83% 33%;
     --border: 240 5% 94%;
     --input: 240 5% 94%;
     --ring: 221 83% 33%;
@@ -216,6 +220,8 @@
     --muted-foreground: 240 5% 75%;
     --accent: 240 10% 25%;
     --accent-foreground: 0 0% 100%;
+    /* Azul claro: 5.6:1 sobre --card (240 10% 18%), cumple WCAG AA. */
+    --link: 217 91% 70%;
     --border: 240 10% 20%;
     --input: 240 10% 20%;
     --ring: 240 10% 35%;
