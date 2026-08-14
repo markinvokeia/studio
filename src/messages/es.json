@@ -4867,6 +4867,8 @@
       "sessionTypeOdontogram": "Odontograma",
       "sessionTypeClinical": "Sesión Clínica",
       "sessionTypeAppointment": "Cita",
+      "currentAppointmentBadge": "Cita actual",
+      "latestSessionBadge": "Última sesión",
       "upcomingAppointment": "Próxima",
       "apptCalendar": "Calendario",
       "apptDoctor": "Doctor",

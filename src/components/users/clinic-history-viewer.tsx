@@ -3,6 +3,7 @@
 import { AppointmentPanel } from '@/components/appointments/AppointmentPanel';
 import { CancellationNoteDialog } from '@/components/appointments/CancellationNoteDialog';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
+import { CONDITION_MAP } from '@/components/users/dental-record/condition-toolbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -1805,9 +1806,12 @@ interface TreatmentTimelineProps {
     showSessionColor?: boolean;
     /** View-only mode: hides session edit/delete and blocks appointment status changes. */
     readOnly?: boolean;
+    /** Cita cuya sesión se resalta con la badge "Cita actual". Con este prop la sesión
+     *  más reciente de la lista lleva además la badge "Última sesión". */
+    linkedAppointmentId?: string;
 }
 
-export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAppointments = false, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, createOdontogramTrigger = 0, onOdontogramTriggerConsumed, sessionPrefill, onSessionCreated, editSessionId, onRefreshAppointments, onAppointmentStatusUpdated, onEditAppointment, isDoctorMode = false, hideToolbar = false, forcedTypeFilter, showSessionColor = false, readOnly = false }: TreatmentTimelineProps) {
+export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAppointments = false, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, createOdontogramTrigger = 0, onOdontogramTriggerConsumed, sessionPrefill, onSessionCreated, editSessionId, onRefreshAppointments, onAppointmentStatusUpdated, onEditAppointment, isDoctorMode = false, hideToolbar = false, forcedTypeFilter, showSessionColor = false, readOnly = false, linkedAppointmentId }: TreatmentTimelineProps) {
     const t = useTranslations('ClinicHistoryPage.timeline');
     const tDialog = useTranslations('ClinicHistoryPage.sessionDialog');
     const tPage = useTranslations('ClinicHistoryPage');
@@ -2184,6 +2188,13 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
     const getItemKey = (item: { kind: string; data: any }, index: number) =>
         item.kind === 'appointment' ? `appt-${item.data.id}-${index}` : `session-${item.data.sesion_id}`;
 
+    // Sesión más reciente de la lista. No es `filteredItems[0]`: la lista está ordenada
+    // por fecha y puede arrancar con una cita.
+    const latestSessionId = React.useMemo(() => {
+        const latest = filteredItems.find(item => item.kind === 'session');
+        return latest ? String((latest.data as PatientSession).sesion_id) : null;
+    }, [filteredItems]);
+
     const selectedItem = React.useMemo(() => {
         if (!selectedItemKey) return null;
         return filteredItems.find((item, i) => getItemKey(item, i) === selectedItemKey) ?? null;
@@ -2206,8 +2217,8 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                 <>
                 <div className="flex items-center justify-between px-3 py-3 border-b shrink-0 gap-2">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <Clock className="h-5 w-5 text-primary" />
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 dark:bg-link/15 flex items-center justify-center">
+                            <Clock className="h-5 w-5 text-primary dark:text-link" />
                         </div>
                         <div>
                             <h3 className="text-lg font-semibold">{t('title')}</h3>
@@ -2229,7 +2240,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                     >
                                         <SlidersHorizontal className="h-4 w-4" />
                                         {(typeFilter !== 'all' || doctorFilter !== 'all') && (
-                                            <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />
+                                            <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary dark:bg-link" />
                                         )}
                                     </Button>
                                 </DropdownMenuTrigger>
@@ -2351,7 +2362,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                 <div className="flex flex-col items-center justify-center h-24 text-muted-foreground gap-1 p-4">
                                     <p className="text-xs">Sin resultados</p>
                                     {!hideToolbar && (
-                                        <button onClick={() => { setTypeFilter('all'); setDoctorFilter('all'); }} className="text-xs text-primary hover:underline">Limpiar filtros</button>
+                                        <button onClick={() => { setTypeFilter('all'); setDoctorFilter('all'); }} className="text-xs text-primary dark:text-link hover:underline">Limpiar filtros</button>
                                     )}
                                 </div>
                             ) : (
@@ -2398,7 +2409,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                             ) : null;
                                             const apptIcon = (
                                                 <div className={cn('w-5 h-5 rounded-full border-2 border-background shadow-sm flex items-center justify-center shrink-0 mt-0.5', isFuture ? 'bg-violet-50 dark:bg-violet-950' : 'bg-blue-50 dark:bg-blue-950')}>
-                                                    {isFuture ? <CalendarSync className="h-3 w-3 text-violet-500" /> : <CalendarCheck className="h-3 w-3 text-blue-500" />}
+                                                    {isFuture ? <CalendarSync className="h-3 w-3 text-violet-500 dark:text-violet-400" /> : <CalendarCheck className="h-3 w-3 text-blue-500 dark:text-blue-400" />}
                                                 </div>
                                             );
                                             if (isDoctorMode) {
@@ -2455,7 +2466,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                     key={key}
                                                     className={cn(
                                                         'flex items-start gap-2 px-2.5 py-2 cursor-pointer border-b last:border-b-0 transition-colors border-l-2',
-                                                        isSelected ? 'bg-primary/5 border-l-primary' : 'border-l-transparent hover:bg-muted/50',
+                                                        isSelected ? 'bg-primary/5 border-l-primary dark:bg-link/10 dark:border-l-link' : 'border-l-transparent hover:bg-muted/50',
                                                     )}
                                                     onClick={() => {
                                                         setSelectedItemKey(isSelected ? null : key);
@@ -2498,18 +2509,43 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                             );
                                         }
                                         const session = item.data as PatientSession;
-                                        const Icon = session.tipo_sesion === 'odontograma' ? Smile : Stethoscope;
-                                        // Modo doctor: las sesiones clínicas (no odontograma) se muestran inline, sin clic.
-                                        const inlineDoctorSession = isDoctorMode && session.tipo_sesion !== 'odontograma';
+                                        const isOdontogramSession = session.tipo_sesion === 'odontograma';
+                                        const Icon = isOdontogramSession ? Smile : Stethoscope;
+                                        // Modo doctor: la sesión se muestra inline, con todo su detalle desplegado.
+                                        // Es la vista que usa "Mi Consultorio", donde el doctor necesita leer el
+                                        // procedimiento completo sin expandir nada (sobre todo en mobile).
+                                        const inlineDoctorSession = isDoctorMode;
+                                        const isLinkedToAppointment = Boolean(
+                                            linkedAppointmentId && String(session.appointment_id ?? '') === linkedAppointmentId
+                                        );
+                                        const isLatestSession = Boolean(
+                                            linkedAppointmentId && !isLinkedToAppointment && latestSessionId === String(session.sesion_id)
+                                        );
                                         const sessionIcon = (
                                             <div className="w-5 h-5 rounded-full border-2 border-background shadow-sm bg-card flex items-center justify-center shrink-0 mt-0.5">
-                                                <Icon className={cn('h-3 w-3', session.tipo_sesion === 'odontograma' ? 'text-purple-500' : 'text-primary')} />
+                                                <Icon className={cn('h-3 w-3', isOdontogramSession ? 'text-purple-500 dark:text-purple-400' : 'text-primary dark:text-link')} />
                                             </div>
                                         );
                                         const sessionTypeBadge = (
-                                            <Badge variant="secondary" className={cn('text-xs px-1.5 py-0 leading-relaxed', session.tipo_sesion === 'odontograma' ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400' : 'bg-primary/10 text-primary')}>
-                                                {session.tipo_sesion === 'odontograma' ? t('sessionTypeOdontogram') : t('sessionTypeClinical')}
+                                            <Badge variant="secondary" className={cn('text-xs px-1.5 py-0 leading-relaxed', isOdontogramSession ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400' : 'bg-primary/10 text-primary dark:bg-link/15 dark:text-link')}>
+                                                {isOdontogramSession ? t('sessionTypeOdontogram') : t('sessionTypeClinical')}
                                             </Badge>
+                                        );
+                                        // En oscuro `--primary` es un gris de relleno, así que la badge de la cita
+                                        // actual perdería el sentido de realce: pasa a la pastilla de `--link`.
+                                        const contextBadges = (
+                                            <>
+                                                {isLinkedToAppointment && (
+                                                    <Badge variant="default" className="rounded-full text-[10px] shadow-sm dark:border-link/40 dark:bg-link/20 dark:text-link">
+                                                        {t('currentAppointmentBadge')}
+                                                    </Badge>
+                                                )}
+                                                {isLatestSession && (
+                                                    <Badge variant="secondary" className="rounded-full border border-sky-200/80 bg-sky-50 text-[10px] font-medium text-sky-700 hover:bg-sky-50 dark:border-sky-900/60 dark:bg-sky-950/40 dark:text-sky-400">
+                                                        {t('latestSessionBadge')}
+                                                    </Badge>
+                                                )}
+                                            </>
                                         );
                                         const sessionColorDot = showSessionColor && session.color ? (
                                             <span
@@ -2526,53 +2562,124 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                 .map((tr: any) => [tr.numero_diente ? `${tr.numero_diente}:` : '', tr.descripcion].filter(Boolean).join(' '))
                                                 .filter(Boolean);
                                             const hasNextPlan = (!!planProximaCita && planProximaCita.trim() !== '') || !!session.fecha_proxima_cita;
+                                            const attachmentLabels = (session.archivos_adjuntos ?? [])
+                                                .map((file: any) => file.file_name || file.ruta)
+                                                .filter(Boolean);
+                                            // Resumen del odontograma: se agrupan las piezas por condición para que la
+                                            // sesión informe qué se marcó sin tener que abrir el odontograma completo.
+                                            const odontogramGroups = isOdontogramSession && session.estado_odontograma
+                                                ? Object.entries(
+                                                    Object.entries(session.estado_odontograma as Record<string, Record<string, string>>)
+                                                        .reduce((acc: Record<string, string[]>, [tooth, surfaces]) => {
+                                                            new Set(Object.values(surfaces ?? {})).forEach(condition => {
+                                                                (acc[condition] ??= []).push(tooth);
+                                                            });
+                                                            return acc;
+                                                        }, {})
+                                                )
+                                                : [];
                                             return (
-                                                <div key={key} className="flex items-start gap-2 px-2.5 py-2 border-b last:border-b-0 border-l-2 border-l-transparent">
+                                                <div
+                                                    key={key}
+                                                    className={cn(
+                                                        'flex items-start gap-2 px-2.5 py-2 border-b last:border-b-0 border-l-2 transition-colors',
+                                                        isLinkedToAppointment ? 'border-l-primary bg-primary/5 dark:border-l-link dark:bg-link/10' : 'border-l-transparent',
+                                                        // El odontograma completo sigue estando a un clic de distancia.
+                                                        isOdontogramSession && 'cursor-pointer hover:bg-muted/50',
+                                                    )}
+                                                    onClick={isOdontogramSession ? () => {
+                                                        setSessionDetailData(session);
+                                                        setIsOdontogramViewerOpen(true);
+                                                    } : undefined}
+                                                >
                                                     {sessionIcon}
                                                     <div className="flex-1 min-w-0 space-y-1.5">
                                                         <div className="flex items-center gap-1.5 flex-wrap">
                                                             {sessionTypeBadge}
                                                             <span className="text-xs font-medium text-foreground">{formatDate(session.fecha_sesion)}</span>
+                                                            {contextBadges}
                                                         </div>
                                                         <div className="space-y-1 text-xs">
-                                                            {session.procedimiento_realizado && (
-                                                                <div className="flex items-start gap-1.5">
-                                                                    <span className="text-muted-foreground shrink-0">{t('procedure')}:</span>
-                                                                    <span className="text-foreground whitespace-pre-wrap">{session.procedimiento_realizado}</span>
+                                                            {odontogramGroups.length > 0 && (
+                                                                <div className="space-y-0.5">
+                                                                    <p className="text-muted-foreground">{t('odontogramUpdate')}:</p>
+                                                                    <div className="space-y-0.5">
+                                                                        {odontogramGroups.map(([condition, teeth]) => {
+                                                                            const def = CONDITION_MAP[condition as keyof typeof CONDITION_MAP];
+                                                                            const label = def ? t(`conditions.${condition}` as Parameters<typeof t>[0]) : condition;
+                                                                            return (
+                                                                                <div key={condition} className="flex min-w-0 flex-wrap items-center gap-x-1.5">
+                                                                                    {def && (
+                                                                                        <span
+                                                                                            className="inline-flex items-center rounded px-1 py-0.5 font-mono text-[10px] font-bold text-white"
+                                                                                            style={{ backgroundColor: def.color }}
+                                                                                        >
+                                                                                            {def.icon}
+                                                                                        </span>
+                                                                                    )}
+                                                                                    <span className="text-foreground">{label}:</span>
+                                                                                    <span className="text-muted-foreground tabular-nums">
+                                                                                        {teeth.sort((a, b) => Number(a) - Number(b)).join(', ')}
+                                                                                    </span>
+                                                                                </div>
+                                                                            );
+                                                                        })}
+                                                                    </div>
                                                                 </div>
+                                                            )}
+                                                            {/* La etiqueta va inline dentro del mismo párrafo, no como columna de
+                                                                un flex: así el texto largo envuelve contra el borde izquierdo de
+                                                                la tarjeta y no deja un hueco bajo la etiqueta. */}
+                                                            {session.procedimiento_realizado && (
+                                                                <p className="whitespace-pre-wrap break-words text-foreground">
+                                                                    <span className="text-muted-foreground">{t('procedure')}:</span>{' '}
+                                                                    {session.procedimiento_realizado}
+                                                                </p>
                                                             )}
                                                             {(session.nombre_doctor || session.doctor_name) && (
-                                                                <div className="flex items-center gap-1.5">
-                                                                    <span className="text-muted-foreground shrink-0">{t('apptDoctor')}:</span>
-                                                                    <span className="text-foreground truncate">{session.nombre_doctor || session.doctor_name}</span>
-                                                                </div>
+                                                                <p className="break-words text-foreground">
+                                                                    <span className="text-muted-foreground">{t('apptDoctor')}:</span>{' '}
+                                                                    {session.nombre_doctor || session.doctor_name}
+                                                                </p>
                                                             )}
                                                             {session.diagnostico && session.diagnostico.trim() !== '' && (
-                                                                <div className="flex items-start gap-1.5">
-                                                                    <span className="text-muted-foreground shrink-0">{t('diagnosis')}:</span>
-                                                                    <span className="text-foreground whitespace-pre-wrap">{session.diagnostico}</span>
-                                                                </div>
+                                                                <p className="whitespace-pre-wrap break-words text-foreground">
+                                                                    <span className="text-muted-foreground">{t('diagnosis')}:</span>{' '}
+                                                                    {session.diagnostico}
+                                                                </p>
                                                             )}
                                                             {session.notas_clinicas && session.notas_clinicas.trim() !== '' && (
-                                                                <div className="flex items-start gap-1.5">
-                                                                    <span className="text-muted-foreground shrink-0">{t('notes')}:</span>
-                                                                    <span className="text-foreground whitespace-pre-wrap">{session.notas_clinicas}</span>
-                                                                </div>
+                                                                <p className="whitespace-pre-wrap break-words text-foreground">
+                                                                    <span className="text-muted-foreground">{t('notes')}:</span>{' '}
+                                                                    {session.notas_clinicas}
+                                                                </p>
                                                             )}
                                                             {treatmentLabels.length > 0 && (
-                                                                <div className="flex items-start gap-1.5">
-                                                                    <span className="text-muted-foreground shrink-0">{t('treatments')}:</span>
-                                                                    <span className="text-foreground">{treatmentLabels.join(', ')}</span>
+                                                                <p className="break-words text-foreground">
+                                                                    <span className="text-muted-foreground">{t('treatments')}:</span>{' '}
+                                                                    {treatmentLabels.join(', ')}
+                                                                </p>
+                                                            )}
+                                                            {attachmentLabels.length > 0 && (
+                                                                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                                                                    <span className="text-muted-foreground">{t('attachments')}:</span>
+                                                                    {attachmentLabels.map((name: string, fileIndex: number) => (
+                                                                        <span
+                                                                            key={`${session.sesion_id}-attachment-${fileIndex}`}
+                                                                            className="flex min-w-0 items-center gap-1 rounded border bg-background px-1.5 py-0.5 text-foreground"
+                                                                        >
+                                                                            <FileText className="h-3 w-3 shrink-0 text-amber-500 dark:text-amber-400" />
+                                                                            <span className="truncate">{name}</span>
+                                                                        </span>
+                                                                    ))}
                                                                 </div>
                                                             )}
                                                             {hasNextPlan && (
-                                                                <div className="flex items-start gap-1.5">
-                                                                    <span className="text-muted-foreground shrink-0">{t('nextPlan')}:</span>
-                                                                    <span className="text-foreground whitespace-pre-wrap">
-                                                                        {planProximaCita}
-                                                                        {session.fecha_proxima_cita && ` (${formatDate(session.fecha_proxima_cita)})`}
-                                                                    </span>
-                                                                </div>
+                                                                <p className="whitespace-pre-wrap break-words text-foreground">
+                                                                    <span className="text-muted-foreground">{t('nextPlan')}:</span>{' '}
+                                                                    {planProximaCita}
+                                                                    {session.fecha_proxima_cita && ` (${formatDate(session.fecha_proxima_cita)})`}
+                                                                </p>
                                                             )}
                                                         </div>
                                                     </div>
@@ -2583,7 +2690,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                         return (
                                             <div
                                                 key={key}
-                                                className={cn('flex items-start gap-2 px-2.5 py-2 cursor-pointer border-b last:border-b-0 transition-colors border-l-2', isSelected ? 'bg-primary/5 border-l-primary' : 'border-l-transparent hover:bg-muted/50')}
+                                                className={cn('flex items-start gap-2 px-2.5 py-2 cursor-pointer border-b last:border-b-0 transition-colors border-l-2', isSelected ? 'bg-primary/5 border-l-primary dark:bg-link/10 dark:border-l-link' : 'border-l-transparent hover:bg-muted/50')}
                                                 onClick={() => {
                                                     setSelectedItemKey(isSelected ? null : key);
                                                     setSessionDetailData(session);
@@ -2674,7 +2781,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                 <div className="flex flex-col h-full">
                     <div className="px-6 py-4 border-b shrink-0">
                         <SheetTitle className="flex items-center gap-2 text-base font-semibold">
-                            <Smile className="h-4 w-4 text-purple-600 shrink-0" />
+                            <Smile className="h-4 w-4 text-purple-600 dark:text-purple-400 shrink-0" />
                             Nueva sesión — Odontograma
                         </SheetTitle>
                     </div>
@@ -2736,7 +2843,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                         <div className="flex flex-col h-full">
                             <div className="px-6 py-4 border-b shrink-0">
                                 <SheetTitle className="flex items-center gap-2 text-base font-semibold">
-                                    <Stethoscope className="h-4 w-4 text-primary shrink-0" />
+                                    <Stethoscope className="h-4 w-4 text-primary dark:text-link shrink-0" />
                                     {session.procedimiento_realizado || t('noTitle')}
                                 </SheetTitle>
                                 <SheetDescription className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-xs text-muted-foreground">
@@ -2752,25 +2859,25 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                             <ScrollArea className="flex-1">
                                 <div className="p-6 space-y-3">
                                     {session.procedimiento_realizado && (
-                                        <div className="border-l-2 border-primary/50 pl-3 py-1.5 bg-muted/30 rounded-r-md">
+                                        <div className="border-l-2 border-primary/50 dark:border-link/60 pl-3 py-1.5 bg-muted/30 dark:bg-muted/50 rounded-r-md">
                                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{t('procedure')}</p>
                                             <p className="text-sm whitespace-pre-wrap leading-relaxed">{session.procedimiento_realizado}</p>
                                         </div>
                                     )}
                                     {session.diagnostico && session.diagnostico.trim() !== '' && (
-                                        <div className="border-l-2 border-red-400/50 pl-3 py-1.5 bg-red-50/60 dark:bg-red-950/20 rounded-r-md">
+                                        <div className="border-l-2 border-red-400/50 dark:border-red-500/70 pl-3 py-1.5 bg-red-50/60 dark:bg-red-950/20 rounded-r-md">
                                             <p className="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide mb-1">{t('diagnosis')}</p>
                                             <p className="text-sm whitespace-pre-wrap leading-relaxed">{session.diagnostico}</p>
                                         </div>
                                     )}
                                     {session.notas_clinicas && session.notas_clinicas.trim() !== '' && (
-                                        <div className="border-l-2 border-cyan-400/50 pl-3 py-1.5 bg-cyan-50/50 dark:bg-cyan-950/20 rounded-r-md">
+                                        <div className="border-l-2 border-cyan-400/50 dark:border-cyan-500/70 pl-3 py-1.5 bg-cyan-50/50 dark:bg-cyan-950/20 rounded-r-md">
                                             <p className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 uppercase tracking-wide mb-1">{t('notes')}</p>
                                             <p className="text-sm whitespace-pre-wrap leading-relaxed">{session.notas_clinicas}</p>
                                         </div>
                                     )}
                                     {(planProximaCita || session.fecha_proxima_cita) && (
-                                        <div className="border-l-2 border-blue-400/50 pl-3 py-1.5 bg-blue-50/60 dark:bg-blue-950/20 rounded-r-md">
+                                        <div className="border-l-2 border-blue-400/50 dark:border-blue-500/70 pl-3 py-1.5 bg-blue-50/60 dark:bg-blue-950/20 rounded-r-md">
                                             <div className="flex items-center justify-between gap-4 flex-wrap">
                                                 <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">{t('nextPlan') || 'Plan próxima cita'}</p>
                                                 {session.fecha_proxima_cita && (
@@ -2785,13 +2892,13 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                         </div>
                                     )}
                                     {session.tratamientos && session.tratamientos.length > 0 && (
-                                        <div className="border-l-2 border-green-500/50 pl-3 py-1.5 bg-green-50/60 dark:bg-green-950/20 rounded-r-md">
+                                        <div className="border-l-2 border-green-500/50 dark:border-green-500/70 pl-3 py-1.5 bg-green-50/60 dark:bg-green-950/20 rounded-r-md">
                                             <p className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide mb-2">{t('treatments') || 'Tratamientos'}</p>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
                                                 {session.tratamientos.map((tr: any, i: number) => (
                                                     <div key={i} className="flex items-baseline gap-2 min-w-0">
                                                         {tr.numero_diente && (
-                                                            <span className="shrink-0 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded font-mono font-medium">{t('tooth') || 'Diente'} {tr.numero_diente}</span>
+                                                            <span className="shrink-0 text-xs bg-primary/10 text-primary dark:bg-link/15 dark:text-link px-1.5 py-0.5 rounded font-mono font-medium">{t('tooth') || 'Diente'} {tr.numero_diente}</span>
                                                         )}
                                                         <p className="text-sm leading-relaxed text-muted-foreground break-words">{tr.descripcion}</p>
                                                     </div>
@@ -2800,7 +2907,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                         </div>
                                     )}
                                     {session.estado_odontograma && Object.keys(session.estado_odontograma).length > 0 && (
-                                        <div className="border-l-2 border-purple-500/50 pl-3 py-1.5 bg-purple-50/60 dark:bg-purple-950/20 rounded-r-md">
+                                        <div className="border-l-2 border-purple-500/50 dark:border-purple-500/70 pl-3 py-1.5 bg-purple-50/60 dark:bg-purple-950/20 rounded-r-md">
                                             <p className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide mb-2">{t('odontogramUpdate')}</p>
                                             <div className="flex flex-wrap gap-1.5">
                                                 {Object.entries(session.estado_odontograma).map(([tooth, data]: [string, any]) => {
@@ -2819,11 +2926,11 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                     const condition = data.condition || extractCondition(data);
                                                     const conditionLabel = condition ? t(`conditions.${condition}`) || condition : '';
                                                     return (
-                                                        <span key={tooth} className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded font-medium">
+                                                        <span key={tooth} className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary dark:bg-link/15 dark:text-link px-2 py-1 rounded font-medium">
                                                             <span className="font-mono">#{tooth}</span>
-                                                            <span className="text-primary/70">-</span>
+                                                            <span className="text-primary/70 dark:text-link/80">-</span>
                                                             <span>{conditionLabel}</span>
-                                                            {surfaceText && <span className="text-primary/60">({surfaceText})</span>}
+                                                            {surfaceText && <span className="text-primary/60 dark:text-link/70">({surfaceText})</span>}
                                                         </span>
                                                     );
                                                 })}
@@ -2831,14 +2938,14 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                         </div>
                                     )}
                                     {(session as any).archivos_adjuntos && (session as any).archivos_adjuntos.length > 0 && (
-                                        <div className="border-l-2 border-amber-500/50 pl-3 py-1.5 bg-amber-50/50 dark:bg-amber-950/20 rounded-r-md">
+                                        <div className="border-l-2 border-amber-500/50 dark:border-amber-500/70 pl-3 py-1.5 bg-amber-50/50 dark:bg-amber-950/20 rounded-r-md">
                                             <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide mb-2">{t('attachments') || 'Adjuntos'}</p>
                                             <div className="flex flex-wrap gap-1">
                                                 {(session as any).archivos_adjuntos.map((att: any, i: number) => (
                                                     <button key={i} type="button"
                                                         className="flex items-center gap-1 text-xs bg-background border border-muted px-2 py-1 rounded hover:bg-muted/50 transition-colors cursor-pointer"
                                                         onClick={() => handleViewTimelineAttachment(att, session.sesion_id)}>
-                                                        <FileText className="h-3 w-3 text-amber-500" />
+                                                        <FileText className="h-3 w-3 text-amber-500 dark:text-amber-400" />
                                                         <span className="truncate max-w-[160px]">{att.file_name || att.nombre || att.name || 'File'}</span>
                                                     </button>
                                                 ))}
@@ -2878,7 +2985,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                 <div className="flex flex-col h-full">
                     <div className="px-6 py-4 border-b shrink-0 flex items-center gap-3">
                         <SheetTitle className="flex items-center gap-2 text-base font-semibold flex-1">
-                            <Smile className="h-4 w-4 text-purple-600 shrink-0" />
+                            <Smile className="h-4 w-4 text-purple-600 dark:text-purple-400 shrink-0" />
                             Odontograma
                         </SheetTitle>
                     </div>

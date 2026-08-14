@@ -222,8 +222,10 @@
     --accent-foreground: 0 0% 100%;
     /* Azul claro: 5.6:1 sobre --card (240 10% 18%), cumple WCAG AA. */
     --link: 217 91% 70%;
-    --border: 240 10% 20%;
-    --input: 240 10% 20%;
+    /* Sube por encima de --card (18%) para que los bordes y los separadores de fila
+       se distingan; con 20% las listas y las tablas se fundían con la superficie. */
+    --border: 240 10% 27%;
+    --input: 240 10% 27%;
     --ring: 240 10% 35%;
 
     /* Semantic Nav Tokens */

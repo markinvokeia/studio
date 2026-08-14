@@ -4890,6 +4890,8 @@
       "sessionTypeOdontogram": "Odontogram",
       "sessionTypeClinical": "Clinical Session",
       "sessionTypeAppointment": "Appointment",
+      "currentAppointmentBadge": "Current appointment",
+      "latestSessionBadge": "Latest session",
       "upcomingAppointment": "Upcoming",
       "apptCalendar": "Calendar",
       "apptDoctor": "Doctor",

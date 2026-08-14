@@ -12,7 +12,7 @@ import {
 } from '@/components/dashboard/workspace-date-range-filter';
 import { PatientDetailSheet } from '@/components/appointments/PatientDetailSheet';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
-import { CONDITION_MAP } from '@/components/users/dental-record/condition-toolbar';
+import { TreatmentTimeline } from '@/components/users/clinic-history-viewer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,14 +43,11 @@ import {
   BookUser,
   CalendarDays,
   ChevronDown,
-  ChevronUp,
   ClipboardCheck,
-  FileText,
   Heart,
   Lock,
   RefreshCw,
   Sparkles,
-  Stethoscope,
   UserRound,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -70,12 +67,6 @@ type DoctorAgentActionResult = {
   success: boolean;
   message?: string;
 };
-
-interface DoctorPatientTimelineProps {
-  linkedAppointmentId?: string;
-  sessions: PatientSession[];
-  isLoading: boolean;
-}
 
 const AUTO_REFRESH_MS = 60_000;
 const KNOWN_APPOINTMENTS_STORAGE_PREFIX = 'doctor-workspace:known-appointments';
@@ -293,7 +284,7 @@ function DoctorAgendaTimeline({
 
   if (appointments.length === 0) {
     return (
-      <div className="rounded-[1.75rem] border border-dashed border-border bg-muted/20 p-8 text-center">
+      <div className="rounded-[1.75rem] border border-dashed border-border bg-muted/20 dark:bg-muted/40 p-8 text-center">
         <p className="text-sm font-medium text-foreground">{t(isToday ? 'agenda.emptyTitle' : 'agenda.emptyTitleOtherDay')}</p>
         <p className="mt-1 text-sm text-muted-foreground">{t('agenda.emptyDescription')}</p>
       </div>
@@ -309,9 +300,9 @@ function DoctorAgendaTimeline({
           {timeline.showCurrentTime && (
             <div className="absolute inset-x-0 z-20" style={{ top: timeline.currentTimeTop }}>
               <div className="relative h-0">
-                <div className="absolute left-4 right-0 top-0 border-t border-dashed border-rose-400/60" />
+                <div className="absolute left-4 right-0 top-0 border-t border-dashed border-rose-400/60 dark:border-rose-400/80" />
                 <div className="absolute left-4 top-0 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-rose-500 shadow-[0_0_0_4px_rgba(244,63,94,0.12)]" />
-                <span className="absolute top-0 -translate-y-full rounded bg-background/90 px-1 text-[9px] font-bold tabular-nums text-rose-500 leading-none" style={{ left: 'calc(1rem + 0.75rem)' }}>
+                <span className="absolute top-0 -translate-y-full rounded bg-background/90 px-1 text-[9px] font-bold tabular-nums text-rose-500 dark:text-rose-400 leading-none" style={{ left: 'calc(1rem + 0.75rem)' }}>
                   {timeline.currentTimeLabel}
                 </span>
               </div>
@@ -355,7 +346,7 @@ function DoctorAgendaTimeline({
                   className={cn(
                     'absolute left-9 right-0 h-full rounded-xl text-left transition-all duration-300',
                     'border bg-card',
-                    isSelected ? 'shadow-lg' : 'shadow-sm hover:shadow-md border-border/40 hover:border-border/60',
+                    isSelected ? 'shadow-lg' : 'shadow-sm hover:shadow-md border-border/40 hover:border-border/60 dark:border-border dark:hover:border-border',
                   )}
                   style={isSelected ? { borderColor: layout.accentColor } : undefined}
                 >
@@ -394,7 +385,7 @@ function DoctorAgendaTimeline({
                         <span className="text-xs font-medium tabular-nums text-muted-foreground">
                           {getTimeRangeLabel(layout.appointment)}
                         </span>
-                        <span className="text-[10px] tabular-nums text-muted-foreground/55">
+                        <span className="text-[10px] tabular-nums text-muted-foreground/55 dark:text-muted-foreground/80">
                           {getAppointmentDurationMinutes(layout.appointment)} min
                         </span>
                       </div>
@@ -521,7 +512,7 @@ function DoctorAgendaPanel({
         : 'agenda.emptyTitleOtherDay';
 
     return (
-      <div className="rounded-[1.75rem] border border-dashed border-border bg-muted/20 p-8 text-center">
+      <div className="rounded-[1.75rem] border border-dashed border-border bg-muted/20 dark:bg-muted/40 p-8 text-center">
         <p className="text-sm font-medium text-foreground">{t(emptyTitleKey)}</p>
         <p className="mt-1 text-sm text-muted-foreground">{t('agenda.emptyDescription')}</p>
       </div>
@@ -562,7 +553,7 @@ function DoctorAgendaPanel({
                 type="button"
                 className={cn(
                   'flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left transition-colors',
-                  isOpen ? 'border-border bg-muted/70' : 'border-border/50 bg-background hover:bg-muted/40',
+                  isOpen ? 'border-border bg-muted/70' : 'border-border/50 dark:border-border bg-background hover:bg-muted/40 dark:hover:bg-muted/60',
                 )}
               >
                 <ChevronDown
@@ -580,7 +571,7 @@ function DoctorAgendaPanel({
                   </Badge>
                 ) : (
                   <Lock
-                    className="h-3 w-3 shrink-0 text-muted-foreground/60"
+                    className="h-3 w-3 shrink-0 text-muted-foreground/60 dark:text-muted-foreground/80"
                     aria-label={t('agenda.readOnlyDay')}
                   />
                 )}
@@ -765,256 +756,21 @@ async function getAppointmentsForRange(source: WorkspaceAppointmentSource, from:
     ));
 }
 
-function DoctorPatientTimeline({ linkedAppointmentId, sessions, isLoading }: DoctorPatientTimelineProps) {
-  const t = useTranslations('DoctorWorkspace');
-  const tTimeline = useTranslations('ClinicHistoryPage.timeline');
-  const [openItems, setOpenItems] = React.useState<string[]>([]);
-
-  React.useEffect(() => {
-    if (sessions.length === 0) {
-      setOpenItems([]);
-      return;
-    }
-
-    const latestSessionId = String(sessions[0].sesion_id);
-    setOpenItems((current) => {
-      if (current.includes(latestSessionId)) return current;
-      return [latestSessionId];
-    });
-  }, [sessions]);
-
-  const toggleItem = React.useCallback((sessionId: string) => {
-    setOpenItems((current) => (
-      current.includes(sessionId)
-        ? current.filter((item) => item !== sessionId)
-        : [...current, sessionId]
-    ));
-  }, []);
-
-  if (isLoading) {
-    return (
-      <div className="space-y-3">
-        <Skeleton className="h-32 w-full rounded-[1.5rem]" />
-        <Skeleton className="h-24 w-full rounded-[1.5rem]" />
-        <Skeleton className="h-24 w-full rounded-[1.5rem]" />
-      </div>
-    );
-  }
-
-  if (sessions.length === 0) {
-    return (
-      <div className="rounded-[1.75rem] border border-dashed border-border bg-muted/20 p-8 text-center">
-        <p className="text-sm font-medium text-foreground">{tTimeline('noSessions')}</p>
-        <p className="mt-1 text-sm text-muted-foreground">{t('focus.timelineEmptyDescription')}</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative space-y-3">
-      <div className="absolute bottom-0 left-3 top-0 w-px bg-gradient-to-b from-transparent via-border/60 to-transparent sm:left-[3.5rem]" />
-      {sessions.map((session, index) => {
-        const sessionId = String(session.sesion_id);
-        const isOpen = openItems.includes(sessionId);
-        const hasTreatments = Array.isArray(session.tratamientos) && session.tratamientos.length > 0;
-        const hasAttachments = Array.isArray(session.archivos_adjuntos) && session.archivos_adjuntos.length > 0;
-        const isLinkedToCurrentAppointment = Boolean(linkedAppointmentId && String(session.appointment_id ?? '') === linkedAppointmentId);
-        const SessionIcon = session.tipo_sesion === 'odontograma' ? Heart : Stethoscope;
-
-        let dateLabel = '—';
-        let yearLabel = '';
-        try {
-          const parsed = session.fecha_sesion ? new Date(session.fecha_sesion) : null;
-          if (parsed && !Number.isNaN(parsed.getTime())) {
-            dateLabel = format(parsed, 'd MMM');
-            yearLabel = format(parsed, 'yyyy');
-          }
-        } catch {}
-
-        return (
-          <Collapsible key={`${session.sesion_id}-${index}`} open={isOpen} onOpenChange={() => toggleItem(sessionId)}>
-            <div className="relative flex items-start gap-3 pl-9 sm:pl-[4.75rem]">
-              {/* Date + dot in the left gutter */}
-              <div className="absolute left-0 top-0 flex items-center gap-1.5">
-                <div className="hidden w-10 text-right sm:block">
-                  <p className="text-[11px] font-semibold leading-tight text-foreground/75 tabular-nums">{dateLabel}</p>
-                  <p className="text-[9px] font-medium text-muted-foreground/60 tabular-nums">{yearLabel}</p>
-                </div>
-                <div className={cn(
-                  'z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-background shadow-md',
-                  isLinkedToCurrentAppointment ? 'bg-primary' : 'bg-muted-foreground/15',
-                )}>
-                  <SessionIcon className={cn('h-3 w-3', isLinkedToCurrentAppointment ? 'text-primary-foreground' : 'text-muted-foreground')} />
-                </div>
-              </div>
-              <Card className={cn(
-                'min-w-0 flex-1 transition-all duration-200',
-                isLinkedToCurrentAppointment
-                  ? 'border border-primary/30 border-l-[3px] border-l-primary bg-primary/8 shadow-md ring-1 ring-primary/10'
-                  : 'border border-border/50 bg-card shadow-sm',
-              )}>
-                <CardHeader className="px-4 pt-3.5 pb-1">
-                  <div className="mb-1.5 flex items-center gap-1.5 sm:hidden">
-                    <span className="text-[11px] font-medium tabular-nums text-muted-foreground/70">{dateLabel}</span>
-                    {yearLabel && <span className="text-[10px] tabular-nums text-muted-foreground/50">· {yearLabel}</span>}
-                  </div>
-                  <div className="flex items-start justify-between gap-3">
-                    <CardTitle className="line-clamp-2 break-words text-sm font-semibold leading-tight text-foreground">
-                      {session.procedimiento_realizado || tTimeline('noTitle')}
-                    </CardTitle>
-                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-                      {isLinkedToCurrentAppointment && (
-                        <Badge variant="default" className="rounded-full text-[10px] shadow-sm">
-                          {t('focus.currentAppointmentBadge')}
-                        </Badge>
-                      )}
-                      {index === 0 && !isLinkedToCurrentAppointment && (
-                        <Badge variant="secondary" className="rounded-full border border-sky-200/80 bg-sky-50 text-[10px] font-medium text-sky-700 hover:bg-sky-50">
-                          {t('focus.latestSessionBadge')}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </CardHeader>
-
-                <CollapsibleTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-7 w-full justify-start px-4 py-1 text-xs text-muted-foreground/70 hover:bg-transparent hover:text-foreground">
-                    {isOpen ? <ChevronUp className="mr-1 h-3 w-3" /> : <ChevronDown className="mr-1 h-3 w-3" />}
-                    {isOpen ? tTimeline('hideDetails') : tTimeline('showDetails')}
-                  </Button>
-                </CollapsibleTrigger>
-
-                <CollapsibleContent>
-                  <CardContent className="space-y-2.5 px-4 pb-4 pt-2">
-                  {session.tipo_sesion === 'odontograma' && session.estado_odontograma && Object.keys(session.estado_odontograma).length > 0 && (() => {
-                    const grouped: Record<string, string[]> = {};
-                    Object.entries(session.estado_odontograma as Record<string, Record<string, string>>).forEach(([tooth, surfaces]) => {
-                      const seen = new Set<string>();
-                      Object.values(surfaces).forEach((condition) => {
-                        if (!seen.has(condition)) {
-                          seen.add(condition);
-                          if (!grouped[condition]) grouped[condition] = [];
-                          grouped[condition].push(tooth);
-                        }
-                      });
-                    });
-                    const entries = Object.entries(grouped);
-                    if (entries.length === 0) return null;
-                    return (
-                      <div className="border-l-[3px] border-violet-400/60 bg-violet-50/60 px-3 py-2.5">
-                        <p className="mb-2 text-xs font-semibold text-violet-600/90">
-                          {tTimeline('odontogramUpdate')}
-                        </p>
-                        <div className="space-y-1.5">
-                          {entries.map(([condition, teeth]) => {
-                            const def = CONDITION_MAP[condition as keyof typeof CONDITION_MAP];
-                            const label = def ? tTimeline(`conditions.${condition}` as Parameters<typeof tTimeline>[0]) : condition;
-                            return (
-                              <div key={condition} className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
-                                <div className="flex shrink-0 items-center gap-1.5">
-                                  {def && (
-                                    <span
-                                      className="inline-flex items-center rounded px-1.5 py-0.5 font-mono text-[10px] font-bold text-white"
-                                      style={{ backgroundColor: def.color }}
-                                    >
-                                      {def.icon}
-                                    </span>
-                                  )}
-                                  <span className="text-xs font-medium text-foreground/80">{label}:</span>
-                                </div>
-                                <span className="text-xs text-muted-foreground tabular-nums">
-                                  {teeth.sort((a, b) => Number(a) - Number(b)).join(', ')}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })()}
-                  {session.diagnostico && (
-                    <div className="border-l-[3px] border-red-400/60 bg-red-50/60 px-3 py-2.5">
-                      <p className="mb-1 text-xs font-semibold text-red-500">
-                        {tTimeline('diagnosis')}
-                      </p>
-                      <p className="text-sm leading-relaxed text-foreground">{session.diagnostico}</p>
-                    </div>
-                  )}
-                  {session.notas_clinicas && (
-                    <div className="border-l-[3px] border-cyan-400/60 bg-cyan-50/60 px-3 py-2.5">
-                      <p className="mb-1 text-xs font-semibold text-cyan-600/90">
-                        {tTimeline('notes')}
-                      </p>
-                      <p className="text-sm leading-relaxed text-foreground">{session.notas_clinicas}</p>
-                    </div>
-                  )}
-                  {session.plan_proxima_cita && session.plan_proxima_cita.trim() !== '{}' && (
-                    <div className="border-l-[3px] border-blue-400/60 bg-blue-50/60 px-3 py-2.5">
-                      <p className="mb-1 text-xs font-semibold text-blue-600/90">
-                        {tTimeline('nextPlan')}
-                      </p>
-                      <p className="text-sm leading-relaxed text-foreground">{session.plan_proxima_cita}</p>
-                    </div>
-                  )}
-                  {hasTreatments && (
-                    <div className="border-l-[3px] border-green-500/60 bg-green-50/60 px-3 py-2.5">
-                      <p className="mb-2 text-xs font-semibold text-green-600/90">
-                        {tTimeline('treatments')}
-                      </p>
-                      <div className="grid gap-x-4 gap-y-1 sm:grid-cols-2">
-                        {session.tratamientos.map((treatment, treatmentIndex) => (
-                          <div
-                            key={`${session.sesion_id}-treatment-${treatmentIndex}`}
-                            className="flex min-w-0 items-baseline gap-2"
-                          >
-                            {treatment.numero_diente ? (
-                              <span className="shrink-0 rounded-md border border-primary/15 bg-primary/8 px-1.5 py-0.5 font-mono text-xs font-semibold text-primary/80">
-                                {tTimeline('tooth')} {treatment.numero_diente}
-                              </span>
-                            ) : null}
-                            <p className="break-words text-sm leading-relaxed text-muted-foreground">
-                              {treatment.descripcion}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {hasAttachments && (
-                    <div className="border-l-[3px] border-amber-500/60 bg-amber-50/60 px-3 py-2.5">
-                      <p className="mb-2 text-xs font-semibold text-amber-600/90">
-                        {tTimeline('attachments')}
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {session.archivos_adjuntos.map((attachment, attachmentIndex) => (
-                          <div
-                            key={`${session.sesion_id}-attachment-${attachmentIndex}`}
-                            className="flex items-center gap-1 rounded border border-muted bg-background px-2 py-1 text-xs"
-                          >
-                            <FileText className="h-3 w-3 text-amber-500" />
-                            {attachment.file_name || attachment.ruta || 'Adjunto'}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  </CardContent>
-                </CollapsibleContent>
-              </Card>
-            </div>
-          </Collapsible>
-        );
-      })}
-    </div>
-  );
-}
-
 export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspaceProps) {
   const t = useTranslations('DoctorWorkspace');
   const tStatus = useTranslations('AppointmentStatus');
   const { user } = useAuth();
   const { permissions, roles } = usePermissions();
-  const { createSession, updateSession } = useClinicHistory();
+  const {
+    createSession,
+    updateSession,
+    deleteSession,
+    fetchDoctors,
+    doctors,
+    isLoadingDoctors,
+    isSubmittingSession,
+    getSessionAttachment,
+  } = useClinicHistory();
   const canManageSessions = React.useMemo(() => canManageDoctorWorkspaceSessions(permissions, roles), [permissions, roles]);
   const isMobile = useViewportNarrow(1024);
 
@@ -1227,6 +983,12 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
       }
     }
   }, []);
+
+  // La línea de tiempo pide recargar tras guardar o borrar una sesión. El paciente ya
+  // viene dado por la cita seleccionada, así que se ignora el userId que envía.
+  const handleRefreshSessions = React.useCallback(async () => {
+    await loadLinkedSession(selectedAppointment, undefined, true);
+  }, [loadLinkedSession, selectedAppointment]);
 
   const loadQuoteItems = React.useCallback(async (appointment: Appointment | null, requestId?: number) => {
     if (!appointment?.quote_id) {
@@ -1543,20 +1305,22 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                           <button type="button" className="flex-none cursor-pointer">
                             <div className="relative flex-none">
                               <span
-                                className="absolute inset-0 rounded-full animate-ping"
-                                style={
-                                  alertAllergies.length > 0
-                                    ? { backgroundColor: 'rgb(220 38 38)', opacity: 0.35 }
-                                    : { backgroundColor: 'rgb(217 119 6)', opacity: 0.35 }
-                                }
+                                className={cn(
+                                  'absolute inset-0 rounded-full animate-ping opacity-35',
+                                  alertAllergies.length > 0 ? 'bg-red-600 dark:bg-red-500' : 'bg-amber-600 dark:bg-amber-500',
+                                )}
                               />
+                              {/* Sin `header-icon-circle`: esa clase se define después de
+                                  `@tailwind utilities` en globals.css, así que su fondo (y el de
+                                  `.dark .header-icon-circle`) le gana a las clases de color. Se
+                                  repite su geometría y el color va por clases con par oscuro. */}
                               <div
-                                className="header-icon-circle relative"
-                                style={
+                                className={cn(
+                                  'relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
                                   alertAllergies.length > 0
-                                    ? { backgroundColor: 'rgb(254 226 226)', color: 'rgb(220 38 38)' }
-                                    : { backgroundColor: 'rgb(254 243 199)', color: 'rgb(217 119 6)' }
-                                }
+                                    ? 'bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400'
+                                    : 'bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400',
+                                )}
                               >
                                 <AlertTriangle className="h-5 w-5" />
                               </div>
@@ -1589,13 +1353,13 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                       )}
                       {alertConditions.length > 0 && (
                         <div className="space-y-1.5">
-                          <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide flex items-center gap-1">
+                          <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide flex items-center gap-1">
                             <Heart className="h-3 w-3" />
                             Padecimientos
                           </p>
                           <div className="flex flex-wrap gap-1">
                             {alertConditions.map((c, i) => (
-                              <Badge key={i} variant="secondary" className="gap-1 text-xs font-normal bg-amber-100 text-amber-800 hover:bg-amber-100">
+                              <Badge key={i} variant="secondary" className="gap-1 text-xs font-normal bg-amber-100 text-amber-800 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-950/40">
                                 {c.label}
                               </Badge>
                             ))}
@@ -1699,10 +1463,27 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
             {activePanel === 'sessions' ? (
               <>
                 <div className="flex-1 min-h-0 overflow-y-auto pr-1 pb-2">
-                  <DoctorPatientTimeline
-                    linkedAppointmentId={selectedAppointment.id}
+                  {/* Misma línea de tiempo que la historia clínica, en modo doctor y sin
+                      citas: cada sesión se ve desplegada, sin truncar, en desktop y mobile. */}
+                  <TreatmentTimeline
                     sessions={patientSessions}
+                    appointments={[]}
                     isLoading={isLoadingTimeline}
+                    userId={selectedAppointment.patientId}
+                    userName={selectedAppointment.patientName}
+                    doctors={doctors}
+                    isLoadingDoctors={isLoadingDoctors}
+                    isSubmittingSession={isSubmittingSession}
+                    onCreateSession={createSession}
+                    onUpdateSession={updateSession}
+                    onDeleteSession={deleteSession}
+                    onFetchDoctors={fetchDoctors}
+                    onRefreshAll={handleRefreshSessions}
+                    onLoadSessionAttachment={getSessionAttachment}
+                    linkedAppointmentId={selectedAppointment.id}
+                    isDoctorMode
+                    hideToolbar
+                    readOnly={!canManageSessions}
                   />
                 </div>
                 <div className="mt-2 shrink-0 border-t pt-3 sm:hidden">
@@ -1738,7 +1519,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   ) : (
     <Card className="flex h-full flex-col overflow-hidden">
       <CardContent className="p-6">
-        <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-6 text-sm text-muted-foreground">
+        <div className="rounded-2xl border border-dashed border-border bg-muted/20 dark:bg-muted/40 p-6 text-sm text-muted-foreground">
           {t('focus.empty')}
         </div>
       </CardContent>
@@ -1798,7 +1579,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                       onClick={() => setViewMode('mine')}
                       className={cn(
                         'rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
-                        viewMode === 'mine' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                        viewMode === 'mine' ? 'bg-background text-foreground shadow-sm dark:ring-1 dark:ring-inset dark:ring-border' : 'text-muted-foreground hover:text-foreground',
                       )}
                     >
                       {t('calendarSwitch.assignedToMe')}
@@ -1808,7 +1589,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                       onClick={() => setViewMode('calendar')}
                       className={cn(
                         'rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
-                        viewMode === 'calendar' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                        viewMode === 'calendar' ? 'bg-background text-foreground shadow-sm dark:ring-1 dark:ring-inset dark:ring-border' : 'text-muted-foreground hover:text-foreground',
                       )}
                     >
                       {t('calendarSwitch.myCalendars')}
