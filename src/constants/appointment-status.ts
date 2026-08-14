@@ -52,6 +52,13 @@ export const STATUS_ACCENT_COLOR: Record<AppointmentStatus, string> = {
   cancelled:     '#6b7280', // gray-500 (used for the stripe pattern)
 };
 
+/**
+ * Estados que conservan el color propio del calendario (etiqueta de la cita,
+ * servicio, doctor o consultorio) cuando la preferencia "colorear por estado"
+ * está activa. El resto pinta toda la card con su STATUS_ACCENT_COLOR.
+ */
+export const STATUS_NEUTRAL_ON_CALENDAR: AppointmentStatus[] = ['scheduled'];
+
 export function canTransition(from: AppointmentStatus, to: AppointmentStatus): boolean {
   return from !== to;
 }

@@ -12,6 +12,7 @@ import {
   Layers,
   LayoutGrid,
   MousePointerClick,
+  Palette,
   Ruler,
   Stethoscope,
   Tag,
@@ -23,7 +24,7 @@ import { Switch } from '@/components/ui/switch';
 import { CalendarSettings, Sede } from '@/lib/types';
 import api from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
-import { CALENDAR_MODES, DEFAULT_CALENDAR_MODE, DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, EVENT_LABEL_FORMATS, HOUR_SLOT_HEIGHT, HOUR_SLOT_HEIGHT_OPTIONS, SLOT_DURATION_OPTIONS } from './calendar-constants';
+import { CALENDAR_MODES, DEFAULT_CALENDAR_MODE, DEFAULT_COLOR_BY_STATUS, DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, EVENT_LABEL_FORMATS, HOUR_SLOT_HEIGHT, HOUR_SLOT_HEIGHT_OPTIONS, SLOT_DURATION_OPTIONS } from './calendar-constants';
 import { DEFAULT_CALENDAR_SETTINGS, normalizeCalendarSettings } from './calendar-settings-utils';
 
 interface CalendarSettingsFormProps {
@@ -138,14 +139,36 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
     onSettingsChange?.(newSettings);
 
     try {
-      const response = await api.post(API_ROUTES.CALENDAR_SETTINGS_UPSERT, userId ? { ...newSettings, user_id: userId } : newSettings);
+      // Sin `id` no sabemos si el usuario ya tiene preferencias guardadas y el
+      // upsert crearía una fila nueva en cada cambio. Se consulta primero el
+      // search: si ya existe, se reutiliza su id para actualizarla.
+      let payload = newSettings;
+      if (!payload.id) {
+        const existing = normalizeCalendarSettings(
+          await api.get(API_ROUTES.CALENDAR_SETTINGS_SEARCH, userId ? { user_id: userId } : undefined),
+        );
+        if (existing?.id) {
+          payload = { ...existing, ...newSettings, id: existing.id };
+          setSettings(payload);
+          onSettingsChange?.(payload);
+        }
+      }
+
+      const response = await api.post(API_ROUTES.CALENDAR_SETTINGS_UPSERT, userId ? { ...payload, user_id: userId } : payload);
       // The upsert response carries back the record's `id` (needed so the next
       // save updates the existing row instead of leaving the id unset). Merge
       // it into local + parent state rather than requiring a page reload.
-      const saved = normalizeCalendarSettings((response as { data?: unknown })?.data);
+      // Se le pasa la respuesta entera: normalizeCalendarSettings ya desenvuelve
+      // {data: …} y las demás formas en que la API devuelve la fila.
+      const saved = normalizeCalendarSettings(response);
       if (saved) {
-        setSettings(saved);
-        onSettingsChange?.(saved);
+        // `updates` gana sobre lo que devuelve el servidor: si el backend todavía no
+        // conoce una clave, la fila que devuelve viene sin ella y al normalizarla
+        // vuelve a su default, deshaciendo en el acto lo que el usuario acaba de
+        // tocar (era el caso de `color_by_status`).
+        const merged = { ...saved, ...updates };
+        setSettings(merged);
+        onSettingsChange?.(merged);
       }
     } catch (error) {
       console.error('Failed to save calendar settings:', error);
@@ -317,6 +340,17 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
             </Select>
           </div>
         )}
+      </div>
+
+      <div className="flex items-center justify-between pt-4 px-1">
+        <SettingHeader icon={Palette} label={t('colorByStatus')} help={t('help.colorByStatus')} htmlFor="color-by-status" variant="toggle" />
+        <Switch
+          id="color-by-status"
+          checked={settings.color_by_status ?? DEFAULT_COLOR_BY_STATUS}
+          onCheckedChange={(checked) => updateSettings({ color_by_status: checked })}
+          disabled={isLoading}
+          className="scale-90"
+        />
       </div>
 
       <div className="flex items-center justify-between pt-4 px-1">

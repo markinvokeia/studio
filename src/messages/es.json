@@ -870,6 +870,7 @@
         "sede": "Sedes"
       },
       "blockUnavailable": "Bloquear horarios fuera de atención",
+      "colorByStatus": "Colorear la cita según su estado",
       "help": {
         "mode": "Invoke muestra el calendario como siempre. Personalizado muestra una sola agenda a la vez a pantalla completa; usa el botón 'Agendas' (arriba a la izquierda) para elegir cuál ver.",
         "defaultView": "Define qué vista se muestra al abrir el calendario (día, semana, mes, agenda…). Cambiarla aplica la vista al instante.",
@@ -881,7 +882,8 @@
         "checkAvailability": "Al crear/editar una cita valida que el horario esté disponible para el doctor o consultorio elegido.",
         "blockUnavailable": "Atenúa y bloquea en el calendario los horarios fuera de atención (según horarios y excepciones), impidiendo crear citas ahí.",
         "filterDoctorsByService": "Al crear una cita, filtra la lista de doctores para mostrar solo los que prestan el servicio seleccionado.",
-        "inlineAppointmentCreation": "Al hacer clic en un slot crea la cita directamente en el calendario con un card, sin abrir el modal. El botón Crear siempre abre el modal."
+        "inlineAppointmentCreation": "Al hacer clic en un slot crea la cita directamente en el calendario con un card, sin abrir el modal. El botón Crear siempre abre el modal.",
+        "colorByStatus": "Cuando la cita está en un estado distinto de 'Programada', toda la card toma el color de ese estado (confirmada, llegó, en curso, completada, no asistió, cancelada). Las citas programadas mantienen el color del consultorio, doctor, servicio o su etiqueta de color."
       }
     },
     "newAppointment": "Nueva Cita",

@@ -840,6 +840,10 @@ export type CalendarSettings = {
    *  (a draft card) instead of opening the modal. The "Create" button always
    *  opens the modal regardless. Default false. */
   inline_appointment_creation?: boolean;
+  /** When true, appointments in a status other than "scheduled" paint the whole
+   *  card with that status' color instead of the calendar/service/doctor color.
+   *  Default true. */
+  color_by_status?: boolean;
   /** Display mode. 'invoke' = current behavior; 'custom' = a single agenda shown
    *  at a time, chosen from the "Agendas" side panel. See CALENDAR_MODES. */
   mode?: string;

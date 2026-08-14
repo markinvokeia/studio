@@ -176,6 +176,16 @@
   pointer-events: none;
 }
 
+/* El ícono acompaña la escala de fuente del calendario (derivada de la altura de
+   hora configurada), igual que el título y la hora de la card. El clamp lo acota:
+   nunca baja del tamaño histórico de 12px ni supera los 20px, que es lo máximo
+   que entra en una card de 15 min (min-height 22px). El valor central, 14px,
+   coincide con el `h-3.5` del JSX, que es el que aplica en las demás vistas. */
+.event-in-day-view .event-status-corner svg {
+  width: clamp(12px, calc(0.875rem * var(--cal-font-scale, 1)), 20px);
+  height: clamp(12px, calc(0.875rem * var(--cal-font-scale, 1)), 20px);
+}
+
 .event-in-day-view-compact .event-status-corner {
   bottom: 1px;
   right: 2px;
@@ -190,7 +200,11 @@
   justify-content: center;
   color: white;
   border-radius: 9999px;
-  padding: 2px;
+  /* 1px (y no 2px como en la vista de día): acá el badge va inline y es lo más alto
+     del chip, así que su altura manda la del chip. Con el ícono a 14px el anillo más
+     fino deja el chip en los mismos 24px de siempre — el ícono crece sin que entren
+     menos citas por día en la vista de mes. */
+  padding: 1px;
   flex-shrink: 0;
 }
 

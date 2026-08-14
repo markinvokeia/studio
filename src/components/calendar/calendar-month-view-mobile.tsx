@@ -264,7 +264,7 @@ export function CalendarMonthViewMobile({
                             className="inline-flex items-center justify-center rounded-full p-1 text-white"
                             style={{ backgroundColor: reminderColor }}
                           >
-                            <ReminderIcon className="h-3 w-3" strokeWidth={2} />
+                            <ReminderIcon className="h-3.5 w-3.5" strokeWidth={2} />
                           </span>
                         ) : StatusIcon && statusColor && (
                           <span
@@ -273,7 +273,7 @@ export function CalendarMonthViewMobile({
                             className="inline-flex items-center justify-center rounded-full p-1 text-white"
                             style={{ backgroundColor: statusColor }}
                           >
-                            <StatusIcon className="h-3 w-3" strokeWidth={2} />
+                            <StatusIcon className="h-3.5 w-3.5" strokeWidth={2} />
                           </span>
                         )}
                       </div>

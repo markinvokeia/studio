@@ -870,6 +870,7 @@
         "sede": "Branches"
       },
       "blockUnavailable": "Block out-of-office hours",
+      "colorByStatus": "Color appointments by status",
       "help": {
         "mode": "Invoke shows the calendar as usual. Custom shows one agenda at a time full-screen; use the 'Agendas' button (top-left) to pick which one to view.",
         "defaultView": "Sets which view opens by default (day, week, month, agenda…). Changing it applies the view immediately.",
@@ -881,7 +882,8 @@
         "checkAvailability": "When creating/editing an appointment, validates the slot is free for the chosen doctor or room.",
         "blockUnavailable": "Greys out and blocks out-of-office hours on the calendar (per schedules and exceptions), preventing appointments there.",
         "filterDoctorsByService": "When creating an appointment, filters the doctor list to only those who provide the selected service.",
-        "inlineAppointmentCreation": "Clicking a slot creates the appointment inline on the calendar with a card, without opening the modal. The Create button always opens the modal."
+        "inlineAppointmentCreation": "Clicking a slot creates the appointment inline on the calendar with a card, without opening the modal. The Create button always opens the modal.",
+        "colorByStatus": "When an appointment is in a status other than 'Scheduled', the whole card takes that status' color (confirmed, arrived, in progress, completed, no-show, cancelled). Scheduled appointments keep the consulting room, doctor, service or color-tag color."
       }
     },
     "newAppointment": "New Appointment",

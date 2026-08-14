@@ -54,6 +54,10 @@ export const EVENT_LABEL_FORMATS = ['time_patient_notes', 'patient_treatment_tim
 export type EventLabelFormat = (typeof EVENT_LABEL_FORMATS)[number];
 export const DEFAULT_EVENT_LABEL_FORMAT: EventLabelFormat = 'time_patient_notes';
 
+/** Whether appointments in a status other than "scheduled" paint the whole card
+ *  with the status color. On by default when the user's preferences are created. */
+export const DEFAULT_COLOR_BY_STATUS = true;
+
 /** Hour to auto-scroll to on initial day/week view render (working day start) */
 export const DEFAULT_SCROLL_HOUR = 8;
 

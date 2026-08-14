@@ -13,7 +13,7 @@ import { CalendarViewMenu } from '@/components/calendar/calendar-view-menu';
 import { CalendarZoomMenu } from '@/components/calendar/calendar-zoom-menu';
 import { computeRangeGaps, computeDayGaps, computeDayGapsForIntervals, getBusinessWindow, getAvailableIntervals, computeBlockedRanges, gapKey, DEFAULT_MIN_GAP_MINUTES, type Gap, type BlockedRange } from '@/components/calendar/calendar-gaps';
 import { filterEventsByDayAndGroup } from '@/components/calendar/calendar-utils';
-import { DEFAULT_CALENDAR_MODE, DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, HOUR_SLOT_HEIGHT } from '@/components/calendar/calendar-constants';
+import { DEFAULT_CALENDAR_MODE, DEFAULT_COLOR_BY_STATUS, DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, HOUR_SLOT_HEIGHT } from '@/components/calendar/calendar-constants';
 import { ReminderFormDialog, type ReminderFormValues } from '@/components/appointments/ReminderFormDialog';
 import { ReminderPanel } from '@/components/appointments/ReminderPanel';
 import { useCalendarBreakpoint } from '@/hooks/use-calendar-breakpoint';
@@ -92,7 +92,7 @@ import { usePatientAppointmentsSheet } from '@/stores/patient-appointments-sheet
 import { usePatientDocumentsSheet } from '@/stores/patient-documents-sheet-store';
 import { AppointmentStatusContextItems } from '@/components/appointments/AppointmentStatusMenu';
 import { useAppointmentStatus } from '@/hooks/use-appointment-status';
-import { canReschedule, normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
+import { canReschedule, normalizeAppointmentStatus, normalizeCancellationReason, STATUS_ACCENT_COLOR, STATUS_NEUTRAL_ON_CALENDAR } from '@/constants/appointment-status';
 import { useAppointmentReschedule } from '@/hooks/use-appointment-reschedule';
 import { CancellationNoteDialog } from '@/components/appointments/CancellationNoteDialog';
 import { getAppointmentColumns } from './columns';
@@ -688,6 +688,7 @@ export default function AppointmentsPage() {
     const [hourSlotHeight, setHourSlotHeight] = React.useState<number>(HOUR_SLOT_HEIGHT);
     const [slotDuration, setSlotDuration] = React.useState<number>(DEFAULT_SLOT_DURATION);
     const [eventLabelFormat, setEventLabelFormat] = React.useState<string>(DEFAULT_EVENT_LABEL_FORMAT);
+    const [colorByStatus, setColorByStatus] = React.useState<boolean>(DEFAULT_COLOR_BY_STATUS);
     const [defaultSede, setDefaultSede] = React.useState<string>('');
 
     // ── Calendar display mode (invoke | custom) ──────────────────────────────
@@ -983,6 +984,7 @@ export default function AppointmentsPage() {
         setHourSlotHeight(settings.hour_height ?? HOUR_SLOT_HEIGHT);
         setSlotDuration(settings.slot_duration ?? DEFAULT_SLOT_DURATION);
         setEventLabelFormat(settings.event_label_format ?? DEFAULT_EVENT_LABEL_FORMAT);
+        setColorByStatus(settings.color_by_status ?? DEFAULT_COLOR_BY_STATUS);
         setDefaultSede(settings.default_sede ?? '');
         setCalendarMode(settings.mode ?? DEFAULT_CALENDAR_MODE);
     }, []);
@@ -1006,6 +1008,7 @@ export default function AppointmentsPage() {
         setHourSlotHeight(settings.hour_height ?? HOUR_SLOT_HEIGHT);
         setSlotDuration(settings.slot_duration ?? DEFAULT_SLOT_DURATION);
         setEventLabelFormat(settings.event_label_format ?? DEFAULT_EVENT_LABEL_FORMAT);
+        setColorByStatus(settings.color_by_status ?? DEFAULT_COLOR_BY_STATUS);
         setDefaultSede(settings.default_sede ?? '');
         setCalendarMode(settings.mode ?? DEFAULT_CALENDAR_MODE);
     }, [doctors]);
@@ -2662,6 +2665,11 @@ export default function AppointmentsPage() {
                     }
 
                     const matchedCalendar = calendars.find((calendar) => String(calendar.id) === String(appt.calendar_source_id));
+                    // Preferencia "colorear por estado": la card completa toma el color del
+                    // estado salvo que la cita siga en un estado neutro (programada). El
+                    // color propio de la cita (`appt.color`) queda intacto para el selector
+                    // de color y el panel de detalle.
+                    const statusColored = colorByStatus && !STATUS_NEUTRAL_ON_CALENDAR.includes(appt.status);
                     return {
                         id: String(appt.id),
                         title: appt.summary || appt.service_name || 'Cita',
@@ -2671,7 +2679,8 @@ export default function AppointmentsPage() {
                         doctorGroupId: appt.doctorId || undefined,
                         calendarGroupId: matchedCalendar?.id || appt.calendar_source_id || undefined,
                         data: { ...appt, kind: 'appointment' as const },
-                        color: appt.color,
+                        color: statusColored ? STATUS_ACCENT_COLOR[appt.status] : appt.color,
+                        statusColored,
                         colorId: appt.colorId,
                     };
                 } catch (e) {
@@ -2703,7 +2712,7 @@ export default function AppointmentsPage() {
             .filter((event): event is NonNullable<typeof event> => event !== null);
 
         return [...events, ...reminderEvents];
-    }, [appointments, calendars, reminders, selectedCalendarIds, selectedDoctorIds, eventLabelFormat, isBulkMode]);
+    }, [appointments, calendars, reminders, selectedCalendarIds, selectedDoctorIds, eventLabelFormat, colorByStatus, isBulkMode]);
 
     const visibleCalendarItems = React.useMemo(
         () => reminders.filter((reminder) => {

@@ -34,7 +34,7 @@ function StatusBadge({
       className="inline-flex items-center justify-center rounded-full p-1 text-white shrink-0"
       style={{ backgroundColor: color }}
     >
-      <Icon className="h-3 w-3" strokeWidth={2.5} />
+      <Icon className="h-3.5 w-3.5" strokeWidth={2.5} />
     </span>
   );
 }
@@ -192,7 +192,7 @@ export function CalendarScheduleView({
                             className="inline-flex items-center justify-center rounded-full p-1 text-white shrink-0"
                             style={{ backgroundColor: reminderColor }}
                           >
-                            <ReminderIcon className="h-3 w-3" strokeWidth={2.5} />
+                            <ReminderIcon className="h-3.5 w-3.5" strokeWidth={2.5} />
                           </span>
                         ) : status && <StatusBadge status={status} cancellationReason={cancellationReason} />}
                       </div>
@@ -227,7 +227,7 @@ export function CalendarScheduleView({
                         className="inline-flex items-center justify-center rounded-full p-1 text-white shrink-0"
                         style={{ backgroundColor: reminderColor }}
                       >
-                        <ReminderIcon className="h-3 w-3" strokeWidth={2.5} />
+                        <ReminderIcon className="h-3.5 w-3.5" strokeWidth={2.5} />
                       </span>
                     ) : status && <StatusBadge status={status} cancellationReason={cancellationReason} />}
                     {!event.label && (

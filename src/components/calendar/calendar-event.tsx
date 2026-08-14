@@ -48,13 +48,17 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
   const status = (rawStatus?.toLowerCase() as AppointmentStatus | undefined) ?? undefined;
   const cancellationReason = (event.data?.cancellation_reason as CancellationReason | undefined) ?? null;
   const isCancelled = status === 'cancelled';
+  const statusColored = event.statusColored === true;
+  // Con la card ya pintada del gris de "cancelada" el rayado sobra: se muestra
+  // solo cuando el color viene del calendario/servicio y no del estado.
+  const showCancelledStripes = isCancelled && !statusColored;
   const accentColor = isReminder ? getReminderPriorityColor(reminderPriority) : status ? STATUS_ACCENT_COLOR[status] : undefined;
 
   const bg = event.color || 'hsl(var(--primary))';
-  const textColor = isReminder ? undefined : isCancelled ? undefined : getReadableTextColor(event.color);
+  const textColor = isReminder ? undefined : showCancelledStripes ? undefined : getReadableTextColor(event.color);
   const eventStyle = isReminder
     ? getReminderCardStyle(event.color, reminderIsDone)
-    : { backgroundColor: isCancelled ? undefined : bg, color: textColor };
+    : { backgroundColor: showCancelledStripes ? undefined : bg, color: textColor };
 
   return (
     <ContextMenu onOpenChange={(o) => { if (o) onEventContextMenuOpen?.(event.data); }}>
@@ -64,7 +68,7 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
           title={event.label ?? event.title}
           className={cn(
             'event',
-            isCancelled && 'event-cancelled',
+            showCancelledStripes && 'event-cancelled',
             isReminder && 'event-reminder',
             reminderIsDone && 'event-reminder-done',
           )}
@@ -91,7 +95,7 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
               title={event.title}
               style={{ backgroundColor: accentColor }}
             >
-              <ReminderIcon className="h-3 w-3" strokeWidth={2.5} />
+              <ReminderIcon className="h-3.5 w-3.5" strokeWidth={2.5} />
             </span>
           )}
           {!isReminder && status && accentColor && (() => {
@@ -102,9 +106,13 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
                 aria-hidden
                 className="event-status-corner"
                 title={cancellationReason ? `${status} - ${cancellationReason}` : status}
-                style={{ backgroundColor: accentColor }}
+                // Sobre una card ya pintada con el color del estado el círculo
+                // desaparece, así que se invierte: fondo claro, ícono del color.
+                style={statusColored
+                  ? { backgroundColor: 'rgba(255,255,255,0.92)', color: accentColor }
+                  : { backgroundColor: accentColor }}
               >
-                <StatusIcon className="h-3 w-3" strokeWidth={2.5} />
+                <StatusIcon className="h-3.5 w-3.5" strokeWidth={2.5} />
               </span>
             );
           })()}

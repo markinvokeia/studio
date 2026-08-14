@@ -13,6 +13,10 @@ export interface CalendarEvent {
   start: Date | string;
   end: Date | string;
   color?: string;
+  /** `color` comes from the appointment's status, not from the calendar/service.
+   *  The cards read it to skip the cancelled stripes and to keep the corner
+   *  status icon legible over a card already painted in that same color. */
+  statusColored?: boolean;
   colorId?: string;
   doctorGroupId?: string;
   calendarGroupId?: string;
