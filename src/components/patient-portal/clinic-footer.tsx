@@ -26,8 +26,8 @@ const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'frida
  *
  * Lista **todas** las sedes con su contacto: si la clínica tiene varias, el
  * paciente tiene que poder elegir a cuál ir o a cuál escribir sin salir del
- * portal. Se puede plegar para recuperar alto — en pantallas bajas el pie
- * competía con el contenido.
+ * portal. Arranca plegado —dejando sólo la línea de copyright— y se expande
+ * desde el control de la esquina inferior derecha.
  */
 export function ClinicFooter() {
   const t = useTranslations('PatientLogin');
@@ -35,7 +35,9 @@ export function ClinicFooter() {
 
   const [clinic, setClinic] = React.useState<PublicClinicInfo | null>(null);
   const [publicSedes, setPublicSedes] = React.useState<PublicSede[]>([]);
-  const [isExpanded, setIsExpanded] = React.useState(true);
+  // Arranca plegado: en el portal el alto lo necesita el contenido, y los datos
+  // de contacto quedan a un clic desde la última línea.
+  const [isExpanded, setIsExpanded] = React.useState(false);
 
   React.useEffect(() => {
     let cancelled = false;
