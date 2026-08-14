@@ -23,8 +23,18 @@ interface PatientAccountStatementProps {
   patientName?: string;
 }
 
-/** Anchos compartidos por la tabla fija y la scrolleable, para que las columnas alineen. */
+/** Anchos compartidos por las tres tablas, para que las columnas alineen. */
 const COLUMNS = ['20%', '36%', '15%', '15%', '14%'];
+
+/** Celda de importe: mismo alineado y margen derecho en cabecera, filas y totales. */
+const NUM_CELL = 'py-2 pl-3 pr-5 text-right';
+
+/**
+ * Reserva el ancho de la barra de desplazamiento también en las tablas que no
+ * scrollean. Sin esto, la cabecera y los totales quedan unos píxeles corridos
+ * respecto de las filas en cuanto aparece la barra.
+ */
+const GUTTER = '[scrollbar-gutter:stable] overflow-y-hidden';
 
 function ColGroup() {
   return (
@@ -110,7 +120,7 @@ export function PatientAccountStatement({ userId, patientName }: PatientAccountS
         return (
           <section key={currency} className="overflow-hidden rounded-xl border">
             {/* ── Bloque fijo: cabecera y totales ─────────────────────── */}
-            <div className="border-b bg-muted/40">
+            <div className={cn('border-b bg-muted/40', GUTTER)}>
               {currencies.length > 1 && (
                 <p className="px-3 pt-2 text-xs font-semibold text-muted-foreground">{currency}</p>
               )}
@@ -120,9 +130,9 @@ export function PatientAccountStatement({ userId, patientName }: PatientAccountS
                   <tr className="text-xs uppercase tracking-wide text-muted-foreground">
                     <th className="px-3 py-2 text-left font-medium">{t('columns.date')}</th>
                     <th className="px-3 py-2 text-left font-medium">{t('columns.treatment')}</th>
-                    <th className="px-3 py-2 text-right font-medium">{t('columns.debit')}</th>
-                    <th className="px-3 py-2 text-right font-medium">{t('columns.credit')}</th>
-                    <th className="px-3 py-2 text-right font-medium">{t('columns.balance')}</th>
+                    <th className={cn(NUM_CELL, 'font-medium')}>{t('columns.debit')}</th>
+                    <th className={cn(NUM_CELL, 'font-medium')}>{t('columns.credit')}</th>
+                    <th className={cn(NUM_CELL, 'font-medium')}>{t('columns.balance')}</th>
                   </tr>
                 </thead>
               </table>
@@ -158,7 +168,8 @@ export function PatientAccountStatement({ userId, patientName }: PatientAccountS
                             (tratamiento/factura), verde lo pagado. */}
                         <td
                           className={cn(
-                            'px-3 py-2 text-right tabular-nums',
+                            NUM_CELL,
+                            'tabular-nums',
                             row.debe > 0 ? 'font-medium text-rose-600 dark:text-rose-400' : 'text-muted-foreground',
                           )}
                         >
@@ -171,7 +182,8 @@ export function PatientAccountStatement({ userId, patientName }: PatientAccountS
                         </td>
                         <td
                           className={cn(
-                            'px-3 py-2 text-right tabular-nums',
+                            NUM_CELL,
+                            'tabular-nums',
                             row.haber > 0
                               ? 'font-medium text-emerald-600 dark:text-emerald-400'
                               : 'text-muted-foreground',
@@ -179,7 +191,7 @@ export function PatientAccountStatement({ userId, patientName }: PatientAccountS
                         >
                           {fmtZero(row.haber, row.currency)}
                         </td>
-                        <td className="px-3 py-2 text-right font-semibold tabular-nums">
+                        <td className={cn(NUM_CELL, 'font-semibold tabular-nums')}>
                           {fmtDash(row.runningBalance, row.currency)}
                         </td>
                       </tr>
@@ -192,7 +204,8 @@ export function PatientAccountStatement({ userId, patientName }: PatientAccountS
             {/* Totales al pie, cada uno alineado bajo su columna: facturado bajo
                 Debe, pagado bajo Haber, pendiente bajo Saldo. Queda fuera del
                 scroll para que se lea siempre, aunque la lista sea larga. */}
-            <table className="w-full table-fixed border-t bg-muted/40 text-sm">
+            <div className={cn('border-t bg-muted/40', GUTTER)}>
+            <table className="w-full table-fixed text-sm">
               <ColGroup />
               <tbody>
                 <tr>
@@ -210,6 +223,7 @@ export function PatientAccountStatement({ userId, patientName }: PatientAccountS
                 </tr>
               </tbody>
             </table>
+            </div>
           </section>
         );
       })}
@@ -221,7 +235,7 @@ export function PatientAccountStatement({ userId, patientName }: PatientAccountS
 
 function TotalCell({ label, value, emphasis }: { label: string; value: string; emphasis?: boolean }) {
   return (
-    <td className="px-3 py-2 text-right">
+    <td className={NUM_CELL}>
       <div className="text-[10px] uppercase leading-tight text-muted-foreground">{label}</div>
       <div className={cn('tabular-nums', emphasis ? 'text-base font-bold' : 'font-semibold')}>{value}</div>
     </td>
