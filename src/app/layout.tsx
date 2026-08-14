@@ -36,10 +36,17 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
+        {/* `light` es el tema Invoke (el violeta corporativo, definido en `:root`).
+            Es el que se aplica mientras el usuario no elija otro en el menú: antes el
+            default era `system`, así que en un equipo en modo oscuro la app arrancaba
+            en Oscuro sin que nadie lo hubiera pedido. `enableSystem` queda apagado
+            porque el menú solo ofrece Invoke / Claro / Oscuro, nunca "seguir al
+            sistema". Quien ya eligió conserva su tema: next-themes solo escribe en
+            localStorage cuando se llama a `setTheme`. */}
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          defaultTheme="light"
+          enableSystem={false}
           disableTransitionOnChange
           themes={['light', 'dark', 'claro']}
         >
