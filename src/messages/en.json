@@ -8038,6 +8038,18 @@
       "balance": "Balance",
       "finalBalance": "Final Balance",
       "paysInvoice": "Pays"
+    },
+    "cajaCierre": {
+      "movements": "Movements",
+      "noMovements": "No movements in {currency}.",
+      "movementDate": "Date",
+      "movementMethod": "Method",
+      "movementDescription": "Description",
+      "registeredBy": "Registered by",
+      "movementAmount": "Amount",
+      "totalIncome": "Total income",
+      "totalExpense": "Total expenses",
+      "net": "Net"
     }
   },
   "License": {

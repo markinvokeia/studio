@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { cn, formatDateTime } from '@/lib/utils';
 import type { CajaCierrePrintData } from '@/stores/print-document-store';
 
@@ -12,6 +13,7 @@ function fmtAmt(value: number, currency: string) {
 }
 
 export function CajaCierrePrintTemplate({ data }: CajaCierrePrintTemplateProps) {
+  const t = useTranslations('PrintTemplates.cajaCierre');
   const { details } = data;
   const openingDetails = details.opening_details ?? {};
   const closingDetails = details.closing_details ?? {};
@@ -22,7 +24,7 @@ export function CajaCierrePrintTemplate({ data }: CajaCierrePrintTemplateProps) 
 
   function renderMovementsTable(currency: string) {
     const currMovs = movements.filter((m) => m.currency === currency);
-    if (currMovs.length === 0) return <p className="text-xs text-gray-400 text-center py-2">Sin movimientos en {currency}.</p>;
+    if (currMovs.length === 0) return <p className="text-xs text-gray-400 text-center py-2">{t('noMovements', { currency })}</p>;
 
     const totalIngresos = currMovs.filter((m) => m.amount > 0).reduce((s, m) => s + m.amount, 0);
     const totalEgresos = currMovs.filter((m) => m.amount < 0).reduce((s, m) => s + Math.abs(m.amount), 0);
@@ -31,11 +33,11 @@ export function CajaCierrePrintTemplate({ data }: CajaCierrePrintTemplateProps) 
       <table className="print-template-table w-full">
         <thead>
           <tr>
-            <th className="text-left">Fecha</th>
-            <th className="text-left">Método</th>
-            <th className="text-left">Descripción</th>
-            <th className="text-left">Registrado por</th>
-            <th className="text-right">Monto</th>
+            <th className="text-left">{t('movementDate')}</th>
+            <th className="text-left">{t('movementMethod')}</th>
+            <th className="text-left">{t('movementDescription')}</th>
+            <th className="text-left">{t('registeredBy')}</th>
+            <th className="text-right">{t('movementAmount')}</th>
           </tr>
         </thead>
         <tbody>
@@ -56,15 +58,15 @@ export function CajaCierrePrintTemplate({ data }: CajaCierrePrintTemplateProps) 
         </tbody>
         <tfoot>
           <tr className="border-t border-gray-200">
-            <td colSpan={4} className="text-right text-xs text-gray-500">Total ingresos</td>
+            <td colSpan={4} className="text-right text-xs text-gray-500">{t('totalIncome')}</td>
             <td className="text-right text-xs font-semibold text-green-700">{fmtAmt(totalIngresos, currency)}</td>
           </tr>
           <tr>
-            <td colSpan={4} className="text-right text-xs text-gray-500">Total egresos</td>
+            <td colSpan={4} className="text-right text-xs text-gray-500">{t('totalExpense')}</td>
             <td className="text-right text-xs font-semibold text-red-600">−{fmtAmt(totalEgresos, currency)}</td>
           </tr>
           <tr className="border-t border-gray-200">
-            <td colSpan={4} className="text-right text-xs font-bold">Neto</td>
+            <td colSpan={4} className="text-right text-xs font-bold">{t('net')}</td>
             <td className="text-right text-xs font-bold">{fmtAmt(totalIngresos - totalEgresos, currency)}</td>
           </tr>
         </tfoot>
@@ -150,7 +152,7 @@ export function CajaCierrePrintTemplate({ data }: CajaCierrePrintTemplateProps) 
       })}
 
       {/* Movimientos */}
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2 pb-1 border-b border-gray-200">Movimientos</h2>
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2 pb-1 border-b border-gray-200">{t('movements')}</h2>
       {currencies.map((cur) => (
         <div key={cur} className="mb-4 print-template-section">
           <p className="text-xs font-medium text-gray-600 mb-1">{cur}</p>

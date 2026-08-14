@@ -8018,6 +8018,18 @@
       "balance": "Saldo",
       "finalBalance": "Saldo Final",
       "paysInvoice": "Paga"
+    },
+    "cajaCierre": {
+      "movements": "Movimientos",
+      "noMovements": "Sin movimientos en {currency}.",
+      "movementDate": "Fecha",
+      "movementMethod": "Método",
+      "movementDescription": "Descripción",
+      "registeredBy": "Registrado por",
+      "movementAmount": "Monto",
+      "totalIncome": "Total ingresos",
+      "totalExpense": "Total egresos",
+      "net": "Neto"
     }
   },
   "License": {
