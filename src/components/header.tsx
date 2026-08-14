@@ -29,6 +29,7 @@ import {
     Zap,
 } from 'lucide-react';
 import { useStickyNotes } from '@/hooks/use-sticky-notes';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import type { StickyNote } from '@/lib/types';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
@@ -156,6 +157,14 @@ export function Header() {
     const { open: openBillingWizard } = useBillingWizard();
 
     const [isExpanded, setIsExpanded] = React.useState(true);
+    // La barra mobile arranca cerrada: desplegada tapa la parte superior de la pantalla
+    // en cada carga. Estado propio porque el riel de desktop sí arranca abierto.
+    const [isMobileExpanded, setIsMobileExpanded] = React.useState(false);
+    // 640px = el breakpoint `sm` con el que se alternan las dos ramas del panel. Sirve
+    // para saber cuál de los dos estados es el que el usuario está viendo: de eso depende
+    // marcar las novedades como vistas y hacer pulsar la pestaña colapsada.
+    const isNarrowViewport = useViewportNarrow(640);
+    const isPanelOpen = isNarrowViewport ? isMobileExpanded : isExpanded;
     const [isChatOpen, setIsChatOpen] = React.useState(false);
     const [isChatMinimized, setIsChatMinimized] = React.useState(false);
     const [chatMessages, setChatMessages] = React.useState<ChatMessage[]>([]);
@@ -210,7 +219,7 @@ export function Header() {
     React.useEffect(() => {
         const prev = prevCountsRef.current;
 
-        if (isExpanded) {
+        if (isPanelOpen) {
             // Panel is visible — mark everything as seen and stop pulsing
             lastSeenRef.current = { alerts: alertCount, inbox: inboxCount };
             try { localStorage.setItem(PANEL_SEEN_KEY, JSON.stringify(lastSeenRef.current)); } catch { /* ignore */ }
@@ -230,7 +239,7 @@ export function Header() {
         }
 
         prevCountsRef.current = { alerts: alertCount, inbox: inboxCount, notes: notes.length };
-    }, [alertCount, inboxCount, notes.length, isExpanded]);
+    }, [alertCount, inboxCount, notes.length, isPanelOpen]);
 
     // Show floating hint when a new notification arrives while the panel is expanded
     React.useEffect(() => {
@@ -567,14 +576,14 @@ export function Header() {
             {/* ── Mobile widget ─────────────────────────────────────────── */}
             <div className={cn(
                 "sm:hidden fixed z-[50]",
-                isExpanded
+                isMobileExpanded
                     ? "top-0 left-0 right-0 flex items-start"
                     : "top-0 right-0 flex items-start"
             )}>
-                {!isExpanded ? (
+                {!isMobileExpanded ? (
                     <button
                         type="button"
-                        onClick={() => setIsExpanded(true)}
+                        onClick={() => setIsMobileExpanded(true)}
                         className={cn(
                             "h-12 w-12 flex items-center justify-center border-l border-b border-[var(--nav-border)] bg-[var(--nav-active-bg)] hover:bg-[var(--nav-hover-bg)] transition-colors",
                             shouldPulse && 'animate-tab-alert',
@@ -655,7 +664,7 @@ export function Header() {
                         <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => setIsExpanded(false)}
+                            onClick={() => setIsMobileExpanded(false)}
                             className="rounded-xl h-10 w-10 hover:bg-accent"
                         >
                             <ChevronRight className="h-4 w-4 text-muted-foreground" />

@@ -642,7 +642,9 @@ export function DoctorAgentChat({
               </Button>
             </div>
           ) : !isOpen ? (
-            <div className="fixed bottom-24 left-1/2 z-[9990] -translate-x-1/2 flex flex-col items-center gap-2.5 sm:bottom-10">
+            // En mobile va a la esquina inferior derecha para no quedar sobre el texto que
+            // el doctor está leyendo; desde `sm` sigue centrado abajo como hasta ahora.
+            <div className="fixed bottom-24 right-4 z-[9990] flex flex-col items-end gap-2.5 sm:bottom-10 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:items-center">
               <span className="rounded-full border border-border/50 bg-background/90 px-3.5 py-1.5 text-xs font-medium text-foreground shadow-sm backdrop-blur-sm">
                 {t('openAgentChat')}
               </span>
