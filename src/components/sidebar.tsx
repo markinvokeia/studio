@@ -42,6 +42,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useTableDensity } from '@/hooks/use-table-density';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
+import { rememberLocale } from '@/lib/locale';
 import { filterNavByPermissions } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -313,6 +314,9 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                                                         onClick={() => {
                                                             const sp = new URLSearchParams(window.location.search);
                                                             const newPath = pathname.replace(`/${locale}`, `/${code}`);
+                                                            // Deja registrada la elección: el middleware ya no fija la
+                                                            // cookie solo, para que navegar no cambie el idioma.
+                                                            rememberLocale(code);
                                                             router.replace(`${newPath}?${sp.toString()}`);
                                                         }}
                                                         className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
@@ -736,6 +740,7 @@ function MobileNav() {
                                                 type="button"
                                                 onClick={() => {
                                                     const newPath = pathname.replace(`/${locale}`, `/${code}`);
+                                                    rememberLocale(code);
                                                     router.push(newPath);
                                                     setMobileFooterPanel(null);
                                                 }}
