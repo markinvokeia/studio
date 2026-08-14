@@ -2369,6 +2369,12 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                 ? Math.max(0, Math.round((parseISO(appt.end.dateTime.replace(/Z$/, '')).getTime() - parseISO(appt.start.dateTime.replace(/Z$/, '')).getTime()) / 60000))
                                                 : null;
                                             const treatmentNames = (appt.services ?? []).map((s) => s.name).filter(Boolean);
+                                            // Mismo formato que el calendario: "Paciente (notas)". Se arma con patientName
+                                            // y no con summary porque este último llega del backend como
+                                            // "Paciente - tratamientos" y arrastra el guion aunque no haya tratamientos.
+                                            const apptNotes = (appt.notes ?? '').trim();
+                                            const apptName = (appt.patientName ?? '').trim() || appt.summary.replace(/\s*[-–—]\s*$/, '');
+                                            const apptTitle = apptNotes ? `${apptName} (${apptNotes})` : apptName;
                                             const ApptStatusIcon = getStatusIcon(appt.status, appt.cancellation_reason);
                                             const apptStatusVariant = (STATUS_BADGE_VARIANT[appt.status] ?? 'default') as
                                                 'default' | 'success' | 'destructive' | 'info' | 'warning' | 'secondary' | 'outline';
@@ -2474,7 +2480,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                                     </Badge>
                                                                 )}
                                                             </div>
-                                                            <p className="text-xs font-medium truncate mt-0.5">{appt.summary}</p>
+                                                            <p className="text-xs font-medium truncate mt-0.5" title={apptTitle}>{apptTitle}</p>
                                                             <p className="flex items-center gap-x-3 gap-y-0.5 flex-wrap text-xs text-muted-foreground">
                                                                 <span className="flex items-center gap-1 min-w-0" title={t('apptCalendar')}>
                                                                     <MapPin className="h-3 w-3 shrink-0" />
