@@ -1375,7 +1375,6 @@
       "latestSessionBadge": "Latest session",
       "currentAppointmentBadge": "Current appointment",
       "viewPatientFile": "Patient file",
-      "noClinicalSignals": "No recorded allergies or complications.",
       "moreAlertTags": "+{count} more",
       "sessionExistsToday": "A clinical session already exists for today. Only one session per patient per day is allowed.",
       "sessionOnlyOnAppointmentDay": "You can only complete or edit the clinical session on the appointment's day.",

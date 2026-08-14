@@ -1284,18 +1284,35 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     executeDoctorAgentAction(action)
   ), [executeDoctorAgentAction]);
 
+  // En mobile viaja a la fila de "Volver a la agenda"; en desktop se queda a la
+  // derecha de la cabecera del paciente.
+  const patientFileButton = (
+    <Button
+      variant="outline"
+      size="sm"
+      className={cn('shrink-0', isMobile ? 'h-8' : 'self-start')}
+      onClick={() => setPatientFichaOpen(true)}
+    >
+      <BookUser className="h-4 w-4 sm:mr-2" />
+      <span className="hidden sm:inline">{t('focus.viewPatientFile')}</span>
+    </Button>
+  );
+
   const renderDetailPanel = selectedAppointment ? (
     <Card className="flex h-full flex-col overflow-hidden">
       <CardContent className="flex flex-col flex-1 min-h-0 overflow-hidden gap-3 p-3 sm:p-4">
         {isMobile && (
-          <Button variant="ghost" className="-ml-1 h-8 w-fit px-2 text-sm" onClick={() => setMobileDetailsOpen(false)}>
-            <ArrowLeft className="mr-1.5 h-4 w-4" />
-            {t('focus.backToAgenda')}
-          </Button>
+          <div className="flex shrink-0 items-center justify-between gap-2">
+            <Button variant="ghost" className="-ml-1 h-8 w-fit px-2 text-sm" onClick={() => setMobileDetailsOpen(false)}>
+              <ArrowLeft className="mr-1.5 h-4 w-4" />
+              {t('focus.backToAgenda')}
+            </Button>
+            {patientFileButton}
+          </div>
         )}
 
-        <div className="flex shrink-0 flex-row items-start justify-between gap-3 border-b pb-3 sm:pb-4">
-            <div className="flex min-w-0 items-start gap-3">
+        <div className="flex shrink-0 flex-row items-center justify-between gap-3 border-b pb-2.5 sm:pb-4">
+            <div className="flex min-w-0 items-center gap-3">
               <TooltipProvider>
                 {hasAlerts ? (
                   <Popover>
@@ -1388,19 +1405,21 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                 )}
               </TooltipProvider>
               <div className="min-w-0">
-                <p className="text-xl font-semibold leading-tight text-foreground sm:text-2xl">
+                <p className="text-base font-semibold leading-tight text-foreground sm:text-xl">
                   {selectedAppointment.patientName || t('agenda.unknownPatient')}
                 </p>
-                <p className="text-sm text-muted-foreground">
-                  {hasAlerts
-                    ? [
-                        alertAllergies.length > 0 ? `${alertAllergies.length} alergia(s)` : '',
-                        alertConditions.length > 0 ? `${alertConditions.length} padecimiento(s)` : '',
-                      ].filter(Boolean).join(' · ')
-                    : t('focus.noClinicalSignals')}
-                </p>
+                {/* Solo se lista lo que el paciente tiene. Cuando no hay nada, el ícono
+                    neutro de la izquierda ya lo dice y una línea de texto solo ocupa alto. */}
+                {hasAlerts && (
+                  <p className="text-xs text-muted-foreground sm:text-sm">
+                    {[
+                      alertAllergies.length > 0 ? `${alertAllergies.length} alergia(s)` : '',
+                      alertConditions.length > 0 ? `${alertConditions.length} padecimiento(s)` : '',
+                    ].filter(Boolean).join(' · ')}
+                  </p>
+                )}
                 {isSessionEditingBlockedByDate && (
-                  <Badge variant="outline" className="mt-1.5 gap-1 text-[10px] font-medium capitalize">
+                  <Badge variant="outline" className="mt-1 gap-1 text-[10px] font-medium capitalize">
                     <Lock className="h-3 w-3" />
                     {selectedAppointmentDateLabel
                       ? t('focus.readOnlyOnDate', { date: selectedAppointmentDateLabel })
@@ -1410,15 +1429,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
               </div>
             </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="shrink-0 self-start"
-              onClick={() => setPatientFichaOpen(true)}
-            >
-              <BookUser className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">{t('focus.viewPatientFile')}</span>
-            </Button>
+            {!isMobile && patientFileButton}
         </div>
 
         <div className="flex flex-col flex-1 min-h-0">

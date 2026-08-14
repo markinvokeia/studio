@@ -1375,7 +1375,6 @@
       "latestSessionBadge": "Última sesión",
       "currentAppointmentBadge": "Cita actual",
       "viewPatientFile": "Ficha del paciente",
-      "noClinicalSignals": "Sin alergias ni complicaciones registradas.",
       "moreAlertTags": "+{count} más",
       "sessionExistsToday": "Ya existe una sesión clínica registrada para hoy. Solo se permite una sesión por paciente por día.",
       "sessionOnlyOnAppointmentDay": "Solo puedes completar o editar la sesión clínica el día de la cita.",
