@@ -7,6 +7,9 @@ import * as z from 'zod';
 import { addMonths, endOfMonth, format, parseISO, startOfMonth } from 'date-fns';
 import { Banknote, Calendar, CalendarClock, Check, ChevronDown, CreditCard, FileMinus, FileText, Hash, History, Link2, ListChecks, Loader2, Pencil, Plus, Printer, Receipt, RefreshCw, ScrollText, Search, Stethoscope, StickyNote, Trash2, UserRound, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { AppliedDiscountNote, DiscountControl } from '@/components/ui/discount-control';
+import { useDiscountSettings } from '@/hooks/useDiscountSettings';
+import { buildLineDiscountFields, computeGrossTotal, computeLineTotals, isDiscountWithinLimit } from '@/lib/discounts';
 import type { DateRange } from 'react-day-picker';
 
 import { Badge } from '@/components/ui/badge';
@@ -645,7 +648,8 @@ function InlineEditorShell({ title, controls, line1, line2, belowSlot }: {
   );
 }
 
-const quoteEditorSchema = z.object({
+/** El tope de descuento es un dato de runtime: el esquema se construye con el. */
+const buildQuoteEditorSchema = (maxDiscountPct: number) => z.object({
   created_at: z.date(),
   due_date: z.date().optional(),
   currency: z.enum(['UYU', 'USD']),
@@ -656,8 +660,15 @@ const quoteEditorSchema = z.object({
   unit_price: z.coerce.number().min(0),
   doctor_id: z.string().optional(),
   description: z.string().optional(),
+  discount_mode: z.enum(['percent', 'amount']).nullish(),
+  discount_value: z.coerce.number().min(0).nullish(),
+}).superRefine((values, ctx) => {
+  const base = computeGrossTotal(values.unit_price, values.quantity);
+  if (!isDiscountWithinLimit(base, { mode: values.discount_mode, value: values.discount_value }, maxDiscountPct)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['discount_value'], message: 'Supera el descuento máximo permitido' });
+  }
 });
-type QuoteEditorValues = z.infer<typeof quoteEditorSchema>;
+type QuoteEditorValues = z.infer<ReturnType<typeof buildQuoteEditorSchema>>;
 
 /**
  * Inline create/edit editor for a Presupuesto (`quote`) or Tratamiento (`invoice`) line.
@@ -722,6 +733,8 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
   const editItem = editItems?.find((i) => i.id === editRow?.itemId);
   const [doctorName, setDoctorName] = React.useState(editInvoice?.doctor_name || editQuote?.doctor_name || editRow?.doctorName || '');
 
+  const discounts = useDiscountSettings();
+  const quoteEditorSchema = React.useMemo(() => buildQuoteEditorSchema(discounts.maxPct), [discounts.maxPct]);
   const form = useForm<QuoteEditorValues>({
     resolver: zodResolver(quoteEditorSchema),
     defaultValues: {
@@ -743,15 +756,39 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
       unit_price: editItem?.unit_price ?? editRow?.unitPrice ?? 0,
       doctor_id: editInvoice?.doctor_id || editQuote?.doctor_id || editRow?.doctorId || '',
       description: editInvoice?.notes || editQuote?.notes || editRow?.notes || '',
+      // Al editar se rehidrata el descuento guardado; al crear se arranca sin el.
+      discount_mode: editItem?.discount_mode ?? editRow?.discountMode ?? null,
+      discount_value: editItem?.discount_value ?? editRow?.discountValue ?? null,
     },
   });
   const watchedName = form.watch('service_name');
   const createdAt = form.watch('created_at');
   const dueDate = form.watch('due_date');
   const selectedCurrency = form.watch('currency');
+  const watchedQty = form.watch('quantity');
+  const watchedPrice = form.watch('unit_price');
+  const watchedDiscountMode = form.watch('discount_mode');
+  const watchedDiscountValue = form.watch('discount_value');
+
+  /** Importes de la unica linea que edita este formulario. */
+  const lineTotals = React.useMemo(
+    () => computeLineTotals(
+      watchedPrice ?? 0,
+      watchedQty ?? 0,
+      discounts.enabled ? { mode: watchedDiscountMode, value: watchedDiscountValue } : null,
+    ),
+    [watchedPrice, watchedQty, discounts.enabled, watchedDiscountMode, watchedDiscountValue],
+  );
 
   const onSubmit = async (values: QuoteEditorValues) => {
     if (submitting) return;
+    // Campos de descuento y total NETO de la linea. Se calcula una vez y se
+    // reutiliza en las cuatro rutas de guardado que tiene este editor.
+    const lineDiscount = buildLineDiscountFields(
+      values.unit_price,
+      values.quantity,
+      discounts.enabled ? { mode: values.discount_mode, value: values.discount_value } : null,
+    );
     // Only a billed treatment (`doc === 'invoice'`) offers a due date at all — a
     // presupuesto has no invoice behind it yet, so `values.due_date` stays undefined there.
     if (values.due_date && values.due_date <= values.created_at) {
@@ -809,8 +846,8 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
           service_id: values.service_id,
           quantity: qty,
           unit_price: values.unit_price,
-          total: qty * values.unit_price,
           tooth_number: tooth,
+          ...lineDiscount,
         });
         if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message);
         toast({ title: t('toasts.itemUpdated') });
@@ -856,8 +893,8 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
           service_id: values.service_id,
           quantity: qty,
           unit_price: values.unit_price,
-          total: qty * values.unit_price,
           tooth_number: tooth,
+          ...lineDiscount,
         });
         const result = Array.isArray(res) ? res[0] : res;
         if (result?.error || (typeof result?.code === 'number' && result.code >= 400)) {
@@ -874,8 +911,10 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
         // save together.
         const items = (editItems && editItems.length > 0 ? editItems : (editItem ? [editItem] : []))
           .map((i) => i.id === editRow!.itemId
-            ? { id: i.id, service_id: values.service_id, quantity: qty, unit_price: values.unit_price, total: qty * values.unit_price, tooth_number: tooth }
-            : { id: i.id, service_id: i.service_id, quantity: i.quantity, unit_price: i.unit_price, total: i.total, tooth_number: (i as QuoteItem).tooth_number ?? null });
+            ? { id: i.id, service_id: values.service_id, quantity: qty, unit_price: values.unit_price, tooth_number: tooth, ...lineDiscount }
+            // Las lineas hermanas se reenvian tal cual, con su descuento intacto.
+            : { id: i.id, service_id: i.service_id, quantity: i.quantity, unit_price: i.unit_price, total: i.total, tooth_number: (i as QuoteItem).tooth_number ?? null,
+                gross_total: i.gross_total, discount_mode: i.discount_mode ?? null, discount_value: i.discount_value ?? null, discount_amount: i.discount_amount ?? null });
         const total = items.reduce((sum, i) => sum + (i.total || 0), 0);
         const res = await api.post(API_ROUTES.SALES.INVOICES_UPSERT, {
           id: editRow!.invoiceId,
@@ -899,14 +938,17 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
           service_name: values.service_name,
           quantity: qty,
           unit_price: values.unit_price,
-          total: qty * values.unit_price,
           tooth_number: tooth,
+          ...lineDiscount,
         };
         if (doc === 'quote') {
           const res = await api.post(API_ROUTES.SALES.QUOTES_UPSERT, {
             user_id: userId,
             doctor_id: values.doctor_id || undefined,
-            total: qty * values.unit_price,
+            total: lineDiscount.total,
+            gross_total: lineDiscount.gross_total,
+            discount_scope: discounts.enabled ? discounts.scope : null,
+            discount_amount: lineDiscount.discount_amount,
             currency: values.currency,
             status: 'draft',
             payment_status: 'unpaid',
@@ -924,7 +966,10 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
           const res = await api.post(API_ROUTES.SALES.INVOICES_UPSERT, {
             user_id: userId,
             doctor_id: values.doctor_id || undefined,
-            total: qty * values.unit_price,
+            total: lineDiscount.total,
+            gross_total: lineDiscount.gross_total,
+            discount_scope: discounts.enabled ? discounts.scope : null,
+            discount_amount: lineDiscount.discount_amount,
             currency: values.currency,
             created_at: createdAtIso,
             due_date: dueDateIso,
@@ -1013,6 +1058,28 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
               ariaLabel={t('fields.price')}
               className="w-52"
             />
+            {/* Descuento, inline junto al precio. Este editor maneja una sola
+                linea, asi que los dos ambitos colapsan en lo mismo. */}
+            {discounts.enabled && (
+              <DiscountControl
+                className="shrink-0"
+                mode={watchedDiscountMode}
+                value={watchedDiscountValue}
+                base={lineTotals.gross_total}
+                currency={selectedCurrency}
+                maxPct={discounts.maxPct}
+                defaultPct={discounts.defaultPct}
+                canApply={discounts.canApply}
+                onApply={(next) => {
+                  form.setValue('discount_mode', next.mode ?? null, { shouldDirty: true });
+                  form.setValue('discount_value', next.value ?? null, { shouldDirty: true, shouldValidate: true });
+                }}
+                onRemove={() => {
+                  form.setValue('discount_mode', null, { shouldDirty: true });
+                  form.setValue('discount_value', null, { shouldDirty: true, shouldValidate: true });
+                }}
+              />
+            )}
           </>
         }
         // Line 2: due date (billed treatments only) · doctor · notes · tooth.
@@ -2471,6 +2538,11 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
                             <div className="patient-ledger-amount-cell text-sm tabular-nums">
                               <div className="patient-ledger-amount-label text-[9px] font-medium uppercase tracking-wide text-muted-foreground">{t('columns.debit')}</div>
                               {fmtAmountZero(row.debe, row.currency)}
+                              {/* El importe ya viene rebajado: la nota deja ver por que. */}
+                              <AppliedDiscountNote
+                                line={{ discount_mode: row.discountMode, discount_value: row.discountValue, discount_amount: row.discountAmount }}
+                                currency={row.currency}
+                              />
                               {row.status === 'presupuestado' && (
                                 <div className="text-[10px] font-normal not-italic text-muted-foreground">{t('footer.notCounted')}</div>
                               )}

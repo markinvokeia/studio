@@ -1,5 +1,5 @@
 
-import { ALERT_CENTER_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS, PATIENT_PORTAL_CONFIG_PERMISSIONS, CASHIER_PERMISSIONS, CLINIC_CATALOG_PERMISSIONS, DASHBOARD_PERMISSIONS, DICOM_PERMISSIONS, LICENSING_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PURCHASES_PERMISSIONS, REPORTS_PERMISSIONS, SALES_PERMISSIONS, SUBSCRIPTIONS_PERMISSIONS, SYSTEM_PERMISSIONS, TV_DISPLAY_PERMISSIONS } from '@/constants/permissions';
+import { ALERT_CENTER_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS, CLINIC_PREFS_PERMISSIONS, PATIENT_PORTAL_CONFIG_PERMISSIONS, CASHIER_PERMISSIONS, CLINIC_CATALOG_PERMISSIONS, DASHBOARD_PERMISSIONS, DICOM_PERMISSIONS, LICENSING_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PURCHASES_PERMISSIONS, REPORTS_PERMISSIONS, SALES_PERMISSIONS, SUBSCRIPTIONS_PERMISSIONS, SYSTEM_PERMISSIONS, TV_DISPLAY_PERMISSIONS } from '@/constants/permissions';
 import type { LucideIcon } from 'lucide-react';
 import {
   Activity,
@@ -54,6 +54,7 @@ import {
   Shield,
   ShoppingBasket,
   ShoppingCart,
+  SlidersHorizontal,
   Smile,
   Stethoscope,
   Tags,
@@ -227,9 +228,11 @@ export const navItems: NavItem[] = [
       BUSINESS_CONFIG_PERMISSIONS.MEDICAL_INSTRUCTION_TEMPLATES_VIEW,
       SYSTEM_PERMISSIONS.STAFF_VIEW_MENU,
       PATIENT_PORTAL_CONFIG_PERMISSIONS.VIEW,
+      CLINIC_PREFS_PERMISSIONS.VIEW,
     ],
     items: [
       { title: 'ClinicDetails', href: '/config/clinics', icon: Building, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.CLINIC_DETAILS_VIEW },
+      { title: 'ClinicPrefs', href: '/config/clinic-prefs', icon: SlidersHorizontal, isChidren: true, requiredPermission: CLINIC_PREFS_PERMISSIONS.VIEW },
       { title: 'PatientsPortal', href: '/config/patients-portal', icon: CalendarCheck, isChidren: true, requiredPermission: PATIENT_PORTAL_CONFIG_PERMISSIONS.VIEW },
       { title: 'Sedes', href: '/config/sedes', icon: Building2, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.SEDES_VIEW_LIST },
       { title: 'Schedules', href: '/config/schedules', icon: CalendarClock, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.SCHEDULES_VIEW_LIST },

@@ -33,6 +33,9 @@ import { BillingWizardStepper, type WizardStep } from './wizard-stepper';
 import { StepPatientSelect } from './steps/step-patient-select';
 import { StepInvoiceSelect } from './steps/step-invoice-select';
 import { StepItemsEditor, type EditableItem } from './steps/step-items-editor';
+import { useDiscountSettings } from '@/hooks/useDiscountSettings';
+import { buildDiscountedDocument, type BuildDiscountedDocumentOptions } from '@/lib/discounts';
+import type { DiscountMode } from '@/lib/types';
 import { StepPayment, type PaymentResult, type CreatedPayment } from './steps/step-payment';
 import { StepConfirmation } from './steps/step-confirmation';
 import { StepQuoteItems, type QuoteBillingLine } from './steps/step-quote-items';
@@ -197,28 +200,34 @@ async function createDirectInvoice(
   items: EditableItem[],
   isSales: boolean,
   currency: string,
+  discountOptions: BuildDiscountedDocumentOptions,
 ): Promise<Invoice> {
   const endpoint = isSales ? API_ROUTES.SALES.INVOICES_UPSERT : API_ROUTES.PURCHASES.INVOICES_UPSERT;
   const now = new Date();
   const dueDate = new Date(now);
   dueDate.setDate(dueDate.getDate() + 30);
-  const total = items.reduce((s, i) => s + i.total, 0);
+  // Los importes finales y el reparto del descuento del total salen de aqui.
+  const { items: itemsToSubmit, document } = buildDiscountedDocument(
+    items.map((i) => ({
+      service_id: i.service_id,
+      quantity: i.quantity,
+      unit_price: i.unit_price,
+      discount_mode: i.discount_mode,
+      discount_value: i.discount_value,
+    })),
+    discountOptions,
+  );
   const payload = {
     user_id: patientId,
     type: 'invoice',
     currency,
-    total,
     is_sales: isSales,
     is_historical: false,
     created_at: toLocalISOString(now),
     due_date: toLocalISOString(dueDate),
     notes: '',
-    items: items.map((i) => ({
-      service_id: i.service_id,
-      quantity: i.quantity,
-      unit_price: i.unit_price,
-      total: i.total,
-    })),
+    items: itemsToSubmit,
+    ...document,
   };
   const response = await api.post(endpoint, payload);
   const raw = Array.isArray(response)
@@ -248,7 +257,8 @@ async function createDirectInvoice(
     quote_id: '',
     user_id: patientId,
     user_name: '',
-    total,
+    // Neto ya calculado por buildDiscountedDocument, no la suma cruda de líneas.
+    total: document.total,
     currency: currency as 'USD' | 'UYU',
     status: raw.status || 'draft',
     payment_status: raw.payment_status || 'unpaid',
@@ -389,7 +399,10 @@ export function BillingWizardModal() {
   const startFromInvoice = !!(context?.invoiceId || context?.invoice);
 
   // Freeform state (no quoteId, no invoiceId — direct items editor)
+  const discounts = useDiscountSettings();
   const [editableItems, setEditableItems] = React.useState<EditableItem[]>([]);
+  /** Descuento sobre el total de la factura libre. Solo con ambito 'total'. */
+  const [freeformDiscount, setFreeformDiscount] = React.useState<{ mode: DiscountMode | null; value: number | null }>({ mode: null, value: null });
   const [freeformCurrency, setFreeformCurrency] = React.useState<string>('UYU');
   // Patient selected in patient-selection step (freeform flow without context.patientId)
   const [selectedPatient, setSelectedPatient] = React.useState<User | null>(null);
@@ -697,6 +710,7 @@ export function BillingWizardModal() {
         editableItems,
         isSales,
         freeformCurrency,
+        { enabled: discounts.enabled, scope: discounts.scope, documentDiscount: freeformDiscount },
       );
       setResolvedInvoice(invoice);
       linkInvoiceToContext(invoice.id);
@@ -720,7 +734,8 @@ export function BillingWizardModal() {
     } finally {
       setIsProcessing(false);
     }
-  }, [effectivePatientId, editableItems, freeformCurrency, isSales, steps.length, onSuccess, linkInvoiceToContext]);
+  }, [effectivePatientId, editableItems, freeformCurrency, isSales, steps.length, onSuccess, linkInvoiceToContext,
+      discounts.enabled, discounts.scope, freeformDiscount]);
 
   const handlePaymentSuccess = React.useCallback(
     async (result: PaymentResult) => {
@@ -868,6 +883,8 @@ export function BillingWizardModal() {
             currency={freeformCurrency}
             onCurrencyChange={setFreeformCurrency}
             isSales={isSales}
+            documentDiscount={freeformDiscount}
+            onDocumentDiscountChange={setFreeformDiscount}
           />
         );
       }

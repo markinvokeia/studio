@@ -209,6 +209,14 @@ export const API_ROUTES = {
     },
     /** Configuración → Portal del Paciente. Sólo actualiza; no crea clínicas. */
     PATIENT_PORTAL_CONFIG: '/clinic/patient-portal-config',
+    /**
+     * Configuración → Preferencias de Clínica. Tabla propia (`clinic_preferences`),
+     * separada de los Datos de la Clínica: se carga una única vez tras el login.
+     */
+    CLINIC_PREFERENCES: {
+        GET: '/clinic/preferences',
+        UPSERT: '/clinic/preferences/upsert',
+    },
     ORDERS: '/orders',
     PERMISSIONS: '/permissions',
     PERMISSION_USERS: '/permission_users',

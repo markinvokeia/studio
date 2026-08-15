@@ -1,0 +1,81 @@
+{
+  "name": "Clinic Preferences — Get",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 300],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "clinic/preferences",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-pg-select",
+      "name": "Buscar Preferencias",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 300],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- La clínica se resuelve igual que en `clinic/patient-portal-config`: una sola\n-- instalación, una sola clínica activa. No se depende de un claim del JWT.\nSELECT cp.id,\n       cp.clinic_id,\n       cp.discounts_enabled,\n       cp.discount_scope,\n       cp.default_discount_pct,\n       cp.max_discount_pct\nFROM public.clinic_preferences cp\nWHERE cp.clinic_id = (SELECT id FROM public.clinic WHERE is_active IS NOT FALSE ORDER BY id LIMIT 1)\nLIMIT 1",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "id": "node-format",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [540, 300],
+      "parameters": {
+        "jsCode": "\nconst row = $input.first()?.json;\n\nif (row && row.error) {\n  return [{ json: { statusCode: 500, body: { message: 'No se pudieron leer las preferencias de la clínica.' } } }];\n}\n\n// Sin fila todavía (clínica recién creada, o el script 068 aún no corrió):\n// se devuelven los valores por defecto en lugar de un 404. El frontend no\n// distingue los dos casos y así nunca queda sin configuración.\nif (!row || !row.id) {\n  return [{ json: { statusCode: 200, body: {\n    discounts_enabled:    false,\n    discount_scope:       'line',\n    default_discount_pct: 0,\n    max_discount_pct:     100,\n  } } }];\n}\n\nreturn [{ json: { statusCode: 200, body: {\n  discounts_enabled:    row.discounts_enabled === true,\n  discount_scope:       row.discount_scope === 'total' ? 'total' : 'line',\n  default_discount_pct: Number(row.default_discount_pct ?? 0),\n  max_discount_pct:     Number(row.max_discount_pct ?? 100),\n} } }];\n"
+      }
+    },
+    {
+      "id": "node-respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [760, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Buscar Preferencias", "type": "main", "index": 0 }]]
+    },
+    "Buscar Preferencias": {
+      "main": [[{ "node": "Formatear Respuesta", "type": "main", "index": 0 }]]
+    },
+    "Formatear Respuesta": {
+      "main": [[{ "node": "Responder", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Crear/seleccionar la credencial 'Postgres' en el nodo 'Buscar Preferencias' (reemplaza POSTGRES_CREDENTIAL_ID).\n2. Activar el workflow.\n\nRUTA DEL WEBHOOK:\nGET https://<tu-n8n>/webhook/clinic/preferences\n\nAUTENTICACIÓN:\nHeader Authorization: Bearer <JWT> (el frontend lo envía siempre).\n\nRESPUESTA:\n{\n  \"discounts_enabled\": false,\n  \"discount_scope\": \"line\",\n  \"default_discount_pct\": 0,\n  \"max_discount_pct\": 100\n}\n\nSi no hay fila en clinic_preferences devuelve esos mismos valores por defecto, nunca 404.\n\nTABLA REQUERIDA: clinic_preferences (ver database/scripts/068_20260814_clinic-preferences-and-discounts.sql)"
+  }
+}

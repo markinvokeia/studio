@@ -7,7 +7,7 @@ import type { PrintDocumentType } from '@/stores/print-document-store';
 //   CLÍNICA  : {{clinic_name}} {{clinic_logo}} {{clinic_address}} {{clinic_phone}} {{clinic_email}}
 //   DOCUMENTO: {{doc_no}} {{date}} {{due_date}} {{status}} {{payment_status}} {{currency}} {{reference}} {{notes}}
 //   PACIENTE : {{patient_name}}
-//   TOTALES  : {{total}} {{paid}} {{pending}}
+//   TOTALES  : {{total}} {{subtotal}} {{discount}} {{paid}} {{pending}}
 //              {{amount_invoiced}} {{pending_invoice}} {{amount_paid}} {{pending_payment}}
 //   PAGO     : {{amount}} {{method}} {{transaction_type}} {{exchange_rate}}
 //   N. CRÉD. : {{original_invoice}}
@@ -53,7 +53,9 @@ const INVOICE_DEFAULT = `<div style="font-family:sans-serif;font-size:0.85rem;co
   <div style="display:flex;justify-content:flex-end;margin-bottom:1.5rem;">
     <table class="print-template-table" style="width:16rem;">
       <tbody>
-        <tr><td style="color:#4b5563;">Subtotal</td><td style="text-align:right;font-weight:500;">{{currency}} {{total}}</td></tr>
+        <tr><td style="color:#4b5563;">Subtotal</td><td style="text-align:right;font-weight:500;">{{currency}} {{subtotal}}</td></tr>
+        <tr><td style="color:#4b5563;">Descuento</td><td style="text-align:right;font-weight:500;">- {{currency}} {{discount}}</td></tr>
+        <tr><td style="color:#4b5563;">Total</td><td style="text-align:right;font-weight:500;">{{currency}} {{total}}</td></tr>
         <tr><td style="color:#4b5563;">Pagado</td><td style="text-align:right;font-weight:500;">{{currency}} {{paid}}</td></tr>
         <tr style="border-top:1px solid #d1d5db;font-weight:700;"><td>Pendiente</td><td style="text-align:right;">{{currency}} {{pending}}</td></tr>
       </tbody>
@@ -87,6 +89,8 @@ const QUOTE_DEFAULT = `<div style="font-family:sans-serif;font-size:0.85rem;colo
   <div style="display:flex;justify-content:flex-end;margin-bottom:1.5rem;">
     <table class="print-template-table" style="width:18rem;">
       <tbody>
+        <tr><td style="color:#4b5563;">Subtotal</td><td style="text-align:right;">{{currency}} {{subtotal}}</td></tr>
+        <tr><td style="color:#4b5563;">Descuento</td><td style="text-align:right;">- {{currency}} {{discount}}</td></tr>
         <tr style="font-weight:700;border-bottom:1px solid #d1d5db;"><td>Total</td><td style="text-align:right;">{{currency}} {{total}}</td></tr>
         <tr><td style="color:#4b5563;">Facturado</td><td style="text-align:right;">{{currency}} {{amount_invoiced}}</td></tr>
         <tr><td style="color:#4b5563;">Pend. Factura</td><td style="text-align:right;">{{currency}} {{pending_invoice}}</td></tr>

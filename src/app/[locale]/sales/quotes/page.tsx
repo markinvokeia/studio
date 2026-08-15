@@ -32,6 +32,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { DatePickerInput } from '@/components/ui/date-picker';
+import { DiscountControl, DocumentTotals } from '@/components/ui/discount-control';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { ResizableSheet, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/resizable-sheet';
@@ -55,10 +56,19 @@ import { useToast } from '@/hooks/use-toast';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useDiscountSettings } from '@/hooks/useDiscountSettings';
 import { useDebounce } from '@/hooks/use-debounce';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { normalizeApiResponse } from '@/lib/api-utils';
-import { Clinic, Invoice, InvoiceItem, Order, OrderItem, Payment, Quote, QuoteItem, Service, User } from '@/lib/types';
+import {
+    buildDiscountedDocument,
+    computeDiscountAmount,
+    computeGrossTotal,
+    computeLineTotals,
+    isDiscountWithinLimit,
+    roundCurrency,
+} from '@/lib/discounts';
+import { Clinic, DiscountMode, Invoice, InvoiceItem, Order, OrderItem, Payment, Quote, QuoteItem, Service, User } from '@/lib/types';
 import { cn, formatDate, formatDateTime, formatDisplayDate, getDocumentFileName, sortQuoteItems, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -67,14 +77,17 @@ import { format, parseISO } from 'date-fns';
 import { AlertTriangle, CalendarDays, CheckCircle, CreditCard, FileText, Loader2, Maximize2, Minimize2, Pencil, Printer, Receipt, RefreshCw, Send, ShoppingCart, Stethoscope, StickyNote, Trash2, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
-import { useFieldArray, useForm } from 'react-hook-form';
+import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import * as z from 'zod';
 
 
-const quoteFormSchema = (t: (key: string) => string) => z.object({
+const quoteFormSchema = (t: (key: string) => string, maxDiscountPct: number) => z.object({
     id: z.string().optional(),
     user_id: z.string().min(1, t('validation.userRequired')),
     total: z.coerce.number().min(0, t('validation.totalPositive')),
+    /** Descuento sobre el total del documento. Sólo con ámbito 'total'. */
+    discount_mode: z.enum(['percent', 'amount']).nullish(),
+    discount_value: z.coerce.number().min(0).nullish(),
     currency: z.enum(['UYU', 'USD']).default('USD'),
     status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'pending', 'confirmed',
         'Draft', 'Sent', 'Accepted', 'Rejected', 'Pending', 'Confirmed']),
@@ -94,12 +107,28 @@ const quoteFormSchema = (t: (key: string) => string) => z.object({
         unit_price: z.coerce.number().min(0, t('validation.unitPricePositive')).multipleOf(0.01, t('validation.unitPriceTwoDecimals')),
         total: z.coerce.number().min(0, t('validation.totalPositive')),
         tooth_number: z.coerce.number().int().min(11, t('validation.toothNumberMin')).max(85, t('validation.toothNumberMax')).optional().or(z.literal('')),
+        /** Descuento de la línea. Sólo con ámbito 'line'. */
+        discount_mode: z.enum(['percent', 'amount']).nullish(),
+        discount_value: z.coerce.number().min(0).nullish(),
     })).default([]),
+}).superRefine((values, ctx) => {
+    // El tope se valida acá porque para un descuento en importe hace falta la
+    // base (unit_price x quantity), que no conoce el campo por sí solo.
+    (values.items ?? []).forEach((item, index) => {
+        const base = computeGrossTotal(item.unit_price, item.quantity);
+        if (!isDiscountWithinLimit(base, { mode: item.discount_mode, value: item.discount_value }, maxDiscountPct)) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['items', index, 'discount_value'], message: t('validation.discountOverLimit') });
+        }
+    });
+    const grossTotal = roundCurrency((values.items ?? []).reduce((sum, item) => sum + computeGrossTotal(item.unit_price, item.quantity), 0));
+    if (!isDiscountWithinLimit(grossTotal, { mode: values.discount_mode, value: values.discount_value }, maxDiscountPct)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['discount_value'], message: t('validation.discountOverLimit') });
+    }
 });
 
 type QuoteFormValues = z.infer<ReturnType<typeof quoteFormSchema>>;
 
-const quoteItemFormSchema = (t: (key: string) => string) => z.object({
+const quoteItemFormSchema = (t: (key: string) => string, maxDiscountPct: number) => z.object({
     id: z.string().optional(),
     quote_id: z.string(),
     service_id: z.string().min(1, t('validation.serviceRequired')),
@@ -108,6 +137,13 @@ const quoteItemFormSchema = (t: (key: string) => string) => z.object({
     unit_price: z.coerce.number().min(0, t('validation.unitPricePositive')).multipleOf(0.01, t('validation.unitPriceTwoDecimals')),
     total: z.coerce.number().min(0, t('validation.totalPositive')),
     tooth_number: z.coerce.number().int().min(11, t('validation.toothNumberMin')).max(85, t('validation.toothNumberMax')).optional().or(z.literal('')),
+    discount_mode: z.enum(['percent', 'amount']).nullish(),
+    discount_value: z.coerce.number().min(0).nullish(),
+}).superRefine((values, ctx) => {
+    const base = computeGrossTotal(values.unit_price, values.quantity);
+    if (!isDiscountWithinLimit(base, { mode: values.discount_mode, value: values.discount_value }, maxDiscountPct)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['discount_value'], message: t('validation.discountOverLimit') });
+    }
 });
 
 type QuoteItemFormValues = z.infer<ReturnType<typeof quoteItemFormSchema>>;
@@ -716,8 +752,11 @@ export default function QuotesPage() {
     const [showConversion, setShowConversion] = React.useState(false);
     const [originalServicePrice, setOriginalServicePrice] = React.useState<number | null>(null);
     const [originalServiceCurrency, setOriginalServiceCurrency] = React.useState('');
-    const quoteForm = useForm<QuoteFormValues>({ resolver: zodResolver(quoteFormSchema(tVal)), mode: 'onBlur' });
-    const quoteItemForm = useForm<QuoteItemFormValues>({ resolver: zodResolver(quoteItemFormSchema(tVal)), mode: 'onBlur' });
+    const discounts = useDiscountSettings();
+    const quoteSchema = React.useMemo(() => quoteFormSchema(tVal, discounts.maxPct), [tVal, discounts.maxPct]);
+    const quoteItemSchema = React.useMemo(() => quoteItemFormSchema(tVal, discounts.maxPct), [tVal, discounts.maxPct]);
+    const quoteForm = useForm<QuoteFormValues>({ resolver: zodResolver(quoteSchema), mode: 'onBlur' });
+    const quoteItemForm = useForm<QuoteItemFormValues>({ resolver: zodResolver(quoteItemSchema), mode: 'onBlur' });
     const { fields: quoteFormFields, append: appendQuoteItem, remove: removeQuoteItem, replace: replaceQuoteItems } = useFieldArray({
         control: quoteForm.control,
         name: 'items',
@@ -955,7 +994,10 @@ export default function QuotesPage() {
             {
                 user_id: '', total: 0, currency: defaultCurrency, status: 'draft',
                 payment_status: 'unpaid', billing_status: 'not invoiced',
-                exchange_rate: exchangeRate, created_at: new Date(), notes: '', patient_confirmed: false, items: []
+                exchange_rate: exchangeRate, created_at: new Date(), notes: '', patient_confirmed: false, items: [],
+                // El descuento al total se muestra en 0 y solo cuenta si se teclea.
+                discount_mode: null,
+                discount_value: null
             },
             {
                 keepErrors: false, keepDirty: false, keepIsSubmitted: false,
@@ -1005,7 +1047,9 @@ export default function QuotesPage() {
             quantity: item.quantity,
             unit_price: item.unit_price,
             total: item.total,
-            tooth_number: item.tooth_number ? Number(item.tooth_number) : ('' as const)
+            tooth_number: item.tooth_number ? Number(item.tooth_number) : ('' as const),
+            discount_mode: item.discount_mode ?? null,
+            discount_value: item.discount_value ?? null
         }));
 
         quoteForm.reset(
@@ -1016,7 +1060,11 @@ export default function QuotesPage() {
                 exchange_rate: exchangeRate,
                 created_at: quote.createdAt ? parseISO(formatDate(quote.createdAt)) : new Date(),
                 notes: quote.notes || '',
-                items: mappedItems
+                items: mappedItems,
+                // Se rehidrata lo que se guardó, no la preferencia actual: si la
+                // clínica cambió de ámbito, el documento viejo mantiene el suyo.
+                discount_mode: quote.discount_mode ?? null,
+                discount_value: quote.discount_value ?? null
             },
             {
                 keepErrors: false, keepDirty: false, keepIsSubmitted: false,
@@ -1059,14 +1107,24 @@ export default function QuotesPage() {
             if (!editingQuote && (!values.items || values.items.length === 0)) {
                 throw new Error(t('quoteDialog.atLeastOneItem'));
             }
-            const itemsToSubmit = values.items.map(item => ({
-                id: item.id,
-                service_id: item.service_id,
-                quantity: item.quantity,
-                unit_price: item.unit_price,
-                total: item.total,
-                tooth_number: item.tooth_number ? Number(item.tooth_number) : null
-            }));
+            // Los importes definitivos y el reparto del descuento del total se
+            // resuelven aca, no mientras se edita.
+            const { items: itemsToSubmit, document } = buildDiscountedDocument(
+                values.items.map(item => ({
+                    id: item.id,
+                    service_id: item.service_id,
+                    quantity: item.quantity,
+                    unit_price: item.unit_price,
+                    tooth_number: item.tooth_number ? Number(item.tooth_number) : null,
+                    discount_mode: item.discount_mode,
+                    discount_value: item.discount_value,
+                })),
+                {
+                    enabled: discounts.enabled,
+                    scope: discounts.scope,
+                    documentDiscount: { mode: values.discount_mode, value: values.discount_value },
+                },
+            );
             const normalizeBilling = (s: string) =>
                 s === 'not_invoiced' ? 'not invoiced' : s === 'partially_invoiced' ? 'partially invoiced' : s;
 
@@ -1075,7 +1133,8 @@ export default function QuotesPage() {
                 status: 'draft',
                 billing_status: normalizeBilling(values.billing_status),
                 created_at: toLocalISOString(values.created_at),
-                items: itemsToSubmit
+                items: itemsToSubmit,
+                ...document,
             };
             const response = await upsertQuote(payload as any, t);
 
@@ -1114,18 +1173,85 @@ export default function QuotesPage() {
     };
 
     // Recalculate total whenever items change
-    const watchedItems = quoteForm.watch('items');
-    React.useEffect(() => {
+    // useWatch (y no quoteForm.watch) para que el total del documento se
+    // recalcule en cuanto cambia el importe de UNA linea.
+    const watchedItems = useWatch({ control: quoteForm.control, name: 'items' }) ?? [];
+    const watchedQuoteDiscountMode = quoteForm.watch('discount_mode');
+    const watchedQuoteDiscountValue = quoteForm.watch('discount_value');
+
+    /** Unico punto de recalculo de una linea: precio x cantidad, menos su descuento. */
+    const recalcQuoteLine = React.useCallback((index: number) => {
+        const item = quoteForm.getValues(`items.${index}`);
+        if (!item) return;
+        // Con ambito 'total' la linea no lleva descuento propio: se reparte al guardar.
+        const lineDiscount = discounts.showLineDiscount
+            ? { mode: item.discount_mode, value: item.discount_value }
+            : null;
+        const { total } = computeLineTotals(item.unit_price, item.quantity, lineDiscount);
+        quoteForm.setValue(`items.${index}.total`, total, { shouldDirty: true });
+    }, [quoteForm, discounts.showLineDiscount]);
+
+    /** Aplica o quita el descuento de una linea y deja su importe al dia. */
+    const setQuoteLineDiscount = React.useCallback((index: number, next: { mode: DiscountMode | null | undefined; value: number | null | undefined }) => {
+        quoteForm.setValue(`items.${index}.discount_mode`, next.mode ?? null, { shouldDirty: true });
+        quoteForm.setValue(`items.${index}.discount_value`, next.value ?? null, { shouldDirty: true, shouldValidate: true });
+        recalcQuoteLine(index);
+    }, [quoteForm, recalcQuoteLine]);
+
+    /**
+     * Totales del documento, SIEMPRE derivados de precio x cantidad y del
+     * descuento aplicado. No se lee `item.total`: ese campo es sólo para
+     * mostrar y puede quedar desfasado si un handler no lo recalculo.
+     */
+    const quoteDocumentTotals = React.useMemo(() => {
         const items = watchedItems || [];
-        const newTotal = items.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
-        const currentTotal = quoteForm.getValues('total') || 0;
-        if (Math.abs(newTotal - currentTotal) > 0.001) {
-            quoteForm.setValue('total', newTotal, { shouldDirty: true });
+        let gross = 0;
+        let lineDiscounts = 0;
+        for (const item of items) {
+            const lineGross = computeGrossTotal(item?.unit_price, item?.quantity);
+            gross += lineGross;
+            if (discounts.showLineDiscount) {
+                lineDiscounts += computeDiscountAmount(lineGross, { mode: item?.discount_mode, value: item?.discount_value });
+            }
         }
-    }, [watchedItems, quoteForm]);
+        const grossTotal = roundCurrency(gross);
+        const netAfterLines = roundCurrency(grossTotal - roundCurrency(lineDiscounts));
+        if (!discounts.showTotalDiscount) {
+            return { grossTotal, discountAmount: roundCurrency(grossTotal - netAfterLines), total: netAfterLines };
+        }
+        const discountAmount = computeDiscountAmount(grossTotal, { mode: watchedQuoteDiscountMode, value: watchedQuoteDiscountValue });
+        return { grossTotal, discountAmount, total: roundCurrency(grossTotal - discountAmount) };
+    }, [watchedItems, discounts.showLineDiscount, discounts.showTotalDiscount, watchedQuoteDiscountMode, watchedQuoteDiscountValue]);
+
+    React.useEffect(() => {
+        const currentTotal = quoteForm.getValues('total') || 0;
+        if (Math.abs(quoteDocumentTotals.total - currentTotal) > 0.001) {
+            quoteForm.setValue('total', quoteDocumentTotals.total, { shouldDirty: true });
+        }
+    }, [quoteDocumentTotals.total, quoteForm]);
+
+    /** Recalcula el importe del diálogo de línea suelta (mismo criterio que el multi-línea). */
+    const watchedItemUnitPrice = quoteItemForm.watch('unit_price');
+    const watchedItemQuantity = quoteItemForm.watch('quantity');
+    const watchedItemDiscountMode = quoteItemForm.watch('discount_mode');
+    const watchedItemDiscountValue = quoteItemForm.watch('discount_value');
+
+    const recalcQuoteItemDialog = React.useCallback(() => {
+        const values = quoteItemForm.getValues();
+        const lineDiscount = discounts.showLineDiscount
+            ? { mode: values.discount_mode, value: values.discount_value }
+            : null;
+        const { total } = computeLineTotals(values.unit_price, values.quantity, lineDiscount);
+        quoteItemForm.setValue('total', total, { shouldDirty: true });
+    }, [quoteItemForm, discounts.showLineDiscount]);
 
     const handleAddQuoteItem = () => {
-        appendQuoteItem({ service_id: '', quantity: 1, unit_price: 0, total: 0, tooth_number: '' });
+        // Sin descuento: que la clinica los tenga habilitados no significa que se
+        // apliquen a todo. Se pide con el boton «Aplicar descuentos» de cada linea.
+        appendQuoteItem({
+            service_id: '', quantity: 1, unit_price: 0, total: 0, tooth_number: '',
+            discount_mode: null, discount_value: null,
+        });
     };
 
     const handleRemoveQuoteItem = (index: number) => {
@@ -1151,7 +1277,10 @@ export default function QuotesPage() {
         const sessionRate = getSessionExchangeRate();
         setExchangeRate(sessionRate);
 
-        quoteItemForm.reset({ quote_id: selectedQuote.id, service_id: '', service_name: '', quantity: 1, unit_price: 0, total: 0, tooth_number: '' });
+        quoteItemForm.reset({
+            quote_id: selectedQuote.id, service_id: '', service_name: '', quantity: 1, unit_price: 0, total: 0, tooth_number: '',
+            discount_mode: null, discount_value: null,
+        });
         setIsQuoteItemDialogOpen(true);
     };
 
@@ -1172,7 +1301,9 @@ export default function QuotesPage() {
             quantity: item.quantity,
             unit_price: item.unit_price,
             total: item.total,
-            tooth_number: item.tooth_number || ''
+            tooth_number: item.tooth_number || '',
+            discount_mode: item.discount_mode ?? null,
+            discount_value: item.discount_value ?? null
         });
         setIsQuoteItemDialogOpen(true);
     };
@@ -1202,7 +1333,15 @@ export default function QuotesPage() {
         setIsSubmittingQuoteItem(true);
         setQuoteItemSubmissionError(null);
         try {
-            await upsertQuoteItem(values, t);
+            // QUOTES_LINES_UPSERT toca una sola línea y el backend recalcula el
+            // total del presupuesto sumando líneas, así que basta con enviarla neta.
+            // Con ámbito 'total' la línea va en bruto: el descuento vive en la
+            // cabecera y sólo se puede repartir reenviando el presupuesto entero.
+            const { items: [lineToSubmit] } = buildDiscountedDocument(
+                [{ ...values, discount_mode: values.discount_mode, discount_value: values.discount_value }],
+                { enabled: discounts.showLineDiscount, scope: 'line', documentDiscount: null },
+            );
+            await upsertQuoteItem({ ...values, ...lineToSubmit }, t);
             toast({ title: editingQuoteItem ? t('toast.itemUpdated') : t('toast.itemAdded'), description: t('toast.itemSaveSuccess') });
             setIsQuoteItemDialogOpen(false);
             setEditingQuoteItem(null);
@@ -2101,11 +2240,10 @@ export default function QuotesPage() {
                                                                     onValueChange={(serviceId, service) => {
                                                                         field.onChange(serviceId);
                                                                         if (service) {
-                                                                            const quantity = quoteForm.getValues(`items.${index}.quantity`) || 1;
                                                                             const servicePrice = Number(service.price);
                                                                             quoteForm.setValue(`items.${index}.service_name`, service.name, { shouldDirty: true });
                                                                             quoteForm.setValue(`items.${index}.unit_price`, servicePrice, { shouldDirty: true, shouldValidate: true });
-                                                                            quoteForm.setValue(`items.${index}.total`, servicePrice * quantity, { shouldDirty: true, shouldValidate: true });
+                                                                            recalcQuoteLine(index);
                                                                         }
                                                                     }}
                                                                     placeholder={t('itemDialog.searchService')}
@@ -2123,10 +2261,8 @@ export default function QuotesPage() {
                                                                         <Input type="number" step="1" min="1" {...field} onChange={(e) => {
                                                                             const rounded = e.target.value === '' ? '' : Math.round(Number(e.target.value));
                                                                             field.onChange(e);
-                                                                            const price = quoteForm.getValues(`items.${index}.unit_price`) || 0;
-                                                                            const newQty = rounded === '' ? 0 : rounded;
-                                                                            quoteForm.setValue(`items.${index}.quantity`, newQty, { shouldValidate: true });
-                                                                            quoteForm.setValue(`items.${index}.total`, price * newQty, { shouldDirty: true });
+                                                                            quoteForm.setValue(`items.${index}.quantity`, rounded === '' ? 0 : rounded, { shouldValidate: true });
+                                                                            recalcQuoteLine(index);
                                                                         }} />
                                                                     </FormControl>
                                                                     <FormMessage />
@@ -2138,15 +2274,27 @@ export default function QuotesPage() {
                                                                     <FormControl>
                                                                         <Input type="number" step="0.01" min="0" {...field} onChange={(e) => {
                                                                             field.onChange(e);
-                                                                            const quantity = quoteForm.getValues(`items.${index}.quantity`) || 1;
-                                                                            const newPrice = Number(e.target.value);
-                                                                            quoteForm.setValue(`items.${index}.total`, Math.round((newPrice * quantity) * 100) / 100, { shouldDirty: true });
+                                                                            quoteForm.setValue(`items.${index}.unit_price`, Number(e.target.value), { shouldDirty: true });
+                                                                            recalcQuoteLine(index);
                                                                         }} />
                                                                     </FormControl>
                                                                     <FormMessage />
                                                                 </FormItem>
                                                             )} />
                                                         </div>
+                                                        {discounts.showLineDiscount && (
+                                                            <DiscountControl
+                                                                mode={watchedItems?.[index]?.discount_mode}
+                                                                value={watchedItems?.[index]?.discount_value}
+                                                                base={computeGrossTotal(watchedItems?.[index]?.unit_price ?? 0, watchedItems?.[index]?.quantity ?? 0)}
+                                                                currency={quoteForm.watch('currency') || 'UYU'}
+                                                                maxPct={discounts.maxPct}
+                                                                defaultPct={discounts.defaultPct}
+                                                                canApply={discounts.canApply}
+                                                                onApply={(next) => setQuoteLineDiscount(index, next)}
+                                                                onRemove={() => setQuoteLineDiscount(index, { mode: null, value: null })}
+                                                            />
+                                                        )}
                                                         <div className="grid grid-cols-2 gap-2">
                                                             <FormField control={quoteForm.control} name={`items.${index}.total`} render={({ field }) => (
                                                                 <FormItem>
@@ -2181,13 +2329,15 @@ export default function QuotesPage() {
                                                         <th className="font-semibold p-2 w-24">{t('quoteDialog.items.quantity')}</th>
                                                         <th className="font-semibold p-2 w-28">{t('quoteDialog.items.unitPrice')}</th>
                                                         <th className="font-semibold p-2 w-28">{t('quoteDialog.items.total')}</th>
+                                                        {discounts.showLineDiscount && <th className="p-2 w-24"></th>}
                                                         <th className="font-semibold p-2 w-24">{t('quoteDialog.items.toothNumber')}</th>
                                                         <th className="p-2 w-10"></th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {quoteFormFields.map((fieldItem, index) => (
-                                                        <tr key={fieldItem.id} className="align-top">
+                                                        <React.Fragment key={fieldItem.id}>
+                                                        <tr className="align-top">
                                                             <td className="p-1">
                                                                 <div className="max-w-[600px] overflow-hidden">
                                                                     <FormField control={quoteForm.control} name={`items.${index}.service_id`} render={({ field }) => (
@@ -2199,11 +2349,10 @@ export default function QuotesPage() {
                                                                             onValueChange={(serviceId, service) => {
                                                                                 field.onChange(serviceId);
                                                                                 if (service) {
-                                                                                    const quantity = quoteForm.getValues(`items.${index}.quantity`) || 1;
                                                                                     const servicePrice = Number(service.price);
                                                                                     quoteForm.setValue(`items.${index}.service_name`, service.name, { shouldDirty: true });
                                                                                     quoteForm.setValue(`items.${index}.unit_price`, servicePrice, { shouldDirty: true, shouldValidate: true });
-                                                                                    quoteForm.setValue(`items.${index}.total`, servicePrice * quantity, { shouldDirty: true, shouldValidate: true });
+                                                                                    recalcQuoteLine(index);
                                                                                 }
                                                                             }}
                                                                             placeholder={t('itemDialog.searchService')}
@@ -2222,10 +2371,8 @@ export default function QuotesPage() {
                                                                             <Input type="number" step="1" min="1" {...field} onChange={(e) => {
                                                                                 const rounded = e.target.value === '' ? '' : Math.round(Number(e.target.value));
                                                                                 field.onChange(e);
-                                                                                const price = quoteForm.getValues(`items.${index}.unit_price`) || 0;
-                                                                                const newQty = rounded === '' ? 0 : rounded;
-                                                                                quoteForm.setValue(`items.${index}.quantity`, newQty, { shouldValidate: true });
-                                                                                quoteForm.setValue(`items.${index}.total`, price * newQty, { shouldDirty: true });
+                                                                                quoteForm.setValue(`items.${index}.quantity`, rounded === '' ? 0 : rounded, { shouldValidate: true });
+                                                                                recalcQuoteLine(index);
                                                                             }} />
                                                                         </FormControl>
                                                                         <FormMessage />
@@ -2238,9 +2385,8 @@ export default function QuotesPage() {
                                                                         <FormControl>
                                                                             <Input type="number" step="0.01" min="0" {...field} onChange={(e) => {
                                                                                 field.onChange(e);
-                                                                                const quantity = quoteForm.getValues(`items.${index}.quantity`) || 1;
-                                                                                const newPrice = Number(e.target.value);
-                                                                                quoteForm.setValue(`items.${index}.total`, Math.round((newPrice * quantity) * 100) / 100, { shouldDirty: true });
+                                                                                quoteForm.setValue(`items.${index}.unit_price`, Number(e.target.value), { shouldDirty: true });
+                                                                                recalcQuoteLine(index);
                                                                             }} />
                                                                         </FormControl>
                                                                         <FormMessage />
@@ -2257,6 +2403,21 @@ export default function QuotesPage() {
                                                                     </FormItem>
                                                                 )} />
                                                             </td>
+                                                            {discounts.showLineDiscount && (
+                                                                <td className="p-1">
+                                                                    <DiscountControl
+                                                                        mode={watchedItems?.[index]?.discount_mode}
+                                                                        value={watchedItems?.[index]?.discount_value}
+                                                                        base={computeGrossTotal(watchedItems?.[index]?.unit_price ?? 0, watchedItems?.[index]?.quantity ?? 0)}
+                                                                        currency={quoteForm.watch('currency') || 'UYU'}
+                                                                        maxPct={discounts.maxPct}
+                                                                        defaultPct={discounts.defaultPct}
+                                                                        canApply={discounts.canApply}
+                                                                        onApply={(next) => setQuoteLineDiscount(index, next)}
+                                                                        onRemove={() => setQuoteLineDiscount(index, { mode: null, value: null })}
+                                                                    />
+                                                                </td>
+                                                            )}
                                                             <td className="p-1">
                                                                 <FormField control={quoteForm.control} name={`items.${index}.tooth_number`} render={({ field }) => (
                                                                     <FormItem>
@@ -2273,12 +2434,33 @@ export default function QuotesPage() {
                                                                 </Button>
                                                             </td>
                                                         </tr>
+                                                        </React.Fragment>
                                                     ))}
                                                 </tbody>
                                             </table>
                                             <FormMessage>{quoteForm.formState.errors.items?.root?.message}</FormMessage>
-                                            <div className="text-right pt-2">
-                                                <span className="font-semibold text-lg">{t('quoteDialog.total')}: {new Intl.NumberFormat('en-US', { style: 'currency', currency: quoteForm.watch('currency') || 'USD' }).format(quoteFormFields.reduce((sum, _, i) => sum + (Number(quoteForm.getValues(`items.${i}.total`)) || 0), 0))}</span>
+                                            <div className="flex flex-col items-end gap-2 pt-3">
+                                                {/* Con ambito de documento el campo se ofrece directo, en 0. */}
+                                                {discounts.showTotalDiscount && (
+                                                    <DiscountControl
+                                                        mode={watchedQuoteDiscountMode}
+                                                        value={watchedQuoteDiscountValue}
+                                                        base={quoteDocumentTotals.grossTotal}
+                                                        currency={quoteForm.watch('currency') || 'UYU'}
+                                                        maxPct={discounts.maxPct}
+                                                        defaultPct={discounts.defaultPct}
+                                                        canApply={discounts.canApply}
+                                                        onApply={(next) => {
+                                                            quoteForm.setValue('discount_mode', next.mode ?? null, { shouldDirty: true });
+                                                            quoteForm.setValue('discount_value', next.value ?? null, { shouldDirty: true, shouldValidate: true });
+                                                        }}
+                                                        onRemove={() => {
+                                                            quoteForm.setValue('discount_mode', null, { shouldDirty: true });
+                                                            quoteForm.setValue('discount_value', null, { shouldDirty: true, shouldValidate: true });
+                                                        }}
+                                                    />
+                                                )}
+                                                <DocumentTotals grossTotal={quoteDocumentTotals.grossTotal} discountAmount={quoteDocumentTotals.discountAmount} total={quoteDocumentTotals.total} currency={quoteForm.watch('currency') || 'UYU'} />
                                             </div>
                                         </div>
                                     </CardContent>
@@ -2449,11 +2631,8 @@ export default function QuotesPage() {
                                                     field.onBlur();
                                                     const value = e.target.value;
                                                     if (value !== '') {
-                                                        const quantity = Math.round(Number(value));
-                                                        const unitPrice = quoteItemForm.getValues('unit_price') || 0;
-                                                        const nameTotal = Math.round((unitPrice * quantity) * 100) / 100;
-                                                        quoteItemForm.setValue('total', nameTotal);
-                                                        quoteItemForm.setValue('quantity', quantity);
+                                                        quoteItemForm.setValue('quantity', Math.round(Number(value)));
+                                                        recalcQuoteItemDialog();
                                                     }
                                                     await quoteItemForm.trigger('quantity');
                                                 }}
@@ -2487,10 +2666,8 @@ export default function QuotesPage() {
                                                         const numValue = Number(value);
                                                         const rounded = Math.round(numValue * 100) / 100;
                                                         field.onChange(rounded);
-                                                        // Recalculate total
-                                                        const quantity = quoteItemForm.getValues('quantity') || 0;
-                                                        const newTotal = Math.round((rounded * quantity) * 100) / 100;
-                                                        quoteItemForm.setValue('total', newTotal);
+                                                        quoteItemForm.setValue('unit_price', rounded, { shouldDirty: true });
+                                                        recalcQuoteItemDialog();
                                                     }
                                                 }}
                                             />
@@ -2498,6 +2675,32 @@ export default function QuotesPage() {
                                         <FormMessage />
                                     </FormItem>
                                 )} />
+                                {/* El descuento va en su propia linea, antes del total. Con ambito
+                                    'total' no se ofrece aca: ese descuento vive en la cabecera y
+                                    solo se puede repartir reenviando el presupuesto entero. */}
+                                {discounts.showLineDiscount && (
+                                    <div className="flex justify-start">
+                                        <DiscountControl
+                                            mode={watchedItemDiscountMode}
+                                            value={watchedItemDiscountValue}
+                                            base={computeGrossTotal(watchedItemUnitPrice ?? 0, watchedItemQuantity ?? 0)}
+                                            currency={selectedQuote?.currency || 'UYU'}
+                                            maxPct={discounts.maxPct}
+                                            defaultPct={discounts.defaultPct}
+                                            canApply={discounts.canApply}
+                                            onApply={(next) => {
+                                                quoteItemForm.setValue('discount_mode', next.mode ?? null, { shouldDirty: true });
+                                                quoteItemForm.setValue('discount_value', next.value ?? null, { shouldDirty: true, shouldValidate: true });
+                                                recalcQuoteItemDialog();
+                                            }}
+                                            onRemove={() => {
+                                                quoteItemForm.setValue('discount_mode', null, { shouldDirty: true });
+                                                quoteItemForm.setValue('discount_value', null, { shouldDirty: true, shouldValidate: true });
+                                                recalcQuoteItemDialog();
+                                            }}
+                                        />
+                                    </div>
+                                )}
                                 <FormField control={quoteItemForm.control} name="total" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>{t('itemDialog.total')}</FormLabel>

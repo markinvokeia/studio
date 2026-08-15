@@ -25,6 +25,12 @@ function mapQuoteItems(raw: any[]): QuoteItem[] {
     quantity: parseInt(i.quantity) || 1,
     total: parseFloat(i.total) || 0,
     tooth_number: i.tooth_number ?? undefined,
+    // Metadatos de descuento: `total` ya viene neto, `gross_total` es el bruto.
+    // Las filas anteriores a los descuentos no los traen y se leen como sin descuento.
+    gross_total: i.gross_total != null ? parseFloat(i.gross_total) : undefined,
+    discount_mode: i.discount_mode ?? null,
+    discount_value: i.discount_value != null ? parseFloat(i.discount_value) : null,
+    discount_amount: i.discount_amount != null ? parseFloat(i.discount_amount) : null,
   }));
 }
 
@@ -38,6 +44,12 @@ function mapInvoiceItems(raw: any[]): InvoiceItem[] {
     total: parseFloat(i.total) || 0,
     step_id: i.step_id != null ? String(i.step_id) : undefined,
     steps: i.steps != null ? String(i.steps) : undefined,
+    // Metadatos de descuento: `total` ya viene neto, `gross_total` es el bruto.
+    // Las filas anteriores a los descuentos no los traen y se leen como sin descuento.
+    gross_total: i.gross_total != null ? parseFloat(i.gross_total) : undefined,
+    discount_mode: i.discount_mode ?? null,
+    discount_value: i.discount_value != null ? parseFloat(i.discount_value) : null,
+    discount_amount: i.discount_amount != null ? parseFloat(i.discount_amount) : null,
   }));
 }
 

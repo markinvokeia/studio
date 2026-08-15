@@ -10,6 +10,7 @@ import { ViewModeToggle } from '@/components/ui/view-mode-toggle';
 import { useTableViewMode } from '@/hooks/use-table-view-mode';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { AppliedDiscountNote } from '@/components/ui/discount-control';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -122,7 +123,13 @@ const getColumns = (
           style: 'currency',
           currency: 'USD',
         }).format(roundedAmount);
-        return <div className="font-medium">{formatted}</div>;
+        return (
+          <div className="font-medium">
+            {formatted}
+            {/* El importe ya viene rebajado: la nota deja ver por que. */}
+            <AppliedDiscountNote line={row.original} currency="USD" />
+          </div>
+        );
       },
     },
     {

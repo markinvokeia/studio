@@ -215,6 +215,7 @@
       "keepOpen": "Guardar y cargar otro"
     },
     "validation": {
+      "discountOverLimit": "Supera el descuento máximo permitido por la clínica",
       "dateRequired": "La fecha es obligatoria",
       "toothNumberMin": "Número de pieza inválido",
       "toothNumberMax": "Número de pieza inválido",
@@ -335,6 +336,7 @@
     "PhysicalCashRegisters": "Cajas Registradoras Físicas",
     "BusinessSetup": "Configuración de Negocio",
     "ClinicDetails": "Detalles de la Clínica",
+    "ClinicPrefs": "Preferencias de Clínica",
     "Schedules": "Horarios",
     "Holidays": "Días Feriados",
     "Calendars": "Calendarios",
@@ -2393,6 +2395,7 @@
       "saving": "Guardando..."
     },
     "validation": {
+      "discountOverLimit": "Supera el descuento máximo permitido por la clínica",
       "userRequired": "Un usuario es obligatorio",
       "serviceRequired": "Un servicio es obligatorio",
       "dateRequired": "La fecha es obligatoria",
@@ -8026,7 +8029,8 @@
       "totalIncome": "Total ingresos",
       "totalExpense": "Total egresos",
       "net": "Neto"
-    }
+    },
+    "discount": "Descuento"
   },
   "License": {
     "expired": {
@@ -8390,6 +8394,62 @@
       "mailSubject": "Consulta desde el portal — {sede}",
       "collapse": "Ocultar",
       "expand": "Ver datos de contacto"
+    }
+  },
+  "Discounts": {
+    "fieldLabel": "Descuento",
+    "percentMode": "Descuento en porcentaje",
+    "amountMode": "Descuento en {currency}",
+    "resultingAmount": "Descuenta {currency} {amount}",
+    "overLimit": "Supera el máximo permitido ({max} %)",
+    "subtotal": "Subtotal",
+    "discount": "Descuento",
+    "total": "Total",
+    "applyAction": "Aplicar descuentos",
+    "confirm": "Aplicar",
+    "cancel": "Cancelar",
+    "edit": "Editar",
+    "remove": "Quitar",
+    "appliedSummary": "Descuento {detail} · −{currency} {amount}"
+  },
+  "ClinicPrefsPage": {
+    "title": "Preferencias de Clínica",
+    "description": "Ajustes de cómo trabaja tu clínica. No incluye datos fiscales ni de contacto: eso está en Detalles de la Clínica.",
+    "save": "Guardar",
+    "saved": "Preferencias guardadas",
+    "saveError": "No se pudieron guardar las preferencias",
+    "loadError": "No se pudieron cargar las preferencias",
+    "readOnlyNotice": "Solo lectura: no tenés permiso para modificar las preferencias de la clínica.",
+    "discounts": {
+      "sectionTitle": "Descuentos",
+      "enabled": {
+        "label": "Aplicar descuentos",
+        "help": "Con esto apagado, ninguna pantalla de presupuestos ni facturas muestra campos de descuento y los totales se calculan como siempre."
+      },
+      "scope": {
+        "label": "¿Dónde se aplica el descuento?",
+        "help": "Las dos opciones son excluyentes: se elige una para toda la clínica y es la que aparece al vender.",
+        "line": {
+          "title": "Por servicio",
+          "description": "Cada línea del presupuesto o la factura lleva su propio descuento."
+        },
+        "total": {
+          "title": "Sobre el total",
+          "description": "Un único descuento sobre el total del documento. Los servicios se imprimen a precio de lista y el descuento aparece como una línea aparte."
+        }
+      },
+      "defaultPct": {
+        "label": "Descuento por defecto (%)",
+        "help": "Valor con el que arranca el campo al crear un presupuesto o una factura. Siempre se puede cambiar en la venta.",
+        "hint": "0 deja el campo vacío."
+      },
+      "maxPct": {
+        "label": "Descuento máximo (%)",
+        "help": "Tope que el formulario deja guardar, calculado en porcentaje sobre el importe. También aplica a los descuentos introducidos como importe fijo.",
+        "hint": "100 significa sin tope."
+      },
+      "defaultOverMax": "El descuento por defecto no puede ser mayor que el máximo permitido.",
+      "permissionNotice": "Solo quien tenga el permiso «Aplicar Descuentos» puede modificar el descuento al vender. Al resto se le muestra el campo en solo lectura."
     }
   },
   "PatientPortalConfigPage": {

@@ -24,7 +24,18 @@ import { PURCHASES_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permission
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useDiscountSettings } from '@/hooks/useDiscountSettings';
 import { useToast } from '@/hooks/use-toast';
+import {
+  buildDiscountedDocument,
+  computeDiscountAmount,
+  computeGrossTotal,
+  computeLineTotals,
+  isDiscountWithinLimit,
+  roundCurrency,
+} from '@/lib/discounts';
+import type { DiscountMode } from '@/lib/types';
+import { DiscountControl, DocumentTotals } from '@/components/ui/discount-control';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
@@ -49,15 +60,23 @@ import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import * as z from 'zod';
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
-const itemSchema = z.object({
+/** El tope de descuento es un dato de runtime, así que el esquema es una fábrica. */
+const buildItemSchema = (maxDiscountPct: number) => z.object({
   service_id: z.string().min(1, 'Selecciona un servicio'),
   quantity: z.coerce.number().min(1, 'Mínimo 1'),
   unit_price: z.coerce.number().min(0, 'Precio inválido'),
   tooth_number: z.coerce.number().optional(),
+  discount_mode: z.enum(['percent', 'amount']).nullish(),
+  discount_value: z.coerce.number().min(0).nullish(),
+}).superRefine((values, ctx) => {
+  const base = computeGrossTotal(values.unit_price, values.quantity);
+  if (!isDiscountWithinLimit(base, { mode: values.discount_mode, value: values.discount_value }, maxDiscountPct)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['discount_value'], message: 'Supera el descuento máximo permitido' });
+  }
 });
-type ItemFormValues = z.infer<typeof itemSchema>;
+type ItemFormValues = z.infer<ReturnType<typeof buildItemSchema>>;
 
-const quoteEditSchema = z.object({
+const buildQuoteEditSchema = (maxDiscountPct: number) => z.object({
   currency: z.enum(['USD', 'UYU']),
   exchange_rate: z.coerce.number().min(0.0001, 'Tasa de cambio inválida'),
   notes: z.string().optional(),
@@ -69,9 +88,25 @@ const quoteEditSchema = z.object({
     unit_price: z.coerce.number().min(0, 'Precio inválido'),
     total: z.coerce.number().min(0),
     tooth_number: z.coerce.number().int().optional().or(z.literal('')),
+    discount_mode: z.enum(['percent', 'amount']).nullish(),
+    discount_value: z.coerce.number().min(0).nullish(),
   })).default([]),
+  /** Descuento sobre el total. Sólo con ámbito 'total'. */
+  discount_mode: z.enum(['percent', 'amount']).nullish(),
+  discount_value: z.coerce.number().min(0).nullish(),
+}).superRefine((values, ctx) => {
+  (values.items ?? []).forEach((item, index) => {
+    const base = computeGrossTotal(item.unit_price, item.quantity);
+    if (!isDiscountWithinLimit(base, { mode: item.discount_mode, value: item.discount_value }, maxDiscountPct)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['items', index, 'discount_value'], message: 'Supera el descuento máximo permitido' });
+    }
+  });
+  const grossTotal = roundCurrency((values.items ?? []).reduce((sum, item) => sum + computeGrossTotal(item.unit_price, item.quantity), 0));
+  if (!isDiscountWithinLimit(grossTotal, { mode: values.discount_mode, value: values.discount_value }, maxDiscountPct)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['discount_value'], message: 'Supera el descuento máximo permitido' });
+  }
 });
-type QuoteEditFormValues = z.infer<typeof quoteEditSchema>;
+type QuoteEditFormValues = z.infer<ReturnType<typeof buildQuoteEditSchema>>;
 
 // ── Clinic Session types ────────────────────────────────────────────────────────
 async function getQuoteClinicSessions(quoteId: string): Promise<QuoteClinicSession[]> {
@@ -474,10 +509,16 @@ async function getQuotesForUser(userId: string): Promise<Quote[]> {
 }
 
 // ── Item total display (read-only, computed from quantity × unit_price) ───────
-function ItemTotalField({ form }: { form: ReturnType<typeof useForm<ItemFormValues>> }) {
+function ItemTotalField({ form, applyDiscount }: { form: ReturnType<typeof useForm<ItemFormValues>>; applyDiscount: boolean }) {
   const quantity = useWatch({ control: form.control, name: 'quantity' }) ?? 0;
   const unitPrice = useWatch({ control: form.control, name: 'unit_price' }) ?? 0;
-  const total = (Number(quantity) * Number(unitPrice));
+  const discountMode = useWatch({ control: form.control, name: 'discount_mode' });
+  const discountValue = useWatch({ control: form.control, name: 'discount_value' });
+  // El total mostrado ya lleva el descuento: es el importe que se va a guardar.
+  const { total } = computeLineTotals(
+    Number(unitPrice), Number(quantity),
+    applyDiscount ? { mode: discountMode, value: discountValue } : null,
+  );
   const formatted = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(total);
   return (
     <div className="space-y-1.5">
@@ -1010,6 +1051,8 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
     return activeCashSession.data.opening_details.date_rate;
   }, [activeCashSession]);
 
+  const discounts = useDiscountSettings();
+  const quoteEditSchema = React.useMemo(() => buildQuoteEditSchema(discounts.maxPct), [discounts.maxPct]);
   const quoteEditForm = useForm<QuoteEditFormValues>({ resolver: zodResolver(quoteEditSchema) });
   const { fields: editItemFields, append: appendEditItem, remove: removeEditItem, update: updateEditItem } = useFieldArray({
     control: quoteEditForm.control,
@@ -1029,8 +1072,14 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
       unit_price: i.unit_price,
       total: i.total,
       tooth_number: i.tooth_number ?? ('' as const),
+      discount_mode: i.discount_mode ?? null,
+      discount_value: i.discount_value ?? null,
     }));
-    quoteEditForm.reset({ currency, exchange_rate: exchangeRate, notes: selectedQuote.notes ?? '', items: mappedItems });
+    quoteEditForm.reset({
+      currency, exchange_rate: exchangeRate, notes: selectedQuote.notes ?? '', items: mappedItems,
+      discount_mode: selectedQuote.discount_mode ?? null,
+      discount_value: selectedQuote.discount_value ?? null,
+    });
     if (!hasCurrentQuoteItems) loadItems(selectedQuote.id);
     loadServices();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1069,30 +1118,87 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quoteItems, isEditQuoteOpen]);
 
+  // useWatch (y no quoteEditForm.watch) para que el total del documento se
+  // recalcule en cuanto cambia el importe de UNA linea.
+  const watchedEditItems = useWatch({ control: quoteEditForm.control, name: 'items' }) ?? [];
+  const watchedEditDiscountMode = quoteEditForm.watch('discount_mode');
+  const watchedEditDiscountValue = quoteEditForm.watch('discount_value');
+
+  /** Unico punto de recalculo de una linea del presupuesto en edicion. */
+  const recalcEditLine = React.useCallback((index: number) => {
+    const item = quoteEditForm.getValues(`items.${index}`);
+    if (!item) return;
+    const lineDiscount = discounts.showLineDiscount
+      ? { mode: item.discount_mode, value: item.discount_value }
+      : null;
+    const { total } = computeLineTotals(item.unit_price, item.quantity, lineDiscount);
+    quoteEditForm.setValue(`items.${index}.total`, total, { shouldValidate: true, shouldDirty: true });
+  }, [quoteEditForm, discounts.showLineDiscount]);
+
+  /** Aplica o quita el descuento de una linea y deja su importe al dia. */
+  const setEditLineDiscount = React.useCallback((index: number, next: { mode: DiscountMode | null | undefined; value: number | null | undefined }) => {
+    quoteEditForm.setValue(`items.${index}.discount_mode`, next.mode ?? null, { shouldDirty: true });
+    quoteEditForm.setValue(`items.${index}.discount_value`, next.value ?? null, { shouldDirty: true, shouldValidate: true });
+    recalcEditLine(index);
+  }, [quoteEditForm, recalcEditLine]);
+
+  /**
+   * Totales del documento, SIEMPRE derivados de precio x cantidad y del
+   * descuento aplicado; nunca de `item.total`, que es solo para mostrar.
+   */
+  const editDocumentTotals = React.useMemo(() => {
+    const items = watchedEditItems || [];
+    let gross = 0;
+    let lineDiscounts = 0;
+    for (const i of items) {
+      const lineGross = computeGrossTotal(i?.unit_price, i?.quantity);
+      gross += lineGross;
+      if (discounts.showLineDiscount) {
+        lineDiscounts += computeDiscountAmount(lineGross, { mode: i?.discount_mode, value: i?.discount_value });
+      }
+    }
+    const grossTotal = roundCurrency(gross);
+    const netAfterLines = roundCurrency(grossTotal - roundCurrency(lineDiscounts));
+    if (!discounts.showTotalDiscount) {
+      return { grossTotal, discountAmount: roundCurrency(grossTotal - netAfterLines), total: netAfterLines };
+    }
+    const discountAmount = computeDiscountAmount(grossTotal, { mode: watchedEditDiscountMode, value: watchedEditDiscountValue });
+    return { grossTotal, discountAmount, total: roundCurrency(grossTotal - discountAmount) };
+  }, [watchedEditItems, discounts.showLineDiscount, discounts.showTotalDiscount, watchedEditDiscountMode, watchedEditDiscountValue]);
+
   const handleSubmitQuoteEdit = async (values: QuoteEditFormValues) => {
     if (!selectedQuote) return;
     setIsSubmittingQuote(true);
     try {
-      const calculatedTotal = values.items.reduce((sum, i) => sum + (Number(i.total) || 0), 0);
+      // Los importes finales y el reparto del descuento del total salen de acá.
+      const { items: itemsToSubmit, document } = buildDiscountedDocument(
+        values.items.map(i => ({
+          id: i.id,
+          service_id: i.service_id,
+          quantity: i.quantity,
+          unit_price: i.unit_price,
+          tooth_number: isSales && i.tooth_number ? Number(i.tooth_number) : null,
+          discount_mode: i.discount_mode,
+          discount_value: i.discount_value,
+        })),
+        {
+          enabled: discounts.enabled,
+          scope: discounts.scope,
+          documentDiscount: { mode: values.discount_mode, value: values.discount_value },
+        },
+      );
       const res = await api.post(isSales ? API_ROUTES.SALES.QUOTES_UPSERT : API_ROUTES.PURCHASES.QUOTES_UPSERT, {
         id: selectedQuote.id,
         user_id: selectedQuote.user_id,
-        total: calculatedTotal,
         status: selectedQuote.status,
         payment_status: selectedQuote.payment_status,
         billing_status: selectedQuote.billing_status,
         currency: values.currency,
         exchange_rate: values.exchange_rate,
         notes: values.notes || '',
-        items: values.items.map(i => ({
-          id: i.id,
-          service_id: i.service_id,
-          quantity: i.quantity,
-          unit_price: i.unit_price,
-          total: i.total,
-          tooth_number: isSales && i.tooth_number ? Number(i.tooth_number) : null,
-        })),
+        items: itemsToSubmit,
         is_sales: isSales,
+        ...document,
       });
       if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message || 'Error');
       toast({ title: t('UserQuotes.toasts.quoteUpdated') });
@@ -1108,30 +1214,42 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   };
 
   // ── Item form ────────────────────────────────────────────────────────────────
+  const itemSchema = React.useMemo(() => buildItemSchema(discounts.maxPct), [discounts.maxPct]);
   const itemForm = useForm<ItemFormValues>({ resolver: zodResolver(itemSchema) });
 
   React.useEffect(() => {
     if (!isItemDialogOpen) return;
     if (editingItem) {
-      itemForm.reset({ service_id: editingItem.service_id, quantity: editingItem.quantity, unit_price: editingItem.unit_price, tooth_number: editingItem.tooth_number });
+      itemForm.reset({
+        service_id: editingItem.service_id, quantity: editingItem.quantity, unit_price: editingItem.unit_price, tooth_number: editingItem.tooth_number,
+        // Se rehidrata lo guardado, no la preferencia actual de la clínica.
+        discount_mode: editingItem.discount_mode ?? null,
+        discount_value: editingItem.discount_value ?? null,
+      });
     } else {
-      itemForm.reset({ service_id: '', quantity: 1, unit_price: 0 });
+      // Sin descuento: se aplica a mano con el boton «Aplicar descuentos».
+      itemForm.reset({ service_id: '', quantity: 1, unit_price: 0, discount_mode: null, discount_value: null });
     }
-  }, [isItemDialogOpen, editingItem, itemForm]);
+  }, [isItemDialogOpen, editingItem, itemForm, discounts.showLineDiscount, discounts.defaultPct]);
 
   const handleSubmitItem = async (values: ItemFormValues) => {
     if (!selectedQuote) return;
     setIsSubmittingItem(true);
     try {
+      // Con ámbito 'total' la línea va en bruto: ese descuento vive en la
+      // cabecera y sólo se reparte reenviando el presupuesto entero.
+      const { items: [lineToSubmit] } = buildDiscountedDocument(
+        [{ unit_price: values.unit_price, quantity: values.quantity, discount_mode: values.discount_mode, discount_value: values.discount_value }],
+        { enabled: discounts.showLineDiscount, scope: 'line', documentDiscount: null },
+      );
       const res = await api.post(isSales ? API_ROUTES.SALES.QUOTES_LINES_UPSERT : API_ROUTES.PURCHASES.QUOTES_LINES_UPSERT, {
         ...(editingItem ? { id: editingItem.id } : {}),
         quote_id: selectedQuote.id,
         service_id: values.service_id,
-        quantity: values.quantity,
-        unit_price: values.unit_price,
-        total: values.quantity * values.unit_price,
         tooth_number: isSales ? (values.tooth_number || null) : null,
         is_sales: isSales,
+        // Trae quantity, unit_price, gross_total, total y los campos de descuento.
+        ...lineToSubmit,
       });
       if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message || 'Error');
       toast({ title: editingItem ? t('UserQuotes.toasts.itemUpdated') : t('UserQuotes.toasts.itemAdded') });
@@ -1882,13 +2000,15 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                               <th className="font-semibold p-2 w-24">{t('UserQuotes.items.quantity')}</th>
                               <th className="font-semibold p-2 w-28">{t('UserQuotes.items.unitPrice')}</th>
                               <th className="font-semibold p-2 w-28">{t('UserQuotes.items.total')}</th>
+                              {discounts.showLineDiscount && <th className="p-2 w-24"></th>}
                               {isSales && <th className="font-semibold p-2 w-24">{t('UserQuotes.items.toothNumber')}</th>}
                               <th className="p-2 w-10"></th>
                             </tr>
                           </thead>
                           <tbody>
                             {editItemFields.map((fieldItem, index) => (
-                              <tr key={fieldItem.id} className="align-top border-b last:border-0">
+                              <React.Fragment key={fieldItem.id}>
+                              <tr className="align-top border-b last:border-0">
                                 <td className="p-1">
                                   <FormField control={quoteEditForm.control} name={`items.${index}.service_id`} render={({ field }) => (
                                     <FormItem>
@@ -1899,8 +2019,8 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                                         onValueChange={(serviceId, service) => {
                                           field.onChange(serviceId);
                                           if (service) {
-                                            const qty = quoteEditForm.getValues(`items.${index}.quantity`) || 1;
-                                            updateEditItem(index, { ...quoteEditForm.getValues(`items.${index}`), service_id: serviceId, service_name: service.name, unit_price: Number(service.price), total: Number(service.price) * qty });
+                                            updateEditItem(index, { ...quoteEditForm.getValues(`items.${index}`), service_id: serviceId, service_name: service.name, unit_price: Number(service.price) });
+                                            recalcEditLine(index);
                                           }
                                         }}
                                         placeholder={t('QuotesPage.itemDialog.searchService')}
@@ -1918,9 +2038,8 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                                         <Input type="number" step="1" min="1" {...field}
                                           onChange={e => {
                                             field.onChange(e);
-                                            const qty = parseInt(e.target.value) || 0;
-                                            const price = quoteEditForm.getValues(`items.${index}.unit_price`) || 0;
-                                            quoteEditForm.setValue(`items.${index}.total`, qty * price, { shouldValidate: true, shouldDirty: true });
+                                            quoteEditForm.setValue(`items.${index}.quantity`, parseInt(e.target.value) || 0, { shouldDirty: true });
+                                            recalcEditLine(index);
                                           }}
                                         />
                                       </FormControl>
@@ -1935,9 +2054,8 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                                         <Input type="number" step="0.01" min="0" {...field}
                                           onChange={e => {
                                             field.onChange(e);
-                                            const price = parseFloat(e.target.value) || 0;
-                                            const qty = quoteEditForm.getValues(`items.${index}.quantity`) || 0;
-                                            quoteEditForm.setValue(`items.${index}.total`, qty * price, { shouldValidate: true, shouldDirty: true });
+                                            quoteEditForm.setValue(`items.${index}.unit_price`, parseFloat(e.target.value) || 0, { shouldDirty: true });
+                                            recalcEditLine(index);
                                           }}
                                         />
                                       </FormControl>
@@ -1959,6 +2077,21 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                                     </FormItem>
                                   )} />
                                 </td>
+                                {discounts.showLineDiscount && (
+                                  <td className="p-1">
+                                    <DiscountControl
+                                      mode={watchedEditItems?.[index]?.discount_mode}
+                                      value={watchedEditItems?.[index]?.discount_value}
+                                      base={computeGrossTotal(watchedEditItems?.[index]?.unit_price ?? 0, watchedEditItems?.[index]?.quantity ?? 0)}
+                                      currency={watchedEditCurrency || 'USD'}
+                                      maxPct={discounts.maxPct}
+                                      defaultPct={discounts.defaultPct}
+                                      canApply={discounts.canApply}
+                                      onApply={(next) => setEditLineDiscount(index, next)}
+                                      onRemove={() => setEditLineDiscount(index, { mode: null, value: null })}
+                                    />
+                                  </td>
+                                )}
                                 {isSales && (
                                   <td className="p-1">
                                     <FormField control={quoteEditForm.control} name={`items.${index}.tooth_number`} render={({ field }) => (
@@ -1985,6 +2118,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                                   </Button>
                                 </td>
                               </tr>
+                              </React.Fragment>
                             ))}
                             {editItemFields.length === 0 && (
                               <tr><td colSpan={isSales ? 6 : 5} className="text-center text-muted-foreground text-xs py-4">{t('UserQuotes.dialogs.noItems')}</td></tr>
@@ -1994,12 +2128,33 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                       )}
                     </div>
                     {editItemFields.length > 0 && (
-                      <div className="flex justify-end px-4 pb-3">
-                        <span className="text-sm font-semibold">
-                          Total: {new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedEditCurrency || 'USD' }).format(
-                            editItemFields.reduce((sum, _, i) => sum + (Number(quoteEditForm.getValues(`items.${i}.total`)) || 0), 0)
-                          )}
-                        </span>
+                      <div className="flex flex-col items-end gap-2 px-4 pb-3">
+                        {/* Con ambito de documento el campo se ofrece directo, en 0. */}
+                        {discounts.showTotalDiscount && (
+                          <DiscountControl
+                            mode={watchedEditDiscountMode}
+                            value={watchedEditDiscountValue}
+                            base={editDocumentTotals.grossTotal}
+                            currency={watchedEditCurrency || 'USD'}
+                            maxPct={discounts.maxPct}
+                            defaultPct={discounts.defaultPct}
+                            canApply={discounts.canApply}
+                            onApply={(next) => {
+                              quoteEditForm.setValue('discount_mode', next.mode ?? null, { shouldDirty: true });
+                              quoteEditForm.setValue('discount_value', next.value ?? null, { shouldDirty: true, shouldValidate: true });
+                            }}
+                            onRemove={() => {
+                              quoteEditForm.setValue('discount_mode', null, { shouldDirty: true });
+                              quoteEditForm.setValue('discount_value', null, { shouldDirty: true, shouldValidate: true });
+                            }}
+                          />
+                        )}
+                        <DocumentTotals
+                          grossTotal={editDocumentTotals.grossTotal}
+                          discountAmount={editDocumentTotals.discountAmount}
+                          total={editDocumentTotals.total}
+                          currency={watchedEditCurrency || 'USD'}
+                        />
                       </div>
                     )}
                   </CardContent>
@@ -2105,7 +2260,30 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                     </FormItem>
                   )} />
                 </div>
-                <ItemTotalField form={itemForm} />
+                {/* El descuento va en su propia linea. Con ambito 'total' no se
+                    ofrece aca: ese descuento vive en la cabecera del presupuesto. */}
+                {discounts.showLineDiscount && (
+                  <div className="flex justify-start">
+                    <DiscountControl
+                      mode={itemForm.watch('discount_mode')}
+                      value={itemForm.watch('discount_value')}
+                      base={computeGrossTotal(itemForm.watch('unit_price') ?? 0, itemForm.watch('quantity') ?? 0)}
+                      currency={selectedQuote?.currency || 'USD'}
+                      maxPct={discounts.maxPct}
+                      defaultPct={discounts.defaultPct}
+                      canApply={discounts.canApply}
+                      onApply={(next) => {
+                        itemForm.setValue('discount_mode', next.mode ?? null, { shouldDirty: true });
+                        itemForm.setValue('discount_value', next.value ?? null, { shouldDirty: true, shouldValidate: true });
+                      }}
+                      onRemove={() => {
+                        itemForm.setValue('discount_mode', null, { shouldDirty: true });
+                        itemForm.setValue('discount_value', null, { shouldDirty: true, shouldValidate: true });
+                      }}
+                    />
+                  </div>
+                )}
+                <ItemTotalField form={itemForm} applyDiscount={discounts.showLineDiscount} />
                 {isSales && (
                   <FormField control={itemForm.control} name="tooth_number" render={({ field }) => (
                     <FormItem>

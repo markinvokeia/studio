@@ -216,6 +216,37 @@ export type UserClinic = {
   position: string;
 };
 
+/** Cómo se expresa un descuento: porcentaje sobre la base, o importe fijo. */
+export type DiscountMode = 'percent' | 'amount';
+
+/** Dónde se aplica el descuento en un documento: por línea, o sobre el total. */
+export type DiscountScope = 'line' | 'total';
+
+/**
+ * Campos de descuento de una línea (`quote_items`, `order_items`, `invoice_items`).
+ *
+ * Invariante: `total` es SIEMPRE el importe neto, ya descontado, porque el
+ * backend recalcula el total del documento como `SUM(items.total)`. `gross_total`
+ * guarda el bruto (`unit_price × quantity`) para poder imprimir la línea sin
+ * descontar. Las filas anteriores a esta feature traen todo a `undefined`: hay
+ * que leerlas como `gross_total ?? total` y sin descuento.
+ */
+export type LineDiscountFields = {
+  gross_total?: number;
+  discount_mode?: DiscountMode | null;
+  discount_value?: number | null;
+  discount_amount?: number | null;
+};
+
+/**
+ * Campos de descuento de una cabecera (`quotes`, `orders`, `invoices`).
+ * `discount_mode` y `discount_value` sólo se rellenan con `discount_scope: 'total'`;
+ * con `'line'`, `discount_amount` es la suma de los descuentos de las líneas.
+ */
+export type DocumentDiscountFields = LineDiscountFields & {
+  discount_scope?: DiscountScope | null;
+};
+
 export type Quote = {
   id: string;
   doc_no?: string;
@@ -241,7 +272,7 @@ export type Quote = {
   amount_paid?: number;
   amount_pending_payment?: number;
   external_id?: string | number | null;
-};
+} & DocumentDiscountFields;
 
 export type QuoteItem = {
   id: string;
@@ -255,7 +286,7 @@ export type QuoteItem = {
   updated_at?: string;
   created_by?: string;
   updated_by?: string;
-};
+} & LineDiscountFields;
 
 export type Order = {
   id: string;
@@ -270,7 +301,7 @@ export type Order = {
   notes?: string;
   createdAt: string;
   updatedAt: string;
-};
+} & DocumentDiscountFields;
 
 export type OrderItem = {
   id: string;
@@ -286,7 +317,7 @@ export type OrderItem = {
   invoiced_date?: string;
   appointment_id?: string;
   quote_item_id?: string | number;
-};
+} & LineDiscountFields;
 
 export type Invoice = {
   id: string;
@@ -316,7 +347,7 @@ export type Invoice = {
   external_id?: string | number | null;
   createdAt: string;
   updatedAt: string;
-};
+} & DocumentDiscountFields;
 
 export type CreditNote = Invoice & {
   type: 'credit_note';
@@ -344,7 +375,7 @@ export type InvoiceItem = {
   quote_item_id?: string | number;
   step_id?: string;
   steps?: string;
-};
+} & LineDiscountFields;
 
 export type Payment = {
   id: string;
@@ -2715,6 +2746,22 @@ export type PatientRegisterResponse = PatientSendCodeResponse & {
   user_id: string;
   name?: string;
   email?: string;
+};
+
+/**
+ * Ajustes de Configuración → Preferencias de Clínica (tabla `clinic_preferences`).
+ * Se cargan una única vez tras el login y se leen desde el store; no se piden
+ * en cada pantalla de venta.
+ */
+export type ClinicPreferences = {
+  /** FALSE ⇒ ninguna pantalla de venta muestra campo de descuento. */
+  discounts_enabled: boolean;
+  /** Dónde se aplica el descuento. Excluyente: o por servicio, o sobre el documento. */
+  discount_scope: DiscountScope;
+  /** Porcentaje precargado en el campo. 0 ⇒ el campo arranca vacío. */
+  default_discount_pct: number;
+  /** Tope que el formulario deja guardar, en % sobre la base. 100 ⇒ sin tope. */
+  max_discount_pct: number;
 };
 
 /** Ajustes de Configuración → Portal del Paciente. */

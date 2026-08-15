@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { buildDocumentDiscountView, readDiscountAmount } from '@/lib/discounts';
 import { formatDisplayDate } from '@/lib/utils';
 import type { QuotePrintData } from '@/stores/print-document-store';
 
@@ -23,6 +24,10 @@ export function QuotePrintTemplate({ data }: QuotePrintTemplateProps) {
   const pendingInvoice = Number(quote.amount_pending_invoice ?? Math.max(total - amountInvoiced, 0));
   const amountPaid = Number(quote.amount_paid ?? 0);
   const pendingPayment = Number(quote.amount_pending_payment ?? Math.max(amountInvoiced - amountPaid, 0));
+
+  // El ambito sale del documento, no de la preferencia vigente: un presupuesto
+  // impreso hoy debe verse como cuando se emitio.
+  const discountView = buildDocumentDiscountView(quote, items);
 
   return (
     <div>
@@ -71,13 +76,14 @@ export function QuotePrintTemplate({ data }: QuotePrintTemplateProps) {
               <th className="text-center w-16">{t('tooth')}</th>
               <th className="text-center w-16">{t('qty')}</th>
               <th className="text-right w-28">{t('unitPrice')}</th>
+              {discountView.showLineColumn && <th className="text-right w-24">{t('discount')}</th>}
               <th className="text-right w-28">{t('total')}</th>
             </tr>
           </thead>
           <tbody>
             {items.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-center text-gray-400 py-2">{t('noItems')}</td>
+                <td colSpan={discountView.showLineColumn ? 7 : 6} className="text-center text-gray-400 py-2">{t('noItems')}</td>
               </tr>
             ) : (
               items.map((item, idx) => (
@@ -87,7 +93,14 @@ export function QuotePrintTemplate({ data }: QuotePrintTemplateProps) {
                   <td className="text-center">{item.tooth_number ?? '—'}</td>
                   <td className="text-center">{item.quantity}</td>
                   <td className="text-right">{fmtAmount(item.unit_price, currency)}</td>
-                  <td className="text-right">{fmtAmount(item.total, currency)}</td>
+                  {discountView.showLineColumn && (
+                    <td className="text-right">
+                      {readDiscountAmount(item) > 0 ? `- ${fmtAmount(readDiscountAmount(item), currency)}` : '—'}
+                    </td>
+                  )}
+                  {/* Con ambito 'total' la linea se imprime a precio de lista y
+                      el descuento aparece una sola vez en el pie. */}
+                  <td className="text-right">{fmtAmount(discountView.lineAmount(item), currency)}</td>
                 </tr>
               ))
             )}
@@ -99,6 +112,18 @@ export function QuotePrintTemplate({ data }: QuotePrintTemplateProps) {
       <div className="flex justify-end mb-8 print-template-section">
         <table className="print-template-table w-72">
           <tbody>
+            {discountView.hasDiscount && (
+              <>
+                <tr>
+                  <td className="text-gray-600">{t('subtotal')}</td>
+                  <td className="text-right">{fmtAmount(discountView.grossTotal, currency)}</td>
+                </tr>
+                <tr>
+                  <td className="text-gray-600">{t('discount')}</td>
+                  <td className="text-right">- {fmtAmount(discountView.discountAmount, currency)}</td>
+                </tr>
+              </>
+            )}
             <tr className="font-bold border-b border-gray-300">
               <td>{t('total')}</td>
               <td className="text-right">{fmtAmount(total, currency)}</td>
