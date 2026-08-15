@@ -17,6 +17,11 @@ export interface CalendarEvent {
    *  The cards read it to skip the cancelled stripes and to keep the corner
    *  status icon legible over a card already painted in that same color. */
   statusColored?: boolean;
+  /** Color del estado para la franja del borde izquierdo. Solo lo llevan las citas
+   *  con color propio o de servicio, que conservan su fondo. Las que solo heredan
+   *  el color del doctor o del consultorio usan `statusColored` y se pintan
+   *  enteras. Los dos campos son excluyentes. */
+  statusStripeColor?: string;
   colorId?: string;
   doctorGroupId?: string;
   calendarGroupId?: string;

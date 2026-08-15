@@ -42,7 +42,14 @@ export const STATUS_BADGE_VARIANT: Record<AppointmentStatus, string> = {
 export const STATUS_ACCENT_COLOR: Record<AppointmentStatus, string> = {
   pending:       '#9ca3af', // gray-400
   scheduled:     '#3b82f6', // blue-500
-  confirmed:     '#10b981', // emerald-500
+  // sky-600 — fuera de la familia verde: antes era emerald-500 (#10b981) y se
+  // confundía con completed (#16a34a), sobre todo porque sus íconos son Check y
+  // CheckCheck, que a 14px se distinguen por un palito.
+  // Queda a ΔE2000 9.2 de scheduled (#3b82f6), que normalmente sería demasiado
+  // cerca, pero en el calendario no compiten: scheduled está en
+  // STATUS_NEUTRAL_ON_CALENDAR y no pinta ni franja ni card. Donde sí aparecen
+  // juntos (menú de estados, rail, panel de detalle) cada uno lleva su etiqueta.
+  confirmed:     '#0284c7', // sky-600
   arrived:       '#f59e0b', // amber-500
   arrived_late:  '#d97706', // amber-600 (arrived, but late)
   in_progress:   '#f97316', // orange-500
@@ -53,9 +60,11 @@ export const STATUS_ACCENT_COLOR: Record<AppointmentStatus, string> = {
 };
 
 /**
- * Estados que conservan el color propio del calendario (etiqueta de la cita,
- * servicio, doctor o consultorio) cuando la preferencia "colorear por estado"
- * está activa. El resto pinta toda la card con su STATUS_ACCENT_COLOR.
+ * Estados que no muestran su color en el calendario cuando la preferencia
+ * "colorear por estado" está activa: la cita se ve exactamente igual que con la
+ * preferencia apagada. El resto muestra su STATUS_ACCENT_COLOR, como franja
+ * lateral si la cita tiene color propio o de servicio, o pintando toda la card
+ * si solo hereda el del doctor o el consultorio.
  */
 export const STATUS_NEUTRAL_ON_CALENDAR: AppointmentStatus[] = ['scheduled'];
 

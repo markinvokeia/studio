@@ -80,6 +80,13 @@ import {
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 
+/**
+ * Color de respaldo del punto de un servicio que no tiene color propio. Estaba
+ * tomado de `STATUS_ACCENT_COLOR.confirmed`, con el que no guarda ninguna
+ * relación semántica: era solo el verde que quedaba bien ahí.
+ */
+const DEFAULT_SERVICE_COLOR = '#10b981';
+
 function initials(name?: string): string {
   if (!name) return '?';
   return name
@@ -1196,7 +1203,7 @@ export function AppointmentPanel({
                           >
                             <span
                               className="h-2.5 w-2.5 shrink-0 rounded-full"
-                              style={{ backgroundColor: service.color || STATUS_ACCENT_COLOR.confirmed }}
+                              style={{ backgroundColor: service.color || DEFAULT_SERVICE_COLOR }}
                             />
                             <button
                               type="button"
@@ -1520,7 +1527,7 @@ export function AppointmentPanel({
                 <div className="flex min-w-0 items-center gap-3">
                   <span
                     className="h-9 w-9 shrink-0 rounded-full border border-white/60 shadow-sm"
-                    style={{ backgroundColor: selectedService.color || STATUS_ACCENT_COLOR.confirmed }}
+                    style={{ backgroundColor: selectedService.color || DEFAULT_SERVICE_COLOR }}
                   />
                   <div className="min-w-0">
                     <DialogTitle className="truncate">{selectedService.name}</DialogTitle>

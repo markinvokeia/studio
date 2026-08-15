@@ -13,7 +13,7 @@ import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
 import type { AppointmentStatus, CalendarReminderPriority, CalendarReminderStatus } from '@/lib/types';
 
 import type { CalendarEvent, CalendarSlotClickHandler } from './calendar-types';
-import { formatEventTime } from './calendar-utils';
+import { formatEventTime, getContrastingIconColor } from './calendar-utils';
 import { type Gap, gapKey } from './calendar-gaps';
 import { getReminderCardStyle, getReminderPriorityColor, isGeneralReminder, isReminderDone } from './reminder-visuals';
 
@@ -270,8 +270,8 @@ export function CalendarMonthViewMobile({
                           <span
                             aria-hidden
                             title={status}
-                            className="inline-flex items-center justify-center rounded-full p-1 text-white"
-                            style={{ backgroundColor: statusColor }}
+                            className="inline-flex items-center justify-center rounded-full p-1"
+                            style={{ backgroundColor: statusColor, color: getContrastingIconColor(statusColor) }}
                           >
                             <StatusIcon className="h-3.5 w-3.5" strokeWidth={2} />
                           </span>

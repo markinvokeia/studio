@@ -17,7 +17,7 @@ import type { AppointmentStatus, CalendarReminderPriority, CalendarReminderStatu
 import { getStatusIcon } from '@/components/appointments/status-icons';
 
 import type { CalendarEvent } from './calendar-types';
-import { formatEventTime, getReadableTextColor } from './calendar-utils';
+import { formatEventTime, getContrastingIconColor, getReadableTextColor } from './calendar-utils';
 import { getReminderCardStyle, getReminderPriorityColor, isGeneralReminder, isReminderDone } from './reminder-visuals';
 
 interface CalendarEventChipProps {
@@ -56,9 +56,16 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
 
   const bg = event.color || 'hsl(var(--primary))';
   const textColor = isReminder ? undefined : showCancelledStripes ? undefined : getReadableTextColor(event.color);
-  const eventStyle = isReminder
-    ? getReminderCardStyle(event.color, reminderIsDone)
-    : { backgroundColor: showCancelledStripes ? undefined : bg, color: textColor };
+  // La franja del estado se dibuja en un ::before que lee esta variable (Calendar.css).
+  const stripeStyle = event.statusStripeColor
+    ? ({ ['--status-stripe' as string]: event.statusStripeColor } as React.CSSProperties)
+    : undefined;
+  const eventStyle = {
+    ...(isReminder
+      ? getReminderCardStyle(event.color, reminderIsDone)
+      : { backgroundColor: showCancelledStripes ? undefined : bg, color: textColor }),
+    ...stripeStyle,
+  };
 
   return (
     <ContextMenu onOpenChange={(o) => { if (o) onEventContextMenuOpen?.(event.data); }}>
@@ -68,6 +75,7 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
           title={event.label ?? event.title}
           className={cn(
             'event',
+            event.statusStripeColor && 'event-status-stripe',
             showCancelledStripes && 'event-cancelled',
             isReminder && 'event-reminder',
             reminderIsDone && 'event-reminder-done',
@@ -93,7 +101,7 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
               aria-hidden
               className="event-status-corner"
               title={event.title}
-              style={{ backgroundColor: accentColor }}
+              style={{ backgroundColor: accentColor, color: getContrastingIconColor(accentColor) }}
             >
               <ReminderIcon className="h-3.5 w-3.5" strokeWidth={2.5} />
             </span>
@@ -110,7 +118,7 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
                 // desaparece, así que se invierte: fondo claro, ícono del color.
                 style={statusColored
                   ? { backgroundColor: 'rgba(255,255,255,0.92)', color: accentColor }
-                  : { backgroundColor: accentColor }}
+                  : { backgroundColor: accentColor, color: getContrastingIconColor(accentColor) }}
               >
                 <StatusIcon className="h-3.5 w-3.5" strokeWidth={2.5} />
               </span>

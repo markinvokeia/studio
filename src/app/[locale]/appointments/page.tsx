@@ -62,7 +62,7 @@ import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
-import { Appointment, AppointmentBulkFilterParams, AppointmentDatePreset, AppointmentStatus, Calendar as CalendarType, CalendarItemType, CalendarReminder, CalendarSettings, ClinicSchedule, ClinicException, Invoice, Order, PatientSession, Quote, QuoteItem, Sede, Service, SessionPreloadedService, User as UserType } from '@/lib/types';
+import { Appointment, AppointmentBulkFilterParams, AppointmentColorSource, AppointmentDatePreset, AppointmentStatus, Calendar as CalendarType, CalendarItemType, CalendarReminder, CalendarSettings, ClinicSchedule, ClinicException, Invoice, Order, PatientSession, Quote, QuoteItem, Sede, Service, SessionPreloadedService, User as UserType } from '@/lib/types';
 import { cn, toLocalISOString } from '@/lib/utils';
 import api from '@/services/api';
 import { getQuoteItems } from '@/services/quotes';
@@ -393,6 +393,9 @@ async function getAppointments(
 
             const appointmentColorId = getGoogleCalendarColorId(apiAppt.color) || '';
             let finalColor = appointmentColorId ? colorMap.get(appointmentColorId) : apiAppt.color;
+            // De qué nivel de la cadena salió el color. El calendario lo necesita para
+            // distinguir un color asignado a la cita de uno heredado.
+            let colorSource: AppointmentColorSource = 'appointment';
 
             // Fallback algorithm: Appointment Color Tag > Service Color > Doctor Color > Calendar Color
             // We skip white colors (255, 255, 255) as they are considered "no color"
@@ -402,10 +405,13 @@ async function getAppointments(
                 const dColor = doctor?.color;
                 const cColor = getGoogleCalendarColorHex(calendar?.color);
 
-                finalColor = (!isWhite(tagColor) ? tagColor : null) ||
-                    (!isWhite(sColor) ? sColor : null) ||
-                    (!isWhite(dColor) ? dColor : null) ||
-                    (!isWhite(cColor) ? cColor : null);
+                // Mismo orden y mismas exclusiones de blanco que antes; lo único que se
+                // agrega es anotar cuál de los cuatro ganó.
+                if (!isWhite(tagColor) && tagColor) { finalColor = tagColor; colorSource = 'appointment'; }
+                else if (!isWhite(sColor) && sColor) { finalColor = sColor; colorSource = 'service'; }
+                else if (!isWhite(dColor) && dColor) { finalColor = dColor; colorSource = 'doctor'; }
+                else if (!isWhite(cColor) && cColor) { finalColor = cColor; colorSource = 'calendar'; }
+                else { finalColor = undefined; colorSource = 'none'; }
             }
 
             const patientId = apiAppt.patient_id || apiAppt.patientId || apiAppt.patientid || apiAppt.user_id || apiAppt.userid;
@@ -447,6 +453,7 @@ async function getAppointments(
                 calendar_name: apiAppt.organizer?.displayName || calendar?.name || apiAppt.calendar_name,
                 color: finalColor,
                 colorId: appointmentColorId,
+                colorSource,
                 start: typeof startNode === 'string' ? { dateTime: startNode } : startNode,
                 end: { dateTime: endDateTimeStr },
                 services: Array.isArray(apiAppt.services) ? apiAppt.services.map((s: any) => ({
@@ -2564,9 +2571,11 @@ export default function AppointmentsPage() {
 
         const appointment = eventData as Appointment;
 
-        // Optimistically update UI
-        setAppointments(prev => prev.map(a => a.id === appointment.id ? { ...a, color: colorHex, colorId: colorId } : a));
-        setSelectedAppointment(prev => (prev && prev.id === appointment.id ? { ...prev, color: colorHex, colorId: colorId } : prev));
+        // Optimistically update UI. El origen pasa a 'appointment': el usuario acaba de
+        // elegirle una etiqueta de color a esta cita, así que deja de heredar.
+        const colorPatch = { color: colorHex, colorId, colorSource: 'appointment' as const };
+        setAppointments(prev => prev.map(a => a.id === appointment.id ? { ...a, ...colorPatch } : a));
+        setSelectedAppointment(prev => (prev && prev.id === appointment.id ? { ...prev, ...colorPatch } : prev));
 
         const payload = {
             appointment_id: appointment.id,
@@ -2665,11 +2674,16 @@ export default function AppointmentsPage() {
                     }
 
                     const matchedCalendar = calendars.find((calendar) => String(calendar.id) === String(appt.calendar_source_id));
-                    // Preferencia "colorear por estado": la card completa toma el color del
-                    // estado salvo que la cita siga en un estado neutro (programada). El
-                    // color propio de la cita (`appt.color`) queda intacto para el selector
-                    // de color y el panel de detalle.
-                    const statusColored = colorByStatus && !STATUS_NEUTRAL_ON_CALENDAR.includes(appt.status);
+                    // Preferencia "colorear por estado". Un color propio o de servicio es una
+                    // decisión que alguien tomó sobre esa cita y no se pisa: ahí el estado va
+                    // en una franja lateral. Heredar el color del doctor o del consultorio no
+                    // lo es, así que esas citas sí se pintan enteras. Los estados neutros
+                    // (programada) no muestran nada. `appt.color` queda intacto en los dos
+                    // casos para el selector de color y el panel de detalle.
+                    const status = normalizeAppointmentStatus(appt.status);
+                    const showsStatus = colorByStatus && !STATUS_NEUTRAL_ON_CALENDAR.includes(status);
+                    const keepsOwnColor = appt.colorSource === 'appointment' || appt.colorSource === 'service';
+                    const statusColored = showsStatus && !keepsOwnColor;
                     return {
                         id: String(appt.id),
                         title: appt.summary || appt.service_name || 'Cita',
@@ -2679,8 +2693,9 @@ export default function AppointmentsPage() {
                         doctorGroupId: appt.doctorId || undefined,
                         calendarGroupId: matchedCalendar?.id || appt.calendar_source_id || undefined,
                         data: { ...appt, kind: 'appointment' as const },
-                        color: statusColored ? STATUS_ACCENT_COLOR[appt.status] : appt.color,
+                        color: statusColored ? STATUS_ACCENT_COLOR[status] : appt.color,
                         statusColored,
+                        statusStripeColor: showsStatus && keepsOwnColor ? STATUS_ACCENT_COLOR[status] : undefined,
                         colorId: appt.colorId,
                     };
                 } catch (e) {

@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import type { AppointmentStatus, CalendarReminderPriority, CalendarReminderStatus, CancellationReason } from '@/lib/types';
 
 import type { CalendarBreakpoint, CalendarEvent } from './calendar-types';
-import { formatEventTime } from './calendar-utils';
+import { formatEventTime, getContrastingIconColor } from './calendar-utils';
 import { getReminderCardStyle, getReminderPriorityColor, isGeneralReminder, isReminderDone } from './reminder-visuals';
 
 function StatusBadge({
@@ -31,8 +31,8 @@ function StatusBadge({
     <span
       aria-hidden
       title={label}
-      className="inline-flex items-center justify-center rounded-full p-1 text-white shrink-0"
-      style={{ backgroundColor: color }}
+      className="inline-flex items-center justify-center rounded-full p-1 shrink-0"
+      style={{ backgroundColor: color, color: getContrastingIconColor(color) }}
     >
       <Icon className="h-3.5 w-3.5" strokeWidth={2.5} />
     </span>

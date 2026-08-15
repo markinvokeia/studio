@@ -232,6 +232,45 @@ export function getReadableTextColor(bg?: string | null): string {
   return lum > 0.6 ? '#111' : '#fff';
 }
 
+/** Luminancia relativa WCAG de un color hex. `null` si no se puede parsear. */
+function relativeLuminance(color?: string | null): number | null {
+  if (!color) return null;
+  const hex = color.startsWith('#') ? color.slice(1) : '';
+  if (hex.length !== 6 && hex.length !== 8) return null;
+  const channels = [0, 2, 4].map((i) => parseInt(hex.substring(i, i + 2), 16));
+  if (channels.some(Number.isNaN)) return null;
+
+  const [r, g, b] = channels.map((value) => {
+    const v = value / 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/** Contraste mínimo WCAG para un elemento no textual, como este ícono de 14px. */
+const MIN_ICON_CONTRAST = 3;
+
+/**
+ * Color del ícono de estado (`#111` o `#fff`) sobre el círculo pintado con el
+ * color del estado.
+ *
+ * Se queda en blanco —que es el lenguaje visual del calendario— y solo cambia a
+ * oscuro cuando el blanco no llega al mínimo legible. Con la paleta actual eso
+ * pasa en tres estados: "Llegó" (#f59e0b, 2.15:1), "Pendiente" (#9ca3af, 2.54:1)
+ * y "En curso" (#f97316, 2.80:1). El resto se ve exactamente igual que antes.
+ *
+ * A propósito no se elige "el que más contraste dé": eso daría ícono oscuro en
+ * casi toda la paleta y cambiaría el aspecto de todo el calendario para arreglar
+ * tres casos.
+ */
+export function getContrastingIconColor(bg?: string | null): string {
+  const lum = relativeLuminance(bg);
+  if (lum === null) return '#fff';
+
+  const contrastWithWhite = 1.05 / (lum + 0.05);
+  return contrastWithWhite < MIN_ICON_CONTRAST ? '#111' : '#fff';
+}
+
 // ---------------------------------------------------------------------------
 // Event group value
 // ---------------------------------------------------------------------------

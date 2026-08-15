@@ -18,7 +18,7 @@ import type { AppointmentStatus, CalendarReminderPriority, CalendarReminderStatu
 import { getStatusIcon } from '@/components/appointments/status-icons';
 
 import type { CalendarEvent } from './calendar-types';
-import { formatEventTime, getReadableTextColor } from './calendar-utils';
+import { formatEventTime, getContrastingIconColor, getReadableTextColor } from './calendar-utils';
 import { getReminderCardStyle, getReminderPriorityColor, isGeneralReminder, isReminderDone } from './reminder-visuals';
 
 interface CalendarEventDayProps {
@@ -78,6 +78,7 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
           className={cn(
             'event-in-day-view',
             isShortEvent && 'event-in-day-view-compact',
+            event.statusStripeColor && 'event-status-stripe',
             showCancelledStripes && 'event-cancelled',
             isReminder && 'event-reminder',
             reminderIsDone && 'event-reminder-done',
@@ -89,6 +90,10 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
             left: `${((event.column || 0) / (event.totalColumns || 1)) * 100}%`,
             width: `${(1 / (event.totalColumns || 1)) * 100}%`,
             paddingRight: '4px',
+            // La franja del estado se dibuja en un ::before que lee esta variable.
+            ...(event.statusStripeColor
+              ? ({ ['--status-stripe' as string]: event.statusStripeColor } as React.CSSProperties)
+              : {}),
           }}
           onPointerDown={(e) => e.stopPropagation()}
           onContextMenu={(e) => e.stopPropagation()}
@@ -124,7 +129,7 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
               aria-hidden
               className="event-status-corner"
               title={event.title}
-              style={{ backgroundColor: accentColor }}
+              style={{ backgroundColor: accentColor, color: getContrastingIconColor(accentColor) }}
             >
               <ReminderIcon className="h-3.5 w-3.5" strokeWidth={2.5} />
             </span>
@@ -141,7 +146,7 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
                 // desaparece, así que se invierte: fondo claro, ícono del color.
                 style={statusColored
                   ? { backgroundColor: 'rgba(255,255,255,0.92)', color: accentColor }
-                  : { backgroundColor: accentColor }}
+                  : { backgroundColor: accentColor, color: getContrastingIconColor(accentColor) }}
               >
                 <StatusIcon className="h-3.5 w-3.5" strokeWidth={2.5} />
               </span>

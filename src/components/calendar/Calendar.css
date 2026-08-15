@@ -121,6 +121,33 @@
   gap: 0.5rem;
 }
 
+/* Franja con el color del estado en el borde izquierdo. La llevan las citas que
+   conservan su color propio o el de su servicio; las que solo heredan el color del
+   doctor o del consultorio se siguen pintando enteras y no usan esto.
+
+   Va en un ::before y no en el fondo del elemento para no chocar con
+   `.event-cancelled`, que pisa background-color con !important y dibuja el rayado
+   sobre el propio nodo. Las dos tarjetas ya tienen overflow:hidden, así que la
+   franja se recorta sola con las esquinas de 4px, y ya reservan padding a la
+   izquierda (0.65rem el chip de mes, 8px la de día). */
+.event.event-status-stripe::before,
+.event-in-day-view.event-status-stripe::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: var(--status-stripe);
+  pointer-events: none;
+}
+
+/* El chip de mes mide 24px de alto y el texto arranca a 0.65rem: 3px alcanzan y
+   dejan respirar al título. */
+.event.event-status-stripe::before {
+  width: 3px;
+}
+
 /* Cancelled state — full diagonal striped background overrides the calendar color */
 .event-cancelled,
 .event-in-day-view.event-cancelled {
@@ -161,8 +188,11 @@
   text-decoration-color: rgb(156 163 175);
 }
 
-/* Status icon — solid colored badge with white icon, matching the agenda view.
-   The background color is set inline per-event via STATUS_ACCENT_COLOR. */
+/* Status icon — solid colored badge, matching the agenda view. El fondo se fija
+   inline por evento desde STATUS_ACCENT_COLOR, y junto con él el color del ícono,
+   que sale de getContrastingIconColor: sobre los estados claros (Llegó, Pendiente,
+   En curso) el blanco quedaba por debajo del mínimo legible. El `color: white` de
+   acá queda solo como respaldo para cuando el acento no es un hex parseable. */
 .event-in-day-view .event-status-corner {
   position: absolute;
   bottom: 2px;

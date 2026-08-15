@@ -589,6 +589,13 @@ export type CancellationReason =
   | 'other'
   | 'reschedule';
 
+/**
+ * Nivel de la cadena `etiqueta de la cita > servicio > doctor > consultorio` del
+ * que salió el `color` de una cita. `appointment` y `service` son colores que
+ * alguien le asignó a esa cita; `doctor` y `calendar` son herencia.
+ */
+export type AppointmentColorSource = 'appointment' | 'service' | 'doctor' | 'calendar' | 'none';
+
 export type Appointment = {
   id: string; // appointmentId in backend
   patientId: string;
@@ -613,6 +620,9 @@ export type Appointment = {
   calendar_name?: string;
   color?: string;
   colorId?: string;
+  /** De qué nivel de la cadena salió `color`. Lo usa el calendario para decidir si
+   *  el color es de la cita (y hay que preservarlo) o heredado. */
+  colorSource?: AppointmentColorSource;
   start?: any;
   end?: any;
   services?: Service[];
