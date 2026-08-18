@@ -832,6 +832,7 @@ export default function ServicesPage() {
     try {
       await upsertService(values, categories);
       toast({ title: t('toast.editSuccessTitle'), description: t('toast.successDescription', { name: values.name }) });
+      const categoryName = categories.find(cat => cat.id === values.category_id)?.name || selectedService!.category;
       const updatedService: Service = {
         ...selectedService!,
         name: values.name,
@@ -843,6 +844,7 @@ export default function ServicesPage() {
         color: values.color || null,
         is_active: values.is_active,
         category_id: values.category_id,
+        category: categoryName,
         service_type: values.service_type,
         treatment_steps: values.treatment_steps,
       };

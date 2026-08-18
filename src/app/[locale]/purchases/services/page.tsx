@@ -330,7 +330,8 @@ export default function ServicesPage() {
     try {
       await upsertService(values, categories);
       toast({ title: t('toast.editSuccessTitle'), description: t('toast.successDescription', { name: values.name }) });
-      const updatedService: Service = { ...selectedService!, name: values.name, price: values.price, currency: values.currency, description: values.description, color: values.color || null, is_active: values.is_active, category_id: values.category_id };
+      const categoryName = categories.find(cat => cat.id === values.category_id)?.name || selectedService!.category;
+      const updatedService: Service = { ...selectedService!, name: values.name, price: values.price, currency: values.currency, description: values.description, color: values.color || null, is_active: values.is_active, category_id: values.category_id, category: categoryName };
       setServices(prev => prev.map(s => s.id === values.id ? updatedService : s));
       setSelectedService(updatedService);
     } catch (error) {
