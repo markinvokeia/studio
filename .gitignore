@@ -54,3 +54,6 @@ firestore-debug.log
 
 # Liquibase
 database/drivers/*.jar
+
+# MCP local config (contains DB credentials) — commit .mcp.json.example instead
+.mcp.json
