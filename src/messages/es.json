@@ -6075,15 +6075,6 @@
       "runNowErrorTitle": "Error al Ejecutar",
       "runNowErrorDescription": "Ocurrió un error al ejecutar el programador. Por favor, inténtelo nuevamente."
     },
-    "whatsappFollowup": {
-      "title": "Reintento de WhatsApp",
-      "description": "Retomar automáticamente una conversación de WhatsApp inactiva con el paciente.",
-      "enable": "Habilitar reintento automático",
-      "enableDescription": "Cuando el asistente mandó el último mensaje y el paciente no respondió, intenta retomar la conversación una vez.",
-      "delayHoursLabel": "Tiempo de espera antes de reintentar (horas)",
-      "delayHoursHint": "Entre 1 y 24 horas",
-      "delayHoursInvalid": "Debe ser un número entero entre 1 y 24"
-    },
     "email": {
       "title": "Configuración de Correo Electrónico",
       "description": "Configure el proveedor SMTP para enviar correos.",

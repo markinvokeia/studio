@@ -158,6 +158,19 @@ export function DataTable<TData, TValue>({
   const finalRowSelection = rowSelection ?? internalRowSelection;
   const finalSetRowSelection = setRowSelection ?? setInternalRowSelection;
 
+  // Distinguishes a selection change the user made by clicking a row (which should notify
+  // onRowSelectionChange) from one the parent made programmatically — e.g. clearing the
+  // selection to open a "create" form. Without this, that programmatic clear round-trips
+  // through the sync effect below and calls onRowSelectionChange([]), which pages typically
+  // use to also reset their "isEditing" flag — clobbering the create/edit state right after
+  // it was set.
+  const isUserDrivenSelectionRef = React.useRef(false);
+  const handleTableRowSelectionChange = React.useCallback((updater: React.SetStateAction<RowSelectionState>) => {
+    isUserDrivenSelectionRef.current = true;
+    finalSetRowSelection(updater);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finalSetRowSelection]);
+
   const table = useReactTable({
     data,
     columns,
@@ -175,7 +188,7 @@ export function DataTable<TData, TValue>({
     },
     enableRowSelection: true,
     enableMultiRowSelection: !enableSingleRowSelection,
-    onRowSelectionChange: finalSetRowSelection,
+    onRowSelectionChange: handleTableRowSelectionChange,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: onColumnVisibilityChange ?? setInternalColumnVisibility,
@@ -229,6 +242,8 @@ export function DataTable<TData, TValue>({
   React.useLayoutEffect(() => { onRowSelectionChangeRef.current = onRowSelectionChange; });
 
   React.useEffect(() => {
+    if (!isUserDrivenSelectionRef.current) return;
+    isUserDrivenSelectionRef.current = false;
     if (onRowSelectionChangeRef.current) {
       const selectedRows = table.getFilteredSelectedRowModel().rows.map(row => row.original);
       onRowSelectionChangeRef.current(selectedRows);
