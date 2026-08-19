@@ -1,0 +1,968 @@
+{
+  "name": "Sedes",
+  "nodes": [
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        128,
+        288
+      ],
+      "id": "7215facc-19ae-4cc8-b08c-7cc5b909636f",
+      "name": "Error"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        128,
+        96
+      ],
+      "id": "a093fa09-c9d5-4289-901f-b9741cb18fb9",
+      "name": "OK"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sede",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -720,
+        -96
+      ],
+      "id": "32636431-739c-457d-8b98-4f2c3abf1244",
+      "name": "UPSERT /sede",
+      "webhookId": "15f21bd0-5172-4a29-ae00-5557f8977663",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "89f0babb-3d7a-4be8-b6e2-e90c00ee1537",
+              "leftValue": "={{ $json.body.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -512,
+        -96
+      ],
+      "id": "5304214e-e3ac-46b6-a7e9-1276c5031a9c",
+      "name": "Sede exists?"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "sedes",
+          "mode": "list",
+          "cachedResultName": "sedes"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "is_active": "={{ $json.body.is_active }}",
+            "clinic_id": "={{ $json.body.clinic_id }}",
+            "name": "={{ $json.body.name }}",
+            "address": "={{ $json.body.address }}",
+            "phone": "={{ $json.body.phone }}",
+            "email": "={{ $json.body.email }}",
+            "created_at": "={{ $now }}",
+            "updated_at": "={{ $now }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "clinic_id",
+              "displayName": "clinic_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "address",
+              "displayName": "address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is_active",
+              "displayName": "is_active",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -288,
+        -16
+      ],
+      "id": "09abcb62-0824-4942-ae51-666e4a5f08c7",
+      "name": "Insert sede",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "sedes",
+          "mode": "list",
+          "cachedResultName": "sedes"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "is_active": "={{ $json.body.is_active }}",
+            "id": "={{ $json.body.id }}",
+            "clinic_id": "={{ $json.body.clinic_id }}",
+            "name": "={{ $json.body.name }}",
+            "address": "={{ $json.body.address }}",
+            "phone": "={{ $json.body.phone }}",
+            "email": "={{ $json.body.email }}",
+            "updated_at": "={{ $now }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "clinic_id",
+              "displayName": "clinic_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "address",
+              "displayName": "address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is_active",
+              "displayName": "is_active",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -288,
+        -192
+      ],
+      "id": "ab9a2371-3bbd-4c08-8d79-a4f0eb93f42b",
+      "name": "Update sede",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "path": "sede",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -720,
+        96
+      ],
+      "id": "b2f2ba3b-eeb5-4179-9bda-4266fb76ad33",
+      "name": "GET /sede",
+      "webhookId": "15f21bd0-5172-4a29-ae00-5557f8977663",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM public.sedes\nWHERE id = $1\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ $json.query.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -512,
+        96
+      ],
+      "id": "9aea0070-17a7-4e62-9794-a36af611ef5d",
+      "name": "Select sede",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "path": "sedes",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -864,
+        224
+      ],
+      "id": "c097a7c2-adfa-4375-9358-9bc1b4c02ed0",
+      "name": "LIST /sedes",
+      "webhookId": "15f21bd0-5172-4a29-ae00-5557f8977663",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "DELETE",
+        "path": "sede",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -720,
+        480
+      ],
+      "id": "093742e3-9f2f-4606-807a-4ee700631c75",
+      "name": "DELETE /sede",
+      "webhookId": "15f21bd0-5172-4a29-ae00-5557f8977663",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM public.sedes\nWHERE id = $1;",
+        "options": {
+          "queryReplacement": "={{ $json.body.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -512,
+        480
+      ],
+      "id": "9a3f824a-46d1-4828-855c-ca5d163c5972",
+      "name": "Delete sede",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM\n    public.sedes\nWHERE\n    (\n        $1 IS NULL\n        OR name ILIKE '%' || $1 || '%'\n        OR address ILIKE '%' || $1 || '%'\n        OR email ILIKE '%' || $1 || '%'\n        OR phone ILIKE '%' || $1 || '%'\n    )\n    AND ($2 IS NULL OR is_active = $2)\nORDER BY\n    created_at DESC\nLIMIT $3\nOFFSET $4;",
+        "options": {
+          "queryReplacement": "={{ [$json.query.search, $json.query.is_active, $json.query.limit, (($json.query.page - 1) * $json.query.limit)] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -512,
+        288
+      ],
+      "id": "774a7299-9546-40b3-98b6-0eb0df374e58",
+      "name": "Select sedes",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "path": "sedes_noauth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -864,
+        352
+      ],
+      "id": "700e03ce-e9ff-4bd8-acc1-75f459b7d473",
+      "name": "LIST /sedes_noauth",
+      "webhookId": "15f21bd0-5172-4a29-ae00-5557f8977663"
+    },
+    {
+      "parameters": {
+        "path": "users/active-sede",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -720,
+        784
+      ],
+      "id": "928bffb9-2c6a-4d98-a616-20eaedb94543",
+      "name": "GET /users/active-sede",
+      "webhookId": "15f21bd0-5172-4a29-ae00-5557f8977663",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT active_sede_id\nFROM public.users\nWHERE id = $1\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ [$json.jwtPayload.userId] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -512,
+        784
+      ],
+      "id": "9663936b-c39e-4506-9e42-4466c3d56502",
+      "name": "Get active sede",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "users/active-sede",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -720,
+        960
+      ],
+      "id": "35a272c7-4b82-454b-9eb3-3d3f172fc7af",
+      "name": "POST /users/active-sede",
+      "webhookId": "15f21bd0-5172-4a29-ae00-5557f8977663",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE public.users\nSET active_sede_id = $2\nWHERE id = $1;",
+        "options": {
+          "queryReplacement": "={{ [$json.jwtPayload.userId, $json.body.sede_id] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -512,
+        960
+      ],
+      "id": "ffb9589c-7555-43ed-9476-de6213e917c3",
+      "name": "Set active sede",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    }
+  ],
+  "pinData": {
+    "LIST /sedes": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.8",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3NjY1OTA1NzJ9.WnZ5C14V9AhihaZKNr1Ivkw6TqXCxWKH1ohZssVDRMY",
+            "origin": "http://localhost:3000",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/",
+            "sec-ch-ua": "\"Brave\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "sec-gpc": "1",
+            "x-forwarded-for": "177.7.143.97",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "6c8052c64eb2",
+            "x-real-ip": "177.7.143.97"
+          },
+          "params": {},
+          "query": {
+            "page": "1",
+            "limit": "10"
+          },
+          "body": {},
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/system/communication-templates",
+          "executionMode": "production",
+          "jwtPayload": {
+            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "email": "raidel@invokeia.com",
+            "expiresIn": "24h",
+            "iat": 1766590572
+          }
+        }
+      }
+    ],
+    "LIST /sedes_noauth": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.8",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3NjY1OTA1NzJ9.WnZ5C14V9AhihaZKNr1Ivkw6TqXCxWKH1ohZssVDRMY",
+            "origin": "http://localhost:3000",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/",
+            "sec-ch-ua": "\"Brave\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "sec-gpc": "1",
+            "x-forwarded-for": "177.7.143.97",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "6c8052c64eb2",
+            "x-real-ip": "177.7.143.97"
+          },
+          "params": {},
+          "query": {
+            "page": "1",
+            "limit": "10"
+          },
+          "body": {},
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/system/communication-templates",
+          "executionMode": "production",
+          "jwtPayload": {
+            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "email": "raidel@invokeia.com",
+            "expiresIn": "24h",
+            "iat": 1766590572
+          }
+        }
+      }
+    ]
+  },
+  "connections": {
+    "UPSERT /sede": {
+      "main": [
+        [
+          {
+            "node": "Sede exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sede exists?": {
+      "main": [
+        [
+          {
+            "node": "Update sede",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert sede",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert sede": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update sede": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET /sede": {
+      "main": [
+        [
+          {
+            "node": "Select sede",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select sede": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LIST /sedes": {
+      "main": [
+        [
+          {
+            "node": "Select sedes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DELETE /sede": {
+      "main": [
+        [
+          {
+            "node": "Delete sede",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete sede": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select sedes": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LIST /sedes_noauth": {
+      "main": [
+        [
+          {
+            "node": "Select sedes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET /users/active-sede": {
+      "main": [
+        [
+          {
+            "node": "Get active sede",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get active sede": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /users/active-sede": {
+      "main": [
+        [
+          {
+            "node": "Set active sede",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set active sede": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "4f8d009e-d05a-4ab7-bf1f-ec9325a0e667",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
+  },
+  "nodeGroups": [],
+  "id": "UvsZwf0czzv5LNm7",
+  "tags": []
+}

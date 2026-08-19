@@ -3,8 +3,13 @@
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 
 import { API_ROUTES } from '@/constants/routes';
-import { AuthUser } from '@/lib/types';
+import { AuthUser, Sede } from '@/lib/types';
 import api from '@/services/api';
+
+export type ActiveSede = {
+  id: string;
+  name: string;
+};
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -16,6 +21,9 @@ interface AuthContextType {
   refreshUser: () => Promise<void>;
   permissionCodes: string[];
   roleNames: string[];
+  sedes: Sede[];
+  activeSede: ActiveSede | null;
+  setActiveSede: (sedeId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,6 +32,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeCashSession, setActiveCashSession] = useState<any | null>(null);
+  const [sedes, setSedes] = useState<Sede[]>([]);
+  const [activeSedeId, setActiveSedeId] = useState<string | null>(null);
 
   const fetchAuthUser = async (): Promise<AuthUser | null> => {
     try {
@@ -49,6 +59,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const permissionCodes = getPermissionCodes(user);
   const roleNames = getRoleNames(user);
+
+  const activeSede: ActiveSede | null = activeSedeId
+    ? { id: activeSedeId, name: sedes.find(s => s.id === activeSedeId)?.name || '' }
+    : null;
+
+  const loadSedes = async () => {
+    try {
+      const data = await api.get(API_ROUTES.SEDES, { page: '1', limit: '200' });
+      const raw = Array.isArray(data) ? data : (data.sedes || data.data || []);
+      setSedes(raw.filter((s: any) => s.is_active !== false).map((s: any) => ({
+        id: String(s.id),
+        clinic_id: String(s.clinic_id),
+        name: s.name || '',
+        is_active: s.is_active !== undefined ? s.is_active : true,
+      })));
+    } catch (error) {
+      console.error('Failed to fetch sedes:', error);
+      setSedes([]);
+    }
+  };
+
+  const loadActiveSede = async () => {
+    try {
+      const data = await api.get(API_ROUTES.USER_ACTIVE_SEDE);
+      const row = Array.isArray(data) ? data[0] : data;
+      const id = row?.active_sede_id;
+      setActiveSedeId(id ? String(id) : null);
+    } catch (error) {
+      console.error('Failed to fetch active sede:', error);
+      setActiveSedeId(null);
+    }
+  };
+
+  const setActiveSede = async (sedeId: string) => {
+    await api.post(API_ROUTES.USER_ACTIVE_SEDE, { sede_id: Number(sedeId) });
+    setActiveSedeId(sedeId);
+  };
 
   const checkActiveSession = async () => {
     const storedUser = localStorage.getItem('user');
@@ -101,6 +148,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           };
           setUser(authUser);
           localStorage.setItem('user', JSON.stringify(basicUser));
+          await loadSedes();
+          await loadActiveSede();
         } else {
           localStorage.removeItem('token');
         }
@@ -141,6 +190,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('user', JSON.stringify(loggedInUser));
     }
 
+    await loadSedes();
+    await loadActiveSede();
     await checkActiveSession();
   };
 
@@ -152,6 +203,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setUser(null);
       setActiveCashSession(null);
+      setSedes([]);
+      setActiveSedeId(null);
       localStorage.removeItem('user');
       localStorage.removeItem('token');
     }
@@ -167,7 +220,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       checkActiveSession,
       refreshUser,
       permissionCodes,
-      roleNames
+      roleNames,
+      sedes,
+      activeSede,
+      setActiveSede,
     }}>
       {children}
     </AuthContext.Provider>

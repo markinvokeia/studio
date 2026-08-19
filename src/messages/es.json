@@ -64,6 +64,8 @@
       "doctor": "Doctor",
       "searchDoctor": "Buscar doctor...",
       "selectDoctor": "Seleccionar doctor",
+      "searchSede": "Buscar sede...",
+      "selectSede": "Seleccionar sede",
       "description": "Descripción",
       "price": "Precio",
       "amount": "Monto",
@@ -75,7 +77,8 @@
     },
     "errors": {
       "dueDateBeforeIssue": "El vencimiento debe ser posterior a la fecha de emisión",
-      "negativeTooth": "El número de pieza no puede ser negativo"
+      "negativeTooth": "El número de pieza no puede ser negativo",
+      "sedeRequired": "La sede es obligatoria"
     },
     "columns": {
       "date": "Fecha",
@@ -212,6 +215,9 @@
       "doctor": "Doctor",
       "searchDoctor": "Buscar doctor...",
       "selectDoctor": "Seleccionar doctor",
+      "sede": "Sede",
+      "searchSede": "Buscar sede...",
+      "selectSede": "Seleccionar sede",
       "keepOpen": "Guardar y cargar otro"
     },
     "validation": {
@@ -219,7 +225,8 @@
       "toothNumberMin": "Número de pieza inválido",
       "toothNumberMax": "Número de pieza inválido",
       "serviceRequired": "Selecciona un tratamiento",
-      "pricePositive": "El precio debe ser mayor o igual a 0"
+      "pricePositive": "El precio debe ser mayor o igual a 0",
+      "sedeRequired": "La sede es obligatoria"
     },
     "toasts": {
       "quoteCreated": "Presupuesto creado",
@@ -658,6 +665,11 @@
     "description": "No tiene una sesión de caja activa. Por favor, abra una para comenzar a registrar transacciones.",
     "button": "Abrir Sesión de Caja",
     "tooltip": "Sin sesión activa. Haga clic para abrir una."
+  },
+  "WorkingSedeSelector": {
+    "title": "Sede de Trabajo",
+    "selectPrompt": "Seleccione en qué sede está trabajando",
+    "noSedes": "No hay sedes disponibles"
   },
   "DataTableToolbar": {
     "toggleColumns": "Alternar columnas",
@@ -2220,6 +2232,9 @@
       "doctor": "Doctor",
       "selectDoctor": "Seleccionar Doctor",
       "searchDoctor": "Buscar doctor...",
+      "sede": "Sede",
+      "selectSede": "Seleccionar sede...",
+      "searchSede": "Buscar sede...",
       "total": "Total",
       "currency": "Moneda",
       "exchangeRate": "Tasa de Cambio",
@@ -2401,7 +2416,8 @@
       "unitPriceTwoDecimals": "El precio debe tener máximo 2 decimales",
       "toothNumberMin": "El número de diente debe ser al menos 11",
       "toothNumberMax": "El número de diente debe ser como máximo 85",
-      "exchangeRatePositive": "La tasa de cambio debe ser mayor a 0"
+      "exchangeRatePositive": "La tasa de cambio debe ser mayor a 0",
+      "sedeRequired": "La sede es obligatoria"
     },
     "deleteQuoteDialog": {
       "title": "Eliminar Presupuesto",
@@ -2720,6 +2736,9 @@
       "doctor": "Doctor",
       "selectDoctor": "Seleccionar Doctor",
       "searchDoctor": "Buscar doctor...",
+      "sede": "Sede",
+      "selectSede": "Seleccionar sede...",
+      "searchSede": "Buscar sede...",
       "invoiceRef": "Referencia de Factura",
       "addItem": "Agregar Artículo",
       "total": "Total",
@@ -2742,7 +2761,9 @@
         "totalNonNegative": "El total debe ser un número no negativo.",
         "serviceRequired": "El nombre del servicio es obligatorio.",
         "quantityMin": "La cantidad debe ser al menos 1.",
-        "unitPriceNonNegative": "El precio unitario no puede ser negativo."
+        "unitPriceNonNegative": "El precio unitario no puede ser negativo.",
+        "sedeRequired": "La sede es obligatoria.",
+        "parentInvoiceRequired": "Debe seleccionar la factura padre."
       },
       "errors": {
         "title": "Error",
@@ -3134,6 +3155,7 @@
     "columns": {
       "id": "ID",
       "name": "Nombre",
+      "sede": "Sede",
       "isActive": "Está Activa",
       "createdAt": "Creado En",
       "updatedAt": "Actualizado En",
@@ -3148,6 +3170,9 @@
       "createTitle": "Crear Caja Registradora",
       "name": "Nombre",
       "namePlaceholder": "Nombre aquí...",
+      "sede": "Sede",
+      "selectSede": "Seleccionar sede...",
+      "searchSede": "Buscar sede...",
       "isActive": "Está Activa",
       "cancel": "Cancelar",
       "create": "Crear",
@@ -3155,7 +3180,8 @@
       "save": "Guardar Cambios"
     },
     "validation": {
-      "nameRequired": "El nombre es obligatorio"
+      "nameRequired": "El nombre es obligatorio",
+      "sedeRequired": "La sede es obligatoria"
     },
     "deleteDialog": {
       "title": "Eliminar Caja Registradora",

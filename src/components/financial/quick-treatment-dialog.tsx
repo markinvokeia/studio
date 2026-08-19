@@ -24,9 +24,11 @@ import { DatePickerInput } from '@/components/ui/date-picker';
 import { DoctorSelector } from '@/components/ui/doctor-selector';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { SedeSelector } from '@/components/ui/sede-selector';
 import { ServiceSelector } from '@/components/ui/service-selector';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
+import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import type { Clinic, User } from '@/lib/types';
 import { preserveTimeIfToday, toLocalISOString } from '@/lib/utils';
@@ -51,6 +53,7 @@ const quickTreatmentSchema = (t: (key: string) => string) => z.object({
   description: z.string().optional(),
   unit_price: z.coerce.number().min(0, t('validation.pricePositive')),
   doctor_id: z.string().optional(),
+  sede_id: z.string().min(1, t('validation.sedeRequired')),
   keep_open: z.boolean().default(false),
 });
 type QuickTreatmentFormValues = z.infer<ReturnType<typeof quickTreatmentSchema>>;
@@ -74,6 +77,7 @@ export interface QuickTreatmentDialogProps {
 export function QuickTreatmentDialog({ open, onOpenChange, mode, patient, isSales = true, onSaveSuccess }: QuickTreatmentDialogProps) {
   const t = useTranslations('QuickTreatmentDialog');
   const { toast } = useToast();
+  const { activeSede } = useAuth();
 
   const [currency, setCurrency] = React.useState('UYU');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -96,11 +100,12 @@ export function QuickTreatmentDialog({ open, onOpenChange, mode, patient, isSale
       description: '',
       unit_price: 0,
       doctor_id: keepDoctor ? form.getValues('doctor_id') : '',
+      sede_id: form.getValues('sede_id') || activeSede?.id || '',
       keep_open: form.getValues('keep_open') || false,
     });
     if (!keepDoctor) setDoctorName('');
     setShowDescription(false);
-  }, [form]);
+  }, [form, activeSede]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -127,6 +132,7 @@ export function QuickTreatmentDialog({ open, onOpenChange, mode, patient, isSale
         const res = await api.post(API_ROUTES.SALES.QUOTES_UPSERT, {
           user_id: patient.id,
           doctor_id: values.doctor_id || undefined,
+          sede_id: Number(values.sede_id),
           total: values.unit_price,
           currency,
           status: 'draft',
@@ -145,6 +151,7 @@ export function QuickTreatmentDialog({ open, onOpenChange, mode, patient, isSale
         const res = await api.post(API_ROUTES.SALES.INVOICES_UPSERT, {
           user_id: patient.id,
           doctor_id: values.doctor_id || undefined,
+          sede_id: Number(values.sede_id),
           total: values.unit_price,
           currency,
           created_at: createdAt,
@@ -276,6 +283,21 @@ export function QuickTreatmentDialog({ open, onOpenChange, mode, patient, isSale
                       }}
                       placeholder={t('fields.searchDoctor')}
                       triggerText={t('fields.selectDoctor')}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              <FormField control={form.control} name="sede_id" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('fields.sede')}</FormLabel>
+                  <FormControl>
+                    <SedeSelector
+                      value={field.value}
+                      onValueChange={(sedeId) => field.onChange(sedeId)}
+                      placeholder={t('fields.searchSede')}
+                      triggerText={t('fields.selectSede')}
                     />
                   </FormControl>
                   <FormMessage />

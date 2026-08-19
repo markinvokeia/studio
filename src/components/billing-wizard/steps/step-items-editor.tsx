@@ -5,6 +5,7 @@ import { Plus, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SedeSelector } from '@/components/ui/sede-selector';
 import { ServiceSelector } from '@/components/ui/service-selector';
 import { cn } from '@/lib/utils';
 import type { Service } from '@/lib/types';
@@ -25,6 +26,8 @@ interface StepItemsEditorProps {
   onItemsChange: (items: EditableItem[]) => void;
   currency: string;
   onCurrencyChange: (currency: string) => void;
+  sedeId: string;
+  onSedeChange: (sedeId: string) => void;
   isSales?: boolean;
 }
 
@@ -45,6 +48,8 @@ export function StepItemsEditor({
   onItemsChange,
   currency,
   onCurrencyChange,
+  sedeId,
+  onSedeChange,
   isSales = true,
 }: StepItemsEditorProps) {
   const [showSelector, setShowSelector] = React.useState(false);
@@ -105,25 +110,37 @@ export function StepItemsEditor({
 
   return (
     <div className="space-y-4">
-      {/* Currency selector */}
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-muted-foreground font-medium">Moneda:</span>
-        <div className="flex rounded-md border overflow-hidden">
-          {(['UYU', 'USD'] as const).map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => onCurrencyChange(c)}
-              className={cn(
-                'px-3 py-1 text-xs font-medium transition-colors',
-                currency === c
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-background text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {c}
-            </button>
-          ))}
+      {/* Currency + sede selectors */}
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground font-medium">Moneda:</span>
+          <div className="flex rounded-md border overflow-hidden">
+            {(['UYU', 'USD'] as const).map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => onCurrencyChange(c)}
+                className={cn(
+                  'px-3 py-1 text-xs font-medium transition-colors',
+                  currency === c
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-background text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground font-medium">Sede:</span>
+          <SedeSelector
+            value={sedeId}
+            onValueChange={onSedeChange}
+            className="h-7 w-48 text-xs"
+            placeholder="Buscar sede..."
+            triggerText="Seleccionar sede..."
+          />
         </div>
       </div>
 

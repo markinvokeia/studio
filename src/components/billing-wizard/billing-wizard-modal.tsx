@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { API_ROUTES } from '@/constants/routes';
+import { useAuth } from '@/context/AuthContext';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { api } from '@/services/api';
 import { sortQuoteItems, toLocalISOString } from '@/lib/utils';
@@ -197,6 +198,7 @@ async function createDirectInvoice(
   items: EditableItem[],
   isSales: boolean,
   currency: string,
+  sedeId: string,
 ): Promise<Invoice> {
   const endpoint = isSales ? API_ROUTES.SALES.INVOICES_UPSERT : API_ROUTES.PURCHASES.INVOICES_UPSERT;
   const now = new Date();
@@ -207,6 +209,7 @@ async function createDirectInvoice(
     user_id: patientId,
     type: 'invoice',
     currency,
+    sede_id: Number(sedeId),
     total,
     is_sales: isSales,
     is_historical: false,
@@ -383,6 +386,7 @@ const STEPS_FREEFORM_WITH_PATIENT: WizardStep[] = [
 
 export function BillingWizardModal() {
   const { isOpen, context, onSuccess, close } = useBillingWizard();
+  const { activeSede } = useAuth();
   const isSales = context?.isSales ?? true;
 
   // Determine base flow type
@@ -391,6 +395,7 @@ export function BillingWizardModal() {
   // Freeform state (no quoteId, no invoiceId — direct items editor)
   const [editableItems, setEditableItems] = React.useState<EditableItem[]>([]);
   const [freeformCurrency, setFreeformCurrency] = React.useState<string>('UYU');
+  const [freeformSedeId, setFreeformSedeId] = React.useState<string>('');
   // Patient selected in patient-selection step (freeform flow without context.patientId)
   const [selectedPatient, setSelectedPatient] = React.useState<User | null>(null);
 
@@ -483,6 +488,7 @@ export function BillingWizardModal() {
       setTreatmentLoadError(null);
       setEditableItems([]);
       setFreeformCurrency('UYU');
+      setFreeformSedeId('');
       setSelectedPatient(null);
       setPaymentSubStep(0);
       return;
@@ -540,6 +546,7 @@ export function BillingWizardModal() {
         .finally(() => setIsLoadingTreatment(false));
     } else {
       setFreeformCurrency(context.currency || 'UYU');
+      setFreeformSedeId(activeSede?.id || '');
       if (context.preloadedItems && context.preloadedItems.length > 0) {
         // Caller already prepared items (e.g. AppointmentPanel) — use them directly
         setEditableItems(context.preloadedItems);
@@ -559,7 +566,7 @@ export function BillingWizardModal() {
         setEditableItems([]);
       }
     }
-  }, [isOpen, context, startFromInvoice, isSales]);
+  }, [isOpen, context, startFromInvoice, isSales, activeSede]);
 
   const handleClose = React.useCallback(() => {
     close();
@@ -687,6 +694,10 @@ export function BillingWizardModal() {
       setError('Agrega al menos un servicio con ID válido.');
       return;
     }
+    if (!freeformSedeId) {
+      setError('Selecciona la sede antes de continuar.');
+      return;
+    }
 
     setIsProcessing(true);
     setError(null);
@@ -697,6 +708,7 @@ export function BillingWizardModal() {
         editableItems,
         isSales,
         freeformCurrency,
+        freeformSedeId,
       );
       setResolvedInvoice(invoice);
       linkInvoiceToContext(invoice.id);
@@ -720,7 +732,7 @@ export function BillingWizardModal() {
     } finally {
       setIsProcessing(false);
     }
-  }, [effectivePatientId, editableItems, freeformCurrency, isSales, steps.length, onSuccess, linkInvoiceToContext]);
+  }, [effectivePatientId, editableItems, freeformCurrency, freeformSedeId, isSales, steps.length, onSuccess, linkInvoiceToContext]);
 
   const handlePaymentSuccess = React.useCallback(
     async (result: PaymentResult) => {
@@ -867,6 +879,8 @@ export function BillingWizardModal() {
             onItemsChange={setEditableItems}
             currency={freeformCurrency}
             onCurrencyChange={setFreeformCurrency}
+            sedeId={freeformSedeId}
+            onSedeChange={setFreeformSedeId}
             isSales={isSales}
           />
         );
@@ -1087,7 +1101,7 @@ export function BillingWizardModal() {
                 <button
                   type="button"
                   onClick={() => handleItemsEditorNext('invoice-only')}
-                  disabled={isProcessing || isLoadingTreatment || editableItems.length === 0 || !effectivePatientId}
+                  disabled={isProcessing || isLoadingTreatment || editableItems.length === 0 || !effectivePatientId || !freeformSedeId}
                   className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isProcessing && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -1096,7 +1110,7 @@ export function BillingWizardModal() {
                 <button
                   type="button"
                   onClick={() => handleItemsEditorNext('invoice-and-pay')}
-                  disabled={isProcessing || isLoadingTreatment || editableItems.length === 0 || !effectivePatientId}
+                  disabled={isProcessing || isLoadingTreatment || editableItems.length === 0 || !effectivePatientId || !freeformSedeId}
                   className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {isProcessing && <Loader2 className="h-4 w-4 animate-spin" />}

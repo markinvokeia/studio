@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/select';
 import { DatePickerInput } from '@/components/ui/date-picker';
 import { DoctorSelector } from '@/components/ui/doctor-selector';
+import { SedeSelector } from '@/components/ui/sede-selector';
 import { ServiceSelector } from '@/components/ui/service-selector';
 import { UserSelector } from '@/components/ui/user-selector';
 import { Textarea } from '@/components/ui/textarea';
@@ -57,6 +58,7 @@ const quoteFormSchema = (t: (key: string) => string) => z.object({
     exchange_rate: z.coerce.number().min(0.0001, t('validation.exchangeRatePositive')).optional(),
     created_at: z.date({ required_error: t('validation.dateRequired') }),
     notes: z.string().optional(),
+    sede_id: z.string().min(1, t('validation.sedeRequired')),
     patient_confirmed: z.boolean().default(false),
     items: z.array(z.object({
         id: z.string().optional(),
@@ -116,7 +118,7 @@ export interface QuoteFormDialogProps {
 export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess, onQuoteCreated, isSales = true, initialItems }: QuoteFormDialogProps) {
     const t = useTranslations('QuotesPage');
     const { toast } = useToast();
-    const { activeCashSession } = useAuth();
+    const { activeCashSession, activeSede } = useAuth();
 
     const [clinic, setClinic] = React.useState<Clinic | null>(null);
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
@@ -169,6 +171,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                 exchange_rate: 1,
                 created_at: new Date(),
                 notes: '',
+                sede_id: activeSede?.id || '',
                 patient_confirmed: false,
                 items: preloadedItems,
             },
@@ -400,6 +403,24 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                                     }}
                                                     placeholder={t('quoteDialog.searchDoctor')}
                                                     triggerText={t('quoteDialog.selectDoctor')}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="sede_id"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('quoteDialog.sede')}</FormLabel>
+                                            <FormControl>
+                                                <SedeSelector
+                                                    value={field.value}
+                                                    onValueChange={(sedeId) => field.onChange(sedeId)}
+                                                    triggerText={t('quoteDialog.selectSede')}
+                                                    placeholder={t('quoteDialog.searchSede')}
                                                 />
                                             </FormControl>
                                             <FormMessage />

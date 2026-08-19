@@ -1,0 +1,299 @@
+{
+  "name": "Billing",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "query"
+            },
+            {
+              "name": "sessionId"
+            },
+            {
+              "name": "user",
+              "type": "object"
+            },
+            {
+              "name": "message"
+            },
+            {
+              "name": "order_id"
+            },
+            {
+              "name": "notes"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -688,
+        384
+      ],
+      "id": "1d3b591a-3e32-463d-834b-7556b2f8fdb7",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "const invoice = $(\"Crear Cabecera Factura\").first().json;\nconst total = $(\"Guardia de Presupuesto\").first().json.total_factura;\n\nreturn [{\n  json: {\n    success: true,\n    output: `✅ Factura #${invoice.doc_no} creada exitosamente por un total de ${total}.`,\n    invoice_id: invoice.id,\n    amount: total\n  }\n}];"
+      },
+      "id": "dab6fac3-41e6-435a-bcf0-8ecb85b817cb",
+      "name": "Respuesta Éxito",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "let parsedQuery = {};\ntry {\n  parsedQuery = JSON.parse($input.first().json.query);\n} catch (error) {\n  throw new Error(\"El campo 'query' no contiene un JSON válido.\");\n}\n\nconst items = parsedQuery.items || [];\nif (items.length === 0) {\n  throw new Error(\"No se enviaron items para facturar en el campo query.\");\n}\n\nconst totalFactura = items.reduce((sum, item) => sum + parseFloat(item.amount), 0);\n\nreturn [{\n  json: {\n    ...parsedQuery,\n    order_id: $input.first().json.order_id,\n    total_factura: totalFactura,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "d36a6eb2-2528-41cc-b8b1-85e86d4f7552",
+      "name": "Validar y Calcular Total",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -448,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n    qi.id as quote_item_id,\n    qi.total as total_presupuesto,\n    COALESCE(SUM(ii.total), 0) as ya_facturado,\n    (qi.total - COALESCE(SUM(ii.total), 0)) as saldo_disponible\nFROM quote_items qi\nLEFT JOIN order_items oi ON oi.quote_item_id = qi.id\nLEFT JOIN invoice_items ii ON ii.order_item_id = oi.id\nWHERE qi.id IN ({{ $json.items.map(i => i.quote_item_id).join(',') }})\nGROUP BY qi.id, qi.total;",
+        "options": {}
+      },
+      "id": "136478ec-04e0-496a-8288-8386d2f53f5a",
+      "name": "Verificar Saldos Disponibles",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -208,
+        384
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const saldos = $input.all().map(r => r.json);\nconst inputOriginal = $(\"Validar y Calcular Total\").first().json;\n\nfor (const item of inputOriginal.items) {\n  const saldoInfo = saldos.find(s => s.quote_item_id === item.quote_item_id);\n  if (saldoInfo && item.amount > (saldoInfo.saldo_disponible + 0.01)) {\n    throw new Error(`Exceso de monto: Item ${item.quote_item_id} pide ${item.amount} pero solo quedan ${saldoInfo.saldo_disponible}`);\n  }\n}\n\nreturn [inputOriginal];"
+      },
+      "id": "9a70ec59-3269-45af-b320-7b9f709a6252",
+      "name": "Guardia de Presupuesto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        32,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.invoices (order_id, total, status, currency, user_id, notes, created_at, doc_no, due_date, doctor_id, sede_id)\nVALUES ($1, $2, 'booked', $3, $4, $5, $7, generate_sequence_value('invoice'), $6, $8, (SELECT sede_id FROM public.quotes WHERE id = $9))\nRETURNING id, doc_no;",
+        "options": {
+          "queryReplacement": "={{ [$json.order_id, $json.total_factura, $json.currency, $json.user_id, $json.notes, $json.due_date, $json.invoice_date || $now, $json.doctor_id || null, $json.quote_id] }}"
+        }
+      },
+      "id": "afd83b1d-87b2-4a19-917d-cde9573d13c4",
+      "name": "Crear Cabecera Factura",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        272,
+        384
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const invoiceId = $(\"Crear Cabecera Factura\").first().json.id;\nconst items = $(\"Guardia de Presupuesto\").first().json.items;\n\nconst values = items\n  .map((item) => {\n    let stepsValue = \"\";\n\n    if (Array.isArray(item.step_names)) {\n      stepsValue = item.step_names.join(\", \");\n    } else if (typeof item.step_names === \"string\") {\n      stepsValue = item.step_names;\n    } else {\n      stepsValue = \"\";\n    }\n\n    const safeSteps = stepsValue.replace(/'/g, \"''\");\n\n    return `(\n    ${invoiceId}, \n    (SELECT id FROM order_items WHERE quote_item_id = ${item.quote_item_id} LIMIT 1), \n    1, \n    ${item.amount}, \n    ${item.amount}, \n    ${item.service_id}, \n    ${safeSteps ? `'${safeSteps}'` : \"NULL\"}\n  )`;\n  })\n  .join(\",\");\n\nreturn [\n  {\n    query: `INSERT INTO invoice_items (invoice_id, order_item_id, quantity, unit_price, total, service_id, steps) VALUES ${values}`,\n  },\n];\n"
+      },
+      "id": "841bcef2-1b11-44bc-8b94-94f028187819",
+      "name": "Preparar SQL Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        512,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "{{ $json.query }}",
+        "options": {}
+      },
+      "id": "9f3e719b-429c-45c6-990f-4a74f07e14ee",
+      "name": "Insertar Items Detalle",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        752,
+        384
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH quote_summary AS (\n  SELECT \n    q.id as quote_id,\n    q.total as total_presupuesto,\n    COALESCE(SUM(ii.total), 0) as total_facturado\n  FROM public.quotes q\n  JOIN public.orders o ON o.quote_id = q.id\n  JOIN public.order_items oi ON oi.order_id = o.id\n  LEFT JOIN public.invoice_items ii ON ii.order_item_id = oi.id\n  WHERE q.id = $1\n  GROUP BY q.id, q.total\n)\nUPDATE public.quotes \nSET \n  billing_status = CASE \n    WHEN qs.total_facturado = 0 THEN 'not_invoiced'\n    WHEN qs.total_facturado < qs.total_presupuesto THEN 'partially_invoiced'\n    ELSE 'invoiced'\n  END,\n  updated_at = NOW()\nFROM quote_summary qs\nWHERE public.quotes.id = qs.quote_id\nRETURNING public.quotes.id, public.quotes.billing_status;",
+        "options": {
+          "queryReplacement": "={{ $('Guardia de Presupuesto').first().json.quote_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        976,
+        384
+      ],
+      "id": "c201308b-819b-4d16-a7ff-e96889665123",
+      "name": "Actualizar estado de facturación del presupuesto",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "query": "{\"quote_id\":158685,\"user_id\":\"faca9a6a-0408-44b8-8cdb-47677432d329\",\"doctor_id\":\"e4d19d69-30df-4497-a99f-b7e206c24af1\",\"currency\":\"UYU\",\"invoice_date\":\"2026-08-19T16:16:19\",\"notes\":\"\",\"items\":[{\"quote_item_id\":158956,\"service_id\":903,\"step_names\":[],\"amount\":1001}]}",
+          "sessionId": "",
+          "message": "",
+          "order_id": "111659",
+          "notes": ""
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Validar y Calcular Total",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar y Calcular Total": {
+      "main": [
+        [
+          {
+            "node": "Verificar Saldos Disponibles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar Saldos Disponibles": {
+      "main": [
+        [
+          {
+            "node": "Guardia de Presupuesto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardia de Presupuesto": {
+      "main": [
+        [
+          {
+            "node": "Crear Cabecera Factura",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear Cabecera Factura": {
+      "main": [
+        [
+          {
+            "node": "Preparar SQL Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar SQL Items": {
+      "main": [
+        [
+          {
+            "node": "Insertar Items Detalle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insertar Items Detalle": {
+      "main": [
+        [
+          {
+            "node": "Actualizar estado de facturación del presupuesto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar estado de facturación del presupuesto": {
+      "main": [
+        [
+          {
+            "node": "Respuesta Éxito",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "2297449f-31db-46d9-aaea-b8840e0513ff",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
+  },
+  "nodeGroups": [],
+  "id": "gHBp4yAZJt5TlJbJ",
+  "tags": []
+}

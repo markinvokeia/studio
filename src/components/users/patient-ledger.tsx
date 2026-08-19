@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { addMonths, endOfMonth, format, parseISO, startOfMonth } from 'date-fns';
-import { Banknote, Calendar, CalendarClock, Check, ChevronDown, CreditCard, FileMinus, FileText, Hash, History, Link2, ListChecks, Loader2, Pencil, Plus, Printer, Receipt, RefreshCw, ScrollText, Search, Stethoscope, StickyNote, Trash2, UserRound, X } from 'lucide-react';
+import { Banknote, Calendar, CalendarClock, Check, ChevronDown, CreditCard, FileMinus, FileText, Hash, History, Link2, ListChecks, Loader2, MapPin, Pencil, Plus, Printer, Receipt, RefreshCw, ScrollText, Search, Stethoscope, StickyNote, Trash2, UserRound, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { DateRange } from 'react-day-picker';
 
@@ -22,6 +22,7 @@ import {
 import { Dialog, DialogBody, DialogCancelButton, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DatePickerInput } from '@/components/ui/date-picker';
 import { DoctorSelector } from '@/components/ui/doctor-selector';
+import { SedeSelector } from '@/components/ui/sede-selector';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
 import { Input } from '@/components/ui/input';
@@ -655,6 +656,7 @@ const quoteEditorSchema = z.object({
   quantity: z.coerce.number().int().min(1),
   unit_price: z.coerce.number().min(0),
   doctor_id: z.string().optional(),
+  sede_id: z.string().optional(),
   description: z.string().optional(),
 });
 type QuoteEditorValues = z.infer<typeof quoteEditorSchema>;
@@ -705,6 +707,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
 }) {
   const t = useTranslations('PatientLedger');
   const { toast } = useToast();
+  const { activeSede } = useAuth();
   const isEdit = !!editRow;
   const editKind: 'quote' | 'invoice' | 'invoice-reallocate' = editRow?.status === 'presupuestado'
     ? 'quote'
@@ -742,6 +745,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
       quantity: editItem?.quantity || editRow?.quantity || 1,
       unit_price: editItem?.unit_price ?? editRow?.unitPrice ?? 0,
       doctor_id: editInvoice?.doctor_id || editQuote?.doctor_id || editRow?.doctorId || '',
+      sede_id: editInvoice?.sede_id || editQuote?.sede_id || (!isEdit ? (activeSede?.id || '') : ''),
       description: editInvoice?.notes || editQuote?.notes || editRow?.notes || '',
     },
   });
@@ -760,6 +764,10 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
     }
     if (values.tooth_number && Number(values.tooth_number) < 0) {
       toast({ title: t('errors.negativeTooth'), variant: 'destructive' });
+      return;
+    }
+    if (!values.sede_id) {
+      toast({ title: t('errors.sedeRequired'), variant: 'destructive' });
       return;
     }
     setSubmitting(true);
@@ -788,6 +796,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
             id: editQuote.id,
             user_id: editQuote.user_id,
             doctor_id: values.doctor_id || undefined,
+            sede_id: Number(values.sede_id),
             total: editQuote.total,
             currency: editQuote.currency,
             status: editQuote.status,
@@ -834,6 +843,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
             id: editInvoice.id,
             user_id: editInvoice.user_id,
             doctor_id: values.doctor_id || undefined,
+            sede_id: Number(values.sede_id),
             total: editInvoice.total,
             currency: editInvoice.currency,
             created_at: createdAtIso,
@@ -881,6 +891,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
           id: editRow!.invoiceId,
           user_id: userId,
           ...(values.doctor_id ? { doctor_id: values.doctor_id } : {}),
+          sede_id: Number(values.sede_id),
           total,
           currency: values.currency,
           created_at: createdAtIso,
@@ -906,6 +917,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
           const res = await api.post(API_ROUTES.SALES.QUOTES_UPSERT, {
             user_id: userId,
             doctor_id: values.doctor_id || undefined,
+            sede_id: Number(values.sede_id),
             total: qty * values.unit_price,
             currency: values.currency,
             status: 'draft',
@@ -924,6 +936,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
           const res = await api.post(API_ROUTES.SALES.INVOICES_UPSERT, {
             user_id: userId,
             doctor_id: values.doctor_id || undefined,
+            sede_id: Number(values.sede_id),
             total: qty * values.unit_price,
             currency: values.currency,
             created_at: createdAtIso,
@@ -1041,6 +1054,15 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
                 }}
                 placeholder={t('fields.searchDoctor')}
                 triggerText={t('fields.selectDoctor')}
+                className="h-8 pl-7"
+              />
+            </FieldIcon>
+            <FieldIcon icon={MapPin} className="min-w-[10rem] flex-1">
+              <SedeSelector
+                value={form.watch('sede_id')}
+                onValueChange={(sedeId) => form.setValue('sede_id', sedeId)}
+                placeholder={t('fields.searchSede')}
+                triggerText={t('fields.selectSede')}
                 className="h-8 pl-7"
               />
             </FieldIcon>
@@ -1469,10 +1491,12 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
  * edited quantity/price/notes — the service itself isn't editable, since this note is
  * crediting one specific line.
  */
-function CreditNoteInlineEditor({ row, userId, parentInvoiceId, maxCreditable, onCancel, onSaved }: {
+function CreditNoteInlineEditor({ row, userId, parentInvoiceId, sedeId, maxCreditable, onCancel, onSaved }: {
   row: LedgerRow;
   userId: string;
   parentInvoiceId: string;
+  /** Sede of the parent invoice being credited — a credit note always inherits it. */
+  sedeId?: string;
   /** What this note could total including its own current amount (about to be replaced) —
    *  i.e. `getMaxCreditableForInvoice(parentInvoiceId) + row's own current total`. */
   maxCreditable: number;
@@ -1509,6 +1533,7 @@ function CreditNoteInlineEditor({ row, userId, parentInvoiceId, maxCreditable, o
         user_id: userId,
         type: 'credit_note',
         parent_id: parentInvoiceId,
+        sede_id: sedeId ? Number(sedeId) : undefined,
         currency: row.currency,
         total,
         notes: values.notes || '',
@@ -2041,10 +2066,12 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
     }
     setIsSubmittingCreditNote(true);
     try {
+      const parentInvoiceForCreditNote = ledgerData?.invoices.find((i) => i.id === creditNoteRow.invoiceId);
       const res = await api.post(API_ROUTES.SALES.INVOICES_UPSERT, {
         user_id: userId,
         type: 'credit_note',
         parent_id: creditNoteRow.invoiceId,
+        sede_id: parentInvoiceForCreditNote?.sede_id ? Number(parentInvoiceForCreditNote.sede_id) : undefined,
         currency: creditNoteRow.currency,
         total,
         notes: values.notes || '',
@@ -2379,6 +2406,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
                     if (editingCreditNoteRow?.id === row.id) {
                       const creditNoteInvoice = row.invoiceId ? ledgerData?.invoices.find((i) => i.id === row.invoiceId) : undefined;
                       const parentInvoiceId = creditNoteInvoice?.parent_id;
+                      const parentInvoiceForCreditNote = parentInvoiceId ? ledgerData?.invoices.find((i) => i.id === parentInvoiceId) : undefined;
                       // Falls back to the normal row below if the parent can't be resolved
                       // (shouldn't happen for a structured credit note, but avoids a dead end).
                       if (parentInvoiceId) {
@@ -2388,6 +2416,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
                               row={row}
                               userId={userId}
                               parentInvoiceId={parentInvoiceId}
+                              sedeId={parentInvoiceForCreditNote?.sede_id}
                               maxCreditable={getMaxCreditableForInvoice(parentInvoiceId) + (creditNoteInvoice?.total || 0)}
                               onCancel={() => setEditingCreditNoteRow(null)}
                               onSaved={async () => { setEditingCreditNoteRow(null); await load(true); }}

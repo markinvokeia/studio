@@ -223,6 +223,8 @@ export type Quote = {
   user_id: string;
   doctor_id?: string;
   doctor_name?: string;
+  sede_id?: string;
+  sede_name?: string;
   total: number;
   status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'pending' | 'confirmed';
   payment_status: 'unpaid' | 'paid' | 'partial' | 'partially_paid';
@@ -302,6 +304,8 @@ export type Invoice = {
   user_id: string;
   doctor_id?: string;
   doctor_name?: string;
+  sede_id?: string;
+  sede_name?: string;
   total: number;
   currency?: 'UYU' | 'USD';
   notes?: string;
@@ -1342,6 +1346,8 @@ export type CashPoint = {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  sede_id?: string;
+  sede_name?: string;
 };
 
 export type MiscellaneousCategory = {

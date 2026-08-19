@@ -37,6 +37,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { ServiceSelector } from '@/components/ui/service-selector';
+import { SedeSelector } from '@/components/ui/sede-selector';
 import { UserSelector } from '@/components/ui/user-selector';
 import { Textarea } from '@/components/ui/textarea';
 import { VerticalTabStrip, type VerticalTab } from '@/components/ui/vertical-tab-strip';
@@ -80,6 +81,7 @@ const quoteFormSchema = (t: (key: string) => string) => z.object({
     exchange_rate: z.coerce.number().min(0.0001, t('validation.exchangeRatePositive')).optional(),
     created_at: z.date({ required_error: t('validation.dateRequired') }),
     notes: z.string().optional(),
+    sede_id: z.string().min(1, t('validation.sedeRequired')),
     items: z.array(z.object({
         id: z.string().optional(),
         service_id: z.string().min(1, t('validation.serviceRequired')),
@@ -125,6 +127,8 @@ async function getQuotes(params: { page: number; limit: number; search: string }
             currency: apiQuote.currency || 'UYU',
             user_name: apiQuote.user_name || t('defaults.noName'),
             userEmail: apiQuote.userEmail || t('defaults.noEmail'),
+            sede_id: apiQuote.sede_id != null ? String(apiQuote.sede_id) : undefined,
+            sede_name: apiQuote.sede_name || undefined,
             notes: apiQuote.notes || '',
             createdAt: apiQuote.created_at || new Date().toISOString().split('T')[0],
             exchange_rate: parseFloat(apiQuote.exchange_rate) || 1,
@@ -403,7 +407,7 @@ function QuotesPageContent() {
     const tVal = useTranslations('QuotesPage');
     const tInvoiceItems = useTranslations('InvoicesPage.InvoiceItemsTable');
     const { toast } = useToast();
-    const { user, activeCashSession } = useAuth();
+    const { user, activeCashSession, activeSede } = useAuth();
     const { hasPermission } = usePermissions();
     const { printQuote } = usePrintDocument();
 
@@ -738,7 +742,7 @@ function QuotesPageContent() {
         const sessionRate = getSessionExchangeRate();
         const defaultCurrency = clinic?.currency || 'UYU';
         const exchangeRate = defaultCurrency === clinic?.currency ? 1 : sessionRate;
-        quoteForm.reset({ user_id: '', total: 0, currency: defaultCurrency, status: 'draft', payment_status: 'unpaid', billing_status: 'not invoiced', exchange_rate: exchangeRate, created_at: new Date(), notes: '', items: [] });
+        quoteForm.reset({ user_id: '', total: 0, currency: defaultCurrency, status: 'draft', payment_status: 'unpaid', billing_status: 'not invoiced', exchange_rate: exchangeRate, created_at: new Date(), notes: '', sede_id: activeSede?.id || '', items: [] });
         setQuoteSubmissionError(null);
         setIsQuoteDialogOpen(true);
     };
@@ -798,6 +802,7 @@ function QuotesPageContent() {
                 exchange_rate: exchangeRate,
                 created_at: quote.createdAt ? parseISO(formatDate(quote.createdAt)) : new Date(),
                 notes: quote.notes || '',
+                sede_id: quote.sede_id || activeSede?.id || '',
                 items: mappedItems
             },
             {
@@ -1725,6 +1730,24 @@ function QuotesPageContent() {
                                                         <SelectItem value="UYU">UYU</SelectItem>
                                                     </SelectContent>
                                                 </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={quoteForm.control}
+                                        name="sede_id"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>{t('quoteDialog.sede')}</FormLabel>
+                                                <FormControl>
+                                                    <SedeSelector
+                                                        value={field.value}
+                                                        onValueChange={(sedeId) => field.onChange(sedeId)}
+                                                        triggerText={t('quoteDialog.selectSede')}
+                                                        placeholder={t('quoteDialog.searchSede')}
+                                                    />
+                                                </FormControl>
                                                 <FormMessage />
                                             </FormItem>
                                         )}

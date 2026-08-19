@@ -28,6 +28,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ParentInvoiceSelector } from '@/components/ui/parent-invoice-selector';
+import { SedeSelector } from '@/components/ui/sede-selector';
 import { ServiceSelector } from '@/components/ui/service-selector';
 import { API_ROUTES } from '@/constants/routes';
 import { PURCHASES_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
@@ -65,6 +66,7 @@ import { ScrollArea } from '../ui/scroll-area';
 const getCreateInvoiceFormSchema = (t: (key: string) => string) => z.object({
   user_id: z.string().min(1, t('validation.userRequired')),
   doctor_id: z.string().optional(),
+  sede_id: z.string().optional(),
   total: z.coerce.number().min(0, t('validation.totalNonNegative')),
   currency: z.enum(['UYU', 'USD']),
   order_id: z.string().optional(),
@@ -571,6 +573,7 @@ interface InvoiceFormDialogProps {
 export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSales, invoice, initialUser, initialItems }: InvoiceFormDialogProps) {
   const t = useTranslations('InvoicesPage.createDialog');
   const tRoot = useTranslations('InvoicesPage');
+  const { activeSede } = useAuth();
   const [users, setUsers] = React.useState<User[]>([]);
   const [services, setServices] = React.useState<Service[]>([]);
   const [userSearchTerm, setUserSearchTerm] = React.useState('');
@@ -625,6 +628,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
       type: 'invoice',
       user_id: '',
       doctor_id: '',
+      sede_id: '',
       currency: 'UYU',
       items: [],
       total: 0,
@@ -763,6 +767,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
               type: (invoice.type?.toString().includes('credit') ? 'credit_note' : 'invoice') as any,
               user_id: userId,
               doctor_id: invoice.doctor_id ? String(invoice.doctor_id) : '',
+              sede_id: invoice.sede_id ? String(invoice.sede_id) : (activeSede?.id || ''),
               currency: (invoice.currency?.toUpperCase() as any) || 'UYU',
               total: Number(invoice.total || 0),
               order_id: invoice.order_id ? String(invoice.order_id) : undefined,
@@ -801,6 +806,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
               type: 'invoice',
               user_id: initialUser ? initialUser.id : '',
               doctor_id: '',
+              sede_id: activeSede?.id || '',
               currency: 'UYU',
               items: preloadedItems,
               total: 0,
@@ -901,6 +907,12 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
       }
       if (values.type === 'credit_note' && (!values.items || values.items.length === 0)) {
         throw new Error(t('atLeastOneItem') || 'Debe agregar al menos un artículo.');
+      }
+      if (values.type === 'credit_note' && !values.parent_id) {
+        throw new Error(t('validation.parentInvoiceRequired'));
+      }
+      if (values.type === 'invoice' && !values.sede_id) {
+        throw new Error(t('validation.sedeRequired'));
       }
 
       const endpoint = isSales ? API_ROUTES.SALES.INVOICES_UPSERT : API_ROUTES.PURCHASES.INVOICES_UPSERT;
@@ -1106,6 +1118,22 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                     <FormMessage />
                   </FormItem>
                 )} />
+                {invoiceType !== 'credit_note' && (
+                  <FormField control={form.control} name="sede_id" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('sede')}</FormLabel>
+                      <FormControl>
+                        <SedeSelector
+                          value={field.value}
+                          onValueChange={(sedeId) => field.onChange(sedeId)}
+                          placeholder={t('searchSede')}
+                          triggerText={t('selectSede')}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                )}
               </div>
               {invoiceType === 'credit_note' && (
                 <FormField
@@ -1119,7 +1147,12 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                           isSales={isSales}
                           userId={selectedUserId}
                           value={field.value}
-                          onValueChange={field.onChange}
+                          onValueChange={(invoiceId, parentInvoice) => {
+                            field.onChange(invoiceId);
+                            // Una nota de crédito hereda la sede de la factura que revierte —
+                            // no se le pide al usuario que la elija de nuevo.
+                            if (parentInvoice?.sede_id) form.setValue('sede_id', String(parentInvoice.sede_id));
+                          }}
                           disabled={!selectedUserId}
                           triggerText={selectedUserId ? t('selectParentInvoice') : (isSales ? t('selectPatient') : t('selectProvider'))}
                           placeholder={t('searchParentInvoice')}

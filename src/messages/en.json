@@ -64,6 +64,8 @@
       "doctor": "Doctor",
       "searchDoctor": "Search doctor...",
       "selectDoctor": "Select doctor",
+      "searchSede": "Search location...",
+      "selectSede": "Select location",
       "description": "Description",
       "price": "Price",
       "amount": "Amount",
@@ -75,7 +77,8 @@
     },
     "errors": {
       "dueDateBeforeIssue": "The due date must be after the issue date",
-      "negativeTooth": "The tooth number cannot be negative"
+      "negativeTooth": "The tooth number cannot be negative",
+      "sedeRequired": "Location is required"
     },
     "columns": {
       "date": "Date",
@@ -212,6 +215,9 @@
       "doctor": "Doctor",
       "searchDoctor": "Search doctor...",
       "selectDoctor": "Select doctor",
+      "sede": "Location",
+      "searchSede": "Search location...",
+      "selectSede": "Select location",
       "keepOpen": "Save and add another"
     },
     "validation": {
@@ -219,7 +225,8 @@
       "toothNumberMin": "Invalid tooth number",
       "toothNumberMax": "Invalid tooth number",
       "serviceRequired": "Select a treatment",
-      "pricePositive": "Price must be 0 or greater"
+      "pricePositive": "Price must be 0 or greater",
+      "sedeRequired": "Location is required"
     },
     "toasts": {
       "quoteCreated": "Quote created",
@@ -658,6 +665,11 @@
     "description": "You do not have an active cash session. Please open one to start recording transactions.",
     "button": "Open Cash Session",
     "tooltip": "No active session. Click to open one."
+  },
+  "WorkingSedeSelector": {
+    "title": "Working Location",
+    "selectPrompt": "Select which location you're working at",
+    "noSedes": "No locations available"
   },
   "DataTableToolbar": {
     "toggleColumns": "Toggle columns",
@@ -2220,6 +2232,9 @@
       "doctor": "Doctor",
       "selectDoctor": "Select Doctor",
       "searchDoctor": "Search doctor...",
+      "sede": "Location",
+      "selectSede": "Select location...",
+      "searchSede": "Search location...",
       "total": "Total",
       "currency": "Currency",
       "exchangeRate": "Exchange Rate",
@@ -2401,7 +2416,8 @@
       "unitPriceTwoDecimals": "Price must have at most 2 decimals",
       "toothNumberMin": "Tooth number must be at least 11",
       "toothNumberMax": "Tooth number must be at most 85",
-      "exchangeRatePositive": "Exchange rate must be greater than 0"
+      "exchangeRatePositive": "Exchange rate must be greater than 0",
+      "sedeRequired": "Location is required"
     },
     "deleteQuoteDialog": {
       "title": "Delete Quote",
@@ -2720,6 +2736,9 @@
       "doctor": "Doctor",
       "selectDoctor": "Select Doctor",
       "searchDoctor": "Search doctor...",
+      "sede": "Location",
+      "selectSede": "Select location...",
+      "searchSede": "Search location...",
       "invoiceRef": "Invoice Reference",
       "addItem": "Add Item",
       "total": "Total",
@@ -2741,7 +2760,9 @@
         "totalNonNegative": "Total must be a non-negative number.",
         "serviceRequired": "Service name is required.",
         "quantityMin": "Quantity must be at least 1.",
-        "unitPriceNonNegative": "Unit price cannot be negative."
+        "unitPriceNonNegative": "Unit price cannot be negative.",
+        "sedeRequired": "Location is required.",
+        "parentInvoiceRequired": "You must select the parent invoice."
       },
       "errors": {
         "title": "Error",
@@ -3157,6 +3178,7 @@
     "columns": {
       "id": "ID",
       "name": "Name",
+      "sede": "Location",
       "isActive": "Is Active",
       "createdAt": "Created At",
       "updatedAt": "Updated At",
@@ -3171,6 +3193,9 @@
       "createTitle": "Create Cash Register",
       "name": "Name",
       "namePlaceholder": "Name here...",
+      "sede": "Location",
+      "selectSede": "Select location...",
+      "searchSede": "Search location...",
       "isActive": "Is Active",
       "cancel": "Cancel",
       "create": "Create",
@@ -3178,7 +3203,8 @@
       "save": "Save Changes"
     },
     "validation": {
-      "nameRequired": "Name is required"
+      "nameRequired": "Name is required",
+      "sedeRequired": "Location is required"
     },
     "deleteDialog": {
       "title": "Delete Cash Register",

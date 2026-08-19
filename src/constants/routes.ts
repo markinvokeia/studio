@@ -179,6 +179,7 @@ export const API_ROUTES = {
     LOGIN: '/api/auth/login',
     LOGOUT: '/api/auth/logout',
     AUTH_ME: '/auth/me',
+    USER_ACTIVE_SEDE: '/users/active-sede',
     ORDERS: '/orders',
     PERMISSIONS: '/permissions',
     PERMISSION_USERS: '/permission_users',

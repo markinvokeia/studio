@@ -1,6 +1,7 @@
 'use client';
 
 import { OpenCashSessionWidget } from '@/components/cash-session-widget';
+import { WorkingSedeSelector } from '@/components/working-sede-selector';
 import { TVDisplayWidget } from '@/components/tv-display-widget';
 import { QuickPatientSearch } from '@/components/patients/QuickPatientSearch';
 import { NotificationsBell } from '@/components/notifications/notifications-bell';
@@ -147,7 +148,7 @@ export function Header() {
     const tStickyNotes = useTranslations('StickyNotes');
     const locale = useLocale();
     const router = useRouter();
-    const { activeCashSession, user } = useAuth();
+    const { activeCashSession, user, sedes } = useAuth();
     const { pendingCount: alertCount, highestPriority } = useAlertNotifications();
     const { pendingCount: inboxCount, notifications } = useNotifications();
     const { hasPermission } = usePermissions();
@@ -461,6 +462,12 @@ export function Header() {
                             </PanelItem>
                         )}
 
+                        {sedes.length > 1 && (
+                            <PanelItem label="Sede">
+                                <WorkingSedeSelector />
+                            </PanelItem>
+                        )}
+
                         {hasPermission(CASHIER_PERMISSIONS.VIEW_WIDGET) && (
                             <PanelItem label="Caja">
                                 <OpenCashSessionWidget />
@@ -599,6 +606,7 @@ export function Header() {
                         'animate-in fade-in slide-in-from-top-2 duration-200',
                     )}>
                         {hasPermission(PATIENTS_PERMISSIONS.VIEW_LIST) && <QuickPatientSearch />}
+                        {sedes.length > 1 && <WorkingSedeSelector />}
                         <OpenCashSessionWidget />
                         {hasPermission(TV_DISPLAY_PERMISSIONS.VIEW_MENU) && <TVDisplayWidget />}
 

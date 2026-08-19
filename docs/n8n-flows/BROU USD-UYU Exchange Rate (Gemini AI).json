@@ -1,0 +1,4968 @@
+{
+  "name": "BROU USD-UYU Exchange Rate (Gemini AI)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Sesiones de Cajas",
+        "height": 3024,
+        "width": 2800,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        192,
+        -368
+      ],
+      "typeVersion": 1,
+      "id": "fa8c15a7-891a-4587-961c-07b628a03804",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## CRUD Cajas\n",
+        "height": 992,
+        "width": 880
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -736,
+        -368
+      ],
+      "id": "656c09ea-9fde-4549-b9bb-a8fdfcd770d3",
+      "name": "Sticky Note26"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Obtiene todos los items que llegan desde el nodo anterior\nconst items = $input.all();\n\n// Si no hay resultados, devuelve una estructura vacía\nif (items.length === 0) {\n  return {\n    json: {\n      data: [],\n      total: 0\n    }\n  };\n}\n\n// Extrae el conteo total del primer item.\nconst total = items[0].json.total;\n\n// Prepara el array de datos, quitando el campo 'total' de cada objeto para no ser redundante.\nconst data = items.map(item => {\n  const { total, ...restOfItem } = item.json;\n  return restOfItem;\n});\n\nreturn {\n  json: {\n    data: data,\n    total: total\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -288,
+        448
+      ],
+      "id": "9fdb80d7-e4f7-4e83-ab91-4b8b1f355fc6",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cash_points/upsert",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -688,
+        -240
+      ],
+      "id": "b0dad78c-0bad-4f27-8e28-a4cba0e5e524",
+      "name": "cash_points/upsert",
+      "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "DELETE",
+        "path": "cash_points/delete",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -688,
+        192
+      ],
+      "id": "8bfd6d27-e35d-48f9-b75f-d0f75c237169",
+      "name": "cash_points/delete",
+      "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "path": "cash_points/search",
+        "authentication": "jwtAuth",
+        "responseMode": "lastNode",
+        "responseData": "allEntries",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -688,
+        448
+      ],
+      "id": "085dd08f-998f-42d3-88c6-15c914e9ead8",
+      "name": "cash_points/search",
+      "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT t1.*, s.name AS sede_name, COUNT(*) OVER() AS total\nFROM cash_points t1\nLEFT JOIN public.sedes s ON s.id = t1.sede_id\nWHERE\n  COALESCE($1, '') = '' OR\n  (\n    t1.name ILIKE '%' || $1 || '%' OR\n    t1.created_at::text ILIKE '%' || $1 || '%' OR\n    t1.updated_at::text ILIKE '%' || $1 || '%' OR\n    t1.is_active::text ILIKE '%' || $1 || '%'\n  )\nORDER BY\n  t1.created_at DESC\nLIMIT\n  {{ $2 || 100 }}\nOFFSET\n  {{ (($3 || 1) - 1) * ($2 || 100) }};",
+        "options": {
+          "queryReplacement": "={{ [ $json.query.search || null, $json.query.limit, $json.query.page ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -480,
+        448
+      ],
+      "id": "529add98-f568-4c39-b7ef-bb7228d6d7d3",
+      "name": "Select cash_points",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "deleteTable",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "cash_points",
+          "mode": "list",
+          "cachedResultName": "cash_points"
+        },
+        "deleteCommand": "delete",
+        "where": {
+          "values": [
+            {
+              "column": "id",
+              "value": "={{ $json.body.id }}"
+            }
+          ]
+        },
+        "combineConditions": "OR",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -480,
+        192
+      ],
+      "id": "5c5b6438-52da-4c7e-9093-40ba12a7cfd8",
+      "name": "Delete rows in cash_points",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "128ee44d-ec55-4396-925f-52935cd1dcf0",
+              "leftValue": "={{ $json.body.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -464,
+        -256
+      ],
+      "id": "35a703f7-515d-400b-bd5b-bebf2cfd405b",
+      "name": "If exist cash_points"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"message\": \"Operación realizada correctamente\"\n}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -192,
+        112
+      ],
+      "id": "041ae474-4e8a-4e4c-8fa1-dea46c3f9fc0",
+      "name": "cash_points delete success"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 400,
+          "responseKey": "message"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -192,
+        288
+      ],
+      "id": "6f247868-cff2-4dab-81dd-01f5915a3c5c",
+      "name": "cash_points delete error"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"message\": \"Operación realizada correctamente\"\n}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -32,
+        -272
+      ],
+      "id": "4879aab9-d51e-441e-91ae-333dc2798e97",
+      "name": "cash_points upsert success"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 400,
+          "responseKey": "message"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -32,
+        -80
+      ],
+      "id": "467072c4-6f52-4779-9eb5-565a6d457b3b",
+      "name": "cash_points upsert error"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "cash_points",
+          "mode": "list",
+          "cachedResultName": "cash_points"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.body.id }}",
+            "name": "={{ $json.body.name }}",
+            "is_active": "={{ $json.body.is_active }}",
+            "updated_at": "={{ $now }}",
+            "sede_id": "={{ $json.body.sede_id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "is_active",
+              "displayName": "is_active",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "sede_id",
+              "displayName": "sede_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -272,
+        -288
+      ],
+      "id": "0b390ace-244f-4cad-a1b7-8287ab48b227",
+      "name": "Update rows in cash_points",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "cash_points",
+          "mode": "list",
+          "cachedResultName": "cash_points"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "name": "={{ $json.body.name }}",
+            "created_at": "={{ $now }}",
+            "updated_at": "={{ $now }}",
+            "is_active": "={{ $json.body.is_active }}",
+            "sede_id": "={{ $json.body.sede_id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "is_active",
+              "displayName": "is_active",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "sede_id",
+              "displayName": "sede_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -272,
+        -96
+      ],
+      "id": "8bf17909-4767-4ed4-8a4f-0bc3a68df54e",
+      "name": "Insert rows in cash_points",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "path": "cash-session/active",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        256,
+        -256
+      ],
+      "id": "acc6c781-8d5a-47e4-bf98-9d124ff5d5ad",
+      "name": "cash-session/active",
+      "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cash-session/open",
+        "authentication": "jwtAuth",
+        "responseMode": "lastNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        256,
+        0
+      ],
+      "id": "9785f0ab-a6e4-4e6a-9c0a-0640bd7c0441",
+      "name": "cash-session/open",
+      "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "Dwt3WdobiGtSwEcH",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/Dwt3WdobiGtSwEcH",
+          "cachedResultName": "Is Cash session active workflow"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "authorization": "={{ $json.headers.authorization.replaceAll('Bearer ','') }}",
+            "user_id": "={{ $json.body.user_id || $json.query.user_id}}"
+          },
+          "matchingColumns": [
+            "authorization"
+          ],
+          "schema": [
+            {
+              "id": "authorization",
+              "displayName": "authorization",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        496,
+        -256
+      ],
+      "name": "Call Cash-session-active-workflow",
+      "id": "21dc4ef4-1dc4-4dd8-8032-df144fb180bc"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "Dwt3WdobiGtSwEcH",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/Dwt3WdobiGtSwEcH",
+          "cachedResultName": "Is Cash session active workflow"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user_id": "={{ $json.body.user_id }}"
+          },
+          "matchingColumns": [
+            "authorization"
+          ],
+          "schema": [
+            {
+              "id": "authorization",
+              "displayName": "authorization",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        496,
+        0
+      ],
+      "name": "Call Cash-session-active-workflow1",
+      "id": "0aa3a7a4-6c1b-49e8-9512-9d63dd1841e2"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "cash_sessions",
+          "mode": "list",
+          "cachedResultName": "cash_sessions"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "cash_point_id": "={{ $('cash-session/open').item.json.body.cash_point_id }}",
+            "user_id": "={{ $('cash-session/open').item.json.body.user_id }}",
+            "opened_at": "={{ $now }}",
+            "status": "OPEN",
+            "opening_details": "={{ JSON.parse($('cash-session/open').item.json.body.opening_details) }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "opened_at",
+              "displayName": "opened_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "closed_at",
+              "displayName": "closed_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "closing_notes",
+              "displayName": "closing_notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "cash_point_id",
+              "displayName": "cash_point_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "opening_details",
+              "displayName": "opening_details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "closing_details",
+              "displayName": "closing_details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        960,
+        112
+      ],
+      "id": "bafa8611-ff88-441e-8b0d-74b01ddcaf93",
+      "name": "Insert rows in cash-session",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "84900b52-c892-4800-8dc8-64820fe9d27b",
+              "name": "message",
+              "value": "Operación realizada correctamente",
+              "type": "string"
+            },
+            {
+              "id": "ddc813cb-ea86-4a02-bbf4-fee1360d57e9",
+              "name": "code",
+              "value": 200,
+              "type": "number"
+            },
+            {
+              "id": "c16b3ffd-b321-4849-abb0-8d5a3936cf7e",
+              "name": "session",
+              "value": "={{ $('Insert rows in cash-session').first().json }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1728,
+        32
+      ],
+      "id": "f0d33978-d176-4017-8583-94cdff0c7cf5",
+      "name": "cash-session-success"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n\"message\": {{ $json.message }},\n\"code\": 400\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1200,
+        208
+      ],
+      "id": "21f27834-ca80-4eed-ad65-f6737f5a5730",
+      "name": "cash-session-error"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c17649ba-e749-45d6-b3f5-113f045b11ff",
+              "leftValue": "={{ $json.code }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "db771580-2861-48ce-9031-d5a6e5dc971f",
+              "leftValue": "={{ $json.code }}",
+              "rightValue": 200,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        736,
+        0
+      ],
+      "id": "d6326528-e775-49c4-9fe8-1d9e313bf810",
+      "name": "If cash-session-open"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"code\": 409,\n  \"message\": \"Error: Ya tienes una sesión de caja abierta.\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        960,
+        -96
+      ],
+      "id": "68230bf7-9368-4afd-a66a-35f96d26d3a0",
+      "name": "error cash-session is open"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cash-session/close",
+        "authentication": "jwtAuth",
+        "responseMode": "lastNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        256,
+        560
+      ],
+      "id": "111a31c1-7e72-4ae4-954a-82d1f5bacc32",
+      "name": "cash-session/close",
+      "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const webhookBody = $('cash-session/close').first().json.body; \nconst sessionData = $('Get Session with Openings').first().json;\nconst movementsData = $('Get Movements Summary').all().map(item => item.json);\n\nconst sessionId = sessionData.id;\nconst closingNotes = webhookBody.notes || '';\nconst closingDetails = webhookBody.closing_denominations || {};\n\n// Saldos iniciales\nconst openingBalances = sessionData.opening_balances || [];\nconst currenciesToProcess = ['UYU', 'USD']; \n\nconst outputArray = [];\n\nfor (const currency of currenciesToProcess) {\n    \n    // A. DATOS DE APERTURA (Solo Físico)\n    const openingObj = openingBalances.find(b => b.currency === currency);\n    const openingAmount = parseFloat(openingObj ? openingObj.opening_amount : 0);\n\n    // B. DATOS DE MOVIMIENTOS (Sistema)\n    const movs = movementsData.find(m => m.currency === currency) || { \n        cash_in: 0, cash_out: 0, card_total: 0, transfer_total: 0, other_total: 0 \n    };\n\n    const sysCashIn = parseFloat(movs.cash_in || 0);\n    const sysCashOut = parseFloat(movs.cash_out || 0);\n    const sysCard = parseFloat(movs.card_total || 0);\n    const sysTransfer = parseFloat(movs.transfer_total || 0);\n    const sysOther = parseFloat(movs.other_total || 0);\n\n    // C. DATOS DECLARADOS (Usuario cuenta billetes)\n    const declaredKey = `declared_cash_${currency.toLowerCase()}`;\n    const declaredPhysicalCash = parseFloat(webhookBody[declaredKey] || 0);\n\n    // PASO 1: Calcular saldo físico esperado\n    const expectedPhysicalBalance = (openingAmount + sysCashIn) - sysCashOut;\n\n    // PASO 2: Calcular EXPECTATIVA GLOBAL DEL SISTEMA (Cuánto valor generó/tiene la sesión)\n    const totalSystemExpectation = openingAmount;\n\n    // PASO 3: Calcular TOTAL DE ACTIVOS REALES (Lo que declaramos tener)\n    const totalAssetsDeclared = declaredPhysicalCash + sysCard + sysTransfer + sysOther;\n\n    // PASO 4: VARIACIÓN\n    const variance = totalAssetsDeclared - totalSystemExpectation;\n    const cash_variance = declaredPhysicalCash - expectedPhysicalBalance;\n\n    // -----------------------------------------------------------------------\n\n    outputArray.push({\n        json: {\n            cash_session_id: sessionId,\n            currency: currency,\n            \n            // Guardamos el declarado físico\n            declared_cash: declaredPhysicalCash,\n            \n            // Guardamos el calculado físico (para referencia futura del saldo de caja)\n            calculated_cash: expectedPhysicalBalance,\n            \n            // Guardamos los acumuladores digitales\n            calculated_card: sysCard,\n            calculated_transfer: sysTransfer,\n            calculated_other: sysOther,\n            total_cash_payouts: sysCashOut,\n            \n            // La varianza final del ejercicio\n            cash_variance: cash_variance,\n            \n            // Extras\n            closing_notes: closingNotes,\n            closing_details: closingDetails \n        }\n    });\n}\n\nreturn outputArray;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1104,
+        464
+      ],
+      "id": "fe1f4795-365c-43da-bb7f-badf44d3db78",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    cp.id AS cash_point_id,\n    cp.name AS cash_point_name,\n    cp.is_active,\n\n    CASE\n        WHEN cs.id IS NOT NULL THEN 'OPEN'\n        ELSE 'CLOSED'\n    END AS session_status,\n    \n    cs.id AS active_session_id,\n    cs.opening_details, \n    \n    u.name AS active_user_name,\n    u.id AS active_user_id,\n\n    (\n        SELECT json_agg(json_build_object(\n            'currency', csc.currency,\n            'opening_amount', csc.opening_amount,\n            'rate', csc.date_rate,\n            'cash_in', m.total_in,\n            'cash_out', m.total_out,\n            'cash_on_hand', (csc.opening_amount + m.total_in - m.total_out)\n        ))\n        FROM public.cash_session_currencies csc\n        LEFT JOIN LATERAL (\n            SELECT\n  \n                COALESCE(SUM(\n                    CASE \n                      WHEN pm.code = 'CASH' AND cm.amount > 0 THEN ABS(cm.amount) \n                      ELSE 0 \n                  END\n                ), 0) AS total_in,\n                \n                COALESCE(SUM(\n                    CASE \n                      WHEN pm.code = 'CASH' AND cm.amount < 0 THEN ABS(cm.amount) \n                      ELSE 0 \n                  END\n                ), 0) AS total_out\n            FROM public.cash_movements cm\n            LEFT JOIN public.payment_methods pm ON cm.payment_method_id = pm.id\n            WHERE cm.cash_session_id = cs.id\n              AND cm.currency = csc.currency\n              AND pm.code = 'CASH'\n        ) m ON true\n        WHERE csc.cash_session_id = cs.id\n    ) AS amounts\n\nFROM\n    public.cash_points AS cp\nLEFT JOIN\n    public.cash_sessions AS cs ON cp.id = cs.cash_point_id AND cs.status = 'OPEN'\nLEFT JOIN\n    public.users AS u ON cs.user_id = u.id\nWHERE\n    cp.is_active = true\nORDER BY\n    cp.name;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -480,
+        736
+      ],
+      "id": "14e58c6d-e1d4-422d-8e17-49b5db48ccc8",
+      "name": "Execute a SQL query",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "path": "cash_points/status",
+        "authentication": "jwtAuth",
+        "responseMode": "lastNode",
+        "responseData": "allEntries",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -688,
+        736
+      ],
+      "id": "bc4b4461-1e90-46b2-9e54-c04dfe35fd0b",
+      "name": "cash_points/status",
+      "webhookId": "9e026276-49db-48b7-ab9a-8fb74b566313",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Obtiene todos los items que llegan desde el nodo anterior\nconst items = $input.all();\n\n// Si no hay resultados, devuelve una estructura vacía\nif (items.length === 0 || items[0].json.total_count === undefined) {\n  return {\n    json: {\n      data: [],\n      total: 0\n    }\n  };\n}\n\n// Extrae el conteo total del primer item.\nconst total = items[0].json.total_count;\n\n// Prepara el array de datos, quitando el campo 'total' de cada objeto para no ser redundante.\nconst data = items.map(item => {\n  const { total, ...restOfItem } = item.json;\n  return restOfItem;\n});\n\nreturn {\n  json: {\n    data: data,\n    total: total\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        928
+      ],
+      "id": "d3106fcc-1f73-4318-b33f-e10b6b8ea06c",
+      "name": "Code3"
+    },
+    {
+      "parameters": {
+        "path": "cash-session/search",
+        "authentication": "jwtAuth",
+        "responseMode": "lastNode",
+        "responseData": "allEntries",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        256,
+        928
+      ],
+      "id": "3e204ece-ba9c-45e0-a7e3-7db55ca5cb1f",
+      "name": "cash-session/search",
+      "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH filtered_sessions AS (\n    SELECT\n        t1.id,\n        t1.status,\n        t1.opened_at,\n        t1.closed_at,\n        t1.opening_details,\n        t1.closing_details,\n        t1.cash_point_id,\n        t1.user_id,\n        cp.name AS cash_point_name,\n        u.name AS user_name,\n        COUNT(*) OVER() AS total_count\n    FROM\n        public.cash_sessions AS t1\n    JOIN\n        public.cash_points AS cp ON t1.cash_point_id = cp.id\n    JOIN\n        public.users AS u ON t1.user_id = u.id\n    WHERE\n        COALESCE($1, '') = '' OR\n        (\n            u.name ILIKE '%' || $1 || '%' OR\n            cp.name ILIKE '%' || $1 || '%' OR\n            t1.status ILIKE '%' || $1 || '%' OR\n            t1.opened_at::text ILIKE '%' || $1 || '%' OR\n            t1.closed_at::text ILIKE '%' || $1 || '%'\n        )\n    ORDER BY\n        t1.opened_at DESC\n    LIMIT $2\n    OFFSET $3\n)\nSELECT\n    fs.id,\n    fs.status,\n    fs.opened_at,\n    fs.closed_at,\n    fs.opening_details,\n    fs.closing_details,\n    fs.cash_point_name,\n    fs.user_name,\n    fs.total_count,\n    COALESCE(\n        (\n            SELECT json_agg(\n                json_build_object(\n                    'currency', csc.currency,\n                    'opening_amount', csc.opening_amount,\n                    'declared_cash', csc.declared_cash,\n                    'calculated_cash', csc.calculated_cash,\n                    'cash_variance', csc.cash_variance,\n                    'calculated_card', csc.calculated_card,\n                    'calculated_transfer', csc.calculated_transfer,\n                    'calculated_other', csc.calculated_other\n                )\n            )\n            FROM public.cash_session_currencies csc\n            WHERE csc.cash_session_id = fs.id\n        ), \n        '[]'::json\n    ) as currencies_data\nFROM\n    filtered_sessions fs;",
+        "options": {
+          "queryReplacement": "={{ [ $json.query.search || null, parseInt($json.query.limit), (parseInt($json.query.page) - 1) * parseInt($json.query.limit) ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        464,
+        928
+      ],
+      "id": "ae532f86-34d8-4f3d-98bd-153aeaf08d76",
+      "name": "Select cash-session",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  m.id AS movement_id,\n  m.type,\n  m.amount,\n  m.currency,\n  m.description,\n  m.created_at,\n  pm.code AS payment_method_code,\n  u.name AS registered_by_user,\n  m.is_sales,\n  COALESCE(cp.name, misc.beneficiary) AS client,\n  -- COALESCE elige el primer valor que NO sea nulo entre las tablas unidas\n  COALESCE(p.doc_no, misc.doc_no, 'N/A') AS document_number\nFROM\n  public.cash_movements AS m\n-- Joins fijos (siempre existen)\nINNER JOIN public.payment_methods AS pm ON m.payment_method_id = pm.id\nLEFT JOIN public.users AS u ON m.user_id = u.id\n\n-- Joins condicionales (Dependen del source_type y source_id)\nLEFT JOIN public.payments AS p \n  ON m.payment_id = p.id AND m.source_type = 'payment'\nLEFT JOIN public.users AS cp\n  ON p.user_id = cp.id\n\nLEFT JOIN public.miscellaneous_transactions AS misc \n  ON m.source_id = misc.id AND m.source_type = 'miscellaneous'\n\nWHERE\n  m.cash_session_id = $1\nORDER BY\n  m.created_at DESC;",
+        "options": {
+          "queryReplacement": "={{ $json.query.cash_session_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -480,
+        1008
+      ],
+      "id": "262c953e-7c9c-4182-8da2-b474d18e8aaa",
+      "name": "Execute a SQL query1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "path": "cash-session/movements",
+        "authentication": "jwtAuth",
+        "responseMode": "lastNode",
+        "responseData": "allEntries",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -688,
+        1008
+      ],
+      "id": "10b72e81-e5c0-42d9-8d7e-b80793020366",
+      "name": "cash-session/movements",
+      "webhookId": "9e026276-49db-48b7-ab9a-8fb74b566313",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Movimientos de una sesión de caja",
+        "height": 224,
+        "width": 496
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -736,
+        944
+      ],
+      "typeVersion": 1,
+      "id": "1828c2f5-e51e-474b-8e2a-f74797ee774d",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Estado de caja",
+        "height": 256,
+        "width": 496
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -736,
+        656
+      ],
+      "typeVersion": 1,
+      "id": "285e5de5-d966-4bbc-aec8-a1274ac7cab2",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        736,
+        -256
+      ],
+      "id": "bd3370b8-d424-4df1-a9c4-7de0d706e410",
+      "name": "is_active"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "cash_sessions",
+          "mode": "list",
+          "cachedResultName": "cash_sessions"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{  $('cash-session/close').item.json.body.cash_session_id }}",
+            "status": "CLOSE",
+            "closed_at": "={{ $now.toISO() }}",
+            "closing_notes": "={{ $('cash-session/close').item.json.body.notes || ''}}",
+            "closing_details": "={{ $('cash-session/close').item.json.body.closing_denominations }}",
+            "bank_deposit_details": "={{ $('cash-session/close').item.json.body.bank_deposit_denominations }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "opened_at",
+              "displayName": "opened_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "closed_at",
+              "displayName": "closed_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "closing_notes",
+              "displayName": "closing_notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "cash_point_id",
+              "displayName": "cash_point_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "opening_details",
+              "displayName": "opening_details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "closing_details",
+              "displayName": "closing_details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "bank_deposit_details",
+              "displayName": "bank_deposit_details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2368,
+        480
+      ],
+      "id": "43b1933b-6078-406b-b2dd-c4b44122b2bc",
+      "name": "Close Cash Session",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "84900b52-c892-4800-8dc8-64820fe9d27b",
+              "name": "message",
+              "value": "Operación realizada correctamente",
+              "type": "string"
+            },
+            {
+              "id": "ddc813cb-ea86-4a02-bbf4-fee1360d57e9",
+              "name": "code",
+              "value": 200,
+              "type": "number"
+            },
+            {
+              "id": "a42f3d78-07e4-460b-97a5-a46d313bc048",
+              "name": "details",
+              "value": "={{ {session: $json, movements: $('Code in JavaScript').all().map(item => item.json)} }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2784,
+        384
+      ],
+      "id": "f15ac471-f361-4d43-8f70-2859bc9d70e7",
+      "name": "cash-session-success1"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n\"message\": {{ $json.message }},\n\"code\": 400\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2576,
+        576
+      ],
+      "id": "a9d52243-80db-4e05-8132-17cec3ea9d25",
+      "name": "cash-session-error1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Obtiene todos los items que llegan desde el nodo anterior\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1504,
+        928
+      ],
+      "id": "db54b6b9-67fe-4ba3-b4c8-f2cdc7c085cd",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "path": "cash-session/totales",
+        "responseMode": "lastNode",
+        "responseData": "allEntries",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        1104,
+        928
+      ],
+      "id": "348f234a-d63e-4686-b65a-3ba3c329f26c",
+      "name": "cash-session/totales",
+      "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n    m.payment_method_id, \n    pm.code, \n    pm.is_cash_equivalent, \n    SUM(m.amount) as total \nFROM \n    public.cash_movements m\nINNER JOIN \n    public.payment_methods pm ON m.payment_method_id = pm.id \nWHERE \n    m.cash_session_id = $1 \nGROUP BY \n    m.payment_method_id, \n    pm.code, \n    pm.is_cash_equivalent;",
+        "options": {
+          "queryReplacement": "={{ $json.query.cash_session_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1296,
+        928
+      ],
+      "id": "4c34b987-2dfd-4882-a7c4-06639022f70c",
+      "name": "Get session movements1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  m.id AS movement_id,\n  m.type,\n  m.amount,\n  m.description,\n  m.created_at,\n  pm.name AS payment_method_name,\n  u.name AS registered_by_user\nFROM\n  public.cash_movements AS m\nJOIN\n  public.payment_methods AS pm ON m.payment_method_id = pm.id\nLEFT JOIN\n  public.users AS u ON m.user_id = u.id\nWHERE\n  m.cash_session_id = $1\nORDER BY\n  m.created_at ASC;",
+        "options": {
+          "queryReplacement": "={{ $json.query.cash_session_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3312,
+        -336
+      ],
+      "id": "b24d4f17-bf7a-416a-82cd-47b7d171359f",
+      "name": "Execute a SQL query2",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "content": "## Scrapping de exchange rates de BROU",
+        "height": 240,
+        "width": 1104
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3120,
+        -32
+      ],
+      "typeVersion": 1,
+      "id": "078e3698-148f-42c6-a65d-de8ad29c481d",
+      "name": "Sticky Note3",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "path": "cash-session/day-rates",
+        "authentication": "jwtAuth",
+        "responseMode": "lastNode",
+        "responseData": "allEntries",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        3104,
+        -336
+      ],
+      "id": "d68b9072-f83d-4fb9-bdd4-ef418575cb80",
+      "name": "cash-session/day-rates",
+      "webhookId": "9e026276-49db-48b7-ab9a-8fb74b566313",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://www.brou.com.uy/c/portal/render_portlet?p_l_id=20593&p_p_id=cotizacionfull_WAR_broutmfportlet_INSTANCE_otHfewh1klyS&p_p_lifecycle=0&p_t_lifecycle=0&p_p_state=normal&p_p_mode=view&p_p_col_id=column-1&p_p_col_pos=0&p_p_col_count=2&p_p_isolated=1&currentURL=%2Fcotizaciones",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "74fe4a30-c1df-4214-ad70-d15e20ea04c9",
+      "name": "Fetch BROU Cotizaciones",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3408,
+        48
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Obtener el HTML de la respuesta\nconst html = $input.first().json.data;\n\n// Función para extraer cotización USD\nfunction extractUSDRate(htmlContent) {\n  // El BROU usa una tabla con class que contiene las cotizaciones\n  // Buscamos la fila de USD (Dólar USA)\n  \n  let compra = null;\n  let venta = null;\n  \n  // Regex para encontrar la fila de USD y extraer compra/venta\n  // El patrón busca: texto \"USD\" o \"Dólar\" seguido de valores numéricos\n  const usdPattern = /(?:USD|D[óo]lar\\s*(?:USA|Estadounidense|Americano)).*?([\\d]+[,.]?[\\d]*).*?([\\d]+[,.]?[\\d]*)/gis;\n  \n  // Alternativa: buscar en estructura de tabla\n  // Patrón para tablas del BROU\n  const tableRowPattern = /<tr[^>]*>.*?(?:USD|DOLAR|Dólar).*?<\\/tr>/gis;\n  const valuePattern = />\\s*([\\d]{2}[,.]\\d{1,4})\\s*</g;\n  \n  // Buscar filas que contengan USD\n  const rows = htmlContent.match(tableRowPattern);\n  \n  if (rows && rows.length > 0) {\n    for (const row of rows) {\n      // Verificar que sea USD (no otra moneda)\n      if (/USD|D[óo]lar\\s*(USA|Estadounidense|Americano|Billete)?/i.test(row)) {\n        const values = [];\n        let match;\n        \n        // Extraer todos los valores numéricos de la fila\n        const numPattern = />\\s*([\\d]{2}[,.]\\d{1,4})\\s*</g;\n        while ((match = numPattern.exec(row)) !== null) {\n          values.push(parseFloat(match[1].replace(',', '.')));\n        }\n        \n        // Los dos primeros valores típicamente son compra y venta\n        if (values.length >= 2) {\n          // Compra es generalmente el menor, venta el mayor\n          compra = Math.min(values[0], values[1]);\n          venta = Math.max(values[0], values[1]);\n          break;\n        }\n      }\n    }\n  }\n  \n  // Fallback: búsqueda más simple\n  if (!compra || !venta) {\n    const simplePattern = /USD[^\\d]*([\\d]{2}[,.]\\d+)[^\\d]*([\\d]{2}[,.]\\d+)/i;\n    const simpleMatch = htmlContent.match(simplePattern);\n    if (simpleMatch) {\n      const v1 = parseFloat(simpleMatch[1].replace(',', '.'));\n      const v2 = parseFloat(simpleMatch[2].replace(',', '.'));\n      compra = Math.min(v1, v2);\n      venta = Math.max(v1, v2);\n    }\n  }\n  \n  return { compra, venta };\n}\n\n// Función para generar HTML de la tabla\nfunction generateTableHTML(htmlContent, compra, venta) {\n  // Extraer todas las cotizaciones para la tabla completa\n  const currencies = [];\n  \n  // Patrones para diferentes monedas\n  const currencyPatterns = [\n    { name: 'Dólar USA', code: 'USD', pattern: /(?:USD|Dólar\\s*USA)[^\\d]*([\\d]{2}[,.]\\d+)[^\\d]*([\\d]{2}[,.]\\d+)/i },\n    { name: 'Euro', code: 'EUR', pattern: /(?:EUR|Euro)[^\\d]*([\\d]{2}[,.]\\d+)[^\\d]*([\\d]{2}[,.]\\d+)/i },\n    { name: 'Peso Argentino', code: 'ARS', pattern: /(?:Peso\\s*Argentino|ARS)[^\\d]*([\\d]+[,.]\\d+)[^\\d]*([\\d]+[,.]\\d+)/i },\n    { name: 'Real', code: 'BRL', pattern: /(?:Real|BRL)[^\\d]*([\\d]+[,.]\\d+)[^\\d]*([\\d]+[,.]\\d+)/i },\n  ];\n  \n  for (const curr of currencyPatterns) {\n    const match = htmlContent.match(curr.pattern);\n    if (match) {\n      currencies.push({\n        name: curr.name,\n        code: curr.code,\n        compra: parseFloat(match[1].replace(',', '.')),\n        venta: parseFloat(match[2].replace(',', '.'))\n      });\n    }\n  }\n  \n  // Si no encontramos nada, al menos incluir USD con los valores extraídos\n  if (currencies.length === 0 && compra && venta) {\n    currencies.push({\n      name: 'Dólar USA',\n      code: 'USD',\n      compra: compra,\n      venta: venta\n    });\n  }\n  \n  // Generar HTML de la tabla\n  const tableHTML = `\n<style>\n  .brou-cotizaciones {\n    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;\n    border-collapse: collapse;\n    width: 100%;\n    max-width: 500px;\n    margin: 0 auto;\n    box-shadow: 0 2px 8px rgba(0,0,0,0.1);\n    border-radius: 8px;\n    overflow: hidden;\n  }\n  .brou-cotizaciones thead {\n    background: linear-gradient(135deg, #1a5276 0%, #2980b9 100%);\n    color: white;\n  }\n  .brou-cotizaciones th {\n    padding: 14px 16px;\n    text-align: left;\n    font-weight: 600;\n    text-transform: uppercase;\n    font-size: 12px;\n    letter-spacing: 0.5px;\n  }\n  .brou-cotizaciones td {\n    padding: 12px 16px;\n    border-bottom: 1px solid #e0e0e0;\n  }\n  .brou-cotizaciones tbody tr:hover {\n    background-color: #f5f9fc;\n  }\n  .brou-cotizaciones tbody tr:last-child td {\n    border-bottom: none;\n  }\n  .brou-cotizaciones .currency-name {\n    font-weight: 500;\n    color: #2c3e50;\n  }\n  .brou-cotizaciones .currency-code {\n    color: #7f8c8d;\n    font-size: 11px;\n    margin-left: 6px;\n  }\n  .brou-cotizaciones .rate {\n    font-family: 'SF Mono', Monaco, monospace;\n    font-weight: 600;\n    color: #27ae60;\n  }\n  .brou-cotizaciones .rate-venta {\n    color: #e74c3c;\n  }\n  .brou-header {\n    text-align: center;\n    padding: 16px;\n    background: #f8f9fa;\n    border-bottom: 2px solid #1a5276;\n  }\n  .brou-header h3 {\n    margin: 0;\n    color: #1a5276;\n    font-size: 16px;\n  }\n  .brou-header small {\n    color: #7f8c8d;\n    font-size: 11px;\n  }\n  .brou-footer {\n    text-align: center;\n    padding: 10px;\n    background: #f8f9fa;\n    font-size: 11px;\n    color: #7f8c8d;\n  }\n</style>\n<div class=\"brou-container\">\n  <table class=\"brou-cotizaciones\">\n    <thead>\n      <tr>\n        <th>Moneda</th>\n        <th>Compra</th>\n        <th>Venta</th>\n      </tr>\n    </thead>\n    <tbody>\n      ${currencies.map(c => `\n      <tr>\n        <td>\n          <span class=\"currency-name\">${c.name}</span>\n          <span class=\"currency-code\">${c.code}</span>\n        </td>\n        <td class=\"rate\">${c.compra.toFixed(2)}</td>\n        <td class=\"rate rate-venta\">${c.venta.toFixed(2)}</td>\n      </tr>\n      `).join('')}\n    </tbody>\n  </table>\n  <div class=\"brou-footer\">\n    Fuente: BROU | Actualizado: ${new Date().toLocaleString('es-UY', { timeZone: 'America/Montevideo' })}\n  </div>\n</div>\n`;\n  \n  return tableHTML.trim();\n}\n\n// Ejecutar extracción\nconst { compra, venta } = extractUSDRate(html);\nconst tableHtml = generateTableHTML(html, compra, venta);\n\n// Retornar resultado en el formato solicitado\nreturn [{\n  json: {\n    compra: compra,\n    venta: venta,\n    html: tableHtml\n  }\n}];"
+      },
+      "id": "57187fa7-e8c2-468f-b5da-a7c0cc10f1a2",
+      "name": "Parse USD Exchange Rate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4000,
+        48
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "path": "cotizacion-usd",
+        "responseMode": "lastNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "b5fefe50-3c2c-497c-9db2-20bb0ccdc9ab",
+      "name": "cotizacion-usd",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        3184,
+        48
+      ],
+      "webhookId": "1149d38b-0334-44bb-a0e7-50640515ff0e",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        3616,
+        48
+      ],
+      "id": "531f3a4d-2e6f-4d12-903a-0106cb1c2ddd",
+      "name": "Basic LLM Chain",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        3616,
+        224
+      ],
+      "id": "0baa6696-95eb-499e-8c53-e7ce5a70cb07",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "u264wRphCDB2Ctev",
+          "name": "Google Gemini(PaLM) Api account 7"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "url": "https://www.brou.com.uy/c/portal/render_portlet?p_l_id=20593&p_p_id=cotizacionfull_WAR_broutmfportlet_INSTANCE_otHfewh1klyS&p_p_lifecycle=0&p_t_lifecycle=0&p_p_state=normal&p_p_mode=view&p_p_col_id=column-1&p_p_col_pos=0&p_p_col_count=2&p_p_isolated=1&currentURL=%2Fcotizaciones",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "27af8415-ed74-4600-b9c1-9813b56ccaa3",
+      "name": "Fetch BROU Page",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3328,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.data }}",
+        "schemaType": "fromJson",
+        "jsonSchemaExample": "{\n  \"cotizaciones\": [\n    {\n      \"moneda\": \"Dólar USA\",\n      \"codigo\": \"USD\",\n      \"compra\": 42.15,\n      \"venta\": 44.35\n    },\n    {\n      \"moneda\": \"Euro\",\n      \"codigo\": \"EUR\",\n      \"compra\": 45.50,\n      \"venta\": 48.20\n    },\n    {\n      \"moneda\": \"Peso Argentino\",\n      \"codigo\": \"ARS\",\n      \"compra\": 0.035,\n      \"venta\": 0.045\n    },\n    {\n      \"moneda\": \"Real\",\n      \"codigo\": \"BRL\",\n      \"compra\": 7.20,\n      \"venta\": 8.10\n    }\n  ],\n  \"usd_compra\": 42.15,\n  \"usd_venta\": 44.35\n}",
+        "options": {
+          "systemPromptTemplate": "Eres un experto en extracción de datos financieros de páginas web bancarias.\n\nAnaliza el contenido HTML que proviene del Banco República Oriental del Uruguay (BROU) y extrae las cotizaciones de monedas.\n\nINSTRUCCIONES:\n1. Busca en el HTML la tabla de cotizaciones de monedas\n2. Para CADA moneda encontrada, extrae:\n   - Nombre de la moneda (ej: \"Dólar USA\", \"Euro\", \"Peso Argentino\", \"Real\")\n   - Código ISO (ej: \"USD\", \"EUR\", \"ARS\", \"BRL\")\n   - Valor de COMPRA (el precio al que el banco compra la moneda)\n   - Valor de VENTA (el precio al que el banco vende la moneda)\n\n3. IMPORTANTE sobre los valores:\n   - Convierte los valores a números decimales\n   - Usa PUNTO como separador decimal (42.15, no 42,15)\n   - El valor de COMPRA es siempre MENOR que el de VENTA\n   - Si ves valores como \"42,150\" o \"42.150\" es 42.15 (cuarenta y dos con quince centésimos)\n\n4. Para USD específicamente:\n   - Copia el valor de compra a \"usd_compra\"\n   - Copia el valor de venta a \"usd_venta\"\n\n5. Si encuentras una fecha de actualización, extráela en formato YYYY-MM-DD\n\nRECUERDA: El BROU es un banco uruguayo. Los valores están en Pesos Uruguayos (UYU). Un dólar vale aproximadamente entre 40-45 UYU."
+        }
+      },
+      "id": "60fc81a1-1c7c-44d7-b0b8-f3937dfc70a6",
+      "name": "Extract Exchange Rates",
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        3536,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Obtener datos extraídos por Gemini\nconst extracted = $input.first().json.datos_completos;\n\n// Mapeo de códigos de moneda a banderas emoji\nconst currencyFlags = {\n  USD: { emoji: \"🇺🇸\", name: \"Estados Unidos\" },\n  EUR: { emoji: \"🇪🇺\", name: \"Unión Europea\" },\n  ARS: { emoji: \"🇦🇷\", name: \"Argentina\" },\n  BRL: { emoji: \"🇧🇷\", name: \"Brasil\" },\n  GBP: { emoji: \"🇬🇧\", name: \"Reino Unido\" },\n  CHF: { emoji: \"🇨🇭\", name: \"Suiza\" },\n  JPY: { emoji: \"🇯🇵\", name: \"Japón\" },\n  CNY: { emoji: \"🇨🇳\", name: \"China\" },\n  MXN: { emoji: \"🇲🇽\", name: \"México\" },\n  CLP: { emoji: \"🇨🇱\", name: \"Chile\" },\n  PYG: { emoji: \"🇵🇾\", name: \"Paraguay\" },\n  UYU: { emoji: \"🇺🇾\", name: \"Uruguay\" },\n  CAD: { emoji: \"🇨🇦\", name: \"Canadá\" },\n  AUD: { emoji: \"🇦🇺\", name: \"Australia\" },\n  NZD: { emoji: \"🇳🇿\", name: \"Nueva Zelanda\" },\n  SEK: { emoji: \"🇸🇪\", name: \"Suecia\" },\n  NOK: { emoji: \"🇳🇴\", name: \"Noruega\" },\n  DKK: { emoji: \"🇩🇰\", name: \"Dinamarca\" },\n  COP: { emoji: \"🇨🇴\", name: \"Colombia\" },\n  PEN: { emoji: \"🇵🇪\", name: \"Perú\" },\n  BOB: { emoji: \"🇧🇴\", name: \"Bolivia\" },\n  VES: { emoji: \"🇻🇪\", name: \"Venezuela\" },\n  KRW: { emoji: \"🇰🇷\", name: \"Corea del Sur\" },\n  INR: { emoji: \"🇮🇳\", name: \"India\" },\n  RUB: { emoji: \"🇷🇺\", name: \"Rusia\" },\n  ZAR: { emoji: \"🇿🇦\", name: \"Sudáfrica\" },\n  ILS: { emoji: \"🇮🇱\", name: \"Israel\" },\n  TRY: { emoji: \"🇹🇷\", name: \"Turquía\" },\n  HKD: { emoji: \"🇭🇰\", name: \"Hong Kong\" },\n  SGD: { emoji: \"🇸🇬\", name: \"Singapur\" },\n  default: { emoji: \"💱\", name: \"Moneda\" },\n};\n\n// Función para obtener la bandera\nconst getFlag = (codigo) => {\n  const code = (codigo || \"\").toUpperCase();\n  return currencyFlags[code] || currencyFlags[\"default\"];\n};\n\n// Extraer valores USD\nlet compra = extracted.usd_compra;\nlet venta = extracted.usd_venta;\n\n// Fallback: buscar en array de cotizaciones\nif (!compra || !venta) {\n  const usdCotizacion = extracted.cotizaciones?.find(\n    (c) =>\n      c.codigo === \"USD\" ||\n      c.moneda?.toLowerCase().includes(\"dólar\") ||\n      c.moneda?.toLowerCase().includes(\"dolar\"),\n  );\n  if (usdCotizacion) {\n    compra = compra || usdCotizacion.compra;\n    venta = venta || usdCotizacion.venta;\n  }\n}\n\nconst cotizaciones = extracted.cotizaciones || [];\n\n// Generar HTML de la tabla con banderas\nconst generateHTML = (data, compraUSD, ventaUSD) => {\n  if (!data || data.length === 0) {\n    return '<div class=\"brou-error\">No se encontraron cotizaciones</div>';\n  }\n\n  const rows = data\n    .map((c) => {\n      const isUSD =\n        c.codigo === \"USD\" || c.moneda?.toLowerCase().includes(\"dólar\");\n      const compraVal =\n        typeof c.compra === \"number\" ? c.compra.toFixed(2) : c.compra;\n      const ventaVal =\n        typeof c.venta === \"number\" ? c.venta.toFixed(2) : c.venta;\n      const flag = getFlag(c.codigo);\n\n      return `\n      <tr${isUSD ? ' class=\"highlighted\"' : \"\"}>\n        <td class=\"currency-cell\">\n          <span class=\"flag-icon\" title=\"${flag.name}\">${flag.emoji}</span>\n          <div class=\"currency-info\">\n            <span class=\"currency-name\">${c.moneda || \"N/A\"}</span>\n            <span class=\"currency-code\">${c.codigo || \"\"}</span>\n          </div>\n        </td>\n        <td class=\"rate rate-compra\">${compraVal}</td>\n        <td class=\"rate rate-venta\">${ventaVal}</td>\n      </tr>`;\n    })\n    .join(\"\");\n\n  return `\n<style>\n  .brou-container {\n    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n    max-width: 580px;\n    margin: 0 auto;\n  }\n  .brou-cotizaciones {\n    border-collapse: collapse;\n    width: 100%;\n    box-shadow: 0 4px 24px rgba(0,0,0,0.12);\n    border-radius: 16px;\n    overflow: hidden;\n    background: white;\n  }\n  .brou-cotizaciones thead {\n    background: linear-gradient(135deg, #1e3a5f 0%, #2d6a9f 100%);\n    color: white;\n  }\n  .brou-cotizaciones th {\n    padding: 18px 24px;\n    text-align: left;\n    font-weight: 600;\n    text-transform: uppercase;\n    font-size: 11px;\n    letter-spacing: 1.2px;\n  }\n  .brou-cotizaciones th:not(:first-child) {\n    text-align: right;\n  }\n  .brou-cotizaciones td {\n    padding: 16px 24px;\n    border-bottom: 1px solid #f0f0f0;\n    vertical-align: middle;\n  }\n  .brou-cotizaciones td:not(:first-child) {\n    text-align: right;\n  }\n  .brou-cotizaciones tbody tr {\n    transition: background-color 0.15s ease;\n  }\n  .brou-cotizaciones tbody tr:hover {\n    background-color: #fafbfc;\n  }\n  .brou-cotizaciones tbody tr.highlighted {\n    background: linear-gradient(90deg, #eef6ff 0%, #f5faff 100%);\n  }\n  .brou-cotizaciones tbody tr.highlighted:hover {\n    background: linear-gradient(90deg, #e3f0ff 0%, #eef6ff 100%);\n  }\n  .brou-cotizaciones tbody tr.highlighted .currency-name {\n    color: #1e3a5f;\n  }\n  .brou-cotizaciones tbody tr:last-child td {\n    border-bottom: none;\n  }\n  .brou-cotizaciones .currency-cell {\n    display: flex;\n    align-items: center;\n    gap: 14px;\n  }\n  .brou-cotizaciones .flag-icon {\n    font-size: 32px;\n    line-height: 1;\n    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));\n  }\n  .brou-cotizaciones .currency-info {\n    display: flex;\n    flex-direction: column;\n    gap: 3px;\n  }\n  .brou-cotizaciones .currency-name {\n    font-weight: 600;\n    color: #1e293b;\n    font-size: 14px;\n    line-height: 1.3;\n  }\n  .brou-cotizaciones .currency-code {\n    color: #64748b;\n    font-size: 11px;\n    font-weight: 600;\n    letter-spacing: 0.5px;\n  }\n  .brou-cotizaciones .rate {\n    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', monospace;\n    font-weight: 700;\n    font-size: 17px;\n    letter-spacing: -0.5px;\n  }\n  .brou-cotizaciones .rate-compra {\n    color: #10b981;\n  }\n  .brou-cotizaciones .rate-venta {\n    color: #ef4444;\n  }\n  .brou-footer {\n    text-align: center;\n    padding: 18px 24px;\n    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);\n    font-size: 12px;\n    color: #64748b;\n    border-top: 1px solid #e2e8f0;\n  }\n  .brou-footer a {\n    color: #2563eb;\n    text-decoration: none;\n    font-weight: 600;\n  }\n  .brou-footer a:hover {\n    text-decoration: underline;\n  }\n  .brou-footer .update-time {\n    margin-top: 6px;\n    font-size: 11px;\n    color: #94a3b8;\n  }\n  .brou-footer .brou-logo {\n    font-size: 10px;\n    margin-top: 8px;\n    padding-top: 8px;\n    border-top: 1px solid #e2e8f0;\n    color: #94a3b8;\n  }\n  .brou-error {\n    padding: 40px;\n    text-align: center;\n    color: #ef4444;\n    background: #fef2f2;\n    border-radius: 16px;\n  }\n  @media (max-width: 480px) {\n    .brou-cotizaciones th,\n    .brou-cotizaciones td {\n      padding: 12px 16px;\n    }\n    .brou-cotizaciones .flag-icon {\n      font-size: 26px;\n    }\n    .brou-cotizaciones .rate {\n      font-size: 15px;\n    }\n  }\n</style>\n<div class=\"brou-container\">\n  <table class=\"brou-cotizaciones\">\n    <thead>\n      <tr>\n        <th>Moneda</th>\n        <th>Compra</th>\n        <th>Venta</th>\n      </tr>\n    </thead>\n    <tbody>${rows}\n    </tbody>\n  </table>\n  <div class=\"brou-footer\">\n    <div>Fuente: <a href=\"https://www.brou.com.uy/cotizaciones\" target=\"_blank\" rel=\"noopener\">Banco República (BROU)</a></div>\n    <div class=\"update-time\">Actualizado: ${new Date().toLocaleString(\"es-UY\", {\n      timeZone: \"America/Montevideo\",\n      weekday: \"long\",\n      year: \"numeric\",\n      month: \"long\",\n      day: \"numeric\",\n      hour: \"2-digit\",\n      minute: \"2-digit\",\n    })}</div>\n    <div class=\"brou-logo\">🇺🇾 Cotizaciones en Pesos Uruguayos (UYU)</div>\n  </div>\n</div>\n`.trim();\n};\n\n// Construir respuesta final\nlet html = null\nif (!$(\"/cotizaciones\").first().json.query.rendered || $(\"/cotizaciones\").first().json.query.rendered === \"true\") {\n  html = generateHTML(cotizaciones, compra, venta);\n}\n\nreturn [\n  {\n    json: {\n      compra: compra,\n      venta: venta,\n      html: html,\n    },\n  },\n];\n"
+      },
+      "id": "982a3d98-9eeb-4dc8-9dc3-1127cf0ba7ef",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3536,
+        816
+      ]
+    },
+    {
+      "parameters": {
+        "path": "cotizaciones",
+        "authentication": "jwtAuth",
+        "responseMode": "lastNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "2e003996-e545-43dd-90f1-6cc43185dfa3",
+      "name": "/cotizaciones",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        3120,
+        816
+      ],
+      "webhookId": "cotizacion-usd-brou",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "path": "cotizacion-usd",
+        "responseMode": "lastNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "54c2ca7d-d53b-4592-b981-a7fa6de7ece8",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        4272,
+        -16
+      ],
+      "webhookId": "cotizacion-usd-brou",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "url": "https://www.brou.com.uy/c/portal/render_portlet?p_l_id=20593&p_p_id=cotizacionfull_WAR_broutmfportlet_INSTANCE_otHfewh1klyS&p_p_lifecycle=0&p_t_lifecycle=0&p_p_state=normal&p_p_mode=view&p_p_col_id=column-1&p_p_col_pos=0&p_p_col_count=2&p_p_isolated=1&currentURL=%2Fcotizaciones",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "1de5ee86-41d3-4983-8866-83e871721591",
+      "name": "Fetch BROU Page1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4496,
+        -16
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.data }}",
+        "schemaType": "fromJson",
+        "jsonSchemaExample": "{\n  \"cotizaciones\": [\n    {\n      \"moneda\": \"Dólar USA\",\n      \"codigo\": \"USD\",\n      \"compra\": 42.15,\n      \"venta\": 44.35\n    },\n    {\n      \"moneda\": \"Euro\",\n      \"codigo\": \"EUR\",\n      \"compra\": 45.50,\n      \"venta\": 48.20\n    },\n    {\n      \"moneda\": \"Peso Argentino\",\n      \"codigo\": \"ARS\",\n      \"compra\": 0.035,\n      \"venta\": 0.045\n    },\n    {\n      \"moneda\": \"Real\",\n      \"codigo\": \"BRL\",\n      \"compra\": 7.20,\n      \"venta\": 8.10\n    }\n  ],\n  \"usd_compra\": 42.15,\n  \"usd_venta\": 44.35,\n  \"fecha\": \"2024-01-15\"\n}",
+        "options": {
+          "systemPromptTemplate": "Eres un experto en extracción de datos financieros de páginas web bancarias.\n\nAnaliza el contenido HTML que proviene del Banco República Oriental del Uruguay (BROU) y extrae las cotizaciones de monedas.\n\nINSTRUCCIONES:\n1. Busca en el HTML la tabla de cotizaciones de monedas\n2. Para CADA moneda encontrada, extrae:\n   - Nombre de la moneda (ej: \"Dólar USA\", \"Euro\", \"Peso Argentino\", \"Real\")\n   - Código ISO (ej: \"USD\", \"EUR\", \"ARS\", \"BRL\")\n   - Valor de COMPRA (el precio al que el banco compra la moneda)\n   - Valor de VENTA (el precio al que el banco vende la moneda)\n\n3. IMPORTANTE sobre los valores:\n   - Convierte los valores a números decimales\n   - Usa PUNTO como separador decimal (42.15, no 42,15)\n   - El valor de COMPRA es siempre MENOR que el de VENTA\n   - Si ves valores como \"42,150\" o \"42.150\" es 42.15 (cuarenta y dos con quince centésimos)\n\n4. Para USD específicamente:\n   - Copia el valor de compra a \"usd_compra\"\n   - Copia el valor de venta a \"usd_venta\"\n\n5. Si encuentras una fecha de actualización, extráela en formato YYYY-MM-DD\n\nRECUERDA: El BROU es un banco uruguayo. Los valores están en Pesos Uruguayos (UYU). Un dólar vale aproximadamente entre 40-45 UYU."
+        }
+      },
+      "id": "858ca603-47f8-4d3d-81fb-779a222139e1",
+      "name": "Extract Exchange Rates1",
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        4784,
+        -16
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0
+        }
+      },
+      "id": "99262fe4-7aad-447e-93a1-2145b1b3f514",
+      "name": "Google Gemini Chat Model2",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        4784,
+        208
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Obtener datos extraídos por Gemini\nconst extracted = $input.first().json;\n\n// Mapeo de códigos de moneda a banderas emoji\nconst currencyFlags = {\n  'USD': { emoji: '🇺🇸', name: 'Estados Unidos' },\n  'EUR': { emoji: '🇪🇺', name: 'Unión Europea' },\n  'ARS': { emoji: '🇦🇷', name: 'Argentina' },\n  'BRL': { emoji: '🇧🇷', name: 'Brasil' },\n  'GBP': { emoji: '🇬🇧', name: 'Reino Unido' },\n  'CHF': { emoji: '🇨🇭', name: 'Suiza' },\n  'JPY': { emoji: '🇯🇵', name: 'Japón' },\n  'CNY': { emoji: '🇨🇳', name: 'China' },\n  'MXN': { emoji: '🇲🇽', name: 'México' },\n  'CLP': { emoji: '🇨🇱', name: 'Chile' },\n  'PYG': { emoji: '🇵🇾', name: 'Paraguay' },\n  'UYU': { emoji: '🇺🇾', name: 'Uruguay' },\n  'CAD': { emoji: '🇨🇦', name: 'Canadá' },\n  'AUD': { emoji: '🇦🇺', name: 'Australia' },\n  'NZD': { emoji: '🇳🇿', name: 'Nueva Zelanda' },\n  'SEK': { emoji: '🇸🇪', name: 'Suecia' },\n  'NOK': { emoji: '🇳🇴', name: 'Noruega' },\n  'DKK': { emoji: '🇩🇰', name: 'Dinamarca' },\n  'COP': { emoji: '🇨🇴', name: 'Colombia' },\n  'PEN': { emoji: '🇵🇪', name: 'Perú' },\n  'BOB': { emoji: '🇧🇴', name: 'Bolivia' },\n  'VES': { emoji: '🇻🇪', name: 'Venezuela' },\n  'KRW': { emoji: '🇰🇷', name: 'Corea del Sur' },\n  'INR': { emoji: '🇮🇳', name: 'India' },\n  'RUB': { emoji: '🇷🇺', name: 'Rusia' },\n  'ZAR': { emoji: '🇿🇦', name: 'Sudáfrica' },\n  'ILS': { emoji: '🇮🇱', name: 'Israel' },\n  'TRY': { emoji: '🇹🇷', name: 'Turquía' },\n  'HKD': { emoji: '🇭🇰', name: 'Hong Kong' },\n  'SGD': { emoji: '🇸🇬', name: 'Singapur' },\n  'default': { emoji: '💱', name: 'Moneda' }\n};\n\n// Función para obtener la bandera\nconst getFlag = (codigo) => {\n  const code = (codigo || '').toUpperCase();\n  return currencyFlags[code] || currencyFlags['default'];\n};\n\n// Extraer valores USD\nlet compra = extracted.usd_compra;\nlet venta = extracted.usd_venta;\n\n// Fallback: buscar en array de cotizaciones\nif (!compra || !venta) {\n  const usdCotizacion = extracted.cotizaciones?.find(c => \n    c.codigo === 'USD' || \n    c.moneda?.toLowerCase().includes('dólar') ||\n    c.moneda?.toLowerCase().includes('dolar')\n  );\n  if (usdCotizacion) {\n    compra = compra || usdCotizacion.compra;\n    venta = venta || usdCotizacion.venta;\n  }\n}\n\nconst cotizaciones = extracted.cotizaciones || [];\n\n// Generar HTML de la tabla con banderas\nconst generateHTML = (data, compraUSD, ventaUSD) => {\n  if (!data || data.length === 0) {\n    return '<div class=\"brou-error\">No se encontraron cotizaciones</div>';\n  }\n\n  const rows = data.map(c => {\n    const isUSD = c.codigo === 'USD' || c.moneda?.toLowerCase().includes('dólar');\n    const compraVal = typeof c.compra === 'number' ? c.compra.toFixed(2) : c.compra;\n    const ventaVal = typeof c.venta === 'number' ? c.venta.toFixed(2) : c.venta;\n    const flag = getFlag(c.codigo);\n    \n    return `\n      <tr${isUSD ? ' class=\"highlighted\"' : ''}>\n        <td class=\"currency-cell\">\n          <span class=\"flag-icon\" title=\"${flag.name}\">${flag.emoji}</span>\n          <div class=\"currency-info\">\n            <span class=\"currency-name\">${c.moneda || 'N/A'}</span>\n            <span class=\"currency-code\">${c.codigo || ''}</span>\n          </div>\n        </td>\n        <td class=\"rate rate-compra\">${compraVal}</td>\n        <td class=\"rate rate-venta\">${ventaVal}</td>\n      </tr>`;\n  }).join('');\n\n  return `\n<style>\n  .brou-container {\n    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n    max-width: 580px;\n    margin: 0 auto;\n  }\n  .brou-cotizaciones {\n    border-collapse: collapse;\n    width: 100%;\n    box-shadow: 0 4px 24px rgba(0,0,0,0.12);\n    border-radius: 16px;\n    overflow: hidden;\n    background: white;\n  }\n  .brou-cotizaciones thead {\n    background: linear-gradient(135deg, #1e3a5f 0%, #2d6a9f 100%);\n    color: white;\n  }\n  .brou-cotizaciones th {\n    padding: 18px 24px;\n    text-align: left;\n    font-weight: 600;\n    text-transform: uppercase;\n    font-size: 11px;\n    letter-spacing: 1.2px;\n  }\n  .brou-cotizaciones th:not(:first-child) {\n    text-align: right;\n  }\n  .brou-cotizaciones td {\n    padding: 16px 24px;\n    border-bottom: 1px solid #f0f0f0;\n    vertical-align: middle;\n  }\n  .brou-cotizaciones td:not(:first-child) {\n    text-align: right;\n  }\n  .brou-cotizaciones tbody tr {\n    transition: background-color 0.15s ease;\n  }\n  .brou-cotizaciones tbody tr:hover {\n    background-color: #fafbfc;\n  }\n  .brou-cotizaciones tbody tr.highlighted {\n    background: linear-gradient(90deg, #eef6ff 0%, #f5faff 100%);\n  }\n  .brou-cotizaciones tbody tr.highlighted:hover {\n    background: linear-gradient(90deg, #e3f0ff 0%, #eef6ff 100%);\n  }\n  .brou-cotizaciones tbody tr.highlighted .currency-name {\n    color: #1e3a5f;\n  }\n  .brou-cotizaciones tbody tr:last-child td {\n    border-bottom: none;\n  }\n  .brou-cotizaciones .currency-cell {\n    display: flex;\n    align-items: center;\n    gap: 14px;\n  }\n  .brou-cotizaciones .flag-icon {\n    font-size: 32px;\n    line-height: 1;\n    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));\n  }\n  .brou-cotizaciones .currency-info {\n    display: flex;\n    flex-direction: column;\n    gap: 3px;\n  }\n  .brou-cotizaciones .currency-name {\n    font-weight: 600;\n    color: #1e293b;\n    font-size: 14px;\n    line-height: 1.3;\n  }\n  .brou-cotizaciones .currency-code {\n    color: #64748b;\n    font-size: 11px;\n    font-weight: 600;\n    letter-spacing: 0.5px;\n  }\n  .brou-cotizaciones .rate {\n    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', monospace;\n    font-weight: 700;\n    font-size: 17px;\n    letter-spacing: -0.5px;\n  }\n  .brou-cotizaciones .rate-compra {\n    color: #10b981;\n  }\n  .brou-cotizaciones .rate-venta {\n    color: #ef4444;\n  }\n  .brou-footer {\n    text-align: center;\n    padding: 18px 24px;\n    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);\n    font-size: 12px;\n    color: #64748b;\n    border-top: 1px solid #e2e8f0;\n  }\n  .brou-footer a {\n    color: #2563eb;\n    text-decoration: none;\n    font-weight: 600;\n  }\n  .brou-footer a:hover {\n    text-decoration: underline;\n  }\n  .brou-footer .update-time {\n    margin-top: 6px;\n    font-size: 11px;\n    color: #94a3b8;\n  }\n  .brou-footer .brou-logo {\n    font-size: 10px;\n    margin-top: 8px;\n    padding-top: 8px;\n    border-top: 1px solid #e2e8f0;\n    color: #94a3b8;\n  }\n  .brou-error {\n    padding: 40px;\n    text-align: center;\n    color: #ef4444;\n    background: #fef2f2;\n    border-radius: 16px;\n  }\n  @media (max-width: 480px) {\n    .brou-cotizaciones th,\n    .brou-cotizaciones td {\n      padding: 12px 16px;\n    }\n    .brou-cotizaciones .flag-icon {\n      font-size: 26px;\n    }\n    .brou-cotizaciones .rate {\n      font-size: 15px;\n    }\n  }\n</style>\n<div class=\"brou-container\">\n  <table class=\"brou-cotizaciones\">\n    <thead>\n      <tr>\n        <th>Moneda</th>\n        <th>Compra</th>\n        <th>Venta</th>\n      </tr>\n    </thead>\n    <tbody>${rows}\n    </tbody>\n  </table>\n  <div class=\"brou-footer\">\n    <div>Fuente: <a href=\"https://www.brou.com.uy/cotizaciones\" target=\"_blank\" rel=\"noopener\">Banco República (BROU)</a></div>\n    <div class=\"update-time\">Actualizado: ${new Date().toLocaleString('es-UY', { \n      timeZone: 'America/Montevideo',\n      weekday: 'long',\n      year: 'numeric',\n      month: 'long',\n      day: 'numeric',\n      hour: '2-digit',\n      minute: '2-digit'\n    })}</div>\n    <div class=\"brou-logo\">🇺🇾 Cotizaciones en Pesos Uruguayos (UYU)</div>\n  </div>\n</div>\n`.trim();\n};\n\n// Construir respuesta final\nconst html = generateHTML(cotizaciones, compra, venta);\n\nreturn [{\n  json: {\n    compra: compra,\n    venta: venta,\n    html: html\n  }\n}];"
+      },
+      "id": "a3bfb385-c449-4c17-ab21-ff1be664e6e4",
+      "name": "Format Response1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5120,
+        -16
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "path": "cash-session/declare",
+        "authentication": "jwtAuth",
+        "responseMode": "lastNode",
+        "responseData": "allEntries",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -688,
+        1280
+      ],
+      "id": "de1ad45f-7a5a-426e-9ea9-c9f2b1906a36",
+      "name": "cash-session/declare",
+      "webhookId": "9e026276-49db-48b7-ab9a-8fb74b566313",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    currency AS moneda,\n\n    -- 1. TOTALES GLOBALES\n    SUM(CASE WHEN is_cash_equivalent THEN monto_por_metodo ELSE 0 END) AS total_efectivo,\n    SUM(CASE WHEN NOT is_cash_equivalent THEN monto_por_metodo ELSE 0 END) AS total_otros_medios,\n    SUM(monto_por_metodo) AS total_general,\n    \n    -- 2. DESGLOSE DETALLADO\n    json_agg(\n        json_build_object(\n            'codigo', payment_method_code,\n            'metodo', payment_method,\n            'monto', monto_por_metodo\n        )\n    ) AS desglose_detallado\n    \nFROM (\n    -- SUBQUERY: Agrupa movimientos y aperturas\n    SELECT\n        currency,\n        payment_method,\n        payment_method_code,\n        is_cash_equivalent,\n        SUM(monto_ajustado) AS monto_por_metodo\n    FROM (\n        -- A. APERTURA DE CAJA (UYU)\n        SELECT \n            'UYU' AS currency, \n            'Apertura Caja' AS payment_method, \n            'OPEN' AS payment_method_code,\n            COALESCE((opening_details->'uyu'->>'total')::numeric, 0) AS monto_ajustado, \n            TRUE AS is_cash_equivalent \n        FROM public.cash_sessions \n        WHERE id = $1\n\n        UNION ALL\n\n        -- A. APERTURA DE CAJA (USD)\n        SELECT \n            'USD' AS currency, \n            'Apertura Caja' AS payment_method, \n            'OPEN' AS payment_method_code,\n            COALESCE((opening_details->'usd'->>'total')::numeric, 0) AS monto_ajustado, \n            TRUE AS is_cash_equivalent \n        FROM public.cash_sessions \n        WHERE id = $1\n        \n        UNION ALL\n        \n        -- B. MOVIMIENTOS CON LÓGICA DE SIGNOS APLICADA\n        SELECT \n            cm.currency, \n            pm.name, \n            pm.code,\n            cm.amount,\n            COALESCE(pm.is_cash_equivalent, FALSE)\n        FROM public.cash_movements cm\n        LEFT JOIN public.payment_methods pm ON cm.payment_method_id = pm.id\n        WHERE cm.cash_session_id = $1\n    ) AS raw_data\n    WHERE monto_ajustado <> 0\n    GROUP BY currency, payment_method, payment_method_code, is_cash_equivalent\n) AS datos_agrupados\nGROUP BY currency;",
+        "options": {
+          "queryReplacement": "={{ $json.query.cash_session_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -480,
+        1280
+      ],
+      "id": "42d0bfe2-03a8-4a0e-8b02-108de6df5832",
+      "name": "Get session declaration",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "path": "cash-session/prefill",
+        "authentication": "jwtAuth",
+        "responseMode": "lastNode",
+        "responseData": "allEntries",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        256,
+        1216
+      ],
+      "id": "e5768515-a007-4b54-8075-5af6fcbf20b7",
+      "name": "cash-session/prefill",
+      "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  id,\n  status,\n  closed_at,\n  closing_details,\n  bank_deposit_details\nFROM\n  public.cash_sessions\nWHERE\n  status = 'CLOSE'\n  AND closed_at IS NOT NULL\n  AND cash_point_id = $1\nORDER BY\n  closed_at DESC\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ $json.query.cash_point_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        464,
+        1216
+      ],
+      "id": "ddb461c0-9400-418a-a6bc-daebb3eca4ce",
+      "name": "Select last closed cash-session",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7,
+              "triggerAtMinute": 50
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        3120,
+        480
+      ],
+      "id": "4d08be6e-0277-4b1d-a96e-9e0dccb9e031",
+      "name": "Everyday @ 7:50 AM"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "log_cotizaciones_json",
+          "mode": "list",
+          "cachedResultName": "log_cotizaciones_json"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "fecha": "={{ $now }}",
+            "datos_completos": "={{ $json.output }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "fecha",
+              "displayName": "fecha",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "datos_completos",
+              "displayName": "datos_completos",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3888,
+        480
+      ],
+      "id": "b251d585-6fd6-47a9-af1f-5fb0000afb28",
+      "name": "Save cotization",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "log_cotizaciones_json",
+          "mode": "list",
+          "cachedResultName": "log_cotizaciones_json"
+        },
+        "limit": 1,
+        "sort": {
+          "values": [
+            {
+              "column": "fecha",
+              "direction": "DESC"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3328,
+        816
+      ],
+      "id": "ab302d46-6f84-483d-9f8d-8a625d9224ea",
+      "name": "Get last cotization",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# COTIZACIONES",
+        "height": 880,
+        "width": 1056,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3040,
+        400
+      ],
+      "typeVersion": 1,
+      "id": "15b29bd0-eac7-4d29-9ca0-2ca22d082425",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "jsCode": "/*\n* =============================================================================\n* PREPARAR APERTURA MULTIMONEDA\n* =============================================================================\n*/\n\n// 1. Obtener el ID de la sesión recién creada (del nodo anterior)\nconst newSessionId = $json.id;\n\n// 3. Crear el Array para insertar en la base de datos\nreturn [\n  {\n    json: {\n      cash_session_id: newSessionId,\n      currency: 'UYU',\n      opening_amount: $('cash-session/open').first().json.body.opening_amount.UYU,\n      date_rate: 1\n    }\n  },\n  {\n    json: {\n      cash_session_id: newSessionId,\n      currency: 'USD',\n      opening_amount: $('cash-session/open').first().json.body.opening_amount.USD,\n      date_rate: $('cash-session/open').first().json.body.date_rate\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        32
+      ],
+      "id": "e204227d-772e-4e8f-9644-a0080f3d7378",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "cash_session_currencies",
+          "mode": "list",
+          "cachedResultName": "cash_session_currencies"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "cash_session_id": "={{ $json.cash_session_id }}",
+            "currency": "={{ $json.currency }}",
+            "opening_amount": "={{ $json.opening_amount }}",
+            "date_rate": "={{ $json.date_rate }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "cash_session_id",
+              "displayName": "cash_session_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "currency",
+              "displayName": "currency",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "opening_amount",
+              "displayName": "opening_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "declared_cash",
+              "displayName": "declared_cash",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "calculated_cash",
+              "displayName": "calculated_cash",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "calculated_card",
+              "displayName": "calculated_card",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "calculated_transfer",
+              "displayName": "calculated_transfer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "calculated_other",
+              "displayName": "calculated_other",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "total_cash_payouts",
+              "displayName": "total_cash_payouts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "cash_variance",
+              "displayName": "cash_variance",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "date_rate",
+              "displayName": "date_rate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1376,
+        32
+      ],
+      "id": "3ed9bc48-1285-46b8-9c45-c0c7d1c182fc",
+      "name": "Insert rows in a table",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE public.cash_session_currencies\nSET \n    declared_cash = $1,\n    calculated_cash = $2,\n    calculated_card = $3,\n    calculated_transfer = $4,\n    calculated_other = $5,\n    total_cash_payouts = $6,\n    cash_variance = $7\nWHERE \n    cash_session_id = $8 \n    AND currency = $9;",
+        "options": {
+          "queryReplacement": "={{ [$json.declared_cash, $json.calculated_cash, $json.calculated_card, $json.calculated_transfer, $json.calculated_other, $json.total_cash_payouts, $json.cash_variance, $json.cash_session_id, $json.currency] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1312,
+        464
+      ],
+      "id": "d49f08db-c271-4346-ac4c-049a273101db",
+      "name": "Update currencies",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n    s.id,\n    s.user_id,\n    (\n        SELECT json_agg(json_build_object(\n            'currency', csc.currency, \n            'opening_amount', csc.opening_amount\n        ))\n        FROM public.cash_session_currencies csc\n        WHERE csc.cash_session_id = s.id\n    ) as opening_balances\nFROM public.cash_sessions s\nWHERE s.id = $1\nAND s.status = 'OPEN';",
+        "options": {
+          "queryReplacement": "={{ $json.body.cash_session_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        464,
+        560
+      ],
+      "id": "ddf326a9-53bf-49ea-9a90-5bba42d4a4b8",
+      "name": "Get Session with Openings",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n    m.currency,\n\n    -- 1. CASH IN (Entradas de Efectivo)\n    SUM(CASE \n        WHEN pm.code = 'CASH' AND m.amount > 0 THEN ABS(m.amount) \n        ELSE 0 \n    END) as cash_in,\n\n    -- 2. CASH OUT (Salidas de Efectivo)\n    SUM(CASE \n        WHEN pm.code = 'CASH' AND m.amount < 0 THEN ABS(m.amount) \n        ELSE 0 \n    END) as cash_out,\n    \n    -- 3. OTROS MEDIOS (Totales Netos)\n    SUM(CASE WHEN pm.code IN ('CREDIT_CARD', 'DEBIT_CARD') THEN m.amount ELSE 0 END) as card_total,\n    SUM(CASE WHEN pm.code = 'BANK_TRANSFER' THEN m.amount ELSE 0 END) as transfer_total,\n    SUM(CASE WHEN pm.code NOT IN ('CASH', 'CREDIT_CARD', 'DEBIT_CARD', 'BANK_TRANSFER') AND pm.is_cash_equivalent = false THEN m.amount ELSE 0 END) as other_total\n\nFROM public.cash_movements m\nJOIN public.payment_methods pm ON m.payment_method_id = pm.id\nWHERE m.cash_session_id = $1\nGROUP BY m.currency;",
+        "options": {
+          "queryReplacement": "={{ $('Get Session with Openings').first().json.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        896,
+        464
+      ],
+      "id": "7d8819af-70d5-4b8f-9365-487a3dfde21f",
+      "name": "Get Movements Summary",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  rows: $input.all()\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1552,
+        32
+      ],
+      "id": "adcb7768-a38b-4a61-8bae-253d5fffb7e6",
+      "name": "Merge info"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "0b9c17c1-8b9e-4941-843d-91da4804c308",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        560
+      ],
+      "id": "eabcb6fc-b19e-40a3-a813-ba908ff42ee1",
+      "name": "Has opened cash session?"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n\"message\": \"No hay ninguna sesión de caja abierta\",\n\"code\": 404\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        896,
+        656
+      ],
+      "id": "81084911-dd91-4a14-8196-eb363d472774",
+      "name": "cash-session-error2"
+    },
+    {
+      "parameters": {
+        "content": "## Declaración de caja",
+        "height": 240,
+        "width": 496
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -736,
+        1200
+      ],
+      "typeVersion": 1,
+      "id": "e9feb23a-3b26-4316-a076-6b3187288449",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $('cash-session/close').first();\nconst binaryData = item.binary;\nconst newItems = [];\n\nfor (const key in binaryData) {\n    if (binaryData.hasOwnProperty(key) && binaryData[key]) {\n        const fileObject = binaryData[key];\n\n        const newItem = {\n            json: {\n                binaryPropertyName: key,\n                fileName: fileObject.fileName,\n                mimeType: fileObject.mimeType\n            },\n            binary: {\n                data: fileObject\n            }\n        };\n\n        newItems.push(newItem);\n    }\n}\n\nreturn newItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        464
+      ],
+      "id": "3137e471-1dd6-4083-8100-fa7c547a8ec4",
+      "name": "Get Request Images1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a739f1d7-75b1-4505-8c33-0a9e76f15f97",
+              "leftValue": "={{ $json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "aa72673a-4e5a-4389-b5c4-e30b696e6e4e",
+              "leftValue": "={{ $json }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1728,
+        464
+      ],
+      "id": "56ffba23-366c-4466-8363-a64d3aaa4e1b",
+      "name": "Has images?1"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(item => {\n  const closing = item.json.closing_details || {};\n  const deposit = item.json.bank_deposit_details || {};\n  const difference = {};\n\n  // 1. Recorremos cada moneda (ej: 'uyu', 'usd') presente en el cierre\n  for (const currency in closing) {\n    difference[currency] = {};\n    let newTotal = 0;\n\n    // 2. Recorremos cada denominación (ej: '50', '2000') dentro de esa moneda\n    for (const denom in closing[currency]) {\n      // Saltamos la llave 'total' antigua porque la vamos a recalcular\n      if (denom === 'total') continue;\n\n      // Cantidad en cierre\n      const closeQty = closing[currency][denom];\n\n      // Cantidad depositada (si no existe la moneda o el billete en el depósito, es 0)\n      const depQty = (deposit[currency] && deposit[currency][denom]) ? deposit[currency][denom] : 0;\n\n      // Resta\n      const diffQty = closeQty - depQty;\n\n      // Guardamos la cantidad resultante en el objeto final\n      difference[currency][denom] = diffQty;\n\n      // 3. Recalculamos el total monetario\n      // Multiplicamos la cantidad restante por el valor del billete (parseado a número)\n      newTotal += diffQty * parseFloat(denom);\n    }\n\n    // Asignamos el nuevo total calculado\n    difference[currency]['total'] = newTotal;\n  }\n\n  // Retornamos el item original agregando el campo 'difference_details'\n  return {\n    json: {\n      ...item.json,\n      difference_details: difference\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        1216
+      ],
+      "id": "d8ba8091-28f7-4315-bc07-4b373d9cf184",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "path": "cash-session/print",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        256,
+        1504
+      ],
+      "id": "d8359364-824a-4736-9771-6f49fff87e60",
+      "name": "cash-session/print",
+      "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    t1.id,\n    t1.status,\n    t1.opened_at,\n    t1.closed_at,\n    t1.opening_details,\n    t1.closing_details,\n    t1.bank_deposit_details,\n    t1.cash_point_id,\n    t1.user_id,\n    cp.name AS cash_point_name,\n    u.name AS user_name,\n\n    COALESCE(\n        (\n            SELECT json_agg(\n                json_build_object(\n                    'currency', csc.currency,\n                    'opening_amount', csc.opening_amount,\n                    'declared_cash', csc.declared_cash,\n                    'calculated_cash', csc.calculated_cash,\n                    'cash_variance', csc.cash_variance,\n                    'calculated_card', csc.calculated_card,\n                    'calculated_transfer', csc.calculated_transfer,\n                    'calculated_other', csc.calculated_other\n                )\n            )\n            FROM public.cash_session_currencies csc\n            WHERE csc.cash_session_id = t1.id\n        ), \n        '[]'::json\n    ) as currencies_data,\n\n    COALESCE(\n        (\n            SELECT json_agg(\n                json_build_object(\n                    'movement_id', m.id,\n                    'type', m.type,\n                    'amount', m.amount,\n                    'currency', m.currency,\n                    'description', m.description,\n                    'created_at', m.created_at,\n                    'payment_method_name', pm.name,\n                    'registered_by_user', u_mov.name\n                ) ORDER BY m.created_at ASC\n            )\n            FROM public.cash_movements AS m\n            JOIN public.payment_methods AS pm ON m.payment_method_id = pm.id\n            LEFT JOIN public.users AS u_mov ON m.user_id = u_mov.id\n            WHERE m.cash_session_id = t1.id\n        ),\n        '[]'::json\n    ) as movements_data\n\nFROM\n    public.cash_sessions AS t1\nJOIN\n    public.cash_points AS cp ON t1.cash_point_id = cp.id\nJOIN\n    public.users AS u ON t1.user_id = u.id\nWHERE\n    t1.id = $1\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ $json.query.cash_session_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        464,
+        1504
+      ],
+      "id": "ea2e536a-c8a8-487a-9c60-8937684ecca4",
+      "name": "Get cash session details",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "094356a9-11c9-4ddb-84fa-4d5642f6df25",
+              "leftValue": "={{ $json.success }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1104,
+        1504
+      ],
+      "id": "9e39e331-aa9f-4452-a1e8-3d66b2d88f86",
+      "name": "Success build?"
+    },
+    {
+      "parameters": {
+        "respondWith": "binary",
+        "responseDataSource": "set",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Typle",
+                "value": "application/pdf"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1312,
+        1408
+      ],
+      "id": "f01c0a81-4cc9-4aae-a9a7-6ae56edf3283",
+      "name": "OK: PDF"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 500,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1312,
+        1600
+      ],
+      "id": "a60435e1-99c7-424f-afa8-1c42cb274760",
+      "name": "Error"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "094356a9-11c9-4ddb-84fa-4d5642f6df25",
+              "leftValue": "={{ $json.success }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1088,
+        1872
+      ],
+      "id": "337e1b07-44a7-432a-85f3-0e56f9b8ad49",
+      "name": "Success build?1"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "kWsSwxzwYrWJp4E1",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/kWsSwxzwYrWJp4E1",
+          "cachedResultName": "Build PDF"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "data": "={{ $json }}",
+            "template": "cash-opening-email"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "template",
+              "displayName": "template",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "data",
+              "displayName": "data",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        880,
+        1872
+      ],
+      "id": "22770e25-a86f-4aa0-bf20-da714b501dd8",
+      "name": "Build Invoice Email1"
+    },
+    {
+      "parameters": {
+        "respondWith": "binary",
+        "responseDataSource": "set",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Typle",
+                "value": "application/pdf"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1296,
+        1776
+      ],
+      "id": "4f1bfe8d-2eb5-4ff6-9e37-0d4deebaa2ce",
+      "name": "OK: PDF1"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 500,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1296,
+        1968
+      ],
+      "id": "1e2d56d4-2abb-4000-8bfb-3600b7c02322",
+      "name": "Error1"
+    },
+    {
+      "parameters": {
+        "path": "cash-session/open/print",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        256,
+        1968
+      ],
+      "id": "02e0b1f3-9f9d-4018-9188-3160440ec769",
+      "name": "cash-session/open/print",
+      "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    t1.id,\n    t1.status,\n    t1.opened_at,\n    t1.opening_details,\n    t1.cash_point_id,\n    t1.user_id,\n    cp.name AS cash_point_name,\n    u.name AS user_name,\n\n    COALESCE(\n        (\n            SELECT json_agg(\n                json_build_object(\n                    'currency', csc.currency,\n                    'opening_amount', csc.opening_amount\n                )\n            )\n            FROM public.cash_session_currencies csc\n            WHERE csc.cash_session_id = t1.id\n        ), \n        '[]'::json\n    ) as currencies_data\n\nFROM\n    public.cash_sessions AS t1\nJOIN\n    public.cash_points AS cp ON t1.cash_point_id = cp.id\nJOIN\n    public.users AS u ON t1.user_id = u.id\nWHERE\n    t1.id = $1 AND t1.status = 'OPEN'\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ $json.query.cash_session_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        464,
+        1968
+      ],
+      "id": "7f33d53e-9305-48bb-994f-ca26e5c3310d",
+      "name": "Get Open Cash Session Details",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8611d82b-4ac2-4b75-88fe-520126b3048c",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        1968
+      ],
+      "id": "dd842a7e-d7f2-4020-9f4c-ab956cee74fe",
+      "name": "Exists?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"message\": \"Open Cash Session doesn't exists\"\n}",
+        "options": {
+          "responseCode": 404,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        880,
+        2064
+      ],
+      "id": "9cd6c46c-b54c-4003-b0c5-c0a56c36bccd",
+      "name": "Error2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "094356a9-11c9-4ddb-84fa-4d5642f6df25",
+              "leftValue": "={{ $json.success }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1088,
+        2320
+      ],
+      "id": "a41f7567-9aad-4034-ad70-d0421d5a9af8",
+      "name": "Success build?2"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "kWsSwxzwYrWJp4E1",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/kWsSwxzwYrWJp4E1",
+          "cachedResultName": "Build PDF"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "data": "={{ $json }}",
+            "template": "cash-closing-email"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "template",
+              "displayName": "template",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "data",
+              "displayName": "data",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        880,
+        2320
+      ],
+      "id": "1734e321-35cc-41ca-a252-d7a6e389863f",
+      "name": "Build Invoice Email2"
+    },
+    {
+      "parameters": {
+        "respondWith": "binary",
+        "responseDataSource": "set",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Typle",
+                "value": "application/pdf"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1296,
+        2224
+      ],
+      "id": "71f80291-cf87-4caf-9dd7-1d4d456dc3ed",
+      "name": "OK: PDF2"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 500,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1296,
+        2416
+      ],
+      "id": "1b63b4f9-076b-4220-b772-25e5835aa3f4",
+      "name": "Error3"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8611d82b-4ac2-4b75-88fe-520126b3048c",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        2416
+      ],
+      "id": "fafefcad-4121-4d9e-b77f-85d5ea00f1f1",
+      "name": "Exists?1"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"message\": \"Open Cash Session doesn't exists\"\n}",
+        "options": {
+          "responseCode": 404,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        880,
+        2512
+      ],
+      "id": "cec14691-6abe-47fe-a870-70147fd37f4d",
+      "name": "Error4"
+    },
+    {
+      "parameters": {
+        "path": "cash-session/close/print",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        256,
+        2416
+      ],
+      "id": "7c3e4869-c6a7-4779-b22e-6e1084035219",
+      "name": "cash-session/close/print",
+      "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    t1.id,\n    t1.status,\n    t1.closed_at,\n    t1.closing_details,\n    t1.bank_deposit_details,\n    t1.cash_point_id,\n    t1.user_id,\n    cp.name AS cash_point_name,\n    u.name AS user_name,\n\n    COALESCE(\n        (\n            SELECT json_agg(\n                json_build_object(\n                    'currency', csc.currency,\n                    'opening_amount', csc.opening_amount,\n                    'declared_cash', csc.declared_cash,\n                    'calculated_cash', csc.calculated_cash,\n                    'cash_variance', csc.cash_variance,\n                    'calculated_card', csc.calculated_card,\n                    'calculated_transfer', csc.calculated_transfer,\n                    'calculated_other', csc.calculated_other\n                )\n            )\n            FROM public.cash_session_currencies csc\n            WHERE csc.cash_session_id = t1.id\n        ), \n        '[]'::json\n    ) as currencies_data,\n\n    COALESCE(\n        (\n            SELECT json_agg(\n                json_build_object(\n                    'movement_id', m.id,\n                    'type', m.type,\n                    'amount', m.amount,\n                    'currency', m.currency,\n                    'description', m.description,\n                    'created_at', m.created_at,\n                    'payment_method_name', pm.name,\n                    'registered_by_user', u_mov.name\n                ) ORDER BY m.created_at ASC\n            )\n            FROM public.cash_movements AS m\n            JOIN public.payment_methods AS pm ON m.payment_method_id = pm.id\n            LEFT JOIN public.users AS u_mov ON m.user_id = u_mov.id\n            WHERE m.cash_session_id = t1.id\n        ),\n        '[]'::json\n    ) as movements_data\n\nFROM\n    public.cash_sessions AS t1\nJOIN\n    public.cash_points AS cp ON t1.cash_point_id = cp.id\nJOIN\n    public.users AS u ON t1.user_id = u.id\nWHERE\n    t1.id = $1 AND t1.status = 'CLOSE'\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ $json.query.cash_session_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        464,
+        2416
+      ],
+      "id": "baf7fbd6-3fdc-4909-9cd9-1114d1da4578",
+      "name": "Get Close Cash Session Details",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8fde21dd-2591-4d5a-b3c4-4cfeec807e77",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "OPEN",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        1504
+      ],
+      "id": "ca255053-1659-4eec-ab10-536f2a7769bb",
+      "name": "is open?"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "kWsSwxzwYrWJp4E1",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/kWsSwxzwYrWJp4E1",
+          "cachedResultName": "Build PDF"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "data": "={{ $json }}",
+            "template": "cash-session-email"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "template",
+              "displayName": "template",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "data",
+              "displayName": "data",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        896,
+        1584
+      ],
+      "id": "ff8f4727-36d8-4040-a552-1a42cc20e194",
+      "name": "Build Closed Session"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "kWsSwxzwYrWJp4E1",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/kWsSwxzwYrWJp4E1",
+          "cachedResultName": "Build PDF"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "data": "={{ $json }}",
+            "template": "cash-opening-email"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "template",
+              "displayName": "template",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "data",
+              "displayName": "data",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        896,
+        1424
+      ],
+      "id": "52815ebb-5f74-404f-94b5-2340d503eb80",
+      "name": "Build Open Session"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "TTwyLGp8Gg9qDKdn",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/TTwyLGp8Gg9qDKdn",
+          "cachedResultName": "Attachements CRUD"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "action": "UPLOAD",
+            "source_name": "cash_sessions",
+            "source_id": "={{ $('cash-session/close').item.json.body.cash_session_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "source_name",
+              "displayName": "source_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "source_id",
+              "displayName": "source_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1936,
+        368
+      ],
+      "id": "150ccb07-3889-43f8-be71-061a06adbcf8",
+      "name": "Call 'Attachements CRUD'"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7211ad1c-e20f-4f34-95a3-879b81e9e0bd",
+              "leftValue": "={{ $json.success }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2144,
+        368
+      ],
+      "id": "80caa66e-26a1-416c-94e0-da9169cefeb5",
+      "name": "Success?"
+    },
+    {
+      "parameters": {
+        "path": "cotizaciones-history",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "ce4ba6d2-f23a-4ed1-b51e-745ec4f299f3",
+      "name": "LIST /cotizaciones-history",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        3120,
+        1088
+      ],
+      "webhookId": "cotizacion-usd-brou",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH filtrados AS (\n    SELECT * FROM public.log_cotizaciones_json\n    WHERE ($1 IS NULL OR fecha >= $1) AND ($2 IS NULL OR fecha <= $2)\n),\nconteo AS (\n    SELECT COUNT(*) as total FROM filtrados\n)\nSELECT \n    json_build_object(\n        'total_registros', (SELECT total FROM conteo),\n        'total_paginas', CEIL((SELECT total FROM conteo)::numeric / $3),\n        'pagina_actual', $4,\n        'registros_por_pagina', $3\n    ) as metadata,\n    json_agg(paginado) as data\nFROM (\n    SELECT * FROM filtrados\n    ORDER BY fecha DESC\n    LIMIT $3 \n    OFFSET ($4 - 1) * $3\n) AS paginado;",
+        "options": {
+          "queryReplacement": "={{ [$json.query.start_date, $json.query.end_date, $json.query.limit, $json.query.page] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3328,
+        1088
+      ],
+      "id": "4999597e-a947-4f9d-a3d2-482e772ca24d",
+      "name": "Select cotization history",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        3536,
+        1088
+      ],
+      "id": "e04cf651-c273-480b-8b20-a482278cb53b",
+      "name": "Ok"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT cs.*, u.name AS user_name, cp.name AS cash_point_name\nFROM public.cash_sessions cs\nINNER JOIN public.users u ON u.id = cs.user_id\nINNER JOIN public.cash_points cp ON cp.id = cs.cash_point_id\nWHERE cs.id = $1\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ $json.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2576,
+        384
+      ],
+      "id": "069cfedb-37d8-4b10-89ea-3d1803c7ee28",
+      "name": "Execute a SQL query3",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    t1.id,\n    t1.status,\n    t1.opened_at,\n    t1.closed_at,\n    t1.opening_details,\n    t1.closing_details,\n    t1.bank_deposit_details,\n    t1.cash_point_id,\n    t1.user_id,\n    cp.name AS cash_point_name,\n    u.name AS user_name,\n\n    COALESCE(\n        (\n            SELECT json_agg(\n                json_build_object(\n                    'currency', csc.currency,\n                    'opening_amount', csc.opening_amount,\n                    'declared_cash', csc.declared_cash,\n                    'calculated_cash', csc.calculated_cash,\n                    'cash_variance', csc.cash_variance,\n                    'calculated_card', csc.calculated_card,\n                    'calculated_transfer', csc.calculated_transfer,\n                    'calculated_other', csc.calculated_other\n                )\n            )\n            FROM public.cash_session_currencies csc\n            WHERE csc.cash_session_id = t1.id\n        ), \n        '[]'::json\n    ) as currencies_data,\n\n    COALESCE(\n        (\n            SELECT json_agg(\n                json_build_object(\n                    'movement_id', m.id,\n                    'type', m.type,\n                    'amount', m.amount,\n                    'currency', m.currency,\n                    'description', m.description,\n                    'created_at', m.created_at,\n                    'payment_method_name', pm.name,\n                    'registered_by_user', u_mov.name\n                ) ORDER BY m.created_at ASC\n            )\n            FROM public.cash_movements AS m\n            JOIN public.payment_methods AS pm ON m.payment_method_id = pm.id\n            LEFT JOIN public.users AS u_mov ON m.user_id = u_mov.id\n            WHERE m.cash_session_id = t1.id\n        ),\n        '[]'::json\n    ) as movements_data\n\nFROM\n    public.cash_sessions AS t1\nJOIN\n    public.cash_points AS cp ON t1.cash_point_id = cp.id\nJOIN\n    public.users AS u ON t1.user_id = u.id\nWHERE\n    t1.id = $1\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ $json.query.cash_session_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        480,
+        2800
+      ],
+      "id": "a1c9fbb2-a238-4f99-b8df-7fdb219c4083",
+      "name": "Get cash session details1",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "path": "cash-session/details",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        272,
+        2800
+      ],
+      "id": "b3239225-5845-4542-baae-d9d6fb07b604",
+      "name": "GET cash-session/details",
+      "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Cash session print data",
+        "height": 304,
+        "width": 704
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        192,
+        2688
+      ],
+      "typeVersion": 1,
+      "id": "f8477924-4f57-4b43-b16f-5b732179e704",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        688,
+        2800
+      ],
+      "id": "938d8976-2239-4583-91d4-d5938878ed8b",
+      "name": "OK"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5.6-luna",
+          "mode": "list",
+          "cachedResultName": "gpt-5.6-luna"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        3536,
+        640
+      ],
+      "id": "7ce6656b-ba2c-454a-bd34-f4d3bcafa7ab",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "5Crz2RwSV99AIItb",
+          "name": "OpenAi account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "cash-session/close": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+            "content-length": "29926",
+            "accept": "*/*",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "content-type": "multipart/form-data; boundary=----WebKitFormBoundary0dYyLCzRG2HC5Bct",
+            "origin": "https://9000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev",
+            "priority": "u=1, i",
+            "referer": "https://9000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/",
+            "sec-ch-ua": "\"Brave\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "sec-gpc": "1",
+            "x-forwarded-for": "189.31.201.10",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "6c8052c64eb2",
+            "x-real-ip": "189.31.201.10"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "cash_session_id": "112",
+            "declared_cash_uyu": "8050",
+            "declared_cash_usd": "95",
+            "notes": "",
+            "closing_denominations": "{\"uyu\":{\"50\":1,\"2000\":4,\"total\":8050},\"usd\":{\"5\":1,\"20\":2,\"50\":1,\"total\":95}}",
+            "bank_deposit_denominations": "{\"uyu\":{\"1000\":1,\"2000\":2},\"usd\":{\"50\":1}}"
+          },
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/close",
+          "executionMode": "production"
+        }
+      }
+    ],
+    "cash-session/totales": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+            "accept": "*/*",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "origin": "https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev",
+            "priority": "u=1, i",
+            "referer": "https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/",
+            "sec-ch-ua": "\"Google Chrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"macOS\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "186.49.44.207",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "6c8052c64eb2",
+            "x-real-ip": "186.49.44.207"
+          },
+          "params": {},
+          "query": {
+            "cash_session_id": "7"
+          },
+          "body": {},
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/totales",
+          "executionMode": "production"
+        }
+      }
+    ],
+    "cash-session/open": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+            "content-length": "29926",
+            "accept": "*/*",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "content-type": "multipart/form-data; boundary=----WebKitFormBoundary0dYyLCzRG2HC5Bct",
+            "origin": "https://9000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev",
+            "priority": "u=1, i",
+            "referer": "https://9000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/",
+            "sec-ch-ua": "\"Brave\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "sec-gpc": "1",
+            "x-forwarded-for": "189.31.201.10",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "6c8052c64eb2",
+            "x-real-ip": "189.31.201.10"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "cash_session_id": "112",
+            "declared_cash_uyu": "8050",
+            "declared_cash_usd": "95",
+            "notes": "",
+            "closing_denominations": "{\"uyu\":{\"50\":1,\"2000\":4,\"total\":8050},\"usd\":{\"5\":1,\"20\":2,\"50\":1,\"total\":95}}",
+            "bank_deposit_denominations": "{\"uyu\":{\"1000\":1,\"2000\":2},\"usd\":{\"50\":1}}"
+          },
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/close",
+          "executionMode": "production"
+        }
+      }
+    ],
+    "cash-session/declare": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.8",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3NzA2NDY0Mzh9.BjPNyHWNOxqn0pixt78YJ1F6jSWHL0UPv8_unLaS3TI",
+            "origin": "http://localhost:3000",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/",
+            "sec-ch-ua": "\"Not(A:Brand\";v=\"8\", \"Chromium\";v=\"144\", \"Brave\";v=\"144\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "sec-gpc": "1",
+            "x-forwarded-for": "177.5.0.122",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "05c9532e790b",
+            "x-real-ip": "177.5.0.122"
+          },
+          "params": {},
+          "query": {
+            "cash_session_id": "140"
+          },
+          "body": {},
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/declare",
+          "executionMode": "production",
+          "jwtPayload": {
+            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "email": "raidel@invokeia.com",
+            "expiresIn": "24h",
+            "iat": 1770646438
+          }
+        }
+      }
+    ],
+    "/cotizaciones": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+            "accept": "*/*",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.6",
+            "if-none-match": "W/\"2113-5v1vOrDWAfiN2g/f2pZSNDAzn6c\"",
+            "origin": "https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev",
+            "priority": "u=1, i",
+            "referer": "https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/",
+            "sec-ch-ua": "\"Brave\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "sec-gpc": "1",
+            "x-forwarded-for": "177.3.104.248",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "6c8052c64eb2",
+            "x-real-ip": "177.3.104.248"
+          },
+          "params": {},
+          "query": {},
+          "body": {},
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cotizaciones",
+          "executionMode": "production"
+        }
+      }
+    ],
+    "cash-session/movements": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.5",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3NzA2NDY0Mzh9.BjPNyHWNOxqn0pixt78YJ1F6jSWHL0UPv8_unLaS3TI",
+            "origin": "http://localhost:3000",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/",
+            "sec-ch-ua": "\"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\", \"Brave\";v=\"146\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "sec-gpc": "1",
+            "x-forwarded-for": "187.7.185.217",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "05c9532e790b",
+            "x-real-ip": "187.7.185.217"
+          },
+          "params": {},
+          "query": {
+            "cash_session_id": "154"
+          },
+          "body": {},
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/movements",
+          "executionMode": "production",
+          "jwtPayload": {
+            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "email": "raidel@invokeia.com",
+            "expiresIn": "24h",
+            "iat": 1770646438
+          }
+        }
+      }
+    ],
+    "cash_points/status": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+            "accept": "*/*",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "if-none-match": "W/\"46f-XfPWfb4x0k2QfMw35wrfdGC2q0A\"",
+            "origin": "https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev",
+            "priority": "u=1, i",
+            "referer": "https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/",
+            "sec-ch-ua": "\"Brave\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "sec-gpc": "1",
+            "x-forwarded-for": "189.31.201.10",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "6c8052c64eb2",
+            "x-real-ip": "189.31.201.10"
+          },
+          "params": {},
+          "query": {},
+          "body": {},
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash_points/status",
+          "executionMode": "production"
+        }
+      }
+    ],
+    "cash-session/print": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+            "content-length": "29926",
+            "accept": "*/*",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "content-type": "multipart/form-data; boundary=----WebKitFormBoundary0dYyLCzRG2HC5Bct",
+            "origin": "https://9000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev",
+            "priority": "u=1, i",
+            "referer": "https://9000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/",
+            "sec-ch-ua": "\"Brave\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "sec-gpc": "1",
+            "x-forwarded-for": "189.31.201.10",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "6c8052c64eb2",
+            "x-real-ip": "189.31.201.10"
+          },
+          "params": {},
+          "query": {
+            "cash_session_id": 103
+          },
+          "body": {},
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/close",
+          "executionMode": "production"
+        }
+      }
+    ],
+    "cash-session/open/print": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+            "content-length": "29926",
+            "accept": "*/*",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "content-type": "multipart/form-data; boundary=----WebKitFormBoundary0dYyLCzRG2HC5Bct",
+            "origin": "https://9000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev",
+            "priority": "u=1, i",
+            "referer": "https://9000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/",
+            "sec-ch-ua": "\"Brave\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "sec-gpc": "1",
+            "x-forwarded-for": "189.31.201.10",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "6c8052c64eb2",
+            "x-real-ip": "189.31.201.10"
+          },
+          "params": {},
+          "query": {
+            "cash_session_id": 119
+          },
+          "body": {},
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/close",
+          "executionMode": "production"
+        }
+      }
+    ],
+    "cash-session/close/print": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+            "content-length": "29926",
+            "accept": "*/*",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "content-type": "multipart/form-data; boundary=----WebKitFormBoundary0dYyLCzRG2HC5Bct",
+            "origin": "https://9000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev",
+            "priority": "u=1, i",
+            "referer": "https://9000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/",
+            "sec-ch-ua": "\"Brave\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "sec-gpc": "1",
+            "x-forwarded-for": "189.31.201.10",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "6c8052c64eb2",
+            "x-real-ip": "189.31.201.10"
+          },
+          "params": {},
+          "query": {
+            "cash_session_id": 158
+          },
+          "body": {},
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/close",
+          "executionMode": "production"
+        }
+      }
+    ],
+    "LIST /cotizaciones-history": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+            "accept": "*/*",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.6",
+            "if-none-match": "W/\"2113-5v1vOrDWAfiN2g/f2pZSNDAzn6c\"",
+            "origin": "https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev",
+            "priority": "u=1, i",
+            "referer": "https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/",
+            "sec-ch-ua": "\"Brave\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "sec-gpc": "1",
+            "x-forwarded-for": "177.3.104.248",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "6c8052c64eb2",
+            "x-real-ip": "177.3.104.248"
+          },
+          "params": {},
+          "query": {
+            "page": 1,
+            "limit": 10
+          },
+          "body": {},
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cotizaciones",
+          "executionMode": "production"
+        }
+      }
+    ],
+    "cash-session/search": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.5",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3NzQ0NDI5MTF9.TSy3SYuiUDz8wJapPeiSXV3xltjfLxzQ9AVK4c6-fDY",
+            "origin": "http://localhost:3000",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/",
+            "sec-ch-ua": "\"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\", \"Brave\";v=\"146\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "sec-gpc": "1",
+            "x-forwarded-for": "187.7.185.217",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "05c9532e790b",
+            "x-real-ip": "187.7.185.217"
+          },
+          "params": {},
+          "query": {
+            "page": "1",
+            "limit": "10",
+            "search": ""
+          },
+          "body": {},
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/search",
+          "executionMode": "production",
+          "jwtPayload": {
+            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "email": "raidel@invokeia.com",
+            "expiresIn": "24h",
+            "iat": 1774442911
+          }
+        }
+      }
+    ],
+    "cash-session/prefill": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.5",
+            "authorization": {
+              "__redacted": true,
+              "reason": "node_defined_field",
+              "canReveal": false
+            },
+            "cache-control": "no-cache",
+            "origin": "http://localhost:3000",
+            "pragma": "no-cache",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/",
+            "sec-ch-ua": "\"Brave\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "sec-gpc": "1",
+            "x-forwarded-for": "189.11.23.59",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "05c9532e790b",
+            "x-real-ip": "189.11.23.59"
+          },
+          "params": {},
+          "query": {
+            "cash_point_id": "4"
+          },
+          "body": {},
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/prefill",
+          "executionMode": "production",
+          "jwtPayload": {
+            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "email": "raidel@invokeia.com",
+            "expiresIn": "24h",
+            "iat": 1780079815
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "GET cash-session/details": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+            "content-length": "29926",
+            "accept": "*/*",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "content-type": "multipart/form-data; boundary=----WebKitFormBoundary0dYyLCzRG2HC5Bct",
+            "origin": "https://9000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev",
+            "priority": "u=1, i",
+            "referer": "https://9000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/",
+            "sec-ch-ua": "\"Brave\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "sec-gpc": "1",
+            "x-forwarded-for": "189.31.201.10",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "6c8052c64eb2",
+            "x-real-ip": "189.31.201.10"
+          },
+          "params": {},
+          "query": {
+            "cash_session_id": 103
+          },
+          "body": {},
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/close",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "cash_points/upsert": {
+      "main": [
+        [
+          {
+            "node": "If exist cash_points",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cash_points/delete": {
+      "main": [
+        [
+          {
+            "node": "Delete rows in cash_points",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cash_points/search": {
+      "main": [
+        [
+          {
+            "node": "Select cash_points",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select cash_points": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete rows in cash_points": {
+      "main": [
+        [
+          {
+            "node": "cash_points delete success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "cash_points delete error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If exist cash_points": {
+      "main": [
+        [
+          {
+            "node": "Update rows in cash_points",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert rows in cash_points",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update rows in cash_points": {
+      "main": [
+        [
+          {
+            "node": "cash_points upsert success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "cash_points upsert error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert rows in cash_points": {
+      "main": [
+        [
+          {
+            "node": "cash_points upsert success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "cash_points upsert error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cash-session/active": {
+      "main": [
+        [
+          {
+            "node": "Call Cash-session-active-workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cash-session/open": {
+      "main": [
+        [
+          {
+            "node": "Call Cash-session-active-workflow1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Cash-session-active-workflow1": {
+      "main": [
+        [
+          {
+            "node": "If cash-session-open",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert rows in cash-session": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "cash-session-error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If cash-session-open": {
+      "main": [
+        [
+          {
+            "node": "error cash-session is open",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert rows in cash-session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cash-session/close": {
+      "main": [
+        [
+          {
+            "node": "Get Session with Openings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cash_points/status": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cash-session/search": {
+      "main": [
+        [
+          {
+            "node": "Select cash-session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select cash-session": {
+      "main": [
+        [
+          {
+            "node": "Code3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cash-session/movements": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Cash-session-active-workflow": {
+      "main": [
+        [
+          {
+            "node": "is_active",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Update currencies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Close Cash Session": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "cash-session-error1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cash-session/totales": {
+      "main": [
+        [
+          {
+            "node": "Get session movements1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get session movements1": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cash-session/day-rates": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch BROU Cotizaciones": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cotizacion-usd": {
+      "main": [
+        [
+          {
+            "node": "Fetch BROU Cotizaciones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Parse USD Exchange Rate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch BROU Page": {
+      "main": [
+        [
+          {
+            "node": "Extract Exchange Rates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Exchange Rates": {
+      "main": [
+        [
+          {
+            "node": "Save cotization",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "/cotizaciones": {
+      "main": [
+        [
+          {
+            "node": "Get last cotization",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Fetch BROU Page1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch BROU Page1": {
+      "main": [
+        [
+          {
+            "node": "Extract Exchange Rates1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Exchange Rates1": {
+      "main": [
+        [
+          {
+            "node": "Format Response1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Extract Exchange Rates1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cash-session/declare": {
+      "main": [
+        [
+          {
+            "node": "Get session declaration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cash-session/prefill": {
+      "main": [
+        [
+          {
+            "node": "Select last closed cash-session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Everyday @ 7:50 AM": {
+      "main": [
+        [
+          {
+            "node": "Fetch BROU Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get last cotization": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Insert rows in a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert rows in a table": {
+      "main": [
+        [
+          {
+            "node": "Merge info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update currencies": {
+      "main": [
+        [
+          {
+            "node": "Get Request Images1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Session with Openings": {
+      "main": [
+        [
+          {
+            "node": "Has opened cash session?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Movements Summary": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge info": {
+      "main": [
+        [
+          {
+            "node": "cash-session-success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has opened cash session?": {
+      "main": [
+        [
+          {
+            "node": "Get Movements Summary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "cash-session-error2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query1": {
+      "main": [
+        []
+      ]
+    },
+    "Get Request Images1": {
+      "main": [
+        [
+          {
+            "node": "Has images?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has images?1": {
+      "main": [
+        [
+          {
+            "node": "Call 'Attachements CRUD'",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Close Cash Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select last closed cash-session": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cash-session/print": {
+      "main": [
+        [
+          {
+            "node": "Get cash session details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get cash session details": {
+      "main": [
+        [
+          {
+            "node": "is open?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Success build?": {
+      "main": [
+        [
+          {
+            "node": "OK: PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OK: PDF": {
+      "main": [
+        []
+      ]
+    },
+    "Success build?1": {
+      "main": [
+        [
+          {
+            "node": "OK: PDF1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Invoice Email1": {
+      "main": [
+        [
+          {
+            "node": "Success build?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cash-session/open/print": {
+      "main": [
+        [
+          {
+            "node": "Get Open Cash Session Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Open Cash Session Details": {
+      "main": [
+        [
+          {
+            "node": "Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Exists?": {
+      "main": [
+        [
+          {
+            "node": "Build Invoice Email1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Success build?2": {
+      "main": [
+        [
+          {
+            "node": "OK: PDF2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Invoice Email2": {
+      "main": [
+        [
+          {
+            "node": "Success build?2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Exists?1": {
+      "main": [
+        [
+          {
+            "node": "Build Invoice Email2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cash-session/close/print": {
+      "main": [
+        [
+          {
+            "node": "Get Close Cash Session Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Close Cash Session Details": {
+      "main": [
+        [
+          {
+            "node": "Exists?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "is open?": {
+      "main": [
+        [
+          {
+            "node": "Build Open Session",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Closed Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Open Session": {
+      "main": [
+        [
+          {
+            "node": "Success build?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Closed Session": {
+      "main": [
+        [
+          {
+            "node": "Success build?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Attachements CRUD'": {
+      "main": [
+        [
+          {
+            "node": "Success?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Success?": {
+      "main": [
+        [
+          {
+            "node": "Close Cash Session",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "LIST /cotizaciones-history": {
+      "main": [
+        [
+          {
+            "node": "Select cotization history",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select cotization history": {
+      "main": [
+        [
+          {
+            "node": "Ok",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query3": {
+      "main": [
+        [
+          {
+            "node": "cash-session-success1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET cash-session/details": {
+      "main": [
+        [
+          {
+            "node": "Get cash session details1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get cash session details1": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Extract Exchange Rates",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timezone": "America/Montevideo",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "6aaf4458-c375-42cc-ac48-8cd41de06579",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
+  },
+  "nodeGroups": [],
+  "id": "r15SVik8ybCWb5pW",
+  "tags": []
+}

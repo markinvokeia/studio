@@ -17,9 +17,11 @@ import { DatePickerInput } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SedeSelector } from '@/components/ui/sede-selector';
 import { ServiceSelector } from '@/components/ui/service-selector';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
+import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { Quote, Service, User } from '@/lib/types';
@@ -51,6 +53,7 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
   const t = useTranslations();
   const { toast } = useToast();
   const clinicInfo = useClinicInfo();
+  const { activeSede } = useAuth();
 
   const [items, setItems] = React.useState<QuoteItem[]>([]);
   const [currency, setCurrency] = React.useState<'USD' | 'UYU'>(clinicInfo?.currency ?? 'UYU');
@@ -58,6 +61,7 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
   const [createdAt, setCreatedAt] = React.useState<string>(formatDate(new Date()));
   const [notes, setNotes] = React.useState('');
   const [patientConfirmed, setPatientConfirmed] = React.useState(false);
+  const [sedeId, setSedeId] = React.useState<string>('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   // Reset form on open
@@ -69,8 +73,9 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
       setCreatedAt(formatDate(new Date()));
       setNotes('');
       setPatientConfirmed(false);
+      setSedeId(activeSede?.id || '');
     }
-  }, [open]);
+  }, [open, activeSede]);
 
   const handleAddItem = () => {
     const newItem: QuoteItem = {
@@ -131,6 +136,11 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
       return;
     }
 
+    if (!sedeId) {
+      toast({ variant: 'destructive', title: t('QuotesPage.validation.sedeRequired') });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -141,6 +151,7 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
         exchange_rate: currency === 'UYU' ? 1 : exchangeRate,
         created_at: toLocalISOString(parseISO(createdAt || formatDate(new Date()))),
         notes: notes || '',
+        sede_id: Number(sedeId),
         total,
         status: 'draft',
         payment_status: 'unpaid',
@@ -222,7 +233,7 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
         <DialogBody className="px-6 py-4">
           <div className="space-y-6">
             {/* Date · Currency · Exchange Rate */}
-            <div className={`grid grid-cols-1 gap-4 ${currency === 'UYU' ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
+            <div className={`grid grid-cols-1 gap-4 ${currency === 'UYU' ? 'md:grid-cols-3' : 'md:grid-cols-4'}`}>
               <div className="space-y-2">
                 <Label>{t('QuotesPage.quoteDialog.createdAt')}</Label>
                 <DatePickerInput value={createdAt} onChange={(value) => setCreatedAt(value || formatDate(new Date()))} />
@@ -241,6 +252,15 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
                     <SelectItem value="UYU">UYU</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{t('QuotesPage.quoteDialog.sede')}</Label>
+                <SedeSelector
+                  value={sedeId}
+                  onValueChange={(id) => setSedeId(id)}
+                  triggerText={t('QuotesPage.quoteDialog.selectSede')}
+                  placeholder={t('QuotesPage.quoteDialog.searchSede')}
+                />
               </div>
               {currency !== 'UYU' && (
                 <div className="space-y-2">
@@ -395,7 +415,7 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
           </DialogCancelButton>
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || items.length === 0 || !user}
+            disabled={isSubmitting || items.length === 0 || !user || !sedeId}
           >
             {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             {t('QuotesPage.quickQuote.create')}

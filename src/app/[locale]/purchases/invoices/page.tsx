@@ -86,6 +86,8 @@ async function getInvoices(params: { page: number; limit: number; search: string
             updatedAt: apiInvoice.updatedAt || new Date().toISOString().split('T')[0],
             due_date: apiInvoice.due_date || null,
             currency: apiInvoice.currency || 'USD',
+            sede_id: apiInvoice.sede_id != null ? String(apiInvoice.sede_id) : undefined,
+            sede_name: apiInvoice.sede_name || undefined,
             notes: apiInvoice.notes || '',
             is_historical: apiInvoice.is_historical || false,
             external_id: apiInvoice.external_id ?? null,

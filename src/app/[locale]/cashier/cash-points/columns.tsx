@@ -22,6 +22,7 @@ export const CashPointsColumnsWrapper = ({ onEdit, onDelete }: CashPointsColumns
         createSelectColumn<CashPoint>(),
         { accessorKey: 'id', header: ({ column }) => <DataTableColumnHeader column={column} title={t('id')} /> },
         { accessorKey: 'name', header: ({ column }) => <DataTableColumnHeader column={column} title={t('name')} /> },
+        { accessorKey: 'sede_name', header: ({ column }) => <DataTableColumnHeader column={column} title={t('sede')} /> },
         {
             accessorKey: 'is_active',
             header: ({ column }) => <DataTableColumnHeader column={column} title={t('isActive')} />,

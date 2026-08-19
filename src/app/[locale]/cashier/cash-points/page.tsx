@@ -5,6 +5,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import {
@@ -16,13 +17,15 @@ import {
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
-import { CashPoint } from '@/lib/types';
+import { CashPoint, Sede } from '@/lib/types';
+import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState } from '@tanstack/react-table';
-import { AlertTriangle, Archive, Pencil, Trash2 } from 'lucide-react';
+import { AlertTriangle, Archive, Check, ChevronsUpDown, Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import * as React from 'react';
@@ -34,6 +37,7 @@ const cashPointFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
     name: z.string().min(1, t('nameRequired')),
     is_active: z.boolean().default(true),
+    sede_id: z.string().min(1, t('sedeRequired')),
 });
 
 type CashPointFormValues = z.infer<ReturnType<typeof cashPointFormSchema>>;
@@ -58,7 +62,12 @@ async function getCashPoints(pagination: PaginationState, searchQuery: string): 
         const total = Number(parsedData?.total) || 0;
 
         return {
-            cashPoints: cashPointsData.map((cp: any) => ({ ...cp, id: String(cp.id) })),
+            cashPoints: cashPointsData.map((cp: any) => ({
+                ...cp,
+                id: String(cp.id),
+                sede_id: cp.sede_id ? String(cp.sede_id) : undefined,
+                sede_name: cp.sede_name || undefined,
+            })),
             total
         };
     } catch (error) {
@@ -68,7 +77,11 @@ async function getCashPoints(pagination: PaginationState, searchQuery: string): 
 }
 
 async function upsertCashPoint(cashPointData: CashPointFormValues) {
-    const response = await api.post(API_ROUTES.CASHIER.CASH_POINTS_UPSERT, cashPointData);
+    const payload = {
+        ...cashPointData,
+        sede_id: cashPointData.sede_id ? Number(cashPointData.sede_id) : undefined,
+    };
+    const response = await api.post(API_ROUTES.CASHIER.CASH_POINTS_UPSERT, payload);
     if (Array.isArray(response) && response[0]?.code >= 400) {
         const message = response[0]?.message || 'Failed to save cash point';
         throw new Error(message);
@@ -95,11 +108,15 @@ export default function CashPointsPage() {
     const t = useTranslations('PhysicalCashRegistersPage');
     const tColumns = useTranslations('PhysicalCashRegistersPage.columns');
     const tValidation = useTranslations('PhysicalCashRegistersPage.validation');
+    const tGeneral = useTranslations('General');
     const { toast } = useToast();
     const isNarrow = useViewportNarrow();
     const [cashPoints, setCashPoints] = React.useState<CashPoint[]>([]);
     const [cashPointCount, setCashPointCount] = React.useState(0);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
+
+    const [sedes, setSedes] = React.useState<Sede[]>([]);
+    const [isSedeOpen, setIsSedeOpen] = React.useState(false);
 
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
     const [editingCashPoint, setEditingCashPoint] = React.useState<CashPoint | null>(null);
@@ -114,6 +131,16 @@ export default function CashPointsPage() {
     const form = useForm<CashPointFormValues>({
         resolver: zodResolver(cashPointFormSchema(tValidation)),
     });
+
+    React.useEffect(() => {
+        api.get(API_ROUTES.SEDES, { page: '1', limit: '200' }).then((data: any) => {
+            const raw = Array.isArray(data) ? data : (data.sedes || data.data || []);
+            setSedes(raw.filter((s: any) => s.is_active !== false).map((s: any) => ({
+                id: String(s.id), clinic_id: String(s.clinic_id), name: s.name || '',
+                is_active: s.is_active !== undefined ? s.is_active : true,
+            })));
+        }).catch(() => setSedes([]));
+    }, []);
 
     const loadCashPoints = React.useCallback(async () => {
         setIsRefreshing(true);
@@ -137,7 +164,7 @@ export default function CashPointsPage() {
 
     const handleCreate = () => {
         setEditingCashPoint(null);
-        form.reset({ name: '', is_active: true });
+        form.reset({ name: '', is_active: true, sede_id: '' });
         setSubmissionError(null);
         setIsDialogOpen(true);
     };
@@ -148,6 +175,7 @@ export default function CashPointsPage() {
             id: cashPoint.id,
             name: cashPoint.name,
             is_active: cashPoint.is_active,
+            sede_id: cashPoint.sede_id || '',
         });
         setSubmissionError(null);
         setIsDialogOpen(true);
@@ -295,6 +323,55 @@ export default function CashPointsPage() {
                                         <FormControl>
                                             <Input placeholder={t('dialog.namePlaceholder')} {...field} />
                                         </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="sede_id"
+                                render={({ field, fieldState }) => (
+                                    <FormItem>
+                                        <FormLabel>
+                                            {t('dialog.sede')} <span className="text-destructive">*</span>
+                                        </FormLabel>
+                                        <Popover open={isSedeOpen} onOpenChange={setIsSedeOpen}>
+                                            <PopoverTrigger asChild>
+                                                <FormControl>
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        role="combobox"
+                                                        aria-required="true"
+                                                        aria-invalid={!!fieldState.error}
+                                                        className={cn(
+                                                            'w-full justify-between font-normal',
+                                                            !field.value && 'text-muted-foreground',
+                                                            fieldState.error && 'border-destructive focus-visible:ring-destructive'
+                                                        )}
+                                                    >
+                                                        {field.value ? (sedes.find(s => s.id === field.value)?.name ?? t('dialog.selectSede')) : t('dialog.selectSede')}
+                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                    </Button>
+                                                </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                                <Command>
+                                                    <CommandInput placeholder={t('dialog.searchSede')} />
+                                                    <CommandList>
+                                                        <CommandEmpty>{tGeneral('noResults')}</CommandEmpty>
+                                                        <CommandGroup>
+                                                            {sedes.map(sede => (
+                                                                <CommandItem key={sede.id} value={sede.name} onSelect={() => { field.onChange(sede.id); setIsSedeOpen(false); }}>
+                                                                    <Check className={cn('mr-2 h-4 w-4', field.value === sede.id ? 'opacity-100' : 'opacity-0')} />
+                                                                    {sede.name}
+                                                                </CommandItem>
+                                                            ))}
+                                                        </CommandGroup>
+                                                    </CommandList>
+                                                </Command>
+                                            </PopoverContent>
+                                        </Popover>
                                         <FormMessage />
                                     </FormItem>
                                 )}
