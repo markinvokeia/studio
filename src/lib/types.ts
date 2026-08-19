@@ -2594,6 +2594,53 @@ export type PatientMedicalInstruction = {
   updated_at?: string;
 };
 
+export type PrescriptionTemplate = {
+  id?: string;
+  name: string;
+  description?: string;
+  content_html: string;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type PrescriptionItem = {
+  id?: string;
+  orden?: number;
+  /** FK a catalogo_medicamentos. Null si el fármaco se escribió libre. */
+  medicamento_id?: string | null;
+  /** Nombre denormalizado — la receta sobrevive al borrado del catálogo. */
+  medicamento_texto: string;
+  presentacion?: string;
+  dosis?: string;
+  via_administracion?: string;
+  frecuencia?: string;
+  duracion_dias?: number | null;
+  cantidad?: string;
+  fecha_inicio?: string;
+  fecha_fin?: string | null;
+  indicaciones?: string;
+  /** True ⇒ la línea se refleja en los medicamentos de la anamnesis, con su período. */
+  registrar_en_anamnesis: boolean;
+};
+
+export type PatientPrescription = {
+  id?: string;
+  patient_id: string;
+  fecha: string;
+  doctor_id: string | null;
+  doctor_name?: string;
+  template_id?: string;
+  template_name?: string;
+  diagnostico?: string;
+  notas?: string;
+  items: PrescriptionItem[];
+  /** HTML final ya interpolado — fuente de verdad al reimprimir. */
+  content_html: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
 export type CreateLicenseInput = Omit<LicensePayload, 'licenseId' | 'version' | 'issuedAt'>;
 
 export interface Subscription {

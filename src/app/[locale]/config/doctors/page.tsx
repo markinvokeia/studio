@@ -28,6 +28,7 @@ import { DoctorAvailability } from '@/components/users/doctor-availability';
 import { DoctorAvailabilityExceptions } from '@/components/users/doctor-availability-exceptions';
 import { UserServices } from '@/components/users/user-services';
 import { UserPreferencesTab } from '@/components/users/user-preferences-tab';
+import { SignatureUploader } from '@/components/users/signature-uploader';
 import { SYSTEM_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
 import { DoctorCalendarsTab } from '@/components/calendar/doctor-calendars-tab';
 import { API_ROUTES } from '@/constants/routes';
@@ -40,7 +41,7 @@ import { useLicenseStore } from '@/stores/license-store';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, Calendar as CalendarIcon, CalendarClock, CalendarX, Check, ChevronsUpDown, ClipboardList, KeyRound, Settings2, Stethoscope, UserSquare, X } from 'lucide-react';
+import { AlertTriangle, Calendar as CalendarIcon, CalendarClock, CalendarX, Check, ChevronsUpDown, ClipboardList, KeyRound, PenLine, Settings2, Stethoscope, UserSquare, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -632,6 +633,7 @@ export default function DoctorsPage() {
                     { id: 'calendars', icon: CalendarIcon, label: t('DoctorsPage.tabs.calendars') },
                     { id: 'availability', icon: CalendarClock, label: t('DoctorsPage.tabs.availability') },
                     { id: 'exceptions', icon: CalendarX, label: t('DoctorsPage.tabs.exceptions') },
+                    { id: 'signature', icon: PenLine, label: t('DoctorsPage.tabs.signature') },
                     ...(canUpdateDoctor ? [{ id: 'preferences', icon: Settings2, label: t('DoctorsPage.tabs.preferences') }] : []),
                   ] satisfies VerticalTab[]}
                   activeTabId={activeTab}
@@ -731,6 +733,12 @@ export default function DoctorsPage() {
                   )}
                   {activeTab === 'exceptions' && (
                     <DoctorAvailabilityExceptions userId={selectedUser.id} />
+                  )}
+                  {activeTab === 'signature' && (
+                    <SignatureUploader
+                      userId={selectedUser.id}
+                      canManage={hasPermission(SYSTEM_PERMISSIONS.USERS_MANAGE_SIGNATURE)}
+                    />
                   )}
                   {activeTab === 'preferences' && canUpdateDoctor && (
                     <UserPreferencesTab user={selectedUser} showAlertStyle sedes={sedes} />

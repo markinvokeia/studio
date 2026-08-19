@@ -26,6 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UserLogs } from '@/components/users/user-logs';
 import { UserRoles } from '@/components/users/user-roles';
 import { UserPreferencesTab } from '@/components/users/user-preferences-tab';
+import { SignatureUploader } from '@/components/users/signature-uploader';
 import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useLicenseStore } from '@/stores/license-store';
@@ -311,6 +312,7 @@ export default function SystemUsersPage() {
   const canAssignRole = hasPermission(SYSTEM_PERMISSIONS.USERS_ASSIGN_ROLE);
   const canRemoveRole = hasPermission(SYSTEM_PERMISSIONS.USERS_REMOVE_ROLE);
   const canViewLogs = hasPermission(SYSTEM_PERMISSIONS.USERS_VIEW_LOGS);
+  const canManageSignature = hasPermission(SYSTEM_PERMISSIONS.USERS_MANAGE_SIGNATURE);
 
   // Redirect if no access to view list
   React.useEffect(() => {
@@ -673,6 +675,7 @@ export default function SystemUsersPage() {
                       <TabsTrigger value="details">{t('SystemUsersPage.tabs.details')}</TabsTrigger>
                       {canViewRoles && <TabsTrigger value="roles">{t('SystemUsersPage.tabs.roles')}</TabsTrigger>}
                       {canViewLogs && <TabsTrigger value="logs">{t('SystemUsersPage.tabs.logs')}</TabsTrigger>}
+                      {canManageSignature && <TabsTrigger value="signature">{t('SystemUsersPage.tabs.signature')}</TabsTrigger>}
                       {canUpdate && <TabsTrigger value="preferences">{t('SystemUsersPage.tabs.preferences')}</TabsTrigger>}
                     </TabsList>
                     <div className="flex-1 overflow-auto mt-4">
@@ -731,6 +734,11 @@ export default function SystemUsersPage() {
                       {canViewLogs && (
                         <TabsContent value="logs" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
                           <UserLogs userId={selectedUser.id} />
+                        </TabsContent>
+                      )}
+                      {canManageSignature && (
+                        <TabsContent value="signature" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                          <SignatureUploader userId={selectedUser.id} canManage />
                         </TabsContent>
                       )}
                       {canUpdate && (

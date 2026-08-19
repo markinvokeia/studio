@@ -413,7 +413,8 @@
     "ReportKPIs": "KPIs Clínica",
     "ReportBalanceMensual": "Balance Mensual",
     "Sedes": "Sedes",
-    "PatientsPortal": "Portal del Paciente"
+    "PatientsPortal": "Portal del Paciente",
+    "PrescriptionTemplates": "Plantillas de Receta"
   },
   "TVDisplayPage": {
     "title": "Pantalla TV",
@@ -1467,7 +1468,8 @@
         "sessionConfirmSavedOk": "Sesión guardada correctamente."
       },
       "readOnly": "Solo lectura",
-      "readOnlyOnDate": "Solo lectura · {date}"
+      "readOnlyOnDate": "Solo lectura · {date}",
+      "prescribe": "Recetar"
     },
     "calendarSwitch": {
       "myAppointments": "Mis citas",
@@ -4050,7 +4052,8 @@
       "availability": "Disponibilidad",
       "exceptions": "Excepciones",
       "calendars": "Calendarios con acceso",
-      "preferences": "Preferencias"
+      "preferences": "Preferencias",
+      "signature": "Firma"
     },
     "calendarAccess": {
       "title": "Calendarios con acceso",
@@ -4391,7 +4394,8 @@
       "history": "Historia Clínica",
       "notes": "Notas",
       "details": "Detalles",
-      "preferences": "Preferencias"
+      "preferences": "Preferencias",
+      "signature": "Firma"
     },
     "detailsFor": "Detalles para {name}",
     "close": "Cerrar detalles",
@@ -6361,7 +6365,8 @@
       "unified": "Personalizado",
       "tabs": "Normal"
     },
-    "calendarSection": "Calendario"
+    "calendarSection": "Calendario",
+    "signatureSection": "Firma"
   },
   "UserCommunicationPreferences": {
     "title": "Preferencias",
@@ -6797,7 +6802,8 @@
       "description": "Descripción",
       "next": "Próxima",
       "color": "Color"
-    }
+    },
+    "newPrescription": "Nueva receta"
   },
   "PatientDocumentsSheet": {
     "title": "Imágenes y archivos",
@@ -8447,5 +8453,231 @@
         "footer": "Reservas impulsadas por"
       }
     }
+  },
+  "PatientIndicationsTab": {
+    "tabs": {
+      "instructions": "Indicaciones",
+      "prescriptions": "Recetas"
+    }
+  },
+  "MedicationSelector": {
+    "trigger": "Seleccionar medicamento",
+    "searchPlaceholder": "Buscar medicamento...",
+    "loading": "Cargando...",
+    "noResults": "No se encontraron medicamentos.",
+    "create": "Crear \"{name}\"",
+    "createHint": "Este medicamento se agregará al catálogo.",
+    "commercialNamePlaceholder": "Nombre comercial (opcional)",
+    "createError": "No se pudo crear el medicamento.",
+    "save": "Guardar"
+  },
+  "SignatureUploader": {
+    "label": "Firma",
+    "description": "Se imprime al pie de las recetas médicas que emita este doctor.",
+    "alt": "Firma del doctor",
+    "empty": "Sin firma",
+    "hint": "PNG, JPG o WEBP. Máximo 1 MB. Se recomienda fondo transparente.",
+    "save": "Guardar firma",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "errors": {
+      "tooLarge": "El archivo supera 1 MB.",
+      "generic": "No se pudo guardar la firma."
+    },
+    "toast": {
+      "saved": "Firma guardada.",
+      "deleted": "Firma eliminada."
+    },
+    "deleteDialog": {
+      "title": "Eliminar firma",
+      "description": "¿Está seguro de que desea eliminar la firma? Las recetas ya emitidas conservan la firma con la que se imprimieron.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "or": "o",
+    "draw": "Dibujar firma"
+  },
+  "PatientPrescriptionsSection": {
+    "title": "Recetas Médicas",
+    "newPrescription": "Nueva receta",
+    "noData": "No hay recetas médicas registradas.",
+    "medicationCount": "{count} medicamento(s)",
+    "print": "Imprimir",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "deleteDialog": {
+      "title": "Eliminar Receta Médica",
+      "description": "¿Está seguro de que desea eliminar esta receta? También se quitarán de la anamnesis los medicamentos que haya registrado.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "deleteSuccess": "Receta médica eliminada.",
+      "error": "Ocurrió un error."
+    }
+  },
+  "PrescriptionDialog": {
+    "createTitle": "Nueva Receta Médica",
+    "editTitle": "Editar Receta Médica",
+    "date": "Fecha",
+    "doctor": "Doctor",
+    "selectDoctor": "Seleccione un doctor",
+    "searchDoctor": "Buscar doctor...",
+    "noDoctor": "No se encontraron doctores.",
+    "template": "Plantilla",
+    "selectTemplate": "Seleccione una plantilla",
+    "diagnosis": "Diagnóstico",
+    "diagnosisPlaceholder": "Motivo de la prescripción",
+    "notes": "Notas",
+    "notesPlaceholder": "Indicaciones generales",
+    "medications": "Medicamentos",
+    "addMedication": "Agregar medicamento",
+    "content": "Contenido de la receta",
+    "contentHint": "Sólo si necesita apartarse de la plantilla. La tabla de medicamentos y la firma se arman al imprimir a partir de los campos de arriba, por eso sus tokens se mantienen en el texto.",
+    "refreshVariables": "Actualizar variables",
+    "close": "Cerrar",
+    "print": "Imprimir",
+    "save": "Guardar",
+    "saving": "Guardando...",
+    "item": {
+      "medication": "Medicamento",
+      "presentation": "Presentación",
+      "presentationPlaceholder": "ej. Comprimidos 500 mg",
+      "dosage": "Dosis",
+      "dosagePlaceholder": "ej. 1 comprimido",
+      "route": "Vía",
+      "routePlaceholder": "ej. Oral",
+      "frequency": "Frecuencia",
+      "frequencyPlaceholder": "ej. Cada 8 horas",
+      "durationDays": "Duración (días)",
+      "quantity": "Cantidad",
+      "quantityPlaceholder": "ej. 20 comprimidos",
+      "startDate": "Inicio",
+      "endDate": "Fin",
+      "instructions": "Indicaciones",
+      "instructionsPlaceholder": "ej. Tomar con alimentos",
+      "registerInAnamnesis": "Registrar en la anamnesis del paciente",
+      "remove": "Quitar medicamento",
+      "done": "Listo",
+      "edit": "Editar",
+      "inAnamnesis": "En anamnesis"
+    },
+    "variables": {
+      "title": "Variables",
+      "groups": {
+        "patient": "Paciente",
+        "clinic": "Clínica",
+        "document": "Documento",
+        "tables": "Tablas"
+      }
+    },
+    "validation": {
+      "doctorRequired": "Debe seleccionar un doctor.",
+      "itemsRequired": "Debe agregar al menos un medicamento.",
+      "contentRequired": "El contenido es obligatorio."
+    },
+    "toast": {
+      "createSuccess": "Receta médica creada.",
+      "editSuccess": "Receta médica actualizada.",
+      "error": "Ocurrió un error al guardar la receta médica."
+    },
+    "paneForm": "Datos",
+    "panePreview": "Vista previa",
+    "previewEmpty": "Elija una plantilla para ver cómo quedará la receta impresa.",
+    "showEditor": "Editar contenido de la receta",
+    "hideEditor": "Ocultar el editor",
+    "signature": {
+      "missing": "Este doctor todavía no tiene firma. La receta se imprimirá sin firmar.",
+      "define": "Definir firma",
+      "dialogTitle": "Definir firma del doctor",
+      "dialogDescription": "Suba una imagen o dibuje la firma. Queda guardada en el perfil del doctor y se usa en esta receta."
+    }
+  },
+  "PrescriptionPrint": {
+    "title": "Receta Médica",
+    "patient": "Paciente",
+    "date": "Fecha",
+    "doctor": "Doctor",
+    "diagnosis": "Diagnóstico",
+    "signatureLabel": "Firma del profesional",
+    "table": {
+      "medication": "Medicamento",
+      "presentation": "Presentación",
+      "dosage": "Dosis",
+      "frequency": "Frecuencia",
+      "duration": "Duración",
+      "instructions": "Indicaciones",
+      "days": "días"
+    },
+    "clinic": {
+      "phonePrefix": "Tel.",
+      "taxIdPrefix": "RUT",
+      "footerNote": "Esta receta es personal e intransferible. Consulte a su médico ante cualquier efecto adverso."
+    }
+  },
+  "PrescriptionTemplatesPage": {
+    "title": "Plantillas de Receta",
+    "description": "Definir la estructura de las recetas médicas: membrete, medicamentos y firma.",
+    "filterPlaceholder": "Filtrar por nombre de plantilla...",
+    "noAccess": "No tiene acceso para ver esta sección.",
+    "columns": {
+      "name": "Nombre",
+      "description": "Descripción",
+      "isActive": "Activo",
+      "yes": "Sí",
+      "no": "No",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "delete": "Eliminar"
+    },
+    "dialog": {
+      "createTitle": "Crear Plantilla de Receta",
+      "editTitle": "Editar Plantilla de Receta",
+      "name": "Nombre",
+      "namePlaceholder": "ej. Receta estándar",
+      "descriptionLabel": "Descripción",
+      "content": "Contenido",
+      "legend": "Use el botón \"Variables\" para insertar datos que se completarán al emitir la receta. {{medications_table}} inserta la tabla de medicamentos y {{doctor_signature}} la firma del doctor.",
+      "isActive": "Está Activa",
+      "cancel": "Cancelar",
+      "create": "Crear Plantilla",
+      "save": "Guardar Cambios"
+    },
+    "variables": {
+      "title": "Variables",
+      "groups": {
+        "patient": "Paciente",
+        "clinic": "Clínica",
+        "document": "Documento",
+        "tables": "Tablas"
+      }
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "createSuccessTitle": "Plantilla Creada",
+      "editSuccessTitle": "Plantilla Actualizada",
+      "successDescription": "La plantilla \"{name}\" se ha guardado exitosamente.",
+      "deleteSuccessTitle": "Plantilla Eliminada",
+      "deleteSuccessDescription": "La plantilla \"{name}\" ha sido eliminada."
+    },
+    "deleteDialog": {
+      "title": "Eliminar Plantilla",
+      "description": "¿Está seguro de que desea eliminar la plantilla \"{name}\"?",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "validation": {
+      "nameRequired": "El nombre es obligatorio.",
+      "contentRequired": "El contenido es obligatorio."
+    }
+  },
+  "SignaturePad": {
+    "title": "Dibujar firma",
+    "description": "Trace su firma con el ratón, el dedo o un lápiz. Se guardará como imagen con fondo transparente.",
+    "placeholder": "Firme aquí",
+    "undo": "Deshacer",
+    "clear": "Borrar todo",
+    "cancel": "Cancelar",
+    "use": "Usar esta firma"
   }
 }

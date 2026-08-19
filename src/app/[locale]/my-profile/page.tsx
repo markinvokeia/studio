@@ -14,7 +14,7 @@ import { PatientOnboardingBooking } from '@/components/patient-portal/patient-on
 import { PortalNav, type PortalNavItem } from '@/components/patient-portal/portal-nav';
 import { PatientInfoTab } from '@/components/patients/patient-info-tab';
 import { PatientSubTabNav, type PatientSubTabItem } from '@/components/patients/patient-subtab-nav';
-import { PatientInstructionsSection } from '@/components/medical-instructions/patient-instructions-section';
+import { PatientIndicationsTab } from '@/components/medical-instructions/patient-indications-tab';
 import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/components/users/clinic-history-viewer';
 import { UserTreatmentPlans } from '@/components/users/user-treatment-plans';
 
@@ -216,7 +216,7 @@ export default function MyProfilePage() {
                 <UserTreatmentPlans userId={patientId} userName={patientName} />
               )}
               {clinicalSubTab === 'instructions' && (
-                <PatientInstructionsSection userId={patientId} userName={patientName} />
+                <PatientIndicationsTab userId={patientId} userName={patientName} readOnly />
               )}
               {clinicalSubTab === 'documents' && <DocumentsViewer userId={patientId} readOnly />}
             </div>

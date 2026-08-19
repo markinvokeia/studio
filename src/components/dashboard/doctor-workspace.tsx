@@ -11,6 +11,7 @@ import {
   getWorkspacePresetRange,
 } from '@/components/dashboard/workspace-date-range-filter';
 import { PatientDetailSheet } from '@/components/appointments/PatientDetailSheet';
+import { PrescriptionDialog } from '@/components/medical-instructions/prescription-dialog';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import { TreatmentTimeline } from '@/components/users/clinic-history-viewer';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +28,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { usePermissions } from '@/hooks/usePermissions';
+import { TIMELINE_PERMISSIONS } from '@/constants/permissions';
 import { Appointment, AppointmentStatus, DoctorAgentAction, DoctorAgentActionPayload, PatientSession, QuoteItem, TreatmentDetail } from '@/lib/types';
 import { canManageDoctorWorkspaceSessions } from '@/lib/permissions';
 import { cn, formatDate } from '@/lib/utils';
@@ -44,6 +46,7 @@ import {
   CalendarDays,
   ChevronDown,
   ClipboardCheck,
+  Pill,
   Heart,
   Lock,
   RefreshCw,
@@ -760,7 +763,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   const t = useTranslations('DoctorWorkspace');
   const tStatus = useTranslations('AppointmentStatus');
   const { user } = useAuth();
-  const { permissions, roles } = usePermissions();
+  const { permissions, roles, hasPermission } = usePermissions();
   const {
     createSession,
     updateSession,
@@ -772,6 +775,8 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     getSessionAttachment,
   } = useClinicHistory();
   const canManageSessions = React.useMemo(() => canManageDoctorWorkspaceSessions(permissions, roles), [permissions, roles]);
+  // Recetar no depende de poder editar la sesión ni de la fecha de la cita.
+  const canPrescribe = hasPermission(TIMELINE_PERMISSIONS.PRESCRIPTIONS_CREATE);
   const isMobile = useViewportNarrow(1024);
 
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
@@ -806,6 +811,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   const [isLoadingTimeline, setIsLoadingTimeline] = React.useState(false);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [clinicSessionOpen, setClinicSessionOpen] = React.useState(false);
+  const [prescriptionOpen, setPrescriptionOpen] = React.useState(false);
   const [patientFichaOpen, setPatientFichaOpen] = React.useState(false);
   const [patientFichaDefaultView, setPatientFichaDefaultView] = React.useState<'anamnesis' | 'timeline' | undefined>(undefined);
   const [mobileDetailsOpen, setMobileDetailsOpen] = React.useState(false);
@@ -1468,6 +1474,12 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                   <span className="hidden sm:inline">{nextActionLabel}</span>
                 </Button>
               )}
+              {activePanel === 'sessions' && canPrescribe && (
+                <Button size="sm" variant="outline" onClick={() => setPrescriptionOpen(true)} className="hidden shrink-0 sm:inline-flex">
+                  <Pill className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">{t('focus.prescribe')}</span>
+                </Button>
+              )}
             </div>
 
             {/* Content */}
@@ -1497,11 +1509,17 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                     readOnly={!canManageSessions}
                   />
                 </div>
-                <div className="mt-2 shrink-0 border-t pt-3 sm:hidden">
-                  <Button onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions || isNewSessionBlocked || isOdontogramSession || isSessionEditingBlockedByDate} className="w-full" title={isOdontogramSession ? t('focus.sessionIsOdontogram') : isSessionEditingBlockedByDate ? t('focus.sessionOnlyOnAppointmentDay') : isNewSessionBlocked ? t('focus.sessionExistsToday') : undefined}>
+                <div className="mt-2 flex shrink-0 gap-2 border-t pt-3 sm:hidden">
+                  <Button onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions || isNewSessionBlocked || isOdontogramSession || isSessionEditingBlockedByDate} className="flex-1" title={isOdontogramSession ? t('focus.sessionIsOdontogram') : isSessionEditingBlockedByDate ? t('focus.sessionOnlyOnAppointmentDay') : isNewSessionBlocked ? t('focus.sessionExistsToday') : undefined}>
                     <ClipboardCheck className="mr-2 h-4 w-4" />
                     {nextActionLabel}
                   </Button>
+                  {canPrescribe && (
+                    <Button variant="outline" onClick={() => setPrescriptionOpen(true)} className="flex-1">
+                      <Pill className="mr-2 h-4 w-4" />
+                      {t('focus.prescribe')}
+                    </Button>
+                  )}
                 </div>
               </>
             ) : (
@@ -1693,6 +1711,17 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
           prefillData={clinicSessionPrefillData}
           prefillTreatments={clinicSessionPrefillTreatments}
           existingSession={linkedSession ?? undefined}
+          lockDoctor
+        />
+      )}
+
+      {selectedAppointment && canPrescribe && (
+        <PrescriptionDialog
+          open={prescriptionOpen}
+          onOpenChange={setPrescriptionOpen}
+          patientId={selectedAppointment.patientId}
+          patientName={selectedAppointment.patientName}
+          // En el workspace firma siempre el doctor de la sesión.
           lockDoctor
         />
       )}

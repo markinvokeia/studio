@@ -1,0 +1,262 @@
+{
+  "name": "Users — Signature Upload",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "users/signature/upload",
+        "responseMode": "responseNode",
+        "options": {
+          "binaryPropertyName": "data",
+          "rawBody": false
+        }
+      }
+    },
+    {
+      "id": "node-validate",
+      "name": "Validar Entrada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        300
+      ],
+      "parameters": {
+        "jsCode": "\nconst assertUuid = (value, field) => {\n  const text = String(value ?? '').trim();\n  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text)) {\n    throw new Error(`Invalid ${field}: ${value}`);\n  }\n  return text;\n};\n\nconst item = $input.first();\nconst body = item.json.body ?? item.json ?? {};\n\nconst userId = assertUuid(body.user_id, 'user_id');\n\n// El archivo llega en la propiedad binaria `data` (el front hace\n// formData.append('data', file), igual que el logo de clínica).\nconst binary = item.binary?.data;\nif (!binary) throw new Error('signature file is required (binary property \"data\")');\n\nconst allowed = ['image/png', 'image/jpeg', 'image/webp'];\nif (!allowed.includes(binary.mimeType)) {\n  throw new Error(`Unsupported signature type: ${binary.mimeType}`);\n}\n\n// 1 MB, el mismo límite que valida el front.\nif (binary.fileSize && Number(String(binary.fileSize).replace(/[^0-9]/g, '')) > 1024 * 1024) {\n  throw new Error('Signature file exceeds 1 MB');\n}\n\nreturn [{\n  json: {\n    user_id: userId,\n    filename: binary.fileName || `signature-${userId}.png`,\n    mimetype: binary.mimeType,\n  },\n  binary: item.binary,\n}];\n"
+      }
+    },
+    {
+      "id": "node-old-file",
+      "name": "Leer Firma Anterior",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        540,
+        300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT signature_drive_file_id\nFROM public.users\nWHERE id = $1::uuid",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.user_id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "id": "node-upload",
+      "name": "Subir a Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        760,
+        300
+      ],
+      "parameters": {
+        "name": "={{ $('Validar Entrada').first().json.filename }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "GOOGLE_DRIVE_SIGNATURES_FOLDER_ID"
+        },
+        "inputDataFieldName": "data",
+        "options": {}
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "GOOGLE_DRIVE_CREDENTIAL_ID",
+          "name": "Google Drive"
+        }
+      }
+    },
+    {
+      "id": "node-save",
+      "name": "Guardar en users",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        980,
+        300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE public.users\nSET signature_filename      = $2,\n    signature_mimetype      = $3,\n    signature_drive_file_id = $4,\n    signature_web_view_link = $5,\n    signature_updated_at    = NOW()\nWHERE id = $1::uuid\nRETURNING id::text AS id,\n          signature_filename,\n          signature_mimetype,\n          signature_drive_file_id,\n          signature_updated_at::text AS signature_updated_at",
+        "additionalFields": {
+          "queryParams": "={{ [ $('Validar Entrada').first().json.user_id, $('Validar Entrada').first().json.filename, $('Validar Entrada').first().json.mimetype, $json.id, $json.webViewLink ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "id": "node-cleanup",
+      "name": "Borrar Firma Anterior de Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1200,
+        300
+      ],
+      "parameters": {
+        "operation": "deleteFile",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Leer Firma Anterior').first().json.signature_drive_file_id }}"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "GOOGLE_DRIVE_CREDENTIAL_ID",
+          "name": "Google Drive"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "node-format",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1420,
+        300
+      ],
+      "parameters": {
+        "jsCode": "\n// El borrado del archivo anterior es best-effort: si falla, la firma nueva ya\n// quedó guardada y no hay razón para devolver un error al usuario.\nconst saved = $('Guardar en users').first().json;\n\nif (!saved || saved.error || !saved.id) {\n  return [{ json: { statusCode: 500, body: { message: 'No se pudo guardar la firma.' } } }];\n}\n\nreturn [{ json: { statusCode: 200, body: {\n  success: true,\n  user_id: saved.id,\n  filename: saved.signature_filename,\n  mimetype: saved.signature_mimetype,\n  updated_at: saved.signature_updated_at,\n} } }];\n"
+      }
+    },
+    {
+      "id": "node-respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1640,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar Entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Entrada": {
+      "main": [
+        [
+          {
+            "node": "Leer Firma Anterior",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Firma Anterior": {
+      "main": [
+        [
+          {
+            "node": "Subir a Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Subir a Drive": {
+      "main": [
+        [
+          {
+            "node": "Guardar en users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar en users": {
+      "main": [
+        [
+          {
+            "node": "Borrar Firma Anterior de Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Borrar Firma Anterior de Drive": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Credencial 'Postgres' (POSTGRES_CREDENTIAL_ID) en los nodos Postgres.\n2. Credencial 'Google Drive' (GOOGLE_DRIVE_CREDENTIAL_ID) en los nodos Drive.\n3. Carpeta de firmas en Drive: reemplazar GOOGLE_DRIVE_SIGNATURES_FOLDER_ID.\n4. Webhook CON autenticación Bearer.\n5. Verificar el permiso: USER_SIGNATURE_UPLOAD (firma propia) o\n   USER_SIGNATURE_MANAGE (firma de otro usuario).\n\nRUTA: POST https://<tu-n8n>/webhook/users/signature/upload\n\nREQUEST: multipart/form-data\n  user_id: <uuid>\n  data:    <archivo image/png|image/jpeg|image/webp, máx 1 MB>\n\nRESPONSE 200:\n{ \"success\": true, \"user_id\": \"...\", \"filename\": \"firma.png\",\n  \"mimetype\": \"image/png\", \"updated_at\": \"2026-08-19 10:00:00\" }\n\nAl reemplazar una firma se borra el archivo anterior de Drive (best-effort:\nsi el borrado falla, la firma nueva igual queda guardada).\n\nREQUISITOS: database/scripts/068_20260819_prescriptions-and-doctor-signature.sql\nCONTRATO:   src/constants/routes.ts → USER_SIGNATURE_UPLOAD\nCONSUMIDOR: src/components/users/signature-uploader.tsx"
+  }
+}

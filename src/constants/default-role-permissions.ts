@@ -181,6 +181,11 @@ const CLINICAL_HISTORY_ALL = [
   'PATIENT_MEDICAL_INSTRUCTIONS_CREATE',
   'PATIENT_MEDICAL_INSTRUCTIONS_UPDATE',
   'PATIENT_MEDICAL_INSTRUCTIONS_DELETE',
+  // Patient Prescriptions (Recetas Médicas)
+  'PATIENT_PRESCRIPTIONS_VIEW',
+  'PATIENT_PRESCRIPTIONS_CREATE',
+  'PATIENT_PRESCRIPTIONS_UPDATE',
+  'PATIENT_PRESCRIPTIONS_DELETE',
   // Odontogram
   'ODONTOGRAM_VIEW',
   'ODONTOGRAM_NAVIGATE_HISTORY',
@@ -420,6 +425,12 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'CLINIC_DETAILS_VIEW',
     'CLINIC_DETAILS_UPDATE',
     'CLINIC_DETAILS_UPLOAD_LOGO',
+    'PRESCRIPTION_TEMPLATES_VIEW',
+    'PRESCRIPTION_TEMPLATES_CREATE',
+    'PRESCRIPTION_TEMPLATES_UPDATE',
+    'PRESCRIPTION_TEMPLATES_DELETE',
+    'USER_SIGNATURE_UPLOAD',
+    'USER_SIGNATURE_MANAGE',
     'SCHEDULES_VIEW_MENU',
     'SCHEDULES_VIEW_LIST',
     'SCHEDULES_CREATE',
@@ -603,6 +614,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'TIMELINE_VIEW',
     'CLINICAL_SESSION_VIEW_DETAIL',
     'CLINICAL_SESSION_VIEW_ATTACHMENTS',
+    'PATIENT_MEDICAL_INSTRUCTIONS_VIEW',
+    'PATIENT_PRESCRIPTIONS_VIEW',
     'ODONTOGRAM_VIEW',
     'ODONTOGRAM_NAVIGATE_HISTORY',
     'ODONTOGRAM_TOGGLE_VIEW',
@@ -646,6 +659,13 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'CATALOG_DENTAL_SURF_VIEW_LIST',
     // Business Config - solo lectura
     ...BUSINESS_CONFIG_VIEW_ONLY,
+    // Recetas: gestiona las plantillas y las firmas del equipo.
+    'PRESCRIPTION_TEMPLATES_VIEW',
+    'PRESCRIPTION_TEMPLATES_CREATE',
+    'PRESCRIPTION_TEMPLATES_UPDATE',
+    'PRESCRIPTION_TEMPLATES_DELETE',
+    'USER_SIGNATURE_UPLOAD',
+    'USER_SIGNATURE_MANAGE',
     // System - solo lectura de usuarios/roles/logs
     'SYSTEM_VIEW_MENU',
     'USERS_VIEW_MENU',
@@ -797,6 +817,10 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'PATIENTS_UPDATE_NOTE',
     // Clinical History - acceso completo
     ...CLINICAL_HISTORY_ALL,
+    // Recetas: usa las plantillas y gestiona su propia firma, pero no
+    // administra las plantillas ni las firmas de otros usuarios.
+    'PRESCRIPTION_TEMPLATES_VIEW',
+    'USER_SIGNATURE_UPLOAD',
     // Sales - ver órdenes e invoices propias (sin editar)
     'SALES_VIEW_MENU',
     'SALES_ORDERS_VIEW_MENU',
