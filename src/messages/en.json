@@ -6522,7 +6522,8 @@
     },
     "tabs": {
       "info": "Information",
-      "patients": "Patients"
+      "patients": "Patients",
+      "services": "Services"
     },
     "patients": {
       "title": "Group patients",
@@ -6545,6 +6546,27 @@
       "remove": "Remove from group",
       "removed": "Patient removed from group",
       "removeError": "Could not remove patient"
+    },
+    "services": {
+      "title": "Group services",
+      "description": "Link the services that belong to this group, so revenue can be reported by group.",
+      "filterPlaceholder": "Search in group...",
+      "addButton": "Add services",
+      "addConfirm": "Add",
+      "addCancel": "Cancel",
+      "added": "{count} service(s) added to the group",
+      "addError": "Could not add services",
+      "search": "Search service...",
+      "noResults": "No services found.",
+      "count": "{count} selected",
+      "col_name": "Name",
+      "col_category": "Category",
+      "col_price": "Price",
+      "active": "Active",
+      "inactive": "Inactive",
+      "remove": "Remove from group",
+      "removed": "Service removed from group",
+      "removeError": "Could not remove service"
     }
   },
   "ProviderGroupsPage": {
@@ -7802,6 +7824,7 @@
     "all_doctors": "All doctors",
     "all_groups": "All groups",
     "no_group": "No group",
+    "all_sedes": "All locations",
     "all_currencies": "All",
     "doc_type_all": "All",
     "doc_type_producido": "Produced",

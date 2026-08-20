@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DoctorSelector } from '@/components/ui/doctor-selector';
 import { PatientGroupSelector } from '@/components/ui/patient-group-selector';
+import { SedeMultiSelector, type SedeOption } from '@/components/ui/sede-multi-selector';
 import { DateRangePresets } from '@/components/reports/date-range-presets';
 import { ReportDataTable } from '@/components/reports/report-data-table';
 import { ReportKPICard } from '@/components/reports/report-kpi-card';
@@ -63,9 +64,10 @@ function groupByDay<T extends DayRow>(rows: T[]): DayGroup<T>[] {
     }));
 }
 
-// Buckets rows by patient group name for the export sheets — a row whose
-// patient belongs to several of the filtered groups is duplicated into each
-// group's bucket, so every group's sheet is complete on its own
+// Buckets rows by group name for the export sheets — a row whose invoiced
+// service belongs to several of the filtered groups (e.g. "Brackets") is
+// duplicated into each group's bucket, so every group's sheet is complete on
+// its own
 function bucketRowsByGroup<T extends { patient_groups?: { name: string }[] }>(
   rows: T[],
   fallbackLabel: string,
@@ -118,6 +120,8 @@ export default function BalanceMensualPage() {
   const doctorIds = selectedDoctors.map((d) => d.id);
   const [selectedGroups, setSelectedGroups] = useState<GroupOption[]>([]);
   const groupIds = selectedGroups.map((g) => g.id);
+  const [selectedSedes, setSelectedSedes] = useState<SedeOption[]>([]);
+  const sedeIds = selectedSedes.map((s) => s.id);
   const [docType, setDocType] = useState<DocType>('all');
   // Sub-tab used only to organize the on-screen blocks when the doc-type
   // filter is "all" — the filter itself still governs which data is shown
@@ -138,12 +142,13 @@ export default function BalanceMensualPage() {
       if (currency !== 'all') query.currency = currency;
       if (doctorIds.length > 0) query.doctor_ids = doctorIds.join(',');
       if (groupIds.length > 0) query.group_ids = groupIds.join(',');
+      if (sedeIds.length > 0) query.sede_ids = sedeIds.join(',');
       const res = await api.get(API_ROUTES.REPORTS.BALANCE_MENSUAL, query);
       setData(res?.data ?? null);
     } finally {
       setIsLoading(false);
     }
-  }, [dateRange, currency, doctorIds, groupIds]);
+  }, [dateRange, currency, doctorIds, groupIds, sedeIds]);
 
   const showProducido = docType === 'all' || docType === 'producido';
   const showCobrado = docType === 'all' || docType === 'cobrado';
@@ -398,6 +403,26 @@ export default function BalanceMensualPage() {
           </Button>
         )}
       </div>
+      <div className="flex items-center gap-1">
+        <SedeMultiSelector
+          values={sedeIds}
+          onValuesChange={(_, sedes) => setSelectedSedes(sedes)}
+          triggerText={t('all_sedes')}
+          className="h-8 w-52 text-xs"
+        />
+        {selectedSedes.length > 0 && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            onClick={() => setSelectedSedes([])}
+            aria-label={t('all_sedes')}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
       <Select value={currency} onValueChange={setCurrency}>
         <SelectTrigger className="h-8 w-24 text-xs">
           <SelectValue />
@@ -428,6 +453,7 @@ export default function BalanceMensualPage() {
   }
   if (selectedDoctors.length > 0) filterParts.push(selectedDoctors.map((d) => d.name).join(', '));
   if (selectedGroups.length > 0) filterParts.push(selectedGroups.map((g) => g.name).join(', '));
+  if (selectedSedes.length > 0) filterParts.push(selectedSedes.map((s) => s.name).join(', '));
   if (currency !== 'all') filterParts.push(currency);
   if (docType !== 'all') filterParts.push(docTypeTag);
   const dateRangeDescription = filterParts.length > 0 ? (

@@ -6502,7 +6502,8 @@
     },
     "tabs": {
       "info": "Información",
-      "patients": "Pacientes"
+      "patients": "Pacientes",
+      "services": "Servicios"
     },
     "patients": {
       "title": "Pacientes del grupo",
@@ -6525,6 +6526,27 @@
       "remove": "Quitar del grupo",
       "removed": "Paciente quitado del grupo",
       "removeError": "No se pudo quitar el paciente"
+    },
+    "services": {
+      "title": "Servicios del grupo",
+      "description": "Vincule los servicios que pertenecen a este grupo, para poder reportar lo producido/cobrado por grupo.",
+      "filterPlaceholder": "Buscar en el grupo...",
+      "addButton": "Agregar servicios",
+      "addConfirm": "Agregar",
+      "addCancel": "Cancelar",
+      "added": "{count} servicio(s) agregado(s) al grupo",
+      "addError": "No se pudieron agregar los servicios",
+      "search": "Buscar servicio...",
+      "noResults": "No se encontraron servicios.",
+      "count": "{count} seleccionado(s)",
+      "col_name": "Nombre",
+      "col_category": "Categoría",
+      "col_price": "Precio",
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "remove": "Quitar del grupo",
+      "removed": "Servicio quitado del grupo",
+      "removeError": "No se pudo quitar el servicio"
     }
   },
   "ProviderGroupsPage": {
@@ -7782,6 +7804,7 @@
     "all_doctors": "Todos los médicos",
     "all_groups": "Todos los grupos",
     "no_group": "Sin grupo",
+    "all_sedes": "Todas las sedes",
     "all_currencies": "Todas",
     "doc_type_all": "Todos",
     "doc_type_producido": "Producido",

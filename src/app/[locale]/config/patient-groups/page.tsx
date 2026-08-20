@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { PatientGroupPatientsTab } from '@/components/patients/patient-group-patients-tab';
+import { PatientGroupServicesTab } from '@/components/patients/patient-group-services-tab';
 import { BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
@@ -372,6 +373,7 @@ export default function PatientGroupsPage() {
                 <TabsList className="mx-4 mt-3 w-fit flex-none">
                     <TabsTrigger value="info">{t('tabs.info')}</TabsTrigger>
                     <TabsTrigger value="patients" disabled={!selectedPatientGroup}>{t('tabs.patients')}</TabsTrigger>
+                    <TabsTrigger value="services" disabled={!selectedPatientGroup}>{t('tabs.services')}</TabsTrigger>
                 </TabsList>
                 <TabsContent value="info" className="mt-0 min-h-0 flex-1 flex-col data-[state=active]:flex">
             <Form {...form}>
@@ -454,6 +456,11 @@ export default function PatientGroupsPage() {
                 <TabsContent value="patients" className="mt-0 min-h-0 flex-1 flex-col p-4 data-[state=active]:flex">
                     {selectedPatientGroup && (
                         <PatientGroupPatientsTab groupId={String(selectedPatientGroup.id)} canManage={canUpdate} />
+                    )}
+                </TabsContent>
+                <TabsContent value="services" className="mt-0 min-h-0 flex-1 flex-col p-4 data-[state=active]:flex">
+                    {selectedPatientGroup && (
+                        <PatientGroupServicesTab groupId={String(selectedPatientGroup.id)} canManage={canUpdate} />
                     )}
                 </TabsContent>
             </Tabs>
