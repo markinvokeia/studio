@@ -52,7 +52,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { AllergyItem, ClinicDocument, FamilyHistoryItem, MedicationCatalogItem, MedicationItem, PatientHabits as PatientHabitsType, PersonalHistoryItem, SessionAttachmentDocument, useClinicHistory } from '@/hooks/useClinicHistory';
 import { Appointment, AppointmentStatus, Calendar, CancellationReason, PatientSession, SessionPrefillData } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, formatDisplayDateWithWeekday } from '@/lib/utils';
 import { api } from '@/services/api';
 import { addYears, format, isBefore, isValid, parseISO } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
@@ -1818,6 +1818,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
     const tPatientHistory = useTranslations('PatientHistorySheet');
     const tStatus = useTranslations('AppointmentStatus');
     const tReason = useTranslations('CancellationReason');
+    const locale = useLocale();
     const { toast } = useToast();
     const [openItems, setOpenItems] = React.useState<string[]>([]);
     const [selectedItemKey, setSelectedItemKey] = React.useState<string | null>(null);
@@ -2121,9 +2122,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
     const formatDate = (dateString: string | null | undefined) => {
         if (!dateString) return '';
         try {
-            const cleanDate = dateString.split('T')[0];
-            const [y, m, d] = cleanDate.split('-');
-            return format(new Date(Number(y), Number(m) - 1, Number(d)), 'dd/MM/yyyy');
+            return formatDisplayDateWithWeekday(dateString, locale);
         } catch {
             return '';
         }
@@ -2423,7 +2422,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                                     {apptTypeBadge}
                                                                     {apptUpcomingBadge}
                                                                     <span className="text-xs font-medium text-foreground">
-                                                                        {format(item.date, 'dd/MM/yyyy')}{startLabel && ` · ${startLabel}`}{endLabel && ` → ${endLabel}`}
+                                                                        {formatDisplayDateWithWeekday(item.date, locale)}{startLabel && ` · ${startLabel}`}{endLabel && ` → ${endLabel}`}
                                                                     </span>
                                                                     {durationMin != null && (
                                                                         <span className="text-xs text-muted-foreground">({t('apptDurationMin', { min: durationMin })})</span>
@@ -2479,7 +2478,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                             <div className="flex items-center gap-1 flex-wrap">
                                                                 {apptTypeBadge}
                                                                 {apptUpcomingBadge}
-                                                                <span className="text-xs text-muted-foreground">{format(item.date, 'dd/MM/yy')}</span>
+                                                                <span className="text-xs text-muted-foreground">{formatDisplayDateWithWeekday(item.date, locale)}</span>
                                                                 {appt.quote_doc_no && (
                                                                     <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-1.5 py-0 leading-relaxed font-mono">
                                                                         {appt.quote_doc_no}

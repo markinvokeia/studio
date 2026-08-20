@@ -7,8 +7,7 @@ import { cn } from '@/lib/utils';
 import { BarChart2, Search } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { type ReactNode, useCallback, useState } from 'react';
-import { PrintReportFooter } from './print-report-footer';
+import { type ReactNode, useCallback } from 'react';
 import { PrintReportHeader } from './print-report-header';
 import { ReportExportActions } from './report-export-actions';
 
@@ -44,10 +43,8 @@ export function ReportShell({
   className,
 }: ReportShellProps) {
   const t = useTranslations('ReportShell');
-  const [generatedAt, setGeneratedAt] = useState<Date | null>(null);
 
   const handleGenerate = useCallback(() => {
-    setGeneratedAt(new Date());
     onGenerate();
   }, [onGenerate]);
 
@@ -126,8 +123,6 @@ export function ReportShell({
           {children}
         </>
       )}
-
-      {hasData && <PrintReportFooter generatedAt={generatedAt} />}
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { addYears, differenceInMinutes, format, isValid, parseISO } from 'date-fns';
 import { ArrowLeft, History } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import type { ColumnDef, SortingState } from '@tanstack/react-table';
 
 import { ResizableSheet, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
@@ -26,6 +26,7 @@ import { api } from '@/services/api';
 import type { Appointment, AppointmentStatus, Calendar, CancellationReason, PatientSession } from '@/lib/types';
 import { API_ROUTES } from '@/constants/routes';
 import { normalizeAppointmentStatus, normalizeCancellationReason, STATUS_BADGE_VARIANT } from '@/constants/appointment-status';
+import { formatDisplayDateWithWeekday } from '@/lib/utils';
 
 const parseApptDateTime = (value?: string): Date | null => {
   if (!value) return null;
@@ -43,6 +44,7 @@ export function PatientAppointmentsHistorySheet() {
   const t = useTranslations('PatientAppointmentsSheet');
   const tStatus = useTranslations('AppointmentStatus');
   const tReason = useTranslations('CancellationReason');
+  const locale = useLocale();
 
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -254,7 +256,7 @@ export function PatientAppointmentsHistorySheet() {
       cell: ({ row }) => {
         const dt = parseApptDateTime(row.original.start?.dateTime)
           ?? (row.original.date ? parseISO(row.original.date) : null);
-        return <span className="whitespace-nowrap">{dt && isValid(dt) ? format(dt, 'dd/MM/yyyy') : '—'}</span>;
+        return <span className="whitespace-nowrap">{dt && isValid(dt) ? formatDisplayDateWithWeekday(dt, locale) : '—'}</span>;
       },
     },
     {
@@ -306,7 +308,7 @@ export function PatientAppointmentsHistorySheet() {
         );
       },
     },
-  ], [t, tStatus, tReason]);
+  ], [t, tStatus, tReason, locale]);
 
   return (
     <>

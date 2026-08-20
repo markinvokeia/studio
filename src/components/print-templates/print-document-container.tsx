@@ -33,9 +33,9 @@ import { CustomTemplateRenderer } from './custom-template-renderer';
  * Hidden on screen; only visible when the browser print dialog is active.
  *
  * - Custom templates (saved in DB): rendered directly — they include their
- *   own clinic header + InvokeIA footer via {{tokens}}.
+ *   own clinic header via {{tokens}}.
  * - React fallback templates: wrapped in PrintDocumentLayout which adds
- *   PrintReportHeader + PrintReportFooter.
+ *   PrintReportHeader.
  */
 export function PrintDocumentContainer() {
   const { isActive, type, data, customTemplates } = usePrintDocumentStore();

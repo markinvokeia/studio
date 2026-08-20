@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { format, parseISO } from "date-fns"
+import { enUS, es } from "date-fns/locale"
 import type { QuoteItem, TreatmentDetail } from '@/lib/types'
 
 export function cn(...inputs: ClassValue[]) {
@@ -117,6 +118,22 @@ export function formatDisplayDate(date: string | Date | null | undefined): strin
   if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return datePart;
   const [year, month, day] = datePart.split('-');
   return `${day}/${month}/${year}`;
+}
+
+/**
+ * Same as `formatDisplayDate` but prefixed with the capitalized weekday name (e.g.
+ * "Jueves, 20/08/2026"). The weekday is derived from the y/m/d components as a local
+ * `Date` (never `parseISO` on the raw string) so it can't shift a day off from timezone
+ * conversion. `locale` picks the weekday's language — pass the active next-intl locale.
+ */
+export function formatDisplayDateWithWeekday(date: string | Date | null | undefined, locale: string = 'es'): string {
+  const displayDate = formatDisplayDate(date);
+  if (!displayDate || displayDate === 'N/A' || displayDate === 'Invalid Date') return displayDate;
+  const datePart = formatDate(date);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return displayDate;
+  const [year, month, day] = datePart.split('-').map(Number);
+  const weekday = format(new Date(year, month - 1, day), 'EEEE', { locale: locale === 'en' ? enUS : es });
+  return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${displayDate}`;
 }
 
 /**

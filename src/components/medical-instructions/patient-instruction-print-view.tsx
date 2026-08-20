@@ -4,7 +4,6 @@ import * as React from 'react';
 import { createPortal } from 'react-dom';
 
 import { PrintReportHeader } from '@/components/reports/print-report-header';
-import { PrintReportFooter } from '@/components/reports/print-report-footer';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { PatientMedicalInstruction } from '@/lib/types';
 
@@ -121,7 +120,6 @@ function PatientInstructionPrintContent({ instruction, patientName }: PrintTarge
                         dangerouslySetInnerHTML={{ __html: resolvedContentHtml }}
                     />
                 </div>
-                <PrintReportFooter generatedAt={new Date()} />
             </div>
         </div>
     );

@@ -2262,6 +2262,21 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
   const searchInputRef = React.useRef<HTMLInputElement>(null);
   React.useEffect(() => { if (searchOpen) searchInputRef.current?.focus(); }, [searchOpen]);
 
+  // Land on the most recent activity: scroll the row list to its end once, the first time
+  // this patient's ledger finishes loading — mirrors how a bank statement opens on the
+  // latest movement instead of the oldest. Only fires once per `userId` so it doesn't fight
+  // the user's own scroll position on later refreshes/filter changes.
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  const hasScrolledToEndRef = React.useRef(false);
+  React.useEffect(() => { hasScrolledToEndRef.current = false; }, [userId]);
+  React.useEffect(() => {
+    if (isLoading || hasScrolledToEndRef.current || filteredRows.length === 0) return;
+    hasScrolledToEndRef.current = true;
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    requestAnimationFrame(() => { el.scrollTop = el.scrollHeight; });
+  }, [isLoading, filteredRows]);
+
   const toolbar = (
     <div className="flex flex-wrap items-center gap-2">
       {!isDateRangeControlled && <DateRangePresets value={dateRange} onChange={setDateRange} allowAllTime />}
@@ -2339,7 +2354,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
               above, not the viewport — the sidebar routinely leaves this panel narrow even
               on a wide window) the rows switch to a stacked card layout, so the sticky
               header and the horizontal-scroll-forcing min-width only kick in above that. */}
-          <div className="min-h-0 flex-1 overflow-auto">
+          <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-auto">
             {/* px-2 gives the selected-row ring room so it isn't clipped by the scroll
                 container's edges; header and rows share the padding so columns stay aligned. */}
             <div className="patient-ledger-row-min-w w-full px-2">
