@@ -123,6 +123,32 @@ function getAppointmentDurationMinutes(appointment: Appointment): number {
   return Math.max(totalServiceDuration, 30);
 }
 
+/**
+ * Cita que "posee" la hora actual dentro de un día: la que está en curso, si no la próxima en
+ * empezar, y si la jornada ya terminó la última del día. Devuelve null si el día no tiene
+ * citas. Se usa tanto para el auto-scroll de la agenda como para elegir la cita seleccionada
+ * al cargar, de modo que la lista y el panel clínico coincidan.
+ */
+function findCurrentAppointment(dayAppointments: Appointment[], now: Date): Appointment | null {
+  if (dayAppointments.length === 0) return null;
+
+  const sorted = [...dayAppointments].sort((left, right) => left.time.localeCompare(right.time));
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  const inProgress = sorted.find((appointment) => {
+    const startMinutes = parseTimeToMinutes(appointment.time);
+    const endMinutes = startMinutes + getAppointmentDurationMinutes(appointment);
+    return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+  });
+  if (inProgress) return inProgress;
+
+  const upcoming = sorted.find((appointment) => parseTimeToMinutes(appointment.time) > currentMinutes);
+  if (upcoming) return upcoming;
+
+  // La jornada ya terminó: la última cita es la referencia más útil.
+  return sorted[sorted.length - 1];
+}
+
 function getAppointmentAccentColor(appointment: Appointment, status: AppointmentStatus): string {
   return appointment.color || STATUS_ACCENT_COLOR[status] || '#64748b';
 }
@@ -262,15 +288,37 @@ function DoctorAgendaTimeline({
       }
     }
 
+    // Cita a la que se hace auto-scroll al cargar la agenda de hoy: la que está en curso, si
+    // no la próxima, y si la jornada terminó la última. En otros días no hay hora actual
+    // contra la que posicionarse, así que no se enfoca ninguna.
+    const focusAppointmentId = isToday
+      ? findCurrentAppointment(layouts.map((layout) => layout.appointment), now)?.id ?? null
+      : null;
+
     return {
       currentMinutes,
       currentTimeLabel: format(now, 'HH:mm'),
       currentTimeTop,
+      focusAppointmentId,
       timelineHeight,
       layouts,
       showCurrentTime,
     };
   }, [appointments, isToday]);
+
+  const focusCardRef = React.useRef<HTMLDivElement | null>(null);
+  const autoScrolledDayRef = React.useRef<string | null>(null);
+  // Todas las citas de este timeline pertenecen al mismo día.
+  const dayKey = appointments[0]?.date ?? '';
+
+  // Un único scroll por día mostrado: el refresco en segundo plano reconstruye el array de
+  // citas cada minuto y sin este guard le robaría la posición de scroll al doctor.
+  React.useLayoutEffect(() => {
+    if (autoScrolledDayRef.current === dayKey) return;
+    autoScrolledDayRef.current = dayKey;
+    if (!isToday || !timeline.focusAppointmentId) return;
+    focusCardRef.current?.scrollIntoView({ block: 'center' });
+  }, [dayKey, isToday, timeline.focusAppointmentId]);
 
   if (isLoading) {
     return (
@@ -321,6 +369,7 @@ function DoctorAgendaTimeline({
             return (
               <div
                 key={layout.key}
+                ref={layout.appointment.id === timeline.focusAppointmentId ? focusCardRef : undefined}
                 className="absolute inset-x-0 z-10"
                 style={{ top: layout.top, height: layout.height }}
               >
@@ -891,8 +940,11 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
         setSelectedAppointmentId((current) => {
           if (current && data.some((appointment) => appointment.id === current)) return current;
           if (initialAppointmentId && data.some((a) => a.id === initialAppointmentId)) return initialAppointmentId;
-          // On a multi-day range, start on today's agenda when the period includes it.
-          const todayAppointment = data.find((appointment) => formatDate(appointment.date) === todayKey);
+          // On a multi-day range, start on today's agenda when the period includes it, and
+          // within today start on the appointment the doctor is on right now (or the next one)
+          // so the clinical panel matches what the agenda auto-scrolls to.
+          const todayAppointments = data.filter((appointment) => formatDate(appointment.date) === todayKey);
+          const todayAppointment = findCurrentAppointment(todayAppointments, new Date());
           return todayAppointment?.id ?? data[0]?.id ?? null;
         });
         setLastUpdatedAt(new Date());
