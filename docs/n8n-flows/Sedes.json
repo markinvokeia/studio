@@ -619,7 +619,7 @@
         "operation": "executeQuery",
         "query": "UPDATE public.users\nSET active_sede_id = $2\nWHERE id = $1;",
         "options": {
-          "queryReplacement": "={{ [$json.jwtPayload.userId, $json.body.sede_id] }}"
+          "queryReplacement": "={{ [$json.body.user_id || $json.jwtPayload.userId, $json.body.sede_id] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",

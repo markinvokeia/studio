@@ -671,6 +671,10 @@
     "selectPrompt": "Select which location you're working at",
     "noSedes": "No locations available"
   },
+  "SedeSelectionModal": {
+    "title": "Select a location",
+    "description": "You must choose the location you'll be working at before continuing."
+  },
   "DataTableToolbar": {
     "toggleColumns": "Toggle columns",
     "filter": "Filter",
@@ -4465,6 +4469,8 @@
       "phonePlaceholder": "e.g. 099 123 456",
       "identity_document": "Identity Document",
       "identity_document_placeholder": "e.g. 12345678",
+      "defaultSede": "Default sede",
+      "defaultSedePlaceholder": "Select sede...",
       "isActive": "Is Active?",
       "save": "Save",
       "cancel": "Cancel",

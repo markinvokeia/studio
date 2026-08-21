@@ -22,6 +22,7 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { PhoneInput } from '@/components/ui/phone-input';
+import { SedeSelector } from '@/components/ui/sede-selector';
 import {
   Select,
   SelectContent,
@@ -123,6 +124,7 @@ const staffFormSchema = (t: (key: string) => string) =>
         .or(z.literal('')),
       is_active: z.boolean().default(true),
       role_id: z.string().min(1, { message: t('StaffPage.createDialog.validation.roleRequired') }),
+      active_sede_id: z.string().optional(),
     })
     .refine(
       (data) => {
@@ -171,6 +173,7 @@ const detailFormSchema = (t: (key: string) => string) =>
         .optional()
         .or(z.literal('')),
       is_active: z.boolean().default(true),
+      active_sede_id: z.string().optional(),
     })
     .refine(
       (data) => {
@@ -230,6 +233,7 @@ async function getUsers(
       phone_number: apiUser.phone_number || '',
       is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
       identity_document: apiUser.identity_document,
+      active_sede_id: apiUser.active_sede_id != null ? String(apiUser.active_sede_id) : null,
       avatar:
         apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
     }));
@@ -444,6 +448,7 @@ export default function StaffPage() {
       identity_document: '',
       is_active: true,
       role_id: '',
+      active_sede_id: '',
     },
   });
 
@@ -455,6 +460,7 @@ export default function StaffPage() {
       phone: '',
       identity_document: '',
       is_active: true,
+      active_sede_id: '',
     },
   });
 
@@ -575,6 +581,7 @@ export default function StaffPage() {
         phone: u.phone_number || '',
         identity_document: u.identity_document || '',
         is_active: u.is_active,
+        active_sede_id: u.active_sede_id || '',
       });
       setDetailError(null);
     }
@@ -643,6 +650,7 @@ export default function StaffPage() {
       identity_document: '',
       is_active: true,
       role_id: '',
+      active_sede_id: '',
     });
     setSubmissionError(null);
     setIsDialogOpen(true);
@@ -670,7 +678,7 @@ export default function StaffPage() {
     }
 
     try {
-      const { id: _id, role_id, ...userPayload } = data;
+      const { id: _id, role_id, active_sede_id, ...userPayload } = data;
       const response = await api.post(API_ROUTES.USERS_UPSERT, {
         ...userPayload,
         is_sales: true,
@@ -690,6 +698,17 @@ export default function StaffPage() {
           await api.patch(API_ROUTES.ROLES_ASSIGN, {
             user_id: String(newUserId),
             roles: [{ role_id, is_active: true }],
+          });
+        } catch {
+          // non-blocking — user was created successfully
+        }
+      }
+
+      if (newUserId && active_sede_id) {
+        try {
+          await api.post(API_ROUTES.USER_ACTIVE_SEDE, {
+            user_id: String(newUserId),
+            sede_id: Number(active_sede_id),
           });
         } catch {
           // non-blocking — user was created successfully
@@ -765,8 +784,9 @@ export default function StaffPage() {
     detailForm.clearErrors();
     setIsSavingDetail(true);
     try {
+      const { active_sede_id, ...userPayload } = data;
       const response = await api.post(API_ROUTES.USERS_UPSERT, {
-        ...data,
+        ...userPayload,
         is_sales: true,
       });
       if (response?.error && (response.error.error || response.code > 200)) {
@@ -775,6 +795,18 @@ export default function StaffPage() {
         apiError.data = response;
         throw apiError;
       }
+
+      if (selectedUser?.id && active_sede_id !== (selectedUser?.active_sede_id || '')) {
+        try {
+          await api.post(API_ROUTES.USER_ACTIVE_SEDE, {
+            user_id: selectedUser.id,
+            sede_id: active_sede_id ? Number(active_sede_id) : null,
+          });
+        } catch {
+          // non-blocking — user data was saved successfully
+        }
+      }
+
       toast({
         title: t('StaffPage.createDialog.editSuccessTitle'),
         description: t('StaffPage.createDialog.editSuccessDescription'),
@@ -786,6 +818,7 @@ export default function StaffPage() {
         phone_number: data.phone || '',
         identity_document: data.identity_document || '',
         is_active: data.is_active,
+        active_sede_id: data.active_sede_id || null,
       };
       setSelectedUser(updated);
       setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
@@ -1086,6 +1119,26 @@ export default function StaffPage() {
                             />
                             <FormField
                               control={detailForm.control}
+                              name="active_sede_id"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>
+                                    {t('StaffPage.createDialog.defaultSede')}
+                                  </FormLabel>
+                                  <FormControl>
+                                    <SedeSelector
+                                      value={field.value}
+                                      onValueChange={field.onChange}
+                                      placeholder={t('StaffPage.createDialog.defaultSedePlaceholder')}
+                                      triggerText={t('StaffPage.createDialog.defaultSedePlaceholder')}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={detailForm.control}
                               name="is_active"
                               render={({ field }) => (
                                 <FormItem className="flex flex-row items-center space-x-3 space-y-0">
@@ -1275,6 +1328,25 @@ export default function StaffPage() {
                             'StaffPage.createDialog.identity_document_placeholder',
                           )}
                           {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="active_sede_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('StaffPage.createDialog.defaultSede')}</FormLabel>
+                      <FormControl>
+                        <SedeSelector
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          placeholder={t('StaffPage.createDialog.defaultSedePlaceholder')}
+                          triggerText={t('StaffPage.createDialog.defaultSedePlaceholder')}
                         />
                       </FormControl>
                       <FormMessage />

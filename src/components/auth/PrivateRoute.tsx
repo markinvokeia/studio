@@ -3,6 +3,7 @@
 import { Header } from '@/components/header';
 import { LicenseExpirationBanner, LicenseExpiredBanner } from '@/components/license/LicenseExpirationBanner';
 import { LicenseExpiredScreen } from '@/components/license/LicenseExpiredScreen';
+import { SedeSelectionModal } from '@/components/sede-selection-modal';
 import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { cn } from '@/lib/utils';
@@ -158,6 +159,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-[100dvh] print:h-auto print:block bg-background overflow-hidden print:overflow-visible text-foreground">
+      <SedeSelectionModal />
       <div className="print:hidden">
         <Sidebar />
       </div>

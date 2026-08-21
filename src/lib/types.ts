@@ -32,6 +32,7 @@ export type User = {
   doctor_id?: string | null;
   doctor_name?: string;
   sex?: 'male' | 'female' | null;
+  active_sede_id?: string | null;
 };
 
 export type CurrencyFinancialData = {
