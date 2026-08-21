@@ -382,7 +382,7 @@ export function Header() {
                     if (redirect) router.push(`/${locale}${redirect}`);
                 }
             } catch {
-                toast({ title: tChat('sendError'), variant: 'destructive', duration: 4000 });
+                toast({ title: tChat('sendError'), variant: 'destructive' });
             } finally {
                 setIsSending(false);
             }

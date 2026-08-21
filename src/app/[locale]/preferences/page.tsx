@@ -7,11 +7,21 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { hasDoctorWorkspaceAccess } from '@/lib/permissions';
 import { useNotifications } from '@/context/notifications-context';
 import { useFinanceViewPreference } from '@/hooks/use-finance-view-preference';
-import type { DoctorAlertStyle, PatientFinanceView } from '@/lib/types';
+import { TOAST_POSITIONS, useToastPosition } from '@/hooks/use-toast-position';
+import { toast } from '@/hooks/use-toast';
+import type { DoctorAlertStyle, PatientFinanceView, ToastPosition } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Bell, BellRing, Columns3, LayoutGrid, Receipt, Rows3, Settings2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+
+// Posición de la barrita dentro de la mini-pantalla de cada opción.
+const TOAST_POSITION_MARKS: Record<ToastPosition, string> = {
+    'top-center': 'left-1/2 top-1 w-6 -translate-x-1/2',
+    'top-right': 'right-1 top-1 w-5',
+    'bottom-center': 'bottom-1 left-1/2 w-6 -translate-x-1/2',
+    'bottom-right': 'bottom-1 right-1 w-5',
+};
 
 export default function UserPreferencesPage() {
     const t = useTranslations('PreferencesPage');
@@ -20,14 +30,24 @@ export default function UserPreferencesPage() {
     const isDoctor = React.useMemo(() => hasDoctorWorkspaceAccess(permissions), [permissions]);
     const { alertStyle, setAlertStyle, refreshAlertStyle } = useNotifications();
     const [financeView, setFinanceView] = useFinanceViewPreference(user?.id);
+    const [toastPosition, setToastPosition, refreshToastPosition] = useToastPosition(user?.id);
 
     // The alert-style value in context is only as fresh as its last fetch
     // (usually app login). An admin may have changed it from another session
-    // since then, so force a refetch every time this page is opened.
+    // since then, so force a refetch every time this page is opened. Same
+    // reasoning for the toast position, which lives in a module store.
     React.useEffect(() => {
         refreshAlertStyle();
+        refreshToastPosition();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // Firing a sample toast on select makes the choice self-demonstrating: the module
+    // store re-renders the already-mounted <Toaster/>, so it lands in the new spot.
+    const handleToastPositionChange = (position: ToastPosition) => {
+        setToastPosition(position);
+        toast({ variant: 'info', title: t('toastPositionPreview') });
+    };
 
     if (!user) {
         return null;
@@ -62,8 +82,42 @@ export default function UserPreferencesPage() {
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent className="p-4 pt-0">
+                <CardContent className="p-4 pt-0 space-y-4">
                     <UserCommunicationPreferences user={user as any} />
+
+                    <div className="space-y-3 border-t pt-4">
+                        <div>
+                            <p className="text-sm font-medium text-foreground">{t('toastPositionLabel')}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{t('toastPositionDescription')}</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                            {TOAST_POSITIONS.map((position) => (
+                                <button
+                                    key={position}
+                                    type="button"
+                                    onClick={() => handleToastPositionChange(position)}
+                                    className={cn(
+                                        'flex flex-col items-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-medium transition-all',
+                                        toastPosition === position
+                                            ? 'border-primary bg-primary/8 text-primary'
+                                            : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/40 hover:text-foreground',
+                                    )}
+                                >
+                                    {/* Mini-pantalla en vez de un icono: comunica la posición mucho
+                                        mejor que una flecha. `bg-current` hereda el color del botón. */}
+                                    <span className="relative h-8 w-12 rounded-[4px] border border-current/40">
+                                        <span
+                                            className={cn(
+                                                'absolute h-1.5 rounded-[2px] bg-current',
+                                                TOAST_POSITION_MARKS[position],
+                                            )}
+                                        />
+                                    </span>
+                                    {t(`toastPosition.${position}` as any)}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
 

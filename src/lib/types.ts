@@ -1666,9 +1666,16 @@ export type DoctorAlertStyle = 'modal' | 'toast';
 /** `unified` = single account ledger (Debe/Haber/Saldo). `tabs` = separate Quotes/Invoices/Payments tabs. */
 export type PatientFinanceView = 'unified' | 'tabs';
 
+/**
+ * Where toasts appear on screen. Small screens always show them at the top
+ * (safe-area aware), so this preference only takes effect from `sm:` upwards.
+ */
+export type ToastPosition = 'top-center' | 'top-right' | 'bottom-center' | 'bottom-right';
+
 export type UserPreferences = {
   alert_style?: DoctorAlertStyle;
   finance_view?: PatientFinanceView;
+  toast_position?: ToastPosition;
 };
 
 export type UserPreferencesResponse = {
