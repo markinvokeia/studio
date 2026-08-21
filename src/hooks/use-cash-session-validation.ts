@@ -46,7 +46,6 @@ export function useCashSessionValidation(): UseCashSessionValidationReturn {
       variant: 'destructive',
       title: t('errors.cashSessionRequired'),
       description: errorMessage,
-      duration: 6000,
     })
   }
 

@@ -6368,6 +6368,15 @@
     "title": "Preferencias",
     "description": "Gestiona tus preferencias de notificaciones y espacio de trabajo",
     "notificationsSection": "Notificaciones",
+    "toastPositionLabel": "Posición de los mensajes",
+    "toastPositionDescription": "Elige en qué parte de la pantalla aparecen los mensajes de confirmación y error. En pantallas pequeñas siempre se muestran arriba.",
+    "toastPositionPreview": "Los mensajes se mostrarán aquí",
+    "toastPosition": {
+      "top-center": "Arriba centro",
+      "top-right": "Arriba derecha",
+      "bottom-center": "Abajo centro",
+      "bottom-right": "Abajo derecha"
+    },
     "workspaceSection": "Espacio de trabajo",
     "alertStyleLabel": "Estilo de alertas",
     "alertStyleDescription": "Elige cómo se muestran las alertas de nuevas citas.",

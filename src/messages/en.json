@@ -6388,6 +6388,15 @@
     "title": "Preferences",
     "description": "Manage your notification and workspace preferences",
     "notificationsSection": "Notifications",
+    "toastPositionLabel": "Message position",
+    "toastPositionDescription": "Choose where confirmation and error messages appear on screen. On small screens they always show at the top.",
+    "toastPositionPreview": "Messages will appear here",
+    "toastPosition": {
+      "top-center": "Top center",
+      "top-right": "Top right",
+      "bottom-center": "Bottom center",
+      "bottom-right": "Bottom right"
+    },
     "workspaceSection": "Workspace",
     "alertStyleLabel": "Alert notification style",
     "alertStyleDescription": "Choose how new appointment alerts are shown to you.",
