@@ -78,7 +78,9 @@
     "errors": {
       "dueDateBeforeIssue": "The due date must be after the issue date",
       "negativeTooth": "The tooth number cannot be negative",
-      "sedeRequired": "Location is required"
+      "sedeRequired": "Location is required",
+      "methodRequired": "You must select a payment method",
+      "amountRequired": "The amount must be greater than zero"
     },
     "columns": {
       "date": "Date",

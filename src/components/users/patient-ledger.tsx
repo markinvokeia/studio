@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { addMonths, endOfMonth, format, parseISO, startOfMonth } from 'date-fns';
@@ -1361,8 +1361,21 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
     }
   };
 
+  // El schema de Zod corta el submit antes de llegar a `onSubmit`, así que sin este handler
+  // el usuario clickea guardar y no pasa absolutamente nada. Avisa por el mismo canal que el
+  // resto de las validaciones del ledger (toast destructivo con una clave de `errors.*`); el
+  // borde rojo del campo lo pone `formState.errors` más abajo.
+  const onInvalid = (errors: FieldErrors<PaymentEditorValues>) => {
+    const message = errors.payment_method_id
+      ? t('errors.methodRequired')
+      : errors.payment_amount
+        ? t('errors.amountRequired')
+        : null;
+    if (message) toast({ title: message, variant: 'destructive' });
+  };
+
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)}>
+    <form onSubmit={form.handleSubmit(onSubmit, onInvalid)}>
       <InlineEditorShell
         title={`${t(isEdit ? 'inline.edit' : 'inline.new')} ${t('inline.addPayment')}`}
         controls={<EditorControls submitting={submitting} onCancel={onCancel} disabled={hasInvalidAllocation} />}
@@ -1378,7 +1391,15 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
             </FieldIcon>
             <FieldIcon icon={CreditCard} className="min-w-[10rem] flex-1">
               <Select value={form.watch('payment_method_id')} onValueChange={(v) => form.setValue('payment_method_id', v, { shouldValidate: true })}>
-                <SelectTrigger className="h-8 pl-7 text-sm"><SelectValue placeholder={t('fields.selectMethod')} /></SelectTrigger>
+                <SelectTrigger
+                  aria-invalid={!!form.formState.errors.payment_method_id}
+                  className={cn(
+                    'h-8 pl-7 text-sm',
+                    form.formState.errors.payment_method_id && 'border-destructive text-destructive focus:ring-destructive',
+                  )}
+                >
+                  <SelectValue placeholder={t('fields.selectMethod')} />
+                </SelectTrigger>
                 <SelectContent>
                   {paymentMethods.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
                 </SelectContent>

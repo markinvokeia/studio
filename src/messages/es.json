@@ -78,7 +78,9 @@
     "errors": {
       "dueDateBeforeIssue": "El vencimiento debe ser posterior a la fecha de emisión",
       "negativeTooth": "El número de pieza no puede ser negativo",
-      "sedeRequired": "La sede es obligatoria"
+      "sedeRequired": "La sede es obligatoria",
+      "methodRequired": "Debes seleccionar un método de pago",
+      "amountRequired": "El monto debe ser mayor a cero"
     },
     "columns": {
       "date": "Fecha",
