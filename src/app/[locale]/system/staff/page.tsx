@@ -682,6 +682,10 @@ export default function StaffPage() {
       const response = await api.post(API_ROUTES.USERS_UPSERT, {
         ...userPayload,
         is_sales: true,
+        // Va en el propio upsert y no por `/users/active-sede`: ese endpoint es self-only
+        // (su GET no recibe user_id y responde la sede del usuario del JWT), así que mandarle
+        // un user_id ajeno terminaba cambiándole la sede activa al admin que estaba editando.
+        active_sede_id: active_sede_id ? Number(active_sede_id) : null,
       });
 
       if (response?.error && (response.error.error || response.code > 200)) {
@@ -698,17 +702,6 @@ export default function StaffPage() {
           await api.patch(API_ROUTES.ROLES_ASSIGN, {
             user_id: String(newUserId),
             roles: [{ role_id, is_active: true }],
-          });
-        } catch {
-          // non-blocking — user was created successfully
-        }
-      }
-
-      if (newUserId && active_sede_id) {
-        try {
-          await api.post(API_ROUTES.USER_ACTIVE_SEDE, {
-            user_id: String(newUserId),
-            sede_id: Number(active_sede_id),
           });
         } catch {
           // non-blocking — user was created successfully
@@ -788,23 +781,15 @@ export default function StaffPage() {
       const response = await api.post(API_ROUTES.USERS_UPSERT, {
         ...userPayload,
         is_sales: true,
+        // Ver el comentario del alta: `/users/active-sede` es self-only y le pisaba la sede
+        // al admin en vez de guardarla en el usuario editado.
+        active_sede_id: active_sede_id ? Number(active_sede_id) : null,
       });
       if (response?.error && (response.error.error || response.code > 200)) {
         const apiError = new Error('API Error') as any;
         apiError.status = response.code || 500;
         apiError.data = response;
         throw apiError;
-      }
-
-      if (selectedUser?.id && active_sede_id !== (selectedUser?.active_sede_id || '')) {
-        try {
-          await api.post(API_ROUTES.USER_ACTIVE_SEDE, {
-            user_id: selectedUser.id,
-            sede_id: active_sede_id ? Number(active_sede_id) : null,
-          });
-        } catch {
-          // non-blocking — user data was saved successfully
-        }
       }
 
       toast({
