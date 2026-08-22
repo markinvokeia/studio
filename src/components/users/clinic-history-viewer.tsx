@@ -57,6 +57,7 @@ import { api } from '@/services/api';
 import { addYears, format, isBefore, isValid, parseISO } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
 import {
+    Activity,
     AlertTriangle,
     Calendar as CalendarIcon,
     CalendarCheck,
@@ -84,6 +85,7 @@ import {
     SlidersHorizontal,
     Smile,
     Stethoscope,
+    StickyNote,
     Trash2,
     Upload,
     User,
@@ -2379,12 +2381,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                 ? Math.max(0, Math.round((parseISO(appt.end.dateTime.replace(/Z$/, '')).getTime() - parseISO(appt.start.dateTime.replace(/Z$/, '')).getTime()) / 60000))
                                                 : null;
                                             const treatmentNames = (appt.services ?? []).map((s) => s.name).filter(Boolean);
-                                            // Mismo formato que el calendario: "Paciente (notas)". Se arma con patientName
-                                            // y no con summary porque este último llega del backend como
-                                            // "Paciente - tratamientos" y arrastra el guion aunque no haya tratamientos.
                                             const apptNotes = (appt.notes ?? '').trim();
-                                            const apptName = (appt.patientName ?? '').trim() || appt.summary.replace(/\s*[-–—]\s*$/, '');
-                                            const apptTitle = apptNotes ? `${apptName} (${apptNotes})` : apptName;
                                             const ApptStatusIcon = getStatusIcon(appt.status, appt.cancellation_reason);
                                             const apptStatusVariant = (STATUS_BADGE_VARIANT[appt.status] ?? 'default') as
                                                 'default' | 'success' | 'destructive' | 'info' | 'warning' | 'secondary' | 'outline';
@@ -2478,7 +2475,9 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                             <div className="flex items-center gap-1 flex-wrap">
                                                                 {apptTypeBadge}
                                                                 {apptUpcomingBadge}
-                                                                <span className="text-xs text-muted-foreground">{formatDisplayDateWithWeekday(item.date, locale)}</span>
+                                                                <span className="text-xs text-muted-foreground">
+                                                                    {formatDisplayDateWithWeekday(item.date, locale)}{startLabel && ` · ${startLabel}`}
+                                                                </span>
                                                                 {appt.quote_doc_no && (
                                                                     <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-1.5 py-0 leading-relaxed font-mono">
                                                                         {appt.quote_doc_no}
@@ -2490,7 +2489,12 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                                     </Badge>
                                                                 )}
                                                             </div>
-                                                            <p className="text-xs font-medium truncate mt-0.5" title={apptTitle}>{apptTitle}</p>
+                                                            {apptNotes && (
+                                                                <p className="flex items-center gap-1 text-xs font-medium mt-0.5 min-w-0" title={apptNotes}>
+                                                                    <StickyNote className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                                                    <span className="truncate">{apptNotes}</span>
+                                                                </p>
+                                                            )}
                                                             <p className="flex items-center gap-x-3 gap-y-0.5 flex-wrap text-xs text-muted-foreground">
                                                                 <span className="flex items-center gap-1 min-w-0" title={t('apptCalendar')}>
                                                                     <MapPin className="h-3 w-3 shrink-0" />
@@ -2717,9 +2721,15 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                                 </Badge>
                                                             )}
                                                         </div>
-                                                        <p className="text-xs font-medium truncate mt-0.5">{session.procedimiento_realizado || t('noTitle')}</p>
+                                                        <p className="flex items-center gap-1 text-xs font-medium mt-0.5 min-w-0" title={t('procedure')}>
+                                                            <Activity className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                                            <span className="truncate">{session.procedimiento_realizado || t('noTitle')}</span>
+                                                        </p>
                                                         {(session.nombre_doctor || session.doctor_name) && (
-                                                            <p className="text-xs text-muted-foreground truncate">{session.nombre_doctor || session.doctor_name}</p>
+                                                            <p className="flex items-center gap-1 text-xs text-muted-foreground min-w-0" title={t('apptDoctor')}>
+                                                                <UserSquare className="h-3 w-3 shrink-0" />
+                                                                <span className="truncate">{session.nombre_doctor || session.doctor_name}</span>
+                                                            </p>
                                                         )}
                                                     </div>
                                                     {sessionColorDot}
