@@ -4,6 +4,13 @@ import { Header } from '@/components/header';
 import { LicenseExpirationBanner, LicenseExpiredBanner } from '@/components/license/LicenseExpirationBanner';
 import { LicenseExpiredScreen } from '@/components/license/LicenseExpiredScreen';
 import { PatientPortalLayout } from '@/components/patient-portal/patient-portal-layout';
+import { BillingWizardModal } from '@/components/billing-wizard';
+import { PrintDocumentContainer } from '@/components/print-templates';
+import { PatientLedgerSheet } from '@/components/financial/PatientLedgerSheet';
+import { PatientQuickViewHost } from '@/components/patients/PatientQuickViewHost';
+import { PatientHistorySheet } from '@/components/clinic-history/PatientHistorySheet';
+import { PatientAppointmentsHistorySheet } from '@/components/appointments/PatientAppointmentsHistorySheet';
+import { PatientDocumentsSheet } from '@/components/patients/PatientDocumentsSheet';
 import { useAuth } from '@/context/AuthContext';
 import { usePatientPortal } from '@/hooks/usePatientPortal';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -187,6 +194,20 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const effectivePathname = getEffectivePathname(pathname, locale);
 
   return (
+    <>
+    {/* Overlays/sheets del staff, disparados por stores globales desde
+        cualquier punto del dashboard. Viven acá — y no en el layout raíz —
+        para que nunca se monten en la landing pública ni en el portal del
+        paciente: ninguno de los dos los usa, y montarlos ahí disparaba
+        llamadas 401 a endpoints protegidos (/clinic, /print-templates) antes
+        de que hubiera token. */}
+    <BillingWizardModal />
+    <PrintDocumentContainer />
+    <PatientLedgerSheet />
+    <PatientQuickViewHost />
+    <PatientHistorySheet />
+    <PatientAppointmentsHistorySheet />
+    <PatientDocumentsSheet />
     <div className="flex h-[100dvh] print:h-auto print:block bg-background overflow-hidden print:overflow-visible text-foreground">
       <div className="print:hidden">
         <Sidebar />
@@ -220,5 +241,6 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
         </footer>
       </div>
     </div>
+    </>
   );
 }

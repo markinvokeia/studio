@@ -8175,6 +8175,7 @@
       "staffLink": "Are you staff? Sign in here",
       "hint": "Any of the three works.",
       "newPatient": "I'm new, I'm not registered",
+      "newPatientDisabled": "We couldn't find your record and this clinic doesn't accept online bookings. Please contact them directly to get registered.",
       "reason": "We use this to check whether you're already a patient here. If you are, we'll load your history, appointments and account balance; if it's your first time, we'll ask for just a few details."
     },
     "needEmail": {
@@ -8322,6 +8323,7 @@
       "cancel": "Cancel",
       "empty": "You have no upcoming appointments. Past ones are in your History.",
       "loadError": "We couldn't load your appointments. Please try again.",
+      "bookingDisabled": "The clinic doesn't accept online bookings. Please contact them directly to schedule.",
       "cancelDialog": {
         "title": "Cancel this appointment?",
         "description": "You're about to cancel your appointment on {date} at {time}. The clinic will be notified.",

@@ -148,7 +148,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO public.notifications (\n  user_id, type, status, priority, appointment_id, session_id, patient_id, reminder_id, metadata, created_at, read_at\n)\nSELECT u.id, 'reminder', 'pending', 'MEDIUM', null, null, null, $1, $2, $3, null\nFROM public.users u\nWHERE u.is_active = true\nON CONFLICT (reminder_id, user_id) DO NOTHING\nRETURNING *;",
+        "query": "-- Los recordatorios \"clinic\" son avisos internos del staff (turnos, tareas\n-- administrativas). Sin este filtro se insertaba una notificación para TODO\n-- usuario activo, incluidos los pacientes logueados en el portal, que veían\n-- el pop-up con el nombre y horario de OTRO paciente. Se excluye a quien\n-- SOLO tenga el rol Paciente; el personal con rol dual (staff + paciente)\n-- sigue recibiéndolos por su rol de staff.\nINSERT INTO public.notifications (\n  user_id, type, status, priority, appointment_id, session_id, patient_id, reminder_id, metadata, created_at, read_at\n)\nSELECT u.id, 'reminder', 'pending', 'MEDIUM', null, null, null, $1, $2, $3, null\nFROM public.users u\nWHERE u.is_active = true\n  AND EXISTS (\n    SELECT 1\n    FROM public.user_roles ur\n    JOIN public.roles r ON r.id = ur.role_id\n    WHERE ur.user_id = u.id\n      AND ur.is_active = true\n      AND lower(r.name) NOT IN ('paciente', 'patient')\n  )\nON CONFLICT (reminder_id, user_id) DO NOTHING\nRETURNING *;",
         "options": {
           "queryReplacement": "={{ [$json.id, $json, $now] }}"
         }

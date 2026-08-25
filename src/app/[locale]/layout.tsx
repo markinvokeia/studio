@@ -11,13 +11,6 @@ import { AlertNotificationsProvider } from '@/context/alert-notifications-contex
 import { TVDisplayProvider } from '@/context/tv-display-context';
 import { PrivateRoute } from '@/components/auth/PrivateRoute';
 import { NotificationsProvider } from '@/context/notifications-context';
-import { BillingWizardModal } from '@/components/billing-wizard';
-import { PrintDocumentContainer } from '@/components/print-templates';
-import { PatientLedgerSheet } from '@/components/financial/PatientLedgerSheet';
-import { PatientQuickViewHost } from '@/components/patients/PatientQuickViewHost';
-import { PatientHistorySheet } from '@/components/clinic-history/PatientHistorySheet';
-import { PatientAppointmentsHistorySheet } from '@/components/appointments/PatientAppointmentsHistorySheet';
-import { PatientDocumentsSheet } from '@/components/patients/PatientDocumentsSheet';
 import { LicenseInitializer } from '@/components/license/LicenseInitializer';
 import type { RuntimeConfig } from '@/lib/runtime-config';
 
@@ -77,13 +70,6 @@ export default async function LocaleLayout({
               <PrivateRoute>
                 <LicenseInitializer />
                 {children}
-                <BillingWizardModal />
-                <PrintDocumentContainer />
-                <PatientLedgerSheet />
-                <PatientQuickViewHost />
-                <PatientHistorySheet />
-                <PatientAppointmentsHistorySheet />
-                <PatientDocumentsSheet />
               </PrivateRoute>
             </NotificationsProvider>
           </TVDisplayProvider>

@@ -19,6 +19,10 @@ interface AppointmentCardProps {
   isNext?: boolean;
   onReschedule: (appointment: Appointment) => void;
   onCancel: (appointment: Appointment) => void;
+  /** `false` ⇒ la clínica no acepta reservas online: reagendar crea una cita
+   *  nueva por el mismo camino, así que se oculta junto con "Reservar". Cancelar
+   *  sigue disponible siempre: no crea nada. */
+  canBook?: boolean;
 }
 
 /**
@@ -29,7 +33,7 @@ interface AppointmentCardProps {
  * para los datos. En móvil el bloque y la hora se mantienen en la misma fila,
  * y los detalles pasan a una sola columna.
  */
-export function AppointmentCard({ appointment, isNext, onReschedule, onCancel }: AppointmentCardProps) {
+export function AppointmentCard({ appointment, isNext, onReschedule, onCancel, canBook = true }: AppointmentCardProps) {
   const t = useTranslations('PatientPortal.appointments');
   const tStatus = useTranslations('AppointmentStatus');
   const locale = useLocale();
@@ -117,7 +121,7 @@ export function AppointmentCard({ appointment, isNext, onReschedule, onCancel }:
         </div>
 
         <div className="mt-3 flex flex-col gap-2 border-t pt-3 sm:flex-row">
-          {canReschedule(appointment.status) && (
+          {canBook && canReschedule(appointment.status) && (
             <Button
               size="sm"
               variant="outline"

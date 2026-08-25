@@ -8155,6 +8155,7 @@
       "staffLink": "¿Sos parte del equipo? Iniciá sesión acá",
       "hint": "Podés usar cualquiera de los tres.",
       "newPatient": "Soy nuevo, no estoy registrado",
+      "newPatientDisabled": "Todavía no encontramos tu registro y esta clínica no acepta reservas online. Comunicate directamente para que te den de alta.",
       "reason": "Con este dato verificamos si ya sos paciente de la clínica. Si ya estás registrado, cargamos tu historia, tus citas y tu estado de cuenta; si es tu primera vez, te pedimos unos pocos datos y listo."
     },
     "needEmail": {
@@ -8302,6 +8303,7 @@
       "cancel": "Cancelar",
       "empty": "No tenés citas agendadas. Las citas pasadas están en tu Historial.",
       "loadError": "No pudimos cargar tus citas. Intentá de nuevo.",
+      "bookingDisabled": "La clínica no tiene habilitada la reserva de citas online. Comunicate directamente para agendar.",
       "cancelDialog": {
         "title": "¿Cancelar esta cita?",
         "description": "Vas a cancelar tu cita del {date} a las {time}. La clínica va a ser notificada.",
