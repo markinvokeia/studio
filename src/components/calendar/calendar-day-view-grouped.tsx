@@ -272,6 +272,7 @@ export function CalendarDayViewGrouped({
                               key={event.id}
                               event={event}
                               style={getEventStyle(event, hourSlotHeight)}
+                              hourSlotHeight={hourSlotHeight}
                               dateLocale={dateLocale}
                               onEventClick={onEventClick}
                               onEventColorChange={onEventColorChange}

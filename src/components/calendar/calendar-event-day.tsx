@@ -17,6 +17,7 @@ import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
 import type { AppointmentStatus, CalendarReminderPriority, CalendarReminderStatus, CancellationReason } from '@/lib/types';
 import { getStatusIcon } from '@/components/appointments/status-icons';
 
+import { EVENT_DENSITY_COMPACT_PX, EVENT_DENSITY_NORMAL_PX, HOUR_SLOT_HEIGHT } from './calendar-constants';
 import type { CalendarEvent } from './calendar-types';
 import { formatEventTime, getContrastingIconColor, getReadableTextColor } from './calendar-utils';
 import { getReminderCardStyle, getReminderPriorityColor, isGeneralReminder, isReminderDone } from './reminder-visuals';
@@ -31,6 +32,9 @@ interface CalendarEventDayProps {
   onEventDoubleClick?: (data: any) => void;
   onEventContextMenu?: (data: any) => React.ReactNode;
   onEventContextMenuOpen?: (data: any) => void;
+  /** Alto efectivo de una hora en px (altura configurada x zoom). Con él la card
+   *  sabe cuántos píxeles mide de verdad y compacta su contenido en consecuencia. */
+  hourSlotHeight?: number;
 }
 
 export const CalendarEventDay = React.memo(function CalendarEventDay({
@@ -41,6 +45,7 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
   onEventDoubleClick,
   onEventContextMenu,
   onEventContextMenuOpen,
+  hourSlotHeight = HOUR_SLOT_HEIGHT,
 }: CalendarEventDayProps) {
   // Distinguish single vs double click: delay the single-click action briefly so a
   // double-click (inline edit) can cancel it. Only delays when a dbl handler exists.
@@ -50,6 +55,12 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
   const end = typeof event.end === 'string' ? parseISO(event.end) : event.end;
   const durationMinutes = Math.max(0, (end.getTime() - start.getTime()) / (1000 * 60));
   const isShortEvent = durationMinutes < 60;
+  // Alto real de la card en px. La caja siempre mide exactamente lo que dura la cita
+  // (nunca se infla con un min-height, que es lo que antes tapaba los huecos cortos a
+  // zoom bajo); es el contenido el que se adapta a lo que hay.
+  const pxHeight = (durationMinutes / 60) * hourSlotHeight;
+  const density =
+    pxHeight >= EVENT_DENSITY_NORMAL_PX ? 'normal' : pxHeight >= EVENT_DENSITY_COMPACT_PX ? 'compact' : 'tiny';
   const rawStatus = event.data?.status as string | undefined;
   const isReminder = event.data?.kind === 'reminder';
   const isNote = isReminder && event.data?.type === 'note';
@@ -74,6 +85,7 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
       <ContextMenuTrigger asChild>
         <div
           data-testid="calendar-day-event"
+          data-density={density}
           title={event.label ?? event.title}
           className={cn(
             'event-in-day-view',
@@ -89,7 +101,6 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
             color: textColor,
             left: `${((event.column || 0) / (event.totalColumns || 1)) * 100}%`,
             width: `${(1 / (event.totalColumns || 1)) * 100}%`,
-            paddingRight: '4px',
             // La franja del estado se dibuja en un ::before que lee esta variable.
             ...(event.statusStripeColor
               ? ({ ['--status-stripe' as string]: event.statusStripeColor } as React.CSSProperties)

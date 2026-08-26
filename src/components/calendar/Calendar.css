@@ -206,14 +206,13 @@
   pointer-events: none;
 }
 
-/* El ícono acompaña la escala de fuente del calendario (derivada de la altura de
-   hora configurada), igual que el título y la hora de la card. El clamp lo acota:
-   nunca baja del tamaño histórico de 12px ni supera los 20px, que es lo máximo
-   que entra en una card de 15 min (min-height 22px). El valor central, 14px,
-   coincide con el `h-3.5` del JSX, que es el que aplica en las demás vistas. */
+/* Tamaño fijo, igual al `h-3.5` del JSX que aplica en las demás vistas. La altura
+   de hora ya no escala la tipografía del calendario: es interlineado, no tamaño de
+   letra. Lo que sí manda es cuántos píxeles mide la card — ver los tramos
+   `[data-density]` más abajo, donde el ícono se achica y termina ocultándose. */
 .event-in-day-view .event-status-corner svg {
-  width: clamp(12px, calc(0.875rem * var(--cal-font-scale, 1)), 20px);
-  height: clamp(12px, calc(0.875rem * var(--cal-font-scale, 1)), 20px);
+  width: 14px;
+  height: 14px;
 }
 
 .event-in-day-view-compact .event-status-corner {
@@ -441,7 +440,9 @@
 }
 
 .time-column {
-  font-size: calc(0.75rem * var(--cal-font-scale, 1));
+  /* Igual que la etiqueta del rail: tamaño fijo, acotado solo si la fila es tan baja
+     que las horas consecutivas se pisarían. */
+  font-size: min(0.75rem, calc(var(--hour-slot-height, 60px) * 0.55));
   color: hsl(var(--muted-foreground));
   text-align: right;
   padding-right: 0.5rem;
@@ -575,7 +576,10 @@
   left: 0;
   right: 0;
   text-align: center;
-  font-size: calc(0.625rem * var(--cal-font-scale, 1));
+  /* Tamaño fijo (la altura de hora ya no escala la tipografía), acotado hacia abajo
+     cuando la fila es tan baja que el número no entra: por debajo de ~18px de hora
+     las etiquetas de horas consecutivas se pisarían. */
+  font-size: min(0.625rem, calc(var(--hour-slot-height, 60px) * 0.55));
   line-height: 1;
   color: hsl(var(--muted-foreground));
   pointer-events: none;
@@ -612,7 +616,7 @@
   color: hsl(var(--primary-foreground));
   border-radius: 4px;
   padding: 4px 4px 4px 8px;
-  font-size: calc(0.75rem * var(--cal-font-scale, 1));
+  font-size: 0.75rem;
   overflow: hidden;
   cursor: pointer;
   z-index: 10;
@@ -621,8 +625,12 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  /* Ensure short events (e.g. 15-min) still fit a single line of title + time */
-  min-height: 22px;
+  /* Sin min-height a propósito: el `height` en línea que calcula getEventStyle es
+     exactamente proporcional a la duración de la cita, y con box-sizing:border-box
+     el padding y el borde caben dentro. Un mínimo absoluto (antes 22px) hacía que
+     una cita de 20 min a zoom bajo se dibujara más alta de lo que dura y tapara el
+     hueco siguiente. Para que el contenido siga legible al achicarse, la card se
+     compacta por tramos según su alto real — ver [data-density]. */
 }
 
 .event-day-title {
@@ -639,7 +647,7 @@
 }
 
 .event-day-time {
-  font-size: calc(0.7rem * var(--cal-font-scale, 1));
+  font-size: 0.7rem;
   line-height: 1;
   opacity: 0.95;
 }
@@ -669,6 +677,66 @@
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: inherit;
+}
+
+/* --------------------------------------------------------------------------
+   Tramos de densidad de la card (`data-density`, calculado en calendar-event-day
+   a partir de su alto REAL en px = duración x altura de hora efectiva).
+
+   La caja nunca crece para que quepa el contenido — eso taparía el hueco con la
+   cita siguiente —, así que es el contenido el que se ajusta a la caja: se recorta
+   el padding, el título baja a una línea, la hora se oculta y por último desaparece
+   el círculo de estado. Van después de `.event-in-day-view-compact` (misma
+   especificidad) para poder afinar lo que aquella define.
+   -------------------------------------------------------------------------- */
+
+/* 18–34px: cabe una línea de título, pero ya no el rango horario. */
+.event-in-day-view[data-density="compact"] {
+  padding: 1px 4px 1px 8px;
+  gap: 0;
+  border-radius: 3px;
+  font-size: 0.6875rem;
+}
+
+.event-in-day-view[data-density="compact"] .event-day-title {
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+}
+
+.event-in-day-view[data-density="compact"] .event-day-time {
+  display: none;
+}
+
+.event-in-day-view[data-density="compact"] .event-status-corner {
+  bottom: 0;
+  right: 1px;
+  padding: 1px;
+}
+
+.event-in-day-view[data-density="compact"] .event-status-corner svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* <18px: solo el nombre, y en el mínimo ni eso — pero la barra de color sigue
+   midiendo exactamente lo que dura la cita, que es lo que hace legible el hueco. */
+.event-in-day-view[data-density="tiny"] {
+  padding: 0 2px 0 6px;
+  gap: 0;
+  border-radius: 2px;
+  font-size: 0.5625rem;
+  justify-content: center;
+}
+
+.event-in-day-view[data-density="tiny"] .event-day-title {
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  line-height: 1;
+}
+
+.event-in-day-view[data-density="tiny"] .event-day-time,
+.event-in-day-view[data-density="tiny"] .event-status-corner {
+  display: none;
 }
 
 .current-time-indicator {

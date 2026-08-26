@@ -37,15 +37,24 @@ export const HOUR_SLOT_HEIGHT = 80;
 export const HOUR_SLOT_HEIGHT_OPTIONS = [60, 80, 100, 120, 140, 160, 180, 200] as const;
 
 /** Selectable default slot durations (minutes). Defines how many slots fit in an
- *  hour (60/duration) and therefore the minimum row height needed so every slot's
- *  appointment title stays readable. */
+ *  hour (60/duration) and therefore how tall one slot ends up being for a given
+ *  hour height. */
 export const SLOT_DURATION_OPTIONS = [10, 15, 20, 30, 60] as const;
 export type SlotDuration = (typeof SLOT_DURATION_OPTIONS)[number];
 export const DEFAULT_SLOT_DURATION: SlotDuration = 15;
 
-/** Minimum px height for a single slot so one appointment title fits on a line.
- *  The hour row height is floored at slotsPerHour * MIN_SLOT_HEIGHT. */
-export const MIN_SLOT_HEIGHT = 24;
+/** Piso de render para un slot: por debajo de esto la rejilla deja de leerse como
+ *  rejilla (las líneas se solapan y las citas quedan sub-píxel). NO es un piso de
+ *  legibilidad: la altura de hora configurada se respeta literal y solo se acota
+ *  aquí, en el extremo inferior del zoom. */
+export const MIN_VISIBLE_SLOT_PX = 5;
+
+/** Umbrales, en px de alto REAL de la card, para adaptar su contenido a la densidad.
+ *  La card nunca se infla para alcanzarlos: es el contenido el que se compacta, de
+ *  modo que su alto siga siendo exactamente proporcional a la duración de la cita
+ *  y los huecos entre citas nunca queden tapados. */
+export const EVENT_DENSITY_NORMAL_PX = 34;
+export const EVENT_DENSITY_COMPACT_PX = 18;
 
 /** How the label shown on each appointment is composed.
  *  - time_patient_notes:     "HH:mm - Patient - (Notes)"   (default)

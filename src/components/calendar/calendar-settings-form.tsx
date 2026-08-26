@@ -179,6 +179,13 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
     updateSettings({ hour_height: value });
   };
 
+  // La altura de hora se reparte entre los slots que entran en una hora, así que el
+  // mismo valor rinde muy distinto con slots de 10 min que de 30. Se muestra el px
+  // por slot resultante para que las dos preferencias se elijan juntas.
+  const slotsPerHour = Math.max(1, Math.round(60 / (settings.slot_duration ?? DEFAULT_SLOT_DURATION)));
+  const hourHeightOptionLabel = (px: number) =>
+    t('hourHeightOptionWithSlot', { px, slotPx: Math.round(px / slotsPerHour) });
+
   const viewOptions = ['day', '2_days', '3_days', 'week', 'month', 'agenda'];
   const groupOptions = ['none', 'doctor', 'calendar'];
   // Custom mode forces calendar grouping (one agenda at a time) and the default
@@ -269,7 +276,7 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
             <SelectContent>
               {HOUR_SLOT_HEIGHT_OPTIONS.map((opt) => (
                 <SelectItem key={opt} value={String(opt)} className="text-xs">
-                  {t('hourHeightOption', { px: opt })}
+                  {hourHeightOptionLabel(opt)}
                 </SelectItem>
               ))}
             </SelectContent>

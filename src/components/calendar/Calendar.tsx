@@ -8,7 +8,7 @@ import React from 'react';
 import './Calendar.css';
 
 import type { CalendarProps, CalendarView } from './calendar-types';
-import { DEFAULT_SLOT_DURATION, HOUR_SLOT_HEIGHT, MIN_SLOT_HEIGHT } from './calendar-constants';
+import { DEFAULT_SLOT_DURATION, HOUR_SLOT_HEIGHT, MIN_VISIBLE_SLOT_PX } from './calendar-constants';
 import { CalendarZoomControl } from './calendar-zoom-control';
 import { useCalendarBreakpoint } from '@/hooks/use-calendar-breakpoint';
 import { useCalendarNavigation } from '@/hooks/use-calendar-navigation';
@@ -124,17 +124,20 @@ const Calendar: React.FC<CalendarProps> = ({
 
 
   const heightSetting = hourSlotHeight ?? HOUR_SLOT_HEIGHT;
-  // Slot density: how many slots fit per hour (e.g. 6 for 10-min slots). The hour
-  // row is floored at slotsPerHour * MIN_SLOT_HEIGHT so every slot can show a
-  // readable title, even on tight agendas. Taller rows simply make day/week views
-  // longer (and month scroll), keeping titles legible.
+  // Slot density: how many slots fit per hour (e.g. 6 for 10-min slots).
   const slotsPerHour = Math.max(1, Math.round(60 / (slotMinutes ?? DEFAULT_SLOT_DURATION)));
-  const baseSlotHeight = Math.max(heightSetting, slotsPerHour * MIN_SLOT_HEIGHT);
-  // Zoom enlarges only the slot height...
-  const effectiveSlotHeight = Math.round(baseSlotHeight * zoom);
-  // ...while the font scales only with the configured slot size (px setting),
-  // dampened so larger slots don't blow up the text. Zoom does NOT change fonts.
-  const fontScale = Math.pow(heightSetting / HOUR_SLOT_HEIGHT, 0.7);
+  // La preferencia de altura de hora es puro interlineado y se respeta literal: el
+  // zoom la multiplica y nada más la infla. Antes había un piso por densidad
+  // (slotsPerHour * 24) que dejaba sin efecto media escala del selector — con slots
+  // de 10 min, de 60 a 140 px rendían todos igual. El único límite que queda es de
+  // render: un slot nunca baja de MIN_VISIBLE_SLOT_PX, para que a zoom mínimo la
+  // rejilla siga siendo una rejilla. La legibilidad de las citas cortas se resuelve
+  // compactando el contenido de la card (data-density), no estirando su caja: así su
+  // alto sigue siendo proporcional a la duración y los huecos nunca quedan tapados.
+  const effectiveSlotHeight = Math.max(
+    Math.round(heightSetting * zoom),
+    slotsPerHour * MIN_VISIBLE_SLOT_PX,
+  );
 
   const {
     currentDate,
@@ -363,7 +366,7 @@ const Calendar: React.FC<CalendarProps> = ({
 
       <div
         className="calendar-body relative"
-        style={{ '--cal-font-scale': fontScale, '--cal-slots-per-hour': slotsPerHour } as React.CSSProperties}
+        style={{ '--cal-slots-per-hour': slotsPerHour } as React.CSSProperties}
       >
         {renderView()}
         {/* Zoom slider — only on time-grid views where slot height applies */}
