@@ -1,0 +1,719 @@
+{
+  "name": "Users — Signature Upload",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "\nconst assertUuid = (value, field) => {\n  const text = String(value ?? '').trim();\n  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text)) {\n    throw new Error(`Invalid ${field}: ${value}`);\n  }\n  return text;\n};\n\nconst body = $input.first().json.body ?? $input.first().json ?? {};\nreturn [{ json: { user_id: assertUuid(body.user_id, 'user_id') } }];\n"
+      },
+      "id": "f6985bc3-b6cb-4c58-bc9c-37775c6dc541",
+      "name": "Validar Entrada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -256,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- `previous` ve la foto anterior al UPDATE: RETURNING devolvería los\n-- valores nuevos (ya NULL) y se perdería el file id que hay que borrar.\nWITH previous AS (\n    SELECT signature_drive_file_id\n    FROM public.users\n    WHERE id = $1::uuid\n), cleared AS (\n    UPDATE public.users\n    SET signature_filename      = NULL,\n        signature_mimetype      = NULL,\n        signature_drive_file_id = NULL,\n        signature_web_view_link = NULL,\n        signature_updated_at    = NOW()\n    WHERE id = $1::uuid\n    RETURNING id\n)\nSELECT cleared.id::text          AS id,\n       previous.signature_drive_file_id AS previous_drive_file_id\nFROM cleared\nCROSS JOIN previous;",
+        "options": {
+          "queryReplacement": "={{ [ $json.user_id ] }}"
+        }
+      },
+      "id": "b0fe25dd-12f0-42d9-899b-ff2579e94409",
+      "name": "Limpiar en users",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -32,
+        -240
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "deleteFile",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.previous_drive_file_id }}"
+        },
+        "options": {}
+      },
+      "id": "1ba66a86-faf7-4bcb-a2d6-58370310eefd",
+      "name": "Borrar de Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        192,
+        -240
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "k3vQaAkau21se8nC",
+          "name": "Google Drive account 2"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Si el borrado en Drive falla se ignora: la referencia en BD ya está limpia\n// y el archivo queda huérfano, no roto.\nconst cleared = $('Limpiar en users').first().json;\n\nif (!cleared || cleared.error || !cleared.id) {\n  return [{ json: { statusCode: 500, body: { message: 'No se pudo eliminar la firma.' } } }];\n}\n\nreturn [{ json: { statusCode: 200, body: { success: true, user_id: cleared.id } } }];\n"
+      },
+      "id": "c4daadfd-d549-4896-b1ce-f91684b23015",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      },
+      "id": "76ac5d82-e07d-414b-b0d0-145b291edc55",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        624,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT signature_drive_file_id,\n       signature_mimetype\nFROM public.users\nWHERE id = $1::uuid",
+        "options": {
+          "queryReplacement": "={{ [ $json.user_id ] }}"
+        }
+      },
+      "id": "4d822883-4dff-4d9c-821f-2423df3707a2",
+      "name": "Leer Firma",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -32,
+        16
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has-file",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.signature_drive_file_id }}",
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ec7c6838-dd56-4b9d-9dc0-00fbd1fc202c",
+      "name": "¿Tiene Firma?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        192,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.signature_drive_file_id }}"
+        },
+        "options": {
+          "binaryPropertyName": "data"
+        }
+      },
+      "id": "4d3016d5-9dc8-467a-92fb-27daea5273ec",
+      "name": "Descargar de Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        400,
+        16
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "k3vQaAkau21se8nC",
+          "name": "Google Drive account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "binary",
+        "responseDataSource": "set",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "9efba27c-9701-4bbd-8ee6-34a1b699ec58",
+      "name": "Responder Binario",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        624,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "noData",
+        "options": {
+          "responseCode": 204
+        }
+      },
+      "id": "c1c25b58-84a8-430a-b9a8-05ee3ee5f903",
+      "name": "Responder Sin Firma",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        400,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst assertUuid = (value, field) => {\n  const text = String(value ?? '').trim();\n  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text)) {\n    throw new Error(`Invalid ${field}: ${value}`);\n  }\n  return text;\n};\n\nconst input = $input.first().json;\nconst query = input.query ?? input;\nreturn [{ json: { user_id: assertUuid(query.user_id, 'user_id') } }];\n"
+      },
+      "id": "12c23135-a65f-4459-adf4-3828352b8c9c",
+      "name": "Validar Entrada1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -256,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT signature_drive_file_id\nFROM public.users\nWHERE id = $1::uuid",
+        "options": {
+          "queryReplacement": "={{ [ $('Validar Entrada2').first().json.user_id ] }}"
+        }
+      },
+      "id": "4875e392-2cb8-4bc0-9597-ca63c4c029ad",
+      "name": "Leer Firma Anterior",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        128,
+        400
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "inputDataFieldName": "data0",
+        "name": "={{ $('users/signature/upload').item.binary.data0.fileName}}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "root",
+          "mode": "list",
+          "cachedResultName": "/ (Root folder)",
+          "cachedResultUrl": "https://drive.google.com/drive"
+        },
+        "options": {}
+      },
+      "id": "4471d9c4-9164-45c7-a7c5-d5b181b37f19",
+      "name": "Subir a Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -48,
+        400
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "k3vQaAkau21se8nC",
+          "name": "Google Drive account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE public.users\nSET signature_filename      = $2,\n    signature_mimetype      = $3,\n    signature_drive_file_id = $4,\n    signature_web_view_link = $5,\n    signature_updated_at    = NOW()\nWHERE id = $1::uuid\nRETURNING id::text AS id,\n          signature_filename,\n          signature_mimetype,\n          signature_drive_file_id,\n          signature_updated_at::text AS signature_updated_at",
+        "options": {
+          "queryReplacement": "={{ [ $('Validar Entrada2').first().json.user_id, $('Validar Entrada2').first().json.filename, $('Validar Entrada2').first().json.mimetype, $('Subir a Drive').item.json.id,  $('Subir a Drive').item.json.webViewLink] }}        "
+        }
+      },
+      "id": "9880457a-c12d-4354-b73e-f3edd0bb1fa7",
+      "name": "Guardar en users",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        400,
+        400
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "deleteFile",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Leer Firma Anterior').first().json.signature_drive_file_id }}"
+        },
+        "options": {}
+      },
+      "id": "e82389a2-9189-4f17-ba7f-e8cf9226fad5",
+      "name": "Borrar Firma Anterior de Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        624,
+        400
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "k3vQaAkau21se8nC",
+          "name": "Google Drive account 2"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst assertUuid = (value, field) => {\n  const text = String(value ?? '').trim();\n  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text)) {\n    throw new Error(`Invalid ${field}: ${value}`);\n  }\n  return text;\n};\n\nconst item = $('users/signature/upload').first();\nconst body = item.json.body ?? item.json ?? {};\n\nconst userId = assertUuid(body.user_id, 'user_id');\n\n// El archivo llega en la propiedad binaria `data` (el front hace\n// formData.append('data', file), igual que el logo de clínica).\nconst binary = item.binary?.data0 || item.binary?.data;\nif (!binary) throw new Error('signature file is required (binary property \"data\")');\n\nconst allowed = ['image/png', 'image/jpeg', 'image/webp'];\nif (!allowed.includes(binary.mimeType)) {\n  throw new Error(`Unsupported signature type: ${binary.mimeType}`);\n}\n\n// 1 MB, el mismo límite que valida el front.\nif (binary.fileSize && Number(String(binary.fileSize).replace(/[^0-9]/g, '')) > 1024 * 1024) {\n  throw new Error('Signature file exceeds 1 MB');\n}\n\nreturn [{\n  json: {\n    user_id: userId,\n    filename: binary.fileName || `signature-${userId}.png`,\n    mimetype: binary.mimeType,\n  },\n  binary: item.binary,\n}];\n"
+      },
+      "id": "04ee2f56-a434-48c0-b223-52cb09b9d9aa",
+      "name": "Validar Entrada2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -288,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// El borrado del archivo anterior es best-effort: si falla, la firma nueva ya\n// quedó guardada y no hay razón para devolver un error al usuario.\nconst saved = $('Guardar en users').first().json;\n\nif (!saved || saved.error || !saved.id) {\n  return [{ json: { statusCode: 500, body: { message: 'No se pudo guardar la firma.' } } }];\n}\n\nreturn [{ json: { statusCode: 200, body: {\n  success: true,\n  user_id: saved.id,\n  filename: saved.signature_filename,\n  mimetype: saved.signature_mimetype,\n  updated_at: saved.signature_updated_at,\n} } }];\n"
+      },
+      "id": "7b6ed322-b1ad-4109-be00-c692b27de80a",
+      "name": "Formatear Respuesta1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        848,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      },
+      "id": "ef2753fb-bb2f-4034-b0eb-c2d8e6a94d9d",
+      "name": "Responder1",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1072,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "DELETE",
+        "path": "users/signature/delete",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "ecb1a910-4813-4728-855f-ed24debac295",
+      "name": "users/signature/delete",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -480,
+        -240
+      ],
+      "webhookId": "606e2a16-5756-44af-b2c1-49cdc4f7e65d",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "path": "users/signature",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "c7b23999-7e7e-44ea-897e-437502f821d2",
+      "name": "GET users/signature",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -480,
+        16
+      ],
+      "webhookId": "cd648176-54a4-49e5-a7d4-1d4f2627a3a3"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "users/signature/upload",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "binaryPropertyName": "data",
+          "rawBody": false
+        }
+      },
+      "id": "80806995-0cd6-4e0d-adb8-fd9cb412b3e4",
+      "name": "users/signature/upload",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -480,
+        400
+      ],
+      "webhookId": "7c97d373-7cea-4f43-a7e0-ee03fe0b0141",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "users/signature/upload": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
+            "content-length": "148255",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3ODY2MzgyOTF9.86hnrJnvYvIZB4LDv-bNmEL670Ey-kkhiX_p5JOPHHc",
+            "cache-control": "no-cache",
+            "content-type": "multipart/form-data; boundary=----WebKitFormBoundaryaa7t2OoXAts7Yx6D",
+            "origin": "http://localhost:3000",
+            "pragma": "no-cache",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/es/config/doctors",
+            "sec-ch-ua": "\"Not;A=Brand\";v=\"8\", \"Chromium\";v=\"150\", \"Google Chrome\";v=\"150\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"macOS\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "179.25.97.57",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "d4e738525fe6",
+            "x-real-ip": "179.25.97.57"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "user_id": "57233abc-341a-4a90-bf7d-21c2d589ee0e"
+          },
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/users/signature/upload",
+          "executionMode": "production"
+        },
+        "binary": {
+          "data0": {
+            "mimeType": "image/png",
+            "fileType": "image",
+            "fileExtension": "png",
+            "data": "filesystem-v2",
+            "fileName": "Firma_Mateo_vargas.png",
+            "id": "filesystem-v2:workflows/QZducsMPFOrMWZpJ/executions/1443113/binary_data/d5015c45-95f2-4a49-b6b7-b18fd563464e",
+            "fileSize": "148 kB",
+            "bytes": 147930
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Validar Entrada": {
+      "main": [
+        [
+          {
+            "node": "Limpiar en users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpiar en users": {
+      "main": [
+        [
+          {
+            "node": "Borrar de Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Borrar de Drive": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Firma": {
+      "main": [
+        [
+          {
+            "node": "¿Tiene Firma?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Tiene Firma?": {
+      "main": [
+        [
+          {
+            "node": "Descargar de Drive",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Sin Firma",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar de Drive": {
+      "main": [
+        [
+          {
+            "node": "Responder Binario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Entrada1": {
+      "main": [
+        [
+          {
+            "node": "Leer Firma",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Firma Anterior": {
+      "main": [
+        [
+          {
+            "node": "Guardar en users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Subir a Drive": {
+      "main": [
+        [
+          {
+            "node": "Leer Firma Anterior",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar en users": {
+      "main": [
+        [
+          {
+            "node": "Borrar Firma Anterior de Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Borrar Firma Anterior de Drive": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Entrada2": {
+      "main": [
+        [
+          {
+            "node": "Subir a Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta1": {
+      "main": [
+        [
+          {
+            "node": "Responder1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "users/signature/delete": {
+      "main": [
+        [
+          {
+            "node": "Validar Entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET users/signature": {
+      "main": [
+        [
+          {
+            "node": "Validar Entrada1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "users/signature/upload": {
+      "main": [
+        [
+          {
+            "node": "Validar Entrada2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "2e8c6b34-8065-464a-bf53-b18ddb5060b6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
+  },
+  "nodeGroups": [],
+  "id": "QZducsMPFOrMWZpJ",
+  "tags": []
+}

@@ -8659,7 +8659,7 @@
       "namePlaceholder": "e.g. Standard prescription",
       "descriptionLabel": "Description",
       "content": "Content",
-      "legend": "Use the \"Variables\" button to insert data resolved when the prescription is issued. {{medications_table}} inserts the medications table and {{doctor_signature}} the doctor's signature.",
+      "legend": "Use the \"Variables\" button to insert data resolved when the prescription is issued. '{{medications_table}}' inserts the medications table and '{{doctor_signature}}' the doctor's signature.",
       "isActive": "Is Active",
       "cancel": "Cancel",
       "create": "Create Template",

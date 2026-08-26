@@ -1435,7 +1435,7 @@ export default function AppointmentsPage() {
         if (!inlineDraft) return;
         const onKeyDown = (e: KeyboardEvent) => {
             if (e.key !== 'Escape' || e.defaultPrevented || isSavingInline || isInlineDiscardConfirmOpen) return;
-            const openLayer = document.querySelector('[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"]');
+            const openLayer = document.querySelector('[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"], [data-notifications-panel="open"]');
             if (openLayer) return;
             e.preventDefault();
             e.stopImmediatePropagation();

@@ -8639,7 +8639,7 @@
       "namePlaceholder": "ej. Receta estándar",
       "descriptionLabel": "Descripción",
       "content": "Contenido",
-      "legend": "Use el botón \"Variables\" para insertar datos que se completarán al emitir la receta. {{medications_table}} inserta la tabla de medicamentos y {{doctor_signature}} la firma del doctor.",
+      "legend": "Use el botón \"Variables\" para insertar datos que se completarán al emitir la receta. '{{medications_table}}' inserta la tabla de medicamentos y '{{doctor_signature}}' la firma del doctor.",
       "isActive": "Está Activa",
       "cancel": "Cancelar",
       "create": "Crear Plantilla",
