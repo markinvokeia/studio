@@ -269,11 +269,14 @@ export default function MyProfilePage() {
         )}
       </div>
 
-      <PatientAssistant
-        patientId={patientId}
-        onOpenBooking={() => openBooking()}
-        onOpenTab={goToTab}
-      />
+      {/* Oculto temporalmente: el agente conversacional no se utiliza por ahora. */}
+      {false && (
+        <PatientAssistant
+          patientId={patientId}
+          onOpenBooking={() => openBooking()}
+          onOpenTab={goToTab}
+        />
+      )}
     </div>
   );
 }
