@@ -1551,7 +1551,8 @@ export type AlertAction = {
   };
   result_status: 'SUCCESS' | 'FAILED' | 'PENDING';
   result_message?: string;
-  performed_by: string;
+  /** null for system-generated actions (e.g. alert auto-send); a user uuid when a person took the action. */
+  performed_by: string | null;
   performed_at: string;
   title?: string;
   summary?: string;
