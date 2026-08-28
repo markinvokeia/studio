@@ -11,6 +11,7 @@ import { AlertNotificationsProvider } from '@/context/alert-notifications-contex
 import { TVDisplayProvider } from '@/context/tv-display-context';
 import { PrivateRoute } from '@/components/auth/PrivateRoute';
 import { NotificationsProvider } from '@/context/notifications-context';
+import { ClinicPreferencesInitializer } from '@/components/clinic/ClinicPreferencesInitializer';
 import { LicenseInitializer } from '@/components/license/LicenseInitializer';
 import type { RuntimeConfig } from '@/lib/runtime-config';
 
@@ -69,6 +70,7 @@ export default async function LocaleLayout({
             <NotificationsProvider>
               <PrivateRoute>
                 <LicenseInitializer />
+                <ClinicPreferencesInitializer />
                 {children}
               </PrivateRoute>
             </NotificationsProvider>

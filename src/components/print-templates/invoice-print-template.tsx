@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { buildDocumentDiscountView, readDiscountAmount } from '@/lib/discounts';
 import { formatDisplayDate } from '@/lib/utils';
 import { computeInvoiceTotals } from '@/components/print-templates/invoice-totals';
 import type { InvoicePrintData } from '@/stores/print-document-store';
@@ -22,6 +23,9 @@ export function InvoicePrintTemplate({ data }: InvoicePrintTemplateProps) {
   const { total, paid, pending, paymentStatus } = computeInvoiceTotals(invoice, payments);
 
   const isCredit = invoice.type?.toLowerCase().includes('credit');
+
+  // El ambito sale del documento, no de la preferencia vigente de la clinica.
+  const discountView = buildDocumentDiscountView(invoice, items);
 
   return (
     <div>
@@ -83,13 +87,14 @@ export function InvoicePrintTemplate({ data }: InvoicePrintTemplateProps) {
               <th className="text-left">{t('service')}</th>
               <th className="text-center w-16">{t('qty')}</th>
               <th className="text-right w-28">{t('unitPrice')}</th>
+              {discountView.showLineColumn && <th className="text-right w-24">{t('discount')}</th>}
               <th className="text-right w-28">{t('total')}</th>
             </tr>
           </thead>
           <tbody>
             {items.length === 0 ? (
               <tr>
-                <td colSpan={5} className="text-center text-gray-400 py-2">{t('noItems')}</td>
+                <td colSpan={discountView.showLineColumn ? 6 : 5} className="text-center text-gray-400 py-2">{t('noItems')}</td>
               </tr>
             ) : (
               items.map((item, idx) => (
@@ -98,7 +103,14 @@ export function InvoicePrintTemplate({ data }: InvoicePrintTemplateProps) {
                   <td>{item.service_name}</td>
                   <td className="text-center">{item.quantity}</td>
                   <td className="text-right">{fmtAmount(item.unit_price, currency)}</td>
-                  <td className="text-right">{fmtAmount(item.total, currency)}</td>
+                  {discountView.showLineColumn && (
+                    <td className="text-right">
+                      {readDiscountAmount(item) > 0 ? `- ${fmtAmount(readDiscountAmount(item), currency)}` : '—'}
+                    </td>
+                  )}
+                  {/* Con ambito 'total' la linea va a precio de lista: el
+                      descuento se resta una sola vez en el pie. */}
+                  <td className="text-right">{fmtAmount(discountView.lineAmount(item), currency)}</td>
                 </tr>
               ))
             )}
@@ -112,8 +124,20 @@ export function InvoicePrintTemplate({ data }: InvoicePrintTemplateProps) {
           <tbody>
             <tr>
               <td className="text-gray-600">{t('subtotal')}</td>
-              <td className="text-right font-medium">{fmtAmount(total, currency)}</td>
+              <td className="text-right font-medium">{fmtAmount(discountView.hasDiscount ? discountView.grossTotal : total, currency)}</td>
             </tr>
+            {discountView.hasDiscount && (
+              <>
+                <tr>
+                  <td className="text-gray-600">{t('discount')}</td>
+                  <td className="text-right font-medium">- {fmtAmount(discountView.discountAmount, currency)}</td>
+                </tr>
+                <tr>
+                  <td className="text-gray-600">{t('total')}</td>
+                  <td className="text-right font-medium">{fmtAmount(total, currency)}</td>
+                </tr>
+              </>
+            )}
             <tr>
               <td className="text-gray-600">{t('amountPaid')}</td>
               <td className="text-right font-medium">{fmtAmount(paid, currency)}</td>

@@ -52,6 +52,7 @@ import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useDebounce } from '@/hooks/use-debounce';
 import { normalizeApiResponse } from '@/lib/api-utils';
+import { mapLineDiscountFields } from '@/lib/discounts';
 import { invoiceOrder } from '@/lib/invoice-actions';
 import { Clinic, Invoice, InvoiceItem, Order, OrderItem, Payment, Quote, QuoteItem, Service, User } from '@/lib/types';
 import { cn, formatDate, formatDateTime, formatDisplayDate, getDocumentFileName, sortQuoteItems, toLocalISOString } from '@/lib/utils';
@@ -156,6 +157,7 @@ async function getQuoteItems(quoteId: string, t: (key: string) => string): Promi
             quantity: apiItem.quantity || 0,
             total: apiItem.total || 0,
             tooth_number: apiItem.tooth_number ? Number(apiItem.tooth_number) : undefined,
+            ...mapLineDiscountFields(apiItem),
         }));
 
         return sortQuoteItems(quoteItems);
@@ -236,6 +238,7 @@ async function getOrderItems(orderId: string, t: (key: string) => string): Promi
             completed_date: apiItem.completed_date,
             invoiced_date: apiItem.invoiced_date,
             quote_item_id: apiItem.quote_item_id ? String(apiItem.quote_item_id) : undefined,
+            ...mapLineDiscountFields(apiItem),
         }));
     } catch (error) {
         console.error("Failed to fetch order items:", error);
@@ -286,6 +289,7 @@ async function getInvoiceItems(invoiceId: string, t: (key: string) => string): P
             quantity: apiItem.quantity,
             unit_price: apiItem.unit_price,
             total: apiItem.total,
+            ...mapLineDiscountFields(apiItem),
         }));
     } catch (error) {
         console.error("Failed to fetch invoice items:", error);

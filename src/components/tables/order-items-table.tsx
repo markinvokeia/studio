@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { AppliedDiscountNote } from '@/components/ui/discount-control';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useNarrowMode } from '@/components/layout/two-panel-layout';
@@ -461,7 +462,13 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
           style: 'currency',
           currency: 'USD',
         }).format(amount);
-        return <div className="font-medium">{formatted}</div>;
+        return (
+          <div className="font-medium">
+            {formatted}
+            {/* El importe ya viene rebajado: la nota deja ver por qué. */}
+            <AppliedDiscountNote line={row.original} currency="USD" />
+          </div>
+        );
       },
     },
     {
@@ -609,6 +616,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
                       <span>{t('columns.quantity')}: {item.quantity}</span>
                       {item.unit_price != null ? <span>{t('columns.unitPrice')}: {fmt(item.unit_price)}</span> : null}
                       {item.total != null ? <span className="font-medium text-foreground">{t('columns.total')}: {fmt(item.total)}</span> : null}
+                      <AppliedDiscountNote line={item} currency="USD" />
                       {item.scheduled_date ? <span>{t('columns.scheduled')}: {formatDateTime(item.scheduled_date)}</span> : null}
                       {item.completed_date ? <span>{t('columns.completed')}: {formatDateTime(item.completed_date)}</span> : null}
                       {item.invoiced_date ? <span>{t('columns.invoiced')}: {formatDateTime(item.invoiced_date)}</span> : null}

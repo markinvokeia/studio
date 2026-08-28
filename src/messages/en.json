@@ -223,6 +223,7 @@
       "keepOpen": "Save and add another"
     },
     "validation": {
+      "discountOverLimit": "Above the maximum discount allowed by the clinic",
       "dateRequired": "Date is required",
       "toothNumberMin": "Invalid tooth number",
       "toothNumberMax": "Invalid tooth number",
@@ -344,6 +345,7 @@
     "PhysicalCashRegisters": "Physical Cash Registers",
     "BusinessSetup": "Business Setup",
     "ClinicDetails": "Clinic Details",
+    "ClinicPrefs": "Clinic Preferences",
     "Schedules": "Schedules",
     "Holidays": "Holidays",
     "Calendars": "Calendars",
@@ -2416,6 +2418,7 @@
       "saving": "Saving..."
     },
     "validation": {
+      "discountOverLimit": "Above the maximum discount allowed by the clinic",
       "userRequired": "An user is required",
       "serviceRequired": "A service is required",
       "dateRequired": "Date is required",
@@ -8118,7 +8121,8 @@
       "totalIncome": "Total income",
       "totalExpense": "Total expenses",
       "net": "Net"
-    }
+    },
+    "discount": "Discount"
   },
   "License": {
     "expired": {
@@ -8484,6 +8488,62 @@
       "mailSubject": "Enquiry from the portal — {sede}",
       "collapse": "Hide",
       "expand": "View contact details"
+    }
+  },
+  "Discounts": {
+    "fieldLabel": "Discount",
+    "percentMode": "Discount as a percentage",
+    "amountMode": "Discount in {currency}",
+    "resultingAmount": "Takes off {currency} {amount}",
+    "overLimit": "Above the maximum allowed ({max}%)",
+    "subtotal": "Subtotal",
+    "discount": "Discount",
+    "total": "Total",
+    "applyAction": "Apply discounts",
+    "confirm": "Apply",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "remove": "Remove",
+    "appliedSummary": "Discount {detail} · −{currency} {amount}"
+  },
+  "ClinicPrefsPage": {
+    "title": "Clinic Preferences",
+    "description": "Settings for how your clinic works. Tax and contact details live in Clinic Details, not here.",
+    "save": "Save",
+    "saved": "Preferences saved",
+    "saveError": "We couldn't save the preferences",
+    "loadError": "We couldn't load the preferences",
+    "readOnlyNotice": "Read-only: you don't have permission to change the clinic preferences.",
+    "discounts": {
+      "sectionTitle": "Discounts",
+      "enabled": {
+        "label": "Apply discounts",
+        "help": "When off, no quote or invoice screen shows discount fields and totals are calculated as before."
+      },
+      "scope": {
+        "label": "Where is the discount applied?",
+        "help": "The two options are mutually exclusive: pick one for the whole clinic and that's what shows up when selling.",
+        "line": {
+          "title": "Per service",
+          "description": "Each quote or invoice line carries its own discount."
+        },
+        "total": {
+          "title": "On the total",
+          "description": "A single discount on the document total. Services print at list price and the discount shows as a separate line."
+        }
+      },
+      "defaultPct": {
+        "label": "Default discount (%)",
+        "help": "The value the field starts with when creating a quote or an invoice. It can always be changed on the sale.",
+        "hint": "0 leaves the field empty."
+      },
+      "maxPct": {
+        "label": "Maximum discount (%)",
+        "help": "The cap the form will accept, measured as a percentage of the amount. It also applies to discounts entered as a fixed amount.",
+        "hint": "100 means no cap."
+      },
+      "defaultOverMax": "The default discount can't be higher than the maximum allowed.",
+      "permissionNotice": "Only users with the \"Apply Discounts\" permission can change the discount when selling. Everyone else sees the field read-only."
     }
   },
   "PatientPortalConfigPage": {

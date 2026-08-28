@@ -802,7 +802,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE quotes q set total = (select SUM(qi.total) from quote_items qi where qi.quote_id = {{ $json.quote_id }})\nwhere q.id = {{ $json.quote_id }}",
+        "query": "UPDATE quotes q\nSET total = sub.net,\n    gross_total = sub.gross,\n    discount_amount = CASE WHEN q.discount_scope = 'total' THEN q.discount_amount\n                           ELSE NULLIF(sub.gross - sub.net, 0) END,\n    discount_scope = COALESCE(q.discount_scope, CASE WHEN sub.gross > sub.net THEN 'line' END)\nFROM (\n    SELECT COALESCE(SUM(qi.total), 0) AS net,\n           COALESCE(SUM(COALESCE(qi.gross_total, qi.total)), 0) AS gross\n    FROM quote_items qi\n    WHERE qi.quote_id = {{ $json.quote_id }}\n) sub\nWHERE q.id = {{ $json.quote_id }}",
         "options": {}
       },
       "type": "n8n-nodes-base.postgres",
@@ -1607,7 +1607,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT \n    q.id, \n    q.user_id, \n    u.name AS user_name, \n    q.total AS total_presupuesto, \n    q.status, \n    q.billing_status, \n    q.payment_status, \n    q.created_at, \n    q.currency, \n    q.doc_no, \n    q.exchange_rate, \n    q.notes,\n    q.external_id,\n    q.sede_id,\n    q.doctor_id,\n    \n    -- 1. Monto Facturado: Suma de facturas (restando notas de crédito si existen)\n    COALESCE((\n        SELECT SUM(CASE WHEN i.type = 'invoice' THEN i.total ELSE -i.total END)\n        FROM public.invoices i\n        JOIN public.orders o ON i.order_id = o.id\n        WHERE o.quote_id = q.id AND i.status != 'cancel'\n    ), 0) AS monto_facturado,\n\n    -- 2. Monto Pagado: Suma de todos los pagos asociados a las facturas de este presupuesto\n    COALESCE((\n        SELECT SUM(p.amount)\n        FROM public.payments p\n        JOIN public.invoices i ON p.invoice_id = i.id\n        JOIN public.orders o ON i.order_id = o.id\n        WHERE o.quote_id = q.id AND i.status != 'cancel'\n    ), 0) AS monto_pagado,\n\n    -- 3. Cálculo de Pendientes (opcional pero muy útil para el frontend)\n    (q.total - COALESCE((\n        SELECT SUM(CASE WHEN i.type = 'invoice' THEN i.total ELSE -i.total END)\n        FROM public.invoices i\n        JOIN public.orders o ON i.order_id = o.id\n        WHERE o.quote_id = q.id AND i.status != 'cancel'\n    ), 0)) AS pendiente_facturar,\n\n    (COALESCE((\n        SELECT SUM(CASE WHEN i.type = 'invoice' THEN i.total ELSE -i.total END)\n        FROM public.invoices i\n        JOIN public.orders o ON i.order_id = o.id\n        WHERE o.quote_id = q.id AND i.status != 'cancel'\n    ), 0) - COALESCE((\n        SELECT SUM(p.amount)\n        FROM public.payments p\n        JOIN public.invoices i ON p.invoice_id = i.id\n        JOIN public.orders o ON i.order_id = o.id\n        WHERE o.quote_id = q.id AND i.status != 'cancel'\n    ), 0)) AS pendiente_pago_facturado,\n\n    COUNT(*) OVER() AS total_items\n\nFROM public.quotes q \nINNER JOIN public.users u ON u.id = q.user_id\nWHERE ($1 IS NULL OR q.is_sales = $1)\n  AND ($2 IS NULL OR q.id = $2)\n  AND ($3 IS NULL OR TO_CHAR(q.created_at, 'YYYY-MM-DD') >= $3)\n  AND ($4 IS NULL OR TO_CHAR(q.created_at, 'YYYY-MM-DD') <= $4)\n  AND ($7 IS NULL OR q.doc_no ILIKE '%' || $7 || '%'\n        OR u.name ILIKE '%' || $7 || '%')\nORDER BY q.id DESC\nLIMIT $5\nOFFSET (($6 - 1) * $5);",
+        "query": "SELECT \n    q.id, \n    q.user_id, \n    u.name AS user_name, \n    q.total AS total_presupuesto, \n    q.status, \n    q.billing_status, \n    q.payment_status, \n    q.created_at, \n    q.currency, \n    q.doc_no, \n    q.exchange_rate, \n    q.notes,\n    q.external_id,\n    q.sede_id,\n    q.doctor_id,\n    q.gross_total,\n    q.discount_scope,\n    q.discount_mode,\n    q.discount_value,\n    q.discount_amount,\n    \n    -- 1. Monto Facturado: Suma de facturas (restando notas de crédito si existen)\n    COALESCE((\n        SELECT SUM(CASE WHEN i.type = 'invoice' THEN i.total ELSE -i.total END)\n        FROM public.invoices i\n        JOIN public.orders o ON i.order_id = o.id\n        WHERE o.quote_id = q.id AND i.status != 'cancel'\n    ), 0) AS monto_facturado,\n\n    -- 2. Monto Pagado: Suma de todos los pagos asociados a las facturas de este presupuesto\n    COALESCE((\n        SELECT SUM(p.amount)\n        FROM public.payments p\n        JOIN public.invoices i ON p.invoice_id = i.id\n        JOIN public.orders o ON i.order_id = o.id\n        WHERE o.quote_id = q.id AND i.status != 'cancel'\n    ), 0) AS monto_pagado,\n\n    -- 3. Cálculo de Pendientes (opcional pero muy útil para el frontend)\n    (q.total - COALESCE((\n        SELECT SUM(CASE WHEN i.type = 'invoice' THEN i.total ELSE -i.total END)\n        FROM public.invoices i\n        JOIN public.orders o ON i.order_id = o.id\n        WHERE o.quote_id = q.id AND i.status != 'cancel'\n    ), 0)) AS pendiente_facturar,\n\n    (COALESCE((\n        SELECT SUM(CASE WHEN i.type = 'invoice' THEN i.total ELSE -i.total END)\n        FROM public.invoices i\n        JOIN public.orders o ON i.order_id = o.id\n        WHERE o.quote_id = q.id AND i.status != 'cancel'\n    ), 0) - COALESCE((\n        SELECT SUM(p.amount)\n        FROM public.payments p\n        JOIN public.invoices i ON p.invoice_id = i.id\n        JOIN public.orders o ON i.order_id = o.id\n        WHERE o.quote_id = q.id AND i.status != 'cancel'\n    ), 0)) AS pendiente_pago_facturado,\n\n    COUNT(*) OVER() AS total_items\n\nFROM public.quotes q \nINNER JOIN public.users u ON u.id = q.user_id\nWHERE ($1 IS NULL OR q.is_sales = $1)\n  AND ($2 IS NULL OR q.id = $2)\n  AND ($3 IS NULL OR TO_CHAR(q.created_at, 'YYYY-MM-DD') >= $3)\n  AND ($4 IS NULL OR TO_CHAR(q.created_at, 'YYYY-MM-DD') <= $4)\n  AND ($7 IS NULL OR q.doc_no ILIKE '%' || $7 || '%'\n        OR u.name ILIKE '%' || $7 || '%')\nORDER BY q.id DESC\nLIMIT $5\nOFFSET (($6 - 1) * $5);",
         "options": {
           "queryReplacement": "={{ [$json.query.is_sales === 'true', $json.query.quote_id, $json.query.date_from, $json.query.date_to, $json.query.limit || 10, $json.query.page || 1, $json.query.search] }}"
         }
@@ -1788,7 +1788,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "select oi.id, oi.id as order_item_id, oi.tooth_number, sc.id as service_id, sc.name as service_name, qi.quantity, qi.unit_price, qi.total, oi.status, scheduled_date, quote_item_id, completed_date, invoiced_date from order_items oi\ninner join quote_items qi on qi.id = oi.quote_item_id\ninner join service_catalog sc on qi.service_id = sc.id\nwhere oi.order_id = $1",
+        "query": "select oi.id, oi.id as order_item_id, oi.tooth_number, sc.id as service_id, sc.name as service_name, qi.quantity, qi.unit_price, qi.total, qi.gross_total, qi.discount_mode, qi.discount_value, qi.discount_amount, oi.status, scheduled_date, quote_item_id, completed_date, invoiced_date from order_items oi\ninner join quote_items qi on qi.id = oi.quote_item_id\ninner join service_catalog sc on qi.service_id = sc.id\nwhere oi.order_id = $1",
         "options": {
           "queryReplacement": "={{ $json.query.order_id }}"
         }
@@ -1824,7 +1824,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "select ii.id, ii.service_id, sc.name as service_name, ii.quantity, ii.unit_price, ii.total, ii.steps\nfrom invoice_items ii\nleft join service_catalog sc on ii.service_id = sc.id\n-- left join order_items oi on oi.id = ii.order_item_id\n-- left join quote_items qi on qi.id = oi.quote_item_id\nwhere ii.invoice_id = {{ $json.query.invoice_id }}",
+        "query": "select ii.id, ii.service_id, sc.name as service_name, ii.quantity, ii.unit_price, ii.total, ii.gross_total, ii.discount_mode, ii.discount_value, ii.discount_amount, ii.steps\nfrom invoice_items ii\nleft join service_catalog sc on ii.service_id = sc.id\n-- left join order_items oi on oi.id = ii.order_item_id\n-- left join quote_items qi on qi.id = oi.quote_item_id\nwhere ii.invoice_id = {{ $json.query.invoice_id }}",
         "options": {}
       },
       "type": "n8n-nodes-base.postgres",
@@ -2780,7 +2780,12 @@
             "exchange_rate": "={{ $json.body.exchange_rate || 1 }}",
             "notes": "={{ $json.body.notes || '' }}",
             "doctor_id": "={{ $json.body.doctor_id || null }}",
-            "sede_id": "={{ $json.body.sede_id || null }}"
+            "sede_id": "={{ $json.body.sede_id || null }}",
+            "gross_total": "={{ $json.body.gross_total ?? null }}",
+            "discount_scope": "={{ $json.body.discount_scope ?? null }}",
+            "discount_mode": "={{ $json.body.discount_mode ?? null }}",
+            "discount_value": "={{ $json.body.discount_value ?? null }}",
+            "discount_amount": "={{ $json.body.discount_amount ?? null }}"
           },
           "matchingColumns": [
             "id"
@@ -3049,7 +3054,12 @@
             "exchange_rate": "={{ $json.body.exchange_rate || 1 }}",
             "notes": "={{ $json.body.notes || '' }}",
             "doctor_id": "={{ $json.body.doctor_id || null }}",
-            "sede_id": "={{ $json.body.sede_id || null }}"
+            "sede_id": "={{ $json.body.sede_id || null }}",
+            "gross_total": "={{ $json.body.gross_total ?? null }}",
+            "discount_scope": "={{ $json.body.discount_scope ?? null }}",
+            "discount_mode": "={{ $json.body.discount_mode ?? null }}",
+            "discount_value": "={{ $json.body.discount_value ?? null }}",
+            "discount_amount": "={{ $json.body.discount_amount ?? null }}"
           },
           "matchingColumns": [
             "id"
@@ -3309,7 +3319,11 @@
             "quantity": "={{ $json.body.quantity }}",
             "service_id": "={{ $json.body.service_id }}",
             "quote_id": "={{ $json.body.quote_id }}",
-            "tooth_number": "={{ $json.body.tooth_number }}"
+            "tooth_number": "={{ $json.body.tooth_number }}",
+            "gross_total": "={{ $json.body.gross_total ?? null }}",
+            "discount_mode": "={{ $json.body.discount_mode ?? null }}",
+            "discount_value": "={{ $json.body.discount_value ?? null }}",
+            "discount_amount": "={{ $json.body.discount_amount ?? null }}"
           },
           "matchingColumns": [
             "id"
@@ -3384,6 +3398,46 @@
               "type": "number",
               "canBeUsedToMatch": true,
               "removed": false
+            },
+            {
+              "id": "gross_total",
+              "displayName": "gross_total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discount_mode",
+              "displayName": "discount_mode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discount_value",
+              "displayName": "discount_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discount_amount",
+              "displayName": "discount_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -3431,7 +3485,11 @@
             "service_id": "={{ $json.body.service_id }}",
             "quote_id": "={{ $json.body.quote_id }}",
             "id": "={{ $json.body.id }}",
-            "tooth_number": "={{ $json.body.tooth_number }}"
+            "tooth_number": "={{ $json.body.tooth_number }}",
+            "gross_total": "={{ $json.body.gross_total ?? null }}",
+            "discount_mode": "={{ $json.body.discount_mode ?? null }}",
+            "discount_value": "={{ $json.body.discount_value ?? null }}",
+            "discount_amount": "={{ $json.body.discount_amount ?? null }}"
           },
           "matchingColumns": [
             "id"
@@ -3500,6 +3558,46 @@
             {
               "id": "tooth_number",
               "displayName": "tooth_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "gross_total",
+              "displayName": "gross_total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discount_mode",
+              "displayName": "discount_mode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discount_value",
+              "displayName": "discount_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discount_amount",
+              "displayName": "discount_amount",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -3629,7 +3727,11 @@
             "quantity": "={{ $json.quantity }}",
             "unit_price": "={{ $json.unit_price }}",
             "total": "={{ $json.total }}",
-            "service_id": "={{ $json.service_id }}"
+            "service_id": "={{ $json.service_id }}",
+            "gross_total": "={{ $json.gross_total ?? null }}",
+            "discount_mode": "={{ $json.discount_mode ?? null }}",
+            "discount_value": "={{ $json.discount_value ?? null }}",
+            "discount_amount": "={{ $json.discount_amount ?? null }}"
           },
           "matchingColumns": [
             "id"
@@ -3699,6 +3801,46 @@
               "display": true,
               "type": "number",
               "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "gross_total",
+              "displayName": "gross_total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discount_mode",
+              "displayName": "discount_mode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discount_value",
+              "displayName": "discount_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discount_amount",
+              "displayName": "discount_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
               "removed": false
             }
           ],
@@ -3885,8 +4027,12 @@
             "invoice_id": "={{ $('Insert Invoice').item.json.id }}",
             "quantity": "={{ $json.quantity }}",
             "unit_price": "={{ $json.unit_price }}",
-            "total": "={{ $json.quantity * $json.unit_price }}",
-            "service_id": "={{ $json.service_id }}"
+            "total": "={{ $json.total ?? ($json.quantity * $json.unit_price) }}",
+            "service_id": "={{ $json.service_id }}",
+            "gross_total": "={{ $json.gross_total ?? null }}",
+            "discount_mode": "={{ $json.discount_mode ?? null }}",
+            "discount_value": "={{ $json.discount_value ?? null }}",
+            "discount_amount": "={{ $json.discount_amount ?? null }}"
           },
           "matchingColumns": [
             "id"
@@ -3951,6 +4097,46 @@
             {
               "id": "service_id",
               "displayName": "service_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "gross_total",
+              "displayName": "gross_total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discount_mode",
+              "displayName": "discount_mode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discount_value",
+              "displayName": "discount_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discount_amount",
+              "displayName": "discount_amount",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -4234,8 +4420,12 @@
             "order_item_id": "={{ $('invoices/items/upsert').item.json.body.order_item_id }}",
             "quantity": "={{ $('invoices/items/upsert').item.json.body.quantity }}",
             "unit_price": "={{ $('invoices/items/upsert').item.json.body.unit_price }}",
-            "total": "={{ Number($('invoices/items/upsert').item.json.body.unit_price) * Number($('invoices/items/upsert').item.json.body.quantity) }}",
-            "service_id": "={{ $('invoices/items/upsert').item.json.body.service_id }}"
+            "total": "={{ $('invoices/items/upsert').item.json.body.total ?? (Number($('invoices/items/upsert').item.json.body.unit_price) * Number($('invoices/items/upsert').item.json.body.quantity)) }}",
+            "service_id": "={{ $('invoices/items/upsert').item.json.body.service_id }}",
+            "gross_total": "={{ $('invoices/items/upsert').item.json.body.gross_total ?? null }}",
+            "discount_mode": "={{ $('invoices/items/upsert').item.json.body.discount_mode ?? null }}",
+            "discount_value": "={{ $('invoices/items/upsert').item.json.body.discount_value ?? null }}",
+            "discount_amount": "={{ $('invoices/items/upsert').item.json.body.discount_amount ?? null }}"
           },
           "matchingColumns": [
             "id"
@@ -4304,6 +4494,46 @@
               "display": true,
               "type": "number",
               "canBeUsedToMatch": true
+            },
+            {
+              "id": "gross_total",
+              "displayName": "gross_total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discount_mode",
+              "displayName": "discount_mode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discount_value",
+              "displayName": "discount_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discount_amount",
+              "displayName": "discount_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -4347,9 +4577,13 @@
             "order_item_id": "={{ $('invoices/items/upsert').item.json.body.order_item_id }}",
             "quantity": "={{ $('invoices/items/upsert').item.json.body.quantity }}",
             "unit_price": "={{ $('invoices/items/upsert').item.json.body.unit_price }}",
-            "total": "={{ Number($('invoices/items/upsert').item.json.body.unit_price) * Number($('invoices/items/upsert').item.json.body.quantity) }}",
+            "total": "={{ $('invoices/items/upsert').item.json.body.total ?? (Number($('invoices/items/upsert').item.json.body.unit_price) * Number($('invoices/items/upsert').item.json.body.quantity)) }}",
             "service_id": "={{ $('invoices/items/upsert').item.json.body.service_id }}",
-            "id": "={{ $('invoices/items/upsert').item.json.body.id }}"
+            "id": "={{ $('invoices/items/upsert').item.json.body.id }}",
+            "gross_total": "={{ $('invoices/items/upsert').item.json.body.gross_total ?? null }}",
+            "discount_mode": "={{ $('invoices/items/upsert').item.json.body.discount_mode ?? null }}",
+            "discount_value": "={{ $('invoices/items/upsert').item.json.body.discount_value ?? null }}",
+            "discount_amount": "={{ $('invoices/items/upsert').item.json.body.discount_amount ?? null }}"
           },
           "matchingColumns": [
             "id"
@@ -4418,6 +4652,46 @@
               "display": true,
               "type": "number",
               "canBeUsedToMatch": true
+            },
+            {
+              "id": "gross_total",
+              "displayName": "gross_total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discount_mode",
+              "displayName": "discount_mode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discount_value",
+              "displayName": "discount_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discount_amount",
+              "displayName": "discount_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -5021,7 +5295,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE public.invoices\nSET total = (\n    SELECT COALESCE(SUM(total), 0)\n    FROM public.invoice_items\n    WHERE invoice_id = $1\n)\nWHERE id = $1;",
+        "query": "UPDATE public.invoices i\nSET total = sub.net,\n    gross_total = sub.gross,\n    discount_amount = CASE WHEN i.discount_scope = 'total' THEN i.discount_amount\n                           ELSE NULLIF(sub.gross - sub.net, 0) END,\n    discount_scope = COALESCE(i.discount_scope, CASE WHEN sub.gross > sub.net THEN 'line' END)\nFROM (\n    SELECT COALESCE(SUM(ii.total), 0) AS net,\n           COALESCE(SUM(COALESCE(ii.gross_total, ii.total)), 0) AS gross\n    FROM public.invoice_items ii\n    WHERE ii.invoice_id = $1\n) sub\nWHERE i.id = $1;",
         "options": {
           "queryReplacement": "={{ $('Select Invoice draft').item.json.id }}"
         }
@@ -5044,7 +5318,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE public.invoices\nSET total = (\n    SELECT COALESCE(SUM(total), 0)\n    FROM public.invoice_items\n    WHERE invoice_id = $1\n)\nWHERE id = $1;",
+        "query": "UPDATE public.invoices i\nSET total = sub.net,\n    gross_total = sub.gross,\n    discount_amount = CASE WHEN i.discount_scope = 'total' THEN i.discount_amount\n                           ELSE NULLIF(sub.gross - sub.net, 0) END,\n    discount_scope = COALESCE(i.discount_scope, CASE WHEN sub.gross > sub.net THEN 'line' END)\nFROM (\n    SELECT COALESCE(SUM(ii.total), 0) AS net,\n           COALESCE(SUM(COALESCE(ii.gross_total, ii.total)), 0) AS gross\n    FROM public.invoice_items ii\n    WHERE ii.invoice_id = $1\n) sub\nWHERE i.id = $1;",
         "options": {
           "queryReplacement": "={{ $('Select Invoice draft1').item.json.id }}"
         }
@@ -5067,7 +5341,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE public.invoices\nSET total = (\n    SELECT COALESCE(SUM(total), 0)\n    FROM public.invoice_items\n    WHERE invoice_id = $1\n)\nWHERE id = $1;",
+        "query": "UPDATE public.invoices i\nSET total = sub.net,\n    gross_total = sub.gross,\n    discount_amount = CASE WHEN i.discount_scope = 'total' THEN i.discount_amount\n                           ELSE NULLIF(sub.gross - sub.net, 0) END,\n    discount_scope = COALESCE(i.discount_scope, CASE WHEN sub.gross > sub.net THEN 'line' END)\nFROM (\n    SELECT COALESCE(SUM(ii.total), 0) AS net,\n           COALESCE(SUM(COALESCE(ii.gross_total, ii.total)), 0) AS gross\n    FROM public.invoice_items ii\n    WHERE ii.invoice_id = $1\n) sub\nWHERE i.id = $1;",
         "options": {
           "queryReplacement": "={{ $('Insert Invoice').item.json.id }}"
         }
@@ -5090,7 +5364,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE public.invoices\nSET total = (\n    SELECT COALESCE(SUM(total), 0)\n    FROM public.invoice_items\n    WHERE invoice_id = $1\n)\nWHERE id = $1;",
+        "query": "UPDATE public.invoices i\nSET total = sub.net,\n    gross_total = sub.gross,\n    discount_amount = CASE WHEN i.discount_scope = 'total' THEN i.discount_amount\n                           ELSE NULLIF(sub.gross - sub.net, 0) END,\n    discount_scope = COALESCE(i.discount_scope, CASE WHEN sub.gross > sub.net THEN 'line' END)\nFROM (\n    SELECT COALESCE(SUM(ii.total), 0) AS net,\n           COALESCE(SUM(COALESCE(ii.gross_total, ii.total)), 0) AS gross\n    FROM public.invoice_items ii\n    WHERE ii.invoice_id = $1\n) sub\nWHERE i.id = $1;",
         "options": {
           "queryReplacement": "={{ $('invoices/upsert').item.json.body.id }}"
         }
@@ -5190,7 +5464,12 @@
             "due_date": "={{ $json.body.due_date }}",
             "status": "={{ \"booked\" }}",
             "doctor_id": "={{ $json.body.doctor_id || null }}",
-            "sede_id": "={{ $json.body.sede_id || null }}"
+            "sede_id": "={{ $json.body.sede_id || null }}",
+            "gross_total": "={{ $json.body.gross_total ?? null }}",
+            "discount_scope": "={{ $json.body.discount_scope ?? null }}",
+            "discount_mode": "={{ $json.body.discount_mode ?? null }}",
+            "discount_value": "={{ $json.body.discount_value ?? null }}",
+            "discount_amount": "={{ $json.body.discount_amount ?? null }}"
           },
           "matchingColumns": [
             "id"
@@ -5525,7 +5804,11 @@
             "quantity": "={{ $json.quantity }}",
             "unit_price": "={{ $json.unit_price }}",
             "total": "={{ $json.total }}",
-            "service_id": "={{ $json.service_id }}"
+            "service_id": "={{ $json.service_id }}",
+            "gross_total": "={{ $json.gross_total ?? null }}",
+            "discount_mode": "={{ $json.discount_mode ?? null }}",
+            "discount_value": "={{ $json.discount_value ?? null }}",
+            "discount_amount": "={{ $json.discount_amount ?? null }}"
           },
           "matchingColumns": [
             "id"
@@ -5595,6 +5878,46 @@
               "display": true,
               "type": "number",
               "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "gross_total",
+              "displayName": "gross_total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discount_mode",
+              "displayName": "discount_mode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discount_value",
+              "displayName": "discount_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discount_amount",
+              "displayName": "discount_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
               "removed": false
             }
           ],
@@ -5795,7 +6118,11 @@
             "quantity": "={{ $json.quantity }}",
             "service_id": "={{ $json.service_id }}",
             "quote_id": "={{ $('Insert').item.json.id }}",
-            "tooth_number": "={{ $json.tooth_number }}"
+            "tooth_number": "={{ $json.tooth_number }}",
+            "gross_total": "={{ $json.gross_total ?? null }}",
+            "discount_mode": "={{ $json.discount_mode ?? null }}",
+            "discount_value": "={{ $json.discount_value ?? null }}",
+            "discount_amount": "={{ $json.discount_amount ?? null }}"
           },
           "matchingColumns": [
             "id"
@@ -5870,6 +6197,46 @@
               "type": "number",
               "canBeUsedToMatch": true,
               "removed": false
+            },
+            {
+              "id": "gross_total",
+              "displayName": "gross_total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discount_mode",
+              "displayName": "discount_mode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discount_value",
+              "displayName": "discount_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discount_amount",
+              "displayName": "discount_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -5926,7 +6293,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE quotes q set total = (select SUM(qi.total) from quote_items qi where qi.quote_id = $1)\nwhere q.id = $1",
+        "query": "UPDATE quotes q\nSET total = sub.net,\n    gross_total = sub.gross,\n    discount_amount = CASE WHEN q.discount_scope = 'total' THEN q.discount_amount\n                           ELSE NULLIF(sub.gross - sub.net, 0) END,\n    discount_scope = COALESCE(q.discount_scope, CASE WHEN sub.gross > sub.net THEN 'line' END)\nFROM (\n    SELECT COALESCE(SUM(qi.total), 0) AS net,\n           COALESCE(SUM(COALESCE(qi.gross_total, qi.total)), 0) AS gross\n    FROM quote_items qi\n    WHERE qi.quote_id = $1\n) sub\nWHERE q.id = $1",
         "options": {
           "queryReplacement": "={{ $('Insert').first().json.id }}"
         }
@@ -5951,9 +6318,9 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO public.invoices (order_id, total, status, created_at, currency, is_sales, invoice_ref, user_id, type, parent_id, due_date, notes, is_historical, doctor_id, sede_id)\nVALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, COALESCE($15, (SELECT sede_id FROM public.invoices WHERE id = $10)))\nRETURNING id, doc_no;",
+        "query": "INSERT INTO public.invoices (order_id, total, status, created_at, currency, is_sales, invoice_ref, user_id, type, parent_id, due_date, notes, is_historical, doctor_id, sede_id, gross_total, discount_scope, discount_mode, discount_value, discount_amount)\nVALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, COALESCE($15, (SELECT sede_id FROM public.invoices WHERE id = $10)), $16, $17, $18, $19, $20)\nRETURNING id, doc_no;",
         "options": {
-          "queryReplacement": "={{ [$json.body.order_id || null, $json.body.total, 'booked', $json.body.created_at || $now, $json.body.currency, $json.body.is_sales, $json.body.invoice_ref, $json.body.user_id, $json.body.type, $json.body.parent_id, $json.body.due_date, $json.body.notes, $json.body.is_historical || false, $json.body.doctor_id || null, $json.body.sede_id || null] }}"
+          "queryReplacement": "={{ [$json.body.order_id || null, $json.body.total, 'booked', $json.body.created_at || $now, $json.body.currency, $json.body.is_sales, $json.body.invoice_ref, $json.body.user_id, $json.body.type, $json.body.parent_id, $json.body.due_date, $json.body.notes, $json.body.is_historical || false, $json.body.doctor_id || null, $json.body.sede_id || null, $json.body.gross_total ?? null, $json.body.discount_scope ?? null, $json.body.discount_mode ?? null, $json.body.discount_value ?? null, $json.body.discount_amount ?? null] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
@@ -6028,7 +6395,11 @@
             "quantity": "={{ $json.quantity }}",
             "service_id": "={{ $json.service_id }}",
             "quote_id": "={{ $('Update').item.json.id }}",
-            "tooth_number": "={{ $json.tooth_number }}"
+            "tooth_number": "={{ $json.tooth_number }}",
+            "gross_total": "={{ $json.gross_total ?? null }}",
+            "discount_mode": "={{ $json.discount_mode ?? null }}",
+            "discount_value": "={{ $json.discount_value ?? null }}",
+            "discount_amount": "={{ $json.discount_amount ?? null }}"
           },
           "matchingColumns": [
             "id"
@@ -6103,6 +6474,46 @@
               "type": "number",
               "canBeUsedToMatch": true,
               "removed": false
+            },
+            {
+              "id": "gross_total",
+              "displayName": "gross_total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discount_mode",
+              "displayName": "discount_mode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discount_value",
+              "displayName": "discount_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "discount_amount",
+              "displayName": "discount_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -6159,7 +6570,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE quotes q set total = (select SUM(qi.total) from quote_items qi where qi.quote_id = $1)\nwhere q.id = $1",
+        "query": "UPDATE quotes q\nSET total = sub.net,\n    gross_total = sub.gross,\n    discount_amount = CASE WHEN q.discount_scope = 'total' THEN q.discount_amount\n                           ELSE NULLIF(sub.gross - sub.net, 0) END,\n    discount_scope = COALESCE(q.discount_scope, CASE WHEN sub.gross > sub.net THEN 'line' END)\nFROM (\n    SELECT COALESCE(SUM(qi.total), 0) AS net,\n           COALESCE(SUM(COALESCE(qi.gross_total, qi.total)), 0) AS gross\n    FROM quote_items qi\n    WHERE qi.quote_id = $1\n) sub\nWHERE q.id = $1",
         "options": {
           "queryReplacement": "={{ $('Update').first().json.id }}"
         }
@@ -9212,7 +9623,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE public.invoices\nSET total = (\n    SELECT COALESCE(SUM(total), 0)\n    FROM public.invoice_items\n    WHERE invoice_id = $1\n)\nWHERE id = $1\nRETURNING id, total;",
+        "query": "UPDATE public.invoices i\nSET total = sub.net,\n    gross_total = sub.gross,\n    discount_amount = CASE WHEN i.discount_scope = 'total' THEN i.discount_amount\n                           ELSE NULLIF(sub.gross - sub.net, 0) END,\n    discount_scope = COALESCE(i.discount_scope, CASE WHEN sub.gross > sub.net THEN 'line' END)\nFROM (\n    SELECT COALESCE(SUM(ii.total), 0) AS net,\n           COALESCE(SUM(COALESCE(ii.gross_total, ii.total)), 0) AS gross\n    FROM public.invoice_items ii\n    WHERE ii.invoice_id = $1\n) sub\nWHERE i.id = $1\nRETURNING i.id, i.total;",
         "options": {
           "queryReplacement": "={{ $('invoice/items/edit-with-reallocation').item.json.body.invoice_id }}"
         }

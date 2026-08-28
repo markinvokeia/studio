@@ -36,6 +36,12 @@ async function fetchQuoteItems(quoteId: string): Promise<QuoteItem[]> {
       quantity: Number(a.quantity) || 0,
       total: Number(a.total) || 0,
       tooth_number: a.tooth_number ? Number(a.tooth_number) : undefined,
+      // Metadatos de descuento: `total` ya viene neto. Sin ellos la tabla no
+      // podria avisar de que ese importe esta rebajado.
+      gross_total: a.gross_total != null ? Number(a.gross_total) : undefined,
+      discount_mode: a.discount_mode ?? null,
+      discount_value: a.discount_value != null ? Number(a.discount_value) : null,
+      discount_amount: a.discount_amount != null ? Number(a.discount_amount) : null,
     }));
     return sortQuoteItems(quoteItems);
   } catch { return []; }

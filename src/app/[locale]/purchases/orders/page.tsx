@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { API_ROUTES } from '@/constants/routes';
 import { PURCHASES_PERMISSIONS } from '@/constants/permissions';
 import { usePermissions } from '@/hooks/usePermissions';
+import { mapLineDiscountFields } from '@/lib/discounts';
 import { Invoice, InvoiceItem, Order, OrderItem, Payment } from '@/lib/types';
 import { api } from '@/services/api';
 import { RowSelectionState } from '@tanstack/react-table';
@@ -60,6 +61,7 @@ async function getOrderItems(orderId: string): Promise<OrderItem[]> {
             scheduled_date: apiItem.scheduled_date,
             completed_date: apiItem.completed_date,
             invoiced_date: apiItem.invoiced_date,
+            ...mapLineDiscountFields(apiItem),
         }));
     } catch (error) {
         console.error("Failed to fetch order items:", error);
@@ -171,6 +173,7 @@ async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
             quantity: apiItem.quantity,
             unit_price: apiItem.unit_price,
             total: apiItem.total,
+            ...mapLineDiscountFields(apiItem),
         }));
     } catch (error) {
         console.error("Failed to fetch invoice items:", error);

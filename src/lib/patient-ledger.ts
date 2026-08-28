@@ -33,6 +33,10 @@ export type LedgerRow = {
   serviceId?: string;
   quantity?: number;
   unitPrice?: number;
+  /** Descuento ya aplicado en `debe`. 0/undefined ⇒ la línea no lleva rebaja. */
+  discountAmount?: number;
+  discountMode?: 'percent' | 'amount' | null;
+  discountValue?: number | null;
   /** The parent Quote's own status (draft/pending/accepted/confirmed/rejected) — only
    *  'accepted'/'confirmed' quotes have an Order behind them and can be invoiced. */
   quoteStatus?: string;
@@ -121,6 +125,9 @@ export function buildPatientLedger(params: {
           quantity: item.quantity,
           unitPrice: item.unit_price,
           doctorId: invoice.doctor_id || quote.doctor_id || undefined,
+          discountAmount: Number(item.discount_amount ?? 0) || undefined,
+          discountMode: item.discount_mode ?? null,
+          discountValue: item.discount_value ?? null,
           doctorName: invoice.doctor_name || quote.doctor_name || undefined,
           dueDate: invoice.due_date || undefined,
         });
@@ -143,6 +150,9 @@ export function buildPatientLedger(params: {
           quantity: quoteItem.quantity,
           unitPrice: quoteItem.unit_price,
           quoteStatus: quote.status,
+          discountAmount: Number(quoteItem.discount_amount ?? 0) || undefined,
+          discountMode: quoteItem.discount_mode ?? null,
+          discountValue: quoteItem.discount_value ?? null,
           doctorId: quote.doctor_id || undefined,
           doctorName: quote.doctor_name || undefined,
         });
@@ -180,6 +190,9 @@ export function buildPatientLedger(params: {
           serviceId: item.service_id,
           quantity: item.quantity,
           unitPrice: item.unit_price,
+          discountAmount: Number(item.discount_amount ?? 0) || undefined,
+          discountMode: item.discount_mode ?? null,
+          discountValue: item.discount_value ?? null,
           doctorId: invoice.doctor_id || undefined,
           doctorName: invoice.doctor_name || undefined,
           dueDate: invoice.due_date || undefined,

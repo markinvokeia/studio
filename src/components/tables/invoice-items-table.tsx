@@ -9,6 +9,7 @@ import { ViewModeToggle } from '@/components/ui/view-mode-toggle';
 import { useTableViewMode } from '@/hooks/use-table-view-mode';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { AppliedDiscountNote } from '@/components/ui/discount-control';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { InvoiceItem } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
@@ -142,7 +143,13 @@ export function InvoiceItemsTable({ items, isLoading = false, onRefresh, isRefre
           style: 'currency',
           currency: 'USD',
         }).format(amount);
-        return <div className="font-medium">{formatted}</div>;
+        return (
+          <div className="font-medium">
+            {formatted}
+            {/* El importe ya viene rebajado: la nota deja ver por que. */}
+            <AppliedDiscountNote line={row.original} currency="USD" />
+          </div>
+        );
       },
     },
     {

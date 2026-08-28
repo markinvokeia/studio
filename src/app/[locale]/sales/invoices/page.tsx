@@ -2,6 +2,9 @@
 'use client';
 
 import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
+import { DiscountControl } from '@/components/ui/discount-control';
+import { useDiscountSettings } from '@/hooks/useDiscountSettings';
+import { buildDiscountedDocument, computeGrossTotal, isDiscountWithinLimit, mapLineDiscountFields } from '@/lib/discounts';
 import { InvoicePaymentDialog } from '@/components/invoices/invoice-payment-dialog';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { AllocationsTable } from '@/components/tables/allocations-table';
@@ -45,12 +48,19 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 
-const getInvoiceItemSchema = (t: (key: string) => string) => z.object({
+const getInvoiceItemSchema = (t: (key: string) => string, maxDiscountPct: number) => z.object({
     id: z.string().optional(),
     service_id: z.string().min(1, t('validation.serviceRequired')),
     service_name: z.string().optional(),
     quantity: z.coerce.number().min(1, t('validation.quantityMin')),
     unit_price: z.coerce.number().min(0, t('validation.priceNonNegative')),
+    discount_mode: z.enum(['percent', 'amount']).nullish(),
+    discount_value: z.coerce.number().min(0).nullish(),
+}).superRefine((values, ctx) => {
+    const base = computeGrossTotal(values.unit_price, values.quantity);
+    if (!isDiscountWithinLimit(base, { mode: values.discount_mode, value: values.discount_value }, maxDiscountPct)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['discount_value'], message: t('validation.discountOverLimit') });
+    }
 });
 type InvoiceItemFormValues = z.infer<ReturnType<typeof getInvoiceItemSchema>>;
 
@@ -115,6 +125,7 @@ async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
                 quantity: apiItem.quantity || apiItem.product_uom_qty || 0,
                 unit_price: apiItem.unit_price || apiItem.price_unit || 0,
                 total: apiItem.total || apiItem.price_total || 0,
+                ...mapLineDiscountFields(apiItem),
             };
         });
     } catch (error) {
@@ -196,6 +207,7 @@ export default function InvoicesPage() {
     const tQuotes = useTranslations('QuotesPage');
     const { toast } = useToast();
     const { hasPermission } = usePermissions();
+    const discounts = useDiscountSettings();
     const { printInvoice } = usePrintDocument();
 
     // Permission checks
@@ -566,13 +578,18 @@ export default function InvoicesPage() {
     const onItemSubmit = async (data: InvoiceItemFormValues) => {
         if (!selectedInvoice) return;
         try {
+            // Con ambito 'total' la linea va en bruto: ese descuento vive en la
+            // cabecera y solo se reparte reenviando la factura entera.
+            const { items: [lineToSubmit] } = buildDiscountedDocument(
+                [{ unit_price: Number(data.unit_price), quantity: Number(data.quantity), discount_mode: data.discount_mode, discount_value: data.discount_value }],
+                { enabled: discounts.showLineDiscount, scope: 'line', documentDiscount: null },
+            );
             const payload = {
                 id: editingItem?.id ? parseInt(editingItem.id, 10) : undefined,
                 invoice_id: parseInt(selectedInvoice.id, 10),
                 service_id: parseInt(data.service_id, 10),
                 order_item_id: selectedInvoice.order_id,
-                quantity: Number(data.quantity),
-                unit_price: Number(data.unit_price),
+                ...lineToSubmit,
             };
 
             await api.post(API_ROUTES.SALES.INVOICES_ITEMS_UPSERT, payload);
@@ -1004,6 +1021,7 @@ export default function InvoicesPage() {
                 onOpenChange={setIsItemDialogOpen}
                 editingItem={editingItem}
                 onSubmit={onItemSubmit}
+                itemCurrency={selectedInvoice?.currency || 'UYU'}
                 t={t}
             />
 
@@ -1067,17 +1085,21 @@ const ItemFormDialog = ({
     onOpenChange,
     editingItem,
     onSubmit,
+    itemCurrency,
     t
 }: {
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
     editingItem: InvoiceItem | null;
     onSubmit: (data: InvoiceItemFormValues) => void;
+    /** Moneda de la factura, para etiquetar el descuento en importe fijo. */
+    itemCurrency: string;
     t: any;
 }) => {
     const title = editingItem ? t('InvoiceItemsTable.editTitle') : t('InvoiceItemsTable.createTitle');
 
-    const itemSchema = React.useMemo(() => getInvoiceItemSchema(t), [t]);
+    const discounts = useDiscountSettings();
+    const itemSchema = React.useMemo(() => getInvoiceItemSchema(t, discounts.maxPct), [t, discounts.maxPct]);
     const itemForm = useForm<InvoiceItemFormValues>({
         resolver: zodResolver(itemSchema),
         defaultValues: {
@@ -1098,14 +1120,20 @@ const ItemFormDialog = ({
                     service_name: editingItem.service_name || '',
                     quantity: editingItem.quantity,
                     unit_price: editingItem.unit_price,
+                    // Se rehidrata lo guardado, no la preferencia actual.
+                    discount_mode: editingItem.discount_mode ?? null,
+                    discount_value: editingItem.discount_value ?? null,
                 });
             } else {
+                // Sin descuento: se aplica a mano con «Aplicar descuentos».
                 itemForm.reset({
                     id: undefined,
                     service_id: '',
                     service_name: '',
                     quantity: 1,
                     unit_price: 0,
+                    discount_mode: null,
+                    discount_value: null,
                 });
             }
         }
@@ -1179,6 +1207,29 @@ const ItemFormDialog = ({
                                     </FormItem>
                                 )}
                             />
+                            {/* Con ambito 'total' el descuento vive en la cabecera de la
+                                factura, no aqui: esta pantalla edita una sola linea. */}
+                            {discounts.showLineDiscount && (
+                                <div className="flex justify-start">
+                                    <DiscountControl
+                                        mode={itemForm.watch('discount_mode')}
+                                        value={itemForm.watch('discount_value')}
+                                        base={computeGrossTotal(itemForm.watch('unit_price') ?? 0, itemForm.watch('quantity') ?? 0)}
+                                        currency={itemCurrency}
+                                        maxPct={discounts.maxPct}
+                                        defaultPct={discounts.defaultPct}
+                                        canApply={discounts.canApply}
+                                        onApply={(next) => {
+                                            itemForm.setValue('discount_mode', next.mode ?? null, { shouldDirty: true });
+                                            itemForm.setValue('discount_value', next.value ?? null, { shouldDirty: true, shouldValidate: true });
+                                        }}
+                                        onRemove={() => {
+                                            itemForm.setValue('discount_mode', null, { shouldDirty: true });
+                                            itemForm.setValue('discount_value', null, { shouldDirty: true, shouldValidate: true });
+                                        }}
+                                    />
+                                </div>
+                            )}
                         </DialogBody>
                         <DialogFooter>
                             <Button type="submit">{t('createDialog.save')}</Button>

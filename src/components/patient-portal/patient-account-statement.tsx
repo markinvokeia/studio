@@ -13,6 +13,7 @@ import {
   statusLabel,
 } from '@/components/print-templates/ledger-print-template';
 
+import { AppliedDiscountNote } from '@/components/ui/discount-control';
 import { buildPatientLedger } from '@/lib/patient-ledger';
 import type { LedgerRow } from '@/lib/patient-ledger';
 import { cn, formatDisplayDate } from '@/lib/utils';
@@ -174,6 +175,12 @@ export function PatientAccountStatement({ userId, patientName }: PatientAccountS
                           )}
                         >
                           {fmtZero(row.debe, row.currency)}
+                          {/* El importe ya viene rebajado: la nota deja ver por qué. */}
+                          <AppliedDiscountNote
+                            className="font-normal"
+                            line={{ discount_mode: row.discountMode, discount_value: row.discountValue, discount_amount: row.discountAmount }}
+                            currency={row.currency}
+                          />
                           {row.status === 'presupuestado' && (
                             <div className="text-[10px] font-normal text-muted-foreground">
                               {t('footer.notCounted')}

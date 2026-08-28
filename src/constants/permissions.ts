@@ -237,6 +237,13 @@ export const SALES_PERMISSIONS = {
   PAYMENT_METHODS_DELETE: 'PAYMENT_METHODS_DELETE',
   PAYMENT_METHODS_TOGGLE_STATUS: 'PAYMENT_METHODS_TOGGLE_STATUS',
 
+  /**
+   * Descuentos manuales. Sin este permiso el campo de descuento sigue siendo
+   * visible en presupuestos y facturas, pero en solo lectura: rebajar un precio
+   * es una decisión de gestión, no de quien teclea la venta.
+   */
+  APPLY_DISCOUNT: 'SALES_APPLY_DISCOUNT',
+
   // Services (Servicios)
   SERVICES_VIEW_MENU: 'SALES_SERVICES_VIEW_MENU',
   SERVICES_VIEW_LIST: 'SALES_SERVICES_VIEW_LIST',
@@ -677,6 +684,19 @@ export const PATIENT_PORTAL_CONFIG_PERMISSIONS = {
 
 export type PatientPortalConfigPermission =
   (typeof PATIENT_PORTAL_CONFIG_PERMISSIONS)[keyof typeof PATIENT_PORTAL_CONFIG_PERMISSIONS];
+
+/**
+ * Configuración → Preferencias de Clínica. Ajustes de producto de la clínica
+ * (hoy, la política de descuentos). El permiso para *aplicar* un descuento en
+ * una venta es otro: SALES_PERMISSIONS.APPLY_DISCOUNT.
+ */
+export const CLINIC_PREFS_PERMISSIONS = {
+  VIEW:   'CLINIC_PREFS_VIEW',
+  UPDATE: 'CLINIC_PREFS_UPDATE',
+} as const;
+
+export type ClinicPrefsPermission =
+  (typeof CLINIC_PREFS_PERMISSIONS)[keyof typeof CLINIC_PREFS_PERMISSIONS];
 
 export const PATIENT_PORTAL_PERMISSIONS = {
   ACCESS:              'PATIENT_PORTAL_ACCESS',

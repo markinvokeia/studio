@@ -352,6 +352,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'SALES_SERVICES_CREATE',
     'SALES_SERVICES_UPDATE',
     'SALES_SERVICES_DELETE',
+    'SALES_APPLY_DISCOUNT',
     // Purchases
     'PURCHASES_VIEW_MENU',
     'PURCHASE_INVOICES_VIEW_MENU',
@@ -431,6 +432,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'PRESCRIPTION_TEMPLATES_DELETE',
     'USER_SIGNATURE_UPLOAD',
     'USER_SIGNATURE_MANAGE',
+    'CLINIC_PREFS_VIEW',
+    'CLINIC_PREFS_UPDATE',
     'SCHEDULES_VIEW_MENU',
     'SCHEDULES_VIEW_LIST',
     'SCHEDULES_CREATE',
@@ -642,6 +645,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'SALES_PAYMENTS_CREATE',
     'SALES_PAYMENTS_USE_CREDITS',
     'SALES_PREPAYMENTS_VIEW',
+    'SALES_APPLY_DISCOUNT',
     // Purchases - gestión completa sin eliminar
     ...PURCHASES_VIEW_ONLY,
     'PURCHASE_INVOICES_CONFIRM',
@@ -657,7 +661,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'CATALOG_DENTAL_COND_VIEW_LIST',
     'CATALOG_DENTAL_SURF_VIEW_MENU',
     'CATALOG_DENTAL_SURF_VIEW_LIST',
-    // Business Config - solo lectura
+    // Business Config - solo lectura, salvo las preferencias de clínica: la
+    // política de descuentos es una decisión de gestión, no técnica.
     ...BUSINESS_CONFIG_VIEW_ONLY,
     // Recetas: gestiona las plantillas y las firmas del equipo.
     'PRESCRIPTION_TEMPLATES_VIEW',
@@ -666,6 +671,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'PRESCRIPTION_TEMPLATES_DELETE',
     'USER_SIGNATURE_UPLOAD',
     'USER_SIGNATURE_MANAGE',
+    'CLINIC_PREFS_VIEW',
+    'CLINIC_PREFS_UPDATE',
     // System - solo lectura de usuarios/roles/logs
     'SYSTEM_VIEW_MENU',
     'USERS_VIEW_MENU',
