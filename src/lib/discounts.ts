@@ -118,6 +118,29 @@ export function readDiscountAmount(line: LineDiscountFields & { total?: number |
 }
 
 /**
+ * Extrae los campos de descuento de una fila cruda de la API (`quote_items`,
+ * `invoice_items`, `order_items`). Se llama desde cada mapper de ítems para no
+ * repetir —y desincronizar— la misma decisión de parseo en cada pantalla:
+ * `gross_total` a `undefined` cuando falta (fila anterior a los descuentos),
+ * `discount_mode` a NULL, e importes numéricos o NULL.
+ */
+export function mapLineDiscountFields(raw: {
+  gross_total?: unknown;
+  discount_mode?: unknown;
+  discount_value?: unknown;
+  discount_amount?: unknown;
+}): Required<Pick<LineDiscountFields, 'discount_mode' | 'discount_value' | 'discount_amount'>> & {
+  gross_total: number | undefined;
+} {
+  return {
+    gross_total: raw.gross_total != null ? Number(raw.gross_total) : undefined,
+    discount_mode: (raw.discount_mode as LineDiscountFields['discount_mode']) ?? null,
+    discount_value: raw.discount_value != null ? Number(raw.discount_value) : null,
+    discount_amount: raw.discount_amount != null ? Number(raw.discount_amount) : null,
+  };
+}
+
+/**
  * Reparte un descuento de documento entre sus líneas, proporcional al bruto de
  * cada una.
  *

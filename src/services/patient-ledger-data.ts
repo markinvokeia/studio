@@ -1,4 +1,5 @@
 import { API_ROUTES } from '@/constants/routes';
+import { mapLineDiscountFields } from '@/lib/discounts';
 import type { Invoice, InvoiceItem, Payment, Quote, QuoteItem } from '@/lib/types';
 import { api } from './api';
 import { mapApiPaymentToPayment } from './payments-service';
@@ -62,6 +63,7 @@ function normalizeQuoteItem(raw: any): QuoteItem {
     quantity: parseInt(raw.quantity, 10) || 1,
     total: parseFloat(raw.total) || 0,
     tooth_number: raw.tooth_number ?? undefined,
+    ...mapLineDiscountFields(raw),
   };
 }
 
@@ -77,6 +79,7 @@ function normalizeInvoiceItem(raw: any): InvoiceItem {
     quote_item_id: raw.quote_item_id != null ? String(raw.quote_item_id) : undefined,
     step_id: raw.step_id != null ? String(raw.step_id) : undefined,
     steps: raw.steps != null ? String(raw.steps) : undefined,
+    ...mapLineDiscountFields(raw),
   };
 }
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { AppliedDiscountNote } from '@/components/ui/discount-control';
 import { formatDisplayDate } from '@/lib/utils';
 import type { LedgerRow } from '@/lib/patient-ledger';
 import type { LedgerPrintData } from '@/stores/print-document-store';
@@ -145,6 +146,11 @@ export function LedgerPrintTemplate({ data }: LedgerPrintTemplateProps) {
                       </td>
                       <td className="num">
                         {fmtZero(row.debe, row.currency)}
+                        {/* El importe ya viene rebajado: la nota deja ver por qué. */}
+                        <AppliedDiscountNote
+                          line={{ discount_mode: row.discountMode, discount_value: row.discountValue, discount_amount: row.discountAmount }}
+                          currency={currencySymbol(row.currency)}
+                        />
                         {row.status === 'presupuestado' && (
                           <div className="notcounted">{t('footer.notCounted')}</div>
                         )}

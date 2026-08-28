@@ -21,6 +21,7 @@ import { PaymentsTable } from '@/components/tables/payments-table';
 import { Can } from '@/components/auth/Can';
 import { SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
+import { mapLineDiscountFields } from '@/lib/discounts';
 import { Invoice, InvoiceItem, Payment, PaymentMethod } from '@/lib/types';
 import { cn, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -57,6 +58,7 @@ async function fetchInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
         total: a.total || a.price_total || 0,
         step_id: a.step_id != null ? String(a.step_id) : undefined,
         steps: a.steps != null ? String(a.steps) : undefined,
+        ...mapLineDiscountFields(a),
       };
     });
   } catch { return []; }

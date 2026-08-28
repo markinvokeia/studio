@@ -66,6 +66,7 @@ import {
     computeGrossTotal,
     computeLineTotals,
     isDiscountWithinLimit,
+    mapLineDiscountFields,
     roundCurrency,
 } from '@/lib/discounts';
 import { Clinic, DiscountMode, Invoice, InvoiceItem, Order, OrderItem, Payment, Quote, QuoteItem, Service, User } from '@/lib/types';
@@ -409,6 +410,7 @@ async function getQuoteItems(quoteId: string, t: (key: string) => string): Promi
             quantity: apiItem.quantity || 0,
             total: apiItem.total || 0,
             tooth_number: apiItem.tooth_number ? Number(apiItem.tooth_number) : undefined,
+            ...mapLineDiscountFields(apiItem),
         }));
 
         return sortQuoteItems(quoteItems);
@@ -479,6 +481,7 @@ async function getOrderItems(orderId: string, t: (key: string) => string): Promi
             completed_date: apiItem.completed_date,
             quote_item_id: apiItem.quote_item_id != null ? String(apiItem.quote_item_id) : undefined,
             invoiced_date: apiItem.invoiced_date,
+            ...mapLineDiscountFields(apiItem),
         }));
     } catch (error) {
         console.error("Failed to fetch order items:", error);
@@ -531,6 +534,7 @@ async function getInvoiceItems(invoiceId: string, t: (key: string) => string): P
             total: apiItem.total,
             step_id: apiItem.step_id != null ? String(apiItem.step_id) : undefined,
             steps: apiItem.steps != null ? String(apiItem.steps) : undefined,
+            ...mapLineDiscountFields(apiItem),
         }));
     } catch (error) {
         console.error("Failed to fetch invoice items:", error);

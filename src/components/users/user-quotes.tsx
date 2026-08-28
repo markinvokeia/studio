@@ -32,6 +32,7 @@ import {
   computeGrossTotal,
   computeLineTotals,
   isDiscountWithinLimit,
+  mapLineDiscountFields,
   roundCurrency,
 } from '@/lib/discounts';
 import type { DiscountMode } from '@/lib/types';
@@ -732,6 +733,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
         quantity: parseInt(i.quantity) || 1,
         total: parseFloat(i.total) || 0,
         tooth_number: i.tooth_number ?? undefined,
+        ...mapLineDiscountFields(i),
       }));
       if (latestQuoteItemsRequestRef.current === quoteId) {
         setQuoteItems(sortQuoteItems(quoteItems));

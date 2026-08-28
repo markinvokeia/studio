@@ -4,7 +4,7 @@
 import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 import { DiscountControl } from '@/components/ui/discount-control';
 import { useDiscountSettings } from '@/hooks/useDiscountSettings';
-import { buildDiscountedDocument, computeGrossTotal, isDiscountWithinLimit } from '@/lib/discounts';
+import { buildDiscountedDocument, computeGrossTotal, isDiscountWithinLimit, mapLineDiscountFields } from '@/lib/discounts';
 import { InvoicePaymentDialog } from '@/components/invoices/invoice-payment-dialog';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { AllocationsTable } from '@/components/tables/allocations-table';
@@ -123,6 +123,7 @@ async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
                 quantity: apiItem.quantity || apiItem.product_uom_qty || 0,
                 unit_price: apiItem.unit_price || apiItem.price_unit || 0,
                 total: apiItem.total || apiItem.price_total || 0,
+                ...mapLineDiscountFields(apiItem),
             };
         });
     } catch (error) {

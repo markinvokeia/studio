@@ -802,7 +802,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE quotes q\nSET total = sub.net,\n    gross_total = sub.gross,\n    discount_amount = CASE WHEN q.discount_scope = 'total' THEN q.discount_amount\n                           ELSE NULLIF(sub.gross - sub.net, 0) END\nFROM (\n    SELECT COALESCE(SUM(qi.total), 0) AS net,\n           COALESCE(SUM(COALESCE(qi.gross_total, qi.total)), 0) AS gross\n    FROM quote_items qi\n    WHERE qi.quote_id = {{ $json.quote_id }}\n) sub\nWHERE q.id = {{ $json.quote_id }}",
+        "query": "UPDATE quotes q\nSET total = sub.net,\n    gross_total = sub.gross,\n    discount_amount = CASE WHEN q.discount_scope = 'total' THEN q.discount_amount\n                           ELSE NULLIF(sub.gross - sub.net, 0) END,\n    discount_scope = COALESCE(q.discount_scope, CASE WHEN sub.gross > sub.net THEN 'line' END)\nFROM (\n    SELECT COALESCE(SUM(qi.total), 0) AS net,\n           COALESCE(SUM(COALESCE(qi.gross_total, qi.total)), 0) AS gross\n    FROM quote_items qi\n    WHERE qi.quote_id = {{ $json.quote_id }}\n) sub\nWHERE q.id = {{ $json.quote_id }}",
         "options": {}
       },
       "type": "n8n-nodes-base.postgres",
@@ -5295,7 +5295,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE public.invoices i\nSET total = sub.net,\n    gross_total = sub.gross,\n    discount_amount = CASE WHEN i.discount_scope = 'total' THEN i.discount_amount\n                           ELSE NULLIF(sub.gross - sub.net, 0) END\nFROM (\n    SELECT COALESCE(SUM(ii.total), 0) AS net,\n           COALESCE(SUM(COALESCE(ii.gross_total, ii.total)), 0) AS gross\n    FROM public.invoice_items ii\n    WHERE ii.invoice_id = $1\n) sub\nWHERE i.id = $1;",
+        "query": "UPDATE public.invoices i\nSET total = sub.net,\n    gross_total = sub.gross,\n    discount_amount = CASE WHEN i.discount_scope = 'total' THEN i.discount_amount\n                           ELSE NULLIF(sub.gross - sub.net, 0) END,\n    discount_scope = COALESCE(i.discount_scope, CASE WHEN sub.gross > sub.net THEN 'line' END)\nFROM (\n    SELECT COALESCE(SUM(ii.total), 0) AS net,\n           COALESCE(SUM(COALESCE(ii.gross_total, ii.total)), 0) AS gross\n    FROM public.invoice_items ii\n    WHERE ii.invoice_id = $1\n) sub\nWHERE i.id = $1;",
         "options": {
           "queryReplacement": "={{ $('Select Invoice draft').item.json.id }}"
         }
@@ -5318,7 +5318,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE public.invoices i\nSET total = sub.net,\n    gross_total = sub.gross,\n    discount_amount = CASE WHEN i.discount_scope = 'total' THEN i.discount_amount\n                           ELSE NULLIF(sub.gross - sub.net, 0) END\nFROM (\n    SELECT COALESCE(SUM(ii.total), 0) AS net,\n           COALESCE(SUM(COALESCE(ii.gross_total, ii.total)), 0) AS gross\n    FROM public.invoice_items ii\n    WHERE ii.invoice_id = $1\n) sub\nWHERE i.id = $1;",
+        "query": "UPDATE public.invoices i\nSET total = sub.net,\n    gross_total = sub.gross,\n    discount_amount = CASE WHEN i.discount_scope = 'total' THEN i.discount_amount\n                           ELSE NULLIF(sub.gross - sub.net, 0) END,\n    discount_scope = COALESCE(i.discount_scope, CASE WHEN sub.gross > sub.net THEN 'line' END)\nFROM (\n    SELECT COALESCE(SUM(ii.total), 0) AS net,\n           COALESCE(SUM(COALESCE(ii.gross_total, ii.total)), 0) AS gross\n    FROM public.invoice_items ii\n    WHERE ii.invoice_id = $1\n) sub\nWHERE i.id = $1;",
         "options": {
           "queryReplacement": "={{ $('Select Invoice draft1').item.json.id }}"
         }
@@ -5341,7 +5341,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE public.invoices i\nSET total = sub.net,\n    gross_total = sub.gross,\n    discount_amount = CASE WHEN i.discount_scope = 'total' THEN i.discount_amount\n                           ELSE NULLIF(sub.gross - sub.net, 0) END\nFROM (\n    SELECT COALESCE(SUM(ii.total), 0) AS net,\n           COALESCE(SUM(COALESCE(ii.gross_total, ii.total)), 0) AS gross\n    FROM public.invoice_items ii\n    WHERE ii.invoice_id = $1\n) sub\nWHERE i.id = $1;",
+        "query": "UPDATE public.invoices i\nSET total = sub.net,\n    gross_total = sub.gross,\n    discount_amount = CASE WHEN i.discount_scope = 'total' THEN i.discount_amount\n                           ELSE NULLIF(sub.gross - sub.net, 0) END,\n    discount_scope = COALESCE(i.discount_scope, CASE WHEN sub.gross > sub.net THEN 'line' END)\nFROM (\n    SELECT COALESCE(SUM(ii.total), 0) AS net,\n           COALESCE(SUM(COALESCE(ii.gross_total, ii.total)), 0) AS gross\n    FROM public.invoice_items ii\n    WHERE ii.invoice_id = $1\n) sub\nWHERE i.id = $1;",
         "options": {
           "queryReplacement": "={{ $('Insert Invoice').item.json.id }}"
         }
@@ -5364,7 +5364,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE public.invoices i\nSET total = sub.net,\n    gross_total = sub.gross,\n    discount_amount = CASE WHEN i.discount_scope = 'total' THEN i.discount_amount\n                           ELSE NULLIF(sub.gross - sub.net, 0) END\nFROM (\n    SELECT COALESCE(SUM(ii.total), 0) AS net,\n           COALESCE(SUM(COALESCE(ii.gross_total, ii.total)), 0) AS gross\n    FROM public.invoice_items ii\n    WHERE ii.invoice_id = $1\n) sub\nWHERE i.id = $1;",
+        "query": "UPDATE public.invoices i\nSET total = sub.net,\n    gross_total = sub.gross,\n    discount_amount = CASE WHEN i.discount_scope = 'total' THEN i.discount_amount\n                           ELSE NULLIF(sub.gross - sub.net, 0) END,\n    discount_scope = COALESCE(i.discount_scope, CASE WHEN sub.gross > sub.net THEN 'line' END)\nFROM (\n    SELECT COALESCE(SUM(ii.total), 0) AS net,\n           COALESCE(SUM(COALESCE(ii.gross_total, ii.total)), 0) AS gross\n    FROM public.invoice_items ii\n    WHERE ii.invoice_id = $1\n) sub\nWHERE i.id = $1;",
         "options": {
           "queryReplacement": "={{ $('invoices/upsert').item.json.body.id }}"
         }
@@ -6293,7 +6293,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE quotes q\nSET total = sub.net,\n    gross_total = sub.gross,\n    discount_amount = CASE WHEN q.discount_scope = 'total' THEN q.discount_amount\n                           ELSE NULLIF(sub.gross - sub.net, 0) END\nFROM (\n    SELECT COALESCE(SUM(qi.total), 0) AS net,\n           COALESCE(SUM(COALESCE(qi.gross_total, qi.total)), 0) AS gross\n    FROM quote_items qi\n    WHERE qi.quote_id = $1\n) sub\nWHERE q.id = $1",
+        "query": "UPDATE quotes q\nSET total = sub.net,\n    gross_total = sub.gross,\n    discount_amount = CASE WHEN q.discount_scope = 'total' THEN q.discount_amount\n                           ELSE NULLIF(sub.gross - sub.net, 0) END,\n    discount_scope = COALESCE(q.discount_scope, CASE WHEN sub.gross > sub.net THEN 'line' END)\nFROM (\n    SELECT COALESCE(SUM(qi.total), 0) AS net,\n           COALESCE(SUM(COALESCE(qi.gross_total, qi.total)), 0) AS gross\n    FROM quote_items qi\n    WHERE qi.quote_id = $1\n) sub\nWHERE q.id = $1",
         "options": {
           "queryReplacement": "={{ $('Insert').first().json.id }}"
         }
@@ -6570,7 +6570,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE quotes q\nSET total = sub.net,\n    gross_total = sub.gross,\n    discount_amount = CASE WHEN q.discount_scope = 'total' THEN q.discount_amount\n                           ELSE NULLIF(sub.gross - sub.net, 0) END\nFROM (\n    SELECT COALESCE(SUM(qi.total), 0) AS net,\n           COALESCE(SUM(COALESCE(qi.gross_total, qi.total)), 0) AS gross\n    FROM quote_items qi\n    WHERE qi.quote_id = $1\n) sub\nWHERE q.id = $1",
+        "query": "UPDATE quotes q\nSET total = sub.net,\n    gross_total = sub.gross,\n    discount_amount = CASE WHEN q.discount_scope = 'total' THEN q.discount_amount\n                           ELSE NULLIF(sub.gross - sub.net, 0) END,\n    discount_scope = COALESCE(q.discount_scope, CASE WHEN sub.gross > sub.net THEN 'line' END)\nFROM (\n    SELECT COALESCE(SUM(qi.total), 0) AS net,\n           COALESCE(SUM(COALESCE(qi.gross_total, qi.total)), 0) AS gross\n    FROM quote_items qi\n    WHERE qi.quote_id = $1\n) sub\nWHERE q.id = $1",
         "options": {
           "queryReplacement": "={{ $('Update').first().json.id }}"
         }
@@ -9623,7 +9623,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE public.invoices i\nSET total = sub.net,\n    gross_total = sub.gross,\n    discount_amount = CASE WHEN i.discount_scope = 'total' THEN i.discount_amount\n                           ELSE NULLIF(sub.gross - sub.net, 0) END\nFROM (\n    SELECT COALESCE(SUM(ii.total), 0) AS net,\n           COALESCE(SUM(COALESCE(ii.gross_total, ii.total)), 0) AS gross\n    FROM public.invoice_items ii\n    WHERE ii.invoice_id = $1\n) sub\nWHERE i.id = $1\nRETURNING i.id, i.total;",
+        "query": "UPDATE public.invoices i\nSET total = sub.net,\n    gross_total = sub.gross,\n    discount_amount = CASE WHEN i.discount_scope = 'total' THEN i.discount_amount\n                           ELSE NULLIF(sub.gross - sub.net, 0) END,\n    discount_scope = COALESCE(i.discount_scope, CASE WHEN sub.gross > sub.net THEN 'line' END)\nFROM (\n    SELECT COALESCE(SUM(ii.total), 0) AS net,\n           COALESCE(SUM(COALESCE(ii.gross_total, ii.total)), 0) AS gross\n    FROM public.invoice_items ii\n    WHERE ii.invoice_id = $1\n) sub\nWHERE i.id = $1\nRETURNING i.id, i.total;",
         "options": {
           "queryReplacement": "={{ $('invoice/items/edit-with-reallocation').item.json.body.invoice_id }}"
         }

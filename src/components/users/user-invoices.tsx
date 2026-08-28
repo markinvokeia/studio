@@ -35,6 +35,7 @@ import {
   computeGrossTotal,
   computeLineTotals,
   isDiscountWithinLimit,
+  mapLineDiscountFields,
   roundCurrency,
 } from '@/lib/discounts';
 import type { DiscountMode } from '@/lib/types';
@@ -544,6 +545,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
         total: parseFloat(i.total) || 0,
         step_id: i.step_id != null ? String(i.step_id) : undefined,
         steps: i.steps != null ? String(i.steps) : undefined,
+        ...mapLineDiscountFields(i),
       })));
     } catch {
       setInvoiceItems([]);

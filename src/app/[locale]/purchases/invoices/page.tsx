@@ -34,6 +34,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useDebounce } from '@/hooks/use-debounce';
 import { getCreditNotesForInvoice } from '@/lib/credit-notes';
 import { normalizeApiResponse } from '@/lib/api-utils';
+import { mapLineDiscountFields } from '@/lib/discounts';
 import { CreditNote, Invoice, InvoiceAllocation, InvoiceItem, Payment, Service } from '@/lib/types';
 import { formatDisplayDate, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -113,6 +114,7 @@ async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
                 quantity: apiItem.quantity || apiItem.product_uom_qty || 1,
                 unit_price: apiItem.unit_price || apiItem.price_unit || 0,
                 total: apiItem.total || apiItem.price_total || 0,
+                ...mapLineDiscountFields(apiItem),
             };
         });
     } catch (error) {
