@@ -2302,7 +2302,8 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                             </DropdownMenu>
                         )}
                         {/* Add session */}
-                        {!isDoctorMode && (
+                        {/* Portal del paciente: no crea sesiones clínicas. */}
+                        {!isDoctorMode && !readOnly && (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button size="sm" className="h-8 gap-1.5">
@@ -2461,11 +2462,15 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                 <div
                                                     key={key}
                                                     className={cn(
-                                                        'flex items-start gap-2 px-2.5 py-2 cursor-pointer border-b last:border-b-0 transition-colors border-l-2',
+                                                        'flex items-start gap-2 px-2.5 py-2 border-b last:border-b-0 transition-colors border-l-2',
+                                                        readOnly ? 'cursor-default' : 'cursor-pointer',
                                                         isSelected ? 'bg-primary/5 border-l-primary dark:bg-link/10 dark:border-l-link' : 'border-l-transparent hover:bg-muted/50',
                                                     )}
                                                     onClick={() => {
                                                         setSelectedItemKey(isSelected ? null : key);
+                                                        // Portal del paciente: la cita se ve en la línea de
+                                                        // tiempo, pero no abre el panel lateral de detalle.
+                                                        if (readOnly) return;
                                                         openApptPanel(appt);
                                                     }}
                                                 >
@@ -2476,7 +2481,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                                 {apptTypeBadge}
                                                                 {apptUpcomingBadge}
                                                                 <span className="text-xs text-muted-foreground">
-                                                                    {formatDisplayDateWithWeekday(item.date, locale)}{startLabel && ` · ${startLabel}`}
+                                                                    {formatDisplayDateWithWeekday(item.date, locale)}{startLabel && ` · ${startLabel}`}{endLabel && ` → ${endLabel}`}
                                                                 </span>
                                                                 {appt.quote_doc_no && (
                                                                     <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-1.5 py-0 leading-relaxed font-mono">
@@ -2504,6 +2509,14 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                                     <UserSquare className="h-3 w-3 shrink-0" />
                                                                     <span className="truncate">{appt.doctorName || t('apptUnassigned')}</span>
                                                                 </span>
+                                                                {(appt.services?.length ?? 0) > 0 && (
+                                                                    <span className="flex items-center gap-1 min-w-0" title={t('apptServices')}>
+                                                                        <Stethoscope className="h-3 w-3 shrink-0" />
+                                                                        <span className="truncate">
+                                                                            {appt.services!.map((service) => service.name).filter(Boolean).join(', ')}
+                                                                        </span>
+                                                                    </span>
+                                                                )}
                                                             </p>
                                                         </div>
                                                         {apptStatusBadge}
@@ -2696,6 +2709,8 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                 className={cn('flex items-start gap-2 px-2.5 py-2 cursor-pointer border-b last:border-b-0 transition-colors border-l-2', isSelected ? 'bg-primary/5 border-l-primary dark:bg-link/10 dark:border-l-link' : 'border-l-transparent hover:bg-muted/50')}
                                                 onClick={() => {
                                                     setSelectedItemKey(isSelected ? null : key);
+                                                    // Portal del paciente: se ve el ítem, no el detalle clínico.
+                                                    if (readOnly) return;
                                                     setSessionDetailData(session);
                                                     if (session.tipo_sesion === 'odontograma') {
                                                         setIsOdontogramViewerOpen(true);
@@ -2812,7 +2827,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
             </ResizableSheet>
 
             {/* Appointment Panel */}
-            <AppointmentPanel
+            {!readOnly && <AppointmentPanel
                 open={isApptPanelOpen}
                 onOpenChange={(open) => { setIsApptPanelOpen(open); if (!open) setApptPanelAppointment(null); }}
                 appointment={apptPanelAppointment}
@@ -2826,7 +2841,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                 onBillingSuccess={handleBillingSuccess}
                 hideBillingAction={isDoctorMode}
                 onEdit={onEditAppointment && !readOnly ? (appt) => { setIsApptPanelOpen(false); onEditAppointment(appt); } : undefined}
-            />
+            />}
             <CancellationNoteDialog
                 open={!!pendingCancellation}
                 onOpenChange={(open) => { if (!open) setPendingCancellation(null); }}
@@ -2838,7 +2853,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
             />
 
             {/* Clinical Session Detail Sheet */}
-            <ResizableSheet
+            {!readOnly && <ResizableSheet
                 open={isSessionDetailSheetOpen}
                 onOpenChange={(open) => { setIsSessionDetailSheetOpen(open); if (!open) setSessionDetailData(null); }}
                 defaultWidth={600}
@@ -2981,7 +2996,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                         </div>
                     );
                 })()}
-            </ResizableSheet>
+            </ResizableSheet>}
 
             {/* Odontogram View Sheet */}
             <ResizableSheet

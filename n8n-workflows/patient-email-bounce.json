@@ -1,0 +1,179 @@
+{
+  "name": "Patient Portal — Email Bounce",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "api/public/patient-email-bounce",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-parse",
+      "name": "Extraer Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        300
+      ],
+      "parameters": {
+        "jsCode": "\n// Normaliza el webhook de rebote del proveedor SMTP. El nombre del campo varía\n// entre proveedores; se prueban los más comunes.\nconst body = $input.first().json.body ?? $input.first().json ?? {};\n\nconst email = String(\n  body.email || body.recipient || body.to ||\n  body['email-address'] || body?.envelope?.to || ''\n).trim().toLowerCase();\n\nif (!email) throw new Error('No se pudo determinar el email que rebotó');\n\nreturn [{ json: { email } }];\n"
+      }
+    },
+    {
+      "id": "node-mark",
+      "name": "Marcar Rebote",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        540,
+        300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Marca el contacto como rebotado. El registro público crea pacientes sin\n-- verificar el correo: esto es lo que permite a recepción detectar los falsos.\nUPDATE public.users\nSET email_bounced    = TRUE,\n    email_bounced_at = NOW()\nWHERE lower(email) = $1\nRETURNING id, name, email",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.email ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "id": "node-flag",
+      "name": "Señalar Citas",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        760,
+        300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Deja rastro en las citas futuras pendientes de ese paciente, para que\n-- recepción las revise antes de reservar el horario en firme.\nUPDATE public.appointments\nSET cancellation_note = COALESCE(NULLIF(cancellation_note, ''), '') ||\n                        ' [PORTAL] El correo del paciente rebotó: verificar el contacto.'\nWHERE patient_id = $1::uuid\n  AND status = 'pending'\n  AND start_datetime >= NOW()\nRETURNING id",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "id": "node-format",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        300
+      ],
+      "parameters": {
+        "jsCode": "return [{ json: { statusCode: 200, body: { handled: true } } }];"
+      }
+    },
+    {
+      "id": "node-respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1180,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extraer Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer Email": {
+      "main": [
+        [
+          {
+            "node": "Marcar Rebote",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar Rebote": {
+      "main": [
+        [
+          {
+            "node": "Señalar Citas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Señalar Citas": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Credencial 'Postgres' en los dos nodos Postgres (POSTGRES_CREDENTIAL_ID).\n2. Webhook PÚBLICO (noauth): lo llama el proveedor SMTP, no la app.\n3. ⚠️ HAY QUE REGISTRAR ESTA URL COMO WEBHOOK DE REBOTES EN EL PROVEEDOR\n   (SendGrid: Event Webhook → bounce/dropped; Mailgun: Webhooks → permanent_fail;\n   Postmark: Bounce webhook; SES: notificación SNS de tipo Bounce).\n   SIN ESE REGISTRO EL FLUJO NO SE EJECUTA NUNCA y los correos falsos no se detectan.\n\nRUTA: POST https://<tu-n8n>/webhook/api/public/patient-email-bounce\n\nPARA QUÉ SIRVE:\nEl auto-registro del portal crea pacientes SIN verificar el correo — es el\nprecio de que reserven sin OTP. Este flujo cierra el círculo: si el correo\nrebota, marca users.email_bounced y deja una nota en sus citas pendientes para\nque recepción las revise antes de darlas por buenas.\n\nAJUSTAR: el nodo 'Extraer Email' prueba los nombres de campo más comunes\n(email, recipient, to, email-address, envelope.to). Verificá cuál manda tu\nproveedor y dejá sólo ese.\n\nVER TAMBIÉN: users.email_bounced en\ndatabase/scripts/067_20260806_patient-portal-booking-mode.sql\nCONTRATO: docs/patient-portal.md §2.9"
+  }
+}

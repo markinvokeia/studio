@@ -1,0 +1,192 @@
+{
+  "name": "Patient Portal — AI Assistant",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai/patient/query",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-ctx",
+      "name": "Extraer Contexto del JWT",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        300
+      ],
+      "parameters": {
+        "jsCode": "\n// El patient_id efectivo SIEMPRE sale del JWT, nunca del body: un paciente no\n// puede consultar por otro.\nconst headers = $input.first().json.headers || {};\nconst authHeader = (headers.authorization || headers.Authorization || '');\nconst token = authHeader.replace(/^Bearer\\s+/i, '').trim();\n\nif (!token) throw new Error('UNAUTHORIZED: falta el token');\n\nconst payloadPart = token.split('.')[1];\nif (!payloadPart) throw new Error('UNAUTHORIZED: token mal formado');\n\nconst decoded = JSON.parse(\n  Buffer.from(payloadPart.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8')\n);\n\nconst body = $input.first().json.body || {};\n\nreturn [{ json: {\n  // El claim se llama `userId` (NO `sub`): así lo emite /api/auth/login.\n  patient_id: decoded.userId,       // ← autoritativo\n  query: String(body.query || '').trim(),\n  channel: body.channel || 'text',\n  session_id: body.session_id || null,\n  has_existing_session: !!body.has_existing_session,\n} }];\n"
+      }
+    },
+    {
+      "id": "node-agent",
+      "name": "Patient Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        560,
+        300
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.query }}",
+        "options": {
+          "systemMessage": "=Sos el asistente virtual de la clínica para el portal del paciente.\n\nREGLAS INNEGOCIABLES:\n1. Sólo podés hablar de los datos del paciente cuyo id es {{ $json.patient_id }}. Nunca menciones ni consultes datos de otro paciente.\n2. NO das diagnósticos, interpretaciones clínicas ni consejo médico. Ante cualquier consulta clínica, derivá al paciente a la clínica o a su doctor.\n3. Podés responder sobre: sus citas, su saldo y facturación, su historial, sus indicaciones médicas, y datos públicos de la clínica (horarios, servicios, ubicación, doctores).\n4. Si no tenés el dato, decilo — no inventes.\n5. Respondé en el mismo idioma en que te escriben, en tono cercano y breve.\n\nSi el paciente quiere reservar una cita, devolvé la acción open_booking.\nSi conviene mostrarle una sección del portal, devolvé open_tab con info | appointments | clinical | financial."
+        }
+      }
+    },
+    {
+      "id": "node-model",
+      "name": "Gemini",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        480,
+        520
+      ],
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash",
+        "options": {}
+      },
+      "credentials": {
+        "googlePalmApi": {
+          "id": "GEMINI_CREDENTIAL_ID",
+          "name": "Google Gemini"
+        }
+      }
+    },
+    {
+      "id": "node-memory",
+      "name": "Memoria de Sesión",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        660,
+        520
+      ],
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Extraer Contexto del JWT').first().json.session_id }}",
+        "contextWindowLength": 10
+      }
+    },
+    {
+      "id": "node-parse",
+      "name": "Parsear Salida",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        820,
+        300
+      ],
+      "parameters": {
+        "jsCode": "\n// Normaliza la salida del agente al contrato PatientAiQueryResponse.\nconst raw = $input.first().json;\nconst text = raw.output || raw.text || raw.answer || '';\n\nlet action = { type: 'none', payload: null };\nconst match = String(text).match(/\\{\\s*\"action\"[\\s\\S]*\\}/);\nif (match) {\n  try { action = JSON.parse(match[0]).action || action; } catch (e) { /* texto plano */ }\n}\n\nreturn [{ json: { statusCode: 200, body: {\n  answer: String(text).replace(/\\{\\s*\"action\"[\\s\\S]*\\}/, '').trim(),\n  speak_text: String(text).replace(/\\{\\s*\"action\"[\\s\\S]*\\}/, '').trim(),\n  suggestions: raw.suggestions || [],\n  action,\n} } }];\n"
+      }
+    },
+    {
+      "id": "node-respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extraer Contexto del JWT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer Contexto del JWT": {
+      "main": [
+        [
+          {
+            "node": "Patient Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Patient Agent": {
+      "main": [
+        [
+          {
+            "node": "Parsear Salida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parsear Salida": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Patient Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memoria de Sesión": {
+      "ai_memory": [
+        [
+          {
+            "node": "Patient Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Credencial de Google Gemini en el nodo 'Gemini' (GEMINI_CREDENTIAL_ID).\n2. Webhook CON autenticación Bearer (a diferencia de los 4 de auth).\n3. AGREGAR LAS HERRAMIENTAS del agente (nodos ai_tool) apuntando a los endpoints\n   ya existentes, SIEMPRE con user_id = patient_id del JWT:\n     · GET /users_appointments?user_id=      (citas)\n     · GET /user_financial?user_id=          (saldo)\n     · GET /patient_medical_instructions     (indicaciones)\n     · GET /services, /clinicschedules       (info pública de la clínica)\n4. NO reutilizar el Help Agent existente (Agent_InvokeIA_Help_v3.json): es\n   staff-scoped y su webhook de chat no lleva autenticación.\n\nRUTA: POST https://<tu-n8n>/webhook/ai/patient/query\n\nREQUEST:  { \"patient_id\": \"...\", \"query\": \"¿cuándo es mi próxima cita?\",\n            \"channel\": \"text\", \"session_id\": \"...\", \"has_existing_session\": true }\nRESPONSE: { \"answer\", \"speak_text\", \"suggestions\": [], \"action\": { \"type\", \"payload\" } }\n\nSEGURIDAD: el patient_id del body SE IGNORA — se usa el claim `userId` del JWT\n(el token del sistema NO tiene `sub`; ver docs/patient-portal.md §2.3).\n\nCONTRATO: docs/patient-portal.md §2.5"
+  }
+}

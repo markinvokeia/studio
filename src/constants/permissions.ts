@@ -644,3 +644,31 @@ export const SUBSCRIPTIONS_PERMISSIONS = {
 } as const;
 
 export type SubscriptionsPermission = (typeof SUBSCRIPTIONS_PERMISSIONS)[keyof typeof SUBSCRIPTIONS_PERMISSIONS];
+
+/**
+ * Portal del paciente (/my-profile) — permisos del rol "Paciente".
+ * Se crean en database/scripts/065_20260806_patient-portal.sql.
+ * A diferencia del resto, estos permisos los tiene el propio paciente, no el staff.
+ */
+/**
+ * Configuración → Portal del Paciente. A diferencia de PATIENT_PORTAL_PERMISSIONS
+ * —que son del propio paciente— estos son permisos de staff.
+ */
+export const PATIENT_PORTAL_CONFIG_PERMISSIONS = {
+  VIEW:   'PATIENT_PORTAL_CONFIG_VIEW',
+  UPDATE: 'PATIENT_PORTAL_CONFIG_UPDATE',
+} as const;
+
+export type PatientPortalConfigPermission =
+  (typeof PATIENT_PORTAL_CONFIG_PERMISSIONS)[keyof typeof PATIENT_PORTAL_CONFIG_PERMISSIONS];
+
+export const PATIENT_PORTAL_PERMISSIONS = {
+  ACCESS:              'PATIENT_PORTAL_ACCESS',
+  VIEW_INFO:           'PATIENT_PORTAL_VIEW_INFO',
+  VIEW_HISTORY:        'PATIENT_PORTAL_VIEW_HISTORY',
+  VIEW_FINANCE:        'PATIENT_PORTAL_VIEW_FINANCE',
+  MANAGE_APPOINTMENTS: 'PATIENT_PORTAL_MANAGE_APPOINTMENTS',
+  USE_ASSISTANT:       'PATIENT_PORTAL_USE_ASSISTANT',
+} as const;
+
+export type PatientPortalPermission = (typeof PATIENT_PORTAL_PERMISSIONS)[keyof typeof PATIENT_PORTAL_PERMISSIONS];

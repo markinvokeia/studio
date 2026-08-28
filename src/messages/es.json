@@ -421,7 +421,8 @@
     "ReportEstadoRes": "Estado de Resultados",
     "ReportKPIs": "KPIs Clínica",
     "ReportBalanceMensual": "Balance Mensual",
-    "Sedes": "Sedes"
+    "Sedes": "Sedes",
+    "PatientsPortal": "Portal del Paciente"
   },
   "TVDisplayPage": {
     "title": "Pantalla TV",
@@ -653,7 +654,8 @@
     "success": {
       "title": "Éxito",
       "description": "Su contraseña ha sido cambiada exitosamente."
-    }
+    },
+    "viewAsPatient": "Ver como paciente"
   },
   "OpenCashSessionWidget": {
     "checkingStatus": "Verificando estado de la sesión de caja...",
@@ -3735,7 +3737,8 @@
       "invalidCredentials": "Las credenciales que ingresaste son incorrectas. Por favor, verifica tu email y contraseña e intenta nuevamente.",
       "emailNotFound": "El correo electrónico ingresado no existe en nuestro sistema. Por favor, verifica el email e intenta nuevamente.",
       "unexpected": "Ocurrió un error inesperado. Por favor, intenta de nuevo más tarde."
-    }
+    },
+    "patientPortalLink": "¿Sos paciente? Accedé a tu portal"
   },
   "ClinicDetailsPage": {
     "title": "Detalles de la Clínica",
@@ -4983,7 +4986,9 @@
         "left": "Izquierda",
         "overlays": "Overlay",
         "whole": "Completo"
-      }
+      },
+      "apptTime": "Horario",
+      "apptServices": "Servicios"
     },
     "anamnesis": {
       "personalTitle": "Información Personal",
@@ -8196,6 +8201,317 @@
       "description": "¿Estás seguro de que deseas eliminar \"{name}\"? Esta acción es irreversible.",
       "cancel": "Cancelar",
       "delete": "Eliminar"
+    }
+  },
+  "PatientLogin": {
+    "toggleTheme": "Cambiar tema",
+    "back": "Volver",
+    "identify": {
+      "title": "Accedé a tu portal",
+      "description": "Ingresá tu correo, teléfono o cédula. Te enviamos un código — no necesitás contraseña.",
+      "label": "Correo, teléfono o cédula",
+      "placeholder": "juan@ejemplo.com, 099 123 456 o 12345678",
+      "submit": "Continuar",
+      "staffLink": "¿Sos parte del equipo? Iniciá sesión acá",
+      "hint": "Podés usar cualquiera de los tres.",
+      "newPatient": "Soy nuevo, no estoy registrado",
+      "reason": "Con este dato verificamos si ya sos paciente de la clínica. Si ya estás registrado, cargamos tu historia, tus citas y tu estado de cuenta; si es tu primera vez, te pedimos unos pocos datos y listo."
+    },
+    "needEmail": {
+      "title": "Falta tu correo",
+      "description": "Te encontramos, pero no tenemos un correo registrado. Ingresá uno para enviarte el código.",
+      "label": "Correo electrónico",
+      "submit": "Enviar código",
+      "reason": "Todavía no tenemos un correo tuyo registrado. Lo necesitamos para enviarte el código de acceso — y para avisarte de tus próximas citas."
+    },
+    "register": {
+      "title": "Creá tu cuenta",
+      "description": "No te encontramos en el sistema. Con estos datos alcanza para empezar.",
+      "name": "Nombre completo",
+      "namePlaceholder": "Juan Pérez",
+      "phone": "Teléfono",
+      "email": "Correo electrónico",
+      "optionalToggle": "Datos opcionales (podés completarlos después)",
+      "document": "Cédula",
+      "birthDate": "Fecha de nacimiento",
+      "address": "Dirección",
+      "submit": "Crear cuenta y enviarme el código",
+      "reason": "Tu nombre, teléfono y correo quedan disponibles para el equipo de la clínica, así pueden contactarte directo por tu cita o cualquier novedad. No los compartimos con nadie más.",
+      "optionalSuffix": "(opcional)"
+    },
+    "code": {
+      "title": "Ingresá tu código",
+      "description": "Enviamos un código de 6 dígitos a {email}. Vence en 10 minutos.",
+      "submit": "Entrar",
+      "resend": "Reenviar código",
+      "resendIn": "Podés reenviar el código en {seconds}s",
+      "resentTitle": "Código reenviado",
+      "resentDescription": "Revisá tu correo, incluida la carpeta de spam.",
+      "reason": "Sólo vos tenés acceso a tu correo. Por eso te pedimos el código: así garantizamos que nadie más pueda ver tu información ni hacer operaciones a tu nombre sin tu consentimiento.",
+      "pasteHint": "Revisá tu correo y copiá el código de 6 dígitos que te enviamos. Podés pegarlo directamente en la primera casilla."
+    },
+    "fields": {
+      "email": "Correo electrónico",
+      "phone": "Teléfono",
+      "identity_document": "Cédula"
+    },
+    "validation": {
+      "nameRequired": "El nombre es obligatorio",
+      "phoneInvalid": "El teléfono no es válido",
+      "emailRequired": "El correo es obligatorio",
+      "emailInvalid": "El correo no es válido",
+      "documentDigits": "La cédula sólo puede tener números",
+      "documentMax": "La cédula no puede superar los 10 dígitos"
+    },
+    "errors": {
+      "title": "Error",
+      "unexpected": "Ocurrió un error inesperado. Intentá de nuevo.",
+      "invalidCode": "El código no es válido o venció. Pedí uno nuevo.",
+      "alreadyRegistered": "Ya existe una cuenta con: {fields}. Volvé atrás e ingresá con ese dato."
+    },
+    "genericClinicName": "nuestra clínica",
+    "or": "o",
+    "header": {
+      "tagline": "Portal del paciente"
+    },
+    "hero": {
+      "badge": "Reservá tu cita en un minuto",
+      "title": "Bienvenido a {clinic}",
+      "subtitle": "Reservá y gestioná tus citas, consultá tu historia clínica y tu estado de cuenta, cuando quieras y desde donde estés.",
+      "cta": "Acceder a mi portal",
+      "staffCta": "Soy del equipo",
+      "perks": {
+        "appointments": "Reservá y reagendá citas",
+        "history": "Consultá tu historia clínica",
+        "finance": "Mirá tu estado de cuenta"
+      },
+      "videoTitle": "Video de bienvenida de {clinic}"
+    },
+    "info": {
+      "title": "Dónde encontrarnos",
+      "address": "Dirección",
+      "phone": "Teléfono",
+      "email": "Correo",
+      "hours": "Horarios"
+    },
+    "weekdays": {
+      "sunday": "Domingo",
+      "monday": "Lunes",
+      "tuesday": "Martes",
+      "wednesday": "Miércoles",
+      "thursday": "Jueves",
+      "friday": "Viernes",
+      "saturday": "Sábado"
+    },
+    "disabled": {
+      "title": "Portal no disponible",
+      "description": "{clinic} todavía no habilitó el acceso online para pacientes. Comunicate con nosotros y te ayudamos."
+    },
+    "footer": {
+      "contact": "Contacto",
+      "rights": "Todos los derechos reservados.",
+      "poweredBy": "Desarrollado por Invoke IA"
+    },
+    "booking": {
+      "title": "Elegí tu cita",
+      "description": "Seleccioná el día y el horario que mejor te venga.",
+      "reason": "Sólo se muestran los horarios con disponibilidad real. Al confirmar, la clínica recibe tu solicitud y te la confirma por correo."
+    },
+    "booked": {
+      "title": "¡Tu cita quedó agendada!",
+      "description": "Te esperamos.",
+      "reason": "",
+      "when": "{date} a las {time}",
+      "emailSent": "Enviamos un correo con los detalles de tu cita a vos y a la clínica. Si necesitás cambiarla, comunicate con nosotros.",
+      "done": "Listo"
+    },
+    "startOver": "Empezar de nuevo"
+  },
+  "PatientPortal": {
+    "subtitle": "Mi perfil",
+    "logout": "Cerrar sesión",
+    "toggleTheme": "Cambiar tema",
+    "accessDenied": {
+      "title": "Acceso denegado",
+      "description": "Tu cuenta no tiene acceso al portal del paciente."
+    },
+    "tabs": {
+      "info": "Mi Información",
+      "appointments": "Mis Citas",
+      "appointmentsShort": "Citas",
+      "clinical": "Historial",
+      "financial": "Finanzas",
+      "infoSubtitle": "Tus datos personales y de contacto",
+      "appointmentsSubtitle": "Próximas citas y solicitud de nuevas",
+      "clinicalSubtitle": "Historia clínica, tratamientos y documentos",
+      "financialSubtitle": "Tu estado de cuenta"
+    },
+    "subTabs": {
+      "history": "Historia clínica",
+      "anamnesis": "Anamnesis",
+      "treatmentPlans": "Planes de tratamiento",
+      "treatmentPlansShort": "Planes",
+      "instructions": "Indicaciones médicas",
+      "instructionsShort": "Indicaciones",
+      "documents": "Documentos"
+    },
+    "appointments": {
+      "upcomingCount": "{count, plural, =0 {Sin citas próximas} one {# cita próxima} other {# citas próximas}}",
+      "book": "Reservar cita",
+      "reschedule": "Reagendar",
+      "cancel": "Cancelar",
+      "empty": "No tenés citas agendadas. Las citas pasadas están en tu Historial.",
+      "loadError": "No pudimos cargar tus citas. Intentá de nuevo.",
+      "cancelDialog": {
+        "title": "¿Cancelar esta cita?",
+        "description": "Vas a cancelar tu cita del {date} a las {time}. La clínica va a ser notificada.",
+        "noteLabel": "Motivo (opcional)",
+        "notePlaceholder": "Contanos brevemente por qué no podés asistir",
+        "back": "Volver",
+        "confirm": "Sí, cancelar cita",
+        "successTitle": "Cita cancelada",
+        "successDescription": "Avisamos a la clínica. Podés reservar una nueva cuando quieras.",
+        "errorTitle": "No pudimos cancelar la cita"
+      },
+      "nextOne": "Tu próxima cita",
+      "doctor": "Profesional",
+      "room": "Consultorio",
+      "service": "Motivo"
+    },
+    "assistant": {
+      "open": "Abrir asistente",
+      "close": "Cerrar",
+      "title": "Asistente",
+      "subtitle": "Consultas sobre la clínica y tu perfil",
+      "placeholder": "Escribí tu consulta…",
+      "noAnswer": "No pude encontrar una respuesta. Probá reformulando la pregunta.",
+      "error": "No pudimos contactar al asistente. Intentá de nuevo.",
+      "suggestions": {
+        "nextAppointment": "¿Cuándo es mi próxima cita?",
+        "balance": "¿Cuánto debo?",
+        "hours": "¿Cuál es el horario de la clínica?"
+      }
+    },
+    "onboarding": {
+      "title": "Hola, {name}",
+      "description": "No tenés ninguna cita agendada. Solicitá una ahora y después te mostramos tu perfil completo.",
+      "skip": "Lo hago más tarde",
+      "bookedTitle": "¡Solicitud enviada!",
+      "bookedDescription": "La clínica va a confirmarte la cita. Ya podés ver tu perfil.",
+      "goToProfile": "Ir a mi perfil"
+    },
+    "backToStaff": "Volver a vista de Staff",
+    "booking": {
+      "title": "Solicitar una cita",
+      "description": "Elegí el día y el horario que mejor te venga. Sólo se muestran los horarios disponibles.",
+      "pickDay": "¿Qué día te viene bien?",
+      "pickTime": "Elegí un horario",
+      "previousDays": "Días anteriores",
+      "nextDays": "Días siguientes",
+      "availableCount": "{count, plural, =0 {Sin horarios libres} one {# horario libre} other {# horarios libres}}",
+      "closedDay": "Ese día la clínica no atiende. Probá con otro.",
+      "noneAvailable": "No quedan horarios libres ese día. Probá con otro.",
+      "slotTaken": "Horario no disponible",
+      "reasonLabel": "¿Qué te pasa?",
+      "reasonPlaceholder": "Contanos brevemente el motivo de la consulta: molestia, control, urgencia…",
+      "reasonHint": "Nos ayuda a preparar tu consulta y reservar el tiempo necesario.",
+      "confirm": "Confirmar solicitud",
+      "pendingNotice": "La clínica va a confirmarte la cita. Te avisamos por correo.",
+      "loadError": "No pudimos cargar los horarios. Intentá de nuevo.",
+      "successTitle": "¡Solicitud enviada!",
+      "successDescription": "La clínica va a confirmarte la cita a la brevedad.",
+      "errorTitle": "No pudimos crear la cita",
+      "back": "Volver",
+      "pickSede": "¿En qué sede querés atenderte?",
+      "rescheduleTitle": "Reagendar cita",
+      "replacing": "Vas a reemplazar tu cita del {date} a las {time}. Elegí el nuevo horario y nosotros cancelamos la anterior.",
+      "confirmReschedule": "Confirmar el cambio",
+      "rescheduledTitle": "¡Cita reagendada!",
+      "rescheduledDescription": "Cancelamos la cita anterior y la clínica va a confirmarte la nueva.",
+      "rescheduledPartialTitle": "Reservamos la nueva, pero la anterior sigue activa",
+      "rescheduledPartialDescription": "No pudimos cancelar tu cita anterior. Comunicate con la clínica para que la den de baja.",
+      "steps": {
+        "sede": "Sede",
+        "slot": "Horario",
+        "confirm": "Confirmar"
+      },
+      "summary": {
+        "title": "Resumen de tu cita",
+        "when": "Cuándo",
+        "who": "Te va a atender",
+        "where": "Dónde"
+      }
+    },
+    "info": {
+      "emailLocked": "El correo no se puede cambiar: es a donde te llega tu código de acceso. Si necesitás actualizarlo, avisale a la clínica."
+    },
+    "finance": {
+      "loadError": "No pudimos cargar tu estado de cuenta. Intentá de nuevo.",
+      "empty": "Todavía no tenés movimientos en tu cuenta."
+    },
+    "footer": {
+      "whatsapp": "Escribir por WhatsApp",
+      "noSchedules": "Horarios a confirmar",
+      "viewSchedules": "Ver horarios",
+      "mailSubject": "Consulta desde el portal — {sede}",
+      "collapse": "Ocultar",
+      "expand": "Ver datos de contacto"
+    }
+  },
+  "PatientPortalConfigPage": {
+    "title": "Portal del Paciente",
+    "description": "Controlá qué pueden hacer tus pacientes desde su portal de auto-servicio.",
+    "save": "Guardar",
+    "saved": "Configuración guardada",
+    "saveError": "No pudimos guardar la configuración",
+    "loadError": "No pudimos cargar la configuración",
+    "readOnlyNotice": "No tenés permisos para modificar esta configuración.",
+    "fields": {
+      "enabled": {
+        "label": "Permitir el acceso de pacientes al portal",
+        "help": "Habilita la página pública /patient-login. Si está apagado, los pacientes ven un aviso de que el portal no está disponible y no pueden identificarse ni reservar."
+      },
+      "onlineBooking": {
+        "label": "Permitir la reserva de citas online",
+        "help": "Deja que el paciente elija día y horario entre los huecos libres de la agenda. Si está apagado, sólo puede consultar su información: las citas las sigue agendando la clínica."
+      },
+      "appointmentsOnly": {
+        "label": "El portal es sólo para reservar citas",
+        "help": "El paciente entra, se identifica y pasa directo a la agenda. Nunca se le pide código ni accede a su historia clínica, finanzas o datos personales. Útil si querés ofrecer reserva online sin abrir el resto del expediente.",
+        "activeNotice": "Con esta opción activa, ningún paciente va a ver su perfil: sólo la pantalla para reservar. Tampoco se envían códigos de acceso."
+      },
+      "video": {
+        "label": "Video de bienvenida",
+        "help": "Se muestra en la portada de /patient-login. Podés pegar un link de YouTube, un reel de Instagram, un video de Vimeo o la URL de un archivo .mp4. Si lo dejás vacío se usa un video genérico de Invoke IA.",
+        "placeholder": "https://youtube.com/watch?v=… o https://instagram.com/reel/…",
+        "hint": "Acepta YouTube, Instagram, Vimeo o un archivo de video. Dejalo vacío para usar el video por defecto.",
+        "unsupported": "No pudimos reconocer ese enlace. Verificá que sea de YouTube, Instagram, Vimeo o un archivo .mp4."
+      },
+      "message": {
+        "label": "Mensaje de bienvenida",
+        "help": "Reemplaza el texto que acompaña al título en la portada del portal. Si lo dejás vacío se usa el texto por defecto del sistema.",
+        "placeholder": "Reservá y gestioná tus citas cuando quieras…",
+        "hint": "Dejalo vacío para usar el texto por defecto."
+      }
+    },
+    "qr": {
+      "test": "Probar",
+      "download": "Descargar"
+    },
+    "flier": {
+      "print": "Imprimir flier",
+      "staff": {
+        "badge": "Acceso · Personal",
+        "title": "Accede a tu espacio de trabajo",
+        "body": "Escanea el código QR con la cámara de tu teléfono para entrar a la plataforma y gestionar tu día a día.",
+        "footer": "Plataforma impulsada por"
+      },
+      "patient": {
+        "badge": "Reserva · Online",
+        "title": "Reserva online, sin llamadas",
+        "body": "Accede hoy mismo para reservar tus citas cuando quieras y gestionar tus datos y reservas desde tu teléfono. Solo escanea el QR.",
+        "footer": "Reservas impulsadas por"
+      }
     }
   }
 }

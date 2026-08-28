@@ -133,6 +133,8 @@ export const API_ROUTES = {
         ENHANCE_TEXT: '/ai/enhance-text',
         /** Genera tratamientos estructurados desde procedimiento y plan de próxima sesión */
         TREATMENTS: '/ai/treatments',
+        /** Asistente virtual del portal del paciente. El patient_id efectivo sale del JWT, no del body. */
+        PATIENT_QUERY: '/ai/patient/query',
     },
     PATIENT_DISCHARGE: '/patient/discharge',
     PATIENT_DISCHARGE_CANCEL: '/patient/discharge/cancel',
@@ -180,6 +182,34 @@ export const API_ROUTES = {
     LOGOUT: '/api/auth/logout',
     AUTH_ME: '/auth/me',
     USER_ACTIVE_SEDE: '/users/active-sede',
+    /**
+     * Portal del paciente — login sin password por código de un solo uso.
+     * Los cuatro endpoints son públicos (noauth): el paciente todavía no tiene token.
+     * VERIFY_CODE emite el mismo JWT que LOGIN. Contrato: docs/patient-portal.md
+     */
+    PATIENT_AUTH: {
+        IDENTIFY: '/api/auth/patient/identify',
+        SEND_CODE: '/api/auth/patient/send-code',
+        VERIFY_CODE: '/api/auth/patient/verify-code',
+        REGISTER: '/api/auth/patient/register',
+        /** Datos públicos de la clínica para la landing /patient-login (sin token). */
+        PUBLIC_CLINIC: '/api/public/clinic',
+        /**
+         * Reserva sin sesión, desde la landing. Variantes `_noauth` que ya existen
+         * en el workflow de citas — el visitante todavía no tiene token.
+         */
+        PUBLIC_AVAILABILITY: '/appointments_availability_noauth',
+        PUBLIC_APPOINTMENT_UPSERT: '/appointments/upsert_noauth',
+        /** Sedes y consultorios visibles sin token: el visitante elige dónde atenderse. */
+        PUBLIC_SEDES: '/sedes_noauth',
+        PUBLIC_CALENDARS: '/calendars_noauth',
+        /** Horarios de atención de una sede. Requiere `sede_id`. */
+        PUBLIC_SCHEDULES: '/schedules_noauth',
+        /** Envía la confirmación de la cita al paciente y a la clínica. */
+        APPOINTMENT_NOTIFY: '/api/public/appointment-notify',
+    },
+    /** Configuración → Portal del Paciente. Sólo actualiza; no crea clínicas. */
+    PATIENT_PORTAL_CONFIG: '/clinic/patient-portal-config',
     ORDERS: '/orders',
     PERMISSIONS: '/permissions',
     PERMISSION_USERS: '/permission_users',
@@ -236,6 +266,8 @@ export const API_ROUTES = {
     },
     QUOTES: '/quotes',
     RESET_PASSWORD: '/reset-password',
+    /** Ruta de frontend (no API) de la landing pública del portal del paciente. */
+    PATIENT_LOGIN_PAGE: '/patient-login',
     ROLES: '/roles',
     ROLES_ASSIGN: '/roles/assign',
     ROLES_UPSERT: '/roles/upsert',

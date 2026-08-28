@@ -1,0 +1,143 @@
+{
+  "name": "Patient Portal — Config Upsert",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "clinic/patient-portal-config",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-validate",
+      "name": "Validar Campos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        300
+      ],
+      "parameters": {
+        "jsCode": "\n// Sólo se aceptan estos cinco campos. Nada de nombre, RUT ni datos fiscales:\n// esos se editan en Datos de la Clínica, no acá.\nconst body = $input.first().json.body ?? $input.first().json ?? {};\n\nconst asBool = (v) => v === true || v === 'true';\nconst asText = (v) => {\n  const s = v == null ? '' : String(v).trim();\n  return s === '' ? null : s;\n};\n\nreturn [{ json: {\n  patient_portal_enabled:           asBool(body.patient_portal_enabled),\n  patient_portal_online_booking:    asBool(body.online_booking_enabled),\n  patient_portal_appointments_only: asBool(body.appointments_only),\n  welcome_video_url:                asText(body.welcome_video_url),\n  welcome_message:                  asText(body.welcome_message),\n} }];\n"
+      }
+    },
+    {
+      "id": "node-update",
+      "name": "Actualizar Clínica",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        540,
+        300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- UPDATE puro: este endpoint nunca crea una clínica.\nUPDATE public.clinic\nSET patient_portal_enabled           = $1,\n    patient_portal_online_booking    = $2,\n    patient_portal_appointments_only = $3,\n    welcome_video_url                = $4,\n    welcome_message                  = $5\nWHERE id = (SELECT id FROM public.clinic WHERE is_active IS NOT FALSE ORDER BY id LIMIT 1)\nRETURNING id,\n          patient_portal_enabled,\n          patient_portal_online_booking,\n          patient_portal_appointments_only,\n          welcome_video_url,\n          welcome_message",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.patient_portal_enabled, $json.patient_portal_online_booking, $json.patient_portal_appointments_only, $json.welcome_video_url, $json.welcome_message ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "id": "node-format",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        760,
+        300
+      ],
+      "parameters": {
+        "jsCode": "\nconst row = $input.first().json;\n\nif (!row || row.error || !row.id) {\n  return [{ json: { statusCode: 500, body: { message: 'No se pudo guardar la configuración del portal.' } } }];\n}\n\nreturn [{ json: { statusCode: 200, body: {\n  success: true,\n  patient_portal_enabled: row.patient_portal_enabled === true,\n  online_booking_enabled: row.patient_portal_online_booking === true,\n  appointments_only:      row.patient_portal_appointments_only === true,\n  welcome_video_url:      row.welcome_video_url,\n  welcome_message:        row.welcome_message,\n} } }];\n"
+      }
+    },
+    {
+      "id": "node-respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        980,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar Campos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Campos": {
+      "main": [
+        [
+          {
+            "node": "Actualizar Clínica",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar Clínica": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Credencial 'Postgres' en 'Actualizar Clínica' (POSTGRES_CREDENTIAL_ID).\n2. Webhook CON autenticación Bearer — lo consume Configuración → Portal del Paciente.\n3. Verificar en el guard que el usuario tenga PATIENT_PORTAL_CONFIG_UPDATE.\n\nRUTA: POST https://<tu-n8n>/webhook/clinic/patient-portal-config\n\nSÓLO ACTUALIZA. No crea clínicas ni toca ningún otro campo de `clinic`:\nnombre, dirección, RUT y datos fiscales se siguen editando en /clinic/update.\n\nREQUEST:\n{ \"patient_portal_enabled\": true, \"online_booking_enabled\": true,\n  \"appointments_only\": false, \"welcome_video_url\": null, \"welcome_message\": null }\n\nRESPONSE: { \"success\": true, ...los mismos campos ya persistidos }\n\nNOTA: cadena vacía llega como null ⇒ el portal cae a sus valores por defecto\n(video genérico de Invoke IA y copy traducido).\n\nREQUISITOS: database/scripts/067_20260806_patient-portal-booking-mode.sql\nCONTRATO:   docs/patient-portal.md §2.7"
+  }
+}
