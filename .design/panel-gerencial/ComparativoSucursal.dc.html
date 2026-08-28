@@ -1,0 +1,227 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+  <style>
+    :root{
+      --bg:#FCFCFC; --card:#FFFFFF; --fg:#0A0514; --primary:#4B1D95; --accent:#6126C0;
+      --pink:#F53D77; --muted:#F1F0F5; --mutedfg:#6D6D78; --border:#E4E0EB; --border-sub:#EFEDF3;
+      --nav:#1E1B4B; --brand-light:#F0EAFB;
+      --red:#EF4343; --green:#16A34A; --blue:#3B82F6; --amber:#F9CA1F; --violet:#7C3BED;
+    }
+    *{box-sizing:border-box;}
+    body{margin:0;font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--fg);-webkit-font-smoothing:antialiased;}
+    a{color:var(--primary);text-decoration:none;} a:hover{color:var(--accent);}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.03);overflow:hidden;display:flex;flex-direction:column;}
+    .lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--mutedfg);}
+    .num{font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.025em;}
+    .chip{display:inline-flex;align-items:center;gap:5px;height:32px;padding:0 11px;border-radius:8px;border:1px solid var(--border);background:var(--card);font-size:12px;font-weight:600;}
+    .chip-on{background:var(--primary);border-color:var(--primary);color:#fff;}
+    .pill{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;font-size:10px;font-weight:700;}
+    .navitem{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;height:48px;width:100%;border-radius:12px;color:rgba(255,255,255,.6);position:relative;}
+    .navitem.on{background:rgba(255,255,255,.15);color:#fff;}
+    .navitem span{font-size:8px;font-weight:500;line-height:1.1;}
+    .row{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:1px solid var(--border-sub);}
+    .rowlbl{font-size:11.5px;font-weight:600;color:var(--mutedfg);}
+  </style>
+</helmet>
+
+<div style="display:flex;width:1440px;height:980px;background:var(--bg);overflow:hidden">
+
+  <aside style="width:80px;flex-shrink:0;background:var(--nav);box-shadow:2px 0 12px rgba(0,0,0,.15);display:flex;flex-direction:column;padding:8px 0">
+    <div style="height:56px;display:flex;align-items:center;justify-content:center;margin-bottom:8px">
+      <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#7C3BED,#F53D77);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px">i</div>
+    </div>
+    <nav style="display:flex;flex-direction:column;gap:4px;padding:0 8px">
+      <div class="navitem on">
+        <span style="position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:2px;height:24px;border-radius:0 3px 3px 0;background:rgba(255,255,255,.8)"></span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/></svg>
+        <span>Panel</span>
+      </div>
+      <sc-for list="{{nav}}" as="n" hint-placeholder-count="7">
+        <div class="navitem">
+          <div style="width:20px;height:20px;border-radius:5px;border:1.8px solid currentColor;opacity:.75"></div>
+          <span>{{n.label}}</span>
+        </div>
+      </sc-for>
+    </nav>
+    <div style="margin-top:auto;display:flex;justify-content:center;padding-top:12px;border-top:1px solid rgba(255,255,255,.1)">
+      <div style="width:36px;height:36px;border-radius:999px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px">LR</div>
+    </div>
+  </aside>
+
+  <main style="flex:1;display:flex;flex-direction:column;min-width:0;padding:18px 16px;gap:13px;overflow:hidden">
+
+    <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+      <div style="margin-right:auto">
+        <div style="font-size:20px;font-weight:800;letter-spacing:-.025em;line-height:1.1">Panel de Control</div>
+        <div style="font-size:11px;font-weight:500;color:var(--mutedfg);margin-top:2px">Comparativo por sucursal · mayo 2026</div>
+      </div>
+      <div class="chip">Mes en curso <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></div>
+      <div class="chip">UYU</div>
+      <div class="chip chip-on">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        Comparar todas
+      </div>
+    </div>
+
+    <!-- ══ TIRA CONSOLIDADA ══ -->
+    <div class="card" style="flex-direction:row;align-items:stretch;flex-shrink:0;border-color:#D8CEF0;background:linear-gradient(180deg,#FBF9FE,#FFFFFF)">
+      <div style="padding:14px 18px;display:flex;align-items:center;gap:10px;border-right:1px solid var(--border-sub);min-width:190px">
+        <div style="width:32px;height:32px;border-radius:9px;background:var(--primary);display:flex;align-items:center;justify-content:center">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-6"/></svg>
+        </div>
+        <div>
+          <div style="font-size:13.5px;font-weight:800;letter-spacing:-.01em">Consolidado</div>
+          <div style="font-size:10px;font-weight:600;color:var(--mutedfg)">2 sucursales activas</div>
+        </div>
+      </div>
+      <sc-for list="{{consol}}" as="c" hint-placeholder-count="5">
+        <div style="flex:1;padding:14px 18px;border-right:1px solid var(--border-sub)">
+          <div class="lbl" style="font-size:9.5px">{{c.k}}</div>
+          <div style="display:flex;align-items:baseline;gap:7px;margin-top:6px">
+            <div class="num" style="font-size:21px;line-height:1;color:{{c.fg}}">{{c.v}}</div>
+            <div class="pill" style="background:{{c.varBg}};color:{{c.varFg}}">{{c.var}}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <!-- ══ COLUMNAS POR SUCURSAL ══ -->
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;flex-shrink:0">
+      <sc-for list="{{branches}}" as="b" hint-placeholder-count="2">
+        <div class="card">
+          <div style="padding:14px 16px;display:flex;align-items:center;gap:9px;background:{{b.headBg}};border-bottom:1px solid var(--border-sub)">
+            <div style="width:10px;height:10px;border-radius:3px;background:{{b.color}}"></div>
+            <div style="font-size:14.5px;font-weight:800;letter-spacing:-.015em">{{b.name}}</div>
+            <div class="pill" style="background:{{b.color}};color:#fff;margin-left:6px">{{b.share}} del total</div>
+            <a style="margin-left:auto;font-size:11px;font-weight:700">Detalle →</a>
+          </div>
+
+          <div style="padding:15px 16px 13px;display:flex;align-items:flex-end;gap:20px">
+            <div>
+              <div class="lbl" style="font-size:9.5px">Producción del mes</div>
+              <div class="num" style="font-size:29px;line-height:1.05;margin-top:6px">$ {{b.prod}}</div>
+            </div>
+            <div style="padding-bottom:4px">
+              <div class="pill" style="background:#DCFCE7;color:#15803D">{{b.prodVar}}</div>
+              <div style="font-size:10px;font-weight:600;color:var(--mutedfg);margin-top:5px">hoy $ {{b.prodHoy}}</div>
+            </div>
+          </div>
+
+          <div class="row"><span class="rowlbl">Cobranza del mes</span><span class="num" style="font-size:13.5px">$ {{b.cobr}}</span></div>
+          <div class="row"><span class="rowlbl">Pacientes atendidos</span><span class="num" style="font-size:13.5px">{{b.pac}}</span></div>
+          <div class="row"><span class="rowlbl">Pacientes nuevos</span><span class="num" style="font-size:13.5px">{{b.nuevos}}</span></div>
+          <div class="row"><span class="rowlbl">Ticket promedio</span><span class="num" style="font-size:13.5px">$ {{b.ticket}}</span></div>
+          <div class="row">
+            <span class="rowlbl">Inasistencia</span>
+            <span style="display:flex;align-items:center;gap:8px">
+              <span style="width:52px;height:5px;border-radius:999px;background:var(--muted);overflow:hidden;display:inline-block">
+                <span style="display:block;width:{{b.noshPct}};height:100%;background:{{b.noshColor}}"></span>
+              </span>
+              <span class="num" style="font-size:13.5px;color:{{b.noshColor}}">{{b.noshPct}}</span>
+            </span>
+          </div>
+          <div class="row" style="background:#FFFBEB">
+            <span class="rowlbl" style="color:#B45309">Gastos del mes</span>
+            <span style="font-size:11px;font-weight:700;color:#B45309">sin datos cargados</span>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <!-- ══ SERIE DIARIA POR SUCURSAL ══ -->
+    <div class="card" style="flex:1;min-height:0">
+      <div style="padding:13px 16px;display:flex;align-items:center;border-bottom:1px solid var(--border-sub)">
+        <div>
+          <div style="font-size:14px;font-weight:800;letter-spacing:-.01em">Pacientes por día y sucursal</div>
+          <div style="font-size:10.5px;font-weight:500;color:var(--mutedfg);margin-top:1px">Atendidos únicos · mayo</div>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:14px">
+          <sc-for list="{{legend}}" as="l" hint-placeholder-count="2">
+            <div style="display:flex;align-items:center;gap:6px">
+              <div style="width:9px;height:9px;border-radius:2px;background:{{l.color}}"></div>
+              <span style="font-size:10.5px;font-weight:600;color:var(--mutedfg)">{{l.name}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="flex:1;display:flex;align-items:flex-end;gap:4px;padding:16px 16px 9px;min-height:0">
+        <sc-for list="{{series}}" as="d" hint-placeholder-count="25">
+          <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;height:100%">
+            <div style="width:100%;height:{{d.h}};display:flex;flex-direction:column;justify-content:flex-end;border-radius:3px 3px 0 0;overflow:hidden">
+              <div style="height:{{d.hMvd}};background:#7C3BED"></div>
+              <div style="height:{{d.hPde}};background:#4B1D95"></div>
+            </div>
+            <div style="font-size:8px;font-weight:600;color:var(--mutedfg)">{{d.lab}}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+  </main>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"resaltar":{"editor":"enum","options":["Ninguna","Punta del Este","Montevideo"],"default":"Ninguna","section":"Vista"}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const hl = this.props.resaltar ?? 'Ninguna';
+
+    const consol = [
+      { k: 'Producción', v: '$ 1.848.880', var: '+10,8%', varBg: '#DCFCE7', varFg: '#15803D', fg: '#0A0514' },
+      { k: 'Cobranza',   v: '$ 1.691.390', var: '+6,2%',  varBg: '#DCFCE7', varFg: '#15803D', fg: '#0A0514' },
+      { k: 'Pacientes atendidos', v: '912', var: '+7,4%', varBg: '#DCFCE7', varFg: '#15803D', fg: '#0A0514' },
+      { k: 'Pacientes nuevos',    v: '22',  var: '-8,3%', varBg: '#FEE2E2', varFg: '#B91C1C', fg: '#0A0514' },
+      { k: 'Resultado', v: '—', var: 'sin gastos', varBg: '#FEF3C7', varFg: '#B45309', fg: '#9CA3AF' }
+    ];
+
+    const base = [
+      { name: 'Punta del Este', color: '#4B1D95', share: '64%', prod: '1.178.690', prodVar: '+12,1%',
+        prodHoy: '54.100', cobr: '1.074.300', pac: '585', nuevos: '14', ticket: '1.850',
+        noshPct: '28%', noshColor: '#EF4343' },
+      { name: 'Montevideo', color: '#7C3BED', share: '36%', prod: '670.190', prodVar: '+8,4%',
+        prodHoy: '18.200', cobr: '617.090', pac: '327', nuevos: '8', ticket: '2.049',
+        noshPct: '15%', noshColor: '#F9CA1F' }
+    ];
+    const branches = base.map((b) => ({
+      ...b,
+      headBg: hl === b.name ? '#F0EAFB' : '#FFFFFF'
+    }));
+
+    const legend = [
+      { name: 'Punta del Este', color: '#4B1D95' },
+      { name: 'Montevideo',     color: '#7C3BED' }
+    ];
+
+    // [día, total, montevideo] — Punta del Este es el resto
+    const raw = [
+      ['2',14,5],['4',35,12],['5',70,25],['6',57,20],['7',63,22],['8',55,19],['9',11,4],
+      ['11',34,12],['12',54,19],['13',74,26],['14',87,31],['15',54,19],['16',13,5],
+      ['18',42,15],['19',51,18],['20',62,15],['21',88,32],['22',60,21],['23',8,3],
+      ['25',41,15],['26',42,15],['27',53,19],['28',50,18],['29',37,13],['30',9,3]
+    ];
+    const series = raw.map(([lab, total, mvd]) => ({
+      lab,
+      h: Math.round((total / 88) * 100) + '%',
+      hMvd: Math.round((mvd / total) * 100) + '%',
+      hPde: Math.round(((total - mvd) / total) * 100) + '%'
+    }));
+
+    const nav = [
+      { label: 'Caja' }, { label: 'Agenda' }, { label: 'Pacientes' },
+      { label: 'Ventas' }, { label: 'Compras' }, { label: 'Reportes' }, { label: 'Config' }
+    ];
+
+    return { consol, branches, legend, series, nav };
+  }
+}
+</script>
+</body>
+</html>
