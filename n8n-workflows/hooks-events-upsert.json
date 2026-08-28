@@ -1,0 +1,202 @@
+{
+  "name": "Hooks — Events Upsert",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "hooks/events/upsert",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      },
+      "webhookId": "REEMPLAZAR-POR-UUID-NUEVO"
+    },
+    {
+      "id": "node-validar",
+      "name": "Validar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\n\nconst CODE_RE = /^[a-z][a-z0-9_]*\\.(before|after)_[a-z0-9_]+$/;\n\nconst err = (message) => [{ json: { valid: false, statusCode: 400, body: { message } } }];\n\nconst id     = (body.id     || '').toString().trim();\nconst code   = (body.code   || '').toString().trim();\nconst name   = (body.name   || '').toString().trim();\nconst module = (body.module || 'core').toString().trim();\nconst timing = (body.timing || '').toString().trim();\n\nif (!CODE_RE.test(code)) {\n  return err('El código debe tener la forma <entidad>.<before|after>_<accion>, en minúsculas. Ejemplo: invoice.after_upsert');\n}\nif (!name || name.length > 120)      return err('El nombre es obligatorio y no puede superar los 120 caracteres.');\nif (!module || module.length > 40)   return err('El módulo es obligatorio y no puede superar los 40 caracteres.');\nif (timing !== 'before' && timing !== 'after') return err('El momento debe ser \"before\" o \"after\".');\n\n// El timing tiene que ser coherente con el propio código: si no, el catálogo\n// miente sobre cuándo corre el hook y quien escriba la customización se\n// equivoca sin manera de darse cuenta.\nconst timingEnCodigo = code.includes('.before_') ? 'before' : 'after';\nif (timingEnCodigo !== timing) {\n  return err(`El código dice \"${timingEnCodigo}\" pero el momento seleccionado es \"${timing}\". Deben coincidir.`);\n}\n\nlet payload_schema = body.payload_schema ?? {};\nif (typeof payload_schema === 'string') {\n  const s = payload_schema.trim();\n  if (!s) payload_schema = {};\n  else {\n    try { payload_schema = JSON.parse(s); }\n    catch (e) { return err('El esquema del payload no es JSON válido.'); }\n  }\n}\nif (typeof payload_schema !== 'object' || Array.isArray(payload_schema) || payload_schema === null) {\n  return err('El esquema del payload debe ser un objeto JSON.');\n}\n\nconst payload_version = Number(body.payload_version ?? 1);\nif (!Number.isInteger(payload_version) || payload_version < 1) {\n  return err('La versión del payload debe ser un entero mayor o igual a 1.');\n}\n\nreturn [{ json: {\n  valid: true,\n  id: id || null,\n  code, name, module, timing,\n  description:     (body.description || '').toString().trim() || null,\n  payload_schema:  JSON.stringify(payload_schema),\n  payload_version,\n  is_active:       body.is_active !== false,\n} }];\n"
+      }
+    },
+    {
+      "id": "node-valido",
+      "name": "¿Válido?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        540,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-pg",
+      "name": "Guardar Evento",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        760,
+        200
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Una sola sentencia: la guarda y la escritura viajan juntas, así que no hay\n-- ventana entre \"verifiqué que se podía\" y \"escribí\".\n--\n-- Regla protegida: un evento con is_system = true lo entrega el producto y su\n-- `code` está embebido en el JSON de un flujo n8n. Cambiárselo desde la UI\n-- dejaría al flujo disparando un evento que ya no existe, en silencio. El\n-- `timing` tampoco, porque cambia la semántica del contrato.\n--\n-- $1 = id (NULL ⇒ alta), $2 = code, $3 = name, $4 = description, $5 = module,\n-- $6 = timing, $7 = payload_schema, $8 = payload_version, $9 = is_active\nWITH existente AS (\n    SELECT id, code, timing, is_system\n    FROM public.hook_events\n    WHERE id = $1::uuid\n),\nguarda AS (\n    SELECT CASE\n        WHEN $1::uuid IS NOT NULL AND NOT EXISTS (SELECT 1 FROM existente) THEN 'not_found'\n        WHEN (SELECT is_system FROM existente)\n             AND (SELECT code FROM existente) IS DISTINCT FROM $2 THEN 'system_code'\n        WHEN (SELECT is_system FROM existente)\n             AND (SELECT timing FROM existente) IS DISTINCT FROM $6 THEN 'system_timing'\n        ELSE NULL\n    END AS violacion\n),\nguardado AS (\n    INSERT INTO public.hook_events\n        (id, code, name, description, module, timing, payload_schema, payload_version, is_system, is_active)\n    SELECT COALESCE($1::uuid, gen_random_uuid()), $2, $3, $4, $5, $6, $7::jsonb, $8::int,\n           -- Los eventos creados desde la ventana NUNCA son de sistema.\n           COALESCE((SELECT is_system FROM existente), false),\n           $9::boolean\n    WHERE (SELECT violacion FROM guarda) IS NULL\n    ON CONFLICT (id) DO UPDATE\n        SET code            = EXCLUDED.code,\n            name            = EXCLUDED.name,\n            description     = EXCLUDED.description,\n            module          = EXCLUDED.module,\n            timing          = EXCLUDED.timing,\n            payload_schema  = EXCLUDED.payload_schema,\n            payload_version = EXCLUDED.payload_version,\n            is_active       = EXCLUDED.is_active\n    RETURNING *\n)\nSELECT (SELECT violacion FROM guarda)                AS violacion,\n       (SELECT row_to_json(g) FROM guardado g)       AS evento",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.id, $json.code, $json.name, $json.description, $json.module, $json.timing, $json.payload_schema, $json.payload_version, $json.is_active ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "id": "node-fmt",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        200
+      ],
+      "parameters": {
+        "jsCode": "const r = $input.first()?.json || {};\n\nif (r.error) {\n  const msg = (r.error?.message || String(r.error));\n  // 23505 = unique_violation sobre hook_events.code\n  if (msg.includes('hook_events_code_key') || msg.includes('duplicate key')) {\n    return [{ json: { statusCode: 409, body: { message: 'Ya existe un evento con ese código.' } } }];\n  }\n  if (msg.includes('hook_events_code_format_check')) {\n    return [{ json: { statusCode: 400, body: { message: 'El código no cumple el formato <entidad>.<before|after>_<accion>.' } } }];\n  }\n  return [{ json: { statusCode: 500, body: { message: 'No se pudo guardar el evento: ' + msg } } }];\n}\n\nconst MOTIVOS = {\n  not_found:     [404, 'El evento que se intenta editar ya no existe.'],\n  system_code:   [400, 'Este evento lo entrega el producto: su código no se puede cambiar porque está embebido en el flujo de n8n que lo dispara.'],\n  system_timing: [400, 'Este evento lo entrega el producto: su momento (antes/después) no se puede cambiar.'],\n};\n\nif (r.violacion) {\n  const [statusCode, message] = MOTIVOS[r.violacion] || [400, 'Operación no permitida.'];\n  return [{ json: { statusCode, body: { message } } }];\n}\n\nif (!r.evento) {\n  return [{ json: { statusCode: 500, body: { message: 'No se pudo guardar el evento.' } } }];\n}\n\nreturn [{ json: { statusCode: 200, body: r.evento } }];\n"
+      }
+    },
+    {
+      "id": "node-respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1200,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar": {
+      "main": [
+        [
+          {
+            "node": "¿Válido?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Válido?": {
+      "main": [
+        [
+          {
+            "node": "Guardar Evento",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar Evento": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Credencial 'Postgres' en 'Guardar Evento' (reemplaza POSTGRES_CREDENTIAL_ID).\n2. Credencial 'JWT Auth account' en el Webhook.\n3. Activar el workflow.\n\nRUTA: POST https://<tu-n8n>/webhook/hooks/events/upsert\nPERMISO EN EL FRONTEND: CUSTOMIZATIONS_EVENTS_MANAGE.\n\nPAYLOAD (sin id = alta, con id = edición):\n{\n  \"id\": null,\n  \"code\": \"patient.after_create\",\n  \"name\": \"Después de crear paciente\",\n  \"description\": \"...\",\n  \"module\": \"patients\",\n  \"timing\": \"after\",\n  \"payload_schema\": { \"type\": \"object\", \"properties\": { } },\n  \"payload_version\": 1,\n  \"is_active\": true\n}\n\nREGLAS QUE APLICA:\n- El code debe tener la forma <entidad>.<before|after>_<accion> en minúsculas, y\n  el fragmento before/after del código debe coincidir con el campo timing. Si no,\n  el catálogo mentiría sobre cuándo corre el hook.\n- Los eventos que se crean por aquí entran SIEMPRE con is_system = false.\n- En un evento con is_system = true (los que entrega el producto) se pueden editar\n  nombre, descripción, módulo, esquema y estado, pero NO el code ni el timing: el\n  code está embebido en el JSON del flujo n8n que dispara el evento, y cambiarlo\n  desde aquí lo rompería en silencio. Se responde 400.\n\nRESPUESTAS: 200 con el evento guardado · 400 validación o regla de is_system ·\n404 evento inexistente · 409 código duplicado.\n\nTABLA: hook_events"
+  }
+}

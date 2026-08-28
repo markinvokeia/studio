@@ -1,0 +1,202 @@
+{
+  "name": "Hooks — Registry Upsert",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "hooks/registry/upsert",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      },
+      "webhookId": "REEMPLAZAR-POR-UUID-NUEVO"
+    },
+    {
+      "id": "node-validar",
+      "name": "Validar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const req  = $input.first().json;\nconst body = req.body || req;\n\nconst err = (message) => [{ json: { valid: false, statusCode: 400, body: { message } } }];\n\n// El autor sale SIEMPRE del JWT, nunca del cuerpo: si no, cualquiera podría\n// atribuir una customización a otro usuario.\nconst userId = req.jwtPayload?.userId || null;\n\nconst id          = (body.id          || '').toString().trim();\nconst event_code  = (body.event_code  || '').toString().trim();\nconst name        = (body.name        || '').toString().trim();\nconst handler_ref = (body.handler_ref || '').toString().trim();\nconst handler_type = (body.handler_type || 'n8n_workflow').toString().trim();\n\nif (!event_code) return err('Hay que indicar a qué evento se engancha la implementación.');\nif (!name || name.length > 120) return err('El nombre es obligatorio y no puede superar los 120 caracteres.');\n\n// v1 sólo despacha sub-workflows de n8n. La columna admite más tipos para poder\n// crecer sin migración, pero el dispatcher filtra por handler_type y no sabría\n// qué hacer con otra cosa.\nif (handler_type !== 'n8n_workflow') {\n  return err('Sólo se admiten sub-workflows de n8n en esta versión.');\n}\nif (!/^[A-Za-z0-9_-]{8,40}$/.test(handler_ref)) {\n  return err('El ID del sub-workflow no tiene el formato esperado. Es el identificador que aparece en la URL de n8n: /workflow/<id>');\n}\n\nconst seq = Number(body.seq ?? 100);\nif (!Number.isInteger(seq) || seq < 0 || seq > 9999) return err('El orden debe ser un entero entre 0 y 9999.');\n\nconst mode = (body.mode || 'sync').toString().trim();\nif (mode !== 'sync' && mode !== 'async') return err('El modo debe ser \"sync\" o \"async\".');\n\nconst on_error = (body.on_error || 'ignore').toString().trim();\nif (on_error !== 'ignore' && on_error !== 'fail') return err('La política de error debe ser \"ignore\" o \"fail\".');\n\nconst timeout_ms = Number(body.timeout_ms ?? 30000);\nif (!Number.isInteger(timeout_ms) || timeout_ms < 1000 || timeout_ms > 300000) {\n  return err('El tiempo límite debe estar entre 1000 y 300000 ms.');\n}\n\nlet config = body.config ?? {};\nif (typeof config === 'string') {\n  const s = config.trim();\n  if (!s) config = {};\n  else {\n    try { config = JSON.parse(s); }\n    catch (e) { return err('La configuración no es JSON válido.'); }\n  }\n}\nif (typeof config !== 'object' || Array.isArray(config) || config === null) {\n  return err('La configuración debe ser un objeto JSON.');\n}\n\nreturn [{ json: {\n  valid: true,\n  id: id || null,\n  event_code, name, handler_type, handler_ref, seq, mode, on_error, timeout_ms,\n  description: (body.description || '').toString().trim() || null,\n  config:      JSON.stringify(config),\n  log_enabled: body.log_enabled !== false,\n  is_active:   body.is_active   !== false,\n  created_by:  userId,\n} }];\n"
+      }
+    },
+    {
+      "id": "node-valido",
+      "name": "¿Válido?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        540,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-pg",
+      "name": "Guardar Implementación",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        760,
+        200
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- La regla \"before ⇒ sync\" se verifica aquí y no sólo en el nodo Validar porque\n-- depende del timing del EVENTO, que está en la base.\n--\n-- Por qué la regla: cuando mode = 'async' el nodo Execute Sub-workflow del\n-- dispatcher no espera al hook y devuelve su propia entrada, así que el hook no\n-- tiene forma de devolver un patch. Un hook 'before' asíncrono parecería estar\n-- validando o modificando la operación sin hacerlo — un fallo silencioso.\n--\n-- $1 = id, $2 = event_code, $3 = name, $4 = description, $5 = handler_type,\n-- $6 = handler_ref, $7 = seq, $8 = mode, $9 = on_error, $10 = timeout_ms,\n-- $11 = config, $12 = log_enabled, $13 = is_active, $14 = created_by\nWITH ev AS (\n    SELECT code, timing FROM public.hook_events WHERE code = $2\n),\nguarda AS (\n    SELECT CASE\n        WHEN NOT EXISTS (SELECT 1 FROM ev)                            THEN 'unknown_event'\n        WHEN (SELECT timing FROM ev) = 'before' AND $8 = 'async'      THEN 'before_async'\n        ELSE NULL\n    END AS violacion\n),\nguardado AS (\n    INSERT INTO public.hook_registry\n        (id, event_code, name, description, handler_type, handler_ref,\n         seq, mode, on_error, timeout_ms, config, log_enabled, is_active,\n         created_by, updated_by)\n    SELECT COALESCE($1::uuid, gen_random_uuid()), $2, $3, $4, $5, $6,\n           $7::int, $8, $9, $10::int, $11::jsonb, $12::boolean, $13::boolean,\n           $14::uuid, $14::uuid\n    WHERE (SELECT violacion FROM guarda) IS NULL\n    ON CONFLICT (id) DO UPDATE\n        SET event_code  = EXCLUDED.event_code,\n            name        = EXCLUDED.name,\n            description = EXCLUDED.description,\n            handler_ref = EXCLUDED.handler_ref,\n            seq         = EXCLUDED.seq,\n            mode        = EXCLUDED.mode,\n            on_error    = EXCLUDED.on_error,\n            timeout_ms  = EXCLUDED.timeout_ms,\n            config      = EXCLUDED.config,\n            log_enabled = EXCLUDED.log_enabled,\n            is_active   = EXCLUDED.is_active,\n            updated_by  = EXCLUDED.updated_by\n            -- created_by NO se pisa: sigue siendo quien la registró la primera vez.\n    RETURNING *\n)\nSELECT (SELECT violacion FROM guarda)          AS violacion,\n       (SELECT row_to_json(g) FROM guardado g) AS registro",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.id, $json.event_code, $json.name, $json.description, $json.handler_type, $json.handler_ref, $json.seq, $json.mode, $json.on_error, $json.timeout_ms, $json.config, $json.log_enabled, $json.is_active, $json.created_by ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "id": "node-fmt",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        200
+      ],
+      "parameters": {
+        "jsCode": "const r = $input.first()?.json || {};\n\nif (r.error) {\n  const msg = (r.error?.message || String(r.error));\n  if (msg.includes('uq_hook_registry_event_handler') || msg.includes('duplicate key')) {\n    return [{ json: { statusCode: 409, body: { message: 'Ese sub-workflow ya está registrado en este evento.' } } }];\n  }\n  return [{ json: { statusCode: 500, body: { message: 'No se pudo guardar la implementación: ' + msg } } }];\n}\n\nif (r.violacion === 'unknown_event') {\n  return [{ json: { statusCode: 400, body: { message: 'El evento indicado no existe en el catálogo.' } } }];\n}\nif (r.violacion === 'before_async') {\n  return [{ json: { statusCode: 400, body: { message: 'Un hook de un evento \"antes de\" debe ejecutarse en modo síncrono: en modo asíncrono no puede devolver cambios ni frenar la operación.' } } }];\n}\n\nif (!r.registro) {\n  return [{ json: { statusCode: 500, body: { message: 'No se pudo guardar la implementación.' } } }];\n}\n\nreturn [{ json: { statusCode: 200, body: r.registro } }];\n"
+      }
+    },
+    {
+      "id": "node-respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1200,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar": {
+      "main": [
+        [
+          {
+            "node": "¿Válido?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Válido?": {
+      "main": [
+        [
+          {
+            "node": "Guardar Implementación",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar Implementación": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Credencial 'Postgres' en 'Guardar Implementación' (reemplaza POSTGRES_CREDENTIAL_ID).\n2. Credencial 'JWT Auth account' en el Webhook — es OBLIGATORIA aquí: el\n   created_by sale del claim jwtPayload.userId, nunca del cuerpo.\n3. Activar el workflow.\n\nRUTA: POST https://<tu-n8n>/webhook/hooks/registry/upsert\nPERMISO EN EL FRONTEND: CUSTOMIZATIONS_CREATE / CUSTOMIZATIONS_UPDATE.\n\nPAYLOAD (sin id = alta, con id = edición):\n{\n  \"id\": null,\n  \"event_code\": \"invoice.after_upsert\",\n  \"name\": \"Recalcular descuentos\",\n  \"description\": \"...\",\n  \"handler_type\": \"n8n_workflow\",\n  \"handler_ref\": \"AbCd1234EfGh\",\n  \"seq\": 100,\n  \"mode\": \"sync\",\n  \"on_error\": \"ignore\",\n  \"timeout_ms\": 30000,\n  \"config\": { },\n  \"log_enabled\": true,\n  \"is_active\": true\n}\n\nREGLAS QUE APLICA:\n- handler_type debe ser 'n8n_workflow'. La columna admite 'http' y 'js' para\n  crecer sin migración, pero el dispatcher de v1 sólo despacha sub-workflows.\n- handler_ref debe parecerse a un id de workflow de n8n: /^[A-Za-z0-9_-]{8,40}$/.\n- Un evento con timing 'before' NO admite mode 'async'. En asíncrono el\n  dispatcher no espera al hook, así que éste no puede devolver un patch ni\n  frenar la operación: parecería estar validando sin hacerlo.\n- created_by sale del JWT y no se pisa en las ediciones posteriores.\n\nRESPUESTAS: 200 con la implementación guardada · 400 validación o before+async ·\n409 ese sub-workflow ya está registrado en ese evento.\n\nTABLAS: hook_registry, hook_events"
+  }
+}

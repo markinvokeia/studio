@@ -1,0 +1,319 @@
+{
+  "name": "Hook — invoice.after_upsert — Recalcular descuentos",
+  "nodes": [
+    {
+      "id": "node-trigger",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "hook_envelope_version",
+              "type": "number"
+            },
+            {
+              "name": "event_code"
+            },
+            {
+              "name": "timing"
+            },
+            {
+              "name": "payload",
+              "type": "object"
+            },
+            {
+              "name": "context",
+              "type": "object"
+            },
+            {
+              "name": "config",
+              "type": "object"
+            },
+            {
+              "name": "registry_id"
+            },
+            {
+              "name": "depth",
+              "type": "number"
+            },
+            {
+              "name": "hook_path",
+              "type": "array"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-contexto",
+      "name": "Leer Contexto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Los sub-workflows llamados con convertFieldsToString:true reciben los objetos\n// como strings JSON. Se tolera cualquiera de las dos formas.\nconst asObj = (v) => {\n  if (v === null || v === undefined) return {};\n  if (typeof v === 'string') { const s = v.trim(); return s ? JSON.parse(s) : {}; }\n  return v;\n};\n\nconst j       = $input.first().json;\nconst payload = asObj(j.payload);\nconst context = asObj(j.context);\n\nconst invoiceId = Number(payload.invoice_id);\n\n// Que falte el invoice_id NO es un error del hook: simplemente no hay nada que\n// recalcular. Lanzar aquí ensuciaría hook_execution_log con errores que no lo son.\nconst valid = Number.isInteger(invoiceId) && invoiceId > 0;\n\nreturn [{ json: {\n  valid,\n  invoice_id: valid ? invoiceId : null,\n  clinic_id:  (context.clinic_id === null || context.clinic_id === undefined || context.clinic_id === '')\n                ? null : Number(context.clinic_id),\n  reason: valid ? null : 'payload.invoice_id ausente o inválido',\n} }];\n"
+      }
+    },
+    {
+      "id": "node-valida",
+      "name": "¿Factura Válida?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        540,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-politica",
+      "name": "Leer Política",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        760,
+        200
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Política vigente de la clínica + el ámbito con el que se guardó ESTA factura.\n-- La clínica se resuelve igual que en `clinic/preferences`: si el envelope no\n-- trae clinic_id, se usa la única clínica activa de la instalación.\nSELECT i.id                                     AS invoice_id,\n       i.discount_scope                         AS invoice_scope,\n       COALESCE(cp.discounts_enabled, false)    AS discounts_enabled,\n       COALESCE(cp.discount_scope, 'line')      AS clinic_scope,\n       COALESCE(cp.max_discount_pct, 100)       AS max_discount_pct\nFROM public.invoices i\nLEFT JOIN public.clinic_preferences cp\n       ON cp.clinic_id = COALESCE($2::int,\n            (SELECT id FROM public.clinic WHERE is_active IS NOT FALSE ORDER BY id LIMIT 1))\nWHERE i.id = $1::int",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.invoice_id, $json.clinic_id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "id": "node-evaluar",
+      "name": "Evaluar Política",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        200
+      ],
+      "parameters": {
+        "jsCode": "// Decide si hay algo que hacer y, sobre todo, si se pueden tocar las LÍNEAS.\nconst row = $input.first()?.json || {};\nconst ctx = $('Leer Contexto').first().json;\n\nif (row.error || !row.invoice_id) {\n  return [{ json: { apply: false, recalc_lines: false, invoice_id: ctx.invoice_id,\n                    clinic_id: ctx.clinic_id,\n                    reason: 'La factura no existe o no se pudo leer la política de descuentos' } }];\n}\n\n// Si el cliente no activó los descuentos, el hook no toca nada.\nif (row.discounts_enabled !== true) {\n  return [{ json: { apply: false, recalc_lines: false, invoice_id: ctx.invoice_id,\n                    clinic_id: ctx.clinic_id,\n                    reason: 'Descuentos deshabilitados en las preferencias de la clínica' } }];\n}\n\n// GUARDA DE CORRECCIÓN. Con ámbito 'total' el descuento de cabecera YA fue\n// prorrateado entre las líneas por el flujo de ventas, así que\n// invoice_items.discount_value no es la fuente de verdad: re-derivar las líneas\n// desde ahí aplicaría el descuento dos veces y rompería el invariante\n// invoices.total = SUM(invoice_items.total).\n// En ese caso se hace sólo la consolidación de cabecera, que es una agregación\n// pura y siempre segura.\nconst scope = row.invoice_scope || row.clinic_scope || 'line';\n\nreturn [{ json: {\n  apply: true,\n  recalc_lines: scope !== 'total',\n  invoice_id: ctx.invoice_id,\n  clinic_id:  ctx.clinic_id,\n  scope,\n  reason: null,\n} }];\n"
+      }
+    },
+    {
+      "id": "node-aplicar",
+      "name": "¿Aplicar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        200
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.apply }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-recalc",
+      "name": "Recalcular Descuentos",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1420,
+        120
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- UNA SOLA SENTENCIA, a propósito.\n--\n-- Las líneas y la cabecera tienen que quedar consistentes o no cambiar: si esto\n-- fueran dos nodos Postgres serían dos transacciones y una caída entre ambas\n-- dejaría invoices.total sin cuadrar con SUM(invoice_items.total), que es el\n-- invariante del que dependen los pagos, las asignaciones y todos los reportes.\n-- Con CTEs modificadoras todo ocurre en la misma transacción implícita.\n--\n-- NOTA sobre snapshots: `tot` NO puede leer invoice_items, porque las CTEs ven\n-- todas el mismo snapshot y no verían las filas que acaba de escribir\n-- `upd_lineas`. Por eso los totales se agregan desde `final`, que es justo lo\n-- que se está por escribir.\n--\n-- $1 = invoice_id, $2 = clinic_id (NULL ⇒ clínica activa), $3 = recalcular líneas\nWITH pol AS (\n    SELECT COALESCE(cp.max_discount_pct, 100)::numeric AS max_pct\n    FROM public.clinic_preferences cp\n    WHERE cp.clinic_id = COALESCE($2::int,\n        (SELECT id FROM public.clinic WHERE is_active IS NOT FALSE ORDER BY id LIMIT 1))\n),\nsrc AS (\n    SELECT ii.id,\n           ROUND(ii.unit_price * ii.quantity, 2)      AS calc_gross,\n           ii.discount_mode,\n           COALESCE(ii.discount_value, 0)             AS discount_value,\n           ii.gross_total                             AS old_gross,\n           COALESCE(ii.discount_amount, 0)            AS old_disc,\n           ii.total                                   AS old_total\n    FROM public.invoice_items ii\n    WHERE ii.invoice_id = $1::int\n),\nfinal AS (\n    SELECT s.id,\n           CASE WHEN $3::boolean THEN s.calc_gross\n                ELSE COALESCE(s.old_gross, s.old_total) END AS gross,\n           CASE WHEN $3::boolean THEN\n                    -- LEAST acota el descuento por el tope de la clínica y por el\n                    -- propio bruto: nunca puede dar un total negativo.\n                    LEAST(\n                        CASE s.discount_mode\n                            WHEN 'percent' THEN ROUND(s.calc_gross * s.discount_value / 100.0, 2)\n                            WHEN 'amount'  THEN ROUND(s.discount_value, 2)\n                            ELSE 0\n                        END,\n                        ROUND(s.calc_gross * COALESCE((SELECT max_pct FROM pol), 100) / 100.0, 2),\n                        s.calc_gross\n                    )\n                ELSE s.old_disc END AS disc,\n           -- Sin recálculo de líneas se conserva el total tal cual está guardado,\n           -- para que la consolidación de cabecera sea exactamente SUM(total).\n           CASE WHEN $3::boolean THEN NULL ELSE s.old_total END AS keep_total\n    FROM src s\n),\nneto AS (\n    SELECT f.id, f.gross, f.disc,\n           COALESCE(f.keep_total, f.gross - f.disc) AS net\n    FROM final f\n),\nupd_lineas AS (\n    UPDATE public.invoice_items ii\n    SET gross_total     = n.gross,\n        -- NULLIF preserva el convenio del script 068: NULL ⇒ la línea no lleva\n        -- descuento (distinto de \"lleva un descuento de 0\").\n        discount_amount = NULLIF(n.disc, 0),\n        total           = n.net\n    FROM neto n\n    WHERE ii.id = n.id\n      AND $3::boolean\n    RETURNING ii.id\n),\ntot AS (\n    SELECT COALESCE(SUM(n.net), 0)   AS net,\n           COALESCE(SUM(n.gross), 0) AS gross,\n           COUNT(*)                  AS lineas\n    FROM neto n\n)\nUPDATE public.invoices i\nSET gross_total     = tot.gross,\n    total           = tot.net,\n    -- Con ámbito 'total' el descuento de cabecera lo tecleó el usuario y se\n    -- conserva tal cual; con ámbito de línea se deriva de las líneas.\n    discount_amount = CASE WHEN i.discount_scope = 'total' THEN i.discount_amount\n                           ELSE NULLIF(tot.gross - tot.net, 0) END\nFROM tot\nWHERE i.id = $1::int\nRETURNING i.id, i.doc_no, i.gross_total, i.total, i.discount_amount, i.discount_scope,\n          (SELECT lineas FROM tot) AS lineas,\n          (SELECT COUNT(*) FROM upd_lineas) AS lineas_actualizadas",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.invoice_id, $json.clinic_id, $json.recalc_lines ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "id": "node-ok",
+      "name": "Salida OK",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1640,
+        120
+      ],
+      "parameters": {
+        "jsCode": "const r = $input.first()?.json || {};\n\nif (r.error) {\n  // Se devuelve ok:false en vez de lanzar: el dispatcher lo registra en\n  // hook_execution_log con el mensaje, y como este hook se registra con\n  // on_error='ignore' la factura no se ve afectada.\n  return [{ json: { ok: false, patch: {},\n                    error: 'No se pudieron recalcular los descuentos: ' + (r.error?.message || r.error) } }];\n}\n\nconst num = (v) => (v === null || v === undefined ? null : Number(v));\n\nreturn [{ json: {\n  ok: true,\n  // El patch de un hook 'after' es informativo: el dispatcher no lo aplica.\n  patch: {},\n  message: `Factura ${r.doc_no || r.id}: bruto ${r.gross_total}, descuento ${r.discount_amount ?? 0}, neto ${r.total} (${r.lineas_actualizadas}/${r.lineas} líneas recalculadas)`,\n  data: {\n    invoice_id:          r.id,\n    gross_total:         num(r.gross_total),\n    total:               num(r.total),\n    discount_amount:     num(r.discount_amount),\n    discount_scope:      r.discount_scope,\n    lineas:              Number(r.lineas || 0),\n    lineas_actualizadas: Number(r.lineas_actualizadas || 0),\n  },\n} }];\n"
+      }
+    },
+    {
+      "id": "node-noop",
+      "name": "Salida Noop",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1420,
+        420
+      ],
+      "parameters": {
+        "jsCode": "// Camino \"no hay nada que hacer\". Devolver ok:true es lo correcto: el hook no\n// falló, simplemente no aplicaba. Así hook_execution_log no se llena de errores\n// falsos en las instalaciones que tienen los descuentos apagados.\nconst j = $input.first().json;\nreturn [{ json: {\n  ok: true,\n  patch: {},\n  message: j.reason || 'Sin cambios',\n  data: { skipped: true, invoice_id: j.invoice_id ?? null },\n} }];\n"
+      }
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Leer Contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Contexto": {
+      "main": [
+        [
+          {
+            "node": "¿Factura Válida?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Factura Válida?": {
+      "main": [
+        [
+          {
+            "node": "Leer Política",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Salida Noop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Política": {
+      "main": [
+        [
+          {
+            "node": "Evaluar Política",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluar Política": {
+      "main": [
+        [
+          {
+            "node": "¿Aplicar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Aplicar?": {
+      "main": [
+        [
+          {
+            "node": "Recalcular Descuentos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Salida Noop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recalcular Descuentos": {
+      "main": [
+        [
+          {
+            "node": "Salida OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Crear/seleccionar la credencial 'Postgres' en los nodos 'Leer Política' y\n   'Recalcular Descuentos' (reemplaza POSTGRES_CREDENTIAL_ID).\n2. Options > Settings del workflow: permitir que lo llamen otros workflows.\n3. Activar el workflow y ANOTAR SU ID (el de la URL /workflow/<id>).\n4. Registrarlo desde Sistema → Customizaciones:\n      Evento          : invoice.after_upsert\n      Nombre          : Recalcular descuentos\n      Sub-workflow    : <el id anotado en el paso 3>\n      Orden (seq)     : 100\n      Modo            : sync\n      Si falla        : ignorar\n   No hay que insertar nada a mano en la base: los IDs de workflow son propios de\n   cada instalación, por eso hook_registry no lleva datos semilla.\n\nQUÉ ES ESTO\nUn HOOK de ejemplo, no un webhook: no tiene path ni respondToWebhook. Lo invoca\nel 'Hooks Dispatcher' cuando se dispara invoice.after_upsert, y sirve de\nplantilla para escribir customizaciones propias de un cliente.\n\nSu trabajo es dejar invoice_items y la cabecera de invoices coherentes con la\npolítica de descuentos de la clínica (clinic_preferences), después de que el\nflujo común haya escrito la factura.\n\nENVELOPE QUE RECIBE (contrato v1, ver docs/hooks-mechanism.md):\n{\n  \"hook_envelope_version\": 1,\n  \"event_code\": \"invoice.after_upsert\",\n  \"timing\": \"after\",\n  \"payload\": { \"invoice_id\": 123, \"doc_no\": \"F-0001\", \"is_update\": false, ... },\n  \"context\": { \"user_id\": \"...\", \"clinic_id\": null, \"correlation_id\": \"...\" },\n  \"config\": { },\n  \"registry_id\": \"...\",\n  \"depth\": 1,\n  \"hook_path\": [\"invoice.after_upsert\"]\n}\n\nLO QUE DEVUELVE:\n{ \"ok\": true, \"patch\": {}, \"message\": \"...\", \"data\": { ... } }\nEl patch va vacío a propósito: en un evento 'after' el dispatcher no lo aplica.\nPara modificar la factura hay que engancharse a invoice.before_upsert.\n\nINVARIANTE QUE PROTEGE\ninvoices.total = SUM(invoice_items.total), con `total` siempre NETO y\n`gross_total` el bruto (convenio del script 068). De ahí dos decisiones:\n\n  a) Con discount_scope = 'total' NO se recalculan las líneas. El descuento de\n     cabecera ya viene prorrateado en ellas desde el flujo de ventas, así que\n     re-derivarlo desde discount_value lo aplicaría dos veces. En ese caso sólo\n     se consolida la cabecera, que es una agregación pura.\n  b) Las dos actualizaciones (líneas y cabecera) van en UNA sola sentencia SQL,\n     no en dos nodos. Dos nodos serían dos transacciones y una caída entre ambas\n     dejaría el invariante roto.\n\nCÓMO PROBARLO SIN n8n\nCorrer la sentencia de 'Recalcular Descuentos' a mano dentro de\nBEGIN; ... ROLLBACK; con $1 = una factura real, y comprobar que\n  SELECT i.total - SUM(ii.total) FROM invoices i JOIN invoice_items ii\n   ON ii.invoice_id = i.id WHERE i.id = $1 GROUP BY i.total;\nda 0.00, tanto en una factura con ámbito 'line' como en una con ámbito 'total'.\n\nTABLAS: invoices, invoice_items, clinic_preferences, clinic\nDOCUMENTACIÓN: docs/hooks-mechanism.md"
+  }
+}

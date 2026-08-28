@@ -1,0 +1,129 @@
+{
+  "name": "Hooks — Events Get",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "hooks/events",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      },
+      "webhookId": "REEMPLAZAR-POR-UUID-NUEVO"
+    },
+    {
+      "id": "node-pg",
+      "name": "Buscar Eventos",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        340,
+        300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Alimenta los DOS paneles de la ventana Customizaciones en un solo viaje:\n-- el catálogo (panel izquierdo, con el indicador activas/total) y las\n-- implementaciones de cada evento (panel derecho).\nSELECT he.id,\n       he.code,\n       he.name,\n       he.description,\n       he.module,\n       he.timing,\n       he.payload_schema,\n       he.payload_version,\n       he.is_system,\n       he.is_active,\n       he.created_at,\n       he.updated_at,\n       COALESCE(cnt.total,  0)          AS implementations_count,\n       COALESCE(cnt.activas, 0)         AS active_implementations_count,\n       COALESCE(impl.rows, '[]'::jsonb) AS implementations\nFROM public.hook_events he\nLEFT JOIN LATERAL (\n    SELECT COUNT(*) AS total,\n           COUNT(*) FILTER (WHERE hr.is_active) AS activas\n    FROM public.hook_registry hr\n    WHERE hr.event_code = he.code\n) cnt ON true\nLEFT JOIN LATERAL (\n    SELECT jsonb_agg(to_jsonb(x) ORDER BY x.seq, x.created_at) AS rows\n    FROM (\n        SELECT hr.id, hr.event_code, hr.name, hr.description, hr.handler_type,\n               hr.handler_ref, hr.seq, hr.mode, hr.on_error, hr.timeout_ms,\n               hr.config, hr.log_enabled, hr.is_active,\n               hr.created_at, hr.updated_at,\n               u.name AS created_by_name,\n               l.last_executed_at,\n               l.last_status\n        FROM public.hook_registry hr\n        LEFT JOIN public.users u ON u.id = hr.created_by\n        LEFT JOIN LATERAL (\n            SELECT el.executed_at AS last_executed_at, el.status AS last_status\n            FROM public.hook_execution_log el\n            WHERE el.registry_id = hr.id\n            ORDER BY el.executed_at DESC\n            LIMIT 1\n        ) l ON true\n        WHERE hr.event_code = he.code\n    ) x\n) impl ON true\nWHERE ($1::text IS NULL OR $1 = '' OR he.module = $1::text)\n  AND ($2::text IS NULL OR $2 = ''\n       OR he.code ILIKE '%' || $2 || '%'\n       OR he.name ILIKE '%' || $2 || '%')\nORDER BY he.module ASC, he.code ASC",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.query?.module ?? null, $json.query?.search ?? null ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "id": "node-fmt",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        580,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const rows = $input.all().map((i) => i.json).filter((r) => r && r.id);\n\nconst first = $input.first()?.json;\nif (first && first.error) {\n  return [{ json: { statusCode: 500, body: { message: 'No se pudo leer el catálogo de eventos.' } } }];\n}\n\n// Devolver [] y no [{}] cuando no hay filas: el frontend defiende igual, pero\n// no hay razón para propagar la rareza de n8n al contrato de la API.\nreturn [{ json: { statusCode: 200, body: rows.map((r) => ({\n  ...r,\n  payload_schema:               r.payload_schema ?? {},\n  implementations:              Array.isArray(r.implementations) ? r.implementations : [],\n  implementations_count:        Number(r.implementations_count ?? 0),\n  active_implementations_count: Number(r.active_implementations_count ?? 0),\n})) } }];\n"
+      }
+    },
+    {
+      "id": "node-respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        820,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Buscar Eventos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Eventos": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Credencial 'Postgres' en 'Buscar Eventos' (reemplaza POSTGRES_CREDENTIAL_ID).\n2. Credencial 'JWT Auth account' en el Webhook (ya referenciada por id).\n3. Generar un webhookId nuevo (reemplaza REEMPLAZAR-POR-UUID-NUEVO) o dejar que\n   n8n lo genere al importar.\n4. Activar el workflow.\n\nRUTA: GET https://<tu-n8n>/webhook/hooks/events\nAUTENTICACIÓN: JWT (header Authorization: Bearer <token>).\nPERMISO EN EL FRONTEND: CUSTOMIZATIONS_VIEW_LIST.\n\nQUERY PARAMS (ambos opcionales):\n  module → filtra por módulo ('billing', 'appointments', 'core'…)\n  search → busca en code y name\n\nRESPUESTA: array de eventos del catálogo, cada uno con el conteo de\nimplementaciones y el array completo de las mismas, para alimentar los dos\npaneles de la ventana en un solo viaje.\n\n[\n  {\n    \"id\": \"...\", \"code\": \"invoice.after_upsert\", \"name\": \"...\",\n    \"module\": \"billing\", \"timing\": \"after\", \"payload_schema\": { },\n    \"payload_version\": 1, \"is_system\": true, \"is_active\": true,\n    \"implementations_count\": 1, \"active_implementations_count\": 1,\n    \"implementations\": [\n      { \"id\": \"...\", \"name\": \"Recalcular descuentos\", \"handler_ref\": \"...\",\n        \"seq\": 100, \"mode\": \"sync\", \"on_error\": \"ignore\", \"is_active\": true,\n        \"last_executed_at\": \"...\", \"last_status\": \"success\" }\n    ]\n  }\n]\n\nTABLAS: hook_events, hook_registry, hook_execution_log, users\n(ver database/scripts/069_20260828_hooks-registry-and-permissions.sql)"
+  }
+}

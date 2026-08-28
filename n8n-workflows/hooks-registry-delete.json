@@ -1,0 +1,129 @@
+{
+  "name": "Hooks — Registry Delete",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "DELETE",
+        "path": "hooks/registry/delete",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      },
+      "webhookId": "REEMPLAZAR-POR-UUID-NUEVO"
+    },
+    {
+      "id": "node-pg",
+      "name": "Eliminar Implementación",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        340,
+        300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM public.hook_registry\nWHERE id = $1::uuid\nRETURNING id, event_code, name, handler_ref",
+        "additionalFields": {
+          "queryParams": "={{ [ ($json.body?.id ?? $json.id ?? null) ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "id": "node-fmt",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        580,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const r = $input.first()?.json || {};\n\nif (r.error) {\n  return [{ json: { statusCode: 500, body: { message: 'No se pudo eliminar la implementación: ' + (r.error?.message || r.error) } } }];\n}\n\n// Sin fila devuelta, o con la fila vacía que n8n produce cuando el DELETE no\n// afectó a nadie: el id no existe.\nif (!r.id) {\n  return [{ json: { statusCode: 404, body: { message: 'La implementación no existe.' } } }];\n}\n\n// Las filas de hook_execution_log NO se borran: su registry_id queda en NULL por\n// la FK (ON DELETE SET NULL) y el handler_ref desnormalizado deja constancia de\n// qué corrió. La traza histórica sobrevive a la baja.\nreturn [{ json: { statusCode: 200, body: r } }];\n"
+      }
+    },
+    {
+      "id": "node-respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        820,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Eliminar Implementación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Eliminar Implementación": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Credencial 'Postgres' en 'Eliminar Implementación' (reemplaza POSTGRES_CREDENTIAL_ID).\n2. Credencial 'JWT Auth account' en el Webhook.\n3. Activar el workflow.\n\nRUTA: DELETE https://<tu-n8n>/webhook/hooks/registry/delete\nPERMISO EN EL FRONTEND: CUSTOMIZATIONS_DELETE.\n\nPAYLOAD (el id va en el CUERPO):\n{ \"id\": \"uuid-de-la-implementacion\" }\n\nRESPUESTAS:\n  200 → { id, event_code, name, handler_ref } de la implementación borrada\n  404 → no existe\n\nNOTA: no se borra el histórico. Las filas de hook_execution_log quedan con\nregistry_id en NULL (ON DELETE SET NULL) pero conservan handler_ref, así que la\ntraza sigue diciendo qué workflow corrió.\n\nEsto NO elimina el sub-workflow de n8n: sólo lo desengancha del evento. Si la\nidea es apagarlo temporalmente, es mejor desactivar la implementación\n(is_active = false) que borrarla.\n\nTABLA: hook_registry"
+  }
+}

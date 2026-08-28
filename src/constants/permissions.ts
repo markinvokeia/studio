@@ -599,6 +599,16 @@ export const SYSTEM_PERMISSIONS = {
   // Data Import
   IMPORT_DATA_VIEW_MENU: 'IMPORT_DATA_VIEW_MENU',
   IMPORT_DATA_EXECUTE: 'IMPORT_DATA_EXECUTE',
+
+  // Customizations (mecanismo de hooks / Event Handlers)
+  CUSTOMIZATIONS_VIEW_MENU: 'CUSTOMIZATIONS_VIEW_MENU',
+  CUSTOMIZATIONS_VIEW_LIST: 'CUSTOMIZATIONS_VIEW_LIST',
+  CUSTOMIZATIONS_CREATE: 'CUSTOMIZATIONS_CREATE',
+  CUSTOMIZATIONS_UPDATE: 'CUSTOMIZATIONS_UPDATE',
+  CUSTOMIZATIONS_DELETE: 'CUSTOMIZATIONS_DELETE',
+  // Definir tipos de evento es más sensible que registrar una implementación:
+  // el code queda embebido en el flujo n8n que lo dispara.
+  CUSTOMIZATIONS_EVENTS_MANAGE: 'CUSTOMIZATIONS_EVENTS_MANAGE',
 } as const;
 
 export type SystemPermission = (typeof SYSTEM_PERMISSIONS)[keyof typeof SYSTEM_PERMISSIONS];

@@ -2788,3 +2788,90 @@ export type PatientAiQueryResponse = {
   suggestions?: string[];
   action?: PatientAiAction | null;
 };
+
+// ---------------------------------------------------------------------------
+// Customizaciones — mecanismo de hooks (Event Handlers, script 069)
+//
+// Los flujos n8n comunes son idénticos en todas las instalaciones y, en puntos
+// definidos, llaman a un dispatcher genérico que ejecuta las customizaciones
+// registradas para ese evento en esta instalación. Ver docs/hooks-mechanism.md.
+// ---------------------------------------------------------------------------
+
+/** Cuándo corre el hook respecto de la operación que lo dispara. */
+export type HookTiming = 'before' | 'after';
+
+/** v1 sólo despacha 'n8n_workflow'; los otros existen para crecer sin migración. */
+export type HookHandlerType = 'n8n_workflow' | 'http' | 'js';
+
+/** 'sync' ⇒ el flujo llamante espera. 'async' ⇒ dispara y sigue (no puede devolver patch). */
+export type HookMode = 'sync' | 'async';
+
+/** Qué hace el dispatcher si el hook falla. */
+export type HookOnError = 'ignore' | 'fail';
+
+export type HookExecutionStatus = 'success' | 'error' | 'skipped';
+
+/** Fila de `hook_registry`: una implementación concreta enganchada a un evento. */
+export type HookRegistration = {
+  id: string;
+  event_code: string;
+  name: string;
+  description?: string | null;
+  handler_type: HookHandlerType;
+  /** ID del sub-workflow n8n: el que aparece en la URL /workflow/<id>. Propio de cada instalación. */
+  handler_ref: string;
+  /** Orden de ejecución dentro del evento. Cada hook ve el payload parcheado por los de seq menor. */
+  seq: number;
+  mode: HookMode;
+  on_error: HookOnError;
+  /** Orientativo: n8n no puede cortar por tiempo un sub-workflow desde el nodo que lo llama. */
+  timeout_ms: number;
+  /** Parámetros de esta registración; llegan al hook en el campo `config` del envelope. */
+  config: Record<string, unknown>;
+  log_enabled: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  created_by_name?: string | null;
+  last_executed_at?: string | null;
+  last_status?: HookExecutionStatus | null;
+};
+
+/** Fila de `hook_events`: punto de extensión que ofrecen los flujos comunes. */
+export type HookEvent = {
+  id: string;
+  /** `<entidad>.<before|after>_<accion>`. Constante embebida en el flujo n8n que lo dispara. */
+  code: string;
+  name: string;
+  description?: string | null;
+  module: string;
+  timing: HookTiming;
+  /** Documenta el contrato del payload. El dispatcher NO valida contra él en v1. */
+  payload_schema: Record<string, unknown>;
+  payload_version: number;
+  /** true ⇒ lo entrega el producto: no se puede borrar ni cambiarle el code ni el timing. */
+  is_system: boolean;
+  is_active: boolean;
+  implementations_count: number;
+  active_implementations_count: number;
+  implementations: HookRegistration[];
+  created_at: string;
+  updated_at: string;
+};
+
+/** Fila de `hook_execution_log`. Sin pantalla propia en v1; se consulta desde la BD. */
+export type HookExecutionLogEntry = {
+  id: number;
+  event_code: string;
+  registry_id?: string | null;
+  handler_ref?: string | null;
+  status: HookExecutionStatus;
+  depth: number;
+  duration_ms?: number | null;
+  input?: Record<string, unknown> | null;
+  output?: Record<string, unknown> | null;
+  error_message?: string | null;
+  correlation_id?: string | null;
+  n8n_execution_id?: string | null;
+  executed_at: string;
+};

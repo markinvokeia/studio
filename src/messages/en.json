@@ -357,6 +357,7 @@
     "Roles": "Roles",
     "Permissions": "Permissions",
     "Configurations": "Configurations",
+    "Customizations": "Customizations",
     "NotificationSettings": "Notifications",
     "AuditLog": "Audit Log",
     "AccessLog": "Access Log",
@@ -8526,6 +8527,156 @@
         "body": "Sign in today to book appointments whenever you want and manage your details and bookings from your phone. Just scan the QR.",
         "footer": "Bookings powered by"
       }
+    }
+  },
+  "CustomizationsPage": {
+    "title": "Customizations",
+    "description": "Extension points in the flows and the implementations hooked to each one",
+    "filterPlaceholder": "Search event...",
+    "createEvent": "New type",
+    "columns": {
+      "name": "Event",
+      "code": "Code",
+      "module": "Module",
+      "timing": "Timing",
+      "implementations": "Implementations",
+      "isActive": "Active",
+      "yes": "Yes",
+      "no": "No"
+    },
+    "timing": {
+      "before": "Before",
+      "after": "After"
+    },
+    "tabs": {
+      "info": "Information",
+      "implementations": "Implementations"
+    },
+    "detail": {
+      "systemEvent": "Built-in",
+      "editEvent": "Edit",
+      "payloadSchema": "Payload schema",
+      "payloadVersion": "Version {version}",
+      "timingHelp": {
+        "before": "Runs before the operation writes anything. It can change the data or cancel the operation. Must be synchronous.",
+        "after": "Runs once the operation is complete. Its result does not change the operation, and it runs outside that transaction: the implementation must be safe to repeat."
+      },
+      "noImplementations": "No implementations",
+      "noImplementationsHint": "This event still fires, but nothing runs today. Define an implementation to hook an n8n sub-workflow to it.",
+      "noPermissionToDefine": "You do not have permission to define implementations.",
+      "define": "Define",
+      "lastExecuted": "Last run",
+      "never": "Never",
+      "active": "Active",
+      "inactive": "Inactive",
+      "modes": {
+        "sync": "Synchronous",
+        "async": "Asynchronous"
+      },
+      "errors": {
+        "ignore": "On failure: continue",
+        "fail": "On failure: cancel"
+      },
+      "status": {
+        "success": "OK",
+        "error": "Failed",
+        "skipped": "Skipped"
+      }
+    },
+    "eventDialog": {
+      "createTitle": "New hook type",
+      "editTitle": "Edit hook type",
+      "description": "Define an extension point. The code is the identifier the n8n flow uses to fire it, so it must match exactly what is configured there.",
+      "code": "Code",
+      "codePlaceholder": "patient.after_create",
+      "codeHelp": "Format: entity.before_action or entity.after_action, lowercase.",
+      "timing": "Timing",
+      "name": "Name",
+      "namePlaceholder": "After patient is created",
+      "module": "Module",
+      "modulePlaceholder": "patients",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "When it fires and what it is for",
+      "payloadSchema": "Payload schema",
+      "payloadSchemaHelp": "Documents what data the hook receives. Informational only: it is not validated at runtime.",
+      "payloadVersion": "Payload version",
+      "isActive": "Active",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving..."
+    },
+    "dialog": {
+      "createTitle": "Define implementation",
+      "editTitle": "Edit implementation",
+      "description": "Hook an n8n sub-workflow to this event. The sub-workflow must exist and allow other flows to call it.",
+      "event": "Event",
+      "name": "Name",
+      "namePlaceholder": "WhatsApp notice to the front desk",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "What this customization does",
+      "handlerRef": "n8n sub-workflow",
+      "handlerRefPlaceholder": "AbCd1234EfGh",
+      "handlerRefHelp": "The identifier shown in the n8n URL — the part after /workflow/",
+      "seq": "Order",
+      "seqHelp": "Lowest first. Each implementation receives the data already changed by the previous ones.",
+      "mode": "Mode",
+      "modeHelp": "Synchronous: the operation waits for it to finish. Asynchronous: it is fired and the operation continues.",
+      "asyncDisabledForBefore": "\"Before\" events only allow synchronous mode: asynchronously the implementation cannot change or cancel the operation.",
+      "onError": "On failure",
+      "onErrorHelp": "Continue logs the failure and carries on. Cancel aborts the whole operation.",
+      "timeout": "Time limit (ms)",
+      "timeoutHelp": "Advisory: n8n cannot time out a sub-workflow. This is the commitment expected from the hook.",
+      "config": "Configuration",
+      "configHelp": "JSON object with this implementation's parameters. It reaches the hook as-is.",
+      "logEnabled": "Log executions",
+      "isActive": "Active",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving..."
+    },
+    "deleteDialog": {
+      "title": "Delete implementation",
+      "description": "\"{name}\" will be unhooked from this event. The n8n sub-workflow is not deleted. If you only want to switch it off for now, deactivating it is better.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "deleteEventDialog": {
+      "title": "Delete hook type",
+      "description": "The event \"{name}\" will be removed from the catalog. If an n8n flow still fires it, it will no longer find its definition.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "createSuccessTitle": "Created",
+      "editSuccessTitle": "Updated",
+      "successDescription": "\"{name}\" was saved successfully.",
+      "deleteSuccessTitle": "Deleted",
+      "deleteSuccessDescription": "The implementation \"{name}\" was deleted.",
+      "deleteEventSuccessDescription": "The event \"{name}\" was deleted.",
+      "deleteErrorTitle": "Could not delete",
+      "loadErrorDescription": "The event catalog could not be loaded.",
+      "submitErrorDescription": "Could not save. Check the data and try again.",
+      "deleteErrorDescription": "The deletion could not be completed."
+    },
+    "validation": {
+      "codeRequired": "The code is required.",
+      "codeFormat": "Invalid format. It must be entity.before_action or entity.after_action, lowercase.",
+      "timingMismatch": "The timing must match the before/after part of the code.",
+      "nameRequired": "The name is required.",
+      "nameMaxLength": "The name cannot exceed 120 characters.",
+      "descriptionMaxLength": "The description cannot exceed 500 characters.",
+      "moduleRequired": "The module is required.",
+      "moduleMaxLength": "The module cannot exceed 40 characters.",
+      "schemaInvalidJson": "The schema must be a valid JSON object.",
+      "payloadVersionMin": "The version must be 1 or higher.",
+      "eventCodeRequired": "The event to hook into is missing.",
+      "handlerRefRequired": "The sub-workflow is required.",
+      "handlerRefFormat": "That does not look like an n8n workflow identifier.",
+      "seqRange": "The order must be between 0 and 9999.",
+      "timeoutMin": "The minimum time limit is 1000 ms.",
+      "timeoutMax": "The maximum time limit is 300000 ms.",
+      "configInvalidJson": "The configuration must be a valid JSON object."
     }
   }
 }

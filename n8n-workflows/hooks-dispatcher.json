@@ -1,0 +1,669 @@
+{
+  "name": "Hooks Dispatcher",
+  "nodes": [
+    {
+      "id": "node-trigger",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -100,
+        400
+      ],
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "event_code"
+            },
+            {
+              "name": "payload",
+              "type": "object"
+            },
+            {
+              "name": "context",
+              "type": "object"
+            },
+            {
+              "name": "depth",
+              "type": "number"
+            },
+            {
+              "name": "hook_path",
+              "type": "array"
+            },
+            {
+              "name": "clinic_id",
+              "type": "number"
+            },
+            {
+              "name": "correlation_id"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-normalizar",
+      "name": "Normalizar Entrada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        120,
+        400
+      ],
+      "parameters": {
+        "jsCode": "// Normaliza la entrada del dispatcher y evalúa las dos guardas de recursión.\n//\n// Varios flujos existentes llaman a sub-workflows con convertFieldsToString:true,\n// que convierte los objetos en strings JSON (por eso Billing.json arranca con un\n// JSON.parse). Toleramos ambas formas para que instrumentar un flujo no dependa\n// de acertar ese flag.\nconst asObj = (v) => {\n  if (v === null || v === undefined) return {};\n  if (typeof v === 'string') { const s = v.trim(); return s ? JSON.parse(s) : {}; }\n  return v;\n};\nconst asArr = (v) => {\n  if (Array.isArray(v)) return v;\n  if (typeof v === 'string') { const s = v.trim(); if (!s) return []; const p = JSON.parse(s); return Array.isArray(p) ? p : []; }\n  return [];\n};\n\nconst MAX_DEPTH = 5;\n\nconst inp = $input.first().json;\n\nconst event_code = (inp.event_code || '').toString().trim();\nif (!event_code) {\n  throw new Error('hooks-dispatcher: event_code es obligatorio');\n}\n\nconst payload   = asObj(inp.payload);\nconst context   = asObj(inp.context);\nconst hook_path = asArr(inp.hook_path);\nconst depth     = Number.isFinite(Number(inp.depth)) ? Number(inp.depth) : 0;\n\nconst clinic_id = (inp.clinic_id === null || inp.clinic_id === undefined || inp.clinic_id === '')\n  ? null\n  : Number(inp.clinic_id);\n\nconst correlation_id = (inp.correlation_id || $execution.id || '').toString();\n\n// Guarda 1: profundidad. Un hook que dispara un evento que dispara el mismo\n// hook es el clásico. Guarda 2: ciclo explícito en la cadena de eventos.\nlet guard = null;\nif (depth >= MAX_DEPTH)            guard = 'max_depth';\nelse if (hook_path.includes(event_code)) guard = 'cycle';\n\nreturn [{ json: {\n  event_code,\n  payload,\n  context,\n  hook_path,\n  depth,\n  clinic_id,\n  correlation_id,\n  guard,\n  guard_ok: guard === null,\n  started_at: Date.now(),\n} }];\n"
+      }
+    },
+    {
+      "id": "node-guardia",
+      "name": "¿Guardia OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        340,
+        400
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.guard_ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-buscar",
+      "name": "Buscar Hooks",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        560,
+        300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Implementaciones activas para este evento, en orden de ejecución.\n-- El filtro por handler_type es lo que hace que v1 sólo despache sub-workflows\n-- n8n aunque la columna ya admita otros tipos.\n-- clinic_id NULL en la fila = \"aplica a toda la instalación\" (el caso normal hoy).\nSELECT hr.id            AS registry_id,\n       hr.name,\n       hr.handler_type,\n       hr.handler_ref,\n       hr.seq,\n       hr.mode,\n       hr.on_error,\n       hr.timeout_ms,\n       hr.config,\n       hr.log_enabled,\n       he.timing,\n       he.payload_version\nFROM public.hook_registry hr\nJOIN public.hook_events   he ON he.code = hr.event_code\nWHERE hr.event_code   = $1\n  AND hr.is_active    IS TRUE\n  AND he.is_active    IS TRUE\n  AND hr.handler_type = 'n8n_workflow'\n  AND (hr.clinic_id IS NULL OR hr.clinic_id = $2::int)\nORDER BY hr.seq ASC, hr.created_at ASC",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.event_code, $json.clinic_id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "id": "node-hay-hooks",
+      "name": "¿Hay Hooks?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        780,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $input.all().length > 0 && !!$json.registry_id }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-cola",
+      "name": "Preparar Cola",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        200
+      ],
+      "parameters": {
+        "jsCode": "// Convierte las filas del registry en una cola de un item por hook, cada uno con\n// los metadatos de despacho que necesitan los nodos de abajo.\nconst base = $('Normalizar Entrada').first().json;\n\nreturn $input.all()\n  .filter((it) => it.json && it.json.registry_id)\n  .map((it) => {\n    const r = it.json;\n    const asObj = (v) => {\n      if (v === null || v === undefined) return {};\n      if (typeof v === 'string') { const s = v.trim(); return s ? JSON.parse(s) : {}; }\n      return v;\n    };\n    return { json: {\n      registry_id:     r.registry_id,\n      name:            r.name,\n      handler_type:    r.handler_type,\n      handler_ref:     r.handler_ref,\n      seq:             Number(r.seq),\n      mode:            r.mode,\n      on_error:        r.on_error,\n      timeout_ms:      Number(r.timeout_ms),\n      config:          asObj(r.config),\n      log_enabled:     r.log_enabled === true,\n      timing:          r.timing,\n      payload_version: Number(r.payload_version),\n      event_code:      base.event_code,\n    } };\n  });\n"
+      }
+    },
+    {
+      "id": "node-loop",
+      "name": "Loop Hooks",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1220,
+        200
+      ],
+      "parameters": {
+        "batchSize": 1,
+        "options": {
+          "reset": false
+        }
+      }
+    },
+    {
+      "id": "node-iteracion",
+      "name": "Preparar Iteración",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        320
+      ],
+      "parameters": {
+        "jsCode": "// Arma el envelope que recibe ESTE hook.\n//\n// Semántica del encadenamiento: dentro de un mismo evento los hooks corren en\n// orden de `seq` y cada uno ve el payload ya parcheado por los anteriores. El\n// patch acumulado se lee de la corrida anterior de 'Acumular Resultado'\n// (índice de corrida explícito, no la resolución implícita de item, que dentro\n// de un splitInBatches es ambigua).\n//\n// Si esa lectura fallara en alguna versión de n8n, el catch degrada el\n// comportamiento a \"cada hook ve el payload original\" — nunca corrompe datos, y\n// el patch que devuelve el dispatcher sigue siendo correcto porque\n// 'Fusionar Resultados' lo recalcula desde cero.\nconst hook = $input.first().json;\nconst base = $('Normalizar Entrada').first().json;\n\nlet acc = {};\nif ($runIndex > 0) {\n  try {\n    const prev = $('Acumular Resultado').all(0, $runIndex - 1);\n    acc = (prev && prev[0] && prev[0].json && prev[0].json.acc_patch) ? prev[0].json.acc_patch : {};\n  } catch (e) {\n    acc = {};\n  }\n}\n\n// Merge SUPERFICIAL a propósito. Un deep merge de arrays es donde este tipo de\n// mecanismo se vuelve impredecible; gana el hook de `seq` más alto.\nconst payload = { ...base.payload, ...acc };\n\nreturn [{ json: {\n  ...hook,\n  acc_patch: acc,\n  envelope: {\n    hook_envelope_version: 1,\n    event_code:      base.event_code,\n    timing:          hook.timing,\n    payload_version: hook.payload_version,\n    payload,\n    context: {\n      ...base.context,\n      correlation_id: base.correlation_id,\n      clinic_id:      base.clinic_id,\n    },\n    config:      hook.config,\n    registry_id: hook.registry_id,\n    depth:       base.depth + 1,\n    hook_path:   [...base.hook_path, base.event_code],\n  },\n  started_at: Date.now(),\n} }];\n"
+      }
+    },
+    {
+      "id": "node-modo",
+      "name": "¿Modo Sync?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1660,
+        320
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.mode === 'sync' }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-run-sync",
+      "name": "Ejecutar Hook Sync",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1880,
+        220
+      ],
+      "onError": "continueErrorOutput",
+      "alwaysOutputData": true,
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "={{ $json.handler_ref }}",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "hook_envelope_version": "={{ 1 }}",
+            "event_code": "={{ $json.envelope.event_code }}",
+            "timing": "={{ $json.envelope.timing }}",
+            "payload": "={{ $json.envelope.payload }}",
+            "context": "={{ $json.envelope.context }}",
+            "config": "={{ $json.envelope.config }}",
+            "registry_id": "={{ $json.envelope.registry_id }}",
+            "depth": "={{ $json.envelope.depth }}",
+            "hook_path": "={{ $json.envelope.hook_path }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "node-run-async",
+      "name": "Ejecutar Hook Async",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1880,
+        440
+      ],
+      "onError": "continueErrorOutput",
+      "alwaysOutputData": true,
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "={{ $json.handler_ref }}",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "hook_envelope_version": "={{ 1 }}",
+            "event_code": "={{ $json.envelope.event_code }}",
+            "timing": "={{ $json.envelope.timing }}",
+            "payload": "={{ $json.envelope.payload }}",
+            "context": "={{ $json.envelope.context }}",
+            "config": "={{ $json.envelope.config }}",
+            "registry_id": "={{ $json.envelope.registry_id }}",
+            "depth": "={{ $json.envelope.depth }}",
+            "hook_path": "={{ $json.envelope.hook_path }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    },
+    {
+      "id": "node-error",
+      "name": "Manejar Error Hook",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2100,
+        560
+      ],
+      "parameters": {
+        "jsCode": "// Salida de error de cualquiera de los dos nodos Execute Sub-workflow.\nconst e = $input.first().json || {};\nconst msg = e.error?.message || e.message || e.error || 'El hook falló sin mensaje';\nreturn [{ json: { ok: false, patch: {}, error: String(msg) } }];\n"
+      }
+    },
+    {
+      "id": "node-acumular",
+      "name": "Acumular Resultado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2320,
+        320
+      ],
+      "parameters": {
+        "jsCode": "// Normaliza lo que haya devuelto el hook (o el manejador de error) a una forma\n// única, y arrastra el patch acumulado para la siguiente iteración.\nconst MAX_LOG_CHARS = 8192;\nconst truncate = (v) => {\n  try {\n    const s = JSON.stringify(v ?? null);\n    if (s === null || s === undefined) return null;\n    if (s.length <= MAX_LOG_CHARS) return JSON.parse(s);\n    return { _truncated: true, _chars: s.length };\n  } catch (e) {\n    return { _unserializable: true };\n  }\n};\n\nconst it   = $input.first().json || {};\nconst prep = $('Preparar Iteración').all(0, $runIndex)[0].json;\n\nconst isAsync = prep.mode === 'async';\n\n// El nodo async devuelve SU ENTRADA, no la salida del hook: n8n no espera. Por\n// eso un hook asíncrono nunca puede aportar un patch, y por eso los eventos\n// 'before' tienen prohibido mode='async' (se rechaza al registrarlos).\nconst ok = it.ok === false ? false : true;\n\nconst patch = (!isAsync && ok && it.patch && typeof it.patch === 'object' && !Array.isArray(it.patch))\n  ? it.patch\n  : {};\n\nreturn [{ json: {\n  registry_id: prep.registry_id,\n  name:        prep.name,\n  handler_ref: prep.handler_ref,\n  seq:         prep.seq,\n  mode:        prep.mode,\n  on_error:    prep.on_error,\n  log_enabled: prep.log_enabled,\n  event_code:  prep.event_code,\n  depth:       prep.envelope.depth,\n  ok,\n  status:      ok ? 'success' : 'error',\n  patch,\n  error:       ok ? null : String(it.error || it.message || 'Hook failed'),\n  duration_ms: Date.now() - prep.started_at,\n  acc_patch:   { ...prep.acc_patch, ...patch },\n  log_input:   truncate(prep.envelope),\n  log_output:  truncate(isAsync ? { _async: true } : it),\n  correlation_id: prep.envelope.context.correlation_id,\n} }];\n"
+      }
+    },
+    {
+      "id": "node-log",
+      "name": "Registrar Log",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2540,
+        320
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- log_enabled se resuelve en SQL (WHERE $12) en vez de con un IF, para no\n-- meter otra rama en el bucle. El nodo va con continueOnFail: que falle la\n-- traza JAMÁS puede tumbar la operación de negocio que disparó el hook.\nINSERT INTO public.hook_execution_log\n    (event_code, registry_id, handler_ref, status, depth, duration_ms,\n     input, output, error_message, correlation_id, n8n_execution_id)\nSELECT $1, $2::uuid, $3, $4, $5::int, $6::int,\n       $7::jsonb, $8::jsonb, $9, $10, $11\nWHERE $12::boolean",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.event_code, $json.registry_id, $json.handler_ref, $json.status, $json.depth, $json.duration_ms, JSON.stringify($json.log_input), JSON.stringify($json.log_output), $json.error, $json.correlation_id, $execution.id, $json.log_enabled ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "id": "node-recuperar",
+      "name": "Recuperar Resultado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2760,
+        320
+      ],
+      "parameters": {
+        "jsCode": "// 'Registrar Log' devuelve la salida de Postgres (o nada, si log_enabled era\n// false), así que el resultado del hook se recupera explícitamente por índice de\n// corrida antes de decidir si hay que abortar.\nconst r = $('Acumular Resultado').all(0, $runIndex)[0].json;\nreturn [{ json: { ...r, must_abort: r.on_error === 'fail' && r.ok === false } }];\n"
+      }
+    },
+    {
+      "id": "node-abortar-if",
+      "name": "¿Abortar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2980,
+        320
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.must_abort }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-abortar",
+      "name": "Abortar",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        3200,
+        220
+      ],
+      "parameters": {
+        "errorMessage": "={{ 'Hook \"' + $json.name + '\" falló y está registrado con on_error=fail: ' + $json.error }}"
+      }
+    },
+    {
+      "id": "node-fusionar",
+      "name": "Fusionar Resultados",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        80
+      ],
+      "parameters": {
+        "jsCode": "// Fin del bucle: recompone la salida del dispatcher.\n//\n// El patch final se RECALCULA aquí desde todos los resultados en orden de `seq`,\n// en vez de confiar en el acumulador que se arrastra dentro del bucle. Es la red\n// de seguridad: si la lectura cruzada entre corridas fallara, el patch devuelto\n// al flujo llamante sigue siendo correcto.\nconst base = $('Normalizar Entrada').first().json;\n\nconst results = [];\nfor (let i = 0; ; i++) {\n  let run;\n  try { run = $('Acumular Resultado').all(0, i); } catch (e) { break; }\n  if (!run || run.length === 0) break;\n  results.push(run[0].json);\n}\n\nresults.sort((a, b) => (a.seq - b.seq));\n\nlet patch = {};\nfor (const r of results) {\n  if (r.ok && r.patch && typeof r.patch === 'object') patch = { ...patch, ...r.patch };\n}\n\nconst failed = results.filter((r) => !r.ok).length;\n\nreturn [{ json: {\n  ok:             failed === 0,\n  event_code:     base.event_code,\n  executed:       results.length,\n  succeeded:      results.length - failed,\n  failed,\n  skipped:        0,\n  skipped_reason: null,\n  patch,\n  payload:        { ...base.payload, ...patch },\n  results: results.map((r) => ({\n    registry_id: r.registry_id,\n    name:        r.name,\n    handler_ref: r.handler_ref,\n    seq:         r.seq,\n    mode:        r.mode,\n    ok:          r.ok,\n    duration_ms: r.duration_ms,\n    error:       r.error,\n  })),\n  duration_ms:    Date.now() - base.started_at,\n  correlation_id: base.correlation_id,\n} }];\n"
+      }
+    },
+    {
+      "id": "node-sin-hooks",
+      "name": "Salida Sin Hooks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        560
+      ],
+      "parameters": {
+        "jsCode": "// Camino \"no hay nada que ejecutar\": o el cliente no registró implementaciones,\n// o saltó una guarda de recursión.\n//\n// Devuelve EXACTAMENTE la misma forma que 'Fusionar Resultados' para que el\n// flujo llamante tenga un solo camino de código. `payload` sale sin tocar: ésta\n// es la propiedad que hace seguro instrumentar los flujos comunes — sin hooks\n// registrados, el comportamiento es idéntico al de antes.\nconst base = $('Normalizar Entrada').first().json;\n\n// Si el SELECT del registry falló (BD caída, permisos, tabla inexistente) se\n// sigue devolviendo el payload intacto: tumbar una facturación porque no se pudo\n// leer la tabla de hooks sería peor que no ejecutarlos. Pero se deja constancia\n// en skipped_reason en vez de fingir que simplemente no había nada registrado,\n// que es indistinguible a simple vista y muy caro de depurar.\nlet reason = base.guard;\nif (!reason) {\n  try {\n    const filas = $('Buscar Hooks').all();\n    if (filas.length > 0 && filas[0].json && filas[0].json.error) reason = 'lookup_error';\n  } catch (e) {\n    // No se pasó por 'Buscar Hooks': saltó una guarda antes. base.guard ya lo dice.\n  }\n}\n\nreturn [{ json: {\n  ok:             reason !== 'lookup_error',\n  event_code:     base.event_code,\n  executed:       0,\n  succeeded:      0,\n  failed:         0,\n  skipped:        reason ? 1 : 0,\n  skipped_reason: reason,\n  patch:          {},\n  payload:        base.payload,\n  results:        [],\n  duration_ms:    Date.now() - base.started_at,\n  correlation_id: base.correlation_id,\n} }];\n"
+      }
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Entrada": {
+      "main": [
+        [
+          {
+            "node": "¿Guardia OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Guardia OK?": {
+      "main": [
+        [
+          {
+            "node": "Buscar Hooks",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Salida Sin Hooks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Hooks": {
+      "main": [
+        [
+          {
+            "node": "¿Hay Hooks?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hay Hooks?": {
+      "main": [
+        [
+          {
+            "node": "Preparar Cola",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Salida Sin Hooks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Cola": {
+      "main": [
+        [
+          {
+            "node": "Loop Hooks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Hooks": {
+      "main": [
+        [
+          {
+            "node": "Fusionar Resultados",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar Iteración",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Iteración": {
+      "main": [
+        [
+          {
+            "node": "¿Modo Sync?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Modo Sync?": {
+      "main": [
+        [
+          {
+            "node": "Ejecutar Hook Sync",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ejecutar Hook Async",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ejecutar Hook Sync": {
+      "main": [
+        [
+          {
+            "node": "Acumular Resultado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Manejar Error Hook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ejecutar Hook Async": {
+      "main": [
+        [
+          {
+            "node": "Acumular Resultado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Manejar Error Hook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manejar Error Hook": {
+      "main": [
+        [
+          {
+            "node": "Acumular Resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Acumular Resultado": {
+      "main": [
+        [
+          {
+            "node": "Registrar Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar Log": {
+      "main": [
+        [
+          {
+            "node": "Recuperar Resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recuperar Resultado": {
+      "main": [
+        [
+          {
+            "node": "¿Abortar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Abortar?": {
+      "main": [
+        [
+          {
+            "node": "Abortar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Hooks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Crear/seleccionar la credencial 'Postgres' en los nodos 'Buscar Hooks' y\n   'Registrar Log' (reemplaza POSTGRES_CREDENTIAL_ID).\n2. Options > Settings del workflow: \"This workflow can be called by\" debe\n   permitir que lo llamen otros workflows, o los flujos comunes fallarán con un\n   error de permisos poco claro.\n3. Activar el workflow.\n4. ANOTAR EL ID DE ESTE WORKFLOW (el de la URL /workflow/<id>). Es el que hay que\n   poner en cada nodo que instrumente un flujo común. Va en el runbook de la\n   instalación.\n\nQUÉ ES ESTO\nDespachador genérico de hooks, al estilo de los Event Handler de Openbravo. Los\nflujos comunes son idénticos en todas las instalaciones; en los puntos que\ninterese, llaman a este sub-workflow, que consulta en Postgres qué\ncustomizaciones tiene registradas ESTE cliente para ese evento y las ejecuta en\norden.\n\nSin filas en hook_registry, devuelve executed:0 y el payload intacto: el flujo\nllamante se comporta exactamente igual que antes de instrumentarlo. Ésa es la\npropiedad que hace seguro meter el nodo en flujos productivos.\n\nENTRADA (desde el nodo Execute Sub-workflow del flujo común):\n{\n  \"event_code\":     \"invoice.after_upsert\",\n  \"payload\":        { ... },\n  \"context\":        { \"user_id\": \"...\", \"source\": \"invoices/upsert\" },\n  \"depth\":          0,\n  \"hook_path\":      [],\n  \"clinic_id\":      null,\n  \"correlation_id\": \"{{ $execution.id }}\"\n}\n\nSALIDA (siempre la misma forma, por todos los caminos):\n{\n  \"ok\": true, \"event_code\": \"...\", \"executed\": 2, \"succeeded\": 2, \"failed\": 0,\n  \"skipped\": 0, \"skipped_reason\": null,\n  \"patch\": { }, \"payload\": { }, \"results\": [ ],\n  \"duration_ms\": 55, \"correlation_id\": \"...\"\n}\n\nEn un evento 'before', el flujo llamante debe seguir con $json.payload (que ya\nviene fusionado), NUNCA con {...body, ...patch}: el merge ocurre en un solo\nlugar, aquí.\n\nSEMÁNTICA Y LÍMITES\n- Los hooks corren en orden de `seq` y cada uno ve el payload parcheado por los\n  anteriores. El merge del patch es SUPERFICIAL: gana el de `seq` más alto.\n- Un hook 'async' NO puede devolver patch: n8n no espera su salida, el nodo\n  devuelve su propia entrada. Por eso los eventos 'before' tienen prohibido\n  mode='async', y se rechaza al registrarlos.\n- on_error='fail' aborta el dispatcher (stopAndError) y propaga al flujo\n  llamante. El nodo Execute del flujo llamante debe llevar\n  onError:\"continueErrorOutput\" y cablear su salida de error al responder de\n  error del flujo; si no, el cliente recibe un 500 crudo de n8n.\n- timeout_ms es ORIENTATIVO: n8n no puede acotar por tiempo una llamada a\n  sub-workflow desde el nodo que la hace. Un hook colgado cuelga al llamante.\n- Si no se puede leer hook_registry (BD caída, permisos), el dispatcher NO\n  rompe la operación de negocio: devuelve el payload intacto con\n  skipped_reason:'lookup_error' y ok:false. Conviene alertar sobre ese valor.\n- Guardas de recursión: profundidad máxima 5 y detección de ciclos por\n  hook_path. Un hook que a su vez llame al dispatcher DEBE reenviar `depth`,\n  `hook_path` y `correlation_id` tal como los recibió (los tres vienen en su\n  envelope; correlation_id va dentro de `context`). No reenviar depth/hook_path\n  es la única forma de armar un bucle infinito; no reenviar correlation_id no\n  rompe nada pero parte la traza en dos hilos sin relación.\n- correlation_id identifica la OPERACIÓN DE NEGOCIO y se preserva a través del\n  anidamiento; n8n_execution_id identifica la ejecución del dispatcher y cambia\n  en cada nivel. Los dos quedan en hook_execution_log.\n- Los hooks 'after' corren fuera de la transacción del flujo llamante: tienen que\n  ser idempotentes y seguros de re-ejecutar.\n\nNOTA DE ROBUSTEZ\n'Preparar Iteración' lee el patch acumulado de la corrida anterior de 'Acumular\nResultado'. Si esa lectura cruzada entre corridas fallara en alguna versión de\nn8n, el catch la degrada a \"cada hook ve el payload original\" — nunca corrompe\ndatos, y el patch devuelto al llamante sigue siendo correcto porque 'Fusionar\nResultados' lo recalcula desde cero a partir de todos los resultados.\n\nTABLAS REQUERIDAS: hook_events, hook_registry, hook_execution_log\n(ver database/scripts/069_20260828_hooks-registry-and-permissions.sql)\n\nDOCUMENTACIÓN: docs/hooks-mechanism.md"
+  }
+}

@@ -357,6 +357,7 @@
     "Roles": "Roles",
     "Permissions": "Permisos",
     "Configurations": "Configuraciones",
+    "Customizations": "Customizaciones",
     "NotificationSettings": "Notificaciones",
     "AuditLog": "Registro de Auditoría",
     "AccessLog": "Registro de Acceso",
@@ -8506,6 +8507,156 @@
         "body": "Accede hoy mismo para reservar tus citas cuando quieras y gestionar tus datos y reservas desde tu teléfono. Solo escanea el QR.",
         "footer": "Reservas impulsadas por"
       }
+    }
+  },
+  "CustomizationsPage": {
+    "title": "Customizaciones",
+    "description": "Puntos de extensión de los flujos y las implementaciones enganchadas a cada uno",
+    "filterPlaceholder": "Buscar evento...",
+    "createEvent": "Nuevo tipo",
+    "columns": {
+      "name": "Evento",
+      "code": "Código",
+      "module": "Módulo",
+      "timing": "Momento",
+      "implementations": "Implementaciones",
+      "isActive": "Activo",
+      "yes": "Sí",
+      "no": "No"
+    },
+    "timing": {
+      "before": "Antes de",
+      "after": "Después de"
+    },
+    "tabs": {
+      "info": "Información",
+      "implementations": "Implementaciones"
+    },
+    "detail": {
+      "systemEvent": "Del producto",
+      "editEvent": "Editar",
+      "payloadSchema": "Esquema del payload",
+      "payloadVersion": "Versión {version}",
+      "timingHelp": {
+        "before": "Se ejecuta antes de que la operación escriba nada. Puede modificar los datos o cancelarla. Debe ser síncrono.",
+        "after": "Se ejecuta una vez completada la operación. Su resultado no la modifica, y corre fuera de su transacción: la implementación debe poder repetirse sin efectos secundarios."
+      },
+      "noImplementations": "Sin implementaciones",
+      "noImplementationsHint": "Este evento se dispara igual, pero hoy no ejecuta nada. Definí una implementación para engancharle un sub-workflow de n8n.",
+      "noPermissionToDefine": "No tenés permiso para definir implementaciones.",
+      "define": "Definir",
+      "lastExecuted": "Última ejecución",
+      "never": "Nunca",
+      "active": "Activa",
+      "inactive": "Inactiva",
+      "modes": {
+        "sync": "Síncrono",
+        "async": "Asíncrono"
+      },
+      "errors": {
+        "ignore": "Si falla: continuar",
+        "fail": "Si falla: cancelar"
+      },
+      "status": {
+        "success": "OK",
+        "error": "Con error",
+        "skipped": "Omitida"
+      }
+    },
+    "eventDialog": {
+      "createTitle": "Nuevo tipo de hook",
+      "editTitle": "Editar tipo de hook",
+      "description": "Define un punto de extensión. El código es el identificador que el flujo de n8n usa para dispararlo, así que tiene que coincidir exactamente con el que se configure allí.",
+      "code": "Código",
+      "codePlaceholder": "patient.after_create",
+      "codeHelp": "Formato: entidad.before_accion o entidad.after_accion, en minúsculas.",
+      "timing": "Momento",
+      "name": "Nombre",
+      "namePlaceholder": "Después de crear paciente",
+      "module": "Módulo",
+      "modulePlaceholder": "patients",
+      "descriptionLabel": "Descripción",
+      "descriptionPlaceholder": "Cuándo se dispara y para qué sirve",
+      "payloadSchema": "Esquema del payload",
+      "payloadSchemaHelp": "Documenta qué datos recibe el hook. Es informativo: no se valida en tiempo de ejecución.",
+      "payloadVersion": "Versión del payload",
+      "isActive": "Activo",
+      "cancel": "Cancelar",
+      "save": "Guardar",
+      "saving": "Guardando..."
+    },
+    "dialog": {
+      "createTitle": "Definir implementación",
+      "editTitle": "Editar implementación",
+      "description": "Engancha un sub-workflow de n8n a este evento. El sub-workflow tiene que existir y permitir que otros flujos lo llamen.",
+      "event": "Evento",
+      "name": "Nombre",
+      "namePlaceholder": "Aviso por WhatsApp a recepción",
+      "descriptionLabel": "Descripción",
+      "descriptionPlaceholder": "Qué hace esta customización",
+      "handlerRef": "Sub-workflow de n8n",
+      "handlerRefPlaceholder": "AbCd1234EfGh",
+      "handlerRefHelp": "El identificador que aparece en la URL de n8n, el tramo que sigue a /workflow/",
+      "seq": "Orden",
+      "seqHelp": "Menor primero. Cada implementación recibe los datos ya modificados por las anteriores.",
+      "mode": "Modo",
+      "modeHelp": "Síncrono: la operación espera a que termine. Asíncrono: se dispara y la operación sigue.",
+      "asyncDisabledForBefore": "Los eventos «antes de» sólo admiten modo síncrono: en asíncrono la implementación no puede modificar ni cancelar la operación.",
+      "onError": "Si falla",
+      "onErrorHelp": "Continuar registra el fallo y sigue. Cancelar aborta la operación completa.",
+      "timeout": "Tiempo límite (ms)",
+      "timeoutHelp": "Orientativo: n8n no puede cortar un sub-workflow por tiempo. Es el compromiso que se espera del hook.",
+      "config": "Configuración",
+      "configHelp": "Objeto JSON con los parámetros de esta implementación. Llega al hook tal cual.",
+      "logEnabled": "Registrar ejecuciones",
+      "isActive": "Activa",
+      "cancel": "Cancelar",
+      "save": "Guardar",
+      "saving": "Guardando..."
+    },
+    "deleteDialog": {
+      "title": "Eliminar implementación",
+      "description": "Se va a desenganchar «{name}» de este evento. El sub-workflow de n8n no se elimina. Si sólo querés apagarla temporalmente, es mejor desactivarla.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "deleteEventDialog": {
+      "title": "Eliminar tipo de hook",
+      "description": "Se va a eliminar el evento «{name}» del catálogo. Si algún flujo de n8n todavía lo dispara, dejará de encontrar su definición.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "createSuccessTitle": "Creado",
+      "editSuccessTitle": "Actualizado",
+      "successDescription": "Se guardó «{name}» correctamente.",
+      "deleteSuccessTitle": "Eliminado",
+      "deleteSuccessDescription": "Se eliminó la implementación «{name}».",
+      "deleteEventSuccessDescription": "Se eliminó el evento «{name}».",
+      "deleteErrorTitle": "No se pudo eliminar",
+      "loadErrorDescription": "No se pudo cargar el catálogo de eventos.",
+      "submitErrorDescription": "No se pudo guardar. Revisá los datos e intentá de nuevo.",
+      "deleteErrorDescription": "No se pudo completar la eliminación."
+    },
+    "validation": {
+      "codeRequired": "El código es obligatorio.",
+      "codeFormat": "Formato inválido. Debe ser entidad.before_accion o entidad.after_accion, en minúsculas.",
+      "timingMismatch": "El momento debe coincidir con el before/after del código.",
+      "nameRequired": "El nombre es obligatorio.",
+      "nameMaxLength": "El nombre no puede superar los 120 caracteres.",
+      "descriptionMaxLength": "La descripción no puede superar los 500 caracteres.",
+      "moduleRequired": "El módulo es obligatorio.",
+      "moduleMaxLength": "El módulo no puede superar los 40 caracteres.",
+      "schemaInvalidJson": "El esquema debe ser un objeto JSON válido.",
+      "payloadVersionMin": "La versión debe ser 1 o mayor.",
+      "eventCodeRequired": "Falta el evento al que se engancha.",
+      "handlerRefRequired": "El sub-workflow es obligatorio.",
+      "handlerRefFormat": "No parece un identificador de workflow de n8n.",
+      "seqRange": "El orden debe estar entre 0 y 9999.",
+      "timeoutMin": "El tiempo límite mínimo es 1000 ms.",
+      "timeoutMax": "El tiempo límite máximo es 300000 ms.",
+      "configInvalidJson": "La configuración debe ser un objeto JSON válido."
     }
   }
 }
