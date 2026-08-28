@@ -1732,7 +1732,7 @@
     "preferencesButton": "Preferencias",
     "dischargeButton": "Dar Alta",
     "readmitButton": "Reingreso",
-    "setInitialPassword": "Establecer Contraseña Inicial",
+    "setInitialPassword": "Restablecer Contraseña",
     "tabs": {
       "roles": "Roles",
       "services": "Servicios",
@@ -3697,7 +3697,7 @@
       "saveError": "Error al guardar",
       "saveErrorDescription": "No se pudieron guardar las notas. Intente de nuevo."
     },
-    "setInitialPassword": "Establecer Contraseña Inicial",
+    "setInitialPassword": "Restablecer Contraseña",
     "close": "Cerrar detalles",
     "quickCreate": {
       "title": "Crear",
@@ -4400,9 +4400,9 @@
       "editSuccessTitle": "Usuario actualizado",
       "editSuccessDescription": "El usuario se ha actualizado exitosamente"
     },
-    "setInitialPassword": "Establecer Contraseña Inicial",
+    "setInitialPassword": "Restablecer Contraseña",
     "initialPasswordSentTitle": "Correo enviado",
-    "initialPasswordSentDescription": "Se ha enviado un correo con el enlace para establecer la contraseña.",
+    "initialPasswordSentDescription": "Se ha enviado un correo con el enlace para restablecer la contraseña.",
     "initialPasswordError": "Ocurrió un error inesperado. Intente de nuevo.",
     "toggleStatus": {
       "successTitle": "Éxito",
