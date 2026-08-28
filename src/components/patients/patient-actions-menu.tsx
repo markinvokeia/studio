@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { BellRing, CalendarIcon, CheckCircle, ChevronDown, ClipboardList, CreditCard, FileText, Mail, MoreHorizontal, Plus, Receipt, SlidersHorizontal, Smile, Stethoscope, ToggleLeft, Upload, XCircle, Zap } from 'lucide-react';
+import { BellRing, CalendarIcon, CheckCircle, ChevronDown, ClipboardList, CreditCard, FileText, Mail, MoreHorizontal, Pill, Plus, Receipt, SlidersHorizontal, Smile, Stethoscope, ToggleLeft, Upload, XCircle, Zap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import {
@@ -30,6 +30,7 @@ export interface PatientActionsMenuProps {
   onCreateClinicalSession?: () => void;
   onCreateOdontogram?: () => void;
   onCreateMedicalInstruction?: () => void;
+  onCreatePrescription?: () => void;
   onCreateDocument?: () => void;
 
   // Financial
@@ -66,6 +67,7 @@ export function PatientActionsMenu({
   onCreateClinicalSession,
   onCreateOdontogram,
   onCreateMedicalInstruction,
+  onCreatePrescription,
   onCreateDocument,
   onQuickBill,
   onCreateQuote,
@@ -80,7 +82,7 @@ export function PatientActionsMenu({
   onPreferences,
 }: PatientActionsMenuProps) {
   const t = useTranslations();
-  const hasClinicalCreate = !!(onCreateClinicalSession || onCreateOdontogram || onCreateMedicalInstruction || onCreateDocument);
+  const hasClinicalCreate = !!(onCreateClinicalSession || onCreateOdontogram || onCreateMedicalInstruction || onCreatePrescription || onCreateDocument);
 
   return (
     <TooltipProvider>
@@ -116,6 +118,11 @@ export function PatientActionsMenu({
                 {onCreateMedicalInstruction && (
                   <DropdownMenuItem onClick={onCreateMedicalInstruction}>
                     <ClipboardList className="h-4 w-4 mr-2 text-primary" />Indicación médica
+                  </DropdownMenuItem>
+                )}
+                {onCreatePrescription && (
+                  <DropdownMenuItem onClick={onCreatePrescription}>
+                    <Pill className="h-4 w-4 mr-2 text-primary" />Receta médica
                   </DropdownMenuItem>
                 )}
                 {onCreateDocument && (

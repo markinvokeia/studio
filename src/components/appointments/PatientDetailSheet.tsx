@@ -10,7 +10,7 @@ import {
 import { PatientInfoTab } from '@/components/patients/patient-info-tab';
 import { PatientQuickActions } from '@/components/patients/patient-quick-actions';
 import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/components/users/clinic-history-viewer';
-import { PatientInstructionsSection } from '@/components/medical-instructions/patient-instructions-section';
+import { PatientIndicationsTab } from '@/components/medical-instructions/patient-indications-tab';
 import { UserTreatmentPlans } from '@/components/users/user-treatment-plans';
 import { PatientFinanceSection } from '@/components/users/patient-finance-section';
 import type { VisibleLedger } from '@/components/users/patient-ledger';
@@ -101,6 +101,8 @@ export function PatientDetailSheet({
   const [createSessionTrigger, setCreateSessionTrigger] = React.useState(0);
   const [createOdontogramTrigger, setCreateOdontogramTrigger] = React.useState(0);
   const [createDocumentTrigger, setCreateDocumentTrigger] = React.useState(0);
+  const [createMedicalInstructionTrigger, setCreateMedicalInstructionTrigger] = React.useState(0);
+  const [createPrescriptionTrigger, setCreatePrescriptionTrigger] = React.useState(0);
   const [allergies, setAllergies] = React.useState<AllergySummaryItem[]>([]);
 
   // Finance quick actions — same lightweight dialogs the "Personalizado" ledger uses on the
@@ -266,6 +268,8 @@ export function PatientDetailSheet({
                   userPhone={userPhone}
                   onCreateClinicalSession={() => { setActiveTab('clinical'); setActiveClinicalSubTab('clinical-history'); setCreateSessionTrigger((n) => n + 1); }}
                   onCreateOdontogram={() => { setActiveTab('clinical'); setActiveClinicalSubTab('clinical-history'); setCreateOdontogramTrigger((n) => n + 1); }}
+                  onCreateMedicalInstruction={() => { setActiveTab('clinical'); setActiveClinicalSubTab('medical-instructions'); setCreateMedicalInstructionTrigger((n) => n + 1); }}
+                  onCreatePrescription={() => { setActiveTab('clinical'); setActiveClinicalSubTab('medical-instructions'); setCreatePrescriptionTrigger((n) => n + 1); }}
                   onCreateDocument={() => { setActiveTab('clinical'); setActiveClinicalSubTab('documents'); setCreateDocumentTrigger((n) => n + 1); }}
                 />
               </div>
@@ -283,7 +287,7 @@ export function PatientDetailSheet({
           anamnesisContent={<AnamnesisViewer userId={userId} readOnly={readOnly} />}
           clinicalHistoryContent={<ClinicHistoryViewer userId={userId} userName={userName} deepLinkView={clinicalHistoryDefaultView} isDoctorMode={isDoctorMode} createSessionTrigger={createSessionTrigger} createOdontogramTrigger={createOdontogramTrigger} readOnly={readOnly} />}
           treatmentPlansContent={<UserTreatmentPlans userId={userId} userName={userName} readOnly={readOnly} />}
-          medicalInstructionsContent={<PatientInstructionsSection userId={userId} userName={userName} readOnly={readOnly} />}
+          medicalInstructionsContent={<PatientIndicationsTab userId={userId} userName={userName} createTrigger={createMedicalInstructionTrigger} createPrescriptionTrigger={createPrescriptionTrigger} readOnly={readOnly} lockDoctor={isDoctorMode} />}
           documentsContent={<DocumentsViewer userId={userId} createTrigger={createDocumentTrigger} readOnly={readOnly} />}
           ledgerContent={
             <PatientFinanceSection

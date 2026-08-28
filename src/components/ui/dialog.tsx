@@ -194,6 +194,15 @@ const DialogContent = React.forwardRef<
             event.preventDefault()
           }}
           onEscapeKeyDown={(event) => {
+            // The notifications panel is a non-Radix overlay that can pop open on top of any
+            // dialog (e.g. a new alert arriving while a doctor is mid-prescription). It isn't
+            // part of Radix's DismissableLayer stack, so without this check Escape would close
+            // this dialog "through" the panel and silently discard unsaved work. Defer to the
+            // panel first — it closes on the same Escape press since it isn't blocked here.
+            if (document.querySelector('[data-notifications-panel="open"]')) {
+              event.preventDefault()
+              return
+            }
             if (shouldConfirm) {
               event.preventDefault()
               setShowConfirm(true)

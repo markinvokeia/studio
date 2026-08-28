@@ -8,6 +8,7 @@ import { GlobalNotificationAlerts } from '@/components/notifications/GlobalNotif
 import { useAuth } from '@/context/AuthContext';
 import { useDoctorAlertStyle } from '@/hooks/use-doctor-alert-style';
 import { useEventStream } from '@/hooks/use-event-stream';
+import { usePatientPortal } from '@/hooks/usePatientPortal';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeAppointmentStatus } from '@/constants/appointment-status';
 import { getChannelsForRoles } from '@/constants/notification-channels';
@@ -297,10 +298,19 @@ export function useNotifications() {
 
 export function NotificationsProvider({ children }: { children: React.ReactNode }) {
   const { user, roleNames } = useAuth();
-  const userId = user?.id ? String(user.id) : null;
+  const { isPatientOnly } = usePatientPortal();
+  /**
+   * Este sistema de notificaciones es enteramente para el staff (citas nuevas,
+   * cambios de estado, recordatorios internos…). Un paciente cuyo ÚNICO rol es
+   * "Paciente" no debe suscribirse a nada acá — ni sondeo ni SSE — así que se
+   * lo trata como si no hubiera sesión: todos los efectos de abajo ya cortan
+   * con `if (!userId) return`. El staff con rol dual (también paciente) sigue
+   * viendo sus notificaciones normalmente.
+   */
+  const userId = user?.id && !isPatientOnly ? String(user.id) : null;
   const channels = React.useMemo(() => getChannelsForRoles(roleNames), [roleNames]);
   const { toast } = useToast();
-  const [alertStyle, setAlertStyle, refreshAlertStyle] = useDoctorAlertStyle(user?.id);
+  const [alertStyle, setAlertStyle, refreshAlertStyle] = useDoctorAlertStyle(userId ?? undefined);
   const alertStyleRef = React.useRef(alertStyle);
   React.useEffect(() => { alertStyleRef.current = alertStyle; }, [alertStyle]);
   const tDW = useTranslations('DoctorWorkspace');

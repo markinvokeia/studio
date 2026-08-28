@@ -161,8 +161,14 @@ export function PatientLoginWizard({
     try {
       const result = await identifyPatient(identifier);
 
-      // No está en el sistema ⇒ se registra y pasa directo a reservar.
+      // No está en el sistema ⇒ se registra y pasa directo a reservar. Sin
+      // reserva online el auto-registro no tiene destino (no hay OTP para un
+      // paciente nuevo), así que ni se lo ofrece.
       if (!result.found) {
+        if (!onlineBookingEnabled) {
+          toast({ title: t('identify.newPatientDisabled') });
+          return;
+        }
         openRegisterStep(identifier);
         return;
       }
@@ -214,6 +220,13 @@ export function PatientLoginWizard({
 
   // ── Paso 1c: auto-registro ────────────────────────────────────────────────
   const handleRegister = async (values: RegisterValues) => {
+    // Defensivo: el botón que lleva acá ya está oculto sin reserva online,
+    // pero si la clínica lo deshabilitó mientras el paciente completaba el
+    // formulario, no lo mandamos a un panel de reserva que igual va a fallar.
+    if (!onlineBookingEnabled) {
+      showError(new Error(t('identify.newPatientDisabled')));
+      return;
+    }
     setIsLoading(true);
     try {
       const result = await registerPatient(values);
@@ -353,22 +366,28 @@ export function PatientLoginWizard({
               </Button>
             </form>
 
-            <div className="flex items-center gap-3">
-              <span className="h-px flex-1 bg-border" />
-              <span className="text-xs uppercase tracking-wide text-muted-foreground">{t('or')}</span>
-              <span className="h-px flex-1 bg-border" />
-            </div>
+            {/* Sin reserva online el auto-registro no lleva a ningún lado
+                (el paciente nuevo entra directo a reservar, nunca a OTP). */}
+            {onlineBookingEnabled && (
+              <>
+                <div className="flex items-center gap-3">
+                  <span className="h-px flex-1 bg-border" />
+                  <span className="text-xs uppercase tracking-wide text-muted-foreground">{t('or')}</span>
+                  <span className="h-px flex-1 bg-border" />
+                </div>
 
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              className={TOUCH_BUTTON}
-              onClick={() => openRegisterStep(identifier)}
-            >
-              <UserPlus className="mr-2 h-5 w-5" />
-              {t('identify.newPatient')}
-            </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  className={TOUCH_BUTTON}
+                  onClick={() => openRegisterStep(identifier)}
+                >
+                  <UserPlus className="mr-2 h-5 w-5" />
+                  {t('identify.newPatient')}
+                </Button>
+              </>
+            )}
           </div>
         )}
 

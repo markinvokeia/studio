@@ -65,7 +65,7 @@ import { PrepaidFormDialog } from '@/components/sales/payments/PrepaidFormDialog
 import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
 import { QuickTreatmentDialog } from '@/components/financial/quick-treatment-dialog';
 import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/components/users/clinic-history-viewer';
-import { PatientInstructionsSection } from '@/components/medical-instructions/patient-instructions-section';
+import { PatientIndicationsTab } from '@/components/medical-instructions/patient-indications-tab';
 import { UserPreferencesTab } from '@/components/users/user-preferences-tab';
 import { PatientFinanceSection } from '@/components/users/patient-finance-section';
 import type { VisibleLedger } from '@/components/users/patient-ledger';
@@ -536,6 +536,7 @@ export default function UsersPage() {
   const [sessionPrefill, setSessionPrefill] = React.useState<SessionPrefillData | null>(null);
   const [createDocumentTrigger, setCreateDocumentTrigger] = React.useState(0);
   const [createMedicalInstructionTrigger, setCreateMedicalInstructionTrigger] = React.useState(0);
+  const [createPrescriptionTrigger, setCreatePrescriptionTrigger] = React.useState(0);
   const [refreshInvoicesTrigger, setRefreshInvoicesTrigger] = React.useState(0);
   const [refreshQuotesTrigger, setRefreshQuotesTrigger] = React.useState(0);
   const [refreshOrdersTrigger, setRefreshOrdersTrigger] = React.useState(0);
@@ -1081,6 +1082,7 @@ export default function UsersPage() {
       setCreateOdontogramTrigger(0);
       setCreateDocumentTrigger(0);
       setCreateMedicalInstructionTrigger(0);
+      setCreatePrescriptionTrigger(0);
     }
   }, [selectedUser, loadUserRoles, fetchPatientDischarge, loadMutualSocieties, fetchPatientAllergies, fetchPatientConditions]);
 
@@ -1376,6 +1378,7 @@ export default function UsersPage() {
                         onCreateClinicalSession={() => { openClinicalHistory(); setCreateSessionTrigger(n => n + 1); }}
                         onCreateOdontogram={() => { openClinicalHistory(); setCreateOdontogramTrigger(n => n + 1); }}
                         onCreateMedicalInstruction={() => { openClinicalMedicalInstructions(); setCreateMedicalInstructionTrigger(n => n + 1); }}
+                        onCreatePrescription={() => { openClinicalMedicalInstructions(); setCreatePrescriptionTrigger(n => n + 1); }}
                         onCreateDocument={() => { openClinicalDocuments(); setCreateDocumentTrigger(n => n + 1); }}
                         onQuickBill={() => openBillingWizard({ patientId: selectedUser.id, patientName: selectedUser.name })}
                         onCreateQuote={() => setIsQuoteDialogOpen(true)}
@@ -1504,10 +1507,11 @@ export default function UsersPage() {
                           />
                         }
                         medicalInstructionsContent={
-                          <PatientInstructionsSection
+                          <PatientIndicationsTab
                             userId={selectedUser.id}
                             userName={selectedUser.name}
                             createTrigger={createMedicalInstructionTrigger}
+                            createPrescriptionTrigger={createPrescriptionTrigger}
                           />
                         }
                         documentsContent={<DocumentsViewer userId={selectedUser.id} createTrigger={createDocumentTrigger} />}

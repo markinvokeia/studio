@@ -422,7 +422,8 @@
     "ReportKPIs": "Clinic KPIs",
     "ReportBalanceMensual": "Monthly Balance",
     "Sedes": "Branches",
-    "PatientsPortal": "Patient Portal"
+    "PatientsPortal": "Patient Portal",
+    "PrescriptionTemplates": "Prescription Templates"
   },
   "TVDisplayPage": {
     "title": "TV Display",
@@ -1485,7 +1486,8 @@
         "sessionConfirmSavedOk": "Session saved successfully."
       },
       "readOnly": "Read-only",
-      "readOnlyOnDate": "Read-only · {date}"
+      "readOnlyOnDate": "Read-only · {date}",
+      "prescribe": "Prescribe"
     },
     "calendarSwitch": {
       "myAppointments": "My appointments",
@@ -4105,7 +4107,8 @@
       "availability": "Availability",
       "exceptions": "Exceptions",
       "calendars": "Calendars with access",
-      "preferences": "Preferences"
+      "preferences": "Preferences",
+      "signature": "Signature"
     },
     "calendarAccess": {
       "title": "Calendars with access",
@@ -4446,7 +4449,8 @@
       "history": "Clinic History",
       "notes": "Notes",
       "details": "Details",
-      "preferences": "Preferences"
+      "preferences": "Preferences",
+      "signature": "Signature"
     },
     "detailsFor": "Details for {name}",
     "close": "Close details",
@@ -6424,7 +6428,8 @@
       "unified": "Custom",
       "tabs": "Normal"
     },
-    "calendarSection": "Calendar"
+    "calendarSection": "Calendar",
+    "signatureSection": "Signature"
   },
   "UserCommunicationPreferences": {
     "title": "Preferences",
@@ -6882,7 +6887,8 @@
       "description": "Description",
       "next": "Next",
       "color": "Color"
-    }
+    },
+    "newPrescription": "New prescription"
   },
   "PatientDocumentsSheet": {
     "title": "Images and Files",
@@ -8235,6 +8241,7 @@
       "staffLink": "Are you staff? Sign in here",
       "hint": "Any of the three works.",
       "newPatient": "I'm new, I'm not registered",
+      "newPatientDisabled": "We couldn't find your record and this clinic doesn't accept online bookings. Please contact them directly to get registered.",
       "reason": "We use this to check whether you're already a patient here. If you are, we'll load your history, appointments and account balance; if it's your first time, we'll ask for just a few details."
     },
     "needEmail": {
@@ -8382,6 +8389,7 @@
       "cancel": "Cancel",
       "empty": "You have no upcoming appointments. Past ones are in your History.",
       "loadError": "We couldn't load your appointments. Please try again.",
+      "bookingDisabled": "The clinic doesn't accept online bookings. Please contact them directly to schedule.",
       "cancelDialog": {
         "title": "Cancel this appointment?",
         "description": "You're about to cancel your appointment on {date} at {time}. The clinic will be notified.",
@@ -8533,5 +8541,231 @@
         "footer": "Bookings powered by"
       }
     }
+  },
+  "PatientIndicationsTab": {
+    "tabs": {
+      "instructions": "Instructions",
+      "prescriptions": "Prescriptions"
+    }
+  },
+  "MedicationSelector": {
+    "trigger": "Select medication",
+    "searchPlaceholder": "Search medication...",
+    "loading": "Loading...",
+    "noResults": "No medications found.",
+    "create": "Create \"{name}\"",
+    "createHint": "This medication will be added to the catalog.",
+    "commercialNamePlaceholder": "Brand name (optional)",
+    "createError": "Could not create the medication.",
+    "save": "Save"
+  },
+  "SignatureUploader": {
+    "label": "Signature",
+    "description": "Printed at the bottom of the prescriptions issued by this doctor.",
+    "alt": "Doctor's signature",
+    "empty": "No signature",
+    "hint": "PNG, JPG or WEBP. 1 MB max. A transparent background is recommended.",
+    "save": "Save signature",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "errors": {
+      "tooLarge": "The file is larger than 1 MB.",
+      "generic": "Could not save the signature."
+    },
+    "toast": {
+      "saved": "Signature saved.",
+      "deleted": "Signature deleted."
+    },
+    "deleteDialog": {
+      "title": "Delete signature",
+      "description": "Are you sure you want to delete this signature? Prescriptions already issued keep the signature they were printed with.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "or": "or",
+    "draw": "Draw signature"
+  },
+  "PatientPrescriptionsSection": {
+    "title": "Prescriptions",
+    "newPrescription": "New prescription",
+    "noData": "No prescriptions recorded.",
+    "medicationCount": "{count} medication(s)",
+    "print": "Print",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deleteDialog": {
+      "title": "Delete Prescription",
+      "description": "Are you sure you want to delete this prescription? The medications it added to the anamnesis will be removed as well.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "deleteSuccess": "Prescription deleted.",
+      "error": "An error occurred."
+    }
+  },
+  "PrescriptionDialog": {
+    "createTitle": "New Prescription",
+    "editTitle": "Edit Prescription",
+    "date": "Date",
+    "doctor": "Doctor",
+    "selectDoctor": "Select a doctor",
+    "searchDoctor": "Search doctor...",
+    "noDoctor": "No doctors found.",
+    "template": "Template",
+    "selectTemplate": "Select a template",
+    "diagnosis": "Diagnosis",
+    "diagnosisPlaceholder": "Reason for the prescription",
+    "notes": "Notes",
+    "notesPlaceholder": "General instructions",
+    "medications": "Medications",
+    "addMedication": "Add medication",
+    "content": "Prescription content",
+    "contentHint": "Only if you need to depart from the template. The medications table and the signature are built at print time from the fields above, which is why their tokens stay in the text.",
+    "refreshVariables": "Refresh variables",
+    "close": "Close",
+    "print": "Print",
+    "save": "Save",
+    "saving": "Saving...",
+    "item": {
+      "medication": "Medication",
+      "presentation": "Presentation",
+      "presentationPlaceholder": "e.g. 500 mg tablets",
+      "dosage": "Dosage",
+      "dosagePlaceholder": "e.g. 1 tablet",
+      "route": "Route",
+      "routePlaceholder": "e.g. Oral",
+      "frequency": "Frequency",
+      "frequencyPlaceholder": "e.g. Every 8 hours",
+      "durationDays": "Duration (days)",
+      "quantity": "Quantity",
+      "quantityPlaceholder": "e.g. 20 tablets",
+      "startDate": "Start",
+      "endDate": "End",
+      "instructions": "Instructions",
+      "instructionsPlaceholder": "e.g. Take with food",
+      "registerInAnamnesis": "Record in the patient's anamnesis",
+      "remove": "Remove medication",
+      "done": "Done",
+      "edit": "Edit",
+      "inAnamnesis": "In anamnesis"
+    },
+    "variables": {
+      "title": "Variables",
+      "groups": {
+        "patient": "Patient",
+        "clinic": "Clinic",
+        "document": "Document",
+        "tables": "Tables"
+      }
+    },
+    "validation": {
+      "doctorRequired": "You must select a doctor.",
+      "itemsRequired": "Add at least one medication.",
+      "contentRequired": "Content is required."
+    },
+    "toast": {
+      "createSuccess": "Prescription created.",
+      "editSuccess": "Prescription updated.",
+      "error": "An error occurred while saving the prescription."
+    },
+    "paneForm": "Details",
+    "panePreview": "Preview",
+    "previewEmpty": "Pick a template to see how the printed prescription will look.",
+    "showEditor": "Edit prescription content",
+    "hideEditor": "Hide the editor",
+    "signature": {
+      "missing": "This doctor has no signature yet. The prescription will print unsigned.",
+      "define": "Set signature",
+      "dialogTitle": "Set the doctor's signature",
+      "dialogDescription": "Upload an image or draw the signature. It is stored on the doctor's profile and used in this prescription."
+    }
+  },
+  "PrescriptionPrint": {
+    "title": "Prescription",
+    "patient": "Patient",
+    "date": "Date",
+    "doctor": "Doctor",
+    "diagnosis": "Diagnosis",
+    "signatureLabel": "Practitioner's signature",
+    "table": {
+      "medication": "Medication",
+      "presentation": "Presentation",
+      "dosage": "Dosage",
+      "frequency": "Frequency",
+      "duration": "Duration",
+      "instructions": "Instructions",
+      "days": "days"
+    },
+    "clinic": {
+      "phonePrefix": "Tel.",
+      "taxIdPrefix": "Tax ID",
+      "footerNote": "This prescription is personal and non-transferable. Consult your doctor about any adverse effects."
+    }
+  },
+  "PrescriptionTemplatesPage": {
+    "title": "Prescription Templates",
+    "description": "Define the structure of prescriptions: letterhead, medications and signature.",
+    "filterPlaceholder": "Filter by template name...",
+    "noAccess": "You do not have access to view this section.",
+    "columns": {
+      "name": "Name",
+      "description": "Description",
+      "isActive": "Active",
+      "yes": "Yes",
+      "no": "No",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "dialog": {
+      "createTitle": "Create Prescription Template",
+      "editTitle": "Edit Prescription Template",
+      "name": "Name",
+      "namePlaceholder": "e.g. Standard prescription",
+      "descriptionLabel": "Description",
+      "content": "Content",
+      "legend": "Use the \"Variables\" button to insert data resolved when the prescription is issued. '{{medications_table}}' inserts the medications table and '{{doctor_signature}}' the doctor's signature.",
+      "isActive": "Is Active",
+      "cancel": "Cancel",
+      "create": "Create Template",
+      "save": "Save Changes"
+    },
+    "variables": {
+      "title": "Variables",
+      "groups": {
+        "patient": "Patient",
+        "clinic": "Clinic",
+        "document": "Document",
+        "tables": "Tables"
+      }
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "createSuccessTitle": "Template Created",
+      "editSuccessTitle": "Template Updated",
+      "successDescription": "Template \"{name}\" was saved successfully.",
+      "deleteSuccessTitle": "Template Deleted",
+      "deleteSuccessDescription": "Template \"{name}\" has been deleted."
+    },
+    "deleteDialog": {
+      "title": "Delete Template",
+      "description": "Are you sure you want to delete template \"{name}\"?",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "validation": {
+      "nameRequired": "Name is required.",
+      "contentRequired": "Content is required."
+    }
+  },
+  "SignaturePad": {
+    "title": "Draw signature",
+    "description": "Draw your signature with the mouse, your finger or a stylus. It is saved as an image with a transparent background.",
+    "placeholder": "Sign here",
+    "undo": "Undo",
+    "clear": "Clear all",
+    "cancel": "Cancel",
+    "use": "Use this signature"
   }
 }

@@ -3948,7 +3948,7 @@
             "assignee_id": "={{ $('appointments/upsert').item.json.body.doctor_id || null }}",
             "description": "=Cita para: {{ $('appointments/upsert').item.json.body.patient_name }}\n\nDoctor: {{ $('appointments/upsert').item.json.body.doctor_name }}\n\nServicios:\n{{ $('appointments/upsert').item.json.body.service_names }}\n\nNotas:\n{{ $('appointments/upsert').item.json.body.notes || ''}}",
             "summary": "={{ $('appointments/upsert').item.json.body.patient_name }} - {{ $('appointments/upsert').item.json.body.service_names }}",
-            "status": "confirmed",
+            "status": "={{ $('appointments/upsert').item.json.body.status || 'confirmed' }}",
             "updated_at": "={{ $now.toISO() }}",
             "notes": "={{ $('appointments/upsert').item.json.body.notes || null }}",
             "quote_id": "={{ $('appointments/upsert').item.json.body.quote_id || null }}",
@@ -5341,7 +5341,7 @@
             "google_calendar_id": "={{ $('appointments/upsert_noauth').item.json.body.google_calendar_id || null }}",
             "description": "=Cita para: {{ $('appointments/upsert_noauth').item.json.body.patient_name }}\n\nDoctor: {{ $('appointments/upsert_noauth').item.json.body.doctor_name }}\n\nServicios:\n{{ $('appointments/upsert_noauth').item.json.body.service_names }}\n\nNotas:\n{{ $('appointments/upsert_noauth').item.json.body.notes || ''}}",
             "summary": "={{ $('appointments/upsert_noauth').item.json.body.patient_name }} - {{ $('appointments/upsert_noauth').item.json.body.service_names }}",
-            "status": "confirmed",
+            "status": "={{ $('appointments/upsert_noauth').item.json.body.status || 'confirmed' }}",
             "updated_at": "={{ $now.toISO() }}",
             "notes": "={{ $('appointments/upsert_noauth').item.json.body.notes || null }}",
             "quote_id": "={{ $('appointments/upsert_noauth').item.json.body.quote_id || null }}"
@@ -8904,6 +8904,93 @@
       ],
       "id": "d2e3f4a5-3333-4b6c-9d7e-f8a9b0c1d2e3",
       "name": "Push Edit Event"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- El toggle \"Permitir la reserva de citas online\" (Configuración → Portal del\n-- Paciente) vive en clinic.patient_portal_online_booking. `appointments/upsert_noauth`\n-- es pública y sin auth -- la única forma de reservar sin sesión -- así que el\n-- guardado tiene que aplicarse acá, no sólo en el frontend.\nSELECT COALESCE(patient_portal_online_booking, TRUE) AS online_booking_enabled\nFROM public.clinic\nWHERE is_active IS NOT FALSE\nORDER BY id\nLIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -3424,
+        688
+      ],
+      "id": "f1a2b3c4-0001-4a11-9a11-a1b2c3d4e5f1",
+      "name": "Check Online Booking Enabled",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b2c3d4e5-0002-4a22-9a22-a1b2c3d4e5f2",
+              "leftValue": "={{ $json.online_booking_enabled }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -3300,
+        688
+      ],
+      "id": "c3d4e5f6-0003-4a33-9a33-a1b2c3d4e5f3",
+      "name": "Online Booking Enabled?"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n\"message\": \"La clínica no tiene habilitada la reserva de citas online. Comunicate directamente para agendar.\",\n\"code\": 403\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -3184,
+        800
+      ],
+      "id": "d4e5f6a7-0004-4a44-9a44-a1b2c3d4e5f4",
+      "name": "Online Booking Disabled Message"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 403
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -2960,
+        800
+      ],
+      "id": "e5f6a7b8-0005-4a55-9a55-a1b2c3d4e5f5",
+      "name": "Respond 403 Online Booking Disabled"
     }
   ],
   "pinData": {
@@ -10525,7 +10612,47 @@
       "main": [
         [
           {
+            "node": "Check Online Booking Enabled",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Online Booking Enabled": {
+      "main": [
+        [
+          {
+            "node": "Online Booking Enabled?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Online Booking Enabled?": {
+      "main": [
+        [
+          {
             "node": "Execute a SQL query1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Online Booking Disabled Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Online Booking Disabled Message": {
+      "main": [
+        [
+          {
+            "node": "Respond 403 Online Booking Disabled",
             "type": "main",
             "index": 0
           }

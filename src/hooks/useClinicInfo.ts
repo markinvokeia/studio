@@ -11,6 +11,8 @@ export interface ClinicInfo {
   phone?: string;
   address?: string;
   email?: string;
+  /** RUT de la clínica — se imprime en el membrete de recetas y comprobantes. */
+  rut?: string;
   currency?: 'UYU' | 'USD';
 }
 
@@ -34,6 +36,7 @@ export function fetchClinicInfo(): Promise<ClinicInfo | null> {
         phone: get('phone', 'telefono', 'phone_number', 'tel'),
         address: get('address', 'direccion', 'domicilio'),
         email: get('email', 'correo'),
+        rut: get('rut', 'RUT'),
         currency: rawCurrency === 'USD' || rawCurrency === 'UYU' ? rawCurrency : undefined,
       };
       _cache = info;

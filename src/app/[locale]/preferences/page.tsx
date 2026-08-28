@@ -1,9 +1,11 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { SignatureUploader } from '@/components/users/signature-uploader';
 import { UserCommunicationPreferences } from '@/components/users/user-communication-preferences';
 import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { GLOBAL_PERMISSIONS } from '@/constants/permissions';
 import { hasDoctorWorkspaceAccess } from '@/lib/permissions';
 import { useNotifications } from '@/context/notifications-context';
 import { useFinanceViewPreference } from '@/hooks/use-finance-view-preference';
@@ -11,7 +13,7 @@ import { TOAST_POSITIONS, useToastPosition } from '@/hooks/use-toast-position';
 import { toast } from '@/hooks/use-toast';
 import type { DoctorAlertStyle, PatientFinanceView, ToastPosition } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Bell, BellRing, Columns3, LayoutGrid, Receipt, Rows3, Settings2 } from 'lucide-react';
+import { Bell, BellRing, Columns3, LayoutGrid, PenLine, Receipt, Rows3, Settings2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
@@ -26,8 +28,9 @@ const TOAST_POSITION_MARKS: Record<ToastPosition, string> = {
 export default function UserPreferencesPage() {
     const t = useTranslations('PreferencesPage');
     const { user } = useAuth();
-    const { permissions } = usePermissions();
+    const { permissions, hasPermission } = usePermissions();
     const isDoctor = React.useMemo(() => hasDoctorWorkspaceAccess(permissions), [permissions]);
+    const canUploadSignature = hasPermission(GLOBAL_PERMISSIONS.PROFILE_UPLOAD_SIGNATURE);
     const { alertStyle, setAlertStyle, refreshAlertStyle } = useNotifications();
     const [financeView, setFinanceView] = useFinanceViewPreference(user?.id);
     const [toastPosition, setToastPosition, refreshToastPosition] = useToastPosition(user?.id);
@@ -160,6 +163,25 @@ export default function UserPreferencesPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Signature — used on printed prescriptions */}
+            {canUploadSignature && (
+                <Card className="shadow-sm border-0">
+                    <CardHeader className="p-4">
+                        <div className="flex items-start gap-3">
+                            <div className="header-icon-circle mt-0.5">
+                                <PenLine className="h-5 w-5" />
+                            </div>
+                            <div className="flex flex-col">
+                                <CardTitle className="text-lg">{t('signatureSection')}</CardTitle>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0">
+                        <SignatureUploader userId={user.id} canManage />
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Workspace section — doctors only */}
             {isDoctor && (

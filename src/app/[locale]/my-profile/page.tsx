@@ -14,13 +14,14 @@ import { PatientOnboardingBooking } from '@/components/patient-portal/patient-on
 import { PortalNav, type PortalNavItem } from '@/components/patient-portal/portal-nav';
 import { PatientInfoTab } from '@/components/patients/patient-info-tab';
 import { PatientSubTabNav, type PatientSubTabItem } from '@/components/patients/patient-subtab-nav';
-import { PatientInstructionsSection } from '@/components/medical-instructions/patient-instructions-section';
+import { PatientIndicationsTab } from '@/components/medical-instructions/patient-indications-tab';
 import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/components/users/clinic-history-viewer';
 import { UserTreatmentPlans } from '@/components/users/user-treatment-plans';
 
 import { usePatientPortal } from '@/hooks/usePatientPortal';
 import type { Appointment, User } from '@/lib/types';
 import { fetchUpcomingPatientAppointments } from '@/services/appointments';
+import { fetchPatientPortalConfig } from '@/services/patient-portal-config';
 
 type MacroTab = 'info' | 'appointments' | 'clinical' | 'financial';
 type ClinicalSubTab = 'anamnesis' | 'history' | 'treatment-plans' | 'instructions' | 'documents';
@@ -54,6 +55,29 @@ export default function MyProfilePage() {
    */
   const [isOnboarding, setIsOnboarding] = React.useState<boolean | null>(null);
 
+  /**
+   * `null` mientras no se sabe: se asume habilitado para no ocultar el botón
+   * "Reservar" de un parpadeo y volver a mostrarlo. Si la clínica lo apagó, el
+   * fetch llega antes de que el paciente llegue a tocar nada.
+   */
+  const [onlineBookingEnabled, setOnlineBookingEnabled] = React.useState(true);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const config = await fetchPatientPortalConfig();
+        if (!cancelled) setOnlineBookingEnabled(config.online_booking_enabled);
+      } catch {
+        // Ante un fallo se deja habilitado: es el comportamiento histórico y el
+        // backend igual rechaza la reserva si la clínica la tiene apagada.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   React.useEffect(() => {
     if (!patientId) return;
     let cancelled = false;
@@ -70,6 +94,13 @@ export default function MyProfilePage() {
       cancelled = true;
     };
   }, [patientId, patientName]);
+
+  /** Único punto de entrada a la reserva: sin reserva online no hay nada que abrir. */
+  const openBooking = (appointment: Appointment | null = null) => {
+    if (!onlineBookingEnabled) return;
+    setActiveTab('appointments');
+    setBookingMode({ appointment });
+  };
 
   /** `PatientInfoTab` y `AppointmentFormDialog` esperan un `User`; el portal sólo
    *  conoce los datos del token, que alcanzan para prellenar el formulario. */
@@ -107,8 +138,10 @@ export default function MyProfilePage() {
 
   if (!patientId || isOnboarding === null) return null;
 
-  // El perfil recién aparece cuando termina el flujo de reserva.
-  if (isOnboarding) {
+  // El perfil recién aparece cuando termina el flujo de reserva. Sin reserva
+  // online no hay onboarding que ofrecer: el paciente sin citas va directo al
+  // perfil, con el tab de Citas mostrando el aviso de "bookingDisabled".
+  if (isOnboarding && onlineBookingEnabled) {
     return (
       <PatientOnboardingBooking
         patient={patientAsUser}
@@ -128,17 +161,17 @@ export default function MyProfilePage() {
         activeId={activeTab}
         onSelect={goToTab}
         action={
-          /* Reservar está siempre a la vista, desde cualquier sección. */
-          <Button
-            className="h-11 w-full gap-1.5 max-md:h-9 max-md:w-auto max-md:px-3 max-md:text-xs"
-            onClick={() => {
-              setActiveTab('appointments');
-              setBookingMode({ appointment: null });
-            }}
-          >
-            <CalendarPlus className="h-4 w-4" />
-            {t('appointments.book')}
-          </Button>
+          /* Reservar está siempre a la vista, desde cualquier sección — salvo
+             que la clínica haya apagado la reserva online. */
+          onlineBookingEnabled ? (
+            <Button
+              className="h-11 w-full gap-1.5 max-md:h-9 max-md:w-auto max-md:px-3 max-md:text-xs"
+              onClick={() => openBooking()}
+            >
+              <CalendarPlus className="h-4 w-4" />
+              {t('appointments.book')}
+            </Button>
+          ) : null
         }
       />
 
@@ -192,8 +225,9 @@ export default function MyProfilePage() {
                   patientId={patientId}
                   patientName={patientName}
                   refreshTrigger={appointmentsRefresh}
-                  onBook={() => setBookingMode({ appointment: null })}
-                  onReschedule={(appointment) => setBookingMode({ appointment })}
+                  onBook={() => openBooking()}
+                  onReschedule={(appointment) => openBooking(appointment)}
+                  canBook={onlineBookingEnabled}
                 />
               </div>
             </div>
@@ -216,7 +250,7 @@ export default function MyProfilePage() {
                 <UserTreatmentPlans userId={patientId} userName={patientName} />
               )}
               {clinicalSubTab === 'instructions' && (
-                <PatientInstructionsSection userId={patientId} userName={patientName} />
+                <PatientIndicationsTab userId={patientId} userName={patientName} readOnly />
               )}
               {clinicalSubTab === 'documents' && <DocumentsViewer userId={patientId} readOnly />}
             </div>
@@ -235,14 +269,14 @@ export default function MyProfilePage() {
         )}
       </div>
 
-      <PatientAssistant
-        patientId={patientId}
-        onOpenBooking={() => {
-          setActiveTab('appointments');
-          setBookingMode({ appointment: null });
-        }}
-        onOpenTab={goToTab}
-      />
+      {/* Oculto temporalmente: el agente conversacional no se utiliza por ahora. */}
+      {false && (
+        <PatientAssistant
+          patientId={patientId}
+          onOpenBooking={() => openBooking()}
+          onOpenTab={goToTab}
+        />
+      )}
     </div>
   );
 }

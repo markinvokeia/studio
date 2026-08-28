@@ -26,6 +26,9 @@ interface MyAppointmentsTabProps {
   onReschedule: (appointment: Appointment) => void;
   /** Se incrementa desde el padre tras reservar o reagendar, para refrescar la lista. */
   refreshTrigger?: number;
+  /** `false` ⇒ la clínica deshabilitó la reserva online: se oculta "Reservar"
+   *  (y "Reagendar" en cada tarjeta) a favor de un aviso para contactar directo. */
+  canBook?: boolean;
 }
 
 /**
@@ -39,6 +42,7 @@ export function MyAppointmentsTab({
   onBook,
   onReschedule,
   refreshTrigger = 0,
+  canBook = true,
 }: MyAppointmentsTabProps) {
   const t = useTranslations('PatientPortal.appointments');
   const { toast } = useToast();
@@ -95,11 +99,13 @@ export function MyAppointmentsTab({
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center gap-3 py-10 text-center">
             <CalendarX2 className="h-8 w-8 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">{t('empty')}</p>
-            <Button size="sm" onClick={onBook} className="gap-1.5">
-              <CalendarPlus className="h-4 w-4" />
-              {t('book')}
-            </Button>
+            <p className="text-sm text-muted-foreground">{t(canBook ? 'empty' : 'bookingDisabled')}</p>
+            {canBook && (
+              <Button size="sm" onClick={onBook} className="gap-1.5">
+                <CalendarPlus className="h-4 w-4" />
+                {t('book')}
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -111,6 +117,7 @@ export function MyAppointmentsTab({
               isNext={index === 0}
               onReschedule={onReschedule}
               onCancel={setCancelling}
+              canBook={canBook}
             />
           ))}
         </div>

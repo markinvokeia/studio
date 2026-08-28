@@ -529,6 +529,37 @@ textarea::placeholder {
     white-space: nowrap;
   }
 
+  /* ── Receta médica ───────────────────────────────────────────────────────── */
+  /* La receta se imprime EXACTAMENTE como se previsualiza en pantalla: su HTML
+     trae todos los estilos inline (viene de una plantilla editable en BD), así
+     que hay que neutralizar el formato genérico de tablas de reporte de más
+     arriba, que si no le mete bordes y fondos que la vista previa no tiene.
+     Los selectores tienen más especificidad que los `table`/`th`/`td` sueltos,
+     por eso ganan pese al `!important` de aquéllos. */
+  .prescription-document table {
+    font-size: inherit !important;
+    table-layout: auto !important;
+  }
+  .prescription-document th,
+  .prescription-document td {
+    border: 0 !important;
+    background: transparent !important;
+    padding: 2px 0 !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+  /* La tabla de medicamentos sí lleva separadores: se restituyen los mismos
+     valores que usa `buildMedicationsTable` para el render en pantalla. */
+  .prescription-document .rx-med-table th {
+    border-bottom: 2px solid #d1d5db !important;
+    padding: 6px 8px !important;
+  }
+  .prescription-document .rx-med-table td {
+    border-bottom: 1px solid #e5e7eb !important;
+    padding: 6px 8px !important;
+  }
+
   /* Ensure the document container is shown in full during print */
   .print-template-root {
     width: 100%;

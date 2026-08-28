@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { ArrowLeft, BookOpenText, ClipboardList, FilePlus2, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, BookOpenText, ClipboardList, FilePlus2, Pencil, Pill, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ColumnDef, SortingState } from '@tanstack/react-table';
 
@@ -13,6 +13,7 @@ import { ViewModeToggle } from '@/components/ui/view-mode-toggle';
 
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
 import { PatientInstructionDialog } from '@/components/medical-instructions/patient-instruction-dialog';
+import { PrescriptionDialog } from '@/components/medical-instructions/prescription-dialog';
 import { TreatmentTimeline } from '@/components/users/clinic-history-viewer';
 
 import { useClinicHistory } from '@/hooks/useClinicHistory';
@@ -63,6 +64,7 @@ export function PatientHistorySheet() {
   const [viewMode, setViewMode] = useTableViewMode('patient-history-sheet', 'table');
   const [isAnnotationOpen, setIsAnnotationOpen] = React.useState(false);
   const [isInstructionOpen, setIsInstructionOpen] = React.useState(false);
+  const [isPrescriptionOpen, setIsPrescriptionOpen] = React.useState(false);
   const [editingSession, setEditingSession] = React.useState<PatientSession | null>(null);
   const [deletingSession, setDeletingSession] = React.useState<PatientSession | null>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
@@ -223,6 +225,10 @@ export function PatientHistorySheet() {
             <ClipboardList className="mr-1.5 h-4 w-4" />
             {t('newInstruction')}
           </Button>
+          <Button variant="outline" size="sm" onClick={() => setIsPrescriptionOpen(true)}>
+            <Pill className="mr-1.5 h-4 w-4" />
+            {t('newPrescription')}
+          </Button>
           <ViewModeToggle value={viewMode} onChange={setViewMode} className="ml-auto" />
         </div>
         {viewMode === 'table' ? (
@@ -305,6 +311,16 @@ export function PatientHistorySheet() {
           patientId={userId}
           patientName={userName}
           existingInstruction={null}
+        />
+      )}
+
+      {userId && (
+        <PrescriptionDialog
+          open={isPrescriptionOpen}
+          onOpenChange={setIsPrescriptionOpen}
+          patientId={userId}
+          patientName={userName}
+          existingPrescription={null}
         />
       )}
     </ResizableSheet>

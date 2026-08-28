@@ -17,7 +17,9 @@ export function NotificationsPanel() {
 
   React.useEffect(() => { setIsClient(true); }, []);
 
-  // Close on Escape
+  // Close on Escape. Radix Dialogs/AlertDialogs guard themselves against dismissing while
+  // this panel covers them — see the `data-notifications-panel` marker below and its check
+  // in DialogContent/AlertDialogContent — so this panel is safe to always close on Escape.
   React.useEffect(() => {
     if (!isPanelOpen) return;
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') closePanel(); };
@@ -48,6 +50,9 @@ export function NotificationsPanel() {
         role="dialog"
         aria-modal="true"
         aria-label={t('panelTitle')}
+        // Read by DialogContent/AlertDialogContent so they can decline to close on Escape
+        // while this panel visually covers them (see dialog.tsx / alert-dialog.tsx).
+        data-notifications-panel={isPanelOpen ? 'open' : 'closed'}
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-4 py-3 shrink-0">
