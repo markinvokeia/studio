@@ -1,0 +1,18 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html",                 "x": 0,    "y": 0, "w": 1440, "h": 980, "title": "A · Tablero denso" },
+    { "file": "FocoDelDia.dc.html",           "x": 1560, "y": 0, "w": 1440, "h": 980, "title": "B · Foco en el día" },
+    { "file": "ComparativoSucursal.dc.html",  "x": 3120, "y": 0, "w": 1440, "h": 980, "title": "C · Comparativo por sucursal" }
+  ],
+  "annotations": [
+    { "id": "prop-a", "x": 0, "y": -210, "w": 420,
+      "text": "PROPUESTA A — Tablero denso\n\nEje: máxima densidad. Todo en una pantalla, sin scroll.\n8 indicadores con doble lectura hoy/mes + tabla de sucursales + serie diaria + agenda + odontólogos.\n\nA favor: el gerente ve todo de un golpe.\nEn contra: exige lectura atenta; ningún número domina." },
+    { "id": "prop-b", "x": 1560, "y": -210, "w": 420,
+      "text": "PROPUESTA B — Foco en el día\n\nEje: la pregunta diaria primero. Banda oscura con 4 cifras grandes de HOY, después el mes acumulado, después sucursales.\n\nA favor: responde \"cómo venimos hoy\" a un metro de distancia; jerarquía inequívoca.\nEn contra: el mes queda en segundo plano y se pierde densidad." },
+    { "id": "prop-c", "x": 3120, "y": -210, "w": 420,
+      "text": "PROPUESTA C — Comparativo por sucursal\n\nEje: la sucursal como principio organizador. Tira consolidada arriba y una columna por sede con las mismas 7 filas.\n\nA favor: responde directo \"qué sucursal genera la producción\"; comparar es trivial.\nEn contra: escala mal más allá de 3 sedes." },
+    { "id": "datos", "x": 1560, "y": 1040, "w": 900,
+      "text": "Datos: cifras reales de la base de DEV, mes de referencia mayo 2026 (917 pacientes, 1.188 citas) con día de referencia miércoles 20/05. Las sucursales usan los nombres del documento del cliente (Punta del Este / Montevideo) sobre las magnitudes reales de las dos sedes con volumen.\n\nDos decisiones de la especificación están dibujadas a propósito en las tres propuestas:\n· Gastos aparece como \"sin datos cargados\", nunca como $0 — hoy no hay ningún gasto en la base.\n· Producción por sucursal lleva el sello \"estimado\": sale de la heurística de cita más cercana (100% de cobertura, ~1,2% de error) porque invoices.sede_id está vacío.\n\nLos nombres de odontólogos son de fantasía; no se publicó ningún dato de pacientes." }
+  ],
+  "launch": { "view": "canvas" }
+}

@@ -832,6 +832,156 @@ export type AppointmentAttendanceRate = {
   changeType: KpiChangeType;
 };
 
+/* ── Panel de Control Gerencial ─────────────────────────────────────────────── */
+
+export type DashboardCurrency = 'UYU' | 'USD';
+
+/**
+ * Métrica con doble lectura hoy / mes acumulado.
+ * `null` significa "sin datos de origen", que no es lo mismo que 0 — la UI debe
+ * distinguirlos (gastos y resultado de caja hoy no tienen ningún dato cargado).
+ */
+export type DashboardMetricPair = {
+  hoy: number | null;
+  mes: number | null;
+  var_dia_pct?: number | null;
+  var_mes_pct?: number | null;
+};
+
+export type DashboardExecutiveSummary = {
+  fecha_servidor: string;
+  sede_id: number | null;
+  currency: DashboardCurrency;
+  /** `estimated` mientras `invoices.sede_id` esté vacío y la sede salga de la heurística. */
+  sede_source: 'estimated' | 'actual';
+  produccion: DashboardMetricPair & { mes_anterior: number | null };
+  /** `payments` no tiene vía a la sede: el monto es siempre consolidado. */
+  cobranza: DashboardMetricPair & { disponible_por_sede: boolean };
+  gastos: DashboardMetricPair & { sin_datos: boolean };
+  resultado: DashboardMetricPair & { sin_datos: boolean };
+  /** Personas distintas con al menos una cita atendida. No es aditivo entre ventanas. */
+  pacientes_atendidos: {
+    hoy: number;
+    mes: number;
+    var_dia_abs: number;
+    var_mes_pct: number | null;
+    agendados_hoy: number;
+  };
+  /**
+   * Citas atendidas, no personas: quien vino dos veces cuenta dos. A diferencia de los
+   * pacientes distintos **es aditivo**, así que la suma de los días da el total del mes.
+   * Ausente contra un workflow anterior — la UI vuelve entonces a rotular "pacientes
+   * atendidos" en vez de mostrar personas bajo la etiqueta "atenciones".
+   */
+  atenciones?: {
+    hoy: number;
+    mes: number;
+    var_dia_abs: number;
+    var_mes_pct: number | null;
+    agendados_hoy: number;
+  };
+  pacientes_nuevos: { mes: number; var_pct: number | null };
+};
+
+export type ProduccionSucursalRow = {
+  sede_id: number;
+  name: string;
+  produccion: number;
+  /** Personas distintas atendidas en la sede. */
+  pacientes: number;
+  /** Citas atendidas en la sede. Ausente contra un workflow anterior. */
+  atenciones?: number;
+  no_show: number;
+  ticket_promedio: number | null;
+  pct: number;
+};
+
+export type ProduccionSucursalResponse = {
+  sede_source: 'estimated' | 'actual';
+  total: number;
+  rows: ProduccionSucursalRow[];
+};
+
+/**
+ * Granularidad de la serie de pacientes atendidos. La elige el backend según el ancho del
+ * período: con varios meses, una barra por día es ilegible y el eje repite los mismos
+ * números de día. La agregación es del backend porque los pacientes únicos de una semana
+ * no son la suma de los únicos de cada día.
+ */
+export type DashboardGranularity = 'day' | 'week' | 'month';
+
+export type PacientesPorDiaPoint = {
+  fecha_inicio: string;
+  fecha_fin: string;
+  /** Total de pacientes únicos del bucket. Siempre `nuevos + recurrentes`. */
+  pacientes: number;
+  /**
+   * Pacientes cuya primera cita atendida de la historia cae en este bucket. Es primera
+   * visita **en la clínica**, no en la sede: con el filtro de sucursal puesto, quien debutó
+   * en otra sede cuenta como recurrente. Ausentes contra un workflow anterior al desglose.
+   */
+  nuevos?: number;
+  recurrentes?: number;
+  /** Citas atendidas del bucket, la serie aditiva del gráfico. */
+  atenciones?: number;
+  atenciones_nuevos?: number;
+  atenciones_recurrentes?: number;
+  /** El período en curso (el bucket que contiene la fecha del servidor). */
+  es_actual: boolean;
+  /**
+   * Forma anterior del webhook, previa a la granularidad adaptativa. El workflow de n8n se
+   * despliega a mano y por fuera del frontend, así que puede haber una versión vieja en
+   * servicio: se aceptan los dos nombres para que el panel siga funcionando en modo diario
+   * en lugar de quedarse sin eje.
+   */
+  fecha?: string;
+  es_hoy?: boolean;
+};
+
+export type PacientesPorDiaResponse = {
+  granularity: DashboardGranularity;
+  /** Promedio de personas distintas por período con actividad. */
+  promedio: number;
+  /** Promedio de atenciones por período con actividad. */
+  promedio_atenciones?: number;
+  periodos_con_actividad: number;
+  rows: PacientesPorDiaPoint[];
+};
+
+export type VentasPorServicioResponse = {
+  total: number;
+  rows: SalesByServiceChartData[];
+};
+
+/* ── Evolución mensual ──────────────────────────────────────────────────────── */
+
+export type EvolucionMensualMes = {
+  /** `YYYY-MM`. */
+  mes: string;
+  inicio: string;
+  fin: string;
+  /** El mes todavía está en curso: `fin` es la fecha del servidor, no el fin de mes. */
+  es_parcial: boolean;
+};
+
+export type EvolucionMensualMetrica = {
+  key: 'produccion' | 'cobranza' | 'atenciones' | 'pacientes' | 'nuevos' | 'gastos';
+  tipo: 'moneda' | 'conteo';
+  /** Un valor por mes, en el mismo orden que `meses`. `null` = sin dato de origen. */
+  valores: (number | null)[];
+  /**
+   * Variación del último mes. Si está en curso compara contra el mismo tramo de días del
+   * mes anterior, no contra el mes anterior completo. `null` si no hay base de comparación.
+   */
+  var_pct: number | null;
+  sin_datos: boolean;
+};
+
+export type EvolucionMensualResponse = {
+  meses: EvolucionMensualMes[];
+  metricas: EvolucionMensualMetrica[];
+};
+
 export type CalendarSettings = {
   id?: string;
   user_id?: string;

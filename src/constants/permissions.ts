@@ -8,6 +8,10 @@ export const DASHBOARD_PERMISSIONS = {
   VIEW_RECENT_ORDERS: 'DASHBOARD_VIEW_RECENT_ORDERS',
   VIEW_NEW_PATIENTS: 'DASHBOARD_VIEW_NEW_PATIENTS',
   APPLY_FILTERS: 'DASHBOARD_APPLY_FILTERS',
+  /** Bloque HOY + mes acumulado del panel gerencial. */
+  VIEW_EXECUTIVE_SUMMARY: 'DASHBOARD_VIEW_EXECUTIVE_SUMMARY',
+  /** Filtro de sucursal y corte por sede. */
+  VIEW_BY_BRANCH: 'DASHBOARD_VIEW_BY_BRANCH',
 } as const;
 
 export type DashboardPermission = (typeof DASHBOARD_PERMISSIONS)[keyof typeof DASHBOARD_PERMISSIONS];

@@ -175,6 +175,12 @@ export const API_ROUTES = {
         SALES_BY_SERVICE: '/dashboard_sales_by_service',
         INVOICE_STATUS: '/dashboard_invoice_status',
         NEW_VS_RECURRING_PATIENTS: '/dashboard_new_vs_recurring_patients',
+        // Panel de Control Gerencial — n8n-workflows/dashboard/dashboard-gerencial.json
+        EXECUTIVE_SUMMARY:    '/dashboard/executive-summary',
+        PRODUCCION_SUCURSAL:  '/dashboard/produccion-sucursal',
+        PACIENTES_POR_DIA:    '/dashboard/pacientes-por-dia',
+        VENTAS_POR_SERVICIO:  '/dashboard/ventas-por-servicio',
+        EVOLUCION_MENSUAL:    '/dashboard/evolucion-mensual',
     },
     LOGIN: '/api/auth/login',
     LOGOUT: '/api/auth/logout',
