@@ -517,6 +517,7 @@ export default function MiscellaneousTransactionsPage() {
                             status: t('columns.status'),
                         }}
                         isNarrow={isNarrow}
+                        onRowClick={handleEdit}
                         renderCard={(row: MiscellaneousTransaction, _isSelected: boolean) => (
                             <DataCard isSelected={_isSelected}
                                 title={row.doc_no}
