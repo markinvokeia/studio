@@ -6341,9 +6341,9 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "DELETE FROM public.quote_items\nWHERE quote_id = $1;",
+        "query": "DELETE FROM public.quote_items\nWHERE quote_id = $1\n  AND id <> ALL ($2::int[]);",
         "options": {
-          "queryReplacement": "={{ $json.id }}"
+          "queryReplacement": "={{ [$('Update').first().json.id, ($('quotes/upsert').first().json.body.items || []).filter(i => i && i.id !== undefined && i.id !== null && i.id !== '').map(i => parseInt(i.id, 10))] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
@@ -6376,150 +6376,10 @@
     },
     {
       "parameters": {
-        "schema": {
-          "__rl": true,
-          "mode": "list",
-          "value": "public"
-        },
-        "table": {
-          "__rl": true,
-          "value": "quote_items",
-          "mode": "list",
-          "cachedResultName": "quote_items"
-        },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "total": "={{ $json.total }}",
-            "unit_price": "={{ $json.unit_price }}",
-            "quantity": "={{ $json.quantity }}",
-            "service_id": "={{ $json.service_id }}",
-            "quote_id": "={{ $('Update').item.json.id }}",
-            "tooth_number": "={{ $json.tooth_number }}",
-            "gross_total": "={{ $json.gross_total ?? null }}",
-            "discount_mode": "={{ $json.discount_mode ?? null }}",
-            "discount_value": "={{ $json.discount_value ?? null }}",
-            "discount_amount": "={{ $json.discount_amount ?? null }}"
-          },
-          "matchingColumns": [
-            "id"
-          ],
-          "schema": [
-            {
-              "id": "id",
-              "displayName": "id",
-              "required": false,
-              "defaultMatch": true,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": true,
-              "removed": true
-            },
-            {
-              "id": "quote_id",
-              "displayName": "quote_id",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "service_id",
-              "displayName": "service_id",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "quantity",
-              "displayName": "quantity",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "unit_price",
-              "displayName": "unit_price",
-              "required": true,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "total",
-              "displayName": "total",
-              "required": true,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "tooth_number",
-              "displayName": "tooth_number",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "gross_total",
-              "displayName": "gross_total",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "discount_mode",
-              "displayName": "discount_mode",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "discount_value",
-              "displayName": "discount_value",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "discount_amount",
-              "displayName": "discount_amount",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "number",
-              "canBeUsedToMatch": true,
-              "removed": false
-            }
-          ],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": false
-        },
+        "operation": "executeQuery",
+        "query": "WITH upd AS (\n  UPDATE public.quote_items qi SET\n    service_id     = $3,\n    quantity       = $4,\n    unit_price     = $5,\n    total          = $6,\n    tooth_number   = $7,\n    gross_total    = $8,\n    discount_mode  = $9,\n    discount_value = $10,\n    discount_amount= $11\n  WHERE qi.id = $1 AND qi.quote_id = $2\n  RETURNING qi.id\n)\nINSERT INTO public.quote_items\n  (quote_id, service_id, quantity, unit_price, total, tooth_number, gross_total, discount_mode, discount_value, discount_amount)\nSELECT $2, $3, $4, $5, $6, $7, $8, $9, $10, $11\nWHERE NOT EXISTS (SELECT 1 FROM upd)\nRETURNING id;",
         "options": {
+          "queryReplacement": "={{ [ ($json.id !== undefined && $json.id !== null && $json.id !== '') ? parseInt($json.id, 10) : null, $('Update').first().json.id, $json.service_id, $json.quantity, $json.unit_price, $json.total, ($json.tooth_number ?? null), ($json.gross_total ?? null), ($json.discount_mode ?? null), ($json.discount_value ?? null), ($json.discount_amount ?? null) ] }}",
           "queryBatching": "transaction"
         }
       },

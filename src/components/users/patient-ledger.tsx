@@ -676,14 +676,13 @@ type QuoteEditorValues = z.infer<ReturnType<typeof buildQuoteEditorSchema>>;
  * Inline create/edit editor for a Presupuesto (`quote`) or Tratamiento (`invoice`) line.
  * Enables the Debe editor; Haber is disabled. In edit mode (`editRow` set) which underlying
  * document gets updated depends on the row itself, not the `doc` prop:
- * - An unbilled presupuesto (`editRow.status === 'presupuestado'`) upserts the line via
- *   `QUOTES_LINES_UPSERT` (by id, matching `quote/lines/upsert`'s own contract — it
- *   recalculates the quote's total itself). That endpoint only touches `quote_items`, not
- *   the quote's own doctor/notes, so those are saved separately via a `QUOTES_UPSERT` patch
- *   run *before* the line upsert — carrying over the quote's other required fields unchanged
- *   plus every sibling item as-is (the backend needs `items` present to process the request
- *   at all; the edited line's own new values are applied right after by the line upsert, so
- *   it always has the last word on that line and on the recalculated total).
+ * - An unbilled presupuesto (`editRow.status === 'presupuestado'`) re-sends the whole quote
+ *   via `QUOTES_UPSERT` by id, with the edited line merged into the `items` array and every
+ *   sibling preserved. This is a single call on purpose: `quotes/upsert` rebuilds
+ *   `quote_items` from scratch on every update (it deletes all rows and re-inserts them,
+ *   rotating their ids), so a follow-up `QUOTES_LINES_UPSERT` by id would target a row that
+ *   no longer exists ("No rows matching ... id=N"). The quote's doctor/notes/sede are real
+ *   fields on that same call, so they stay editable here; the backend recalculates the total.
  * - A billed treatment with no payments yet (`facturado`) re-sends the whole invoice via
  *   `INVOICES_UPSERT` by id, passing every sibling item so nothing is lost — this preserves
  *   item ids for anything not being edited, and the invoice's date/doctor/notes are real
@@ -814,49 +813,35 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
       const createdAtIso = toLocalISOString(preserveTimeIfToday(values.created_at));
       const dueDateIso = values.due_date ? toLocalISOString(preserveTimeIfToday(values.due_date)) : undefined;
       if (isEdit && editKind === 'quote') {
-        // doctor/notes live on the quote itself, not on quote_items — patched first via a
-        // QUOTES_UPSERT by id, carrying over the quote's other required columns unchanged
-        // (omitting them would null/blank them out server-side) *and* every sibling item
-        // as-is (the backend requires `items` to complete the request at all; the edited
-        // line's own new values are applied right after by the line upsert below, so it
-        // always has the last word on that line and on the recalculated total).
-        if (editQuote) {
-          const siblingItems = (editItems || []).map((i) => ({
-            id: i.id,
-            service_id: i.service_id,
-            quantity: i.quantity,
-            unit_price: i.unit_price,
-            total: i.total,
-            tooth_number: (i as QuoteItem).tooth_number ?? null,
-          }));
-          const quoteRes = await api.post(API_ROUTES.SALES.QUOTES_UPSERT, {
-            id: editQuote.id,
-            user_id: editQuote.user_id,
-            doctor_id: values.doctor_id || undefined,
-            sede_id: Number(values.sede_id),
-            total: editQuote.total,
-            currency: editQuote.currency,
-            status: editQuote.status,
-            payment_status: editQuote.payment_status,
-            billing_status: editQuote.billing_status,
-            exchange_rate: editQuote.exchange_rate ?? 1,
-            created_at: editQuote.createdAt,
-            notes: values.description || '',
-            items: siblingItems,
-            is_sales: true,
-          });
-          if (Array.isArray(quoteRes) && quoteRes[0]?.code >= 400) throw new Error(quoteRes[0]?.message);
-        }
-        // A single quote_items row, matched by id — `quote/lines/upsert` recalculates the
-        // quote's own total itself, and doesn't touch (or need) the sibling items at all.
-        const res = await api.post(API_ROUTES.SALES.QUOTES_LINES_UPSERT, {
-          id: editRow!.itemId,
-          quote_id: editRow!.quoteId,
-          service_id: values.service_id,
-          quantity: qty,
-          unit_price: values.unit_price,
-          tooth_number: tooth,
-          ...lineDiscount,
+        // Single QUOTES_UPSERT: the quote's doctor/notes/sede are real fields on this call,
+        // and `quotes/upsert` rebuilds `quote_items` from the `items` array on every update
+        // (deleting every row and re-inserting it, which rotates their ids). So the edited
+        // line has to travel inside that same array — a separate QUOTES_LINES_UPSERT by id
+        // right after would hit a row this call already destroyed. Mirrors the billed
+        // whole-invoice resend path below.
+        const items = (editItems && editItems.length > 0 ? editItems : (editItem ? [editItem] : []))
+          .map((i) => i.id === editRow!.itemId
+            ? { id: i.id, service_id: values.service_id, quantity: qty, unit_price: values.unit_price, tooth_number: tooth, ...lineDiscount }
+            // Las lineas hermanas se reenvian tal cual, con su descuento intacto.
+            : { id: i.id, service_id: i.service_id, quantity: i.quantity, unit_price: i.unit_price, total: i.total,
+                tooth_number: (i as QuoteItem).tooth_number ?? null,
+                gross_total: i.gross_total, discount_mode: i.discount_mode ?? null, discount_value: i.discount_value ?? null, discount_amount: i.discount_amount ?? null });
+        const total = items.reduce((sum, i) => sum + (i.total || 0), 0);
+        const res = await api.post(API_ROUTES.SALES.QUOTES_UPSERT, {
+          id: editRow!.quoteId,
+          user_id: editQuote?.user_id ?? userId,
+          doctor_id: values.doctor_id || undefined,
+          sede_id: Number(values.sede_id),
+          total,
+          currency: editQuote?.currency ?? values.currency,
+          status: editQuote?.status ?? 'draft',
+          payment_status: editQuote?.payment_status ?? 'unpaid',
+          billing_status: editQuote?.billing_status ?? 'not invoiced',
+          exchange_rate: editQuote?.exchange_rate ?? 1,
+          created_at: editQuote?.createdAt ?? createdAtIso,
+          notes: values.description || '',
+          items,
+          is_sales: true,
         });
         if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message);
         toast({ title: t('toasts.itemUpdated') });
@@ -2474,10 +2459,10 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
                             editRow={row}
                             editInvoice={row.invoiceId ? ledgerData?.invoices.find((i) => i.id === row.invoiceId) : undefined}
                             editQuote={row.status === 'presupuestado' ? ledgerData?.quotes.find((q) => q.id === row.quoteId) : undefined}
-                            // For the presupuesto case only this one item's own fields
-                            // (notably tooth_number, which isn't on LedgerRow) are needed
-                            // for prefill — QUOTES_LINES_UPSERT doesn't touch siblings, so
-                            // there's no need to resend the whole set on save.
+                            // The whole item set: needed both for this one item's prefill
+                            // (notably tooth_number, which isn't on LedgerRow) and because
+                            // saving a presupuesto line re-sends every sibling on the same
+                            // QUOTES_UPSERT (the backend rebuilds quote_items from it).
                             editItems={row.status === 'presupuestado'
                               ? ledgerData?.quoteItemsByQuote[row.quoteId || '']
                               : ledgerData?.invoiceItemsByInvoice[row.invoiceId || '']}
