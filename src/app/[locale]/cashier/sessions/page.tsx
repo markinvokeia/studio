@@ -408,6 +408,7 @@ export default function CashSessionsPage() {
                         onColumnVisibilityChange={setColumnVisibility}
                         enableSingleRowSelection={false}
                         isNarrow={isNarrow}
+                        onRowClick={handleView}
                         renderCard={(row: CajaSesion, _isSelected: boolean) => (
                             <DataCard isSelected={_isSelected}
                                 title={row.cash_point_name || row.user_name || 'Sesión'}

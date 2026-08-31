@@ -325,7 +325,23 @@ export default function MiscellaneousTransactionsPage() {
         setIsDialogOpen(true);
     };
 
+    // A transaction can only be deleted while its cash movement can still be reversed:
+    // either it never hit a cash session (still pending) or its session is the one currently open.
+    const isTransactionDeletable = React.useCallback((transaction: MiscellaneousTransaction) => {
+        if (!transaction.cash_session_id) return true;
+        const activeSessionId = activeCashSession?.data?.id;
+        return activeSessionId != null && String(transaction.cash_session_id) === String(activeSessionId);
+    }, [activeCashSession]);
+
     const handleDelete = (transaction: MiscellaneousTransaction) => {
+        if (!isTransactionDeletable(transaction)) {
+            toast({
+                variant: 'destructive',
+                title: t('toasts.errorTitle'),
+                description: t('actions.deleteDisabledClosedSession'),
+            });
+            return;
+        }
         setDeletingTransaction(transaction);
         setIsDeleteDialogOpen(true);
     };
@@ -380,6 +396,7 @@ export default function MiscellaneousTransactionsPage() {
             id: 'actions',
             cell: ({ row }) => {
                 const transaction = row.original;
+                const canDelete = isTransactionDeletable(transaction);
                 return (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -391,7 +408,14 @@ export default function MiscellaneousTransactionsPage() {
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
                             <DropdownMenuItem onClick={() => handleEdit(transaction)}>{t('actions.edit')}</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDelete(transaction)} className="text-destructive">{t('actions.delete')}</DropdownMenuItem>
+                            <DropdownMenuItem
+                                onClick={() => canDelete && handleDelete(transaction)}
+                                disabled={!canDelete}
+                                title={canDelete ? undefined : t('actions.deleteDisabledClosedSession')}
+                                className="text-destructive"
+                            >
+                                {t('actions.delete')}
+                            </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 );
@@ -493,6 +517,7 @@ export default function MiscellaneousTransactionsPage() {
                             status: t('columns.status'),
                         }}
                         isNarrow={isNarrow}
+                        onRowClick={handleEdit}
                         renderCard={(row: MiscellaneousTransaction, _isSelected: boolean) => (
                             <DataCard isSelected={_isSelected}
                                 title={row.doc_no}

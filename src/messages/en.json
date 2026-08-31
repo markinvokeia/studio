@@ -1813,7 +1813,7 @@
     "preferencesButton": "Preferences",
     "dischargeButton": "Discharge",
     "readmitButton": "Readmit",
-    "setInitialPassword": "Set Initial Password",
+    "setInitialPassword": "Reset Password",
     "tabs": {
       "roles": "Roles",
       "services": "Services",
@@ -3212,7 +3212,8 @@
     "actions": {
       "edit": "Edit",
       "delete": "Delete",
-      "openMenu": "Open menu"
+      "openMenu": "Open menu",
+      "deleteDisabledClosedSession": "Can't delete: this transaction's cash register is already closed"
     },
     "dialog": {
       "editTitle": "Edit Transaction",
@@ -3802,7 +3803,7 @@
       "saveError": "Error saving",
       "saveErrorDescription": "Could not save the notes. Try again."
     },
-    "setInitialPassword": "Set Initial Password",
+    "setInitialPassword": "Reset Password",
     "close": "Close details",
     "quickCreate": {
       "title": "Create",
@@ -4507,9 +4508,9 @@
       "editSuccessTitle": "User updated",
       "editSuccessDescription": "The user has been updated successfully"
     },
-    "setInitialPassword": "Set Initial Password",
+    "setInitialPassword": "Reset Password",
     "initialPasswordSentTitle": "Email sent",
-    "initialPasswordSentDescription": "An email with the password setup link has been sent.",
+    "initialPasswordSentDescription": "An email with the password reset link has been sent.",
     "initialPasswordError": "An unexpected error occurred. Please try again.",
     "toggleStatus": {
       "successTitle": "Success",
