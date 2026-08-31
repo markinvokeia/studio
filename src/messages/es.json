@@ -3107,7 +3107,8 @@
     "actions": {
       "edit": "Editar",
       "delete": "Eliminar",
-      "openMenu": "Abrir menú"
+      "openMenu": "Abrir menú",
+      "deleteDisabledClosedSession": "No se puede eliminar: la caja de esta transacción ya está cerrada"
     },
     "dialog": {
       "editTitle": "Editar Transacción",

@@ -528,29 +528,11 @@
     },
     {
       "parameters": {
-        "operation": "deleteTable",
-        "schema": {
-          "__rl": true,
-          "mode": "list",
-          "value": "public"
-        },
-        "table": {
-          "__rl": true,
-          "value": "miscellaneous_transactions",
-          "mode": "list",
-          "cachedResultName": "miscellaneous_transactions"
-        },
-        "deleteCommand": "delete",
-        "where": {
-          "values": [
-            {
-              "column": "id",
-              "value": "={{ $json.body.id }}"
-            }
-          ]
-        },
-        "combineConditions": "OR",
-        "options": {}
+        "operation": "executeQuery",
+        "query": "SELECT mt.id,\n       mt.cash_session_id,\n       cs.status AS session_status,\n       cm.id     AS cash_movement_id\nFROM public.miscellaneous_transactions mt\nLEFT JOIN public.cash_sessions  cs ON cs.id = mt.cash_session_id\nLEFT JOIN public.cash_movements cm ON cm.source_id = mt.id\n                                  AND cm.source_type = 'miscellaneous'\nWHERE mt.id = $1;",
+        "options": {
+          "queryReplacement": "={{ [$json.body.id] }}"
+        }
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
@@ -559,8 +541,8 @@
         528
       ],
       "id": "d2903af9-5de3-433b-87de-c9ebe90fa8ac",
-      "name": "Delete rows in a table",
-      "alwaysOutputData": false,
+      "name": "Get transaction to delete",
+      "alwaysOutputData": true,
       "credentials": {
         "postgres": {
           "id": "6b7Sjdnppbfve8ka",
@@ -568,6 +550,91 @@
         }
       },
       "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b1f4c0a2-3d5e-4f6a-8b7c-9d0e1f2a3b4c",
+              "leftValue": "={{ $json.cash_session_id === null || $json.cash_session_id === undefined || $json.session_status === 'OPEN' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1264,
+        528
+      ],
+      "id": "c2e5d1b3-4a6f-4c7d-9e8b-1a2c3d4e5f6a",
+      "name": "Guard: caja abierta?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH del_mov AS (\n    DELETE FROM public.cash_movements\n    WHERE source_type = 'miscellaneous' AND source_id = $1\n    RETURNING id\n)\nDELETE FROM public.miscellaneous_transactions\nWHERE id = $1\nRETURNING id;",
+        "options": {
+          "queryReplacement": "={{ [$json.id] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1472,
+        448
+      ],
+      "id": "a7b8c9d0-1e2f-4a3b-8c4d-5e6f7a8b9c0d",
+      "name": "Delete misc transaction + movement",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"error\": \"No se puede eliminar: la caja de este movimiento ya está cerrada.\"\n}",
+        "options": {
+          "responseCode": 409,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1472,
+        640
+      ],
+      "id": "e0f1a2b3-c4d5-4e6f-9a0b-1c2d3e4f5a6b",
+      "name": "Error: caja cerrada"
     },
     {
       "parameters": {
@@ -1691,24 +1758,6 @@
         ]
       ]
     },
-    "Delete rows in a table": {
-      "main": [
-        [
-          {
-            "node": "Success 1",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Error 1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "misc_transactions/upsert": {
       "main": [
         [
@@ -1724,7 +1773,61 @@
       "main": [
         [
           {
-            "node": "Delete rows in a table",
+            "node": "Get transaction to delete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get transaction to delete": {
+      "main": [
+        [
+          {
+            "node": "Guard: caja abierta?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guard: caja abierta?": {
+      "main": [
+        [
+          {
+            "node": "Delete misc transaction + movement",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: caja cerrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete misc transaction + movement": {
+      "main": [
+        [
+          {
+            "node": "Success 1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error 1",
             "type": "main",
             "index": 0
           }

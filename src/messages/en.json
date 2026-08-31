@@ -3130,7 +3130,8 @@
     "actions": {
       "edit": "Edit",
       "delete": "Delete",
-      "openMenu": "Open menu"
+      "openMenu": "Open menu",
+      "deleteDisabledClosedSession": "Can't delete: this transaction's cash register is already closed"
     },
     "dialog": {
       "editTitle": "Edit Transaction",
