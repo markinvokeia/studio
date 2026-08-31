@@ -1,0 +1,746 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Guía de uso del Panel de Control Gerencial: qué muestra cada bloque, qué significa cada métrica y cómo verificarla.">
+<title>Panel de Control Gerencial</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+  :root {
+    --ground:      #FBFAFD;
+    --surface:     #FFFFFF;
+    --surface-alt: #F5F2FA;
+    --ink:         #14101F;
+    --ink-soft:    #665F75;
+    --line:        #E7E3EE;
+    --line-soft:   #F0EDF5;
+    --brand:       #4B1D95;
+    --brand-soft:  #F0EAFB;
+    --accent:      #D6255C;
+    --ok:          #15803D;
+    --ok-soft:     #E8F6EC;
+    --warn:        #B45309;
+    --warn-soft:   #FDF3E3;
+
+    --sans:  'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --serif: 'Source Serif 4', ui-serif, Georgia, 'Times New Roman', serif;
+    --mono:  'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #100E17;
+      --surface:     #191622;
+      --surface-alt: #201C2C;
+      --ink:         #EDEAF3;
+      --ink-soft:    #A29CB0;
+      --line:        #2C2739;
+      --line-soft:   #241F30;
+      --brand:       #B79BFB;
+      --brand-soft:  #241C3C;
+      --accent:      #FF7BA4;
+      --ok:          #5FD98A;
+      --ok-soft:     #16281D;
+      --warn:        #F0B45C;
+      --warn-soft:   #2B2113;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:      #100E17;
+    --surface:     #191622;
+    --surface-alt: #201C2C;
+    --ink:         #EDEAF3;
+    --ink-soft:    #A29CB0;
+    --line:        #2C2739;
+    --line-soft:   #241F30;
+    --brand:       #B79BFB;
+    --brand-soft:  #241C3C;
+    --accent:      #FF7BA4;
+    --ok:          #5FD98A;
+    --ok-soft:     #16281D;
+    --warn:        #F0B45C;
+    --warn-soft:   #2B2113;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 48px;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 40px 24px 96px;
+  }
+  @media (min-width: 1080px) {
+    .page { grid-template-columns: 210px minmax(0, 1fr); gap: 64px; padding-top: 64px; }
+  }
+
+  /* ── Índice ─────────────────────────────────────────────── */
+  .toc { display: none; }
+  @media (min-width: 1080px) {
+    .toc {
+      display: block;
+      position: sticky;
+      top: 64px;
+      align-self: start;
+      font-family: var(--sans);
+      font-size: 13px;
+    }
+  }
+  .toc-title {
+    font-size: 10.5px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: .12em; color: var(--ink-soft); margin-bottom: 12px;
+  }
+  .toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  .toc a {
+    display: flex; gap: 9px; padding: 5px 8px; border-radius: 6px;
+    color: var(--ink-soft); text-decoration: none; line-height: 1.35;
+  }
+  .toc a:hover { background: var(--brand-soft); color: var(--brand); }
+  .toc a:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+  .toc .n { font-family: var(--mono); font-size: 11px; opacity: .65; padding-top: 1px; }
+
+  /* ── Encabezado ─────────────────────────────────────────── */
+  header { border-bottom: 1px solid var(--line); padding-bottom: 32px; margin-bottom: 44px; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 11.5px; font-weight: 500;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--brand); margin: 0 0 14px;
+  }
+  h1 {
+    font-family: var(--sans); font-weight: 800; font-size: clamp(30px, 4.6vw, 42px);
+    line-height: 1.1; letter-spacing: -.025em; margin: 0 0 16px; text-wrap: balance;
+  }
+  .standfirst { font-size: 19px; color: var(--ink-soft); margin: 0; max-width: 62ch; }
+
+  /* ── Secciones ──────────────────────────────────────────── */
+  section { margin-bottom: 60px; scroll-margin-top: 32px; }
+  h2 {
+    font-family: var(--sans); font-weight: 800; font-size: 23px; line-height: 1.25;
+    letter-spacing: -.02em; margin: 0 0 6px; text-wrap: balance;
+    display: flex; align-items: baseline; gap: 12px;
+  }
+  h2 .n {
+    font-family: var(--mono); font-size: 13px; font-weight: 500;
+    color: var(--brand); flex: none; padding-top: 2px;
+  }
+  h3 {
+    font-family: var(--sans); font-weight: 600; font-size: 15.5px;
+    letter-spacing: -.01em; margin: 28px 0 8px;
+  }
+  p { margin: 0 0 16px; max-width: 68ch; }
+  .lede { color: var(--ink-soft); margin-bottom: 22px; max-width: 68ch; }
+  a { color: var(--brand); }
+
+  strong { font-weight: 600; }
+  .term { font-family: var(--mono); font-size: .88em; font-weight: 500;
+          background: var(--surface-alt); padding: 1px 5px; border-radius: 4px; }
+
+  ul { margin: 0 0 16px; padding-left: 20px; max-width: 68ch; }
+  li { margin-bottom: 7px; }
+  li::marker { color: var(--brand); }
+
+  /* ── Tablas ─────────────────────────────────────────────── */
+  .scroll { overflow-x: auto; margin: 0 0 20px; }
+  table {
+    border-collapse: collapse; width: 100%; min-width: 460px;
+    font-family: var(--sans); font-size: 14px;
+  }
+  caption {
+    font-family: var(--sans); font-size: 12px; color: var(--ink-soft);
+    text-align: left; padding-bottom: 8px;
+  }
+  th {
+    font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em;
+    color: var(--ink-soft); text-align: left; padding: 0 14px 8px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  td { padding: 10px 14px 10px 0; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; padding-right: 0; }
+  td.k { font-family: var(--mono); font-size: 12.5px; color: var(--brand); white-space: nowrap; }
+
+  /* ── Bloque "cómo probarlo" ─────────────────────────────── */
+  .try {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--brand);
+    border-radius: 0 8px 8px 0;
+    padding: 18px 22px;
+    margin: 24px 0;
+    font-family: var(--sans);
+    font-size: 14.5px;
+    line-height: 1.6;
+  }
+  .try h4 {
+    font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em;
+    color: var(--brand); margin: 0 0 12px;
+  }
+  .try ol { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; }
+  .try li { margin: 0; }
+  .try li::marker { font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+  .try .expect {
+    display: block; margin-top: 3px; color: var(--ink-soft); font-size: 13.5px;
+  }
+  .try .expect::before {
+    content: "Esperado"; font-size: 10px; font-weight: 800; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--ok); margin-right: 7px;
+  }
+
+  /* ── Avisos ─────────────────────────────────────────────── */
+  .note {
+    background: var(--warn-soft); border: 1px solid transparent;
+    border-radius: 8px; padding: 16px 20px; margin: 22px 0;
+    font-family: var(--sans); font-size: 14.5px; line-height: 1.6;
+  }
+  .note h4 {
+    font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em;
+    color: var(--warn); margin: 0 0 8px;
+  }
+  .note p { margin: 0; max-width: none; }
+  .note p + p { margin-top: 10px; }
+
+  /* ── Píldoras de estado ─────────────────────────────────── */
+  .pill {
+    display: inline-block; font-family: var(--sans); font-size: 10.5px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .06em; padding: 2px 8px; border-radius: 999px;
+    vertical-align: middle;
+  }
+  .pill-warn { background: var(--warn-soft); color: var(--warn); }
+  .pill-ok   { background: var(--ok-soft);   color: var(--ok); }
+  .pill-acc  { background: var(--brand-soft); color: var(--brand); }
+
+  /* ── Comparación de métricas ────────────────────────────── */
+  .metrics { display: grid; gap: 14px; margin: 24px 0; font-family: var(--sans); }
+  @media (min-width: 620px) { .metrics { grid-template-columns: repeat(3, 1fr); } }
+  .metric {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 8px; padding: 16px 18px;
+  }
+  .metric .name {
+    font-size: 11px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: .07em; color: var(--ink-soft); margin-bottom: 8px;
+  }
+  .metric .val {
+    font-size: 27px; font-weight: 800; letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums; line-height: 1;
+  }
+  .metric .desc { font-size: 13px; color: var(--ink-soft); margin-top: 9px; line-height: 1.5; }
+
+  footer {
+    border-top: 1px solid var(--line); padding-top: 24px; margin-top: 8px;
+    font-family: var(--sans); font-size: 13px; color: var(--ink-soft);
+  }
+  footer p { max-width: 68ch; margin-bottom: 10px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <nav class="toc" aria-label="Índice">
+    <div class="toc-title">Contenido</div>
+    <ol>
+      <li><a href="#requisitos"><span class="n">00</span><span>Antes de empezar</span></a></li>
+      <li><a href="#filtros"><span class="n">01</span><span>La barra de filtros</span></a></li>
+      <li><a href="#hoy"><span class="n">02</span><span>Hoy</span></a></li>
+      <li><a href="#mes"><span class="n">03</span><span>El mes acumulado</span></a></li>
+      <li><a href="#sucursales"><span class="n">04</span><span>Sucursales y servicios</span></a></li>
+      <li><a href="#serie"><span class="n">05</span><span>Atenciones por día</span></a></li>
+      <li><a href="#evolucion"><span class="n">06</span><span>Evolución</span></a></li>
+      <li><a href="#glosario"><span class="n">07</span><span>Qué mide cada cifra</span></a></li>
+      <li><a href="#limites"><span class="n">08</span><span>Lo que todavía no mide</span></a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <header>
+      <p class="eyebrow">Guía de uso y verificación</p>
+      <h1>Panel de Control Gerencial</h1>
+      <p class="standfirst">
+        Qué muestra cada bloque del panel, qué significa exactamente cada número y cómo
+        comprobar por tu cuenta que está bien.
+      </p>
+    </header>
+
+    <!-- 00 ─────────────────────────────────────────────────── -->
+    <section id="requisitos">
+      <h2><span class="n">00</span>Antes de empezar</h2>
+      <p class="lede">Dos condiciones tienen que estar dadas o vas a ver el panel incompleto.</p>
+
+      <h3>Permisos</h3>
+      <p>
+        Cada bloque está protegido por un permiso. Si te falta alguno, ese bloque
+        simplemente no aparece: no vas a ver un cartel de error, vas a ver el panel más corto.
+      </p>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr><th>Permiso</th><th>Qué habilita</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="k">DASHBOARD_VIEW_MENU</td><td>El ítem «Panel de Control» en el menú lateral</td></tr>
+            <tr><td class="k">DASHBOARD_APPLY_FILTERS</td><td>La barra de sucursal, período y moneda</td></tr>
+            <tr><td class="k">DASHBOARD_VIEW_EXECUTIVE_SUMMARY</td><td>La banda de HOY, las tarjetas del mes y la tabla de Evolución</td></tr>
+            <tr><td class="k">DASHBOARD_VIEW_CHARTS</td><td>Atenciones por día y Ventas por servicio</td></tr>
+            <tr><td class="k">DASHBOARD_VIEW_BY_BRANCH</td><td>El selector de sucursal y la tarjeta Sucursales</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Los permisos se cargan al iniciar sesión. Si te acaban de dar uno,
+        <strong>cerrá y volvé a abrir sesión</strong>: refrescar la página no alcanza.
+      </p>
+
+      <div class="note">
+        <h4>Si ves tarjetas vacías o un aviso de error</h4>
+        <p>
+          El panel se alimenta de cinco consultas independientes. Si una falla, solo esa
+          tarjeta queda vacía con el mensaje «No se pudieron cargar estos datos»; el resto
+          sigue funcionando. Si fallan todas, aparece un aviso arriba con un botón de
+          reintentar.
+        </p>
+        <p>
+          La causa más común es que el flujo de datos del servidor esté desactualizado.
+          En ese caso el panel no inventa nada: vuelve a mostrar las métricas anteriores con
+          su nombre correcto.
+        </p>
+      </div>
+    </section>
+
+    <!-- 01 ─────────────────────────────────────────────────── -->
+    <section id="filtros">
+      <h2><span class="n">01</span>La barra de filtros</h2>
+      <p class="lede">Arriba de todo, tres controles que afectan al resto de la pantalla.</p>
+
+      <ul>
+        <li><strong>Sucursal</strong> — «Consolidado» o una sede en particular. Se recuerda para la próxima vez que entres.</li>
+        <li><strong>Período</strong> — Hoy, esta semana, este mes, mes anterior, este año o un rango a medida. Arranca siempre en el mes en curso.</li>
+        <li><strong>Moneda</strong> — UYU o USD. También se recuerda.</li>
+      </ul>
+
+      <p>
+        Hay una excepción importante que conviene tener clara: <strong>la banda de HOY y las
+        tarjetas del mes no dependen del período elegido</strong>. Siempre muestran el día de
+        hoy y el mes en curso. El período afecta a las tarjetas de abajo: Sucursales, Ventas
+        por servicio y el gráfico de atenciones.
+      </p>
+
+      <div class="try">
+        <h4>Cómo probarlo</h4>
+        <ol>
+          <li>
+            Cambiá la sucursal de «Consolidado» a una sede.
+            <span class="expect">Producción y atenciones bajan; la cobranza no cambia y muestra la etiqueta «solo consolidado».</span>
+          </li>
+          <li>
+            Cambiá la moneda de UYU a USD.
+            <span class="expect">Producción y cobranza cambian; las cifras de pacientes y atenciones quedan igual, porque no son dinero.</span>
+          </li>
+          <li>
+            Cambiá el período a «Mes anterior».
+            <span class="expect">Cambian Sucursales, Ventas por servicio y el gráfico. La banda de HOY y las tarjetas del mes siguen mostrando hoy y el mes en curso.</span>
+          </li>
+          <li>
+            Recargá la página.
+            <span class="expect">La sucursal y la moneda que elegiste siguen puestas; el período vuelve al mes en curso.</span>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- 02 ─────────────────────────────────────────────────── -->
+    <section id="hoy">
+      <h2><span class="n">02</span>Hoy</h2>
+      <p class="lede">La banda violeta responde una sola pregunta: cómo venimos hoy.</p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Cifra</th><th>Qué es</th><th>Comparación</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Producción</strong></td>
+              <td>Monto facturado hoy</td>
+              <td>Contra el mismo día de la semana pasada</td>
+            </tr>
+            <tr>
+              <td><strong>Cobranza</strong></td>
+              <td>Monto cobrado hoy</td>
+              <td>Contra el mismo día de la semana pasada</td>
+            </tr>
+            <tr>
+              <td><strong>Atenciones</strong></td>
+              <td>Citas atendidas hoy, con el número de personas distintas y de citas agendadas debajo</td>
+              <td>Diferencia en cantidad, no en porcentaje</td>
+            </tr>
+            <tr>
+              <td><strong>Resultado de caja</strong></td>
+              <td>Cobrado menos gastos</td>
+              <td>—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        La comparación es contra <strong>el mismo día de la semana anterior</strong>, no contra
+        ayer. Un lunes se compara con un lunes: la agenda de una clínica depende mucho del día
+        de la semana y comparar contra ayer daría ruido en vez de señal.
+      </p>
+
+      <p>
+        «Hoy» lo define <strong>el servidor</strong>, no tu computadora. Si tenés la fecha del
+        equipo mal, el panel igual muestra el día correcto.
+      </p>
+
+      <div class="try">
+        <h4>Cómo probarlo</h4>
+        <ol>
+          <li>
+            Mirá el subtítulo del encabezado, arriba a la izquierda.
+            <span class="expect">Dice la sucursal activa y la fecha del servidor, por ejemplo «Consolidado · Viernes, 28/08/2026».</span>
+          </li>
+          <li>
+            Compará «Atenciones» con «de N agendados».
+            <span class="expect">Las agendadas incluyen las que no se presentaron y las canceladas, así que siempre son igual o más que las atendidas.</span>
+          </li>
+          <li>
+            Registrá un cobro en Caja y volvé al panel.
+            <span class="expect">La cobranza de hoy sube por ese monto.</span>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- 03 ─────────────────────────────────────────────────── -->
+    <section id="mes">
+      <h2><span class="n">03</span>El mes acumulado</h2>
+      <p class="lede">
+        Las cuatro tarjetas debajo de la banda muestran el mes en curso, del día 1 hasta hoy.
+      </p>
+
+      <p>
+        Cada una trae un porcentaje de variación contra el mes anterior. Ese porcentaje compara
+        <strong>el mismo tramo de días</strong>: si hoy es 20, mide del 1 al 20 de este mes contra
+        del 1 al 20 del mes pasado. Comparar 20 días contra 30 haría que todo pareciera en caída
+        hasta fin de mes.
+      </p>
+
+      <ul>
+        <li><strong>Producción</strong> — con el total del mes anterior como referencia.</li>
+        <li><strong>Cobranza</strong> — con qué porcentaje de lo producido efectivamente entró.</li>
+        <li><strong>Atenciones</strong> — con los pacientes distintos y los nuevos del mes debajo.</li>
+        <li><strong>Gastos del mes</strong> — con la píldora <span class="pill pill-warn">sin datos</span> si no hay ninguno cargado.</li>
+      </ul>
+
+      <div class="note">
+        <h4>Vacío no es cero</h4>
+        <p>
+          Cuando no hay un solo gasto cargado, la tarjeta muestra un guion y la píldora «sin
+          datos», nunca <span class="term">$ 0</span>. Son cosas distintas: «no gastamos nada»
+          y «no cargamos nada» llevan a decisiones opuestas. Lo mismo pasa en la tabla de
+          Evolución, mes por mes.
+        </p>
+      </div>
+
+      <div class="try">
+        <h4>Cómo probarlo</h4>
+        <ol>
+          <li>
+            Cargá un gasto en Caja y volvé al panel.
+            <span class="expect">La tarjeta deja de decir «sin datos» y muestra el monto. El resultado de caja pasa a calcularse.</span>
+          </li>
+          <li>
+            Mirá la nota al pie de la tarjeta de Cobranza.
+            <span class="expect">Dice qué porcentaje de lo producido se cobró; si producción y cobranza son parecidas, ronda el 100%.</span>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- 04 ─────────────────────────────────────────────────── -->
+    <section id="sucursales">
+      <h2><span class="n">04</span>Sucursales y servicios</h2>
+
+      <h3>Sucursales</h3>
+      <p>
+        Una fila por sede activa, con la barra de participación sobre el total: producción,
+        atenciones, pacientes distintos, ticket promedio y cuántas citas no se presentaron.
+        Aparecen todas las sedes, incluso las que no facturaron, para que veas el cero en vez
+        de una sede ausente.
+      </p>
+
+      <div class="note">
+        <h4>Por qué dice <span class="pill pill-warn">estimado</span></h4>
+        <p>
+          Al facturar no se registra en qué sede fue la operación. La sede de cada factura se
+          deduce de la cita del paciente más cercana en el tiempo. El método alcanza al 100% de
+          las facturas con un margen de error de alrededor del 1,2%, que corresponde a los
+          pacientes que se atienden en más de una sede.
+        </p>
+        <p>
+          Las cifras de pacientes y atenciones <em>no</em> son estimadas: salen de la agenda,
+          donde la sede sí queda registrada. Lo estimado es el dinero.
+        </p>
+      </div>
+
+      <h3>Ventas por servicio</h3>
+      <p>
+        Los servicios que más facturaron en el período, con el monto y el porcentaje sobre el
+        total. Es la única tarjeta que venía del panel anterior y se conservó.
+      </p>
+
+      <div class="try">
+        <h4>Cómo probarlo</h4>
+        <ol>
+          <li>
+            Sumá las participaciones de las sedes.
+            <span class="expect">Dan 100%, salvo redondeo.</span>
+          </li>
+          <li>
+            Compará «atenciones» contra «pacientes» en una misma sede.
+            <span class="expect">Las atenciones son siempre iguales o más: alguien que vino dos veces suma dos atenciones y una persona.</span>
+          </li>
+          <li>
+            Filtrá por una sucursal y mirá la tarjeta.
+            <span class="expect">La tarjeta sigue mostrando todas las sedes: es la vista comparativa. Lo que cambia con el filtro son las demás tarjetas.</span>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- 05 ─────────────────────────────────────────────────── -->
+    <section id="serie">
+      <h2><span class="n">05</span>Atenciones por día</h2>
+      <p class="lede">
+        Una barra por período, partida en dos: abajo los pacientes nuevos, arriba los recurrentes.
+      </p>
+
+      <p>
+        La altura total de cada barra es la cantidad de citas atendidas. Como cuenta citas y no
+        personas, <strong>las barras suman exactamente el total del período</strong>: podés
+        sumarlas y va a dar el mismo número que la tarjeta del mes.
+      </p>
+
+      <h3>El gráfico se agrupa solo</h3>
+      <p>
+        Con un rango largo, trescientas barras diarias son ilegibles y el eje repetiría los
+        mismos números de día una vez por mes. Por eso la granularidad se adapta al período:
+      </p>
+
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Período elegido</th><th>Agrupa por</th><th class="num">Barras</th></tr></thead>
+          <tbody>
+            <tr><td>Hasta 62 días</td><td>Día</td><td class="num">hasta 62</td></tr>
+            <tr><td>De 63 a 180 días</td><td>Semana</td><td class="num">hasta 26</td></tr>
+            <tr><td>Más de 180 días</td><td>Mes</td><td class="num">12 o más</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        Cuando agrupa, el título y el promedio lo dicen («Atenciones por semana · promedio
+        260/semana») y aparece una línea aclarando por qué. El período en curso se marca con
+        una línea punteada rosa.
+      </p>
+
+      <div class="note">
+        <h4>Por qué la agrupación se hace en el servidor</h4>
+        <p>
+          Los pacientes distintos de una semana no son la suma de los distintos de cada día.
+          Quien viene lunes y jueves es una persona, no dos. Medido sobre un mes real, sumar
+          los días daba 1.228 personas cuando en realidad eran 969: un 27% inflado. Por eso el
+          cálculo se hace en la base y no juntando barras.
+        </p>
+      </div>
+
+      <div class="try">
+        <h4>Cómo probarlo</h4>
+        <ol>
+          <li>
+            Con el período en «Este mes», sumá las barras.
+            <span class="expect">Da el mismo número que la tarjeta «Atenciones» del mes.</span>
+          </li>
+          <li>
+            Cambiá el período a «Este año».
+            <span class="expect">El título pasa a «Atenciones por mes», el eje muestra ene… dic y aparece la aclaración de por qué agrupó.</span>
+          </li>
+          <li>
+            Pasá el mouse por una barra.
+            <span class="expect">El tooltip muestra el rango completo del período, no solo su fecha de inicio.</span>
+          </li>
+          <li>
+            Buscá la línea punteada rosa.
+            <span class="expect">Marca el día, la semana o el mes en curso según cómo esté agrupado.</span>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- 06 ─────────────────────────────────────────────────── -->
+    <section id="evolucion">
+      <h2><span class="n">06</span>Evolución</h2>
+      <p class="lede">
+        Las seis métricas del panel contra los últimos seis meses, con la variación del último.
+      </p>
+
+      <p>
+        El mes en curso lleva un asterisco y una nota al pie con la fecha hasta la que llega,
+        porque todavía está incompleto. Su variación compara contra el mismo tramo de días del
+        mes anterior, igual que las tarjetas.
+      </p>
+
+      <p>
+        La columna de variación dice contra qué mes está midiendo («Δ vs abr»), así que no hay
+        que adivinarlo. Cuando el mes anterior fue cero, la variación queda en guion en vez de
+        mostrar un porcentaje sin sentido.
+      </p>
+
+      <div class="try">
+        <h4>Cómo probarlo</h4>
+        <ol>
+          <li>
+            Compará la última columna con las tarjetas del mes.
+            <span class="expect">Coinciden: son la misma métrica sobre el mismo rango.</span>
+          </li>
+          <li>
+            Mirá las filas «Atenciones» y «Pacientes atendidos».
+            <span class="expect">Atenciones es siempre igual o mayor. La diferencia son las personas que vinieron más de una vez.</span>
+          </li>
+          <li>
+            Buscá un mes sin gastos cargados.
+            <span class="expect">Muestra un guion, no un cero.</span>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- 07 ─────────────────────────────────────────────────── -->
+    <section id="glosario">
+      <h2><span class="n">07</span>Qué mide cada cifra</h2>
+      <p class="lede">
+        Tres números que se parecen y miden cosas distintas. Este es el punto que más confusión
+        genera, así que conviene tenerlo claro.
+      </p>
+
+      <div class="metrics">
+        <div class="metric">
+          <div class="name">Atenciones</div>
+          <div class="val">1.253</div>
+          <div class="desc">Citas atendidas. Quien vino tres veces cuenta tres. Se puede sumar entre períodos.</div>
+        </div>
+        <div class="metric">
+          <div class="name">Pacientes atendidos</div>
+          <div class="val">969</div>
+          <div class="desc">Personas distintas. Quien vino tres veces cuenta una. No se puede sumar entre períodos.</div>
+        </div>
+        <div class="metric">
+          <div class="name">Pacientes nuevos</div>
+          <div class="val">224</div>
+          <div class="desc">Personas cuya primera cita atendida en la clínica cayó en el período.</div>
+        </div>
+      </div>
+      <p style="font-family: var(--sans); font-size: 13px; color: var(--ink-soft); margin-top: -6px;">
+        Cifras de un mismo mes real, a modo de ejemplo.
+      </p>
+
+      <h3>Qué cuenta como «atendida»</h3>
+      <p>
+        Una cita cuenta si quedó en estado <strong>completada</strong>, <strong>atendida
+        tarde</strong> o <strong>llegó tarde</strong>. No cuentan las agendadas sin atender, las
+        canceladas ni las que no se presentaron. La fecha que manda es la de la cita, no la del
+        momento en que alguien la marcó.
+      </p>
+
+      <h3>Qué cuenta como «nuevo»</h3>
+      <p>
+        Un paciente es nuevo el día de su <strong>primera cita atendida en toda la historia de
+        la clínica</strong>. No se usa la fecha de alta de la ficha porque en esta base no
+        refleja cuándo llegó el paciente: casi todas las fichas se crearon de una vez en una
+        importación masiva, y muchos pacientes tienen la ficha creada después de su primera
+        visita.
+      </p>
+      <p>
+        Con una sucursal filtrada, «nuevo» sigue significando primera visita <em>en la
+        clínica</em>. Alguien que empezó en otra sede y viene por primera vez a esta cuenta como
+        recurrente.
+      </p>
+
+      <div class="try">
+        <h4>Cómo probarlo</h4>
+        <ol>
+          <li>
+            Elegí un mes y compará las tres cifras.
+            <span class="expect">Atenciones ≥ pacientes atendidos ≥ pacientes nuevos, siempre.</span>
+          </li>
+          <li>
+            Marcá una cita como «no asistió» y volvé al panel.
+            <span class="expect">Las atenciones bajan en uno; las agendadas del día no cambian.</span>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- 08 ─────────────────────────────────────────────────── -->
+    <section id="limites">
+      <h2><span class="n">08</span>Lo que todavía no mide</h2>
+      <p class="lede">
+        Tres limitaciones que vienen de cómo se registran los datos, no del panel. Están a la
+        vista en la pantalla para que nadie saque conclusiones de más.
+      </p>
+
+      <h3>La cobranza no se abre por sucursal</h3>
+      <p>
+        Los cobros no registran la sede ni permiten deducirla. Con una sucursal filtrada, la
+        cobranza sigue mostrando el total de la clínica y lo avisa con la etiqueta
+        <span class="pill pill-acc">solo consolidado</span>. Producción y atenciones sí
+        responden al filtro.
+      </p>
+
+      <h3>Los gastos dependen de que se carguen</h3>
+      <p>
+        El panel lee los gastos del módulo de Caja. Mientras no se carguen, la tarjeta y el
+        resultado de caja quedan vacíos con la píldora «sin datos». No es un error: es la
+        diferencia entre no gastar y no registrar.
+      </p>
+
+      <h3>La producción es lo facturado</h3>
+      <p>
+        «Producción» es el monto facturado, con la fecha de la factura. No es la producción
+        clínica por fecha de prestación: el registro clínico no tiene vínculo con la
+        facturación, así que ese corte todavía no se puede calcular.
+      </p>
+    </section>
+
+    <footer>
+      <p>
+        Si un número no te cierra, el camino más corto es esta guía en el orden en que está
+        escrita: primero verificá qué mide exactamente la cifra en la sección 07, después si el
+        bloque depende o no del período en la sección 01.
+      </p>
+      <p>
+        Las cifras que aparecen como ejemplo salen de un mes real del entorno de pruebas y están
+        para ilustrar las relaciones entre métricas, no como valores esperados.
+      </p>
+    </footer>
+  </main>
+</div>
+</body>
+</html>
