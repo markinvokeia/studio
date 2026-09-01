@@ -2825,6 +2825,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                 onRequestCustomCancellation={(appt) => setPendingCancellation(appt)}
                 onBillingSuccess={handleBillingSuccess}
                 hideBillingAction={isDoctorMode}
+                hidePatientActions
                 onEdit={onEditAppointment && !readOnly ? (appt) => { setIsApptPanelOpen(false); onEditAppointment(appt); } : undefined}
             />
             <CancellationNoteDialog

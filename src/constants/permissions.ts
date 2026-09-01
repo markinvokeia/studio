@@ -78,6 +78,8 @@ export const PATIENTS_PERMISSIONS = {
   COPY_ID: 'PATIENTS_COPY_ID',
   // Patient Detail Panel
   VIEW_DETAIL: 'PATIENTS_VIEW_DETAIL',
+  /** Personal/contact data: the "Información" macro tab and the list's email/phone columns. */
+  VIEW_DETAIL_INFO: 'PATIENTS_VIEW_DETAIL_INFO',
   VIEW_DETAIL_HISTORY: 'PATIENTS_VIEW_DETAIL_HISTORY',
   VIEW_DETAIL_APPOINTMENTS: 'PATIENTS_VIEW_DETAIL_APPOINTMENTS',
   VIEW_DETAIL_QUOTES: 'PATIENTS_VIEW_DETAIL_QUOTES',
@@ -102,6 +104,23 @@ export const MEDICAL_HISTORY_PERMISSIONS = {
 } as const;
 
 export type MedicalHistoryPermission = (typeof MEDICAL_HISTORY_PERMISSIONS)[keyof typeof MEDICAL_HISTORY_PERMISSIONS];
+
+// Clinical-history codes that exist in the backend catalog and were previously
+// used as raw string literals. Only the ones consumed by the patients module
+// are declared here.
+export const CLINICAL_HISTORY_PERMISSIONS = {
+  // Anamnesis
+  ANAMNESIS_VIEW: 'ANAMNESIS_VIEW',
+  ANAMNESIS_ADD_PERSONAL: 'ANAMNESIS_ADD_PERSONAL',
+  // Odontogram
+  ODONTOGRAM_VIEW: 'ODONTOGRAM_VIEW',
+  ODONTOGRAM_REGISTER_SESSION: 'ODONTOGRAM_REGISTER_SESSION',
+  // Clinical documents
+  DOCS_VIEW: 'CLINICAL_DOCS_VIEW',
+  DOCS_UPLOAD: 'CLINICAL_DOCS_UPLOAD',
+} as const;
+
+export type ClinicalHistoryPermission = (typeof CLINICAL_HISTORY_PERMISSIONS)[keyof typeof CLINICAL_HISTORY_PERMISSIONS];
 
 export const TIMELINE_PERMISSIONS = {
   VIEW: 'TIMELINE_VIEW',

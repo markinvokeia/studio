@@ -393,6 +393,7 @@ export function PatientAppointmentsHistorySheet() {
       onStatusChange={handlePanelStatusChange}
       onRequestCustomCancellation={(appt) => setPendingCancellation(appt)}
       onBillingSuccess={() => { if (userId) fetchAppointments(userId, userName); }}
+      hidePatientActions
     />
     <CancellationNoteDialog
       open={!!pendingCancellation}

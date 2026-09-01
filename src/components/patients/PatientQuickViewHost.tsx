@@ -9,6 +9,8 @@ import { PatientDetailSheet } from '@/components/appointments/PatientDetailSheet
 import { PatientInfoTab } from '@/components/patients/patient-info-tab';
 
 import { usePatientView } from '@/stores/patient-view-store';
+import { usePermissions } from '@/hooks/usePermissions';
+import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
 
 /**
  * Global host that renders the patient detail sheet driven by usePatientView,
@@ -19,6 +21,7 @@ import { usePatientView } from '@/stores/patient-view-store';
 export function PatientQuickViewHost() {
   const { isOpen, userId, userName, userEmail, userPhone, initialTab, infoOnly, showCancelAction, close } = usePatientView();
   const t = useTranslations('AppointmentsPage');
+  const { hasPermission } = usePermissions();
   const [isPatientFormDirty, setIsPatientFormDirty] = React.useState(false);
 
   React.useEffect(() => {
@@ -26,6 +29,10 @@ export function PatientQuickViewHost() {
   }, [isOpen, userId]);
 
   if (!userId) return null;
+
+  // The info-only dialog is nothing but the patient's personal data, so it is
+  // governed by the same permission as the sheet's "Información" tab.
+  if (infoOnly && !hasPermission(PATIENTS_PERMISSIONS.VIEW_DETAIL_INFO)) return null;
 
   if (infoOnly) {
     return (

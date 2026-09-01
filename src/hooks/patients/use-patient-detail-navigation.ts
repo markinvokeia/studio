@@ -11,19 +11,21 @@ import type {
 interface UsePatientDetailNavigationOptions {
   deepLinkView?: string
   selectedUserId?: string
+  /** First macro tab to land on. Callers without access to "info" pass 'clinical'. */
+  defaultTab?: PatientMacroTab
 }
 
-export function usePatientDetailNavigation({ deepLinkView, selectedUserId }: UsePatientDetailNavigationOptions) {
-  const [activeTab, setActiveTab] = React.useState<PatientMacroTab>('info')
+export function usePatientDetailNavigation({ deepLinkView, selectedUserId, defaultTab = 'info' }: UsePatientDetailNavigationOptions) {
+  const [activeTab, setActiveTab] = React.useState<PatientMacroTab>(defaultTab)
   const [activeInfoSubTab, setActiveInfoSubTab] = React.useState<InfoSubTab>('details')
   const [activeClinicalSubTab, setActiveClinicalSubTab] = React.useState<ClinicalSubTab>('clinical-history')
 
   React.useEffect(() => {
     if (!selectedUserId) return
-    setActiveTab('info')
+    setActiveTab(defaultTab)
     setActiveInfoSubTab('details')
     setActiveClinicalSubTab('clinical-history')
-  }, [selectedUserId])
+  }, [selectedUserId, defaultTab])
 
   React.useEffect(() => {
     if (deepLinkView === 'anamnesis') {

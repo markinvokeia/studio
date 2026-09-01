@@ -4766,6 +4766,7 @@
     }
   },
   "ClinicHistoryPage": {
+    "upload": "Upload",
     "MedicalHistory": {
       "noHistory": "No medical history available",
       "viewFullHistory": "View Full History",
@@ -5086,11 +5087,7 @@
         },
         "searchAilment": "Search Ailment",
         "noAilmentFound": "No ailment found",
-        "createAilment": "Create \"{name}\"",
-        "common": {
-          "delete": "Delete",
-          "confirmDelete": "Are you sure you want to delete this item? This action cannot be undone."
-        }
+        "createAilment": "Create \"{name}\""
       },
       "createNew": "Create New",
       "refresh": "Refresh",
@@ -5128,6 +5125,10 @@
         "allergies": "No allergies available",
         "dateFrom": "From",
         "dateTo": "To"
+      },
+      "common": {
+        "delete": "Delete",
+        "confirmDelete": "Are you sure you want to delete this item? This action cannot be undone."
       }
     },
     "habits": {

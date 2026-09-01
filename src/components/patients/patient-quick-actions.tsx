@@ -33,7 +33,7 @@ import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
-import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
+import { BUSINESS_CONFIG_PERMISSIONS, PATIENTS_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
 import type { Calendar as CalendarType, PatientDischarge, User } from '@/lib/types';
 
 interface PatientQuickActionsProps {
@@ -56,8 +56,18 @@ export function PatientQuickActions({ userId, userName, userEmail, userPhone, on
   const t = useTranslations();
   const { toast } = useToast();
   const { open: openBillingWizard } = useBillingWizard();
-  const { hasPermission } = usePermissions();
+  const { hasPermission, hasAnyPermission } = usePermissions();
   const canSendWhatsAppTemplate = hasPermission(PATIENTS_PERMISSIONS.SEND_WHATSAPP_TEMPLATE);
+
+  // These actions were previously unconditional. Gate them so a clinical-only
+  // role (médico) never gets billing/agenda/status actions from the quick view.
+  const canQuickBill = hasAnyPermission([SALES_PERMISSIONS.INVOICES_CREATE, SALES_PERMISSIONS.PAYMENTS_CREATE]);
+  const canCreateQuote = hasPermission(SALES_PERMISSIONS.QUOTES_CREATE);
+  const canCreateInvoice = hasPermission(SALES_PERMISSIONS.INVOICES_CREATE);
+  const canCreatePrepaid = hasPermission(SALES_PERMISSIONS.PREPAYMENTS_CREATE);
+  const canCreateAppointment = hasPermission(BUSINESS_CONFIG_PERMISSIONS.APPOINTMENT_CREATE);
+  const canUpdatePatient = hasPermission(PATIENTS_PERMISSIONS.UPDATE);
+  const canViewInfo = hasPermission(PATIENTS_PERMISSIONS.VIEW_DETAIL_INFO);
 
   const [patient, setPatient] = React.useState<User | null>(null);
   const [currentDischarge, setCurrentDischarge] = React.useState<PatientDischarge | null>(null);
@@ -167,17 +177,17 @@ export function PatientQuickActions({ userId, userName, userEmail, userPhone, on
         onCreateClinicalSession={onCreateClinicalSession}
         onCreateOdontogram={onCreateOdontogram}
         onCreateDocument={onCreateDocument}
-        onQuickBill={() => openBillingWizard({ patientId: userId, patientName: userName })}
-        onCreateQuote={() => setIsQuoteOpen(true)}
-        onCreateInvoice={() => setIsInvoiceOpen(true)}
-        onCreatePrepaid={() => setIsPrepaidOpen(true)}
-        onCreateAppointment={openAppointment}
+        onQuickBill={canQuickBill ? () => openBillingWizard({ patientId: userId, patientName: userName }) : undefined}
+        onCreateQuote={canCreateQuote ? () => setIsQuoteOpen(true) : undefined}
+        onCreateInvoice={canCreateInvoice ? () => setIsInvoiceOpen(true) : undefined}
+        onCreatePrepaid={canCreatePrepaid ? () => setIsPrepaidOpen(true) : undefined}
+        onCreateAppointment={canCreateAppointment ? openAppointment : undefined}
         onEmail={() => setIsEmailOpen(true)}
         onWhatsApp={() => setIsWhatsAppOpen(true)}
         onSendWhatsAppTemplate={canSendWhatsAppTemplate ? () => setIsWhatsAppTemplateOpen(true) : undefined}
-        onToggleDischarge={currentDischarge ? handleCancelDischarge : () => setIsDischargeOpen(true)}
+        onToggleDischarge={canUpdatePatient ? (currentDischarge ? handleCancelDischarge : () => setIsDischargeOpen(true)) : undefined}
         onToggleActivate={handleToggleActivate}
-        onPreferences={() => setIsPreferencesOpen(true)}
+        onPreferences={canViewInfo && canUpdatePatient ? () => setIsPreferencesOpen(true) : undefined}
       />
 
       {/* Dialogs */}

@@ -23,6 +23,10 @@ interface PatientDetailMainContentProps {
   showDocuments: boolean
   showNotes: boolean
   showPreferences: boolean
+  /** Macro-tab visibility, permission-driven by the caller. */
+  showInfo: boolean
+  showClinical: boolean
+  showFinancial: boolean
   infoContent: React.ReactNode
   notesContent: React.ReactNode
   preferencesContent: React.ReactNode
@@ -44,6 +48,9 @@ export function PatientDetailMainContent({
   showDocuments,
   showNotes,
   showPreferences,
+  showInfo,
+  showClinical,
+  showFinancial,
   infoContent,
   notesContent,
   preferencesContent,
@@ -57,10 +64,10 @@ export function PatientDetailMainContent({
   const t = useTranslations('UsersPage')
 
   const macroTabs = React.useMemo<VerticalTab[]>(() => [
-    { id: 'info', icon: Users, label: t('tabs.info') },
-    { id: 'clinical', icon: Stethoscope, label: t('tabs.clinical'), shortLabel: 'Clínica' },
-    { id: 'financial', icon: CreditCard, label: t('tabs.financial'), shortLabel: 'Finanzas' },
-  ], [t])
+    ...(showInfo ? [{ id: 'info', icon: Users, label: t('tabs.info') }] : []),
+    ...(showClinical ? [{ id: 'clinical', icon: Stethoscope, label: t('tabs.clinical'), shortLabel: 'Clínica' }] : []),
+    ...(showFinancial ? [{ id: 'financial', icon: CreditCard, label: t('tabs.financial'), shortLabel: 'Finanzas' }] : []),
+  ], [showInfo, showClinical, showFinancial, t])
 
   const infoTabs = React.useMemo(() => [
     { id: 'details', label: t('tabs.details') },
@@ -91,7 +98,7 @@ export function PatientDetailMainContent({
           activeTab === 'info' && activeInfoSubTab === 'details' && 'pb-0 sm:pb-0',
         )}
       >
-        {activeTab === 'info' && (
+        {activeTab === 'info' && showInfo && (
           // "details" hosts a full-height form with its own scroll + fixed save
           // footer, so it needs the full container height instead of flowing in
           // the outer scroll.
@@ -107,7 +114,7 @@ export function PatientDetailMainContent({
           </div>
         )}
 
-        {activeTab === 'clinical' && (
+        {activeTab === 'clinical' && showClinical && (
           <>
             <PatientSubTabNav
               tabs={clinicalTabs}
@@ -122,7 +129,7 @@ export function PatientDetailMainContent({
           </>
         )}
 
-        {activeTab === 'financial' && ledgerContent}
+        {activeTab === 'financial' && showFinancial && ledgerContent}
       </div>
     </div>
   )
