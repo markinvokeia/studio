@@ -21,6 +21,9 @@ import type {
   ReportBalanceMensualPendienteRow,
   ReportBalanceMensualProducidoRow,
   ReportBalanceMensualResponse,
+  ReportBalanceMensualResumen,
+  ReportBalanceMensualResumenDoctorRow,
+  ReportBalanceMensualResumenGrupoRow,
 } from '@/lib/types';
 import { fmtMultiCurrency } from '@/lib/utils';
 import type { DoctorOption } from '@/services/doctors';
@@ -41,6 +44,7 @@ const fmtFecha = (fecha: string) => {
 };
 
 type DocType = 'all' | 'producido' | 'cobrado' | 'pendiente';
+type TabValue = 'resumen' | Exclude<DocType, 'all'>;
 
 type DayRow = { fecha: string; currency: string; importe: number };
 type DayGroup<T> = { fecha: string; rows: T[]; subtotal: Record<string, number> };
@@ -91,6 +95,69 @@ function totalByCurrency(rows: DayRow[]): Record<string, number> {
   }, {});
 }
 
+// Suma { currency, total }[] por moneda
+function sumByCurrency(rows: { currency: string; total: number }[]): Record<string, number> {
+  return rows.reduce<Record<string, number>>((acc, r) => {
+    acc[r.currency] = (acc[r.currency] || 0) + Number(r.total || 0);
+    return acc;
+  }, {});
+}
+
+// Reconstruye el bloque `resumen` a partir del detalle cuando el workflow aún
+// no lo devuelve. Misma lógica que el Code node: producido por médico, cobrado
+// total y cobrado/producido por grupo del servicio con "atribución completa"
+// (una línea que toca varios grupos suma a cada uno; sin grupo → fallbackLabel).
+function buildResumenFallback(
+  producido: ReportBalanceMensualProducidoRow[],
+  cobrado: ReportBalanceMensualCobradoRow[],
+  fallbackLabel: string,
+): ReportBalanceMensualResumen {
+  const prodDoc = new Map<string, ReportBalanceMensualResumenDoctorRow>();
+  for (const r of producido) {
+    const k = `${r.doctor_id || 'null'}|${r.currency}`;
+    const b = prodDoc.get(k) ?? { doctor_id: r.doctor_id || null, doctor_name: r.doctor_name, currency: r.currency, total: 0 };
+    b.total += Number(r.importe || 0);
+    prodDoc.set(k, b);
+  }
+
+  const cobTot = new Map<string, { currency: string; total: number }>();
+  for (const r of cobrado) {
+    const b = cobTot.get(r.currency) ?? { currency: r.currency, total: 0 };
+    b.total += Number(r.importe || 0);
+    cobTot.set(r.currency, b);
+  }
+
+  const byGroup = (
+    rows: { currency: string; importe: number; patient_groups?: { id: string; name: string }[] }[],
+  ): ReportBalanceMensualResumenGrupoRow[] => {
+    const m = new Map<string, ReportBalanceMensualResumenGrupoRow>();
+    for (const r of rows) {
+      const gs = r.patient_groups && r.patient_groups.length > 0
+        ? r.patient_groups.map((g) => ({ id: g.id as string | null, name: g.name }))
+        : [{ id: null as string | null, name: fallbackLabel }];
+      for (const g of gs) {
+        const k = `${g.id || 'null'}|${r.currency}`;
+        const b = m.get(k) ?? { group_id: g.id, group_name: g.name, currency: r.currency, total: 0 };
+        b.total += Number(r.importe || 0);
+        m.set(k, b);
+      }
+    }
+    return [...m.values()];
+  };
+
+  const sortDoc = (a: ReportBalanceMensualResumenDoctorRow, b: ReportBalanceMensualResumenDoctorRow) =>
+    a.doctor_name.localeCompare(b.doctor_name) || a.currency.localeCompare(b.currency);
+  const sortGrp = (a: ReportBalanceMensualResumenGrupoRow, b: ReportBalanceMensualResumenGrupoRow) =>
+    a.group_name.localeCompare(b.group_name) || a.currency.localeCompare(b.currency);
+
+  return {
+    producido_por_doctor: [...prodDoc.values()].sort(sortDoc),
+    cobrado_total: [...cobTot.values()].sort((a, b) => a.currency.localeCompare(b.currency)),
+    cobrado_por_grupo: byGroup(cobrado).sort(sortGrp),
+    producido_por_grupo: byGroup(producido).sort(sortGrp),
+  };
+}
+
 // Saldo pendiente puede ser negativo (crédito a favor si se cobró de más), así que
 // cada moneda se colorea según su propio signo en vez de un único color por tarjeta
 function renderPendienteValue(amounts: Record<string, number>): ReactNode {
@@ -123,10 +190,9 @@ export default function BalanceMensualPage() {
   const [selectedSedes, setSelectedSedes] = useState<SedeOption[]>([]);
   const sedeIds = selectedSedes.map((s) => s.id);
   const [docType, setDocType] = useState<DocType>('all');
-  // Sub-tab used only to organize the on-screen blocks when the doc-type
-  // filter is "all" — the filter itself still governs which data is shown
-  // for a specific type; this just avoids stacking all 3 blocks at once
-  const [activeBlock, setActiveBlock] = useState<Exclude<DocType, 'all'>>('producido');
+  // Active tab. "resumen" is always available; the detail tabs depend on the
+  // doc-type filter ("all" → the 3 blocks; a specific type → only that one).
+  const [activeTab, setActiveTab] = useState<TabValue>('resumen');
 
   const [data, setData] = useState<ReportBalanceMensualResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -154,11 +220,20 @@ export default function BalanceMensualPage() {
   const showCobrado = docType === 'all' || docType === 'cobrado';
   const showPendiente = docType === 'all' || docType === 'pendiente';
 
-  // On-screen block visibility: when the filter is a specific type, mirrors it;
-  // when "Todos", the active sub-tab decides which single block is displayed
-  const blockProducido = docType === 'all' ? activeBlock === 'producido' : showProducido;
-  const blockCobrado = docType === 'all' ? activeBlock === 'cobrado' : showCobrado;
-  const blockPendiente = docType === 'all' ? activeBlock === 'pendiente' : showPendiente;
+  // Tabs shown next to "Resumen": all 3 detail blocks when the filter is
+  // "Todos", otherwise just the selected type
+  const detailTabs: Exclude<DocType, 'all'>[] =
+    docType === 'all' ? ['producido', 'cobrado', 'pendiente'] : [docType];
+  // Keep the selection valid when the doc-type filter changes under it
+  const effectiveTab: TabValue =
+    activeTab === 'resumen' || detailTabs.includes(activeTab as Exclude<DocType, 'all'>)
+      ? activeTab
+      : detailTabs[0];
+
+  const blockResumen = effectiveTab === 'resumen';
+  const blockProducido = effectiveTab === 'producido';
+  const blockCobrado = effectiveTab === 'cobrado';
+  const blockPendiente = effectiveTab === 'pendiente';
 
   const producido = data?.producido ?? [];
   const cobrado = data?.cobrado ?? [];
@@ -289,14 +364,22 @@ export default function BalanceMensualPage() {
     : [];
   const showPerDoctorPrint = doctorNames.length > 1;
 
-  // ── Export: one sheet per doctor within each document-type group — unless a
-  // patient-group filter is active, in which case sheets are organized by
-  // patient group instead (a patient in several selected groups is duplicated
-  // into each group's sheet). Excel gets one .xlsx workbook per type
-  // (Producido.xlsx, Cobrado.xlsx, ...), each with a sheet per doctor/group;
-  // CSV flattens to one file per (tipo, médico/grupo) combo ─────────────────
+  // ── Export: "Resumen" siempre va como archivo aparte y primero (Resumen.xlsx
+  // / Resumen.csv). Producido/Cobrado/Pendiente van cada uno en su propio
+  // archivo, con una hoja (Excel) o un archivo (CSV) por médico — salvo que
+  // haya filtro de grupo activo, en cuyo caso se organiza por grupo de paciente
+  // (un paciente en varios grupos se duplica en cada uno). Todo se empaqueta en
+  // un .zip cuando hay más de un archivo ──────────────────────────────────────
   const isGroupFiltered = groupIds.length > 0;
   const noGroupLabel = t('no_group');
+
+  // Resumen: precalculado por el workflow; si falta (workflow no desplegado)
+  // se reconstruye del detalle
+  const resumen: ReportBalanceMensualResumen =
+    data?.resumen ?? buildResumenFallback(producido, cobrado, noGroupLabel);
+  const resumenProdByCurrency = sumByCurrency(resumen.producido_por_doctor);
+  const resumenCobByCurrency = sumByCurrency(resumen.cobrado_total);
+  const resumenGrpByCurrency = sumByCurrency(resumen.cobrado_por_grupo);
 
   const producidoSheets = showProducido
     ? isGroupFiltered
@@ -334,16 +417,67 @@ export default function BalanceMensualPage() {
   const withTypePrefix = (typeLabel: string, sheets: { name: string; sections: ExportSection[] }[]) =>
     sheets.map((s) => ({ ...s, name: `${typeLabel}_${s.name.replace(/\s+/g, '_')}` }));
 
+  // Redondeo a 2 decimales para las celdas numéricas del Resumen
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+  // Fila(s) "Total general" por moneda para las tablas [label, moneda, total]
+  const curTotalsRows = (totals: Record<string, number>) =>
+    Object.entries(totals)
+      .filter(([, v]) => v !== 0)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([cur, val]) => ({ k1: t('total_general'), k2: cur, k3: round2(val) }));
+
+  const resumenExportSections: ExportSection[] = [
+    {
+      title: t('resumen_producido_doctor'),
+      columns: [
+        { header: t('col_medico'), key: 'k1' },
+        { header: t('col_moneda'), key: 'k2' },
+        { header: t('col_total'), key: 'k3' },
+      ],
+      rows: [
+        ...resumen.producido_por_doctor.map((r) => ({ k1: r.doctor_name, k2: r.currency, k3: round2(r.total) })),
+        ...curTotalsRows(resumenProdByCurrency),
+      ],
+    },
+    {
+      title: t('resumen_pago_total'),
+      columns: [
+        { header: t('col_moneda'), key: 'k1' },
+        { header: t('col_total'), key: 'k2' },
+      ],
+      rows: resumen.cobrado_total.map((r) => ({ k1: r.currency, k2: round2(r.total) })),
+    },
+    {
+      title: t('resumen_pago_grupo'),
+      columns: [
+        { header: t('col_grupo'), key: 'k1' },
+        { header: t('col_moneda'), key: 'k2' },
+        { header: t('col_total'), key: 'k3' },
+      ],
+      rows: [
+        ...resumen.cobrado_por_grupo.map((r) => ({ k1: r.group_name, k2: r.currency, k3: round2(r.total) })),
+        ...curTotalsRows(resumenGrpByCurrency),
+      ],
+    },
+  ];
+
+  // CSV: un archivo por (tipo, médico/grupo) + un Resumen.csv aparte, todo en
+  // un .zip. El orden del array manda, así que Resumen va primero.
   const exportSheets = data
     ? [
+        { name: t('tab_resumen'), sections: resumenExportSections },
         ...withTypePrefix(t('doc_type_producido'), producidoSheets),
         ...withTypePrefix(t('doc_type_cobrado'), cobradoSheets),
         ...withTypePrefix(t('doc_type_pendiente'), pendienteSheets),
       ]
     : undefined;
 
+  // Excel: un .xlsx separado por tipo (Producido/Cobrado/Pendiente), cada uno
+  // con una hoja por médico/grupo, + un Resumen.xlsx aparte. Se empaquetan en
+  // un .zip cuando hay más de uno.
   const exportWorkbooks = data
     ? [
+        { name: t('tab_resumen'), sheets: [{ name: t('tab_resumen'), sections: resumenExportSections }] },
         ...(producidoSheets.length ? [{ name: t('doc_type_producido'), sheets: producidoSheets }] : []),
         ...(cobradoSheets.length ? [{ name: t('doc_type_cobrado'), sheets: cobradoSheets }] : []),
         ...(pendienteSheets.length ? [{ name: t('doc_type_pendiente'), sheets: pendienteSheets }] : []),
@@ -483,21 +617,43 @@ export default function BalanceMensualPage() {
     >
       {data && (
         <>
-          {docType === 'all' && (
-            <Tabs value={activeBlock} onValueChange={(v) => setActiveBlock(v as Exclude<DocType, 'all'>)} className="print:hidden">
-              <TabsList>
-                <TabsTrigger value="producido">{t('doc_type_producido')}</TabsTrigger>
-                <TabsTrigger value="cobrado">{t('doc_type_cobrado')}</TabsTrigger>
-                <TabsTrigger value="pendiente">{t('doc_type_pendiente')}</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          )}
+          <Tabs value={effectiveTab} onValueChange={(v) => setActiveTab(v as TabValue)} className="print:hidden">
+            <TabsList>
+              <TabsTrigger value="resumen">{t('tab_resumen')}</TabsTrigger>
+              {detailTabs.map((tab) => (
+                <TabsTrigger key={tab} value={tab}>{t(`doc_type_${tab}`)}</TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
 
           <div className="flex flex-wrap gap-3 print:grid print:grid-cols-3 print:gap-3">
             {showProducido && <ReportKPICard title={t('kpi_producido')} value={fmtMultiCurrency(producidoByCurrency)} />}
             {showCobrado && <ReportKPICard title={t('kpi_cobrado')} value={fmtMultiCurrency(cobradoByCurrency)} variant="success" />}
             {showPendiente && <ReportKPICard title={t('kpi_pendiente')} value={renderPendienteValue(pendienteByCurrency)} />}
           </div>
+
+          {/* Pestaña Resumen — producido por doctor, pago total de pacientes y
+              pago por grupo. Se imprime siempre que esté activa. */}
+          {blockResumen && (
+            <ResumenBlock
+              resumen={resumen}
+              prodByCurrency={resumenProdByCurrency}
+              cobByCurrency={resumenCobByCurrency}
+              grpByCurrency={resumenGrpByCurrency}
+              labels={{
+                producido_doctor: t('resumen_producido_doctor'),
+                pago_total: t('resumen_pago_total'),
+                pago_grupo: t('resumen_pago_grupo'),
+                nota_grupos: t('resumen_nota_grupos'),
+                total_general: t('total_general'),
+                col_medico: t('col_medico'),
+                col_grupo: t('col_grupo'),
+                col_moneda: t('col_moneda'),
+                col_total: t('col_total'),
+                empty: t('empty_block'),
+              }}
+            />
+          )}
 
           {/* Combined view (all doctors mixed together) — used on screen always,
               and for print only when a single doctor is in scope */}
@@ -639,6 +795,136 @@ export default function BalanceMensualPage() {
         </>
       )}
     </ReportShell>
+  );
+}
+
+// ── Pestaña Resumen ───────────────────────────────────────────────────────
+interface ResumenLabels {
+  producido_doctor: string;
+  pago_total: string;
+  pago_grupo: string;
+  nota_grupos: string;
+  total_general: string;
+  col_medico: string;
+  col_grupo: string;
+  col_moneda: string;
+  col_total: string;
+  empty: string;
+}
+
+function ResumenBlock({
+  resumen,
+  prodByCurrency,
+  cobByCurrency,
+  grpByCurrency,
+  labels,
+}: {
+  resumen: ReportBalanceMensualResumen;
+  prodByCurrency: Record<string, number>;
+  cobByCurrency: Record<string, number>;
+  grpByCurrency: Record<string, number>;
+  labels: ResumenLabels;
+}) {
+  return (
+    <div className="flex flex-col gap-4">
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium">{labels.producido_doctor}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SimpleTotalsTable
+            head={[labels.col_medico, labels.col_moneda, labels.col_total]}
+            rows={resumen.producido_por_doctor.map((r) => [r.doctor_name, r.currency, fmt(Number(r.total))])}
+            totalLabel={labels.total_general}
+            totals={prodByCurrency}
+            emptyLabel={labels.empty}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium">{labels.pago_total}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-2xl font-semibold tabular-nums text-emerald-600 dark:text-emerald-400 print:text-xl">
+            {fmtMultiCurrency(cobByCurrency)}
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium">{labels.pago_grupo}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <SimpleTotalsTable
+            head={[labels.col_grupo, labels.col_moneda, labels.col_total]}
+            rows={resumen.cobrado_por_grupo.map((r) => [r.group_name, r.currency, fmt(Number(r.total))])}
+            totalLabel={labels.total_general}
+            totals={grpByCurrency}
+            emptyLabel={labels.empty}
+          />
+          <p className="text-xs text-muted-foreground">{labels.nota_grupos}</p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Tabla simple [texto…, importe] con una fila final de total multi-moneda
+function SimpleTotalsTable({
+  head,
+  rows,
+  totalLabel,
+  totals,
+  emptyLabel,
+}: {
+  head: string[];
+  rows: (string | number)[][];
+  totalLabel: string;
+  totals: Record<string, number>;
+  emptyLabel: string;
+}) {
+  return (
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {head.map((h, i) => (
+              <TableHead key={h} className={i === head.length - 1 ? 'text-right' : undefined}>
+                {h}
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={head.length} className="py-6 text-center text-sm text-muted-foreground">
+                {emptyLabel}
+              </TableCell>
+            </TableRow>
+          ) : (
+            rows.map((r, ri) => (
+              <TableRow key={ri}>
+                {r.map((c, ci) => (
+                  <TableCell key={ci} className={ci === r.length - 1 ? 'text-right tabular-nums' : undefined}>
+                    {c}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))
+          )}
+          <TableRow className="border-t-2 font-semibold">
+            <TableCell colSpan={Math.max(1, head.length - 1)} className="text-right">
+              {totalLabel}
+            </TableCell>
+            <TableCell className="text-right tabular-nums">{fmtMultiCurrency(totals)}</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+    </div>
   );
 }
 

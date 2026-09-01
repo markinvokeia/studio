@@ -7849,7 +7849,15 @@
     "col_detalle": "Detalle",
     "col_facturado": "Facturado",
     "col_cobrado": "Cobrado",
-    "col_saldo": "Saldo"
+    "col_saldo": "Saldo",
+    "col_total": "Total",
+    "col_grupo": "Grupo",
+    "total_general": "Total general",
+    "tab_resumen": "Resumen",
+    "resumen_producido_doctor": "Producido total por doctor",
+    "resumen_pago_total": "Pago total de pacientes",
+    "resumen_pago_grupo": "Pago de pacientes por grupo",
+    "resumen_nota_grupos": "Los grupos se derivan del servicio facturado. Un servicio que pertenece a varios grupos suma su importe en cada uno, por lo que la suma de los grupos puede superar el total; lo que no pertenece a ningún grupo aparece como \"Sin grupo\"."
   },
   "ReportDeudoresPage": {
     "title": "Deudores",

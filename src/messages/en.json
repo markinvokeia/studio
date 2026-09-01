@@ -7869,7 +7869,15 @@
     "col_detalle": "Detail",
     "col_facturado": "Invoiced",
     "col_cobrado": "Collected",
-    "col_saldo": "Balance"
+    "col_saldo": "Balance",
+    "col_total": "Total",
+    "col_grupo": "Group",
+    "total_general": "Grand total",
+    "tab_resumen": "Summary",
+    "resumen_producido_doctor": "Total produced by doctor",
+    "resumen_pago_total": "Total patient payments",
+    "resumen_pago_grupo": "Patient payments by group",
+    "resumen_nota_grupos": "Groups are derived from the invoiced service. A service that belongs to several groups adds its amount to each one, so the sum of the groups may exceed the total; anything not belonging to a group is shown as \"Sin grupo\"."
   },
   "ReportDeudoresPage": {
     "title": "Debtors",
