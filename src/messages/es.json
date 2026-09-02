@@ -6620,6 +6620,18 @@
       "remove": "Quitar del grupo",
       "removed": "Servicio quitado del grupo",
       "removeError": "No se pudo quitar el servicio"
+    },
+    "export": {
+      "button": "Exportar a Excel",
+      "allButton": "Exportar todos",
+      "allFileName": "Grupos de pacientes",
+      "col_name": "Nombre",
+      "col_phone": "Teléfono",
+      "progress": "Exportando {done}/{total}...",
+      "successSingle": "Excel exportado ({count} pacientes)",
+      "successAll": "Excel exportado ({groups} grupos, {count} pacientes)",
+      "empty": "No hay grupos para exportar",
+      "error": "No se pudo exportar a Excel"
     }
   },
   "ProviderGroupsPage": {

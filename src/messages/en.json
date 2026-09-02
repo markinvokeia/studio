@@ -6641,6 +6641,18 @@
       "remove": "Remove from group",
       "removed": "Service removed from group",
       "removeError": "Could not remove service"
+    },
+    "export": {
+      "button": "Export to Excel",
+      "allButton": "Export all",
+      "allFileName": "Patient groups",
+      "col_name": "Name",
+      "col_phone": "Phone",
+      "progress": "Exporting {done}/{total}...",
+      "successSingle": "Excel exported ({count} patients)",
+      "successAll": "Excel exported ({groups} groups, {count} patients)",
+      "empty": "There are no groups to export",
+      "error": "Could not export to Excel"
     }
   },
   "ProviderGroupsPage": {
