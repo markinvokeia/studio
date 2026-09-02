@@ -1,0 +1,1370 @@
+{
+  "name": "Alert WhatsApp Auto-Send",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Alert WhatsApp Auto-Send\n\nSub-workflow invocado por **Alert Scheduler** (`Send Alert WhatsApp` node) cuando una `alert_rules` con `auto_send_sms = true` y `whatsapp_template_id` no nulo genera una nueva `alert_instances`.\n\nReutiliza el mismo motor de envío que `Whats App.json` (`POST /patients/send_whatsapp_template`): resuelve el template por `entity_type`, valida contra YCloud, envía named-parameters y registra `alert_actions`.\n\n**En envío exitoso** registra un `alert_actions` `SEND_WHATSAPP` / `SUCCESS` y marca la `alert_instances` como `COMPLETED` (`completed_at` = now, `completed_by` = actor), de modo que desaparece del panel de alertas del usuario (el frontend sólo consulta `status = 'PENDING'`). El UPDATE lleva `AND status = 'PENDING'` para no pisar una alerta que el staff ya haya accionado.\n\n**Actor (`performed_by` / `completed_by`)**: es una acción del sistema, no de un usuario, así que se inserta `NULL` (se guarda el uuid solo si el scheduler llega a pasar `performed_by`). Requiere que `alert_actions.performed_by` sea NULLABLE — ver migración del backend `2026xx_alert_actions_performed_by_nullable`. `alert_instances.completed_by` ya es nullable.\n\n**Si algo falla** (paciente sin teléfono, template no aprobado, cita/factura no encontrada, `entity_type` no soportado, YCloud rechaza, etc.) **no lanza error** — registra un `alert_actions` con `result_status = 'FAILED'`, **deja la instancia en `PENDING`** (para que el staff la resuelva a mano) y devuelve `{ success: false }`, para no interrumpir el loop del scheduler.\n\n**Inputs**: `alert_instance_id`, `rule_id`, `patient_id`, `reference_table`, `reference_id`, `whatsapp_template_id` (FK numérico a `communication_templates.id`), `performed_by` (uuid del actor; opcional — si no viene, el workflow hace fallback al usuario `__system__` / `system@invokeia.com`).\n\n**Import checklist**: después de importar este workflow en n8n, copiar su `workflowId` real al node `Send Alert WhatsApp` de `Alert Scheduler`.",
+        "height": 900,
+        "width": 620,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2064,
+        -512
+      ],
+      "id": "8af5596b-8e11-4dae-bb96-57b42ed3bce8",
+      "name": "Flow Documentation"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "alert_instance_id"
+            },
+            {
+              "name": "rule_id"
+            },
+            {
+              "name": "patient_id"
+            },
+            {
+              "name": "reference_table"
+            },
+            {
+              "name": "reference_id"
+            },
+            {
+              "name": "whatsapp_template_id"
+            },
+            {
+              "name": "performed_by"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1376,
+        -128
+      ],
+      "id": "58cd7595-bc29-4d31-bb0e-a4cb2b380968",
+      "name": "When Called by Alert Scheduler"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT code, provider_language, entity_type, variables_schema\nFROM communication_templates\nWHERE id = $1::bigint\n  AND type = 'WHATSAPP'\n  AND is_active = true\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ [ $json.whatsapp_template_id ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -1136,
+        -128
+      ],
+      "id": "d34d26be-c571-4412-bd1e-00dc60f8543c",
+      "name": "Get Template Config",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "awa-tpl-found-c1",
+              "leftValue": "={{ $json.code }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -896,
+        -128
+      ],
+      "id": "4f95422f-5106-4b24-a05e-b423644b89f3",
+      "name": "Template Config Found?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id::text AS id, name, phone_number, email\nFROM users\nWHERE id = $1::uuid\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ [ $('When Called by Alert Scheduler').first().json.patient_id ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -656,
+        -240
+      ],
+      "id": "73c600ab-0f39-41af-916d-1033c5366057",
+      "name": "Get Patient",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "awa-patient-found-c1",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -416,
+        -240
+      ],
+      "id": "93f4addc-3aa4-42b3-80f3-f21ee710e38c",
+      "name": "Patient Found?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM public.clinic\nLIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -176,
+        -336
+      ],
+      "id": "387020c9-0b73-4f16-b401-d8149624639a",
+      "name": "Get Clinic Info",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "awa-switch-patient",
+                    "leftValue": "={{ $('Get Template Config').item.json.entity_type }}",
+                    "rightValue": "patient",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "patient"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "awa-switch-appointment",
+                    "leftValue": "={{ $('Get Template Config').item.json.entity_type }}",
+                    "rightValue": "appointment",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "appointment"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "awa-switch-invoice",
+                    "leftValue": "={{ $('Get Template Config').item.json.entity_type }}",
+                    "rightValue": "invoice",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "invoice"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        80,
+        -352
+      ],
+      "id": "f0696565-ac3e-42d6-b019-1eebac3093ae",
+      "name": "Route By Entity Type"
+    },
+    {
+      "parameters": {
+        "jsCode": "const patient = $('Get Patient').first().json;\nconst clinic = $('Get Clinic Info').first().json;\nconst input = $('When Called by Alert Scheduler').first().json;\nconst clinicName = clinic.name || clinic.clinic_name || clinic.nombre || '';\nconst phone = '+' + String(patient.phone_number || '').replace(/\\D/g, '');\n\nreturn [{\n  json: {\n    phone,\n    alert_instance_id: input.alert_instance_id || null,\n    performed_by: input.performed_by || null,\n    fields: {\n      'patient.name': patient.name || '',\n      'clinic.name': clinicName\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        -496
+      ],
+      "id": "7d2cc3bb-34d5-4dc3-88a1-1a27766a75d9",
+      "name": "Resolve Fields - Patient"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  a.id::text AS id,\n  a.start_datetime,\n  a.patient_id::text AS patient_id,\n  u.name AS professional_name\nFROM appointments a\nLEFT JOIN users u ON u.id = a.assignee_id\nWHERE a.id::text = $1\n  AND a.patient_id = $2::uuid\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ [ $('When Called by Alert Scheduler').item.json.reference_id, $('When Called by Alert Scheduler').item.json.patient_id ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        320,
+        -336
+      ],
+      "id": "0e66a440-7615-4249-abb2-4581848a9b93",
+      "name": "Get Appointment",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "awa-appt-found-c1",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        560,
+        -336
+      ],
+      "id": "c22df372-c25e-414f-9988-824ece264109",
+      "name": "Appointment Found?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const patient = $('Get Patient').first().json;\nconst clinic = $('Get Clinic Info').first().json;\nconst appt = $('Get Appointment').first().json;\nconst input = $('When Called by Alert Scheduler').first().json;\nconst clinicName = clinic.name || clinic.clinic_name || clinic.nombre || '';\nconst phone = '+' + String(patient.phone_number || '').replace(/\\D/g, '');\n\nconst start = new Date(appt.start_datetime);\nconst date = start.toLocaleDateString('es-UY', { day: 'numeric', month: 'long', year: 'numeric' });\nconst hour = start.toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit', hour12: false });\n\nreturn [{\n  json: {\n    phone,\n    alert_instance_id: input.alert_instance_id || null,\n    performed_by: input.performed_by || null,\n    fields: {\n      'patient.name': patient.name || 'Desconocido',\n      'clinic.name': clinicName,\n      'appointment.date': date,\n      'appointment.hour': hour,\n      'appointment.professional_name': appt.professional_name || 'Sin doctor asignado'\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        -416
+      ],
+      "id": "0f9cffa3-dc35-4c99-a4eb-ac6f91490cc5",
+      "name": "Resolve Fields - Appointment"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  id,\n  doc_no,\n  total,\n  paid_amount,\n  currency,\n  due_date::text AS due_date\nFROM invoices\nWHERE user_id = $2::uuid\n  AND type = 'invoice'\n  AND id::text = $1\n  AND payment_state <> 'paid'\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ [ $('When Called by Alert Scheduler').item.json.reference_id, $('When Called by Alert Scheduler').item.json.patient_id ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        320,
+        -160
+      ],
+      "id": "9eff4399-b74b-4cd3-b061-6f013ac93282",
+      "name": "Get Invoice",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "awa-invoice-found-c1",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        560,
+        -160
+      ],
+      "id": "55bcee6c-4859-489b-9b1a-30c8ed9d25f3",
+      "name": "Invoice Found?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const patient = $('Get Patient').first().json;\nconst clinic = $('Get Clinic Info').first().json;\nconst inv = $('Get Invoice').first().json;\nconst input = $('When Called by Alert Scheduler').first().json;\nconst clinicName = clinic.name || clinic.clinic_name || clinic.nombre || '';\nconst phone = '+' + String(patient.phone_number || '').replace(/\\D/g, '');\n\nconst pending = (Number(inv.total) - Number(inv.paid_amount || 0)).toFixed(2);\nconst amountFormatted = `${inv.currency || ''} ${pending}`.trim();\nconst dueDateFormatted = new Date(inv.due_date).toLocaleDateString('es-UY', { day: 'numeric', month: 'long', year: 'numeric' });\n\nreturn [{\n  json: {\n    phone,\n    alert_instance_id: input.alert_instance_id || null,\n    performed_by: input.performed_by || null,\n    fields: {\n      'patient.name': patient.name || '',\n      'clinic.name': clinicName,\n      'invoice.doc_no': inv.doc_no || '',\n      'invoice.amount_formatted': amountFormatted,\n      'invoice.due_date_formatted': dueDateFormatted\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        -160
+      ],
+      "id": "29b42c0b-25e2-483a-ad40-6f93840772b8",
+      "name": "Resolve Fields - Invoice"
+    },
+    {
+      "parameters": {
+        "jsCode": "const resolved = $input.first().json;\nconst tpl = $('Get Template Config').first().json;\nconst schema = tpl.variables_schema || {};\n\nconst variables = {};\nfor (const [metaVarName, fieldKey] of Object.entries(schema)) {\n  if (!(fieldKey in resolved.fields)) {\n    return [{ json: { __error: true, code: 500, message: `variables_schema references unknown field \"${fieldKey}\" for template \"${tpl.code}\". Available fields: ${Object.keys(resolved.fields).join(', ')}` } }];\n  }\n  variables[metaVarName] = resolved.fields[fieldKey];\n}\n\nreturn [{\n  json: {\n    phone: resolved.phone,\n    meta_template_name: tpl.code,\n    meta_language: tpl.provider_language || 'es',\n    variables,\n    alert_instance_id: resolved.alert_instance_id || null,\n    performed_by: resolved.performed_by || null\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        -336
+      ],
+      "id": "78d18f6e-22d9-4494-81fe-c6750469697e",
+      "name": "Map Variables via Schema"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  COALESCE((SELECT value FROM public.system_configurations WHERE key = 'whatsapp_test_mode_enabled')::boolean, false) AS whatsapp_test_mode_enabled,\n  COALESCE((SELECT value FROM public.system_configurations WHERE key = 'whatsapp_test_phone_whitelist'), '') AS whatsapp_test_phone_whitelist;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1504,
+        -240
+      ],
+      "id": "ea618d75-1fa2-4897-a74b-2a5c591e9930",
+      "name": "Get WhatsApp Test Config (Outbound)",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Same system_configurations keys (whatsapp_test_mode_enabled / whatsapp_test_phone_whitelist)\n// that gate the inbound WhatsApp agent in Whats App.json — a single shared whitelist for\n// both directions, per product decision.\nconst cfg = $input.first().json;\nconst payload = $('Map Variables via Schema').first().json;\nconst phone = payload.phone;\n\nconst testModeEnabled = !!cfg.whatsapp_test_mode_enabled;\nconst rawList = cfg.whatsapp_test_phone_whitelist || '';\nconst whitelist = rawList\n  .split(',')\n  .map((p) => '+' + String(p).trim().replace(/\\D/g, ''))\n  .filter((p) => p !== '+');\n\nconst isWhitelisted = whitelist.includes(phone);\nconst allowed = !testModeEnabled || isWhitelisted;\n\nreturn [{\n  json: {\n    ...payload,\n    allowed,\n    is_test_mode: testModeEnabled,\n    is_whitelisted: isWhitelisted\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1744,
+        -240
+      ],
+      "id": "f3a28fad-3f83-4f3a-bdda-99519064102c",
+      "name": "Check Test Whitelist (Outbound)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "awa-outbound-test-mode-allowed-c1",
+              "leftValue": "={{ $json.allowed }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1984,
+        -160
+      ],
+      "id": "223a175e-b20e-48e9-967c-18ed9f164696",
+      "name": "Allowed To Proceed? (Outbound Test Mode)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const trigger = $('When Called by Alert Scheduler').first().json;\nreturn [{ json: { success: false, skipped: true, reason: 'test_mode_not_whitelisted', alert_instance_id: trigger.alert_instance_id || null } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2224,
+        -64
+      ],
+      "id": "5cfa080a-1531-447e-9a9a-c9d45b71c25b",
+      "name": "Result: Skipped (Test Mode)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        -336
+      ],
+      "id": "942ebf9c-6088-4b71-ba57-e4184306f45f",
+      "name": "Has Error? (Variables)"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2224,
+        -256
+      ],
+      "id": "3697a94b-f478-4142-93ba-476d31267c38",
+      "name": "Prepare Send Payload"
+    },
+    {
+      "parameters": {
+        "filters": {},
+        "requestOptions": {}
+      },
+      "type": "@ycloud-ai/n8n-nodes-ycloud.ycloud",
+      "typeVersion": 1,
+      "position": [
+        2464,
+        -256
+      ],
+      "id": "aadff75c-22f2-405d-a808-8701f80019e9",
+      "name": "Get Templates (YCloud)",
+      "alwaysOutputData": true,
+      "credentials": {
+        "ycloudApi": {
+          "id": "9pYJaq4tFcMTNMf9",
+          "name": "YCloud account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $(\"Prepare Send Payload\").first().json;\nconst templates = $input.all().map((i) => i.json);\n\nconst matches = templates.filter((t) => t.name === input.meta_template_name);\nconst template =\n  matches.find((t) => t.language === input.meta_language) || matches[0];\n\nif (!template) {\n  return [\n    {\n      json: {\n        __error: true,\n        code: 404,\n        message: `No WHATSAPP template found in YCloud for meta_template_name=\"${input.meta_template_name}\" and meta_language=\"${input.meta_language}\"`,\n      },\n    },\n  ];\n}\n\nconst status = template.status || template.meta_status;\nif (status !== \"APPROVED\") {\n  return [\n    {\n      json: {\n        __error: true,\n        code: 409,\n        message: `Template \"${input.meta_template_name}\" is not approved yet (status: ${status || \"PENDING\"})`,\n      },\n    },\n  ];\n}\n\nif (!template.wabaId) {\n  return [\n    {\n      json: {\n        __error: true,\n        code: 500,\n        message: `Template \"${input.meta_template_name}\" has no wabaId on the YCloud response`,\n      },\n    },\n  ];\n}\n\nconst bodyComponent = Array.isArray(template.components)\n  ? template.components.find((c) => String(c.type).toUpperCase() === \"BODY\")\n  : null;\nconst placeholderOrder = [];\nconst seenPlaceholders = new Set();\nif (bodyComponent && typeof bodyComponent.text === \"string\") {\n  const found = bodyComponent.text.match(/\\{\\{\\s*([^{}]+?)\\s*\\}\\}/g) || [];\n  found.forEach((m) => {\n    const name = m.replace(/[{}]/g, \"\").trim();\n    if (!seenPlaceholders.has(name)) {\n      seenPlaceholders.add(name);\n      placeholderOrder.push(name);\n    }\n  });\n}\nconst placeholderNames = new Set(placeholderOrder);\nconst providedNames = new Set(Object.keys(input.variables || {}));\nconst missing = [...placeholderNames].filter((n) => !providedNames.has(n));\nconst extra = [...providedNames].filter((n) => !placeholderNames.has(n));\nif (missing.length || extra.length) {\n  return [\n    {\n      json: {\n        __error: true,\n        code: 400,\n        message: `Variable mismatch for template \"${input.meta_template_name}\": missing=[${missing.join(\", \")}] extra=[${extra.join(\", \")}]. The template on Meta changed — update variables_schema on this CommunicationTemplate.`,\n      },\n    },\n  ];\n}\n\nreturn [\n  {\n    json: {\n      ...input,\n      template_code: template.name,\n      wabaId: template.wabaId,\n      template_variable_order: placeholderOrder,\n    },\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2704,
+        -256
+      ],
+      "id": "a42eab23-7e9c-43d3-b90d-31213ec15375",
+      "name": "Validate Template & Params"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "id": "awa-has-error-template"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2944,
+        -256
+      ],
+      "id": "85aaf88e-0c7f-4272-af6e-d0d80eb5b284",
+      "name": "Has Error? (Template)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.ycloud.com/v2/whatsapp/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ from: $env.YCLOUD_WHATSAPP_FROM || '+59895325101', to: $json.phone, type: 'template', template: {\n  name: $json.meta_template_name, language: { code: $json.meta_language }, components: ($json.template_variable_order\n  || []).length ? [{ type: 'body', parameters: $json.template_variable_order.map((name) => ({ type: 'text',\n  parameter_name: name, text: String(($json.variables || {})[name]) })) }] : [] } }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3184,
+        -160
+      ],
+      "id": "0b2a6909-7c9c-4555-9687-e845fb098224",
+      "name": "Send via YCloud",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "tvbOPY8FDkLhGTtW",
+          "name": "Header Auth account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Validate Template & Params').first().json;\nconst res = $input.first().json;\n\nconst errorMessage = res.error?.message || (typeof res.error === 'string' ? res.error : null) || res.message;\nconst looksLikeSuccess = res.id != null || res.status != null || res.messages?.[0]?.id != null;\n\nif (looksLikeSuccess && !errorMessage) {\n  const messageId = res.id || res.messages?.[0]?.id || null;\n  const status = res.status || res.messages?.[0]?.status || 'sent';\n  return [{ json: {\n    ...input,\n    success: true,\n    message_id: messageId,\n    ycloud_status: status\n  } }];\n}\n\nreturn [{ json: { __error: true, code: 502, message: `YCloud rejected the message: ${errorMessage || JSON.stringify(res)}` } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3424,
+        -160
+      ],
+      "id": "4d381cdd-b08c-4e64-bb22-da012a72c641",
+      "name": "Check YCloud Response"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3664,
+        -160
+      ],
+      "id": "900c7dbb-5588-469f-b2e7-b8806cf91606",
+      "name": "Has Error? (YCloud)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const src = $('Check YCloud Response').first().json;\nconst t = $('When Called by Alert Scheduler').first().json;\nreturn [{ json: { success: true, message_id: src.message_id || null, ycloud_status: src.ycloud_status || null, alert_instance_id: t.alert_instance_id || null } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3904,
+        -64
+      ],
+      "id": "9c3bc789-3ebc-4748-9094-dbc6c40dd83c",
+      "name": "Result: Sent"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.alert_actions\n  (alert_instance_id, action_type, action_data, result_status, result_message, performed_by, performed_at)\nVALUES (\n  $1::int, 'SEND_WHATSAPP', $2::jsonb, 'SUCCESS', $3,\n  NULLIF($4::text, '')::uuid,\n  now()\n)\nRETURNING alert_instance_id;",
+        "options": {
+          "queryReplacement": "={{ [ $('When Called by Alert Scheduler').first().json.alert_instance_id, JSON.stringify({ message_id: $json.message_id || null, ycloud_status: $json.ycloud_status || null, phone: $json.phone || null, template: $json.meta_template_name || null }), 'WhatsApp enviado automáticamente (' + ($json.ycloud_status || 'sent') + ')', ($('When Called by Alert Scheduler').first().json.performed_by || '') ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3904,
+        -336
+      ],
+      "id": "d9904e93-35a0-4377-8f9e-4ebc4dde64cd",
+      "name": "Record Sent Action",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE public.alert_instances\nSET status = 'COMPLETED',\n    completed_at = now(),\n    completed_by = NULLIF($2::text, '')::uuid,\n    updated_at = now()\nWHERE id = $1::int\n  AND status = 'PENDING'\nRETURNING id;",
+        "options": {
+          "queryReplacement": "={{ [ $('When Called by Alert Scheduler').first().json.alert_instance_id, ($('When Called by Alert Scheduler').first().json.performed_by || '') ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        4144,
+        -256
+      ],
+      "id": "41bd5a70-56d8-44cd-b664-4a54f346b02b",
+      "name": "Mark Alert Completed",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.alert_actions\n  (alert_instance_id, action_type, action_data, result_status, result_message, performed_by, performed_at)\nVALUES (\n  $1::int, 'SEND_WHATSAPP', '{}'::jsonb, 'FAILED', $2,\n  NULLIF($3::text, '')::uuid,\n  now()\n)\nRETURNING alert_instance_id, result_message;",
+        "options": {
+          "queryReplacement": "={{ [ $('When Called by Alert Scheduler').first().json.alert_instance_id, ($json.result_message || $json.message || 'Fallo en el auto-envío de WhatsApp'), ($('When Called by Alert Scheduler').first().json.performed_by || '') ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2704,
+        160
+      ],
+      "id": "e0201b90-e436-4945-a4e9-7581c62dc297",
+      "name": "Record Failed Action",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const t = $('When Called by Alert Scheduler').first().json;\nconst src = $input.first() ? $input.first().json : {};\nreturn [{ json: { success: false, alert_instance_id: t.alert_instance_id || null, reason: src.result_message || 'Fallo en el auto-envío de WhatsApp' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2944,
+        160
+      ],
+      "id": "ea6db2b3-6f79-4e97-b60c-447634e17c2b",
+      "name": "Result: Failed"
+    },
+    {
+      "parameters": {
+        "jsCode": "const t = $('When Called by Alert Scheduler').first().json;\nreturn [{ json: { result_message: 'No hay communication_templates WHATSAPP activo para whatsapp_template_id=' + (t.whatsapp_template_id ?? 'null') } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -656,
+        0
+      ],
+      "id": "90005834-d886-49c9-bd37-9887202f4f92",
+      "name": "Reason: No Template Config"
+    },
+    {
+      "parameters": {
+        "jsCode": "const t = $('When Called by Alert Scheduler').first().json;\nreturn [{ json: { result_message: 'Paciente no encontrado para patient_id=' + (t.patient_id ?? 'null') } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -416,
+        -80
+      ],
+      "id": "922c2bba-08fe-4764-b346-50f33f3c1b78",
+      "name": "Reason: Patient Not Found"
+    },
+    {
+      "parameters": {
+        "jsCode": "const t = $('When Called by Alert Scheduler').first().json;\nreturn [{ json: { result_message: 'Cita no encontrada o no asociada al paciente para reference_id=' + (t.reference_id ?? 'null') } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        -528
+      ],
+      "id": "31c7b37d-fbb3-4615-a120-b1a50cfbfd55",
+      "name": "Reason: Appointment Not Found"
+    },
+    {
+      "parameters": {
+        "jsCode": "const t = $('When Called by Alert Scheduler').first().json;\nreturn [{ json: { result_message: 'Factura impaga no encontrada para reference_id=' + (t.reference_id ?? 'null') } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        16
+      ],
+      "id": "438f94a9-afa4-4510-9282-941ddecc05d8",
+      "name": "Reason: Invoice Not Found"
+    },
+    {
+      "parameters": {
+        "jsCode": "const et = $('Get Template Config').first().json.entity_type;\nreturn [{ json: { result_message: 'entity_type de template no soportado: ' + (et ?? 'null') } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        0
+      ],
+      "id": "e41786c3-ebea-4f4e-97d3-3d1502038edf",
+      "name": "Reason: Unsupported Entity Type"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Called by Alert Scheduler": {
+      "main": [
+        [
+          {
+            "node": "Get Template Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Template Config": {
+      "main": [
+        [
+          {
+            "node": "Template Config Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Template Config Found?": {
+      "main": [
+        [
+          {
+            "node": "Get Patient",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reason: No Template Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Patient": {
+      "main": [
+        [
+          {
+            "node": "Patient Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Patient Found?": {
+      "main": [
+        [
+          {
+            "node": "Get Clinic Info",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reason: Patient Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Clinic Info": {
+      "main": [
+        [
+          {
+            "node": "Route By Entity Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route By Entity Type": {
+      "main": [
+        [
+          {
+            "node": "Resolve Fields - Patient",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Appointment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reason: Unsupported Entity Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve Fields - Patient": {
+      "main": [
+        [
+          {
+            "node": "Map Variables via Schema",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Appointment": {
+      "main": [
+        [
+          {
+            "node": "Appointment Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Appointment Found?": {
+      "main": [
+        [
+          {
+            "node": "Resolve Fields - Appointment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reason: Appointment Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve Fields - Appointment": {
+      "main": [
+        [
+          {
+            "node": "Map Variables via Schema",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Invoice": {
+      "main": [
+        [
+          {
+            "node": "Invoice Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Invoice Found?": {
+      "main": [
+        [
+          {
+            "node": "Resolve Fields - Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reason: Invoice Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve Fields - Invoice": {
+      "main": [
+        [
+          {
+            "node": "Map Variables via Schema",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map Variables via Schema": {
+      "main": [
+        [
+          {
+            "node": "Has Error? (Variables)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get WhatsApp Test Config (Outbound)": {
+      "main": [
+        [
+          {
+            "node": "Check Test Whitelist (Outbound)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Test Whitelist (Outbound)": {
+      "main": [
+        [
+          {
+            "node": "Allowed To Proceed? (Outbound Test Mode)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Allowed To Proceed? (Outbound Test Mode)": {
+      "main": [
+        [
+          {
+            "node": "Prepare Send Payload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Result: Skipped (Test Mode)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Error? (Variables)": {
+      "main": [
+        [
+          {
+            "node": "Record Failed Action",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get WhatsApp Test Config (Outbound)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Send Payload": {
+      "main": [
+        [
+          {
+            "node": "Get Templates (YCloud)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Templates (YCloud)": {
+      "main": [
+        [
+          {
+            "node": "Validate Template & Params",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Template & Params": {
+      "main": [
+        [
+          {
+            "node": "Has Error? (Template)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Error? (Template)": {
+      "main": [
+        [
+          {
+            "node": "Record Failed Action",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send via YCloud",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send via YCloud": {
+      "main": [
+        [
+          {
+            "node": "Check YCloud Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check YCloud Response": {
+      "main": [
+        [
+          {
+            "node": "Has Error? (YCloud)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Error? (YCloud)": {
+      "main": [
+        [
+          {
+            "node": "Record Failed Action",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Record Sent Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record Sent Action": {
+      "main": [
+        [
+          {
+            "node": "Mark Alert Completed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Alert Completed": {
+      "main": [
+        [
+          {
+            "node": "Result: Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record Failed Action": {
+      "main": [
+        [
+          {
+            "node": "Result: Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reason: No Template Config": {
+      "main": [
+        [
+          {
+            "node": "Record Failed Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reason: Patient Not Found": {
+      "main": [
+        [
+          {
+            "node": "Record Failed Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reason: Appointment Not Found": {
+      "main": [
+        [
+          {
+            "node": "Record Failed Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reason: Invoice Not Found": {
+      "main": [
+        [
+          {
+            "node": "Record Failed Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reason: Unsupported Entity Type": {
+      "main": [
+        [
+          {
+            "node": "Record Failed Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "63954fc5-8380-460f-a47b-947ca8c58929",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
+  },
+  "nodeGroups": [],
+  "id": "JVzlZxieUIvVmNB6",
+  "tags": []
+}

@@ -378,6 +378,7 @@
     "AlertTemplates": "Alert Templates",
     "AlertHistory": "Alert History",
     "AlertExecutions": "Alert Executions",
+    "WhatsAppAgent": "WhatsApp Agent",
     "Marketing": "Marketing",
     "Campaigns": "Campaigns",
     "Audiences": "Audiences",
@@ -6166,6 +6167,55 @@
       "saveSuccessDescription": "Your configuration changes have been saved.",
       "saveErrorTitle": "Save Error",
       "saveErrorDescription": "An error occurred while saving changes. Please try again."
+    }
+  },
+  "WhatsAppAgentConfigPage": {
+    "title": "WhatsApp Agent",
+    "description": "Configure the WhatsApp conversational agent and its service hours.",
+    "saveChanges": "Save Changes",
+    "agent": {
+      "title": "Agent",
+      "description": "Master switch for the WhatsApp conversational agent.",
+      "enable": "Agent enabled",
+      "enableDescription": "When disabled, the agent does not process any incoming message."
+    },
+    "hours": {
+      "title": "Service hours",
+      "description": "The agent only answers queries within the defined ranges. Outside them it does nothing.",
+      "enable": "Apply schedule",
+      "enableDescription": "When off, the agent replies at any time.",
+      "timezone": "Timezone",
+      "rulesHelp": "Each rule applies its time ranges to the selected days. The agent replies within those ranges (local time); use 24:00 as end of day. If two rules share a day, their ranges are combined.",
+      "noDays": "Select at least one day for this rule.",
+      "addRange": "Add range",
+      "addRule": "Add rule",
+      "removeRule": "Remove rule",
+      "removeRange": "Remove range",
+      "offHoursReply": "Off-hours message",
+      "offHoursReplyPlaceholder": "E.g. Thanks for your message. Our service hours are 9am to 8pm. We'll get back to you shortly.",
+      "offHoursReplyHelp": "Optional. If set, the agent sends this text once when it receives a message outside service hours. If left empty, it replies nothing.",
+      "preset": {
+        "weekdays": "Weekdays",
+        "weekend": "Weekend",
+        "all": "All"
+      }
+    },
+    "days": {
+      "mon": "Monday",
+      "tue": "Tuesday",
+      "wed": "Wednesday",
+      "thu": "Thursday",
+      "fri": "Friday",
+      "sat": "Saturday",
+      "sun": "Sunday"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "successTitle": "Saved",
+      "loadError": "Could not load the agent configuration.",
+      "saveSuccess": "The WhatsApp agent configuration was saved successfully.",
+      "saveError": "Could not save the configuration. Please try again.",
+      "validationError": "Check the time ranges: the start time must be earlier than the end time."
     }
   },
   "SequencesPage": {
