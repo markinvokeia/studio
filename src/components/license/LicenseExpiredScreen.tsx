@@ -15,10 +15,10 @@ export function LicenseExpiredScreen() {
         <p className="text-sm text-muted-foreground">
           {t('expired.contact')}{' '}
           <a
-            href="mailto:contacto@invokeia.com"
+            href="mailto:info@invokeia.com"
             className="text-primary underline underline-offset-4"
           >
-            contacto@invokeia.com
+            info@invokeia.com
           </a>
         </p>
       </div>

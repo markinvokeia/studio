@@ -60,6 +60,7 @@ const PATIENTS_READ = [
   'PATIENTS_VIEW_LIST',
   'PATIENTS_COPY_ID',
   'PATIENTS_VIEW_DETAIL',
+  'PATIENTS_VIEW_DETAIL_INFO',
   'PATIENTS_VIEW_DETAIL_HISTORY',
   'PATIENTS_VIEW_DETAIL_APPOINTMENTS',
   'PATIENTS_VIEW_DETAIL_QUOTES',
@@ -209,6 +210,23 @@ const CLINICAL_HISTORY_ALL = [
   'DICOM_USE_WINDOW',
   'DICOM_ADD_ANNOTATIONS',
   'DICOM_CHANGE_LAYOUT',
+];
+
+// Read-only clinical history. Used by roles that consult the clinical record but
+// only write it from "Mi Consultorio" (/workspace), where there is appointment
+// context. Mirrors the grants in
+// database/scripts/065_20260901_medico-patients-clinical-access.sql
+const CLINICAL_HISTORY_READ = [
+  'MEDICAL_HISTORY_VIEW',
+  'TIMELINE_VIEW',
+  'ANAMNESIS_VIEW',
+  'ODONTOGRAM_VIEW',
+  'ODONTOGRAM_NAVIGATE_HISTORY',
+  'ODONTOGRAM_TOGGLE_VIEW',
+  'CLINICAL_DOCS_VIEW',
+  'CLINICAL_SESSION_VIEW_DETAIL',
+  'CLINICAL_SESSION_VIEW_ATTACHMENTS',
+  'PATIENT_MEDICAL_INSTRUCTIONS_VIEW',
 ];
 
 const CASHIER_FULL = [
@@ -818,16 +836,23 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     ...ALERT_CENTER_READ,
     'ALERT_CENTER_ADD_NOTES',
     'ALERT_CENTER_COMPLETE',
-    // Appointments - ver y actualizar estado
+    // Appointments - solo lectura. Sin APPOINTMENTS_UPDATE: el panel de detalle
+    // de la cita queda completamente solo-lectura para el médico (ni estado, ni
+    // fecha/hora/calendario/doctor, ni servicios, ni presupuesto, ni reprogramar
+    // o borrar). En Mi Consultorio el estado pasa a 'completed' solo al guardar
+    // la sesión clínica, así que no necesita este permiso.
     ...APPOINTMENTS_READ,
-    'APPOINTMENTS_UPDATE',
-    // Patients - lectura completa + notas
-    ...PATIENTS_READ,
-    'PATIENTS_SEARCH_DEBTORS',
-    'PATIENTS_CREATE_NOTE',
-    'PATIENTS_UPDATE_NOTE',
-    // Clinical History - acceso completo
-    ...CLINICAL_HISTORY_ALL,
+    // Patients - solo el bloque clínico del panel de detalle.
+    // Sin _INFO (datos personales) ni los tabs financieros ni notas: el médico
+    // ve en /patients lo mismo que en "Ficha del paciente" de /workspace.
+    'PATIENTS_VIEW_MENU',
+    'PATIENTS_VIEW_LIST',
+    'PATIENTS_COPY_ID',
+    'PATIENTS_VIEW_DETAIL',
+    'PATIENTS_VIEW_DETAIL_HISTORY',
+    'PATIENTS_VIEW_DETAIL_APPOINTMENTS',
+    // Clinical History - solo lectura (escribe desde /workspace)
+    ...CLINICAL_HISTORY_READ,
     // Recetas: usa las plantillas y gestiona su propia firma, pero no
     // administra las plantillas ni las firmas de otros usuarios.
     'PRESCRIPTION_TEMPLATES_VIEW',
@@ -877,6 +902,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'PATIENTS_COPY_ID',
     'PATIENTS_SEARCH_DEBTORS',
     'PATIENTS_VIEW_DETAIL',
+    'PATIENTS_VIEW_DETAIL_INFO',
     'PATIENTS_VIEW_DETAIL_APPOINTMENTS',
     'PATIENTS_VIEW_DETAIL_QUOTES',
     'PATIENTS_VIEW_DETAIL_ORDERS',
