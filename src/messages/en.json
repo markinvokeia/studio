@@ -1816,6 +1816,7 @@
     "close": "Close details",
     "dependentPatient": "Dependent patient",
     "dependentOf": "Dependent of {name}",
+    "viewResponsibleProfile": "View responsible contact's profile",
     "preferencesButton": "Preferences",
     "dischargeButton": "Discharge",
     "readmitButton": "Readmit",
@@ -4854,6 +4855,61 @@
       "viewDetails": "View details",
       "id": "ID",
       "openMenu": "Open Menu"
+    }
+  },
+  "ClinicHistoryPrint": {
+    "title": "Clinical History",
+    "emittedOn": "Issued on",
+    "anamnesis": "Anamnesis",
+    "sessions": "Clinical session history",
+    "noSessions": "No sessions recorded.",
+    "none": "No records.",
+    "relative": "Relationship",
+    "allergies": "Allergies",
+    "personalHistory": "Personal history",
+    "familyHistory": "Family history",
+    "medication": "Medication",
+    "medicationActive": "Active",
+    "medicationPast": "Discontinued",
+    "doctor": "Dr.",
+    "noDate": "No date",
+    "sessionTypeClinical": "Clinical session",
+    "sessionTypeOdontogram": "Odontogram",
+    "patient": {
+      "name": "Patient",
+      "document": "ID document",
+      "birthDate": "Date of birth",
+      "email": "Email",
+      "phone": "Phone"
+    },
+    "habits": {
+      "title": "Habits",
+      "smoking": "Smoking",
+      "alcohol": "Alcohol",
+      "bruxism": "Bruxism",
+      "other": "Other",
+      "comments": "Comments"
+    },
+    "field": {
+      "procedure": "Procedure performed",
+      "diagnosis": "Diagnosis",
+      "tooth": "Tooth",
+      "notes": "Clinical notes",
+      "nextPlan": "Next-visit plan",
+      "nextDate": "Next-visit date",
+      "treatments": "Treatments",
+      "odontogramUpdate": "Odontogram update",
+      "attachments": "Attachments",
+      "file": "File"
+    },
+    "errorTitle": "Could not print",
+    "noData": "This patient has no clinical history to print.",
+    "action": "Print clinical history",
+    "columns": {
+      "date": "Date",
+      "professional": "Practitioner",
+      "detail": "Details",
+      "next": "Next visit"
     }
   },
   "ClinicHistoryPage": {

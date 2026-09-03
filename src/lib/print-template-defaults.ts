@@ -256,4 +256,6 @@ export const PRINT_TEMPLATE_DEFAULTS: Record<PrintDocumentType, string> = {
   caja_apertura:     CAJA_APERTURA_DEFAULT,
   caja_cierre:       CAJA_CIERRE_DEFAULT,
   caja_sesion:       CAJA_SESION_DEFAULT,
+  // The clinic history is a React-only print (multi-section, not a customizable HTML template).
+  clinic_history:    '',
 };

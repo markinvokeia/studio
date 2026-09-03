@@ -138,4 +138,6 @@ export const PRINT_TEMPLATE_VARIABLES: Record<PrintDocumentType, PrintTemplateVa
   ],
   // The patient ledger is a React-only print (not a customizable HTML template).
   ledger: [],
+  // The clinic history is a React-only print (not a customizable HTML template).
+  clinic_history: [],
 };

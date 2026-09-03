@@ -1816,6 +1816,7 @@
     "close": "Cerrar detalles",
     "dependentPatient": "Paciente dependiente",
     "dependentOf": "Dependiente de {name}",
+    "viewResponsibleProfile": "Ver perfil del contacto responsable",
     "preferencesButton": "Preferencias",
     "dischargeButton": "Dar Alta",
     "readmitButton": "Reingreso",
@@ -4831,6 +4832,61 @@
       "viewDetails": "Ver detalles",
       "id": "ID",
       "openMenu": "Abrir Menú"
+    }
+  },
+  "ClinicHistoryPrint": {
+    "title": "Historia Clínica",
+    "emittedOn": "Emitido el",
+    "anamnesis": "Anamnesis",
+    "sessions": "Historial de sesiones clínicas",
+    "noSessions": "Sin sesiones registradas.",
+    "none": "Sin registros.",
+    "relative": "Parentesco",
+    "allergies": "Alergias",
+    "personalHistory": "Antecedentes personales",
+    "familyHistory": "Antecedentes familiares",
+    "medication": "Medicación",
+    "medicationActive": "Activa",
+    "medicationPast": "Finalizada",
+    "doctor": "Dr./Dra.",
+    "noDate": "Sin fecha",
+    "sessionTypeClinical": "Sesión clínica",
+    "sessionTypeOdontogram": "Odontograma",
+    "patient": {
+      "name": "Paciente",
+      "document": "Documento",
+      "birthDate": "Fecha de nacimiento",
+      "email": "Correo",
+      "phone": "Teléfono"
+    },
+    "habits": {
+      "title": "Hábitos",
+      "smoking": "Tabaquismo",
+      "alcohol": "Alcohol",
+      "bruxism": "Bruxismo",
+      "other": "Otros",
+      "comments": "Comentarios"
+    },
+    "field": {
+      "procedure": "Procedimiento realizado",
+      "diagnosis": "Diagnóstico",
+      "tooth": "Pieza",
+      "notes": "Notas clínicas",
+      "nextPlan": "Plan próxima cita",
+      "nextDate": "Fecha próxima cita",
+      "treatments": "Tratamientos",
+      "odontogramUpdate": "Actualización de odontograma",
+      "attachments": "Adjuntos",
+      "file": "Archivo"
+    },
+    "errorTitle": "No se pudo imprimir",
+    "noData": "Este paciente no tiene historia clínica para imprimir.",
+    "action": "Imprimir historia clínica",
+    "columns": {
+      "date": "Fecha",
+      "professional": "Profesional",
+      "detail": "Detalle",
+      "next": "Próxima cita"
     }
   },
   "ClinicHistoryPage": {

@@ -12,6 +12,7 @@ import {
 import type { Quote, Invoice, Payment, CreditNote, QuoteItem, InvoiceItem, DocPrintTemplate, FinancialSummaryReport, CajaSessionDetails } from '@/lib/types';
 import { fetchClinicInfo } from '@/hooks/useClinicInfo';
 import { fetchPatientLedgerData } from '@/services/patient-ledger-data';
+import { fetchClinicHistoryPrintData } from '@/services/clinic-history-print-data';
 import { buildPatientLedger, type LedgerRow } from '@/lib/patient-ledger';
 
 // ── Data mappers (match patterns in user-quotes.tsx / user-invoices.tsx) ───────
@@ -294,6 +295,32 @@ export function usePrintDocument() {
     triggerPrint(deactivate);
   }
 
+  /**
+   * Prints the patient's full clinic history: demographics, anamnesis
+   * (personal/family history, allergies, active + past medication, habits) and
+   * every clinical session in chronological order. Data is fetched fresh each
+   * time so the printout reflects the current record.
+   */
+  async function printClinicHistory(userId: string, patientName?: string): Promise<void> {
+    const [payload] = await Promise.all([
+      fetchClinicHistoryPrintData(userId, patientName),
+      fetchClinicInfo(),
+    ]);
+    const hasAnamnesis =
+      payload.personalHistory.length > 0 ||
+      payload.familyHistory.length > 0 ||
+      payload.allergies.length > 0 ||
+      payload.medications.length > 0 ||
+      payload.habits != null;
+    if (!hasAnamnesis && payload.sessions.length === 0) {
+      throw new Error('no_data');
+    }
+    activate('clinic_history', { ...payload, emittedAt: new Date().toISOString() });
+    await waitForFrame();
+    await waitForImages();
+    triggerPrint(deactivate);
+  }
+
   async function printCajaApertura(sessionId: number | string): Promise<void> {
     const raw = await api.get(API_ROUTES.CASHIER.SESSIONS_DETAILS, { cash_session_id: String(sessionId) });
     const details = (Array.isArray(raw) ? raw[0] : raw) as CajaSessionDetails;
@@ -321,6 +348,6 @@ export function usePrintDocument() {
     triggerPrint(deactivate);
   }
 
-  return { printQuote, printInvoice, printPayment, printCreditNote, printPrepayment, printFinancialSummary, printLedger, printCajaApertura, printCajaCierre, printCajaSesion };
+  return { printQuote, printInvoice, printPayment, printCreditNote, printPrepayment, printFinancialSummary, printLedger, printClinicHistory, printCajaApertura, printCajaCierre, printCajaSesion };
 
 }

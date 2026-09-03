@@ -14,6 +14,7 @@ import type {
   CajaAperturaPrintData,
   CajaCierrePrintData,
   CajaSesionPrintData,
+  ClinicHistoryPrintData,
 } from '@/stores/print-document-store';
 import { PrintDocumentLayout } from './print-document-layout';
 import { QuotePrintTemplate } from './quote-print-template';
@@ -26,6 +27,7 @@ import { LedgerPrintTemplate } from './ledger-print-template';
 import { CajaAperturaPrintTemplate } from './caja-apertura-print-template';
 import { CajaCierrePrintTemplate } from './caja-cierre-print-template';
 import { CajaSesionPrintTemplate } from './caja-sesion-print-template';
+import { ClinicHistoryPrintTemplate } from './clinic-history-print-template';
 import { CustomTemplateRenderer } from './custom-template-renderer';
 
 /**
@@ -73,6 +75,7 @@ export function PrintDocumentContainer() {
           {type === 'caja_apertura'     && <CajaAperturaPrintTemplate      data={data as CajaAperturaPrintData} />}
           {type === 'caja_cierre'       && <CajaCierrePrintTemplate        data={data as CajaCierrePrintData} />}
           {type === 'caja_sesion'       && <CajaSesionPrintTemplate        data={data as CajaSesionPrintData} />}
+          {type === 'clinic_history'    && <ClinicHistoryPrintTemplate     data={data as ClinicHistoryPrintData} />}
         </PrintDocumentLayout>
       )}
     </div>,

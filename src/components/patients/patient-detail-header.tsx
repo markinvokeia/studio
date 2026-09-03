@@ -10,6 +10,7 @@ import { CardHeader, CardTitle } from '@/components/ui/card'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { formatDisplayDate } from '@/lib/utils'
+import { usePatientView } from '@/stores/patient-view-store'
 import type { PatientDischarge, User } from '@/lib/types'
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon'
 
@@ -51,7 +52,11 @@ export function PatientDetailHeader({
   onOpenAnamnesis,
 }: PatientDetailHeaderProps) {
   const t = useTranslations()
+  const openPatient = usePatientView((s) => s.open)
   const hasAlerts = allergies.length > 0 || conditions.length > 0
+
+  const responsibleContactId = dependantContactInfo?.id || user.responsible_contact_id
+  const responsibleContactName = user.responsible_contact_name || dependantContactInfo?.name
 
   const alertIcon = (
     <div className="relative flex-none">
@@ -170,14 +175,33 @@ export function PatientDetailHeader({
             {user.identity_document}
           </span>
         )}
-        {user.is_dependent && (
-          <Badge variant="secondary" className="gap-1 text-xs font-normal">
-            <Users className="h-3 w-3" />
-            {user.responsible_contact_name || dependantContactInfo?.name
-              ? t('UsersPage.dependentOf', { name: user.responsible_contact_name || dependantContactInfo?.name })
-              : t('UsersPage.dependentPatient')}
-          </Badge>
-        )}
+        {user.is_dependent && (() => {
+          const label = responsibleContactName
+            ? t('UsersPage.dependentOf', { name: responsibleContactName })
+            : t('UsersPage.dependentPatient')
+          const badge = (
+            <Badge variant="secondary" className="gap-1 text-xs font-normal">
+              <Users className="h-3 w-3" />
+              {label}
+            </Badge>
+          )
+          if (!responsibleContactId) return badge
+          return (
+            <button
+              type="button"
+              onClick={() => openPatient({
+                userId: responsibleContactId,
+                userName: responsibleContactName || '',
+                userEmail: dependantContactInfo?.email || undefined,
+                userPhone: dependantContactInfo?.phone_number || undefined,
+              })}
+              title={t('UsersPage.viewResponsibleProfile')}
+              className="rounded-full transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {badge}
+            </button>
+          )
+        })()}
         {effectivePatientEmail ? (
           <span className="flex items-center gap-1">
             <Mail className="h-3 w-3" />

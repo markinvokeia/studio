@@ -27,6 +27,7 @@ import type { MutualSociety, User } from '@/lib/types';
 import {
   fetchPatientById,
   findPatientByName,
+  getDependantContactInfo,
   getMutualSocietiesList,
   searchGuardianPatients,
   upsertUser,
@@ -255,6 +256,17 @@ export function PatientInfoTab({
       infoForm.setValue('responsible_contact_id', null);
     }
   }, [infoForm, isDependent]);
+
+  // The /users list endpoint returns `responsible_contact_id` but not its name, so a dependent
+  // patient's guardian picker would render empty. Resolve the name via /user_dependant.
+  React.useEffect(() => {
+    let cancelled = false;
+    if (!user?.is_dependent || !user.responsible_contact_id || user.responsible_contact_name) return;
+    getDependantContactInfo(user.id).then((info) => {
+      if (!cancelled && info?.name) setResponsibleContactName(info.name);
+    });
+    return () => { cancelled = true; };
+  }, [user]);
 
   const handleSave = async (data: UserFormValues) => {
     setIsSaving(true);

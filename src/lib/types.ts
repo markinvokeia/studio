@@ -362,7 +362,7 @@ export type CreditNote = Invoice & {
 export interface DocPrintTemplate {
   id: string;
   clinic_id: string;
-  template_type: 'quote' | 'invoice' | 'payment' | 'credit_note' | 'prepayment' | 'financial_summary' | 'ledger' | 'caja_apertura' | 'caja_cierre' | 'caja_sesion';
+  template_type: 'quote' | 'invoice' | 'payment' | 'credit_note' | 'prepayment' | 'financial_summary' | 'ledger' | 'caja_apertura' | 'caja_cierre' | 'caja_sesion' | 'clinic_history';
   template_html: string;
   is_active: boolean;
   createdAt: string;

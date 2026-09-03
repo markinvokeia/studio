@@ -50,6 +50,9 @@ import { getStatusIcon } from '@/components/appointments/status-icons';
 import { useAppointmentStatus } from '@/hooks/use-appointment-status';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { usePrintDocument } from '@/hooks/usePrintDocument';
+import { usePermissions } from '@/hooks/usePermissions';
+import { CLINICAL_HISTORY_PERMISSIONS } from '@/constants/permissions';
 import { AllergyItem, ClinicDocument, FamilyHistoryItem, MedicationCatalogItem, MedicationItem, PatientHabits as PatientHabitsType, PersonalHistoryItem, SessionAttachmentDocument, useClinicHistory } from '@/hooks/useClinicHistory';
 import { Appointment, AppointmentStatus, Calendar, CancellationReason, PatientSession, SessionPrefillData } from '@/lib/types';
 import { cn, formatDisplayDateWithWeekday } from '@/lib/utils';
@@ -81,6 +84,7 @@ import {
     MoreHorizontal,
     Pill,
     Plus,
+    Printer,
     RotateCcw,
     SlidersHorizontal,
     Smile,
@@ -1822,6 +1826,28 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
     const tReason = useTranslations('CancellationReason');
     const locale = useLocale();
     const { toast } = useToast();
+    const tPrint = useTranslations('ClinicHistoryPrint');
+    const { printClinicHistory } = usePrintDocument();
+    const { hasPermission } = usePermissions();
+    const canPrintHistory = hasPermission(CLINICAL_HISTORY_PERMISSIONS.ANAMNESIS_VIEW);
+    const [isPrintingHistory, setIsPrintingHistory] = React.useState(false);
+
+    const handlePrintHistory = React.useCallback(async () => {
+        if (!userId || isPrintingHistory) return;
+        setIsPrintingHistory(true);
+        try {
+            await printClinicHistory(userId, userName);
+        } catch (error: any) {
+            toast({
+                variant: 'destructive',
+                title: tPrint('errorTitle'),
+                description: error?.message === 'no_data' ? tPrint('noData') : String(error?.message || error),
+            });
+        } finally {
+            setIsPrintingHistory(false);
+        }
+    }, [userId, userName, isPrintingHistory, printClinicHistory, toast, tPrint]);
+
     const [openItems, setOpenItems] = React.useState<string[]>([]);
     const [selectedItemKey, setSelectedItemKey] = React.useState<string | null>(null);
 
@@ -2231,6 +2257,22 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                         </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
+                        {/* Print full clinic history (anamnesis + clinical sessions) */}
+                        {canPrintHistory && (
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-9 w-9"
+                                onClick={handlePrintHistory}
+                                disabled={isPrintingHistory}
+                                aria-label={tPrint('action')}
+                                title={tPrint('action')}
+                            >
+                                {isPrintingHistory
+                                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                                    : <Printer className="h-4 w-4" />}
+                            </Button>
+                        )}
                         {/* Filter button */}
                         {allItems.length > 0 && (
                             <DropdownMenu>
