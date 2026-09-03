@@ -1,8 +1,16 @@
 import { create } from 'zustand';
-import type { Quote, QuoteItem, Invoice, InvoiceItem, CreditNote, Payment, DocPrintTemplate, FinancialSummaryReport, CajaSessionDetails } from '@/lib/types';
+import type { Quote, QuoteItem, Invoice, InvoiceItem, CreditNote, Payment, DocPrintTemplate, FinancialSummaryReport, CajaSessionDetails, PatientSession } from '@/lib/types';
 import type { LedgerRow } from '@/lib/patient-ledger';
+import type {
+  AllergyItem,
+  FamilyHistoryItem,
+  MedicationItem,
+  PatientHabits,
+  PersonalHistoryItem,
+} from '@/hooks/useClinicHistory';
+import type { ClinicHistoryPatientInfo } from '@/services/clinic-history-print-data';
 
-export type PrintDocumentType = 'quote' | 'invoice' | 'payment' | 'credit_note' | 'prepayment' | 'financial_summary' | 'ledger' | 'caja_apertura' | 'caja_cierre' | 'caja_sesion';
+export type PrintDocumentType = 'quote' | 'invoice' | 'payment' | 'credit_note' | 'prepayment' | 'financial_summary' | 'ledger' | 'caja_apertura' | 'caja_cierre' | 'caja_sesion' | 'clinic_history';
 
 export type PrintInvoiceRow = Invoice & { items: InvoiceItem[]; payments: Payment[] };
 
@@ -65,6 +73,19 @@ export type CajaSesionPrintData = {
   details: CajaSessionDetails;
 };
 
+/** Full printable clinic history: patient demographics, anamnesis and every clinical session. */
+export type ClinicHistoryPrintData = {
+  patient: ClinicHistoryPatientInfo;
+  personalHistory: PersonalHistoryItem[];
+  familyHistory: FamilyHistoryItem[];
+  allergies: AllergyItem[];
+  medications: MedicationItem[];
+  habits: PatientHabits | null;
+  sessions: PatientSession[];
+  /** ISO timestamp the document was generated at, shown in the header. */
+  emittedAt: string;
+};
+
 export type PrintData =
   | QuotePrintData
   | InvoicePrintData
@@ -75,7 +96,8 @@ export type PrintData =
   | LedgerPrintData
   | CajaAperturaPrintData
   | CajaCierrePrintData
-  | CajaSesionPrintData;
+  | CajaSesionPrintData
+  | ClinicHistoryPrintData;
 
 interface PrintDocumentStore {
   isActive: boolean;

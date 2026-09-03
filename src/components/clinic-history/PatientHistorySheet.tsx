@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { ArrowLeft, BookOpenText, ClipboardList, FilePlus2, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, BookOpenText, ClipboardList, FilePlus2, Loader2, Pencil, Printer, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ColumnDef, SortingState } from '@tanstack/react-table';
 
@@ -17,6 +17,9 @@ import { TreatmentTimeline } from '@/components/users/clinic-history-viewer';
 
 import { useClinicHistory } from '@/hooks/useClinicHistory';
 import { usePatientHistorySheet } from '@/stores/patient-history-sheet-store';
+import { usePrintDocument } from '@/hooks/usePrintDocument';
+import { usePermissions } from '@/hooks/usePermissions';
+import { CLINICAL_HISTORY_PERMISSIONS } from '@/constants/permissions';
 import { useTableViewMode } from '@/hooks/use-table-view-mode';
 import { useToast } from '@/hooks/use-toast';
 
@@ -44,7 +47,12 @@ const formatSessionDate = (value?: string | null) => {
 export function PatientHistorySheet() {
   const { isOpen, userId, userName, close } = usePatientHistorySheet();
   const t = useTranslations('PatientHistorySheet');
+  const tPrint = useTranslations('ClinicHistoryPrint');
   const { toast } = useToast();
+  const { printClinicHistory } = usePrintDocument();
+  const { hasPermission } = usePermissions();
+  const canPrintHistory = hasPermission(CLINICAL_HISTORY_PERMISSIONS.ANAMNESIS_VIEW);
+  const [isPrintingHistory, setIsPrintingHistory] = React.useState(false);
 
   const {
     patientSessions,
@@ -176,6 +184,22 @@ export function PatientHistorySheet() {
     }
   };
 
+  const handlePrintHistory = async () => {
+    if (!userId || isPrintingHistory) return;
+    setIsPrintingHistory(true);
+    try {
+      await printClinicHistory(userId, userName);
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: tPrint('errorTitle'),
+        description: error?.message === 'no_data' ? tPrint('noData') : String(error?.message || error),
+      });
+    } finally {
+      setIsPrintingHistory(false);
+    }
+  };
+
   const confirmDeleteSession = async () => {
     if (!userId || !deletingSession) return;
     setIsDeleting(true);
@@ -223,6 +247,20 @@ export function PatientHistorySheet() {
             <ClipboardList className="mr-1.5 h-4 w-4" />
             {t('newInstruction')}
           </Button>
+          {canPrintHistory && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePrintHistory}
+              disabled={isPrintingHistory || !userId}
+              title={tPrint('action')}
+            >
+              {isPrintingHistory
+                ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                : <Printer className="mr-1.5 h-4 w-4" />}
+              {tPrint('action')}
+            </Button>
+          )}
           <ViewModeToggle value={viewMode} onChange={setViewMode} className="ml-auto" />
         </div>
         {viewMode === 'table' ? (
