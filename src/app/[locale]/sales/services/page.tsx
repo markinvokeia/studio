@@ -18,6 +18,7 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
 import { Input } from '@/components/ui/input';
+import { MiscCategorySelector } from '@/components/ui/misc-category-selector';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -153,7 +154,7 @@ async function deleteService(id: string) {
   return responseData;
 }
 
-function ServiceFormFields({ form, categories, t }: { form: any; categories: MiscellaneousCategory[]; t: (key: string) => string }) {
+function ServiceFormFields({ form, categories, onCategoryCreated, t }: { form: any; categories: MiscellaneousCategory[]; onCategoryCreated: (category: MiscellaneousCategory) => void; t: (key: string) => string }) {
   return (
     <>
       <div className="grid grid-cols-2 gap-3">
@@ -162,10 +163,16 @@ function ServiceFormFields({ form, categories, t }: { form: any; categories: Mis
         )} />
         <FormField control={form.control} name="category_id" render={({ field }) => (
           <FormItem><FormLabel>{t('createDialog.category')}</FormLabel>
-            <Select onValueChange={field.onChange} value={field.value || ''}>
-              <FormControl><SelectTrigger><SelectValue placeholder={t('createDialog.categoryPlaceholder')} /></SelectTrigger></FormControl>
-              <SelectContent>{categories.map((cat) => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}</SelectContent>
-            </Select><FormMessage /></FormItem>
+            <MiscCategorySelector
+              categories={categories}
+              categoryType="income"
+              value={field.value || ''}
+              onValueChange={(id) => field.onChange(id)}
+              onCategoryCreated={onCategoryCreated}
+              placeholder={t('createDialog.categoryPlaceholder')}
+              triggerText={t('createDialog.categoryPlaceholder')}
+            />
+            <FormMessage /></FormItem>
         )} />
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -174,7 +181,7 @@ function ServiceFormFields({ form, categories, t }: { form: any; categories: Mis
         )} />
         <FormField control={form.control} name="currency" render={({ field }) => (
           <FormItem><FormLabel>{t('createDialog.currency')}</FormLabel>
-            <Select onValueChange={field.onChange} value={field.value || 'USD'}>
+            <Select onValueChange={(v) => { if (v) field.onChange(v); }} value={field.value || 'USD'}>
               <FormControl><SelectTrigger><SelectValue placeholder={t('createDialog.selectCurrency')} /></SelectTrigger></FormControl>
               <SelectContent><SelectItem value="USD">USD</SelectItem><SelectItem value="UYU">UYU</SelectItem></SelectContent>
             </Select><FormMessage /></FormItem>
@@ -760,6 +767,10 @@ export default function ServicesPage() {
     getMiscellaneousCategories().then(setCategories);
   }, []);
 
+  const handleCategoryCreated = React.useCallback((category: MiscellaneousCategory) => {
+    setCategories(prev => [...prev, category]);
+  }, []);
+
   // Populate detail form when selection changes (categories already loaded from mount)
   React.useEffect(() => {
     if (!selectedService) return;
@@ -962,7 +973,7 @@ export default function ServicesPage() {
                 </div>
               </CardHeader>
               <CardContent className="flex-1 overflow-auto p-4 pt-0">
-                <Form {...detailForm}>
+                <Form {...detailForm} key={selectedService.id}>
                   <form onSubmit={detailForm.handleSubmit(onDetailSubmit)} className="h-full flex flex-col">
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
                       <TabsList>
@@ -980,7 +991,7 @@ export default function ServicesPage() {
                               <AlertDescription>{detailError}</AlertDescription>
                             </Alert>
                           )}
-                          <ServiceFormFields form={detailForm} categories={categories} t={t} />
+                          <ServiceFormFields form={detailForm} categories={categories} onCategoryCreated={handleCategoryCreated} t={t} />
                           {canUpdate && (
                             <div className="flex gap-2 pt-2">
                               <Button type="submit" disabled={isSavingDetail}>
@@ -1019,7 +1030,7 @@ export default function ServicesPage() {
                     <AlertDescription>{createError}</AlertDescription>
                   </Alert>
                 )}
-                <ServiceFormFields form={createForm} categories={categories} t={t} />
+                <ServiceFormFields form={createForm} categories={categories} onCategoryCreated={handleCategoryCreated} t={t} />
               </DialogBody>
               <DialogFooter>
                 <Button type="submit">{t('createDialog.save')}</Button>

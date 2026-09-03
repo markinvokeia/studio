@@ -1701,7 +1701,8 @@ export type AlertAction = {
   };
   result_status: 'SUCCESS' | 'FAILED' | 'PENDING';
   result_message?: string;
-  performed_by: string;
+  /** null for system-generated actions (e.g. alert auto-send); a user uuid when a person took the action. */
+  performed_by: string | null;
   performed_at: string;
   title?: string;
   summary?: string;
@@ -2699,11 +2700,43 @@ export interface ReportBalanceMensualPendienteGrupoRow extends ReportBalanceMens
   group_id: string;
   group_name: string;
 }
-export interface ReportBalanceMensualSummary {
+// Totales por moneda — nunca se suman importes de monedas distintas
+export interface ReportBalanceMensualSummaryCurrencyRow {
+  currency: string;
   total_producido: number;
   total_cobrado: number;
   total_pendiente: number;
+}
+export interface ReportBalanceMensualSummary {
+  by_currency: ReportBalanceMensualSummaryCurrencyRow[];
   num_doctores: number;
+}
+// ── Resumen (pestaña Resumen + 1ra hoja de exportación) ──────────────────────
+// Totales precalculados por el workflow. Los grupos salen del servicio
+// facturado (group_services), no del paciente; "atribución completa": una
+// línea/pago cuya factura toca varios grupos suma a cada uno, y lo que no
+// pertenece a ningún grupo cae en "Sin grupo" (group_id: null).
+export interface ReportBalanceMensualResumenDoctorRow {
+  doctor_id: string | null;
+  doctor_name: string;
+  currency: string;
+  total: number;
+}
+export interface ReportBalanceMensualResumenCurrencyRow {
+  currency: string;
+  total: number;
+}
+export interface ReportBalanceMensualResumenGrupoRow {
+  group_id: string | null;
+  group_name: string;
+  currency: string;
+  total: number;
+}
+export interface ReportBalanceMensualResumen {
+  producido_por_doctor: ReportBalanceMensualResumenDoctorRow[];
+  cobrado_total: ReportBalanceMensualResumenCurrencyRow[];
+  cobrado_por_grupo: ReportBalanceMensualResumenGrupoRow[];
+  producido_por_grupo: ReportBalanceMensualResumenGrupoRow[];
 }
 export interface ReportBalanceMensualResponse {
   summary: ReportBalanceMensualSummary;
@@ -2711,6 +2744,9 @@ export interface ReportBalanceMensualResponse {
   cobrado: ReportBalanceMensualCobradoRow[];
   pendiente: ReportBalanceMensualPendienteRow[];
   pendiente_por_grupo?: ReportBalanceMensualPendienteGrupoRow[];
+  // Optional: puede faltar si el workflow aún no fue desplegado — el frontend
+  // reconstruye el resumen client-side en ese caso
+  resumen?: ReportBalanceMensualResumen;
 }
 
 // ── Licensing ────────────────────────────────────────────────────────────────

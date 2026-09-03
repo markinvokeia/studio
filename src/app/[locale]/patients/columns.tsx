@@ -9,7 +9,15 @@ import { ColumnDef } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 import React from 'react';
 
-export const getColumns = (t: (key: string) => string): ColumnDef<User>[] => [
+interface GetColumnsOptions {
+  /** Personal/contact data (email, phone). Gated by PATIENTS_VIEW_DETAIL_INFO. */
+  showContactColumns?: boolean;
+}
+
+export const getColumns = (
+  t: (key: string) => string,
+  { showContactColumns = true }: GetColumnsOptions = {},
+): ColumnDef<User>[] => [
   {
     id: 'select',
     header: () => null,
@@ -41,24 +49,32 @@ export const getColumns = (t: (key: string) => string): ColumnDef<User>[] => [
       </div>
     ),
   },
-  {
-    accessorKey: 'email',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('email')} />
-    ),
-  },
+  ...(showContactColumns
+    ? [
+        {
+          accessorKey: 'email',
+          header: ({ column }) => (
+            <DataTableColumnHeader column={column} title={t('email')} />
+          ),
+        } as ColumnDef<User>,
+      ]
+    : []),
   {
     accessorKey: 'identity_document',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title={t('identity_document')} />
     ),
   },
-  {
-    accessorKey: 'phone_number',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('phone')} />
-    ),
-  },
+  ...(showContactColumns
+    ? [
+        {
+          accessorKey: 'phone_number',
+          header: ({ column }) => (
+            <DataTableColumnHeader column={column} title={t('phone')} />
+          ),
+        } as ColumnDef<User>,
+      ]
+    : []),
   {
     accessorKey: 'is_active',
     header: ({ column }) => (
@@ -84,10 +100,10 @@ export const getColumns = (t: (key: string) => string): ColumnDef<User>[] => [
 ];
 
 
-export function UserColumnsWrapper() {
+export function UserColumnsWrapper({ showContactColumns = true }: GetColumnsOptions = {}) {
   const t = useTranslations('UserColumns');
   const columns = React.useMemo(() => {
-    return getColumns(t);
-  }, [t]);
+    return getColumns(t, { showContactColumns });
+  }, [t, showContactColumns]);
   return columns;
 }

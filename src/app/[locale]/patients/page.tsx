@@ -72,7 +72,7 @@ import type { VisibleLedger } from '@/components/users/patient-ledger';
 import { UserTreatmentPlans, type TreatmentContactContext } from '@/components/users/user-treatment-plans';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import { UserOrders } from '@/components/users/user-orders';
-import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
+import { BUSINESS_CONFIG_PERMISSIONS, CLINICAL_HISTORY_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, SALES_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -452,7 +452,7 @@ function UsersTableWithCards({
 export default function UsersPage() {
   const t = useTranslations();
   const { user: currentUser } = useAuth();
-  const { hasPermission } = usePermissions();
+  const { hasPermission, hasAnyPermission } = usePermissions();
   const [financeView] = useFinanceViewPreference(currentUser?.id);
   const { toast } = useToast();
   const { open: openBillingWizard } = useBillingWizard();
@@ -511,6 +511,38 @@ export default function UsersPage() {
   const canSendWhatsAppTemplate = hasPermission(PATIENTS_PERMISSIONS.SEND_WHATSAPP_TEMPLATE);
   const canUpdate = hasPermission(PATIENTS_PERMISSIONS.UPDATE);
 
+  // Macro-tab visibility. Roles without these (e.g. médico) get a clinical-only
+  // panel, matching what they already see in "Ficha del paciente" (/workspace).
+  const canViewInfoTab = hasPermission(PATIENTS_PERMISSIONS.VIEW_DETAIL_INFO);
+  const canViewClinicalTab = hasAnyPermission([
+    PATIENTS_PERMISSIONS.VIEW_DETAIL_HISTORY,
+    MEDICAL_HISTORY_PERMISSIONS.VIEW,
+  ]);
+  const canViewFinancialTab = hasAnyPermission([
+    PATIENTS_PERMISSIONS.VIEW_DETAIL_QUOTES,
+    PATIENTS_PERMISSIONS.VIEW_DETAIL_ORDERS,
+    PATIENTS_PERMISSIONS.VIEW_DETAIL_INVOICES,
+    PATIENTS_PERMISSIONS.VIEW_DETAIL_PAYMENTS,
+  ]);
+
+  // Clinical content is read-only unless the role can actually write it. The
+  // clinical viewers don't check permissions themselves — they take `readOnly`.
+  const canWriteClinical = hasAnyPermission([
+    TIMELINE_PERMISSIONS.CREATE,
+    TIMELINE_PERMISSIONS.UPDATE,
+    CLINICAL_HISTORY_PERMISSIONS.ANAMNESIS_ADD_PERSONAL,
+    CLINICAL_HISTORY_PERMISSIONS.DOCS_UPLOAD,
+    CLINICAL_HISTORY_PERMISSIONS.ODONTOGRAM_REGISTER_SESSION,
+  ]);
+  const isClinicalReadOnly = !canWriteClinical;
+
+  // Header actions that were previously ungated.
+  const canQuickBill = hasAnyPermission([SALES_PERMISSIONS.INVOICES_CREATE, SALES_PERMISSIONS.PAYMENTS_CREATE]);
+  const canCreateQuote = hasPermission(SALES_PERMISSIONS.QUOTES_CREATE);
+  const canCreateInvoice = hasPermission(SALES_PERMISSIONS.INVOICES_CREATE);
+  const canCreatePrepaid = hasPermission(SALES_PERMISSIONS.PREPAYMENTS_CREATE);
+  const canCreateAppointment = hasPermission(BUSINESS_CONFIG_PERMISSIONS.APPOINTMENT_CREATE);
+
   const [mutualSocieties, setMutualSocieties] = React.useState<MutualSociety[]>([]);
   const [isLoadingMutualSocieties, setIsLoadingMutualSocieties] = React.useState(false);
   const [deepLinkView, setDeepLinkView] = React.useState<string | undefined>(undefined);
@@ -528,6 +560,7 @@ export default function UsersPage() {
   } = usePatientDetailNavigation({
     deepLinkView,
     selectedUserId: selectedUser?.id,
+    defaultTab: canViewInfoTab ? 'info' : 'clinical',
   });
   const [patientAllergies, setPatientAllergies] = React.useState<Array<{ id?: number; alergeno: string; reaccion_descrita: string }>>([]);
   const [patientConditions, setPatientConditions] = React.useState<Array<{ id?: number; nombre: string; nivel_alerta?: number }>>([]);
@@ -1004,7 +1037,7 @@ export default function UsersPage() {
     setIsDialogOpen(true);
   };
 
-  const userColumns = UserColumnsWrapper();
+  const userColumns = UserColumnsWrapper({ showContactColumns: canViewInfoTab });
 
   const debtorColumns: ColumnDef<User>[] = [
     {
@@ -1373,21 +1406,21 @@ export default function UsersPage() {
                         hasPhone={!!effectivePatientPhone}
                         isBusy={isSubmittingDischarge}
                         showActivate={canToggleStatus}
-                        onCreateClinicalSession={() => { openClinicalHistory(); setCreateSessionTrigger(n => n + 1); }}
-                        onCreateOdontogram={() => { openClinicalHistory(); setCreateOdontogramTrigger(n => n + 1); }}
-                        onCreateMedicalInstruction={() => { openClinicalMedicalInstructions(); setCreateMedicalInstructionTrigger(n => n + 1); }}
-                        onCreateDocument={() => { openClinicalDocuments(); setCreateDocumentTrigger(n => n + 1); }}
-                        onQuickBill={() => openBillingWizard({ patientId: selectedUser.id, patientName: selectedUser.name })}
-                        onCreateQuote={() => setIsQuoteDialogOpen(true)}
-                        onCreateInvoice={() => setIsInvoiceDialogOpen(true)}
-                        onCreatePrepaid={() => setIsPrepaidDialogOpen(true)}
-                        onCreateAppointment={() => { loadApptData(); setIsAppointmentDialogOpen(true); }}
+                        onCreateClinicalSession={canWriteClinical ? () => { openClinicalHistory(); setCreateSessionTrigger(n => n + 1); } : undefined}
+                        onCreateOdontogram={canWriteClinical ? () => { openClinicalHistory(); setCreateOdontogramTrigger(n => n + 1); } : undefined}
+                        onCreateMedicalInstruction={canWriteClinical ? () => { openClinicalMedicalInstructions(); setCreateMedicalInstructionTrigger(n => n + 1); } : undefined}
+                        onCreateDocument={canWriteClinical ? () => { openClinicalDocuments(); setCreateDocumentTrigger(n => n + 1); } : undefined}
+                        onQuickBill={canQuickBill ? () => openBillingWizard({ patientId: selectedUser.id, patientName: selectedUser.name }) : undefined}
+                        onCreateQuote={canCreateQuote ? () => setIsQuoteDialogOpen(true) : undefined}
+                        onCreateInvoice={canCreateInvoice ? () => setIsInvoiceDialogOpen(true) : undefined}
+                        onCreatePrepaid={canCreatePrepaid ? () => setIsPrepaidDialogOpen(true) : undefined}
+                        onCreateAppointment={canCreateAppointment ? () => { loadApptData(); setIsAppointmentDialogOpen(true); } : undefined}
                         onEmail={() => setIsEmailDialogOpen(true)}
                         onWhatsApp={() => setIsWhatsAppDialogOpen(true)}
                         onSendWhatsAppTemplate={canSendWhatsAppTemplate ? () => setIsWhatsAppTemplateDialogOpen(true) : undefined}
-                        onToggleDischarge={currentDischarge ? handleCancelDischarge : () => setIsDischargeDialogOpen(true)}
+                        onToggleDischarge={canUpdate ? (currentDischarge ? handleCancelDischarge : () => setIsDischargeDialogOpen(true)) : undefined}
                         onToggleActivate={() => handleToggleActivate(selectedUser)}
-                        onPreferences={() => { setActiveTab('info'); setActiveInfoSubTab('preferences'); }}
+                        onPreferences={canViewInfoTab && canUpdate ? () => { setActiveTab('info'); setActiveInfoSubTab('preferences'); } : undefined}
                       />
 
                       {/* Expand/collapse button — always visible */}
@@ -1427,6 +1460,9 @@ export default function UsersPage() {
                         showDocuments={canViewHistory}
                         showNotes={canViewNotes}
                         showPreferences={canUpdate}
+                        showInfo={canViewInfoTab}
+                        showClinical={canViewClinicalTab}
+                        showFinancial={canViewFinancialTab}
                         activeInfoSubTab={activeInfoSubTab}
                         onInfoSubTabChange={setActiveInfoSubTab}
                         infoContent={
@@ -1453,6 +1489,7 @@ export default function UsersPage() {
                         anamnesisContent={
                           <AnamnesisViewer
                             userId={selectedUser.id}
+                            readOnly={isClinicalReadOnly}
                             onClinicalDataChange={() => {
                               fetchPatientAllergies(selectedUser.id)
                               fetchPatientConditions(selectedUser.id)
@@ -1463,6 +1500,7 @@ export default function UsersPage() {
                           <ClinicHistoryViewer
                             userId={selectedUser.id}
                             userName={selectedUser.name}
+                            readOnly={isClinicalReadOnly}
                             createSessionTrigger={createSessionTrigger}
                             createOdontogramTrigger={createOdontogramTrigger}
                             sessionPrefill={sessionPrefill}
@@ -1493,7 +1531,8 @@ export default function UsersPage() {
                           <UserTreatmentPlans
                             userId={selectedUser.id}
                             userName={selectedUser.name}
-                            onCreateAppointment={() => { loadApptData(); setIsAppointmentDialogOpen(true) }}
+                            readOnly={isClinicalReadOnly}
+                            onCreateAppointment={canCreateAppointment ? () => { loadApptData(); setIsAppointmentDialogOpen(true) } : undefined}
                             onViewAppointment={(appointmentId, scheduledDate, serviceId, serviceName) => handleViewApptFromPlan(appointmentId, scheduledDate, serviceId, serviceName)}
                             onViewSession={(sesionId) => {
                               setEditSessionId(sesionId)
@@ -1507,10 +1546,11 @@ export default function UsersPage() {
                           <PatientInstructionsSection
                             userId={selectedUser.id}
                             userName={selectedUser.name}
+                            readOnly={isClinicalReadOnly}
                             createTrigger={createMedicalInstructionTrigger}
                           />
                         }
-                        documentsContent={<DocumentsViewer userId={selectedUser.id} createTrigger={createDocumentTrigger} />}
+                        documentsContent={<DocumentsViewer userId={selectedUser.id} createTrigger={createDocumentTrigger} readOnly={isClinicalReadOnly} />}
                         ledgerContent={
                           <PatientFinanceSection
                             userId={selectedUser.id}

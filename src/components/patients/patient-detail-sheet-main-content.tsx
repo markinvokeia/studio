@@ -16,7 +16,8 @@ interface PatientDetailSheetMainContentProps {
   onActiveTabChange: (tab: PatientSheetMacroTab) => void
   activeClinicalSubTab: PatientSheetClinicalSubTab
   onClinicalSubTabChange: (tab: PatientSheetClinicalSubTab) => void
-  isDoctorMode: boolean
+  /** Whether the financial macro tab is available (permission-driven by the caller). */
+  showFinancial: boolean
   /** Patient details (demographics + edit). When provided, an "info" tab is shown first. */
   infoContent?: React.ReactNode
   anamnesisContent: React.ReactNode
@@ -32,7 +33,7 @@ export function PatientDetailSheetMainContent({
   onActiveTabChange,
   activeClinicalSubTab,
   onClinicalSubTabChange,
-  isDoctorMode,
+  showFinancial,
   infoContent,
   anamnesisContent,
   clinicalHistoryContent,
@@ -45,14 +46,12 @@ export function PatientDetailSheetMainContent({
 
   const macroTabs = React.useMemo<VerticalTab[]>(() => {
     const infoTab: VerticalTab[] = infoContent ? [{ id: 'info', icon: Users, label: t('tabs.info') }] : []
-    return isDoctorMode
-      ? [...infoTab, { id: 'clinical', icon: Stethoscope, label: t('tabs.clinical') }]
-      : [
-          ...infoTab,
-          { id: 'clinical', icon: Stethoscope, label: t('tabs.clinical') },
-          { id: 'financial', icon: CreditCard, label: t('tabs.financial') },
-        ]
-  }, [isDoctorMode, infoContent, t])
+    return [
+      ...infoTab,
+      { id: 'clinical', icon: Stethoscope, label: t('tabs.clinical') },
+      ...(showFinancial ? [{ id: 'financial', icon: CreditCard, label: t('tabs.financial') }] : []),
+    ]
+  }, [showFinancial, infoContent, t])
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden min-h-0">
@@ -85,7 +84,7 @@ export function PatientDetailSheetMainContent({
           </>
         )}
 
-        {activeTab === 'financial' && !isDoctorMode && ledgerContent}
+        {activeTab === 'financial' && showFinancial && ledgerContent}
       </div>
     </div>
   )

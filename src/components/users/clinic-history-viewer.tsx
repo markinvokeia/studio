@@ -1940,6 +1940,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
     const [sessionStepId, setSessionStepId] = React.useState('');
 
     React.useEffect(() => {
+        if (readOnly) return;
         if (createTrigger > 0) {
             setEditingSession(null);
             setSessionPrefillData({
@@ -1961,6 +1962,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
     }, [createTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
 
     React.useEffect(() => {
+        if (readOnly) return;
         if (createOdontogramTrigger > 0) {
             setIsOdontogramDialogOpen(true);
             onOdontogramTriggerConsumed?.();
@@ -2301,8 +2303,9 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         )}
-                        {/* Add session */}
-                        {!isDoctorMode && (
+                        {/* Add session — hidden in doctor mode (the workspace owns
+                            session creation) and whenever the viewer is read-only. */}
+                        {!isDoctorMode && !readOnly && (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button size="sm" className="h-8 gap-1.5">
@@ -2825,6 +2828,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                 onRequestCustomCancellation={(appt) => setPendingCancellation(appt)}
                 onBillingSuccess={handleBillingSuccess}
                 hideBillingAction={isDoctorMode}
+                hidePatientActions
                 onEdit={onEditAppointment && !readOnly ? (appt) => { setIsApptPanelOpen(false); onEditAppointment(appt); } : undefined}
             />
             <CancellationNoteDialog

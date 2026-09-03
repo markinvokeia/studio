@@ -263,6 +263,7 @@ export default function MiscellaneousCategoriesPage() {
                         isRefreshing={isRefreshing}
                         columnTranslations={columnTranslations}
                         isNarrow={isNarrow}
+                        onRowClick={handleEdit}
                         renderCard={(row: MiscellaneousCategory, _isSelected: boolean) => (
                             <DataCard isSelected={_isSelected}
                                 title={row.name}

@@ -9,6 +9,9 @@ import {
 } from '@/components/patients/patient-detail-sheet-main-content';
 import { PatientInfoTab } from '@/components/patients/patient-info-tab';
 import { PatientQuickActions } from '@/components/patients/patient-quick-actions';
+
+import { usePermissions } from '@/hooks/usePermissions';
+import { CLINICAL_HISTORY_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
 import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/components/users/clinic-history-viewer';
 import { PatientInstructionsSection } from '@/components/medical-instructions/patient-instructions-section';
 import { UserTreatmentPlans } from '@/components/users/user-treatment-plans';
@@ -93,9 +96,43 @@ export function PatientDetailSheet({
   const { toast } = useToast();
   const [isPrintingFinancialSummary, setIsPrintingFinancialSummary] = React.useState(false);
   const isDoctorMode = mode === 'doctor';
-  const [activeTab, setActiveTab] = React.useState<PatientSheetMacroTab>(
-    isDoctorMode ? 'clinical' : mapInitialTabToMacroTab(initialTab)
-  );
+  const { hasPermission, hasAnyPermission } = usePermissions();
+
+  // This sheet is also reachable from the global quick view (header patient
+  // search), which only requires PATIENTS_VIEW_LIST. Gate the non-clinical tabs
+  // and clinical writes by permission so a clinical-only role (médico) sees the
+  // same thing here as in the Patients module. `mode="doctor"` keeps forcing the
+  // clinical-only layout regardless.
+  const canViewInfoTab = hasPermission(PATIENTS_PERMISSIONS.VIEW_DETAIL_INFO);
+  const canViewFinancialTab = hasAnyPermission([
+    PATIENTS_PERMISSIONS.VIEW_DETAIL_QUOTES,
+    PATIENTS_PERMISSIONS.VIEW_DETAIL_ORDERS,
+    PATIENTS_PERMISSIONS.VIEW_DETAIL_INVOICES,
+    PATIENTS_PERMISSIONS.VIEW_DETAIL_PAYMENTS,
+  ]);
+  const canWriteClinical = hasAnyPermission([
+    TIMELINE_PERMISSIONS.CREATE,
+    TIMELINE_PERMISSIONS.UPDATE,
+    CLINICAL_HISTORY_PERMISSIONS.ANAMNESIS_ADD_PERSONAL,
+    CLINICAL_HISTORY_PERMISSIONS.DOCS_UPLOAD,
+    CLINICAL_HISTORY_PERMISSIONS.ODONTOGRAM_REGISTER_SESSION,
+  ]);
+
+  const showInfoTab = !isDoctorMode && canViewInfoTab;
+  const showFinancialTab = !isDoctorMode && canViewFinancialTab;
+  // In doctor mode the workspace owns write access (it gates by appointment
+  // date), so the permission check only applies to the default/quick-view mode.
+  const isReadOnly = readOnly || (!isDoctorMode && !canWriteClinical);
+
+  const resolveInitialTab = React.useCallback((): PatientSheetMacroTab => {
+    if (isDoctorMode) return 'clinical';
+    const resolved = mapInitialTabToMacroTab(initialTab);
+    if (resolved === 'info' && !showInfoTab) return 'clinical';
+    if (resolved === 'financial' && !showFinancialTab) return 'clinical';
+    return resolved;
+  }, [initialTab, isDoctorMode, showInfoTab, showFinancialTab]);
+
+  const [activeTab, setActiveTab] = React.useState<PatientSheetMacroTab>(resolveInitialTab);
   const [activeClinicalSubTab, setActiveClinicalSubTab] = React.useState<PatientSheetClinicalSubTab>(clinicalHistoryDefaultView === 'anamnesis' ? 'anamnesis' : 'clinical-history');
   // Trigger counters for clinical "create" actions launched from the actions menu.
   const [createSessionTrigger, setCreateSessionTrigger] = React.useState(0);
@@ -166,10 +203,10 @@ export function PatientDetailSheet({
 
   React.useEffect(() => {
     if (open) {
-      setActiveTab(isDoctorMode ? 'clinical' : mapInitialTabToMacroTab(initialTab));
+      setActiveTab(resolveInitialTab());
       setActiveClinicalSubTab(clinicalHistoryDefaultView === 'anamnesis' ? 'anamnesis' : 'clinical-history');
     }
-  }, [clinicalHistoryDefaultView, initialTab, isDoctorMode, open, userId]);
+  }, [clinicalHistoryDefaultView, resolveInitialTab, open, userId]);
 
   // The Finance tab's account statement needs the full width to render without horizontal
   // scroll — maximize the sheet whenever that tab becomes active (bumping the signal each
@@ -217,7 +254,7 @@ export function PatientDetailSheet({
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 min-w-0">
                 <SheetTitle className="text-base font-semibold truncate leading-tight">{userName}</SheetTitle>
-                {readOnly && (
+                {isReadOnly && (
                   <Badge variant="secondary" className="gap-1 shrink-0 text-[10px] font-normal">
                     <Lock className="h-3 w-3" />
                     {t('readOnlyBadge')}
@@ -257,7 +294,7 @@ export function PatientDetailSheet({
               )}
               <SheetDescription className="sr-only">{t('detailsFor', { name: userName })}</SheetDescription>
             </div>
-            {!isDoctorMode && (
+            {!isDoctorMode && canWriteClinical && (
               <div className="shrink-0">
                 <PatientQuickActions
                   userId={userId}
@@ -278,13 +315,13 @@ export function PatientDetailSheet({
           onActiveTabChange={setActiveTab}
           activeClinicalSubTab={activeClinicalSubTab}
           onClinicalSubTabChange={setActiveClinicalSubTab}
-          isDoctorMode={isDoctorMode}
-          infoContent={!isDoctorMode ? <PatientInfoTab userId={userId} /> : undefined}
-          anamnesisContent={<AnamnesisViewer userId={userId} readOnly={readOnly} />}
-          clinicalHistoryContent={<ClinicHistoryViewer userId={userId} userName={userName} deepLinkView={clinicalHistoryDefaultView} isDoctorMode={isDoctorMode} createSessionTrigger={createSessionTrigger} createOdontogramTrigger={createOdontogramTrigger} readOnly={readOnly} />}
-          treatmentPlansContent={<UserTreatmentPlans userId={userId} userName={userName} readOnly={readOnly} />}
-          medicalInstructionsContent={<PatientInstructionsSection userId={userId} userName={userName} readOnly={readOnly} />}
-          documentsContent={<DocumentsViewer userId={userId} createTrigger={createDocumentTrigger} readOnly={readOnly} />}
+          showFinancial={showFinancialTab}
+          infoContent={showInfoTab ? <PatientInfoTab userId={userId} /> : undefined}
+          anamnesisContent={<AnamnesisViewer userId={userId} readOnly={isReadOnly} />}
+          clinicalHistoryContent={<ClinicHistoryViewer userId={userId} userName={userName} deepLinkView={clinicalHistoryDefaultView} isDoctorMode={isDoctorMode} createSessionTrigger={createSessionTrigger} createOdontogramTrigger={createOdontogramTrigger} readOnly={isReadOnly} />}
+          treatmentPlansContent={<UserTreatmentPlans userId={userId} userName={userName} readOnly={isReadOnly} />}
+          medicalInstructionsContent={<PatientInstructionsSection userId={userId} userName={userName} readOnly={isReadOnly} />}
+          documentsContent={<DocumentsViewer userId={userId} createTrigger={createDocumentTrigger} readOnly={isReadOnly} />}
           ledgerContent={
             <PatientFinanceSection
               userId={userId}

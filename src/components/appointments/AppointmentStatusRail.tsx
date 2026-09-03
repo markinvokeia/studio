@@ -33,6 +33,9 @@ interface AppointmentStatusRailProps {
   onChange: (newStatus: AppointmentStatus, extra?: StatusChangeExtra) => void;
   onRequestCustomCancellation?: () => void;
   variant?: 'top' | 'side' | 'dropdown';
+  /** Read-only: the rail still shows the current status but no transition can be
+   *  triggered. Used when the viewer lacks permission to update appointments. */
+  readOnly?: boolean;
 }
 
 const STATUS_FLOW: AppointmentStatus[] = [
@@ -52,6 +55,7 @@ export function AppointmentStatusRail({
   onChange,
   onRequestCustomCancellation,
   variant = 'top',
+  readOnly = false,
 }: AppointmentStatusRailProps) {
   const tStatus = useTranslations('AppointmentStatus');
   const tMenu = useTranslations('AppointmentStatusMenu');
@@ -59,7 +63,7 @@ export function AppointmentStatusRail({
 
   const current = appointment.status;
   const currentIndex = STATUS_FLOW.indexOf(current);
-  const allowed = ALLOWED_STATUS_TRANSITIONS[current] ?? [];
+  const allowed = readOnly ? [] : (ALLOWED_STATUS_TRANSITIONS[current] ?? []);
   const canCancel = allowed.includes('cancelled');
   const CurrentIcon = getStatusIcon(current, appointment.cancellation_reason);
   const currentColor = STATUS_ACCENT_COLOR[current];
@@ -126,10 +130,11 @@ export function AppointmentStatusRail({
 
     return (
       <DropdownMenu modal={false}>
-        <DropdownMenuTrigger asChild>
+        <DropdownMenuTrigger asChild disabled={readOnly}>
           <button
             type="button"
-            className="inline-flex h-11 w-full items-center justify-between gap-3 rounded-full border px-4 text-base font-semibold shadow-sm transition-colors"
+            disabled={readOnly}
+            className="inline-flex h-11 w-full items-center justify-between gap-3 rounded-full border px-4 text-base font-semibold shadow-sm transition-colors disabled:cursor-default"
             style={{
               borderColor: `${currentColor}40`,
               backgroundColor: `${currentColor}14`,
@@ -209,7 +214,7 @@ export function AppointmentStatusRail({
             const item = (
               <button
                 type="button"
-                disabled={!isEnabled && status !== 'cancelled'}
+                disabled={readOnly || (!isEnabled && status !== 'cancelled')}
                 onClick={() => {
                   if (status !== 'cancelled' && isEnabled) onChange(status);
                 }}
