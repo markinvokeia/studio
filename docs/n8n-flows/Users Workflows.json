@@ -4184,7 +4184,8 @@
             "calendar_source_id": "={{ $('/users/upsert').item.json.body.calendar_source_id || null }}",
             "can_browse_calendars": "={{ $('/users/upsert').item.json.body.can_browse_calendars || false }}",
             "doctor_id": "={{ $('/users/upsert').item.json.body.doctor_id || null }}",
-            "sex": "={{ $('/users/upsert').item.json.body.sex || null }}"
+            "sex": "={{ $('/users/upsert').item.json.body.sex || null }}",
+            "active_sede_id": "={{ $('/users/upsert').item.json.body.active_sede_id || null }}"
           },
           "matchingColumns": [
             "id"
@@ -4506,16 +4507,6 @@
               "removed": false
             },
             {
-              "id": "can_browse_calendars",
-              "displayName": "can_browse_calendars",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "boolean",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
               "id": "doctor_id",
               "displayName": "doctor_id",
               "required": false,
@@ -4524,16 +4515,6 @@
               "type": "string",
               "canBeUsedToMatch": true,
               "removed": false
-            },
-            {
-              "id": "group_id",
-              "displayName": "group_id",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": true
             },
             {
               "id": "sex",
@@ -4554,6 +4535,146 @@
                 }
               ],
               "removed": false
+            },
+            {
+              "id": "login_code",
+              "displayName": "login_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "login_code_expires_at",
+              "displayName": "login_code_expires_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "login_code_attempts",
+              "displayName": "login_code_attempts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "login_code_sent_at",
+              "displayName": "login_code_sent_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "is_portal_user",
+              "displayName": "is_portal_user",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "can_browse_calendars",
+              "displayName": "can_browse_calendars",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "email_bounced",
+              "displayName": "email_bounced",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "email_bounced_at",
+              "displayName": "email_bounced_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "active_sede_id",
+              "displayName": "active_sede_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "signature_filename",
+              "displayName": "signature_filename",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "signature_mimetype",
+              "displayName": "signature_mimetype",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "signature_drive_file_id",
+              "displayName": "signature_drive_file_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "signature_web_view_link",
+              "displayName": "signature_web_view_link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "signature_updated_at",
+              "displayName": "signature_updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
             }
           ],
           "attemptToConvertTypes": false,
@@ -4613,7 +4734,8 @@
             "calendar_source_id": "={{ $('/users/upsert').item.json.body.calendar_source_id || null }}",
             "can_browse_calendars": "={{ $('/users/upsert').item.json.body.can_browse_calendars || false }}",
             "doctor_id": "={{ $('/users/upsert').item.json.body.doctor_id || null }}",
-            "sex": "={{ $('/users/upsert').item.json.body.sex || null }}"
+            "sex": "={{ $('/users/upsert').item.json.body.sex || null }}",
+            "active_sede_id": "={{ $('/users/upsert').item.json.body.active_sede_id || null }}"
           },
           "matchingColumns": [
             "id"
@@ -4935,16 +5057,6 @@
               "removed": false
             },
             {
-              "id": "can_browse_calendars",
-              "displayName": "can_browse_calendars",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "boolean",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
               "id": "doctor_id",
               "displayName": "doctor_id",
               "required": false,
@@ -4953,16 +5065,6 @@
               "type": "string",
               "canBeUsedToMatch": true,
               "removed": false
-            },
-            {
-              "id": "group_id",
-              "displayName": "group_id",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": true
             },
             {
               "id": "sex",
@@ -4983,6 +5085,146 @@
                 }
               ],
               "removed": false
+            },
+            {
+              "id": "login_code",
+              "displayName": "login_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "login_code_expires_at",
+              "displayName": "login_code_expires_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "login_code_attempts",
+              "displayName": "login_code_attempts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "login_code_sent_at",
+              "displayName": "login_code_sent_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "is_portal_user",
+              "displayName": "is_portal_user",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "can_browse_calendars",
+              "displayName": "can_browse_calendars",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "email_bounced",
+              "displayName": "email_bounced",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "email_bounced_at",
+              "displayName": "email_bounced_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "active_sede_id",
+              "displayName": "active_sede_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "signature_filename",
+              "displayName": "signature_filename",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "signature_mimetype",
+              "displayName": "signature_mimetype",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "signature_drive_file_id",
+              "displayName": "signature_drive_file_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "signature_web_view_link",
+              "displayName": "signature_web_view_link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "signature_updated_at",
+              "displayName": "signature_updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
             }
           ],
           "attemptToConvertTypes": false,
@@ -5339,7 +5581,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "WITH quote_financials AS (\n    SELECT\n        o.quote_id,\n        SUM(CASE WHEN i.type = 'invoice' THEN i.total       ELSE -i.total      END) AS monto_facturado,\n        SUM(CASE WHEN i.type = 'invoice' THEN COALESCE(i.paid_amount, 0) ELSE 0 END) AS monto_pagado\n    FROM public.invoices i\n    JOIN public.orders o ON i.order_id = o.id\n    WHERE i.status != 'cancel'\n    GROUP BY o.quote_id\n)\nSELECT\n    q.id,\n    q.user_id,\n    u.name                                        AS user_name,\n    q.total                                       AS total_presupuesto,\n    q.status,\n    q.billing_status,\n    q.payment_status,\n    q.created_at,\n    q.currency,\n    q.doc_no,\n    q.exchange_rate,\n    q.notes,\n    q.doctor_id,\n    q.sede_id,\n\n    COALESCE(qf.monto_facturado, 0)               AS monto_facturado,\n    COALESCE(qf.monto_pagado,    0)               AS monto_pagado,\n\n    q.total - COALESCE(qf.monto_facturado, 0)     AS pendiente_facturar,\n\n    COALESCE(qf.monto_facturado, 0)\n        - COALESCE(qf.monto_pagado, 0)            AS pendiente_pago_facturado,\n\n    q.external_id,\n    json_agg(\n      to_jsonb(qi.*) || jsonb_build_object('service_name', sc.name)\n    ) AS quote_items\n\nFROM public.quotes q\nINNER JOIN public.users u ON u.id = q.user_id\nLEFT JOIN quote_financials qf ON qf.quote_id = q.id\nLEFT JOIN quote_items qi ON qi.quote_id = q.id\nLEFT JOIN service_catalog sc ON sc.id = qi.service_id\nWHERE q.user_id = $1\nGROUP BY q.id, u.name, qf.monto_facturado, qf.monto_pagado\nORDER BY q.created_at DESC;\n",
+        "query": "WITH quote_financials AS (\n    SELECT\n        o.quote_id,\n        SUM(CASE WHEN i.type = 'invoice' THEN i.total       ELSE -i.total      END) AS monto_facturado,\n        SUM(CASE WHEN i.type = 'invoice' THEN COALESCE(i.paid_amount, 0) ELSE 0 END) AS monto_pagado\n    FROM public.invoices i\n    JOIN public.orders o ON i.order_id = o.id\n    WHERE i.status != 'cancel'\n    GROUP BY o.quote_id\n)\nSELECT\n    q.*,\n    u.name                                        AS user_name,\n    q.total                                       AS total_presupuesto,\n\n    COALESCE(qf.monto_facturado, 0)               AS monto_facturado,\n    COALESCE(qf.monto_pagado,    0)               AS monto_pagado,\n\n    q.total - COALESCE(qf.monto_facturado, 0)     AS pendiente_facturar,\n\n    COALESCE(qf.monto_facturado, 0)\n        - COALESCE(qf.monto_pagado, 0)            AS pendiente_pago_facturado,\n\n    json_agg(\n      to_jsonb(qi.*) || jsonb_build_object('service_name', sc.name)\n    ) AS quote_items\n\nFROM public.quotes q\nINNER JOIN public.users u ON u.id = q.user_id\nLEFT JOIN quote_financials qf ON qf.quote_id = q.id\nLEFT JOIN quote_items qi ON qi.quote_id = q.id\nLEFT JOIN service_catalog sc ON sc.id = qi.service_id\nWHERE q.user_id = $1\nGROUP BY q.id, u.name, qf.monto_facturado, qf.monto_pagado\nORDER BY q.created_at DESC;\n",
         "options": {
           "queryReplacement": "={{ $json.query.user_id }}"
         }
@@ -5477,7 +5719,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT id, email, phone_number, alternative_phone\nFROM public.users\nWHERE id = ANY($1::uuid[]);",
+        "query": "SELECT u.id, u.email, u.phone_number, u.alternative_phone,\n       COALESCE(\n         NULLIF(u.phone_number, ''),\n         NULLIF(u.alternative_phone, ''),\n         CASE WHEN u.is_dependant THEN NULLIF(r.phone_number, '') END,\n         CASE WHEN u.is_dependant THEN NULLIF(r.alternative_phone, '') END\n       ) AS effective_phone,\n       (COALESCE(NULLIF(u.phone_number, ''), NULLIF(u.alternative_phone, '')) IS NULL\n        AND u.is_dependant\n        AND COALESCE(NULLIF(r.phone_number, ''), NULLIF(r.alternative_phone, '')) IS NOT NULL) AS phone_from_responsible\nFROM public.users u\nLEFT JOIN public.users r ON r.id = u.responsible_contact_id\nWHERE u.id = ANY($1::uuid[]);",
         "options": {
           "queryReplacement": "={{ [$json.body.ids] }}"
         }
@@ -10869,7 +11111,7 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "f3602184-86b2-4e6e-81d3-cfa94cb827da",
+  "versionId": "74d7a0fa-19fc-4730-8537-347a9f358fe9",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"

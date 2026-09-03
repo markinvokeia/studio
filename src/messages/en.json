@@ -1735,6 +1735,7 @@
     "close": "Close details",
     "dependentPatient": "Dependent patient",
     "dependentOf": "Dependent of {name}",
+    "viewResponsibleProfile": "View responsible contact's profile",
     "preferencesButton": "Preferences",
     "dischargeButton": "Discharge",
     "readmitButton": "Readmit",

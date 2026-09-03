@@ -170,7 +170,11 @@ const fetchPatientContacts = async (patientIds: string[]): Promise<Record<string
         const map: Record<string, PatientContact> = {};
         contacts.forEach((c) => {
             if (!c?.id) return;
-            const phone = (typeof c.phone_number === 'string' && c.phone_number.trim())
+            // `effective_phone` is resolved server-side: for a dependent patient with no phone of
+            // their own it holds the responsible contact's phone (so WhatsApp stays enabled and the
+            // send endpoint delivers to the guardian). Falls back to the raw columns for safety.
+            const phone = (typeof c.effective_phone === 'string' && c.effective_phone.trim())
+                || (typeof c.phone_number === 'string' && c.phone_number.trim())
                 || (typeof c.alternative_phone === 'string' && c.alternative_phone.trim())
                 || '';
             map[String(c.id)] = { email: typeof c.email === 'string' ? c.email.trim() : '', phone };

@@ -11,10 +11,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -2064,
-        -512
+        86416,
+        314000
       ],
-      "id": "8af5596b-8e11-4dae-bb96-57b42ed3bce8",
+      "id": "633ad352-ea86-4d56-9793-fad93f0c0b44",
       "name": "Flow Documentation"
     },
     {
@@ -48,10 +48,10 @@
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
       "position": [
-        -1376,
-        -128
+        87104,
+        314384
       ],
-      "id": "58cd7595-bc29-4d31-bb0e-a4cb2b380968",
+      "id": "0746eb09-fccb-4004-be70-19ec87f0d323",
       "name": "When Called by Alert Scheduler"
     },
     {
@@ -65,10 +65,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -1136,
-        -128
+        87344,
+        314384
       ],
-      "id": "d34d26be-c571-4412-bd1e-00dc60f8543c",
+      "id": "60ecd66f-b3bc-4713-b2b8-acdb453db7ac",
       "name": "Get Template Config",
       "alwaysOutputData": true,
       "credentials": {
@@ -106,10 +106,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -896,
-        -128
+        87584,
+        314384
       ],
-      "id": "4f95422f-5106-4b24-a05e-b423644b89f3",
+      "id": "26bd6139-52ea-49f2-9d58-2bdecb17ad46",
       "name": "Template Config Found?"
     },
     {
@@ -123,10 +123,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -656,
-        -240
+        87824,
+        314272
       ],
-      "id": "73c600ab-0f39-41af-916d-1033c5366057",
+      "id": "22d2380f-d151-49fb-947d-9269c87f6bc8",
       "name": "Get Patient",
       "alwaysOutputData": true,
       "credentials": {
@@ -164,10 +164,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -416,
-        -240
+        88064,
+        314272
       ],
-      "id": "93f4addc-3aa4-42b3-80f3-f21ee710e38c",
+      "id": "a8629eb2-00b1-459e-b362-9266403ab6c5",
       "name": "Patient Found?"
     },
     {
@@ -179,10 +179,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -176,
-        -336
+        88304,
+        314176
       ],
-      "id": "387020c9-0b73-4f16-b401-d8149624639a",
+      "id": "6377651a-5879-42da-9a5c-87d82477d835",
       "name": "Get Clinic Info",
       "alwaysOutputData": true,
       "credentials": {
@@ -277,10 +277,10 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
       "position": [
-        80,
-        -352
+        88560,
+        314160
       ],
-      "id": "f0696565-ac3e-42d6-b019-1eebac3093ae",
+      "id": "9df66897-c5e9-43d6-8afb-812b79d5c973",
       "name": "Route By Entity Type"
     },
     {
@@ -290,10 +290,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        320,
-        -496
+        88800,
+        314016
       ],
-      "id": "7d2cc3bb-34d5-4dc3-88a1-1a27766a75d9",
+      "id": "bcbe5fc4-21ee-40eb-8b14-0a823f9040c9",
       "name": "Resolve Fields - Patient"
     },
     {
@@ -307,10 +307,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        320,
-        -336
+        88800,
+        314176
       ],
-      "id": "0e66a440-7615-4249-abb2-4581848a9b93",
+      "id": "71b0d7eb-aed1-48b9-a37e-74922b40573c",
       "name": "Get Appointment",
       "alwaysOutputData": true,
       "credentials": {
@@ -348,10 +348,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        560,
-        -336
+        89040,
+        314176
       ],
-      "id": "c22df372-c25e-414f-9988-824ece264109",
+      "id": "cb961595-be6d-455c-9311-4ac1104d546e",
       "name": "Appointment Found?"
     },
     {
@@ -361,10 +361,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        800,
-        -416
+        89280,
+        314096
       ],
-      "id": "0f9cffa3-dc35-4c99-a4eb-ac6f91490cc5",
+      "id": "8c9ca67b-23d3-47f5-927f-e1a23bd34daa",
       "name": "Resolve Fields - Appointment"
     },
     {
@@ -378,10 +378,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        320,
-        -160
+        88800,
+        314352
       ],
-      "id": "9eff4399-b74b-4cd3-b061-6f013ac93282",
+      "id": "b0a801ad-15fa-4f1b-b1ea-721169bbb094",
       "name": "Get Invoice",
       "alwaysOutputData": true,
       "credentials": {
@@ -419,10 +419,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        560,
-        -160
+        89040,
+        314352
       ],
-      "id": "55bcee6c-4859-489b-9b1a-30c8ed9d25f3",
+      "id": "60a58315-1961-4df9-9863-9bda2c4fb9d7",
       "name": "Invoice Found?"
     },
     {
@@ -432,10 +432,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        800,
-        -160
+        89280,
+        314352
       ],
-      "id": "29b42c0b-25e2-483a-ad40-6f93840772b8",
+      "id": "ecde1735-dff4-49f4-a3ba-015fcd5a802a",
       "name": "Resolve Fields - Invoice"
     },
     {
@@ -445,10 +445,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1040,
-        -336
+        89520,
+        314176
       ],
-      "id": "78d18f6e-22d9-4494-81fe-c6750469697e",
+      "id": "d9ea5c5b-d7b1-4b88-9b7f-449e5599c616",
       "name": "Map Variables via Schema"
     },
     {
@@ -460,10 +460,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1504,
-        -240
+        89984,
+        314272
       ],
-      "id": "ea618d75-1fa2-4897-a74b-2a5c591e9930",
+      "id": "b06a40ce-c8ab-4311-b97f-b5e848ec9d2e",
       "name": "Get WhatsApp Test Config (Outbound)",
       "alwaysOutputData": true,
       "credentials": {
@@ -480,10 +480,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1744,
-        -240
+        90224,
+        314272
       ],
-      "id": "f3a28fad-3f83-4f3a-bdda-99519064102c",
+      "id": "557a1910-713e-45ac-9ad9-922ccdd5f1f9",
       "name": "Check Test Whitelist (Outbound)"
     },
     {
@@ -514,10 +514,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1984,
-        -160
+        90464,
+        314352
       ],
-      "id": "223a175e-b20e-48e9-967c-18ed9f164696",
+      "id": "dfeb1ee2-ec24-4edb-b5bb-91673f2e85cd",
       "name": "Allowed To Proceed? (Outbound Test Mode)"
     },
     {
@@ -527,10 +527,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2224,
-        -64
+        90704,
+        314448
       ],
-      "id": "5cfa080a-1531-447e-9a9a-c9d45b71c25b",
+      "id": "eebef184-aeea-4e94-96ab-30edb9d08b73",
       "name": "Result: Skipped (Test Mode)"
     },
     {
@@ -560,10 +560,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        1280,
-        -336
+        89760,
+        314176
       ],
-      "id": "942ebf9c-6088-4b71-ba57-e4184306f45f",
+      "id": "eaa3377b-6c4d-405b-a1f0-8d34dcdb4f0d",
       "name": "Has Error? (Variables)"
     },
     {
@@ -573,10 +573,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2224,
-        -256
+        90704,
+        314256
       ],
-      "id": "3697a94b-f478-4142-93ba-476d31267c38",
+      "id": "0bd5ba5f-d203-4dda-bb51-aba22fb163ee",
       "name": "Prepare Send Payload"
     },
     {
@@ -587,15 +587,15 @@
       "type": "@ycloud-ai/n8n-nodes-ycloud.ycloud",
       "typeVersion": 1,
       "position": [
-        2464,
-        -256
+        90944,
+        314256
       ],
-      "id": "aadff75c-22f2-405d-a808-8701f80019e9",
+      "id": "029498d5-4295-4fdc-a1ed-3765dde569e9",
       "name": "Get Templates (YCloud)",
       "alwaysOutputData": true,
       "credentials": {
         "ycloudApi": {
-          "id": "9pYJaq4tFcMTNMf9",
+          "id": "1x5CBW2rMW7V6vCt",
           "name": "YCloud account"
         }
       }
@@ -607,10 +607,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2704,
-        -256
+        91184,
+        314256
       ],
-      "id": "a42eab23-7e9c-43d3-b90d-31213ec15375",
+      "id": "95d91da9-7951-402e-869e-ee6099019493",
       "name": "Validate Template & Params"
     },
     {
@@ -641,10 +641,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        2944,
-        -256
+        91424,
+        314256
       ],
-      "id": "85aaf88e-0c7f-4272-af6e-d0d80eb5b284",
+      "id": "7cbe54a7-8653-4641-9dc2-ad1a4f3ceca4",
       "name": "Has Error? (Template)"
     },
     {
@@ -664,7 +664,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ from: $env.YCLOUD_WHATSAPP_FROM || '+59895325101', to: $json.phone, type: 'template', template: {\n  name: $json.meta_template_name, language: { code: $json.meta_language }, components: ($json.template_variable_order\n  || []).length ? [{ type: 'body', parameters: $json.template_variable_order.map((name) => ({ type: 'text',\n  parameter_name: name, text: String(($json.variables || {})[name]) })) }] : [] } }) }}",
+        "jsonBody": "={{ JSON.stringify({ from: $env.YCLOUD_WHATSAPP_FROM || '+59894024661', to: $json.phone, type: 'template', template: {\n  name: $json.meta_template_name, language: { code: $json.meta_language }, components: ($json.template_variable_order\n  || []).length ? [{ type: 'body', parameters: $json.template_variable_order.map((name) => ({ type: 'text',\n  parameter_name: name, text: String(($json.variables || {})[name]) })) }] : [] } }) }}",
         "options": {
           "response": {
             "response": {
@@ -677,15 +677,15 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        3184,
-        -160
+        91664,
+        314352
       ],
-      "id": "0b2a6909-7c9c-4555-9687-e845fb098224",
+      "id": "3977db76-4e9a-435d-ae18-33317759e9fc",
       "name": "Send via YCloud",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "tvbOPY8FDkLhGTtW",
-          "name": "Header Auth account 3"
+          "id": "H5zbiBMT148GZMcX",
+          "name": "YCloud API KEY"
         }
       }
     },
@@ -696,10 +696,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3424,
-        -160
+        91904,
+        314352
       ],
-      "id": "4d381cdd-b08c-4e64-bb22-da012a72c641",
+      "id": "d5ac0711-f464-47e7-8b25-ddf35c0093f5",
       "name": "Check YCloud Response"
     },
     {
@@ -729,10 +729,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        3664,
-        -160
+        92144,
+        314352
       ],
-      "id": "900c7dbb-5588-469f-b2e7-b8806cf91606",
+      "id": "61d84503-e668-440d-bef7-50b51fa02153",
       "name": "Has Error? (YCloud)"
     },
     {
@@ -742,10 +742,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3904,
-        -64
+        92384,
+        314448
       ],
-      "id": "9c3bc789-3ebc-4748-9094-dbc6c40dd83c",
+      "id": "2099e24e-2e6f-4879-ae9e-d6a777603125",
       "name": "Result: Sent"
     },
     {
@@ -759,10 +759,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3904,
-        -336
+        92384,
+        314176
       ],
-      "id": "d9904e93-35a0-4377-8f9e-4ebc4dde64cd",
+      "id": "8687e755-6660-43b1-808a-509b2c2ea0fa",
       "name": "Record Sent Action",
       "alwaysOutputData": true,
       "credentials": {
@@ -783,10 +783,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        4144,
-        -256
+        92624,
+        314256
       ],
-      "id": "41bd5a70-56d8-44cd-b664-4a54f346b02b",
+      "id": "3d055d42-42cf-4cbf-9000-6e1ac712ee21",
       "name": "Mark Alert Completed",
       "alwaysOutputData": true,
       "credentials": {
@@ -807,10 +807,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2704,
-        160
+        91184,
+        314672
       ],
-      "id": "e0201b90-e436-4945-a4e9-7581c62dc297",
+      "id": "8c818417-54eb-4c46-9c5b-67c83b7a8cfc",
       "name": "Record Failed Action",
       "alwaysOutputData": true,
       "credentials": {
@@ -827,10 +827,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2944,
-        160
+        91424,
+        314672
       ],
-      "id": "ea6db2b3-6f79-4e97-b60c-447634e17c2b",
+      "id": "2f2319b5-cd23-413c-9eb0-3cec1b6f2efc",
       "name": "Result: Failed"
     },
     {
@@ -840,10 +840,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -656,
-        0
+        87824,
+        314512
       ],
-      "id": "90005834-d886-49c9-bd37-9887202f4f92",
+      "id": "b8130bfd-97ad-44e8-a826-711199e76eaf",
       "name": "Reason: No Template Config"
     },
     {
@@ -853,10 +853,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -416,
-        -80
+        88064,
+        314432
       ],
-      "id": "922c2bba-08fe-4764-b346-50f33f3c1b78",
+      "id": "d9ddc2a5-5971-48c1-add9-86a31d533008",
       "name": "Reason: Patient Not Found"
     },
     {
@@ -866,10 +866,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        560,
-        -528
+        89040,
+        313984
       ],
-      "id": "31c7b37d-fbb3-4615-a120-b1a50cfbfd55",
+      "id": "04590a69-6350-4c5c-96fa-a60cf75eaef2",
       "name": "Reason: Appointment Not Found"
     },
     {
@@ -879,10 +879,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        560,
-        16
+        89040,
+        314528
       ],
-      "id": "438f94a9-afa4-4510-9282-941ddecc05d8",
+      "id": "6149433d-56d2-43ad-8f8d-0a3dfb735e0b",
       "name": "Reason: Invoice Not Found"
     },
     {
@@ -892,10 +892,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        320,
-        0
+        88800,
+        314512
       ],
-      "id": "e41786c3-ebea-4f4e-97d3-3d1502038edf",
+      "id": "3f21ad6a-2a93-4953-8f2d-edf33fd03f6d",
       "name": "Reason: Unsupported Entity Type"
     }
   ],
@@ -1115,6 +1115,24 @@
         ]
       ]
     },
+    "Has Error? (Variables)": {
+      "main": [
+        [
+          {
+            "node": "Record Failed Action",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get WhatsApp Test Config (Outbound)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Get WhatsApp Test Config (Outbound)": {
       "main": [
         [
@@ -1149,24 +1167,6 @@
         [
           {
             "node": "Result: Skipped (Test Mode)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Has Error? (Variables)": {
-      "main": [
-        [
-          {
-            "node": "Record Failed Action",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Get WhatsApp Test Config (Outbound)",
             "type": "main",
             "index": 0
           }
@@ -1359,12 +1359,12 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "63954fc5-8380-460f-a47b-947ca8c58929",
+  "versionId": "62717dab-294f-4b79-8dc7-35cb145fc6b8",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
   },
   "nodeGroups": [],
-  "id": "JVzlZxieUIvVmNB6",
+  "id": "WlxkMz1nFkh6cwJh",
   "tags": []
 }
