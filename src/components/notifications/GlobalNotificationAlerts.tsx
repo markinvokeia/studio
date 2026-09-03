@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { ArrowRight, BellRing, CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, Clock, Pencil, UserCog } from 'lucide-react';
+import { ArrowRight, BellRing, CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, Clock, Headset, Pencil, UserCog } from 'lucide-react';
 import { format, isValid, parseISO } from 'date-fns';
 import { useTranslations } from 'next-intl';
 
@@ -19,6 +19,7 @@ import type {
   ReminderPanelNotification,
   SessionCompletedNotification,
   UnifiedNotification,
+  WhatsappHandoffRequestedNotification,
 } from '@/lib/types';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -283,6 +284,33 @@ function ReminderBody({ item }: { item: ReminderPanelNotification }) {
   );
 }
 
+function HandoffBody({ item }: { item: WhatsappHandoffRequestedNotification }) {
+  const t = useTranslations('Notifications');
+
+  return (
+    <div className="flex flex-col items-center gap-5 px-2 py-4">
+      <div
+        className="grid h-16 w-16 place-items-center rounded-full text-white shadow-lg"
+        style={{ backgroundColor: '#16a34a', animation: 'global-alert-sway 1.4s ease-in-out infinite' }}
+      >
+        <Headset className="h-8 w-8" />
+      </div>
+      <div className="space-y-1 text-center">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          {t('handoffRequestedTitle')}
+        </p>
+        <p className="text-xl font-bold leading-tight text-foreground">
+          {item.patientName || item.phone || t('unknownPatient')}
+        </p>
+        {item.phone && <p className="text-sm text-muted-foreground">{item.phone}</p>}
+        {item.lastMessage && (
+          <p className="text-sm text-muted-foreground leading-relaxed">{item.lastMessage}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function NotificationBody({ item }: { item: UnifiedNotification }) {
   if (item.type === 'new_appointment') return <NewAppointmentBody item={item} />;
   if (item.type === 'appointment_status_change') return <StatusChangeBody item={item} />;
@@ -290,6 +318,7 @@ function NotificationBody({ item }: { item: UnifiedNotification }) {
   if (item.type === 'appointment_reassigned') return <ReassignedBody item={item} />;
   if (item.type === 'appointment_updated') return <UpdatedBody item={item} />;
   if (item.type === 'session_completed') return <SessionCompletedBody item={item} />;
+  if (item.type === 'whatsapp_handoff_requested') return <HandoffBody item={item} />;
   return <ReminderBody item={item as ReminderPanelNotification} />;
 }
 
@@ -322,6 +351,7 @@ export function GlobalNotificationAlerts({ items, onDismissAll }: GlobalNotifica
     if (current.type === 'appointment_reassigned') return tN('appointmentReassignedTitle');
     if (current.type === 'appointment_updated') return tN('appointmentUpdatedTitle');
     if (current.type === 'session_completed') return tN('sessionCompletedAlertTitle');
+    if (current.type === 'whatsapp_handoff_requested') return tN('handoffRequestedTitle');
     return tN('reminderDueTitle');
   }
 

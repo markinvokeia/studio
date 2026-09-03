@@ -380,6 +380,7 @@
     "AlertTemplates": "Plantillas de Alertas",
     "AlertHistory": "Historial de Alertas",
     "AlertExecutions": "Ejecuciones de Alertas",
+    "WhatsAppAgent": "Agente WhatsApp",
     "Marketing": "Marketing",
     "Campaigns": "Campañas",
     "Audiences": "Audiencias",
@@ -578,6 +579,11 @@
     "reminderDone": "Marcado como hecho",
     "newAppointmentTime": "Hora: {time}",
     "actionViewWorkspace": "Ver en workspace",
+    "handoffRequestedTitle": "Solicitud de atención humana",
+    "handoffAgentPaused": "El asistente dejó de responder esta conversación.",
+    "handoffPhone": "Teléfono",
+    "handoffLastMessage": "Último mensaje",
+    "actionViewPatient": "Ver paciente",
     "discharged": "Dado de Alta",
     "dischargedUntil": "Hasta el {date}",
     "sessionCompletedAlertTitle": "Sesión completada",
@@ -6234,6 +6240,55 @@
       "saveErrorDescription": "Ocurrió un error al guardar los cambios. Por favor, inténtelo nuevamente."
     }
   },
+  "WhatsAppAgentConfigPage": {
+    "title": "Agente de WhatsApp",
+    "description": "Configure el agente conversacional de WhatsApp y su horario de atención.",
+    "saveChanges": "Guardar Cambios",
+    "agent": {
+      "title": "Agente",
+      "description": "Interruptor general del agente conversacional de WhatsApp.",
+      "enable": "Agente habilitado",
+      "enableDescription": "Si está deshabilitado, el agente no procesa ningún mensaje entrante."
+    },
+    "hours": {
+      "title": "Horario de atención",
+      "description": "El agente sólo responde consultas dentro de los rangos definidos. Fuera de ellos no hace nada.",
+      "enable": "Aplicar horario",
+      "enableDescription": "Si está desactivado, el agente responde a toda hora.",
+      "timezone": "Zona horaria",
+      "rulesHelp": "Cada regla aplica sus rangos horarios a los días seleccionados. El agente responde dentro de esos rangos (hora local); usá 24:00 como fin del día. Si dos reglas comparten un día, se suman sus rangos.",
+      "noDays": "Seleccioná al menos un día para esta regla.",
+      "addRange": "Agregar rango",
+      "addRule": "Agregar regla",
+      "removeRule": "Quitar regla",
+      "removeRange": "Quitar rango",
+      "offHoursReply": "Mensaje fuera de horario",
+      "offHoursReplyPlaceholder": "Ej: Gracias por tu mensaje. Nuestro horario de atención es de 9 a 20 h. Te responderemos a la brevedad.",
+      "offHoursReplyHelp": "Opcional. Si se completa, el agente envía este texto una vez cuando recibe un mensaje fuera de horario. Si se deja vacío, no responde nada.",
+      "preset": {
+        "weekdays": "Entre semana",
+        "weekend": "Fin de semana",
+        "all": "Todos"
+      }
+    },
+    "days": {
+      "mon": "Lunes",
+      "tue": "Martes",
+      "wed": "Miércoles",
+      "thu": "Jueves",
+      "fri": "Viernes",
+      "sat": "Sábado",
+      "sun": "Domingo"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "successTitle": "Guardado",
+      "loadError": "No se pudo cargar la configuración del agente.",
+      "saveSuccess": "La configuración del agente de WhatsApp se guardó correctamente.",
+      "saveError": "No se pudo guardar la configuración. Intente nuevamente.",
+      "validationError": "Revise los rangos horarios: la hora de inicio debe ser menor que la de fin."
+    }
+  },
   "SequencesPage": {
     "title": "Secuencias",
     "description": "Configure secuencias de numeración de documentos para facturas, presupuestos, órdenes y pagos.",
@@ -6653,6 +6708,18 @@
       "remove": "Quitar del grupo",
       "removed": "Servicio quitado del grupo",
       "removeError": "No se pudo quitar el servicio"
+    },
+    "export": {
+      "button": "Exportar a Excel",
+      "allButton": "Exportar todos",
+      "allFileName": "Grupos de pacientes",
+      "col_name": "Nombre",
+      "col_phone": "Teléfono",
+      "progress": "Exportando {done}/{total}...",
+      "successSingle": "Excel exportado ({count} pacientes)",
+      "successAll": "Excel exportado ({groups} grupos, {count} pacientes)",
+      "empty": "No hay grupos para exportar",
+      "error": "No se pudo exportar a Excel"
     }
   },
   "ProviderGroupsPage": {

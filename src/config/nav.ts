@@ -268,6 +268,7 @@ export const navItems: NavItem[] = [
       { title: 'AlertTemplates', href: '/system/communication-templates', icon: BookCopy, isChidren: true, requiredPermission: SYSTEM_PERMISSIONS.ALERT_TEMPLATES_VIEW_MENU },
       { title: 'AlertHistory', href: '/system/communication-history', icon: Mails, isChidren: true, requiredPermission: SYSTEM_PERMISSIONS.ALERT_HISTORY_VIEW_MENU },
       { title: 'AlertExecutions', href: '/system/execution-history', icon: FileClock, isChidren: true, requiredPermission: SYSTEM_PERMISSIONS.ALERT_EXECUTIONS_VIEW_MENU },
+      { title: 'WhatsAppAgent', href: '/system/whatsapp-agent', icon: BotMessageSquare, isChidren: true, requiredPermission: SYSTEM_PERMISSIONS.WHATSAPP_AGENT_CONFIG_VIEW_MENU },
       { title: '', href: '', icon: Shield, isChidren: false, isSeparator: true },
       { title: 'Configurations', href: '/system/config', icon: Settings, isChidren: true, requiredPermission: SYSTEM_PERMISSIONS.SYS_CONFIG_VIEW_MENU },
       { title: 'NotificationSettings', href: '/system/notification-settings', icon: Mails, isChidren: true, requiredPermission: SYSTEM_PERMISSIONS.NOTIFICATION_SETTINGS_VIEW_MENU },

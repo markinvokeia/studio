@@ -794,6 +794,21 @@ export type AppointmentUpdatedNotification = {
   appointment: Appointment;
 };
 
+export type WhatsappHandoffRequestedNotification = {
+  id: string;
+  type: 'whatsapp_handoff_requested';
+  createdAt: string;
+  seen?: boolean;
+  /** May be empty when the WhatsApp number is not a registered patient. */
+  patientId: string;
+  patientName: string;
+  phone: string;
+  /** The patient's last inbound message, for context. */
+  lastMessage: string;
+  /** Short reason the agent captured when escalating. */
+  reason: string;
+};
+
 export type UnifiedNotification =
   | AppointmentStatusChangeNotification
   | SessionCompletedNotification
@@ -801,7 +816,8 @@ export type UnifiedNotification =
   | NewAppointmentNotification
   | AppointmentRescheduledNotification
   | AppointmentReassignedNotification
-  | AppointmentUpdatedNotification;
+  | AppointmentUpdatedNotification
+  | WhatsappHandoffRequestedNotification;
 
 // ─────────────────────────────────────────────────────────────────────────────
 

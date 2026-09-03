@@ -17,6 +17,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
+import { PatientGroupExportButton, PatientGroupsExportAllButton } from '@/components/patients/patient-group-export-buttons';
 import { PatientGroupPatientsTab } from '@/components/patients/patient-group-patients-tab';
 import { PatientGroupServicesTab } from '@/components/patients/patient-group-services-tab';
 import { BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
@@ -315,6 +316,7 @@ export default function PatientGroupsPage() {
                     filterColumnId="name"
                     filterPlaceholder={t('filterPlaceholder')}
                     onCreate={canCreate ? handleCreate : undefined}
+                    primaryActions={<PatientGroupsExportAllButton />}
                     onRefresh={loadPatientGroups}
                     isRefreshing={isRefreshing}
                     enableSingleRowSelection
@@ -359,11 +361,14 @@ export default function PatientGroupsPage() {
                             </div>
                         )}
                     </div>
-                    {selectedPatientGroup && canDelete && (
-                        <div className="flex gap-1 flex-none">
-                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" onClick={() => { setDeletingPatientGroup(selectedPatientGroup); setIsDeleteDialogOpen(true); }}>
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
+                    {selectedPatientGroup && (
+                        <div className="flex items-center gap-1 flex-none">
+                            <PatientGroupExportButton group={{ id: String(selectedPatientGroup.id), name: selectedPatientGroup.name }} />
+                            {canDelete && (
+                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" onClick={() => { setDeletingPatientGroup(selectedPatientGroup); setIsDeleteDialogOpen(true); }}>
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            )}
                         </div>
                     )}
                 </div>

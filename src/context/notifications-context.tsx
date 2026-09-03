@@ -25,6 +25,7 @@ import type {
   ReminderPanelNotification,
   SessionCompletedNotification,
   UnifiedNotification,
+  WhatsappHandoffRequestedNotification,
 } from '@/lib/types';
 import { normalizeTratamiento } from '@/lib/utils';
 
@@ -84,7 +85,8 @@ interface BackendNotification {
     | 'reminder'
     | 'appointment_rescheduled'
     | 'appointment_reassigned'
-    | 'appointment_updated';
+    | 'appointment_updated'
+    | 'whatsapp_handoff_requested';
   reminder_id?: string | null;
   status: 'pending' | 'read' | 'dismissed';
   appointment_id?: string | null;
@@ -223,6 +225,17 @@ function normalizeBackendNotification(n: BackendNotification): UnifiedNotificati
         type: 'appointment_updated',
         appointment: buildAppointment(normalizeAppointmentStatus(m.status ?? 'scheduled')),
       } satisfies AppointmentUpdatedNotification;
+
+    case 'whatsapp_handoff_requested':
+      return {
+        ...base,
+        type: 'whatsapp_handoff_requested',
+        patientId,
+        patientName: m.patient_name ?? patientName,
+        phone: m.phone ?? '',
+        lastMessage: m.last_message ?? m.message_text ?? '',
+        reason: m.reason ?? '',
+      } satisfies WhatsappHandoffRequestedNotification;
 
     case 'reminder':
       return {
@@ -443,6 +456,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     const reschedules = novel.filter((n): n is AppointmentRescheduledNotification => n.type === 'appointment_rescheduled');
     const reassigns = novel.filter((n): n is AppointmentReassignedNotification => n.type === 'appointment_reassigned');
     const edits = novel.filter((n): n is AppointmentUpdatedNotification => n.type === 'appointment_updated');
+    const handoffs = novel.filter((n): n is WhatsappHandoffRequestedNotification => n.type === 'whatsapp_handoff_requested');
 
     if (alertStyleRef.current === 'toast') {
       newAppts.forEach((n) => {
@@ -490,6 +504,12 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
           description: n.reminder.description
             ? `${n.reminder.title} · ${n.reminder.description}`
             : n.reminder.title,
+        });
+      });
+      handoffs.forEach((n) => {
+        toast({
+          title: tN('handoffRequestedTitle'),
+          description: n.patientName || n.phone || tN('unknownPatient'),
         });
       });
       const novelIds = new Set(novel.map((n) => n.id));

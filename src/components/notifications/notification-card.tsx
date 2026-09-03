@@ -11,6 +11,7 @@ import {
   Check,
   Clock,
   ExternalLink,
+  Headset,
   ListChecks,
   Loader2,
   Pencil,
@@ -45,6 +46,7 @@ import type {
   SessionCompletedNotification,
   TreatmentDetail,
   UnifiedNotification,
+  WhatsappHandoffRequestedNotification,
 } from '@/lib/types';
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
@@ -842,6 +844,68 @@ function ReminderCard({ notification }: { notification: ReminderPanelNotificatio
   );
 }
 
+// ── WhatsApp handoff requested card ───────────────────────────────────────────
+
+function WhatsappHandoffCard({ notification }: { notification: WhatsappHandoffRequestedNotification }) {
+  const { dismissNotification, closePanel } = useNotifications();
+  const t = useTranslations('Notifications');
+  const locale = useLocale();
+  const router = useRouter();
+  const { patientId, patientName, phone, lastMessage, createdAt } = notification;
+
+  const handleView = () => {
+    closePanel();
+    router.push(`/${locale}/patients?q=${encodeURIComponent(patientName || phone)}`);
+  };
+
+  return (
+    <CardWrapper onDismiss={() => dismissNotification(notification.id)} accent="border-l-[3px] border-l-green-500/60">
+      <div className="flex items-start gap-3 pr-6">
+        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-green-500/10">
+          <Headset className="h-3.5 w-3.5 text-green-600" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs font-semibold text-foreground truncate">
+              {patientName || phone || t('unknownPatient')}
+            </span>
+            <RelativeTime iso={createdAt} />
+          </div>
+          <p className="mt-0.5 text-[11px] font-medium text-green-700">{t('handoffRequestedTitle')}</p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">{t('handoffAgentPaused')}</p>
+
+          {phone && (
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              {t('handoffPhone')}: <span className="font-medium text-foreground">{phone}</span>
+            </p>
+          )}
+
+          {lastMessage && (
+            <div className="mt-2 rounded-lg bg-muted/40 px-3 py-2">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                {t('handoffLastMessage')}
+              </p>
+              <p className="mt-0.5 text-[11px] text-foreground line-clamp-3">{lastMessage}</p>
+            </div>
+          )}
+
+          {patientId && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3 h-7 w-full justify-start gap-2 text-[11px]"
+              onClick={handleView}
+            >
+              <ExternalLink className="h-3.5 w-3.5 text-green-600" />
+              {t('actionViewPatient')}
+            </Button>
+          )}
+        </div>
+      </div>
+    </CardWrapper>
+  );
+}
+
 // ── Dispatcher ────────────────────────────────────────────────────────────────
 
 export function NotificationCard({ notification }: { notification: UnifiedNotification }) {
@@ -860,5 +924,7 @@ export function NotificationCard({ notification }: { notification: UnifiedNotifi
       return <SessionCompletedCard notification={notification} />;
     case 'reminder':
       return <ReminderCard notification={notification} />;
+    case 'whatsapp_handoff_requested':
+      return <WhatsappHandoffCard notification={notification} />;
   }
 }

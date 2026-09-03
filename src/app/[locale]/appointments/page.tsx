@@ -291,15 +291,32 @@ function parseNotifScheduleDate(raw: string | undefined): Date {
     return set(parsed, { hours: now.getHours(), minutes: now.getMinutes(), seconds: 0, milliseconds: 0 });
 }
 
+// Valores que el mapeo deja cuando la cita no trae paciente o tratamiento
+// (típico de eventos importados desde Google Calendar). En la tarjeta del
+// calendario no aportan nada, así que se tratan como vacíos.
+const EVENT_LABEL_PLACEHOLDERS = new Set(['n/a', 'na', '-', '--']);
+function cleanEventLabelPart(value: string | null | undefined, noneLabel: string): string {
+    const trimmed = (value || '').trim();
+    if (!trimmed) return '';
+    const normalized = trimmed.toLowerCase();
+    if (EVENT_LABEL_PLACEHOLDERS.has(normalized)) return '';
+    if (normalized === noneLabel.trim().toLowerCase()) return '';
+    return trimmed;
+}
+
 // Builds the label shown on each appointment by concatenating its fields
 // according to the configured format (see EVENT_LABEL_FORMATS).
-function buildEventLabel(appt: Appointment, start: Date, fmt: string): string {
+function buildEventLabel(appt: Appointment, start: Date, fmt: string, noneLabel: string): string {
     const time = format(start, 'HH:mm');
-    const patient = (appt.patientName || '').trim();
-    const treatment = (appt.summary || appt.service_name || '').trim();
+    const summary = cleanEventLabelPart(appt.summary, noneLabel);
+    // Las citas importadas de Google Calendar no traen paciente y el mapeo deja
+    // 'N/A': en su lugar se muestra el summary del evento.
+    const patient = cleanEventLabelPart(appt.patientName, noneLabel) || summary;
+    const treatment = cleanEventLabelPart(appt.summary || appt.service_name, noneLabel);
     const notes = (appt.notes || '').trim();
     if (fmt === 'patient_treatment_time') {
-        return [patient, treatment, time].filter(Boolean).join(' ');
+        // Cuando el summary ya ocupa el lugar del paciente no se repite como tratamiento.
+        return [patient, treatment === patient ? '' : treatment, time].filter(Boolean).join(' ');
     }
     // default: time_patient_notes -> "HH:mm Patient (Notes)"
     const base = [time, patient].filter(Boolean).join(' ');
@@ -2644,6 +2661,9 @@ export default function AppointmentsPage() {
     }, []);
 
     const calendarEvents = React.useMemo(() => {
+        // El mapeo de la API rellena summary/service_name con este texto cuando
+        // el evento no trae ninguno; en la etiqueta se ignora.
+        const noneLabel = t('createDialog.none');
         const selectedDoctorIdSet = new Set(selectedDoctorIds.map(String));
         const selectedCalendarIdSet = new Set(selectedCalendarIds.map(String));
         const events = appointments
@@ -2687,7 +2707,7 @@ export default function AppointmentsPage() {
                     return {
                         id: String(appt.id),
                         title: appt.summary || appt.service_name || 'Cita',
-                        label: buildEventLabel(appt, start, eventLabelFormat),
+                        label: buildEventLabel(appt, start, eventLabelFormat, noneLabel),
                         start,
                         end,
                         doctorGroupId: appt.doctorId || undefined,
@@ -2727,7 +2747,7 @@ export default function AppointmentsPage() {
             .filter((event): event is NonNullable<typeof event> => event !== null);
 
         return [...events, ...reminderEvents];
-    }, [appointments, calendars, reminders, selectedCalendarIds, selectedDoctorIds, eventLabelFormat, colorByStatus, isBulkMode]);
+    }, [appointments, calendars, reminders, selectedCalendarIds, selectedDoctorIds, eventLabelFormat, colorByStatus, isBulkMode, t]);
 
     const visibleCalendarItems = React.useMemo(
         () => reminders.filter((reminder) => {
