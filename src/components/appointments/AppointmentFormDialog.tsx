@@ -721,13 +721,18 @@ export function AppointmentFormDialog({
         if (!time) newErrors.push('time');
         if (!calendar) newErrors.push('calendar');
 
-        if (!isEditing) {
-            if (!user) newErrors.push('user');
-        }
+        // A patient is always required, also when editing: appointments imported from
+        // Google Calendar arrive with no patient assigned and must not be saved that way.
+        if (!user?.id) newErrors.push('user');
 
         if (newErrors.length > 0) {
             setErrors(newErrors);
-            toast({ variant: "destructive", title: tToasts('missingInfoTitle'), description: tToasts('fillRequired') });
+            const onlyPatientMissing = newErrors.length === 1 && newErrors[0] === 'user';
+            toast({
+                variant: "destructive",
+                title: tToasts('missingInfoTitle'),
+                description: onlyPatientMissing ? tToasts('patientRequired') : tToasts('fillRequired'),
+            });
             return;
         }
 

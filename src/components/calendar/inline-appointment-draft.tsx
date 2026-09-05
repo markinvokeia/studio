@@ -675,7 +675,7 @@ export function InlineAppointmentDraft({
         <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={onCancel} disabled={isSaving}>
           {t('cancel')}
         </Button>
-        <Button size="sm" className="h-7 gap-1 px-2.5 text-xs" onClick={onSave} disabled={isSaving || !patient}>
+        <Button size="sm" className="h-7 gap-1 px-2.5 text-xs" onClick={onSave} disabled={isSaving || !patient?.id}>
           {isSaving && <Loader2 className="h-3 w-3 animate-spin" />}
           {saveLabel ?? t('save')}
         </Button>

@@ -1061,6 +1061,7 @@
       "failedCancel": "Failed to cancel",
       "failedDelete": "Failed to delete",
       "fillRequired": "Please fill in the required fields",
+      "patientRequired": "You must assign a patient before saving the appointment",
       "missingInfoTitle": "Missing Information",
       "slotNoLongerAvailable": "Slot no longer available",
       "slotUnavailableDescription": "The selected time slot is no longer available.",
