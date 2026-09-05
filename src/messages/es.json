@@ -1055,6 +1055,7 @@
       "failedCancel": "Error al cancelar",
       "failedDelete": "Error al eliminar",
       "fillRequired": "Por favor complete los campos obligatorios",
+      "patientRequired": "Debe asignar un paciente antes de guardar la cita",
       "missingInfoTitle": "Información Faltante",
       "slotNoLongerAvailable": "El horario ya no está disponible",
       "slotUnavailableDescription": "El horario seleccionado ya no está disponible.",

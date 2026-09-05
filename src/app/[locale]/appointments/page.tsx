@@ -1249,6 +1249,14 @@ export default function AppointmentsPage() {
             const draftColor = inlineDraft.colorTouched ? inlineDraft.color : inlineDraft.color || getGoogleCalendarColorId(calendar?.color);
             const editing = inlineDraft.editing ?? null;
 
+            // A patient is always required: appointments imported from Google Calendar
+            // arrive with no patient assigned and must not be saved that way.
+            if (!patient?.id) {
+                toast({ variant: 'destructive', title: tToasts('missingInfoTitle'), description: tToasts('patientRequired') });
+                setIsSavingInline(false);
+                return;
+            }
+
             // Block save when the chosen date/time falls outside the calendar's
             // working hours (only when "block out-of-office hours" is enabled).
             if (isDateTimeBlocked(start, calendar?.id ? String(calendar.id) : undefined)) {
