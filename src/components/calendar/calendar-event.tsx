@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import { BellRing, CheckCircle2, FileText, Users } from 'lucide-react';
 
 import {
@@ -16,6 +17,7 @@ import { cn } from '@/lib/utils';
 import type { AppointmentStatus, CalendarReminderPriority, CalendarReminderStatus, CancellationReason } from '@/lib/types';
 import { getStatusIcon } from '@/components/appointments/status-icons';
 
+import { GOOGLE_IMPORT_BADGE_COLOR } from './calendar-constants';
 import type { CalendarEvent } from './calendar-types';
 import { formatEventTime, getContrastingIconColor, getReadableTextColor } from './calendar-utils';
 import { getReminderCardStyle, getReminderPriorityColor, isGeneralReminder, isReminderDone } from './reminder-visuals';
@@ -37,6 +39,7 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
   onEventContextMenu,
   onEventContextMenuOpen,
 }: CalendarEventChipProps) {
+  const tAppointments = useTranslations('AppointmentsPage');
   const rawStatus = event.data?.status as string | undefined;
   const isReminder = event.data?.kind === 'reminder';
   const isNote = isReminder && event.data?.type === 'note';
@@ -124,6 +127,14 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
               </span>
             );
           })()}
+          {!isReminder && event.data?.imported_from_google === true && (
+            <span
+              aria-hidden
+              className="event-source-corner"
+              title={tAppointments('importedFromGoogle')}
+              style={{ backgroundColor: GOOGLE_IMPORT_BADGE_COLOR }}
+            />
+          )}
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent className="w-[min(18rem,calc(100vw-1rem))]">

@@ -198,10 +198,166 @@ function mergeIntervals(intervals: Interval[]): Interval[] {
   return out;
 }
 
+/** End of day, in minutes from midnight. */
+const DAY_END_MIN = 24 * 60;
+
+/**
+ * Parses an END time (`HH:mm[:ss]`) into minutes.
+ *
+ * Two normalizations, both driven by how the data is actually stored: the backend
+ * writes `23:59:59` when no end time is given, and users save ends like `14:59:59`
+ * meaning "up to 15:00".
+ *  - seconds > 0 round the minute up (`14:59:59` → 15:00, `23:59:59` → 24:00);
+ *  - anything landing on the last minute of the day snaps to 24:00, so a whole-day
+ *    closure never leaves a one-minute sliver open.
+ */
+function endTimeToMinutes(value: string | undefined | null): number | null {
+  const base = timeToMinutes(value);
+  if (base === null) return null;
+  const secs = Number(value?.split(':')[2] ?? 0);
+  const rounded = Number.isFinite(secs) && secs > 0 ? base + 1 : base;
+  return rounded >= DAY_END_MIN - 1 ? DAY_END_MIN : rounded;
+}
+
+/** An interval that carries the exception note(s) that produced it. */
+type NotedInterval = Interval & { note?: string };
+
+/** Joins the notes of merged closures, de-duplicated. */
+function joinNotes(a?: string, b?: string): string {
+  const parts = [a, b]
+    .flatMap((n) => (n ? n.split(' · ') : []))
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return Array.from(new Set(parts)).join(' · ');
+}
+
+/** Like `mergeIntervals`, but combines the notes of the merged pieces. */
+function mergeNoted(intervals: NotedInterval[]): NotedInterval[] {
+  const sorted = [...intervals]
+    .filter((i) => i.endMin > i.startMin)
+    .sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
+  const out: NotedInterval[] = [];
+  for (const it of sorted) {
+    const last = out[out.length - 1];
+    if (last && it.startMin <= last.endMin) {
+      last.endMin = Math.max(last.endMin, it.endMin);
+      last.note = joinNotes(last.note, it.note);
+    } else {
+      out.push({ ...it });
+    }
+  }
+  return out;
+}
+
+/**
+ * The window a `is_open=false` exception closes. With no usable times (or an
+ * inverted range) it closes the whole day — the historical behaviour.
+ */
+function closureWindow(e: ClinicException): Interval {
+  const sm = timeToMinutes(e.start_time);
+  const em = endTimeToMinutes(e.end_time);
+  if (sm === null && em === null) return { startMin: 0, endMin: DAY_END_MIN };
+  const startMin = sm ?? 0;
+  const endMin = em ?? DAY_END_MIN;
+  if (endMin <= startMin) return { startMin: 0, endMin: DAY_END_MIN };
+  return { startMin, endMin };
+}
+
+/** Merged closing windows (with their notes) for the exceptions of a single day. */
+function closuresFor(dayExceptions: ClinicException[]): NotedInterval[] {
+  return mergeNoted(
+    dayExceptions
+      .filter((e) => !e.is_open)
+      .map((e) => ({ ...closureWindow(e), note: e.notes || '' })),
+  );
+}
+
+/** `base` minus `holes` (both merged and sorted by start). */
+function subtractIntervals(base: Interval[], holes: Interval[]): Interval[] {
+  if (holes.length === 0) return base;
+  const out: Interval[] = [];
+  for (const b of base) {
+    let cursor = b.startMin;
+    for (const h of holes) {
+      if (h.endMin <= cursor) continue;
+      if (h.startMin >= b.endMin) break;
+      if (h.startMin > cursor) out.push({ startMin: cursor, endMin: Math.min(h.startMin, b.endMin) });
+      cursor = Math.max(cursor, h.endMin);
+      if (cursor >= b.endMin) break;
+    }
+    if (cursor < b.endMin) out.push({ startMin: cursor, endMin: b.endMin });
+  }
+  return out;
+}
+
+/** Exceptions falling on `day` (tolerates ISO/datetime `date` values). */
+function dayExceptionsFor(day: Date, exceptions: ClinicException[]): ClinicException[] {
+  const dayKey = format(day, 'yyyy-MM-dd');
+  return exceptions.filter((e) => normalizeDateKey(e.date) === dayKey);
+}
+
+/** Weekday schedule rows as merged intervals (handles both day_of_week conventions). */
+function weekdayIntervalsFor(day: Date, schedules: ClinicSchedule[]): Interval[] {
+  const jsDow = day.getDay();              // Sun=0..Sat=6
+  const isoDow = jsDow === 0 ? 7 : jsDow;  // Mon=1..Sun=7
+  const dows = new Set(schedules.map((s) => Number(s.day_of_week)));
+  const usesIso = schedules.length > 0 && !dows.has(0);
+  const target = usesIso ? isoDow : jsDow;
+  return mergeIntervals(
+    schedules
+      .filter((s) => Number(s.day_of_week) === target)
+      .map((s) => ({ startMin: timeToMinutes(s.start_time), endMin: timeToMinutes(s.end_time) }))
+      .filter((i): i is Interval => i.startMin !== null && i.endMin !== null),
+  );
+}
+
+/**
+ * The day's open window BEFORE closing exceptions are applied: the opening
+ * exceptions when there are any, otherwise the weekday schedule.
+ */
+function baseIntervalsFor(
+  day: Date,
+  schedules: ClinicSchedule[],
+  dayExceptions: ClinicException[],
+): Interval[] {
+  const weekdayIntervals = weekdayIntervalsFor(day, schedules);
+  const openings = dayExceptions.filter((e) => e.is_open);
+  if (openings.length === 0) return weekdayIntervals;
+
+  const opened: Interval[] = [];
+  for (const e of openings) {
+    const sm = timeToMinutes(e.start_time);
+    const em = endTimeToMinutes(e.end_time);
+    if (sm !== null && em !== null && em > sm) opened.push({ startMin: sm, endMin: em });
+  }
+  if (opened.length > 0) return mergeIntervals(opened);
+  if (weekdayIntervals.length > 0) return weekdayIntervals;
+  return [{ startMin: DEFAULT_BUSINESS_START_MIN, endMin: DEFAULT_BUSINESS_END_MIN }];
+}
+
+/**
+ * Exceptions that apply to a branch: rows with no `sede_id` are clinic-wide and
+ * always apply; rows with one apply only to that branch.
+ *
+ * With no sede context (a timeline mixing branches) only the clinic-wide rows
+ * apply — a branch-specific holiday must not grey out a column that is also
+ * showing another branch's appointments.
+ */
+export function filterExceptionsForSede(
+  exceptions: ClinicException[],
+  sedeId?: string,
+): ClinicException[] {
+  if (sedeId) return exceptions.filter((e) => !e.sede_id || String(e.sede_id) === String(sedeId));
+  return exceptions.filter((e) => !e.sede_id);
+}
+
 /**
  * Working intervals available for `day`, from clinic schedules and exceptions.
- * Exceptions take precedence: `is_open=false` closes the date (→ []), `is_open=true`
- * opens it (using its start/end, else the weekday schedule, else 09:00–19:00).
+ *
+ * `is_open=true` exceptions replace the day's open window (their own times, else
+ * the weekday schedule, else 09:00–19:00). `is_open=false` exceptions are
+ * subtracted from it: with a start/end they only close that window, without times
+ * they close the whole day. Several exceptions on the same date combine.
  * A weekday with no schedule rows (and no opening exception) is closed (→ []).
  */
 export function getAvailableIntervals(
@@ -209,38 +365,10 @@ export function getAvailableIntervals(
   schedules: ClinicSchedule[],
   exceptions: ClinicException[] = [],
 ): Interval[] {
-  const dayKey = format(day, 'yyyy-MM-dd');
-  const dayExceptions = exceptions.filter((e) => normalizeDateKey(e.date) === dayKey);
-
-  // Weekday schedule rows (handles both day_of_week conventions).
-  const jsDow = day.getDay();              // Sun=0..Sat=6
-  const isoDow = jsDow === 0 ? 7 : jsDow;  // Mon=1..Sun=7
-  const dows = new Set(schedules.map((s) => Number(s.day_of_week)));
-  const usesIso = schedules.length > 0 && !dows.has(0);
-  const target = usesIso ? isoDow : jsDow;
-  const weekdayRows = schedules.filter((s) => Number(s.day_of_week) === target);
-  const weekdayIntervals = mergeIntervals(
-    weekdayRows
-      .map((s) => ({ startMin: timeToMinutes(s.start_time), endMin: timeToMinutes(s.end_time) }))
-      .filter((i): i is Interval => i.startMin !== null && i.endMin !== null) as Interval[],
-  );
-
-  if (dayExceptions.length > 0) {
-    // Any closing exception shuts the whole day.
-    if (dayExceptions.some((e) => !e.is_open)) return [];
-    // Opening exceptions: use their times, falling back to weekday schedule / default.
-    const opened: Interval[] = [];
-    for (const e of dayExceptions) {
-      const sm = timeToMinutes(e.start_time);
-      const em = timeToMinutes(e.end_time);
-      if (sm !== null && em !== null && em > sm) opened.push({ startMin: sm, endMin: em });
-    }
-    if (opened.length > 0) return mergeIntervals(opened);
-    if (weekdayIntervals.length > 0) return weekdayIntervals;
-    return [{ startMin: DEFAULT_BUSINESS_START_MIN, endMin: DEFAULT_BUSINESS_END_MIN }];
-  }
-
-  return weekdayIntervals; // [] when the weekday has no schedule → closed
+  const dayExceptions = dayExceptionsFor(day, exceptions);
+  const base = baseIntervalsFor(day, schedules, dayExceptions);
+  if (base.length === 0) return [];
+  return subtractIntervals(base, closuresFor(dayExceptions));
 }
 
 /** A blocked interval, annotated with why it's blocked. */
@@ -248,30 +376,54 @@ export type BlockedInterval = Interval & { reason: 'schedule' | 'exception'; not
 
 /**
  * Non-working ranges for `day` within [0, 1440] — the complement of the available
- * intervals. A fully-closed day yields a single 0–1440 block. When the day is
- * closed by a "cerrado" exception, the block is tagged `reason: 'exception'` with
- * the exception's notes.
+ * intervals, split by cause: time outside the schedule is `reason: 'schedule'`
+ * (grey), time removed by a "cerrado" exception is `reason: 'exception'` (red
+ * hatch + note). The two sets are disjoint by construction — grey is
+ * `[0,1440) \ base` and red is `closures ∩ base` — so the bands never overlap
+ * and `blockedKey()` stays unique even though it ignores `reason`.
+ *
+ * A closure covering the whole day still collapses into a single 0–1440 exception
+ * band, so existing full-day feriados render exactly as before.
  */
 export function computeBlockedRanges(
   day: Date,
   schedules: ClinicSchedule[],
   exceptions: ClinicException[] = [],
 ): BlockedInterval[] {
-  const dayKey = format(day, 'yyyy-MM-dd');
-  const closing = exceptions.find((e) => normalizeDateKey(e.date) === dayKey && !e.is_open);
-  if (closing) {
-    return [{ startMin: 0, endMin: 24 * 60, reason: 'exception', note: closing.notes || '' }];
+  const dayExceptions = dayExceptionsFor(day, exceptions);
+  const closures = closuresFor(dayExceptions);
+
+  // Whole-day closure → one red band for the entire day (the legacy look).
+  const fullDay = closures.find((c) => c.startMin <= 0 && c.endMin >= DAY_END_MIN);
+  if (fullDay) {
+    return [{ startMin: 0, endMin: DAY_END_MIN, reason: 'exception', note: fullDay.note || '' }];
   }
-  const avail = getAvailableIntervals(day, schedules, exceptions);
-  if (avail.length === 0) return [{ startMin: 0, endMin: 24 * 60, reason: 'schedule' }];
+
+  // The open window before the closures: what those closures actually take away.
+  const base = baseIntervalsFor(day, schedules, dayExceptions);
+  if (base.length === 0) return [{ startMin: 0, endMin: DAY_END_MIN, reason: 'schedule' }];
+
   const blocked: BlockedInterval[] = [];
+
+  // 1. Out-of-schedule time (the complement of `base`).
   let cursor = 0;
-  for (const it of avail) {
+  for (const it of base) {
     if (it.startMin > cursor) blocked.push({ startMin: cursor, endMin: it.startMin, reason: 'schedule' });
     cursor = Math.max(cursor, it.endMin);
   }
-  if (cursor < 24 * 60) blocked.push({ startMin: cursor, endMin: 24 * 60, reason: 'schedule' });
-  return blocked;
+  if (cursor < DAY_END_MIN) blocked.push({ startMin: cursor, endMin: DAY_END_MIN, reason: 'schedule' });
+
+  // 2. Closures clipped to `base`, so the red band and its note only cover time
+  //    that was otherwise open; the rest already falls inside a grey band.
+  for (const c of closures) {
+    for (const b of base) {
+      const startMin = Math.max(c.startMin, b.startMin);
+      const endMin = Math.min(c.endMin, b.endMin);
+      if (endMin > startMin) blocked.push({ startMin, endMin, reason: 'exception', note: c.note || '' });
+    }
+  }
+
+  return blocked.sort((a, b) => a.startMin - b.startMin);
 }
 
 /**

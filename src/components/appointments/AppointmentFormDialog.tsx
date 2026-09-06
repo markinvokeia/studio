@@ -147,12 +147,19 @@ export function AppointmentFormDialog({
         time: format(new Date(), 'HH:mm'),
         endTime: '',
         notes: '',
+        // Título del evento. Solo se muestra y se edita en las citas importadas de
+        // Google Calendar; en el resto se autogenera a partir de paciente + servicios.
+        summary: '',
         quote: null as Quote | null,
     });
 
     const [errors, setErrors] = React.useState<string[]>([]);
 
     const [originalCalendarId, setOriginalCalendarId] = React.useState<string | undefined>(undefined);
+
+    // Citas traídas de Google Calendar: no tienen paciente ni tratamientos, así que su
+    // summary (el título del evento) es el único dato real y se edita a mano.
+    const isImportedFromGoogle = editingAppointment?.imported_from_google === true;
     const [availabilityStatus, setAvailabilityStatus] = React.useState<'idle' | 'checking' | 'available' | 'unavailable'>('idle');
     const [suggestedTimes, setSuggestedTimes] = React.useState<any[]>([]);
 
@@ -368,13 +375,17 @@ export function AppointmentFormDialog({
                 }
 
                 setAppointment({
-                    user: {
-                        id: editingAppointment.patientId || '',
-                        name: editingAppointment.patientName,
-                        email: editingAppointment.patientEmail || '',
-                        phone_number: editingAppointment.patientPhone || '',
-                        is_active: true, avatar: ''
-                    },
+                    // Sin paciente asignado (típico de las citas importadas de Google) el
+                    // selector tiene que verse vacío, no con el 'N/A' que deja el mapeo.
+                    user: editingAppointment.patientId
+                        ? {
+                            id: editingAppointment.patientId,
+                            name: editingAppointment.patientName,
+                            email: editingAppointment.patientEmail || '',
+                            phone_number: editingAppointment.patientPhone || '',
+                            is_active: true, avatar: ''
+                        }
+                        : null,
                     services: editingAppointment.services || [],
                     doctor: editingAppointment.doctorId ? {
                         id: editingAppointment.doctorId,
@@ -388,6 +399,11 @@ export function AppointmentFormDialog({
                     time: editingAppointment.time || '',
                     endTime: editingAppointment.end ? format(parseISO(editingAppointment.end.dateTime.replace(/Z$/, '')), 'HH:mm') : '',
                     notes: editingAppointment.notes || '',
+                    // El mapper rellena el summary con el placeholder "Ninguno" cuando
+                    // la cita no trae uno; en el campo eso tiene que verse vacío.
+                    summary: editingAppointment.summary && editingAppointment.summary !== t('createDialog.none')
+                        ? editingAppointment.summary
+                        : '',
                     quote: editingAppointment.quote_id ? {
                         id: editingAppointment.quote_id,
                         doc_no: editingAppointment.quote_doc_no || '',
@@ -425,6 +441,7 @@ export function AppointmentFormDialog({
                     time: initialData.time || format(new Date(), 'HH:mm'),
                     endTime: '',
                     notes: initialData.notes || '',
+                    summary: initialData.summary || '',
                     quote: initialData.quote || null,
                 });
                 setOriginalCalendarId(undefined);
@@ -438,6 +455,7 @@ export function AppointmentFormDialog({
                     time: format(new Date(), 'HH:mm'),
                     endTime: '',
                     notes: '',
+                    summary: '',
                     quote: null,
                 });
                 setOriginalCalendarId(undefined);
@@ -721,9 +739,14 @@ export function AppointmentFormDialog({
         if (!time) newErrors.push('time');
         if (!calendar) newErrors.push('calendar');
 
-        // A patient is always required, also when editing: appointments imported from
-        // Google Calendar arrive with no patient assigned and must not be saved that way.
-        if (!user?.id) newErrors.push('user');
+        // A patient is always required, EXCEPT for appointments imported from Google
+        // Calendar: those arrive with no patient assigned and must stay editable
+        // (the same rule the inline card applies).
+        if (!user?.id && !isImportedFromGoogle) newErrors.push('user');
+
+        // El summary de una cita importada no se autogenera: si queda vacío la cita
+        // se quedaría sin título.
+        if (isImportedFromGoogle && !appointment.summary.trim()) newErrors.push('summary');
 
         if (newErrors.length > 0) {
             setErrors(newErrors);
@@ -805,12 +828,19 @@ export function AppointmentFormDialog({
             payload.doctor_id = doctor?.id || editingAppointment!.doctorId;
             payload.doctor_name = doctor?.name || editingAppointment!.doctorName;
             payload.doctor_email = doctor?.email || editingAppointment!.doctorEmail;
-            payload.patient_id = user?.id || editingAppointment!.patientId;
-            payload.patient_name = user?.name || editingAppointment!.patientName;
-            payload.patient_email = user?.email || editingAppointment!.patientEmail;
-            payload.patient_phone = user?.phone_number || editingAppointment!.patientPhone;
+            // Una cita importada puede guardarse sin paciente: en ese caso no se manda
+            // el 'N/A' que el mapeo dejó en patientName.
+            const hasPatient = !!(user?.id || editingAppointment!.patientId);
+            payload.patient_id = user?.id || editingAppointment!.patientId || '';
+            payload.patient_name = hasPatient ? (user?.name || editingAppointment!.patientName) : '';
+            payload.patient_email = hasPatient ? (user?.email || editingAppointment!.patientEmail) : '';
+            payload.patient_phone = hasPatient ? (user?.phone_number || editingAppointment!.patientPhone) : '';
             const patientNameBase = user?.name || editingAppointment!.patientName;
-            payload.summary = services.length > 0 ? `${patientNameBase} - ${services.map(s => s.name).join(', ')}` : editingAppointment!.summary;
+            // En las citas importadas de Google el summary es el título del evento y lo
+            // maneja el usuario: se guarda literal, sin regenerarlo desde los servicios.
+            payload.summary = isImportedFromGoogle
+                ? appointment.summary.trim()
+                : (services.length > 0 ? `${patientNameBase} - ${services.map(s => s.name).join(', ')}` : editingAppointment!.summary);
             payload.service_ids = services.filter(s => s.id).map(s => s.id);
             payload.service_names = services.map(s => s.name).join(', ');
             payload.notes = notes || editingAppointment!.notes || '';
@@ -1167,6 +1197,30 @@ export function AppointmentFormDialog({
                         </DialogDescription>
                     </DialogHeader>
                     <DialogBody>
+                        {isImportedFromGoogle && (
+                            <div className="mx-6 mt-4 space-y-2 rounded-lg border border-[#4285F4]/30 bg-[#4285F4]/5 p-3">
+                                <div className="flex items-center gap-1.5 text-xs font-medium text-[#4285F4]">
+                                    <CalendarDays className="h-3.5 w-3.5" />
+                                    {t('importedFromGoogle')}
+                                </div>
+                                <Label
+                                    htmlFor="summary"
+                                    className={errors.includes('summary') ? 'text-destructive' : undefined}
+                                >
+                                    {t('createDialog.summary')}
+                                </Label>
+                                <Input
+                                    id="summary"
+                                    value={appointment.summary}
+                                    onChange={(e) => {
+                                        setHasBeenEdited(true);
+                                        setAppointment(prev => ({ ...prev, summary: e.target.value }));
+                                        setErrors(prev => prev.filter(err => err !== 'summary'));
+                                    }}
+                                    className={errors.includes('summary') ? 'border-destructive' : undefined}
+                                />
+                            </div>
+                        )}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-6 py-4">
                             <div className="space-y-4">
                                 <div className="space-y-2">

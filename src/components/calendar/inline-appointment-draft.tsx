@@ -46,6 +46,13 @@ interface InlineAppointmentDraftProps {
   onServicesChange: (services: Service[]) => void;
   notes: string;
   onNotesChange: (notes: string) => void;
+  /** Cita importada de Google Calendar. Muestra el campo de resumen (el título del
+   *  evento, que para estas citas es el único dato real) y permite guardar sin
+   *  paciente asignado, porque llegan sin uno. */
+  importedFromGoogle?: boolean;
+  /** Resumen/título del evento. Solo se usa cuando `importedFromGoogle`. */
+  summary?: string;
+  onSummaryChange?: (summary: string) => void;
   overlapWarning?: boolean;
   patientDebt?: { currency: string; amount: number }[];
   /** Number of cancelled appointments the patient has (shown next to the debt). */
@@ -288,6 +295,9 @@ export function InlineAppointmentDraft({
   onServicesChange,
   notes,
   onNotesChange,
+  importedFromGoogle = false,
+  summary = '',
+  onSummaryChange,
   overlapWarning,
   patientDebt,
   cancelledCount,
@@ -478,6 +488,21 @@ export function InlineAppointmentDraft({
           <AlertTriangle className="h-3 w-3 shrink-0" />
           {t('overlapWarning')}
         </span>
+      )}
+
+      {importedFromGoogle && (
+        <div className="space-y-1 rounded-md border border-[#4285F4]/30 bg-[#4285F4]/5 p-2">
+          <span className="flex items-center gap-1 text-[11px] font-medium text-[#4285F4]">
+            <CalendarDays className="h-3 w-3 shrink-0" />
+            {t('importedFromGoogle')}
+          </span>
+          <Input
+            value={summary}
+            onChange={(e) => onSummaryChange?.(e.target.value)}
+            placeholder={t('summaryPlaceholder')}
+            className="h-7 px-2 text-xs"
+          />
+        </div>
       )}
 
       {variant === 'custom' ? (
@@ -675,7 +700,7 @@ export function InlineAppointmentDraft({
         <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={onCancel} disabled={isSaving}>
           {t('cancel')}
         </Button>
-        <Button size="sm" className="h-7 gap-1 px-2.5 text-xs" onClick={onSave} disabled={isSaving || !patient?.id}>
+        <Button size="sm" className="h-7 gap-1 px-2.5 text-xs" onClick={onSave} disabled={isSaving || (!patient?.id && !importedFromGoogle)}>
           {isSaving && <Loader2 className="h-3 w-3 animate-spin" />}
           {saveLabel ?? t('save')}
         </Button>

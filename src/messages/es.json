@@ -1014,7 +1014,9 @@
       "workflowServiceTitle": "Servicio con Flujo",
       "workflowServiceDescription": "Agendar esta cita creará un plan de tratamiento con {steps} pasos.",
       "workflowPlanCreated": "Plan de tratamiento creado para {name} ({steps} pasos)",
-      "workflowStepsLoading": "Cargando pasos..."
+      "workflowStepsLoading": "Cargando pasos...",
+      "summary": "Resumen del evento",
+      "summaryRequired": "El resumen es obligatorio para las citas importadas."
     },
     "AppointmentsColumns": {
       "service": "Servicio",
@@ -1123,7 +1125,9 @@
       "selectDoctor": "Doctor",
       "searchDoctor": "Buscar doctor…",
       "noDoctors": "Sin doctores",
-      "viewStatement": "Ver estado de cuenta"
+      "viewStatement": "Ver estado de cuenta",
+      "importedFromGoogle": "Importado de Google Calendar",
+      "summaryPlaceholder": "Título del evento"
     },
     "linkedSession": "Sesión Clínica Enlazada",
     "noLinkedSession": "No hay sesión clínica enlazada a esta cita",
@@ -1177,7 +1181,8 @@
     "treatmentSequence": {
       "title": "Plan de Tratamiento",
       "stepRef": "Paso del plan #{id}"
-    }
+    },
+    "importedFromGoogle": "Importado de Google Calendar"
   },
   "AppointmentsColumns": {
     "service": "Servicio",
@@ -3890,6 +3895,7 @@
       "status": "Estado",
       "startTime": "Hora de Inicio",
       "endTime": "Hora de Fin",
+      "sede": "Sede",
       "notes": "Notas",
       "open": "Abierto",
       "closed": "Cerrado",
@@ -3904,6 +3910,10 @@
       "isOpen": "¿Está Abierto?",
       "startTime": "Hora de Inicio",
       "endTime": "Hora de Fin",
+      "sede": "Sede",
+      "allSedes": "Todas las sedes",
+      "sedeHelp": "Dejá \"Todas las sedes\" para aplicar la excepción a toda la clínica.",
+      "timesHelp": "Dejá ambas horas vacías para cerrar todo el día; indicá un rango para cerrar solo esas horas.",
       "notes": "Notas",
       "notesPlaceholder": "Ingrese notas aquí...",
       "save": "Guardar",
