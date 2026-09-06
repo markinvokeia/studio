@@ -308,19 +308,53 @@ function cleanEventLabelPart(value: string | null | undefined, noneLabel: string
     return trimmed;
 }
 
+// Tratamientos de la cita, para las etiquetas que los muestran.
+//
+// No se puede usar el `summary` tal cual: se autogenera como "Paciente - Tratamientos"
+// (ver AppointmentFormDialog y la tarjeta inline), así que repetiría el nombre del
+// paciente en la etiqueta. La fuente buena es `services`; el summary queda solo como
+// respaldo para las citas que no lo traen, y en ese caso se le saca el prefijo.
+function buildTreatmentPart(appt: Appointment, patient: string, noneLabel: string): string {
+    const fromServices = (appt.services ?? [])
+        .map((service) => (service?.name || '').trim())
+        .filter(Boolean)
+        .join(', ');
+    let treatment = fromServices;
+    if (!treatment) {
+        const raw = cleanEventLabelPart(appt.summary || appt.service_name, noneLabel);
+        const prefix = patient ? `${patient.toLowerCase()} - ` : '';
+        treatment = prefix && raw.toLowerCase().startsWith(prefix) ? raw.slice(prefix.length).trim() : raw;
+    }
+    // Cuando el summary ya ocupa el lugar del paciente (citas importadas de Google, que
+    // no traen uno) no se repite como tratamiento.
+    return treatment === patient ? '' : treatment;
+}
+
 // Builds the label shown on each appointment by concatenating its fields
 // according to the configured format (see EVENT_LABEL_FORMATS).
 function buildEventLabel(appt: Appointment, start: Date, fmt: string, noneLabel: string): string {
     const time = format(start, 'HH:mm');
     const summary = cleanEventLabelPart(appt.summary, noneLabel);
-    // Las citas importadas de Google Calendar no traen paciente y el mapeo deja
-    // 'N/A': en su lugar se muestra el summary del evento.
-    const patient = cleanEventLabelPart(appt.patientName, noneLabel) || summary;
-    const treatment = cleanEventLabelPart(appt.summary || appt.service_name, noneLabel);
-    const notes = (appt.notes || '').trim();
+    // Los formatos configurables componen la etiqueta de las citas de la app. Las
+    // importadas de Google muestran el summary del evento tal cual — es su único
+    // título real — ocupando el lugar que cada formato le da al paciente, así que la
+    // hora conserva su posición. No se les suma ni notas ni tratamiento.
+    const isImported = appt.imported_from_google === true;
+    // El `|| summary` es el respaldo para las citas de Google anteriores a la marca
+    // (no se hizo backfill de `imported_from_google`): sin paciente, el mapeo deja
+    // 'N/A', que `cleanEventLabelPart` vacía, y sin esto quedarían con solo la hora.
+    const patient = isImported ? summary : (cleanEventLabelPart(appt.patientName, noneLabel) || summary);
+    const treatment = isImported ? '' : buildTreatmentPart(appt, patient, noneLabel);
+    const notes = isImported ? '' : (appt.notes || '').trim();
     if (fmt === 'patient_treatment_time') {
-        // Cuando el summary ya ocupa el lugar del paciente no se repite como tratamiento.
-        return [patient, treatment === patient ? '' : treatment, time].filter(Boolean).join(' ');
+        return [patient, treatment, time].filter(Boolean).join(' ');
+    }
+    if (fmt === 'time_patient_notes_treatment') {
+        // Como el default, pero sumando el tratamiento dentro del paréntesis. Se omite
+        // lo que falte, y sin notas ni tratamiento no se muestra el paréntesis.
+        const base = [time, patient].filter(Boolean).join(' ');
+        const extras = [notes, treatment].filter(Boolean).join(', ');
+        return extras ? `${base} (${extras})` : base;
     }
     // default: time_patient_notes -> "HH:mm Patient (Notes)"
     const base = [time, patient].filter(Boolean).join(' ');

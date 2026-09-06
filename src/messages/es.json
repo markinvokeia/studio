@@ -875,7 +875,8 @@
       "eventLabel": "Formato de la cita",
       "eventLabelOptions": {
         "time_patient_notes": "Hora - Paciente - (Notas)",
-        "patient_treatment_time": "Paciente - Tratamiento - Hora"
+        "patient_treatment_time": "Paciente - Tratamiento - Hora",
+        "time_patient_notes_treatment": "Hora - Paciente - (Notas, Tratamiento)"
       },
       "groupBy": "Agrupar por",
       "checkAvailability": "Verificar disponibilidad",
