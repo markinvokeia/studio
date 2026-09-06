@@ -1,0 +1,70 @@
+name,category,category_code,price,duration_minutes,currency,description,indications,color,is_active,external_id
+Bitewing,Radiografías intrabucales,RX-INTRA,0,10,UYU,,,#3B82F6,true,ci-orden:svc:bitewing
+Con conductimetría,Radiografías intrabucales,RX-INTRA,0,15,UYU,,,#3B82F6,true,ci-orden:svc:conductimetria
+Oclusal,Radiografías intrabucales,RX-INTRA,0,10,UYU,,,#3B82F6,true,ci-orden:svc:oclusal
+Periapical,Radiografías intrabucales,RX-INTRA,0,10,UYU,,,#3B82F6,true,ci-orden:svc:periapical
+Relevamiento periapical completo,Radiografías intrabucales,RX-INTRA,0,30,UYU,,,#3B82F6,true,ci-orden:svc:periapical-completo
+ATM (Boca abierta y cerrada) (LAMINOGRAFÍA),Otros estudios extraorales,EST-EXTRA,0,20,UYU,,,#6366F1,true,ci-orden:svc:ATM
+Mano y puño (Carpal),Otros estudios extraorales,EST-EXTRA,0,15,UYU,,,#6366F1,true,ci-orden:svc:mano-puno
+Sub mentón Vertex,Otros estudios extraorales,EST-EXTRA,0,15,UYU,,,#6366F1,true,ci-orden:svc:sub-m-vertex
+Panorámica (OPT),Radiografías extraorales,RX-EXTRA,0,10,UYU,,,#0EA5E9,true,ci-orden:svc:opt
+Telerradiografía Frontal,Radiografías extraorales,RX-EXTRA,0,10,UYU,,,#0EA5E9,true,ci-orden:svc:telerradio-frontal
+Telerradiografía Perfil,Radiografías extraorales,RX-EXTRA,0,10,UYU,,,#0EA5E9,true,ci-orden:svc:telerradio-perfil
+Bjork Jarabak,Estudios cefalométricos computarizados,CEFALO,0,15,UYU,,,#8B5CF6,true,ci-orden:svc:bjork
+Fundación Gnathos,Estudios cefalométricos computarizados,CEFALO,0,15,UYU,,,#8B5CF6,true,ci-orden:svc:funcacion-gnathos
+Mcnamara,Estudios cefalométricos computarizados,CEFALO,0,15,UYU,,,#8B5CF6,true,ci-orden:svc:mcnamara
+Ricketts,Estudios cefalométricos computarizados,CEFALO,0,15,UYU,,,#8B5CF6,true,ci-orden:svc:ricketts
+Ricketts Resumido,Estudios cefalométricos computarizados,CEFALO,0,15,UYU,,,#8B5CF6,true,ci-orden:svc:ricketts-resumido
+Roth Jarabak,Estudios cefalométricos computarizados,CEFALO,0,15,UYU,,,#8B5CF6,true,ci-orden:svc:roth-jarabak
+Steiner Tweed,Estudios cefalométricos computarizados,CEFALO,0,15,UYU,,,#8B5CF6,true,ci-orden:svc:steiner
+Trevis,Estudios cefalométricos computarizados,CEFALO,0,15,UYU,,,#8B5CF6,true,ci-orden:svc:trevis
+VTO,Estudios cefalométricos computarizados,CEFALO,0,20,UYU,,,#8B5CF6,true,ci-orden:svc:vto
+1 anterior en inoclusión,Fotografías,FOTO,0,10,UYU,,,#EC4899,true,ci-orden:svc:ft-oclusion
+1 oclusión frente,Fotografías,FOTO,0,10,UYU,,,#EC4899,true,ci-orden:svc:ft-oclusion-frente
+2 llaves de oclusión,Fotografías,FOTO,0,10,UYU,,,#EC4899,true,ci-orden:svc:ft-llave-oclusion
+2 oclusales,Fotografías,FOTO,0,10,UYU,,,#EC4899,true,ci-orden:svc:ft-oclusal-2
+2 overjet/overbite,Fotografías,FOTO,0,10,UYU,,,#EC4899,true,ci-orden:svc:ft-overjet
+3/4 perfil,Fotografías,FOTO,0,10,UYU,,,#EC4899,true,ci-orden:svc:ft-tres-cuartos
+con contacto oclusales,Fotografías,FOTO,0,10,UYU,,,#EC4899,true,ci-orden:svc:contacto-oclusal
+foto en dinámica,Fotografías,FOTO,0,15,UYU,,,#EC4899,true,ci-orden:svc:ft-dinamica
+Perfil,Fotografías,FOTO,0,10,UYU,,,#EC4899,true,ci-orden:svc:ft-perfil
+Rostro frente,Fotografías,FOTO,0,10,UYU,,,#EC4899,true,ci-orden:svc:ft-rostro-frente
+Rostro sonrisa,Fotografías,FOTO,0,10,UYU,,,#EC4899,true,ci-orden:svc:ft-rostro-sonrisa
+Todas las fotografías,Fotografías,FOTO,0,30,UYU,,,#EC4899,true,ci-orden:svc:fotografias-todas
+Diagnóstico bolton,Modelos digitales,MOD-DIG,0,15,UYU,,,#14B8A6,true,ci-orden:svc:diagnosticobolton
+Diagnóstico Medidas dentarias,Modelos digitales,MOD-DIG,0,15,UYU,,,#14B8A6,true,ci-orden:svc:diagnosticodentarias
+Diagnóstico Moyers,Modelos digitales,MOD-DIG,0,15,UYU,,,#14B8A6,true,ci-orden:svc:diagnosticomoyers
+Duplicado en yeso,Modelos digitales,MOD-DIG,0,30,UYU,,,#14B8A6,true,ci-orden:svc:duplicado-yeso
+Impresión de modelos de trabajo,Modelos digitales,MOD-DIG,0,30,UYU,,,#14B8A6,true,ci-orden:svc:modelos-trabajo
+Impresión de modelos zocalados,Modelos digitales,MOD-DIG,0,30,UYU,,,#14B8A6,true,ci-orden:svc:modelo-zocalados
+Modelos articulados con bisagra posterior,Modelos digitales,MOD-DIG,0,40,UYU,,,#14B8A6,true,ci-orden:svc:modelo-articulado
+Ortodoncia,Modelos digitales,MOD-DIG,0,30,UYU,,,#14B8A6,true,ci-orden:svc:Ortodoncia
+Ortopedia,Modelos digitales,MOD-DIG,0,30,UYU,,,#14B8A6,true,ci-orden:svc:Ortopedia
+Bimaxilar,Ortodoncia invisible (alineadores),ALINEA,0,45,UYU,,,#10B981,true,ci-orden:svc:ortodoncia-bimaxilar
+Mandíbula,Ortodoncia invisible (alineadores),ALINEA,0,40,UYU,,,#10B981,true,ci-orden:svc:ortodoncia-mandibula
+Maxilar,Ortodoncia invisible (alineadores),ALINEA,0,40,UYU,,,#10B981,true,ci-orden:svc:ortodoncia-maxilar
+1 a 3 piezas,Tomografía computarizada volumétrica Cone Beam,CONEBEAM,0,15,UYU,,,#F59E0B,true,ci-orden:svc:tomo-piezas
+Hemiarco,Tomografía computarizada volumétrica Cone Beam,CONEBEAM,0,20,UYU,,,#F59E0B,true,ci-orden:svc:hemiarco
+Mandíbula completa,Tomografía computarizada volumétrica Cone Beam,CONEBEAM,0,20,UYU,,,#F59E0B,true,ci-orden:svc:mandibula-completa
+Maxilar completo,Tomografía computarizada volumétrica Cone Beam,CONEBEAM,0,20,UYU,,,#F59E0B,true,ci-orden:svc:maxilar-completo
+Escaneo,Cirugía guiada para implantes,CIR-GUIA,0,30,UYU,,,#EF4444,true,ci-orden:svc:servicio-escaneo
+Guía de fresa iniciadora,Cirugía guiada para implantes,CIR-GUIA,0,45,UYU,,,#EF4444,true,ci-orden:svc:guia-fresa
+Guía de precisión,Cirugía guiada para implantes,CIR-GUIA,0,60,UYU,,,#EF4444,true,ci-orden:svc:guia-precision
+Planeamiento,Cirugía guiada para implantes,CIR-GUIA,0,60,UYU,Trabajo de laboratorio: no ocupa sillón.,,#EF4444,true,ci-orden:svc:servicio-planeamiento
+Tomografía,Cirugía guiada para implantes,CIR-GUIA,0,20,UYU,,,#EF4444,true,ci-orden:svc:servicio-tomografia
+Maxilares e implantes,Realidad virtual M3DMIX,M3DMIX,0,30,UYU,,,#A855F7,true,ci-orden:svc:m3dmix-maxilares-implantes
+Nervio mandibular,Realidad virtual M3DMIX,M3DMIX,0,30,UYU,,,#A855F7,true,ci-orden:svc:m3dmix-mandibular
+Patología,Realidad virtual M3DMIX,M3DMIX,0,30,UYU,,,#A855F7,true,ci-orden:svc:m3dmix-patologia
+Tercer molar,Realidad virtual M3DMIX,M3DMIX,0,30,UYU,,,#A855F7,true,ci-orden:svc:m3dmix-tercer-molar
+ATM,Ecografías,ECO,0,20,UYU,,,#06B6D4,true,ci-orden:svc:eco-atm
+Partes blandas,Ecografías,ECO,0,20,UYU,,,#06B6D4,true,ci-orden:svc:eco-partes-blandas
+Diseño sonrisa e impresión en resina mockup,Otros servicios,OTROS-SRV,0,60,UYU,Fotografías + Escaneo bucal + Diseño + Impresión modelo,,#64748B,true,ci-orden:svc:diseno-sonrisa
+Dispositivo avance mandibular (DAM),Otros servicios,OTROS-SRV,0,45,UYU,,,#64748B,true,ci-orden:svc:DAM
+Endoguide,Otros servicios,OTROS-SRV,0,60,UYU,Tomografía + escaneo + planeamiento + guía impresa,,#64748B,true,ci-orden:svc:endoguide
+Escaneo final de ortodoncia + placas de contención,Otros servicios,OTROS-SRV,0,45,UYU,,,#64748B,true,ci-orden:svc:escaneo-ortodoncia-placas
+Perioguide para cirugía gingival,Otros servicios,OTROS-SRV,0,60,UYU,Escaneo bucal + Impresión de modelo + guías,,#64748B,true,ci-orden:svc:perioguide
+Placa neuromiorelajante/DOE,Otros servicios,OTROS-SRV,0,45,UYU,Escaneado bucal + Planeamiento + Placa impresa,,#64748B,true,ci-orden:svc:DOE
+Placas de blanqueamiento,Otros servicios,OTROS-SRV,0,40,UYU,Escaneo bucal + Impresión de modelo + placas,,#64748B,true,ci-orden:svc:placas-blanqueamiento
+Planeamiento cirugía ortognática,Otros servicios,OTROS-SRV,0,90,UYU,Escaneo bucal + tomografía + planeamiento + Splits,,#64748B,true,ci-orden:svc:cirugia-ortognatica
+Protector bucal,Otros servicios,OTROS-SRV,0,40,UYU,Escaneo + modelo + protector bucal,,#64748B,true,ci-orden:svc:protector-bucal
+Sólo escaneo,Otros servicios,OTROS-SRV,0,30,UYU,,,#64748B,true,ci-orden:svc:solo-escaneo

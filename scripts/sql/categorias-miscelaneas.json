@@ -1,0 +1,86 @@
+[
+  {
+    "name": "Radiografías intrabucales",
+    "code": "RX-INTRA",
+    "description": "Sección \"Radiografías intrabucales\" de la orden de estudio.",
+    "type": "income",
+    "is_active": true
+  },
+  {
+    "name": "Otros estudios extraorales",
+    "code": "EST-EXTRA",
+    "description": "Sección \"Otros estudios extraorales\" de la orden de estudio.",
+    "type": "income",
+    "is_active": true
+  },
+  {
+    "name": "Radiografías extraorales",
+    "code": "RX-EXTRA",
+    "description": "Sección \"Radiografías extraorales\" (documentación para ortodoncia).",
+    "type": "income",
+    "is_active": true
+  },
+  {
+    "name": "Estudios cefalométricos computarizados",
+    "code": "CEFALO",
+    "description": "Sección \"Estudios cefalométricos computarizados\" de la orden.",
+    "type": "income",
+    "is_active": true
+  },
+  {
+    "name": "Fotografías",
+    "code": "FOTO",
+    "description": "Sección \"Fotografías\" de la orden de estudio.",
+    "type": "income",
+    "is_active": true
+  },
+  {
+    "name": "Modelos digitales",
+    "code": "MOD-DIG",
+    "description": "Sección \"Modelos digitales (con visualizador 3D)\" e impresión de modelos.",
+    "type": "income",
+    "is_active": true
+  },
+  {
+    "name": "Ortodoncia invisible (alineadores)",
+    "code": "ALINEA",
+    "description": "Sección \"Ortodoncia invisible (alineadores)\" de la orden.",
+    "type": "income",
+    "is_active": true
+  },
+  {
+    "name": "Tomografía computarizada volumétrica Cone Beam",
+    "code": "CONEBEAM",
+    "description": "Sección \"Tomografía computarizada volumétrica Cone Beam\" de la orden.",
+    "type": "income",
+    "is_active": true
+  },
+  {
+    "name": "Cirugía guiada para implantes",
+    "code": "CIR-GUIA",
+    "description": "Sección \"Cirugía guiada para implantes\" de la orden.",
+    "type": "income",
+    "is_active": true
+  },
+  {
+    "name": "Realidad virtual M3DMIX",
+    "code": "M3DMIX",
+    "description": "Sección \"Realidad virtual M3DMIX\" de la orden.",
+    "type": "income",
+    "is_active": true
+  },
+  {
+    "name": "Ecografías",
+    "code": "ECO",
+    "description": "Sección \"Ecografías\" del formulario web.",
+    "type": "income",
+    "is_active": true
+  },
+  {
+    "name": "Otros servicios",
+    "code": "OTROS-SRV",
+    "description": "Sección \"Otros servicios\" de la orden de estudio.",
+    "type": "income",
+    "is_active": true
+  }
+]
