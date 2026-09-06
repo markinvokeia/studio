@@ -1,0 +1,13 @@
+code,name,description,category_type,is_active,external_id
+RX-INTRA,Radiografías intrabucales,"Sección ""Radiografías intrabucales"" de la orden de estudio.",income,true,ci-orden:cat:RX-INTRA
+EST-EXTRA,Otros estudios extraorales,"Sección ""Otros estudios extraorales"" de la orden de estudio.",income,true,ci-orden:cat:EST-EXTRA
+RX-EXTRA,Radiografías extraorales,"Sección ""Radiografías extraorales"" (documentación para ortodoncia).",income,true,ci-orden:cat:RX-EXTRA
+CEFALO,Estudios cefalométricos computarizados,"Sección ""Estudios cefalométricos computarizados"" de la orden.",income,true,ci-orden:cat:CEFALO
+FOTO,Fotografías,"Sección ""Fotografías"" de la orden de estudio.",income,true,ci-orden:cat:FOTO
+MOD-DIG,Modelos digitales,"Sección ""Modelos digitales (con visualizador 3D)"" e impresión de modelos.",income,true,ci-orden:cat:MOD-DIG
+ALINEA,Ortodoncia invisible (alineadores),"Sección ""Ortodoncia invisible (alineadores)"" de la orden.",income,true,ci-orden:cat:ALINEA
+CONEBEAM,Tomografía computarizada volumétrica Cone Beam,"Sección ""Tomografía computarizada volumétrica Cone Beam"" de la orden.",income,true,ci-orden:cat:CONEBEAM
+CIR-GUIA,Cirugía guiada para implantes,"Sección ""Cirugía guiada para implantes"" de la orden.",income,true,ci-orden:cat:CIR-GUIA
+M3DMIX,Realidad virtual M3DMIX,"Sección ""Realidad virtual M3DMIX"" de la orden.",income,true,ci-orden:cat:M3DMIX
+ECO,Ecografías,"Sección ""Ecografías"" del formulario web.",income,true,ci-orden:cat:ECO
+OTROS-SRV,Otros servicios,"Sección ""Otros servicios"" de la orden de estudio.",income,true,ci-orden:cat:OTROS-SRV

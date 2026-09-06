@@ -1,0 +1,1183 @@
+{
+  "_meta": {
+    "date": "2026-09-06",
+    "source": "https://clinicaimagen.uy/ordenes/orden.html",
+    "generator": "scripts/generate-service-catalog.mjs",
+    "naming_rule": "service.name = value del checkbox del formulario, salvo los overrides listados en `name_overrides`."
+  },
+  "tables": {
+    "categories": "public.miscellaneous_categories",
+    "services": "public.service_catalog",
+    "idempotency_key": "external_id"
+  },
+  "categories": [
+    {
+      "code": "RX-INTRA",
+      "name": "Radiografías intrabucales",
+      "type": "income",
+      "description": "Sección \"Radiografías intrabucales\" de la orden de estudio.",
+      "color": "#3B82F6",
+      "external_id": "ci-orden:cat:RX-INTRA"
+    },
+    {
+      "code": "EST-EXTRA",
+      "name": "Otros estudios extraorales",
+      "type": "income",
+      "description": "Sección \"Otros estudios extraorales\" de la orden de estudio.",
+      "color": "#6366F1",
+      "external_id": "ci-orden:cat:EST-EXTRA"
+    },
+    {
+      "code": "RX-EXTRA",
+      "name": "Radiografías extraorales",
+      "type": "income",
+      "description": "Sección \"Radiografías extraorales\" (documentación para ortodoncia).",
+      "color": "#0EA5E9",
+      "external_id": "ci-orden:cat:RX-EXTRA"
+    },
+    {
+      "code": "CEFALO",
+      "name": "Estudios cefalométricos computarizados",
+      "type": "income",
+      "description": "Sección \"Estudios cefalométricos computarizados\" de la orden.",
+      "color": "#8B5CF6",
+      "external_id": "ci-orden:cat:CEFALO"
+    },
+    {
+      "code": "FOTO",
+      "name": "Fotografías",
+      "type": "income",
+      "description": "Sección \"Fotografías\" de la orden de estudio.",
+      "color": "#EC4899",
+      "external_id": "ci-orden:cat:FOTO"
+    },
+    {
+      "code": "MOD-DIG",
+      "name": "Modelos digitales",
+      "type": "income",
+      "description": "Sección \"Modelos digitales (con visualizador 3D)\" e impresión de modelos.",
+      "color": "#14B8A6",
+      "external_id": "ci-orden:cat:MOD-DIG"
+    },
+    {
+      "code": "ALINEA",
+      "name": "Ortodoncia invisible (alineadores)",
+      "type": "income",
+      "description": "Sección \"Ortodoncia invisible (alineadores)\" de la orden.",
+      "color": "#10B981",
+      "external_id": "ci-orden:cat:ALINEA"
+    },
+    {
+      "code": "CONEBEAM",
+      "name": "Tomografía computarizada volumétrica Cone Beam",
+      "type": "income",
+      "description": "Sección \"Tomografía computarizada volumétrica Cone Beam\" de la orden.",
+      "color": "#F59E0B",
+      "external_id": "ci-orden:cat:CONEBEAM"
+    },
+    {
+      "code": "CIR-GUIA",
+      "name": "Cirugía guiada para implantes",
+      "type": "income",
+      "description": "Sección \"Cirugía guiada para implantes\" de la orden.",
+      "color": "#EF4444",
+      "external_id": "ci-orden:cat:CIR-GUIA"
+    },
+    {
+      "code": "M3DMIX",
+      "name": "Realidad virtual M3DMIX",
+      "type": "income",
+      "description": "Sección \"Realidad virtual M3DMIX\" de la orden.",
+      "color": "#A855F7",
+      "external_id": "ci-orden:cat:M3DMIX"
+    },
+    {
+      "code": "ECO",
+      "name": "Ecografías",
+      "type": "income",
+      "description": "Sección \"Ecografías\" del formulario web.",
+      "color": "#06B6D4",
+      "external_id": "ci-orden:cat:ECO"
+    },
+    {
+      "code": "OTROS-SRV",
+      "name": "Otros servicios",
+      "type": "income",
+      "description": "Sección \"Otros servicios\" de la orden de estudio.",
+      "color": "#64748B",
+      "external_id": "ci-orden:cat:OTROS-SRV"
+    }
+  ],
+  "name_overrides": [
+    {
+      "field": "ATM",
+      "form_value": "ATM",
+      "name": "ATM (Boca abierta y cerrada) (LAMINOGRAFÍA)",
+      "src": "orden imprimible — el value del web dice sólo \"ATM\""
+    },
+    {
+      "field": "mano-puno",
+      "form_value": "Mano y puño",
+      "name": "Mano y puño (Carpal)",
+      "src": "orden imprimible — el value del web dice \"Mano y puño\""
+    },
+    {
+      "field": "eco-partes-blandas",
+      "form_value": "ATM",
+      "name": "Partes blandas",
+      "src": "label del formulario — el value dice \"ATM\" por un bug del sitio"
+    },
+    {
+      "field": "DAM",
+      "form_value": "DAM",
+      "name": "Dispositivo avance mandibular (DAM)",
+      "src": "orden imprimible — el value del web dice sólo \"DAM\""
+    }
+  ],
+  "delivery": [
+    {
+      "field": "impreso",
+      "label": "Impreso"
+    },
+    {
+      "field": "imagencloud",
+      "label": "Imagen Cloud"
+    },
+    {
+      "field": "email-medio",
+      "label": "Mail"
+    },
+    {
+      "field": "medcloud",
+      "label": "Medcloud"
+    }
+  ],
+  "regions": {
+    "count": 104,
+    "note": "Piezas dentarias ISO 3950 (intrabucales y Cone Beam): región del estudio, no servicio."
+  },
+  "text_options": [
+    {
+      "field": "indiacion-opt",
+      "label": "Indicación de la OPT",
+      "section_code": "RX-EXTRA"
+    },
+    {
+      "field": "estudio-cefalo-compu-otros",
+      "label": "Otro estudio cefalométrico (texto libre)",
+      "section_code": "CEFALO"
+    },
+    {
+      "field": "fotografia-interes",
+      "label": "Interés de la foto en dinámica",
+      "section_code": "FOTO"
+    },
+    {
+      "field": "ortodoncia-marca",
+      "label": "Marca o sistema de alineadores",
+      "section_code": "ALINEA"
+    },
+    {
+      "field": "ortodoncia-info-clinica",
+      "label": "Información clínica de alineadores",
+      "section_code": "ALINEA"
+    },
+    {
+      "field": "tomo-elementos-sueltos",
+      "label": "Cone Beam · elementos sueltos",
+      "section_code": "CONEBEAM"
+    },
+    {
+      "field": "interes-estudio-tomo",
+      "label": "Interés del estudio Cone Beam",
+      "section_code": "CONEBEAM"
+    },
+    {
+      "field": "implante-marca",
+      "label": "Marca del implante",
+      "section_code": "CIR-GUIA"
+    },
+    {
+      "field": "implante-ubicacion",
+      "label": "Ubicación del implante",
+      "section_code": "CIR-GUIA"
+    },
+    {
+      "field": "implante-fecha-cirugia",
+      "label": "Fecha probable de cirugía",
+      "section_code": "CIR-GUIA"
+    },
+    {
+      "field": "eco-interes",
+      "label": "Interés del estudio ecográfico",
+      "section_code": "ECO"
+    },
+    {
+      "field": "solo-escaneo-interes",
+      "label": "Interés del escaneo",
+      "section_code": "OTROS-SRV"
+    },
+    {
+      "field": "color-protector",
+      "label": "Color del protector bucal",
+      "section_code": "OTROS-SRV"
+    },
+    {
+      "field": "aclaracion",
+      "label": "Aclaración del profesional",
+      "section_code": null
+    }
+  ],
+  "services": [
+    {
+      "field": "bitewing",
+      "group": "radio-intra-tipo",
+      "form_value": "Bitewing",
+      "service": "Bitewing",
+      "external_id": "ci-orden:svc:bitewing",
+      "category": "Radiografías intrabucales",
+      "category_code": "RX-INTRA",
+      "category_external_id": "ci-orden:cat:RX-INTRA",
+      "duration_minutes": 10,
+      "modifiers": []
+    },
+    {
+      "field": "conductimetria",
+      "group": "radio-intra-tipo",
+      "form_value": "Con conductimetría",
+      "service": "Con conductimetría",
+      "external_id": "ci-orden:svc:conductimetria",
+      "category": "Radiografías intrabucales",
+      "category_code": "RX-INTRA",
+      "category_external_id": "ci-orden:cat:RX-INTRA",
+      "duration_minutes": 15,
+      "modifiers": []
+    },
+    {
+      "field": "oclusal",
+      "group": "radio-intra-tipo",
+      "form_value": "Oclusal",
+      "service": "Oclusal",
+      "external_id": "ci-orden:svc:oclusal",
+      "category": "Radiografías intrabucales",
+      "category_code": "RX-INTRA",
+      "category_external_id": "ci-orden:cat:RX-INTRA",
+      "duration_minutes": 10,
+      "modifiers": []
+    },
+    {
+      "field": "periapical",
+      "group": "radio-intra-tipo",
+      "form_value": "Periapical",
+      "service": "Periapical",
+      "external_id": "ci-orden:svc:periapical",
+      "category": "Radiografías intrabucales",
+      "category_code": "RX-INTRA",
+      "category_external_id": "ci-orden:cat:RX-INTRA",
+      "duration_minutes": 10,
+      "modifiers": []
+    },
+    {
+      "field": "periapical-completo",
+      "group": "radio-intra-tipo",
+      "form_value": "Relevamiento periapical completo",
+      "service": "Relevamiento periapical completo",
+      "external_id": "ci-orden:svc:periapical-completo",
+      "category": "Radiografías intrabucales",
+      "category_code": "RX-INTRA",
+      "category_external_id": "ci-orden:cat:RX-INTRA",
+      "duration_minutes": 30,
+      "modifiers": []
+    },
+    {
+      "field": "ATM",
+      "group": "otros-estudios-extraorales",
+      "form_value": "ATM",
+      "service": "ATM (Boca abierta y cerrada) (LAMINOGRAFÍA)",
+      "external_id": "ci-orden:svc:ATM",
+      "category": "Otros estudios extraorales",
+      "category_code": "EST-EXTRA",
+      "category_external_id": "ci-orden:cat:EST-EXTRA",
+      "duration_minutes": 20,
+      "modifiers": []
+    },
+    {
+      "field": "mano-puno",
+      "group": "otros-estudios-extraorales",
+      "form_value": "Mano y puño",
+      "service": "Mano y puño (Carpal)",
+      "external_id": "ci-orden:svc:mano-puno",
+      "category": "Otros estudios extraorales",
+      "category_code": "EST-EXTRA",
+      "category_external_id": "ci-orden:cat:EST-EXTRA",
+      "duration_minutes": 15,
+      "modifiers": []
+    },
+    {
+      "field": "sub-m-vertex",
+      "group": "otros-estudios-extraorales",
+      "form_value": "Sub mentón Vertex",
+      "service": "Sub mentón Vertex",
+      "external_id": "ci-orden:svc:sub-m-vertex",
+      "category": "Otros estudios extraorales",
+      "category_code": "EST-EXTRA",
+      "category_external_id": "ci-orden:cat:EST-EXTRA",
+      "duration_minutes": 15,
+      "modifiers": []
+    },
+    {
+      "field": "opt",
+      "group": "radio-extraoral",
+      "form_value": "Panorámica (OPT)",
+      "service": "Panorámica (OPT)",
+      "external_id": "ci-orden:svc:opt",
+      "category": "Radiografías extraorales",
+      "category_code": "RX-EXTRA",
+      "category_external_id": "ci-orden:cat:RX-EXTRA",
+      "duration_minutes": 10,
+      "modifiers": []
+    },
+    {
+      "field": "telerradio-frontal",
+      "group": "radio-extraoral",
+      "form_value": "Telerradiografía Frontal",
+      "service": "Telerradiografía Frontal",
+      "external_id": "ci-orden:svc:telerradio-frontal",
+      "category": "Radiografías extraorales",
+      "category_code": "RX-EXTRA",
+      "category_external_id": "ci-orden:cat:RX-EXTRA",
+      "duration_minutes": 10,
+      "modifiers": [
+        {
+          "field": "telerradio-frontal-analisis",
+          "label": "Con analisis",
+          "note": "el trazado se cobra por la cefalometría elegida"
+        }
+      ]
+    },
+    {
+      "field": "telerradio-perfil",
+      "group": "radio-extraoral",
+      "form_value": "Telerradiografía Perfil",
+      "service": "Telerradiografía Perfil",
+      "external_id": "ci-orden:svc:telerradio-perfil",
+      "category": "Radiografías extraorales",
+      "category_code": "RX-EXTRA",
+      "category_external_id": "ci-orden:cat:RX-EXTRA",
+      "duration_minutes": 10,
+      "modifiers": [
+        {
+          "field": "frankfort",
+          "label": "Plano de Frankfort",
+          "note": "técnica de toma"
+        },
+        {
+          "field": "horizontal-verdadero",
+          "label": "Horizontal verdadero",
+          "note": "técnica de toma"
+        },
+        {
+          "field": "labios-reposo",
+          "label": "Labios en reposo",
+          "note": "técnica de toma"
+        },
+        {
+          "field": "labios-contacto",
+          "label": "Labios en contacto",
+          "note": "técnica de toma"
+        }
+      ]
+    },
+    {
+      "field": "bjork",
+      "group": "estudio-cefalo-compu",
+      "form_value": "Bjork Jarabak",
+      "service": "Bjork Jarabak",
+      "external_id": "ci-orden:svc:bjork",
+      "category": "Estudios cefalométricos computarizados",
+      "category_code": "CEFALO",
+      "category_external_id": "ci-orden:cat:CEFALO",
+      "duration_minutes": 15,
+      "modifiers": []
+    },
+    {
+      "field": "funcacion-gnathos",
+      "group": "estudio-cefalo-compu",
+      "form_value": "Fundación Gnathos",
+      "service": "Fundación Gnathos",
+      "external_id": "ci-orden:svc:funcacion-gnathos",
+      "category": "Estudios cefalométricos computarizados",
+      "category_code": "CEFALO",
+      "category_external_id": "ci-orden:cat:CEFALO",
+      "duration_minutes": 15,
+      "modifiers": []
+    },
+    {
+      "field": "mcnamara",
+      "group": "estudio-cefalo-compu",
+      "form_value": "Mcnamara",
+      "service": "Mcnamara",
+      "external_id": "ci-orden:svc:mcnamara",
+      "category": "Estudios cefalométricos computarizados",
+      "category_code": "CEFALO",
+      "category_external_id": "ci-orden:cat:CEFALO",
+      "duration_minutes": 15,
+      "modifiers": []
+    },
+    {
+      "field": "ricketts",
+      "group": "estudio-cefalo-compu",
+      "form_value": "Ricketts",
+      "service": "Ricketts",
+      "external_id": "ci-orden:svc:ricketts",
+      "category": "Estudios cefalométricos computarizados",
+      "category_code": "CEFALO",
+      "category_external_id": "ci-orden:cat:CEFALO",
+      "duration_minutes": 15,
+      "modifiers": []
+    },
+    {
+      "field": "ricketts-resumido",
+      "group": "estudio-cefalo-compu",
+      "form_value": "Ricketts Resumido",
+      "service": "Ricketts Resumido",
+      "external_id": "ci-orden:svc:ricketts-resumido",
+      "category": "Estudios cefalométricos computarizados",
+      "category_code": "CEFALO",
+      "category_external_id": "ci-orden:cat:CEFALO",
+      "duration_minutes": 15,
+      "modifiers": []
+    },
+    {
+      "field": "roth-jarabak",
+      "group": "estudio-cefalo-compu",
+      "form_value": "Roth Jarabak",
+      "service": "Roth Jarabak",
+      "external_id": "ci-orden:svc:roth-jarabak",
+      "category": "Estudios cefalométricos computarizados",
+      "category_code": "CEFALO",
+      "category_external_id": "ci-orden:cat:CEFALO",
+      "duration_minutes": 15,
+      "modifiers": []
+    },
+    {
+      "field": "steiner",
+      "group": "estudio-cefalo-compu",
+      "form_value": "Steiner Tweed",
+      "service": "Steiner Tweed",
+      "external_id": "ci-orden:svc:steiner",
+      "category": "Estudios cefalométricos computarizados",
+      "category_code": "CEFALO",
+      "category_external_id": "ci-orden:cat:CEFALO",
+      "duration_minutes": 15,
+      "modifiers": []
+    },
+    {
+      "field": "trevis",
+      "group": "estudio-cefalo-compu",
+      "form_value": "Trevis",
+      "service": "Trevis",
+      "external_id": "ci-orden:svc:trevis",
+      "category": "Estudios cefalométricos computarizados",
+      "category_code": "CEFALO",
+      "category_external_id": "ci-orden:cat:CEFALO",
+      "duration_minutes": 15,
+      "modifiers": []
+    },
+    {
+      "field": "vto",
+      "group": "estudio-cefalo-compu",
+      "form_value": "VTO",
+      "service": "VTO",
+      "external_id": "ci-orden:svc:vto",
+      "category": "Estudios cefalométricos computarizados",
+      "category_code": "CEFALO",
+      "category_external_id": "ci-orden:cat:CEFALO",
+      "duration_minutes": 20,
+      "modifiers": []
+    },
+    {
+      "field": "ft-oclusion",
+      "group": "fotografias",
+      "form_value": "1 anterior en inoclusión",
+      "service": "1 anterior en inoclusión",
+      "external_id": "ci-orden:svc:ft-oclusion",
+      "category": "Fotografías",
+      "category_code": "FOTO",
+      "category_external_id": "ci-orden:cat:FOTO",
+      "duration_minutes": 10,
+      "modifiers": []
+    },
+    {
+      "field": "ft-oclusion-frente",
+      "group": "fotografias",
+      "form_value": "1 oclusión frente",
+      "service": "1 oclusión frente",
+      "external_id": "ci-orden:svc:ft-oclusion-frente",
+      "category": "Fotografías",
+      "category_code": "FOTO",
+      "category_external_id": "ci-orden:cat:FOTO",
+      "duration_minutes": 10,
+      "modifiers": []
+    },
+    {
+      "field": "ft-llave-oclusion",
+      "group": "fotografias",
+      "form_value": "2 llaves de oclusión",
+      "service": "2 llaves de oclusión",
+      "external_id": "ci-orden:svc:ft-llave-oclusion",
+      "category": "Fotografías",
+      "category_code": "FOTO",
+      "category_external_id": "ci-orden:cat:FOTO",
+      "duration_minutes": 10,
+      "modifiers": []
+    },
+    {
+      "field": "ft-oclusal-2",
+      "group": "fotografias",
+      "form_value": "2 oclusales",
+      "service": "2 oclusales",
+      "external_id": "ci-orden:svc:ft-oclusal-2",
+      "category": "Fotografías",
+      "category_code": "FOTO",
+      "category_external_id": "ci-orden:cat:FOTO",
+      "duration_minutes": 10,
+      "modifiers": []
+    },
+    {
+      "field": "ft-overjet",
+      "group": "fotografias",
+      "form_value": "2 overjet/overbite",
+      "service": "2 overjet/overbite",
+      "external_id": "ci-orden:svc:ft-overjet",
+      "category": "Fotografías",
+      "category_code": "FOTO",
+      "category_external_id": "ci-orden:cat:FOTO",
+      "duration_minutes": 10,
+      "modifiers": []
+    },
+    {
+      "field": "ft-tres-cuartos",
+      "group": "fotografias",
+      "form_value": "3/4 perfil",
+      "service": "3/4 perfil",
+      "external_id": "ci-orden:svc:ft-tres-cuartos",
+      "category": "Fotografías",
+      "category_code": "FOTO",
+      "category_external_id": "ci-orden:cat:FOTO",
+      "duration_minutes": 10,
+      "modifiers": []
+    },
+    {
+      "field": "contacto-oclusal",
+      "group": "fotografias",
+      "form_value": "con contacto oclusales",
+      "service": "con contacto oclusales",
+      "external_id": "ci-orden:svc:contacto-oclusal",
+      "category": "Fotografías",
+      "category_code": "FOTO",
+      "category_external_id": "ci-orden:cat:FOTO",
+      "duration_minutes": 10,
+      "modifiers": []
+    },
+    {
+      "field": "ft-dinamica",
+      "group": "fotografias",
+      "form_value": "foto en dinámica",
+      "service": "foto en dinámica",
+      "external_id": "ci-orden:svc:ft-dinamica",
+      "category": "Fotografías",
+      "category_code": "FOTO",
+      "category_external_id": "ci-orden:cat:FOTO",
+      "duration_minutes": 15,
+      "modifiers": []
+    },
+    {
+      "field": "ft-perfil",
+      "group": "fotografias",
+      "form_value": "Perfil",
+      "service": "Perfil",
+      "external_id": "ci-orden:svc:ft-perfil",
+      "category": "Fotografías",
+      "category_code": "FOTO",
+      "category_external_id": "ci-orden:cat:FOTO",
+      "duration_minutes": 10,
+      "modifiers": []
+    },
+    {
+      "field": "ft-rostro-frente",
+      "group": "fotografias",
+      "form_value": "Rostro frente",
+      "service": "Rostro frente",
+      "external_id": "ci-orden:svc:ft-rostro-frente",
+      "category": "Fotografías",
+      "category_code": "FOTO",
+      "category_external_id": "ci-orden:cat:FOTO",
+      "duration_minutes": 10,
+      "modifiers": []
+    },
+    {
+      "field": "ft-rostro-sonrisa",
+      "group": "fotografias",
+      "form_value": "Rostro sonrisa",
+      "service": "Rostro sonrisa",
+      "external_id": "ci-orden:svc:ft-rostro-sonrisa",
+      "category": "Fotografías",
+      "category_code": "FOTO",
+      "category_external_id": "ci-orden:cat:FOTO",
+      "duration_minutes": 10,
+      "modifiers": []
+    },
+    {
+      "field": "fotografias-todas",
+      "group": "fotografias",
+      "form_value": "Todas las fotografías",
+      "service": "Todas las fotografías",
+      "external_id": "ci-orden:svc:fotografias-todas",
+      "category": "Fotografías",
+      "category_code": "FOTO",
+      "category_external_id": "ci-orden:cat:FOTO",
+      "duration_minutes": 30,
+      "modifiers": []
+    },
+    {
+      "field": "diagnosticobolton",
+      "group": "modelos-digitales",
+      "form_value": "Diagnóstico bolton",
+      "service": "Diagnóstico bolton",
+      "external_id": "ci-orden:svc:diagnosticobolton",
+      "category": "Modelos digitales",
+      "category_code": "MOD-DIG",
+      "category_external_id": "ci-orden:cat:MOD-DIG",
+      "duration_minutes": 15,
+      "modifiers": []
+    },
+    {
+      "field": "diagnosticodentarias",
+      "group": "modelos-digitales",
+      "form_value": "Diagnóstico Medidas dentarias",
+      "service": "Diagnóstico Medidas dentarias",
+      "external_id": "ci-orden:svc:diagnosticodentarias",
+      "category": "Modelos digitales",
+      "category_code": "MOD-DIG",
+      "category_external_id": "ci-orden:cat:MOD-DIG",
+      "duration_minutes": 15,
+      "modifiers": []
+    },
+    {
+      "field": "diagnosticomoyers",
+      "group": "modelos-digitales",
+      "form_value": "Diagnóstico Moyers",
+      "service": "Diagnóstico Moyers",
+      "external_id": "ci-orden:svc:diagnosticomoyers",
+      "category": "Modelos digitales",
+      "category_code": "MOD-DIG",
+      "category_external_id": "ci-orden:cat:MOD-DIG",
+      "duration_minutes": 15,
+      "modifiers": []
+    },
+    {
+      "field": "duplicado-yeso",
+      "group": "modelos-digitales",
+      "form_value": "Duplicado en yeso",
+      "service": "Duplicado en yeso",
+      "external_id": "ci-orden:svc:duplicado-yeso",
+      "category": "Modelos digitales",
+      "category_code": "MOD-DIG",
+      "category_external_id": "ci-orden:cat:MOD-DIG",
+      "duration_minutes": 30,
+      "modifiers": []
+    },
+    {
+      "field": "modelos-trabajo",
+      "group": "modelos-digitales",
+      "form_value": "Impresión de modelos de trabajo",
+      "service": "Impresión de modelos de trabajo",
+      "external_id": "ci-orden:svc:modelos-trabajo",
+      "category": "Modelos digitales",
+      "category_code": "MOD-DIG",
+      "category_external_id": "ci-orden:cat:MOD-DIG",
+      "duration_minutes": 30,
+      "modifiers": [
+        {
+          "field": "mordida-constructiva",
+          "label": "Mordida constructiva",
+          "note": "va entre paréntesis dentro del ítem en la orden impresa"
+        }
+      ]
+    },
+    {
+      "field": "modelo-zocalados",
+      "group": "modelos-digitales",
+      "form_value": "Impresión de modelos zocalados",
+      "service": "Impresión de modelos zocalados",
+      "external_id": "ci-orden:svc:modelo-zocalados",
+      "category": "Modelos digitales",
+      "category_code": "MOD-DIG",
+      "category_external_id": "ci-orden:cat:MOD-DIG",
+      "duration_minutes": 30,
+      "modifiers": []
+    },
+    {
+      "field": "modelo-articulado",
+      "group": "modelos-digitales",
+      "form_value": "Modelos articulados con bisagra posterior",
+      "service": "Modelos articulados con bisagra posterior",
+      "external_id": "ci-orden:svc:modelo-articulado",
+      "category": "Modelos digitales",
+      "category_code": "MOD-DIG",
+      "category_external_id": "ci-orden:cat:MOD-DIG",
+      "duration_minutes": 40,
+      "modifiers": []
+    },
+    {
+      "field": "Ortodoncia",
+      "group": "modelos-digitales",
+      "form_value": "Ortodoncia",
+      "service": "Ortodoncia",
+      "external_id": "ci-orden:svc:Ortodoncia",
+      "category": "Modelos digitales",
+      "category_code": "MOD-DIG",
+      "category_external_id": "ci-orden:cat:MOD-DIG",
+      "duration_minutes": 30,
+      "modifiers": []
+    },
+    {
+      "field": "Ortopedia",
+      "group": "modelos-digitales",
+      "form_value": "Ortopedia",
+      "service": "Ortopedia",
+      "external_id": "ci-orden:svc:Ortopedia",
+      "category": "Modelos digitales",
+      "category_code": "MOD-DIG",
+      "category_external_id": "ci-orden:cat:MOD-DIG",
+      "duration_minutes": 30,
+      "modifiers": []
+    },
+    {
+      "field": "ortodoncia-bimaxilar",
+      "group": "ortodoncia-tipo",
+      "form_value": "Bimaxilar",
+      "service": "Bimaxilar",
+      "external_id": "ci-orden:svc:ortodoncia-bimaxilar",
+      "category": "Ortodoncia invisible (alineadores)",
+      "category_code": "ALINEA",
+      "category_external_id": "ci-orden:cat:ALINEA",
+      "duration_minutes": 45,
+      "modifiers": []
+    },
+    {
+      "field": "ortodoncia-mandibula",
+      "group": "ortodoncia-tipo",
+      "form_value": "Mandíbula",
+      "service": "Mandíbula",
+      "external_id": "ci-orden:svc:ortodoncia-mandibula",
+      "category": "Ortodoncia invisible (alineadores)",
+      "category_code": "ALINEA",
+      "category_external_id": "ci-orden:cat:ALINEA",
+      "duration_minutes": 40,
+      "modifiers": []
+    },
+    {
+      "field": "ortodoncia-maxilar",
+      "group": "ortodoncia-tipo",
+      "form_value": "Maxilar",
+      "service": "Maxilar",
+      "external_id": "ci-orden:svc:ortodoncia-maxilar",
+      "category": "Ortodoncia invisible (alineadores)",
+      "category_code": "ALINEA",
+      "category_external_id": "ci-orden:cat:ALINEA",
+      "duration_minutes": 40,
+      "modifiers": []
+    },
+    {
+      "field": "tomo-piezas",
+      "group": "tomo-cone-beam-tipo",
+      "form_value": "1 a 3 piezas",
+      "service": "1 a 3 piezas",
+      "external_id": "ci-orden:svc:tomo-piezas",
+      "category": "Tomografía computarizada volumétrica Cone Beam",
+      "category_code": "CONEBEAM",
+      "category_external_id": "ci-orden:cat:CONEBEAM",
+      "duration_minutes": 15,
+      "modifiers": []
+    },
+    {
+      "field": "hemiarco",
+      "group": "tomo-cone-beam-tipo",
+      "form_value": "Hemiarco",
+      "service": "Hemiarco",
+      "external_id": "ci-orden:svc:hemiarco",
+      "category": "Tomografía computarizada volumétrica Cone Beam",
+      "category_code": "CONEBEAM",
+      "category_external_id": "ci-orden:cat:CONEBEAM",
+      "duration_minutes": 20,
+      "modifiers": []
+    },
+    {
+      "field": "mandibula-completa",
+      "group": "tomo-cone-beam",
+      "form_value": "Mandíbula completa",
+      "service": "Mandíbula completa",
+      "external_id": "ci-orden:svc:mandibula-completa",
+      "category": "Tomografía computarizada volumétrica Cone Beam",
+      "category_code": "CONEBEAM",
+      "category_external_id": "ci-orden:cat:CONEBEAM",
+      "duration_minutes": 20,
+      "modifiers": []
+    },
+    {
+      "field": "maxilar-completo",
+      "group": "tomo-cone-beam",
+      "form_value": "Maxilar completo",
+      "service": "Maxilar completo",
+      "external_id": "ci-orden:svc:maxilar-completo",
+      "category": "Tomografía computarizada volumétrica Cone Beam",
+      "category_code": "CONEBEAM",
+      "category_external_id": "ci-orden:cat:CONEBEAM",
+      "duration_minutes": 20,
+      "modifiers": []
+    },
+    {
+      "field": "servicio-escaneo",
+      "group": "guia-implantes-servicio",
+      "form_value": "Escaneo",
+      "service": "Escaneo",
+      "external_id": "ci-orden:svc:servicio-escaneo",
+      "category": "Cirugía guiada para implantes",
+      "category_code": "CIR-GUIA",
+      "category_external_id": "ci-orden:cat:CIR-GUIA",
+      "duration_minutes": 30,
+      "modifiers": []
+    },
+    {
+      "field": "guia-fresa",
+      "group": "guia-implante-tipo",
+      "form_value": "Guía de fresa iniciadora",
+      "service": "Guía de fresa iniciadora",
+      "external_id": "ci-orden:svc:guia-fresa",
+      "category": "Cirugía guiada para implantes",
+      "category_code": "CIR-GUIA",
+      "category_external_id": "ci-orden:cat:CIR-GUIA",
+      "duration_minutes": 45,
+      "modifiers": []
+    },
+    {
+      "field": "guia-precision",
+      "group": "guia-implante-tipo",
+      "form_value": "Guía de precisión",
+      "service": "Guía de precisión",
+      "external_id": "ci-orden:svc:guia-precision",
+      "category": "Cirugía guiada para implantes",
+      "category_code": "CIR-GUIA",
+      "category_external_id": "ci-orden:cat:CIR-GUIA",
+      "duration_minutes": 60,
+      "modifiers": []
+    },
+    {
+      "field": "servicio-planeamiento",
+      "group": "guia-implantes-servicio",
+      "form_value": "Planeamiento",
+      "service": "Planeamiento",
+      "external_id": "ci-orden:svc:servicio-planeamiento",
+      "category": "Cirugía guiada para implantes",
+      "category_code": "CIR-GUIA",
+      "category_external_id": "ci-orden:cat:CIR-GUIA",
+      "duration_minutes": 60,
+      "modifiers": []
+    },
+    {
+      "field": "servicio-tomografia",
+      "group": "guia-implantes-servicio",
+      "form_value": "Tomografía",
+      "service": "Tomografía",
+      "external_id": "ci-orden:svc:servicio-tomografia",
+      "category": "Cirugía guiada para implantes",
+      "category_code": "CIR-GUIA",
+      "category_external_id": "ci-orden:cat:CIR-GUIA",
+      "duration_minutes": 20,
+      "modifiers": []
+    },
+    {
+      "field": "m3dmix-maxilares-implantes",
+      "group": "realidad-virtual-m3dmix",
+      "form_value": "Maxilares e implantes",
+      "service": "Maxilares e implantes",
+      "external_id": "ci-orden:svc:m3dmix-maxilares-implantes",
+      "category": "Realidad virtual M3DMIX",
+      "category_code": "M3DMIX",
+      "category_external_id": "ci-orden:cat:M3DMIX",
+      "duration_minutes": 30,
+      "modifiers": []
+    },
+    {
+      "field": "m3dmix-mandibular",
+      "group": "realidad-virtual-m3dmix",
+      "form_value": "Nervio mandibular",
+      "service": "Nervio mandibular",
+      "external_id": "ci-orden:svc:m3dmix-mandibular",
+      "category": "Realidad virtual M3DMIX",
+      "category_code": "M3DMIX",
+      "category_external_id": "ci-orden:cat:M3DMIX",
+      "duration_minutes": 30,
+      "modifiers": []
+    },
+    {
+      "field": "m3dmix-patologia",
+      "group": "realidad-virtual-m3dmix",
+      "form_value": "Patología",
+      "service": "Patología",
+      "external_id": "ci-orden:svc:m3dmix-patologia",
+      "category": "Realidad virtual M3DMIX",
+      "category_code": "M3DMIX",
+      "category_external_id": "ci-orden:cat:M3DMIX",
+      "duration_minutes": 30,
+      "modifiers": []
+    },
+    {
+      "field": "m3dmix-tercer-molar",
+      "group": "realidad-virtual-m3dmix",
+      "form_value": "Tercer molar",
+      "service": "Tercer molar",
+      "external_id": "ci-orden:svc:m3dmix-tercer-molar",
+      "category": "Realidad virtual M3DMIX",
+      "category_code": "M3DMIX",
+      "category_external_id": "ci-orden:cat:M3DMIX",
+      "duration_minutes": 30,
+      "modifiers": []
+    },
+    {
+      "field": "eco-atm",
+      "group": "ecografias",
+      "form_value": "ATM",
+      "service": "ATM",
+      "external_id": "ci-orden:svc:eco-atm",
+      "category": "Ecografías",
+      "category_code": "ECO",
+      "category_external_id": "ci-orden:cat:ECO",
+      "duration_minutes": 20,
+      "modifiers": []
+    },
+    {
+      "field": "eco-partes-blandas",
+      "group": "ecografias",
+      "form_value": "ATM",
+      "service": "Partes blandas",
+      "external_id": "ci-orden:svc:eco-partes-blandas",
+      "category": "Ecografías",
+      "category_code": "ECO",
+      "category_external_id": "ci-orden:cat:ECO",
+      "duration_minutes": 20,
+      "modifiers": []
+    },
+    {
+      "field": "diseno-sonrisa",
+      "group": "otros-servicios",
+      "form_value": "Diseño sonrisa e impresión en resina mockup",
+      "service": "Diseño sonrisa e impresión en resina mockup",
+      "external_id": "ci-orden:svc:diseno-sonrisa",
+      "category": "Otros servicios",
+      "category_code": "OTROS-SRV",
+      "category_external_id": "ci-orden:cat:OTROS-SRV",
+      "duration_minutes": 60,
+      "modifiers": []
+    },
+    {
+      "field": "DAM",
+      "group": "otros-servicios",
+      "form_value": "DAM",
+      "service": "Dispositivo avance mandibular (DAM)",
+      "external_id": "ci-orden:svc:DAM",
+      "category": "Otros servicios",
+      "category_code": "OTROS-SRV",
+      "category_external_id": "ci-orden:cat:OTROS-SRV",
+      "duration_minutes": 45,
+      "modifiers": []
+    },
+    {
+      "field": "endoguide",
+      "group": "otros-servicios",
+      "form_value": "Endoguide",
+      "service": "Endoguide",
+      "external_id": "ci-orden:svc:endoguide",
+      "category": "Otros servicios",
+      "category_code": "OTROS-SRV",
+      "category_external_id": "ci-orden:cat:OTROS-SRV",
+      "duration_minutes": 60,
+      "modifiers": []
+    },
+    {
+      "field": "escaneo-ortodoncia-placas",
+      "group": "otros-servicios",
+      "form_value": "Escaneo final de ortodoncia + placas de contención",
+      "service": "Escaneo final de ortodoncia + placas de contención",
+      "external_id": "ci-orden:svc:escaneo-ortodoncia-placas",
+      "category": "Otros servicios",
+      "category_code": "OTROS-SRV",
+      "category_external_id": "ci-orden:cat:OTROS-SRV",
+      "duration_minutes": 45,
+      "modifiers": [
+        {
+          "field": "escaneo-superior",
+          "label": "SUPERIOR",
+          "note": "arcada"
+        },
+        {
+          "field": "escaneo-inferior",
+          "label": "INFERIOR",
+          "note": "arcada"
+        },
+        {
+          "field": "escaneo-placa-75",
+          "label": "0.75mm",
+          "note": "espesor"
+        },
+        {
+          "field": "escaneo-placa-1",
+          "label": "1mm",
+          "note": "espesor"
+        },
+        {
+          "field": "escaneo-placa-15",
+          "label": "1.5mm",
+          "note": "espesor"
+        },
+        {
+          "field": "escaneo-recto",
+          "label": "RECTO",
+          "note": "borde"
+        },
+        {
+          "field": "escaneo-festoneado",
+          "label": "FESTONEADO",
+          "note": "borde"
+        }
+      ]
+    },
+    {
+      "field": "perioguide",
+      "group": "otros-servicios",
+      "form_value": "Perioguide para cirugía gingival",
+      "service": "Perioguide para cirugía gingival",
+      "external_id": "ci-orden:svc:perioguide",
+      "category": "Otros servicios",
+      "category_code": "OTROS-SRV",
+      "category_external_id": "ci-orden:cat:OTROS-SRV",
+      "duration_minutes": 60,
+      "modifiers": []
+    },
+    {
+      "field": "DOE",
+      "group": "otros-servicios",
+      "form_value": "Placa neuromiorelajante/DOE",
+      "service": "Placa neuromiorelajante/DOE",
+      "external_id": "ci-orden:svc:DOE",
+      "category": "Otros servicios",
+      "category_code": "OTROS-SRV",
+      "category_external_id": "ci-orden:cat:OTROS-SRV",
+      "duration_minutes": 45,
+      "modifiers": []
+    },
+    {
+      "field": "placas-blanqueamiento",
+      "group": "otros-servicios",
+      "form_value": "Placas de blanqueamiento",
+      "service": "Placas de blanqueamiento",
+      "external_id": "ci-orden:svc:placas-blanqueamiento",
+      "category": "Otros servicios",
+      "category_code": "OTROS-SRV",
+      "category_external_id": "ci-orden:cat:OTROS-SRV",
+      "duration_minutes": 40,
+      "modifiers": [
+        {
+          "field": "placas-superior",
+          "label": "SUPERIOR",
+          "note": "arcada"
+        },
+        {
+          "field": "placas-inferior",
+          "label": "INFERIOR",
+          "note": "arcada"
+        }
+      ]
+    },
+    {
+      "field": "cirugia-ortognatica",
+      "group": "otros-servicios",
+      "form_value": "Planeamiento cirugía ortognática",
+      "service": "Planeamiento cirugía ortognática",
+      "external_id": "ci-orden:svc:cirugia-ortognatica",
+      "category": "Otros servicios",
+      "category_code": "OTROS-SRV",
+      "category_external_id": "ci-orden:cat:OTROS-SRV",
+      "duration_minutes": 90,
+      "modifiers": []
+    },
+    {
+      "field": "protector-bucal",
+      "group": "otros-servicios",
+      "form_value": "Protector bucal",
+      "service": "Protector bucal",
+      "external_id": "ci-orden:svc:protector-bucal",
+      "category": "Otros servicios",
+      "category_code": "OTROS-SRV",
+      "category_external_id": "ci-orden:cat:OTROS-SRV",
+      "duration_minutes": 40,
+      "modifiers": []
+    },
+    {
+      "field": "solo-escaneo",
+      "group": "otros-servicios",
+      "form_value": "Sólo escaneo",
+      "service": "Sólo escaneo",
+      "external_id": "ci-orden:svc:solo-escaneo",
+      "category": "Otros servicios",
+      "category_code": "OTROS-SRV",
+      "category_external_id": "ci-orden:cat:OTROS-SRV",
+      "duration_minutes": 30,
+      "modifiers": []
+    }
+  ],
+  "section_modifiers": [
+    {
+      "applies_to_section": "Tomografía Cone Beam",
+      "modifiers": [
+        {
+          "field": "tomo-sin-separacion",
+          "label": "Sin separación de tejidos blandos",
+          "note": "indentado bajo \"Elementos sueltos\" en la orden impresa"
+        },
+        {
+          "field": "est-tipo-implante",
+          "label": "Implante",
+          "note": "indicación clínica"
+        },
+        {
+          "field": "est-tipo-endodoncia",
+          "label": "Endodoncia",
+          "note": "indicación clínica"
+        },
+        {
+          "field": "est-tipo-cirugia",
+          "label": "Cirugía",
+          "note": "indicación clínica"
+        },
+        {
+          "field": "est-tipo-ortodoncia",
+          "label": "Ortodoncia",
+          "note": "indicación clínica"
+        },
+        {
+          "field": "est-tipo-periodoncia",
+          "label": "Periodoncia",
+          "note": "indicación clínica"
+        },
+        {
+          "field": "est-tipo-atm",
+          "label": "ATM",
+          "note": "indicación clínica"
+        }
+      ]
+    }
+  ]
+}

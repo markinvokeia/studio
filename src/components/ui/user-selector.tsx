@@ -26,6 +26,10 @@ interface UserSelectorProps {
      *  full patient form dialog) instead of the built-in inline mini-form.
      *  Receives the current search query as name prefill. */
     onRequestCreate?: (name: string) => void;
+    /** Adds an identity-document field to the inline mini-form. Off by default so
+     *  the existing call sites keep the same three fields. Used by the study-order
+     *  form, where the referring dentist identifies the patient by CI. */
+    showIdentityDocument?: boolean;
 }
 
 export function UserSelector({
@@ -40,6 +44,7 @@ export function UserSelector({
     disabled = false,
     openCreateToken,
     onRequestCreate,
+    showIdentityDocument = false,
 }: UserSelectorProps) {
     const [open, setOpen] = React.useState(false);
     const [searchQuery, setSearchQuery] = React.useState('');
@@ -51,6 +56,7 @@ export function UserSelector({
     const [createName, setCreateName] = React.useState('');
     const [createPhone, setCreatePhone] = React.useState('');
     const [createEmail, setCreateEmail] = React.useState('');
+    const [createDocument, setCreateDocument] = React.useState('');
     const [createError, setCreateError] = React.useState<string | null>(null);
     const searchQueryRef = React.useRef(searchQuery);
     const lastOpenCreateTokenRef = React.useRef(openCreateToken);
@@ -156,6 +162,7 @@ export function UserSelector({
         setCreateName(searchQuery.trim());
         setCreatePhone('');
         setCreateEmail('');
+        setCreateDocument('');
         setCreateError(null);
         setIsCreating(true);
     };
@@ -176,6 +183,11 @@ export function UserSelector({
                 name,
                 phone: createPhone.trim() || '',
                 email: createEmail.trim() || '',
+                // Sólo viaja si el llamador pidió el campo: así el payload de los
+                // demás usos del selector no cambia.
+                ...(showIdentityDocument && createDocument.trim()
+                    ? { identity_document: createDocument.trim() }
+                    : {}),
                 filter_type: filterType,
                 is_sales: isSales,
                 is_active: true,
@@ -298,6 +310,14 @@ export function UserSelector({
                                                     className="h-7 text-sm"
                                                     autoFocus
                                                 />
+                                                {showIdentityDocument && (
+                                                    <Input
+                                                        value={createDocument}
+                                                        onChange={e => { setCreateDocument(e.target.value); setCreateError(null); }}
+                                                        placeholder="Cédula de identidad"
+                                                        className="h-7 text-sm"
+                                                    />
+                                                )}
                                                 <Input
                                                     value={createPhone}
                                                     onChange={e => { setCreatePhone(e.target.value); setCreateError(null); }}
