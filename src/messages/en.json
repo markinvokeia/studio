@@ -1094,7 +1094,9 @@
       "workflowServiceTitle": "Workflow Service",
       "workflowServiceDescription": "Scheduling this appointment will create a treatment plan with {steps} steps.",
       "workflowPlanCreated": "Treatment plan created for {name} ({steps} steps)",
-      "workflowStepsLoading": "Loading steps..."
+      "workflowStepsLoading": "Loading steps...",
+      "summary": "Event summary",
+      "summaryRequired": "A summary is required for imported appointments."
     },
     "AppointmentsColumns": {
       "service": "Service",
@@ -1141,6 +1143,7 @@
       "failedCancel": "Failed to cancel",
       "failedDelete": "Failed to delete",
       "fillRequired": "Please fill in the required fields",
+      "patientRequired": "You must assign a patient before saving the appointment",
       "missingInfoTitle": "Missing Information",
       "slotNoLongerAvailable": "Slot no longer available",
       "slotUnavailableDescription": "The selected time slot is no longer available.",
@@ -1202,7 +1205,9 @@
       "selectDoctor": "Doctor",
       "searchDoctor": "Search doctor…",
       "noDoctors": "No doctors",
-      "viewStatement": "View account statement"
+      "viewStatement": "View account statement",
+      "importedFromGoogle": "Imported from Google Calendar",
+      "summaryPlaceholder": "Event title"
     },
     "linkedSession": "Linked Clinic Session",
     "noLinkedSession": "No clinic session linked to this appointment",
@@ -1256,7 +1261,8 @@
     "treatmentSequence": {
       "title": "Treatment Plan",
       "stepRef": "Plan step #{id}"
-    }
+    },
+    "importedFromGoogle": "Imported from Google Calendar"
   },
   "AppointmentsColumns": {
     "service": "Service",
@@ -3995,6 +4001,7 @@
       "status": "Status",
       "startTime": "Start Time",
       "endTime": "End Time",
+      "sede": "Branch",
       "notes": "Notes",
       "open": "Open",
       "closed": "Closed",
@@ -4009,6 +4016,10 @@
       "isOpen": "Is Open?",
       "startTime": "Start Time",
       "endTime": "End Time",
+      "sede": "Branch",
+      "allSedes": "All branches",
+      "sedeHelp": "Leave it on \"All branches\" to apply the exception clinic-wide.",
+      "timesHelp": "Leave both times empty to close the whole day; set a range to close only those hours.",
       "notes": "Notes",
       "notesPlaceholder": "Enter notes here...",
       "save": "Save",

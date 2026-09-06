@@ -11,7 +11,7 @@ import { CalendarGapsPanel } from '@/components/calendar/calendar-gaps-panel';
 import { CalendarAgendasPanel } from '@/components/calendar/calendar-agendas-panel';
 import { CalendarViewMenu } from '@/components/calendar/calendar-view-menu';
 import { CalendarZoomMenu } from '@/components/calendar/calendar-zoom-menu';
-import { computeRangeGaps, computeDayGaps, computeDayGapsForIntervals, getBusinessWindow, getAvailableIntervals, computeBlockedRanges, gapKey, DEFAULT_MIN_GAP_MINUTES, type Gap, type BlockedRange } from '@/components/calendar/calendar-gaps';
+import { computeRangeGaps, computeDayGaps, computeDayGapsForIntervals, getBusinessWindow, getAvailableIntervals, computeBlockedRanges, filterExceptionsForSede, gapKey, DEFAULT_MIN_GAP_MINUTES, type Gap, type BlockedRange } from '@/components/calendar/calendar-gaps';
 import { filterEventsByDayAndGroup } from '@/components/calendar/calendar-utils';
 import { DEFAULT_CALENDAR_MODE, DEFAULT_COLOR_BY_STATUS, DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, HOUR_SLOT_HEIGHT } from '@/components/calendar/calendar-constants';
 import { ReminderFormDialog, type ReminderFormValues } from '@/components/appointments/ReminderFormDialog';
@@ -134,6 +134,9 @@ interface InlineAppointmentDraftState {
     doctor: UserType | null;
     calendar: CalendarType | null;
     notes: string;
+    /** Título del evento. Solo se edita en las citas importadas de Google Calendar;
+     *  en el resto se autogenera a partir de paciente + tratamientos. */
+    summary: string;
     color?: string;
     colorTouched?: boolean;
     /** Set when the inline card is editing an existing appointment (vs creating). */
@@ -157,6 +160,7 @@ function getInlineDraftSignature(draft: Omit<InlineAppointmentDraftState, 'initi
         doctorId: draft.doctor?.id ? String(draft.doctor.id) : '',
         calendarId: draft.calendar?.id ? String(draft.calendar.id) : '',
         notes: draft.notes,
+        summary: draft.summary,
         color: draft.color ?? '',
     });
 }
@@ -466,6 +470,9 @@ async function getAppointments(
                 created_at: apiAppt.created_at || apiAppt.createdat,
                 google_calendar_id: apiAppt.google_calendar_id || apiAppt.googleCalendarId || undefined,
                 googleEventId: apiAppt.google_event_id || apiAppt.googleEventId || apiAppt.googleeventid || apiAppt.id,
+                imported_from_google: Boolean(
+                    apiAppt.imported_from_google ?? apiAppt.importedFromGoogle ?? apiAppt.importedfromgoogle,
+                ),
                 calendar_source_id: calendarSourceId,
                 calendar_name: apiAppt.organizer?.displayName || calendar?.name || apiAppt.calendar_name,
                 color: finalColor,
@@ -1100,6 +1107,7 @@ export default function AppointmentsPage() {
                 doctor: null,
                 calendar,
                 notes: '',
+                summary: '',
                 ...getInitialDraftColor(calendar),
             }));
             return;
@@ -1223,21 +1231,26 @@ export default function AppointmentsPage() {
             : clinicSchedules;
         if (sched.length === 0) sched = clinicSchedules;
         // Prefer the target calendar's sede schedules when a calendar is given.
+        let sedeId = defaultSede ? String(defaultSede) : '';
         if (calendarId) {
             const cal = calendars.find((c) => String(c.id) === String(calendarId));
-            const sedeId = cal?.sede_id;
-            if (sedeId) {
-                const scoped = clinicSchedules.filter((s) => !s.sede_id || String(s.sede_id) === String(sedeId));
+            if (cal?.sede_id) {
+                sedeId = String(cal.sede_id);
+                const scoped = clinicSchedules.filter((s) => !s.sede_id || String(s.sede_id) === sedeId);
                 if (scoped.length > 0) sched = scoped;
             }
         }
+        // Exceptions of that branch (an empty result is legitimate → no fallback).
+        const exc = filterExceptionsForSede(clinicExceptions, sedeId || undefined);
         const minuteOfDay = start.getHours() * 60 + start.getMinutes();
-        return computeBlockedRanges(start, sched, clinicExceptions)
+        return computeBlockedRanges(start, sched, exc)
             .some((b) => minuteOfDay >= b.startMin && minuteOfDay < b.endMin);
     }, [blockUnavailable, clinicSchedules, defaultSede, clinicExceptions, calendars]);
 
     const handleSaveInlineDraft = React.useCallback(async () => {
-        if (!inlineDraft?.patient) return;
+        // Las citas importadas de Google llegan sin paciente y aun así se pueden
+        // guardar; el resto sigue necesitando uno (ver la validación más abajo).
+        if (!inlineDraft || (!inlineDraft.patient && !inlineDraft.editing?.imported_from_google)) return;
         setIsSavingInline(true);
         try {
             const start = inlineDraft.date;
@@ -1248,6 +1261,24 @@ export default function AppointmentsPage() {
             const svcNames = inlineDraft.services.map((s) => s.name).join(', ');
             const draftColor = inlineDraft.colorTouched ? inlineDraft.color : inlineDraft.color || getGoogleCalendarColorId(calendar?.color);
             const editing = inlineDraft.editing ?? null;
+            const isImported = editing?.imported_from_google === true;
+            // En las citas importadas el summary es el título del evento y lo maneja el
+            // usuario en el campo de la tarjeta: se guarda literal, sin regenerarlo.
+            const importedSummary = isImported ? (inlineDraft.summary.trim() || editing!.summary) : null;
+            // Sin paciente (solo posible en las importadas) el summary generado se
+            // queda con los tratamientos; en la práctica no se usa, porque esas citas
+            // siempre resuelven por `importedSummary`.
+            const generatedSummary = patient
+                ? (svcNames ? `${patient.name} - ${svcNames}` : patient.name)
+                : svcNames;
+
+            // A patient is always required, EXCEPT for appointments imported from Google
+            // Calendar: those arrive with no patient assigned and must stay editable.
+            if (!patient?.id && !isImported) {
+                toast({ variant: 'destructive', title: tToasts('missingInfoTitle'), description: tToasts('patientRequired') });
+                setIsSavingInline(false);
+                return;
+            }
 
             // Block save when the chosen date/time falls outside the calendar's
             // working hours (only when "block out-of-office hours" is enabled).
@@ -1276,15 +1307,15 @@ export default function AppointmentsPage() {
             // appointment via the reschedule endpoint, reusing the inline card.
             if (editing && inlineDraft.rescheduling) {
                 const newId = await rescheduleAppointment(editing, {
-                    patient_id: patient.id,
-                    patient_name: patient.name,
-                    patient_email: patient.email || '',
-                    patient_phone: patient.phone_number || '',
+                    patient_id: patient?.id || '',
+                    patient_name: patient?.name || '',
+                    patient_email: patient?.email || '',
+                    patient_phone: patient?.phone_number || '',
                     doctor_id: doctor?.id || '',
                     doctor_name: doctor?.name || '',
                     doctor_email: doctor?.email || '',
                     calendar_source_id: calendar?.id ? String(calendar.id) : '',
-                    summary: svcNames ? `${patient.name} - ${svcNames}` : patient.name,
+                    summary: importedSummary ?? generatedSummary,
                     notes: inlineDraft.notes || '',
                     service_ids: inlineDraft.services.map((s) => s.id),
                     service_names: svcNames,
@@ -1307,11 +1338,11 @@ export default function AppointmentsPage() {
                 doctor_id: doctor?.id || '',
                 doctor_name: doctor?.name || '',
                 doctor_email: doctor?.email || '',
-                patient_id: patient.id,
-                patient_name: patient.name,
-                patient_email: patient.email || '',
-                patient_phone: patient.phone_number || '',
-                summary: svcNames ? `${patient.name} - ${svcNames}` : patient.name,
+                patient_id: patient?.id || '',
+                patient_name: patient?.name || '',
+                patient_email: patient?.email || '',
+                patient_phone: patient?.phone_number || '',
+                summary: importedSummary ?? generatedSummary,
                 service_ids: inlineDraft.services.map((s) => s.id),
                 service_names: svcNames,
                 notes: inlineDraft.notes || '',
@@ -1420,6 +1451,9 @@ export default function AppointmentsPage() {
                 })}
                 notes={inlineDraft.notes}
                 onNotesChange={(n) => setInlineDraft((d) => (d ? { ...d, notes: n } : d))}
+                importedFromGoogle={inlineDraft.editing?.imported_from_google === true}
+                summary={inlineDraft.summary}
+                onSummaryChange={(v) => setInlineDraft((d) => (d ? { ...d, summary: v } : d))}
                 overlapWarning={overlap}
                 patientDebt={inlineDebt}
                 cancelledCount={inlineCancelledCount}
@@ -1478,7 +1512,7 @@ export default function AppointmentsPage() {
             const draftCalendarId = context?.groupBy === 'calendar' ? context.value : customCalendarId;
             const draftCalendar = draftCalendarId ? (calendars.find((c) => String(c.id) === String(draftCalendarId)) ?? null) : null;
             const draftContext = context ?? (draftCalendarId ? { groupBy: 'calendar' as const, value: String(draftCalendarId) } : undefined);
-            setInlineDraft(createInlineDraftState({ date, context: draftContext, durationMin: slotDuration, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '', ...getInitialDraftColor(draftCalendar) }));
+            setInlineDraft(createInlineDraftState({ date, context: draftContext, durationMin: slotDuration, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '', summary: '', ...getInitialDraftColor(draftCalendar) }));
             return;
         }
         prepareSlot(date, context);
@@ -1502,12 +1536,16 @@ export default function AppointmentsPage() {
         if (!Number.isFinite(durationMin) || durationMin <= 0) durationMin = 30;
         const doctor = doctors.find((d) => String(d.id) === String(appointment.doctorId)) ?? null;
         const calendar = calendars.find((c) => String(c.id) === String(appointment.calendar_source_id)) ?? null;
-        const patient = {
-            id: appointment.patientId,
-            name: appointment.patientName,
-            email: appointment.patientEmail,
-            phone_number: appointment.patientPhone,
-        } as UserType;
+        // Las citas importadas de Google llegan sin paciente y el mapeo deja 'N/A':
+        // sin id el selector tiene que verse vacío, no con ese texto.
+        const patient = appointment.patientId
+            ? ({
+                id: appointment.patientId,
+                name: appointment.patientName,
+                email: appointment.patientEmail,
+                phone_number: appointment.patientPhone,
+            } as UserType)
+            : null;
         const services: Service[] = Array.isArray(appointment.services)
             ? appointment.services.map((s: any) => ({ id: String(s.id), name: s.name, color: s.color } as Service))
             : [];
@@ -1529,13 +1567,16 @@ export default function AppointmentsPage() {
             doctor,
             calendar,
             notes: appointment.notes || '',
+            // El mapper rellena el summary con el placeholder "Ninguno" cuando la cita
+            // no trae uno; en el campo eso tiene que verse vacío.
+            summary: appointment.summary && appointment.summary !== t('createDialog.none') ? appointment.summary : '',
             color: appointment.colorId || getGoogleCalendarColorId(appointment.color),
             colorTouched: true,
             editing: appointment,
             rescheduling,
         }));
         return true;
-    }, [calendarSettings?.inline_appointment_creation, currentView, doctors, calendars, groupBy, calendarMode, isCustomMode]);
+    }, [calendarSettings?.inline_appointment_creation, currentView, doctors, calendars, groupBy, calendarMode, isCustomMode, t]);
 
     // Edit an existing appointment: inline edit card when the inline-creation
     // preference is on (and on a time-grid view), otherwise the modal form.
@@ -2453,6 +2494,7 @@ export default function AppointmentsPage() {
             doctor,
             calendar,
             notes: '',
+            summary: '',
             quoteId: data.quoteId,
             notifId: data.notifId,
             ...getInitialDraftColor(calendar),
@@ -2797,6 +2839,10 @@ export default function AppointmentsPage() {
                     is_open: e.is_open as boolean,
                     start_time: (e.start_time as string) ?? '',
                     end_time: (e.end_time as string) ?? '',
+                    // Empty/absent sede = clinic-wide exception (applies to every branch).
+                    sede_id: e.sede_id !== undefined && e.sede_id !== null && String(e.sede_id) !== ''
+                        ? String(e.sede_id)
+                        : undefined,
                     // Notes can come under a few key names depending on the flow.
                     notes: String(e.notes ?? e.note ?? e.nota ?? e.notas ?? e.description ?? e.descripcion ?? e.motivo ?? ''),
                 })));
@@ -2812,6 +2858,40 @@ export default function AppointmentsPage() {
         // schedules so the calendar isn't accidentally blocked end-to-end.
         return scoped.length > 0 ? scoped : clinicSchedules;
     }, [clinicSchedules, defaultSede]);
+
+    // Sede used for clinic-wide (non per-calendar) blocking. Without a default sede
+    // the timeline mixes branches, so it stays empty — unless every calendar belongs
+    // to the same branch, in which case scoping to it is unambiguous.
+    const timelineSede = React.useMemo(() => {
+        if (defaultSede) return String(defaultSede);
+        const ids = new Set(calendars.filter((c) => c.sede_id).map((c) => String(c.sede_id)));
+        return ids.size === 1 ? [...ids][0] : '';
+    }, [defaultSede, calendars]);
+
+    // Exceptions scoped by sede (clinic-wide rows always included), precomputed for
+    // every sede in play because the blocking memo asks for the same lists day x
+    // column times. Key '' = no sede context, i.e. only the clinic-wide rows.
+    // Unlike `effectiveSchedules` there is deliberately NO "don't over-filter to empty"
+    // fallback: for schedules an empty list means "we lost the hours" (dangerous), for
+    // exceptions it just means "nothing is closed" (correct).
+    const exceptionsBySede = React.useMemo(() => {
+        const map = new Map<string, ClinicException[]>();
+        map.set('', filterExceptionsForSede(clinicExceptions, undefined));
+        for (const cal of calendars) {
+            const key = cal.sede_id ? String(cal.sede_id) : '';
+            if (!map.has(key)) map.set(key, filterExceptionsForSede(clinicExceptions, key));
+        }
+        // The default sede may have no calendar of its own.
+        if (timelineSede && !map.has(timelineSede)) {
+            map.set(timelineSede, filterExceptionsForSede(clinicExceptions, timelineSede));
+        }
+        return map;
+    }, [clinicExceptions, calendars, timelineSede]);
+
+    const exceptionsForSede = React.useCallback((sedeId?: string): ClinicException[] => {
+        const key = sedeId ? String(sedeId) : '';
+        return exceptionsBySede.get(key) ?? filterExceptionsForSede(clinicExceptions, key || undefined);
+    }, [exceptionsBySede, clinicExceptions]);
 
     // Visible days for the blocking overlay (independent of the Huecos toggle).
     const blockVisibleDays = React.useMemo(() => {
@@ -2834,50 +2914,58 @@ export default function AppointmentsPage() {
         // Custom mode always renders grouped-by-calendar columns (regardless of the
         // grouped_by setting), so the ranges must be tagged per calendar to match.
         const effGroupBy = calendarMode === 'custom' ? 'calendar' : groupBy;
-        const tagDay = (day: Date, sched: ClinicSchedule[], groupValue?: string): BlockedRange[] =>
-            computeBlockedRanges(day, sched, clinicExceptions)
+        // Exceptions for columns with no branch of their own (doctor columns, the
+        // ungrouped timeline, the "sin agenda" column).
+        const clinicWideExceptions = exceptionsForSede(timelineSede);
+        const tagDay = (day: Date, sched: ClinicSchedule[], exc: ClinicException[], groupValue?: string): BlockedRange[] =>
+            computeBlockedRanges(day, sched, exc)
                 .map((r) => ({ dayKey: format(day, 'yyyy-MM-dd'), startMin: r.startMin, endMin: r.endMin, groupValue, reason: r.reason, note: r.note }));
 
-        // Grouped by consultorio: each column blocks per its calendar's SEDE schedules.
+        // Grouped by consultorio: each column blocks per its calendar's SEDE schedules
+        // and that sede's exceptions (plus the clinic-wide ones).
         if (isGroupingView && effGroupBy === 'calendar') {
             const calendarRanges = calendars.flatMap((cal) => {
-                const sedeId = cal.sede_id;
+                const sedeId = cal.sede_id ? String(cal.sede_id) : '';
                 const sched = sedeId
-                    ? clinicSchedules.filter((s) => !s.sede_id || String(s.sede_id) === String(sedeId))
+                    ? clinicSchedules.filter((s) => !s.sede_id || String(s.sede_id) === sedeId)
                     : effectiveSchedules;
-                return blockVisibleDays.flatMap((day) => tagDay(day, sched, String(cal.id)));
+                const exc = sedeId ? exceptionsForSede(sedeId) : clinicWideExceptions;
+                return blockVisibleDays.flatMap((day) => tagDay(day, sched, exc, String(cal.id)));
             });
             if (!hasVisibleUnassignedItems || calendarMode === 'custom') return calendarRanges;
             return [
                 ...calendarRanges,
-                ...blockVisibleDays.flatMap((day) => tagDay(day, effectiveSchedules, UNASSIGNED_CALENDAR_GROUP_ID)),
+                ...blockVisibleDays.flatMap((day) => tagDay(day, effectiveSchedules, clinicWideExceptions, UNASSIGNED_CALENDAR_GROUP_ID)),
             ];
         }
         // Grouped by doctor: clinic-wide hours, tagged per column so each shows them.
+        // A doctor column has no branch, so only branch-agnostic exceptions apply.
         if (isGroupingView && effGroupBy === 'doctor') {
             const doctorRanges = doctors.flatMap((doc) =>
-                blockVisibleDays.flatMap((day) => tagDay(day, effectiveSchedules, String(doc.id))),
+                blockVisibleDays.flatMap((day) => tagDay(day, effectiveSchedules, clinicWideExceptions, String(doc.id))),
             );
             if (!hasVisibleCalendarItems) return doctorRanges;
             return [
                 ...doctorRanges,
-                ...blockVisibleDays.flatMap((day) => tagDay(day, effectiveSchedules, CALENDAR_ITEMS_DOCTOR_GROUP_ID)),
+                ...blockVisibleDays.flatMap((day) => tagDay(day, effectiveSchedules, clinicWideExceptions, CALENDAR_ITEMS_DOCTOR_GROUP_ID)),
             ];
         }
         // Non-grouped: a single clinic-wide timeline.
-        return blockVisibleDays.flatMap((day) => tagDay(day, effectiveSchedules, undefined));
-    }, [blockUnavailable, blockingConfigured, currentView, groupBy, calendarMode, blockVisibleDays, effectiveSchedules, clinicSchedules, clinicExceptions, calendars, doctors, hasVisibleCalendarItems, hasVisibleUnassignedItems]);
+        return blockVisibleDays.flatMap((day) => tagDay(day, effectiveSchedules, clinicWideExceptions, undefined));
+    }, [blockUnavailable, blockingConfigured, currentView, groupBy, calendarMode, blockVisibleDays, effectiveSchedules, clinicSchedules, exceptionsForSede, timelineSede, calendars, doctors, hasVisibleCalendarItems, hasVisibleUnassignedItems]);
 
     const blockedFullDays = React.useMemo<Set<string>>(() => {
         if (!blockUnavailable || !blockingConfigured) return new Set();
+        // Month cells are clinic-wide: use the timeline's exception scope.
+        const exc = exceptionsForSede(timelineSede);
         const set = new Set<string>();
         for (const day of blockVisibleDays) {
-            if (getAvailableIntervals(day, effectiveSchedules, clinicExceptions).length === 0) {
+            if (getAvailableIntervals(day, effectiveSchedules, exc).length === 0) {
                 set.add(format(day, 'yyyy-MM-dd'));
             }
         }
         return set;
-    }, [blockUnavailable, blockingConfigured, blockVisibleDays, effectiveSchedules, clinicExceptions]);
+    }, [blockUnavailable, blockingConfigured, blockVisibleDays, effectiveSchedules, exceptionsForSede, timelineSede]);
 
     const gapVisibleDays = React.useMemo(() => {
         if (!gapsActive || !fetchRange?.start || !fetchRange?.end) return [];
@@ -2916,7 +3004,7 @@ export default function AppointmentsPage() {
             const draftCalendarId = context?.groupBy === 'calendar' ? context.value : customCalendarId;
             const draftCalendar = draftCalendarId ? (calendars.find((c) => String(c.id) === String(draftCalendarId)) ?? null) : null;
             const draftContext = context ?? (draftCalendarId ? { groupBy: 'calendar' as const, value: String(draftCalendarId) } : undefined);
-            setInlineDraft(createInlineDraftState({ date: gap.start, context: draftContext, durationMin: slotDuration, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '', ...getInitialDraftColor(draftCalendar) }));
+            setInlineDraft(createInlineDraftState({ date: gap.start, context: draftContext, durationMin: slotDuration, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '', summary: '', ...getInitialDraftColor(draftCalendar) }));
             setGapsActive(false);
             setSelectedGap(null);
             return;
@@ -3109,9 +3197,10 @@ export default function AppointmentsPage() {
         // When blocking is on, restrict gaps to the available intervals (split shifts
         // + exceptions); otherwise keep the original single-window behavior.
         const useIntervals = blockUnavailable && blockingConfigured;
-        const dayGapsFor = (evts: CalendarEvent[], day: Date): Gap[] =>
+        const clinicWideExceptions = exceptionsForSede(timelineSede);
+        const dayGapsFor = (evts: CalendarEvent[], day: Date, exc: ClinicException[] = clinicWideExceptions): Gap[] =>
             useIntervals
-                ? computeDayGapsForIntervals(evts, day, DEFAULT_MIN_GAP_MINUTES, getAvailableIntervals(day, effectiveSchedules, clinicExceptions))
+                ? computeDayGapsForIntervals(evts, day, DEFAULT_MIN_GAP_MINUTES, getAvailableIntervals(day, effectiveSchedules, exc))
                 : computeDayGaps(evts, day, DEFAULT_MIN_GAP_MINUTES, getBusinessWindow(day, clinicSchedules));
         // Grouped (by doctor/consultorio): free slots PER column, so a consultorio's
         // continuous free time merges across hours regardless of other columns.
@@ -3120,19 +3209,23 @@ export default function AppointmentsPage() {
         // Use the effective grouping so custom mode (always grouped by calendar)
         // gets gaps tagged with the shown agenda's column value.
         if (isGroupingView && effectiveGroupBy !== 'none' && effectiveGroupingColumns.length > 0) {
-            return effectiveGroupingColumns.flatMap((col) =>
-                gapVisibleDays.flatMap((day) =>
-                    dayGapsFor(filterEventsByDayAndGroup(calendarEvents, day, effectiveGroupBy, col.value), day)
+            return effectiveGroupingColumns.flatMap((col) => {
+                // Per-consultorio columns know their branch, so a holiday of another
+                // sede must not carve fake gaps out of their day.
+                const cal = effectiveGroupBy === 'calendar' ? calendars.find((c) => String(c.id) === String(col.value)) : undefined;
+                const exc = cal?.sede_id ? exceptionsForSede(String(cal.sede_id)) : clinicWideExceptions;
+                return gapVisibleDays.flatMap((day) =>
+                    dayGapsFor(filterEventsByDayAndGroup(calendarEvents, day, effectiveGroupBy, col.value), day, exc)
                         .map((g) => ({ ...g, groupValue: col.value, groupLabel: col.label })),
-                ),
-            );
+                );
+            });
         }
         // Non-grouped: a single timeline (union of all visible events).
         if (useIntervals) {
             return gapVisibleDays.flatMap((day) => dayGapsFor(calendarEvents, day));
         }
         return computeRangeGaps(calendarEvents, gapVisibleDays, clinicSchedules);
-    }, [gapsActive, blockUnavailable, blockingConfigured, effectiveGroupBy, effectiveGroupingColumns, currentView, calendarEvents, gapVisibleDays, clinicSchedules, effectiveSchedules, clinicExceptions]);
+    }, [gapsActive, blockUnavailable, blockingConfigured, effectiveGroupBy, effectiveGroupingColumns, currentView, calendarEvents, gapVisibleDays, clinicSchedules, effectiveSchedules, exceptionsForSede, timelineSede, calendars]);
 
     // Render additional context menu items for the calendar event:
     // status submenu + clinic session shortcut.

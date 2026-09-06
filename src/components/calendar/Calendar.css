@@ -221,6 +221,25 @@
   padding: 1px;
 }
 
+/* Origen del evento (importado de Google Calendar): un punto chico arriba a la
+   derecha, en la esquina opuesta al badge de estado para que no se pisen. El
+   anillo claro lo despega de las cards pintadas en tonos oscuros o azulados. */
+.event-in-day-view .event-source-corner {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  box-shadow: 0 0 0 1px hsl(0 0% 100% / 0.65);
+  pointer-events: none;
+}
+
+.event-in-day-view-compact .event-source-corner {
+  top: 2px;
+  right: 2px;
+}
+
 /* In month view chips the event is a single row — show the icon inline at the end. */
 .event .event-status-corner {
   margin-left: auto;
@@ -235,6 +254,22 @@
      menos citas por día en la vista de mes. */
   padding: 1px;
   flex-shrink: 0;
+}
+
+/* En el chip de mes el punto va inline, al final de la fila. */
+.event .event-source-corner {
+  margin-left: auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  box-shadow: 0 0 0 1px hsl(0 0% 100% / 0.65);
+  flex-shrink: 0;
+}
+
+/* Cuando además hay badge de estado, ese ya empuja al final: el punto se pega a su
+   derecha en vez de repartirse el espacio libre con él. */
+.event .event-status-corner ~ .event-source-corner {
+  margin-left: 3px;
 }
 
 .event:hover {
@@ -713,6 +748,13 @@
   padding: 1px;
 }
 
+.event-in-day-view[data-density="compact"] .event-source-corner {
+  top: 2px;
+  right: 2px;
+  width: 5px;
+  height: 5px;
+}
+
 .event-in-day-view[data-density="compact"] .event-status-corner svg {
   width: 12px;
   height: 12px;
@@ -735,7 +777,8 @@
 }
 
 .event-in-day-view[data-density="tiny"] .event-day-time,
-.event-in-day-view[data-density="tiny"] .event-status-corner {
+.event-in-day-view[data-density="tiny"] .event-status-corner,
+.event-in-day-view[data-density="tiny"] .event-source-corner {
   display: none;
 }
 

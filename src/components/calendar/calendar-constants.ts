@@ -12,6 +12,9 @@ export const GOOGLE_CALENDAR_COLORS = [
   { id: "11", hex: "#dc2127" }, // Tomato
 ];
 
+/** Azul de Google Calendar, para el badge de las citas importadas desde ahí. */
+export const GOOGLE_IMPORT_BADGE_COLOR = '#4285F4';
+
 /** Percentage of viewport width for the main resource column on mobile */
 export const MOBILE_COLUMN_MAIN = 0.85;
 

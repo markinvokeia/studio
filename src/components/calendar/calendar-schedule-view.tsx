@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useTranslations } from 'next-intl';
 
 import type { Locale } from 'date-fns';
 import { format, parseISO } from 'date-fns';
@@ -12,9 +13,22 @@ import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
 import { cn } from '@/lib/utils';
 import type { AppointmentStatus, CalendarReminderPriority, CalendarReminderStatus, CancellationReason } from '@/lib/types';
 
+import { GOOGLE_IMPORT_BADGE_COLOR } from './calendar-constants';
 import type { CalendarBreakpoint, CalendarEvent } from './calendar-types';
 import { formatEventTime, getContrastingIconColor } from './calendar-utils';
 import { getReminderCardStyle, getReminderPriorityColor, isGeneralReminder, isReminderDone } from './reminder-visuals';
+
+/** Marca de "importado de Google Calendar": un punto chico junto al badge de estado. */
+function ImportedBadge({ label }: { label: string }) {
+  return (
+    <span
+      aria-hidden
+      title={label}
+      className="h-1.5 w-1.5 shrink-0 rounded-full ring-1 ring-white/65"
+      style={{ backgroundColor: GOOGLE_IMPORT_BADGE_COLOR }}
+    />
+  );
+}
 
 function StatusBadge({
   status,
@@ -56,6 +70,7 @@ export function CalendarScheduleView({
   selectedAppointmentIds,
   onToggleAppointmentSelect,
 }: CalendarScheduleViewProps) {
+  const tAppointments = useTranslations('AppointmentsPage');
   const isBulkMode = !!onToggleAppointmentSelect;
   const groupedEvents = events.reduce<Record<string, CalendarEvent[]>>((acc, event) => {
     if (!event.start) return acc;
@@ -194,7 +209,12 @@ export function CalendarScheduleView({
                           >
                             <ReminderIcon className="h-3.5 w-3.5" strokeWidth={2.5} />
                           </span>
-                        ) : status && <StatusBadge status={status} cancellationReason={cancellationReason} />}
+                        ) : (
+                          <>
+                            {status && <StatusBadge status={status} cancellationReason={cancellationReason} />}
+                            {event.data?.imported_from_google === true && <ImportedBadge label={tAppointments('importedFromGoogle')} />}
+                          </>
+                        )}
                       </div>
                       {!event.label && (
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums">
@@ -229,7 +249,12 @@ export function CalendarScheduleView({
                       >
                         <ReminderIcon className="h-3.5 w-3.5" strokeWidth={2.5} />
                       </span>
-                    ) : status && <StatusBadge status={status} cancellationReason={cancellationReason} />}
+                    ) : (
+                      <>
+                        {status && <StatusBadge status={status} cancellationReason={cancellationReason} />}
+                        {event.data?.imported_from_google === true && <ImportedBadge label={tAppointments('importedFromGoogle')} />}
+                      </>
+                    )}
                     {!event.label && (
                       <div className="flex items-center gap-2 w-28 text-sm font-semibold">
                         <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />

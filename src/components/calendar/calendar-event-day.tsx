@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import { BellRing, CheckCircle2, FileText, Users } from 'lucide-react';
 
 import {
@@ -17,7 +18,7 @@ import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
 import type { AppointmentStatus, CalendarReminderPriority, CalendarReminderStatus, CancellationReason } from '@/lib/types';
 import { getStatusIcon } from '@/components/appointments/status-icons';
 
-import { EVENT_DENSITY_COMPACT_PX, EVENT_DENSITY_NORMAL_PX, HOUR_SLOT_HEIGHT } from './calendar-constants';
+import { EVENT_DENSITY_COMPACT_PX, EVENT_DENSITY_NORMAL_PX, GOOGLE_IMPORT_BADGE_COLOR, HOUR_SLOT_HEIGHT } from './calendar-constants';
 import type { CalendarEvent } from './calendar-types';
 import { formatEventTime, getContrastingIconColor, getReadableTextColor } from './calendar-utils';
 import { getReminderCardStyle, getReminderPriorityColor, isGeneralReminder, isReminderDone } from './reminder-visuals';
@@ -49,6 +50,7 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
 }: CalendarEventDayProps) {
   // Distinguish single vs double click: delay the single-click action briefly so a
   // double-click (inline edit) can cancel it. Only delays when a dbl handler exists.
+  const tAppointments = useTranslations('AppointmentsPage');
   const clickTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   React.useEffect(() => () => { if (clickTimer.current) clearTimeout(clickTimer.current); }, []);
   const start = typeof event.start === 'string' ? parseISO(event.start) : event.start;
@@ -163,6 +165,14 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
               </span>
             );
           })()}
+          {!isReminder && event.data?.imported_from_google === true && (
+            <span
+              aria-hidden
+              className="event-source-corner"
+              title={tAppointments('importedFromGoogle')}
+              style={{ backgroundColor: GOOGLE_IMPORT_BADGE_COLOR }}
+            />
+          )}
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent className="w-[min(18rem,calc(100vw-1rem))]">

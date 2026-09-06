@@ -11,13 +11,15 @@ import { DataTableAdvancedToolbar } from '@/components/ui/data-table-advanced-to
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { DatePickerInput } from '@/components/ui/date-picker';
 import { Dialog, DialogBody, DialogCancelButton, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
+import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
@@ -32,12 +34,17 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 
+/** Radix Select no admite value=""; este centinela representa "todas las sedes". */
+const ALL_SEDES_VALUE = '__all__';
+
 const holidayFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
     date: z.string().min(1, t('dateRequired')),
     is_open: z.boolean().default(false),
     start_time: z.string().optional(),
     end_time: z.string().optional(),
+    // '' = la excepción aplica a todas las sedes.
+    sede_id: z.string().optional(),
     notes: z.string().optional(),
 });
 
@@ -54,6 +61,11 @@ async function getHolidays(): Promise<ClinicException[]> {
             is_open: apiHoliday.is_open,
             start_time: apiHoliday.start_time ?? '',
             end_time: apiHoliday.end_time ?? '',
+            // Sede vacía/ausente = excepción global (aplica a todas las sedes).
+            sede_id: apiHoliday.sede_id !== undefined && apiHoliday.sede_id !== null && String(apiHoliday.sede_id) !== ''
+                ? String(apiHoliday.sede_id)
+                : undefined,
+            sede_name: apiHoliday.sede_name ? String(apiHoliday.sede_name) : undefined,
             notes: apiHoliday.notes || '',
         }));
     } catch (error) {
@@ -70,12 +82,23 @@ function mapHolidayToFormValues(holiday: ClinicException): HolidayFormValues {
         is_open: holiday.is_open,
         start_time: holiday.start_time ?? '',
         end_time: holiday.end_time ?? '',
+        sede_id: holiday.sede_id ?? '',
         notes: holiday.notes ?? '',
     };
 }
 
 async function upsertHoliday(holidayData: HolidayFormValues) {
-    const responseData = await api.post(API_ROUTES.HOLIDAYS_UPSERT, holidayData);
+    const payload = {
+        ...holidayData,
+        // '' = todas las sedes -> NULL en la columna. Number('') es 0, que sería
+        // una FK inválida, de ahí el branch explícito.
+        sede_id: holidayData.sede_id ? Number(holidayData.sede_id) : null,
+        // NULL y no '': una hora vacía tiene que limpiar la columna en vez de
+        // fallar el cast a `time`. Un cierre sin horas cierra el día completo.
+        start_time: holidayData.start_time || null,
+        end_time: holidayData.end_time || null,
+    };
+    const responseData = await api.post(API_ROUTES.HOLIDAYS_UPSERT, payload);
     if (responseData && typeof responseData === 'object' && responseData.error === true) {
         throw new Error(responseData.message || 'Failed to save holiday');
     }
@@ -99,6 +122,7 @@ export default function HolidaysPage() {
     const tValidation = useTranslations('HolidaysPage.validation');
     const { toast } = useToast();
     const { hasPermission } = usePermissions();
+    const { sedes } = useAuth();
     const isNarrow = useViewportNarrow();
 
     const canCreate = hasPermission(BUSINESS_CONFIG_PERMISSIONS.HOLIDAYS_CREATE);
@@ -119,7 +143,7 @@ export default function HolidaysPage() {
 
     const form = useForm<HolidayFormValues>({
         resolver: zodResolver(holidayFormSchema(tValidation)),
-        defaultValues: { date: '', is_open: false, start_time: '', end_time: '', notes: '' },
+        defaultValues: { date: '', is_open: false, start_time: '', end_time: '', sede_id: '', notes: '' },
     });
 
     const loadHolidays = React.useCallback(async () => {
@@ -153,7 +177,7 @@ export default function HolidaysPage() {
         setRowSelection({});
         setIsEditing(true);
         setSubmissionError(null);
-        form.reset({ date: '', is_open: false, start_time: '', end_time: '', notes: '' });
+        form.reset({ date: '', is_open: false, start_time: '', end_time: '', sede_id: '', notes: '' });
         setIsCreateDialogOpen(true);
     };
 
@@ -205,12 +229,19 @@ export default function HolidaysPage() {
         }
     };
 
+    // Nombre de la sede de una excepción; sin sede aplica a toda la clínica.
+    const sedeLabel = React.useCallback((sedeId?: string, sedeName?: string) => {
+        if (!sedeId) return t('createDialog.allSedes');
+        return sedeName || sedes.find((s) => String(s.id) === String(sedeId))?.name || sedeId;
+    }, [sedes, t]);
+
     const columnTranslations = {
         id: t('columns.id'),
         date: t('columns.date'),
         is_open: t('columns.status'),
         start_time: t('columns.startTime'),
         end_time: t('columns.endTime'),
+        sede_id: t('columns.sede'),
         notes: t('columns.notes'),
     };
 
@@ -220,6 +251,15 @@ export default function HolidaysPage() {
             accessorKey: 'is_open',
             header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
             cell: ({ row }) => <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.original.is_open ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{row.original.is_open ? 'Abierto' : 'Cerrado'}</span>,
+        },
+        {
+            accessorKey: 'sede_id',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.sede')} />,
+            cell: ({ row }) => (
+                <span className={row.original.sede_id ? undefined : 'text-muted-foreground'}>
+                    {sedeLabel(row.original.sede_id, row.original.sede_name)}
+                </span>
+            ),
         },
         { accessorKey: 'notes', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.notes')} /> },
     ];
@@ -263,7 +303,7 @@ export default function HolidaysPage() {
                     renderCard={(row: ClinicException, _isSelected: boolean) => (
                         <DataCard isSelected={_isSelected}
                             title={formatHolidayDate(row.date)}
-                            subtitle={row.notes || (row.is_open ? `${row.start_time} – ${row.end_time}` : '')}
+                            subtitle={[row.notes || (row.is_open ? `${row.start_time} – ${row.end_time}` : ''), sedeLabel(row.sede_id, row.sede_name)].filter(Boolean).join(' · ')}
                             badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.is_open ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{row.is_open ? 'Abierto' : 'Cerrado'}</span>}
                             showArrow
                         />
@@ -331,6 +371,28 @@ export default function HolidaysPage() {
                                 <FormLabel className="font-normal">{t('createDialog.isOpen')}</FormLabel>
                             </FormItem>
                         )} />
+                        {sedes.length > 0 && (
+                            <FormField control={form.control} name="sede_id" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('createDialog.sede')}</FormLabel>
+                                    <Select
+                                        value={field.value ? field.value : ALL_SEDES_VALUE}
+                                        onValueChange={(val) => field.onChange(val === ALL_SEDES_VALUE ? '' : val)}
+                                        disabled={!isEditing}
+                                    >
+                                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                        <SelectContent>
+                                            <SelectItem value={ALL_SEDES_VALUE}>{t('createDialog.allSedes')}</SelectItem>
+                                            {sedes.map((sede) => (
+                                                <SelectItem key={sede.id} value={String(sede.id)}>{sede.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormDescription>{t('createDialog.sedeHelp')}</FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                        )}
                         <FormField control={form.control} name="start_time" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>{t('createDialog.startTime')}</FormLabel>
@@ -342,6 +404,7 @@ export default function HolidaysPage() {
                             <FormItem>
                                 <FormLabel>{t('createDialog.endTime')}</FormLabel>
                                 <FormControl><Input type="time" {...field} value={field.value ?? ''} disabled={!isEditing} /></FormControl>
+                                <FormDescription>{t('createDialog.timesHelp')}</FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )} />
@@ -398,7 +461,7 @@ export default function HolidaysPage() {
                     if (!open) {
                         setIsEditing(false);
                         setSubmissionError(null);
-                        form.reset({ date: '', is_open: false, start_time: '', end_time: '', notes: '' });
+                        form.reset({ date: '', is_open: false, start_time: '', end_time: '', sede_id: '', notes: '' });
                     }
                 }}
             >
@@ -429,6 +492,27 @@ export default function HolidaysPage() {
                                         <FormLabel className="font-normal">{t('createDialog.isOpen')}</FormLabel>
                                     </FormItem>
                                 )} />
+                                {sedes.length > 0 && (
+                                    <FormField control={form.control} name="sede_id" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('createDialog.sede')}</FormLabel>
+                                            <Select
+                                                value={field.value ? field.value : ALL_SEDES_VALUE}
+                                                onValueChange={(val) => field.onChange(val === ALL_SEDES_VALUE ? '' : val)}
+                                            >
+                                                <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value={ALL_SEDES_VALUE}>{t('createDialog.allSedes')}</SelectItem>
+                                                    {sedes.map((sede) => (
+                                                        <SelectItem key={sede.id} value={String(sede.id)}>{sede.name}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormDescription>{t('createDialog.sedeHelp')}</FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                )}
                                 <FormField control={form.control} name="start_time" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>{t('createDialog.startTime')}</FormLabel>
@@ -440,6 +524,7 @@ export default function HolidaysPage() {
                                     <FormItem>
                                         <FormLabel>{t('createDialog.endTime')}</FormLabel>
                                         <FormControl><Input type="time" {...field} /></FormControl>
+                                        <FormDescription>{t('createDialog.timesHelp')}</FormDescription>
                                         <FormMessage />
                                     </FormItem>
                                 )} />

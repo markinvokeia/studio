@@ -527,6 +527,10 @@ export type ClinicException = {
   start_time?: string;
   end_time?: string;
   notes: string;
+  /** Sede a la que aplica. Vacío/undefined = aplica a todas las sedes. */
+  sede_id?: string;
+  /** Nombre de la sede, cuando la API lo devuelve resuelto. */
+  sede_name?: string;
 };
 
 export type Conversation = {
@@ -651,6 +655,8 @@ export type Appointment = {
   created_at?: string;
   google_calendar_id?: string;
   googleEventId?: string;
+  /** La cita fue importada desde Google Calendar; no se creó desde la app. */
+  imported_from_google?: boolean;
   calendar_id?: string; // keeping legacy for a moment to avoid immediate break
   calendar_source_id?: string;
   calendar_name?: string;

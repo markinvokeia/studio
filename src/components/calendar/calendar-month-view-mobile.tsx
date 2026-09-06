@@ -12,6 +12,7 @@ import { STATUS_ICONS } from '@/components/appointments/status-icons';
 import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
 import type { AppointmentStatus, CalendarReminderPriority, CalendarReminderStatus } from '@/lib/types';
 
+import { GOOGLE_IMPORT_BADGE_COLOR } from './calendar-constants';
 import type { CalendarEvent, CalendarSlotClickHandler } from './calendar-types';
 import { formatEventTime, getContrastingIconColor } from './calendar-utils';
 import { type Gap, gapKey } from './calendar-gaps';
@@ -43,6 +44,7 @@ export function CalendarMonthViewMobile({
   blockedFullDays,
 }: CalendarMonthViewMobileProps) {
   const t = useTranslations('Calendar');
+  const tAppointments = useTranslations('AppointmentsPage');
   // Initialize stable for SSR; set real "today" after mount.
   const [selectedDay, setSelectedDay] = React.useState<Date>(() => new Date(2000, 0, 1));
   React.useEffect(() => { setSelectedDay(new Date()); }, []);
@@ -266,15 +268,27 @@ export function CalendarMonthViewMobile({
                           >
                             <ReminderIcon className="h-3.5 w-3.5" strokeWidth={2} />
                           </span>
-                        ) : StatusIcon && statusColor && (
-                          <span
-                            aria-hidden
-                            title={status}
-                            className="inline-flex items-center justify-center rounded-full p-1"
-                            style={{ backgroundColor: statusColor, color: getContrastingIconColor(statusColor) }}
-                          >
-                            <StatusIcon className="h-3.5 w-3.5" strokeWidth={2} />
-                          </span>
+                        ) : (
+                          <>
+                            {StatusIcon && statusColor && (
+                              <span
+                                aria-hidden
+                                title={status}
+                                className="inline-flex items-center justify-center rounded-full p-1"
+                                style={{ backgroundColor: statusColor, color: getContrastingIconColor(statusColor) }}
+                              >
+                                <StatusIcon className="h-3.5 w-3.5" strokeWidth={2} />
+                              </span>
+                            )}
+                            {event.data?.imported_from_google === true && (
+                              <span
+                                aria-hidden
+                                title={tAppointments('importedFromGoogle')}
+                                className="h-1.5 w-1.5 shrink-0 rounded-full ring-1 ring-white/65"
+                                style={{ backgroundColor: GOOGLE_IMPORT_BADGE_COLOR }}
+                              />
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
