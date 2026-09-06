@@ -506,6 +506,31 @@ export const API_ROUTES = {
         USERS_BY_ROLE:        '/reports/users-by-role',
         BALANCE_MENSUAL:      '/reports/balance-mensual',
     },
+    /**
+     * Órdenes de estudio. Ojo: `ORDERS` (arriba) son las órdenes de compra/venta
+     * que nacen al confirmar un presupuesto — cosa distinta.
+     *
+     * En `LIST` con `scope=mine` el doctor NO viaja en el query: el workflow lo
+     * saca de `jwtPayload.userId`. Mandar `scope=clinic` sin el permiso
+     * STUDY_ORDERS_VIEW_ALL devuelve igual sólo lo propio.
+     */
+    STUDY_ORDERS: {
+        LIST:          '/study-orders',
+        DETAIL:        '/study-orders/detail',
+        UPSERT:        '/study-orders/upsert',
+        SUBMIT:        '/study-orders/submit',
+        CANCEL:        '/study-orders/cancel',
+        ACKNOWLEDGE:   '/study-orders/acknowledge',
+        DELETE:        '/study-orders/delete',
+        OPTIONS:       '/study-orders/options',
+        LINK_PATIENT:  '/study-orders/link-patient',
+        RECOMPUTE:     '/study-orders/recompute',
+        RESCHEDULE:    '/study-orders/reschedule',
+        BOOKING_TOKEN: '/study-orders/booking-token',
+        /** Públicos: el paciente llega con el token del link, sin sesión. */
+        PUBLIC_DETAIL: '/study-orders/public_noauth',
+        PUBLIC_BOOK:   '/study-orders/public-book_noauth',
+    },
     SERVICE: '/service',
     LICENSE: {
         GET:  '/license',

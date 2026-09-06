@@ -1,0 +1,295 @@
+{
+  "name": "Study Orders - Options",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## GET /study-orders/options\n\nCatálogo del formulario de orden.\n\n**Request:** sin parámetros (requiere JWT).\n\n**Response 200**\n```json\n{ \"code\": 200, \"message\": \"OK\", \"data\": {\n  \"sections\": [{ \"code\": \"RX-INTRA\", \"name\": \"...\", \"color\": \"#3B82F6\",\n                 \"services\": [{ \"id\": \"48\", \"name\": \"Periapical\", \"duration_minutes\": 10 }] }],\n  \"modifiers\": [], \"texts\": [], \"region_groups\": [], \"delivery\": []\n} }\n```\n\nLas secciones son las 12 categorías `ci-orden:cat:*`. Los servicios se listan por `category_id`, NO por external_id: hay servicios de la clínica que ya traían su propio external_id de una importación anterior (p.ej. PROTECTOR BUCAL, `01.9.5`) y filtrar por `ci-orden:svc:%` los dejaría fuera.",
+        "height": 420,
+        "width": 460,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -180
+      ],
+      "id": "opts-doc",
+      "name": "Contrato"
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "study-orders/options",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "opts-wh",
+      "name": "Webhook",
+      "webhookId": "study-orders-opts",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Este endpoint no toma parámetros: sólo se verifica que haya sujeto.\nconst userId = $json.jwtPayload?.userId;\nif (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];\nreturn [{ json: { user_id: String(userId) } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "opts-val",
+      "name": "Validar Datos"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "opts-cond",
+              "leftValue": "={{ $json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "opts-if",
+      "name": "¿Hubo error?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- Catálogo del formulario. Las secciones son las categorías sembradas por\n-- scripts/sql/catalogo-clinica-imagen.sql y los servicios, sus 69 hijos.\nWITH secs AS (\n    SELECT mc.id, mc.code, mc.name,\n           row_number() OVER (ORDER BY mc.id) AS sort_order,\n           (SELECT sc.color FROM public.service_catalog sc\n             WHERE sc.category_id = mc.id AND sc.color IS NOT NULL LIMIT 1) AS color\n      FROM public.miscellaneous_categories mc\n     WHERE mc.external_id LIKE 'ci-orden:cat:%'\n       AND mc.is_active\n)\nSELECT json_build_object(\n    'sections', (\n        SELECT coalesce(json_agg(json_build_object(\n            'code', s.code, 'name', s.name, 'color', s.color, 'sort_order', s.sort_order,\n            'services', (\n                -- Se listan por CATEGORÍA, no por external_id: hay servicios que\n                -- ya existían en el catálogo de la clínica con su propio\n                -- external_id de una importación anterior (p.ej. PROTECTOR BUCAL,\n                -- '01.9.5', con precio y facturas asociadas). Filtrar por\n                -- 'ci-orden:svc:%' los dejaría fuera del formulario. Además, así\n                -- un servicio que la clínica agregue a una de las 12 categorías\n                -- aparece solo, sin tocar nada.\n                SELECT coalesce(json_agg(json_build_object(\n                    'id', sc.id::text, 'name', sc.name, 'section_code', s.code,\n                    'duration_minutes', sc.duration_minutes, 'description', sc.description\n                ) ORDER BY sc.name), '[]'::json)\n                  FROM public.service_catalog sc\n                 WHERE sc.category_id = s.id\n                   AND sc.is_active\n            )\n        ) ORDER BY s.sort_order), '[]'::json)\n          FROM secs s\n    ),\n    'modifiers',     (SELECT coalesce(json_agg(o ORDER BY o.sort_order), '[]'::json) FROM (\n        SELECT id::text, option_kind, code, label, section_code, service_id::text, group_code, input_type, sort_order\n          FROM public.study_order_options WHERE option_kind = 'modifier' AND is_active) o),\n    'texts',         (SELECT coalesce(json_agg(o ORDER BY o.sort_order), '[]'::json) FROM (\n        SELECT id::text, option_kind, code, label, section_code, service_id::text, group_code, input_type, sort_order\n          FROM public.study_order_options WHERE option_kind = 'text' AND is_active) o),\n    'region_groups', (SELECT coalesce(json_agg(o ORDER BY o.sort_order), '[]'::json) FROM (\n        SELECT id::text, option_kind, code, label, section_code, service_id::text, group_code, input_type, sort_order\n          FROM public.study_order_options WHERE option_kind = 'region_group' AND is_active) o),\n    'delivery',      (SELECT coalesce(json_agg(o ORDER BY o.sort_order), '[]'::json) FROM (\n        SELECT id::text, option_kind, code, label, section_code, service_id::text, group_code, input_type, sort_order\n          FROM public.study_order_options WHERE option_kind = 'delivery' AND is_active) o)\n) AS data;",
+        "options": {
+          "queryReplacement": "={{ [] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        660,
+        120
+      ],
+      "id": "opts-sql",
+      "name": "Consulta",
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Arma el sobre { code, message, data, meta }. Un resultado vacío en una\n// operación de escritura significa que el WHERE de guarda no dejó pasar:\n// es un 409/404, no un 500.\nconst rows = $input.all().map((i) => i.json);\n\nconst data = rows[0]?.data ?? { sections: [], modifiers: [], texts: [], region_groups: [], delivery: [] };\nreturn [{ json: { __data: data } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        120
+      ],
+      "id": "opts-fmt",
+      "name": "Formatear Respuesta"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "opts-cond2",
+              "leftValue": "={{ $json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        120
+      ],
+      "id": "opts-if2",
+      "name": "¿Error de negocio?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: 200, message: $json.__message || \"OK\", data: $json.__data, meta: $json.__meta } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1320,
+        220
+      ],
+      "id": "opts-ok",
+      "name": "Responder OK"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: $json.__code || 400, message: $json.__message || \"Error\", data: null } }}",
+        "options": {
+          "responseCode": "={{ $json.__code || 400 }}"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1320,
+        -60
+      ],
+      "id": "opts-err",
+      "name": "Responder Error"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Datos": {
+      "main": [
+        [
+          {
+            "node": "¿Hubo error?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hubo error?": {
+      "main": [
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consulta": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "¿Error de negocio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Error de negocio?": {
+      "main": [
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    "study-orders",
+    "clinic"
+  ]
+}

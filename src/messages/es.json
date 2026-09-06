@@ -426,7 +426,10 @@
     "ReportBalanceMensual": "Balance Mensual",
     "Sedes": "Sedes",
     "PatientsPortal": "Portal del Paciente",
-    "PrescriptionTemplates": "Plantillas de Receta"
+    "PrescriptionTemplates": "Plantillas de Receta",
+    "StudyOrders": "Órdenes de Estudio",
+    "MyStudyOrders": "Mis Órdenes",
+    "ClinicStudyOrders": "Órdenes"
   },
   "TVDisplayPage": {
     "title": "Pantalla TV",
@@ -9027,5 +9030,139 @@
     "clear": "Borrar todo",
     "cancel": "Cancelar",
     "use": "Usar esta firma"
+  },
+  "StudyOrdersPage": {
+    "titleMine": "Mis Órdenes",
+    "titleClinic": "Órdenes de Estudio",
+    "descriptionMine": "Las órdenes que derivaste a Clínica Imagen y en qué estado está cada una.",
+    "descriptionClinic": "Bandeja de órdenes recibidas. Qué entró, qué falta agendar y qué está atrasado.",
+    "filterPlaceholder": "Buscar por paciente...",
+    "newOrder": "Nueva orden",
+    "noResults": "No hay órdenes que coincidan con el filtro.",
+    "itemsCount": "{scheduled} de {total} agendados",
+    "buckets": {
+      "all": "Todas",
+      "new": "Nuevas",
+      "pending": "Pendientes",
+      "overdue": "Atrasadas",
+      "scheduled": "Agendadas",
+      "completed": "Completadas",
+      "drafts": "Borradores"
+    },
+    "columns": {
+      "orderNumber": "Nº",
+      "patient": "Paciente",
+      "doctor": "Derivador",
+      "items": "Estudios",
+      "status": "Estado",
+      "submittedAt": "Enviada",
+      "sede": "Sede",
+      "progress": "Avance",
+      "actions": "Acciones"
+    },
+    "status": {
+      "draft": "Borrador",
+      "new": "Nueva",
+      "unscheduled": "Sin agendar",
+      "partially_scheduled": "Parcial",
+      "scheduled": "Agendada",
+      "in_progress": "En curso",
+      "completed": "Completada",
+      "cancelled": "Anulada",
+      "overdue": "Atrasada"
+    },
+    "tabs": {
+      "order": "Orden",
+      "appointments": "Citas",
+      "patient": "Paciente",
+      "link": "Link",
+      "activity": "Actividad"
+    },
+    "form": {
+      "title": "Nueva orden de estudio",
+      "editTitle": "Editar orden {number}",
+      "patientSection": "Datos del paciente",
+      "patientName": "Nombre y apellido",
+      "patientDocument": "Cédula de identidad",
+      "patientPhone": "Celular",
+      "patientEmail": "Email",
+      "preferredSede": "Sede sugerida",
+      "preferredSedePlaceholder": "Sin preferencia",
+      "deliverySection": "Medio de envío",
+      "clinicalNotes": "Aclaración",
+      "clinicalNotesPlaceholder": "Lo que la clínica tenga que saber antes del estudio",
+      "regionsLabel": "Indique región de interés",
+      "noServicesSelected": "Seleccioná al menos un estudio.",
+      "saveDraft": "Guardar borrador",
+      "submit": "Enviar a la clínica",
+      "selectedCount": "{count} estudios seleccionados"
+    },
+    "submitDialog": {
+      "title": "¿Enviar la orden a la clínica?",
+      "description": "Una vez enviada no vas a poder editarla. La clínica recibe el aviso en el momento.",
+      "confirm": "Enviar",
+      "cancel": "Volver"
+    },
+    "deleteDialog": {
+      "title": "¿Eliminar el borrador?",
+      "description": "Se elimina la orden de {patient} y todo lo que cargaste. No se puede deshacer.",
+      "confirm": "Eliminar",
+      "cancel": "Cancelar"
+    },
+    "cancelDialog": {
+      "title": "¿Anular la orden?",
+      "description": "La orden {number} queda anulada. Indicá el motivo.",
+      "reasonLabel": "Motivo",
+      "confirm": "Anular",
+      "cancel": "Volver"
+    },
+    "actions": {
+      "edit": "Editar",
+      "submit": "Enviar",
+      "delete": "Eliminar",
+      "acknowledge": "Tomar",
+      "schedule": "Agendar",
+      "cancel": "Anular",
+      "shareLink": "Link paciente",
+      "print": "Imprimir",
+      "cancelBlocked": "La clínica ya tomó esta orden y no se puede anular desde acá. Llamá a la clínica para darla de baja.",
+      "reschedule": "Reagendar"
+    },
+    "toast": {
+      "savedTitle": "Orden guardada",
+      "submittedTitle": "Orden enviada",
+      "submittedDescription": "La clínica ya recibió la orden {number}.",
+      "deletedTitle": "Borrador eliminado",
+      "acknowledgedTitle": "Orden tomada",
+      "cancelledTitle": "Orden anulada",
+      "errorTitle": "No se pudo completar la acción",
+      "genericError": "Ocurrió un error inesperado. Intentá de nuevo."
+    },
+    "validation": {
+      "patientNameRequired": "El nombre del paciente es obligatorio",
+      "itemsRequired": "Seleccioná al menos un estudio",
+      "reasonRequired": "El motivo es obligatorio"
+    },
+    "noAccess": "No tenés permisos para ver las órdenes de estudio.",
+    "wizard": {
+      "back": "Atrás",
+      "next": "Siguiente",
+      "review": "Resumen",
+      "skipToReview": "Ir al resumen",
+      "noCatalog": "El catálogo de estudios todavía no está cargado. Avisá a la clínica para que lo configure.",
+      "steps": "Secciones de la orden",
+      "closeSteps": "Cerrar secciones"
+    },
+    "itemsCountShort": "{count} estudios",
+    "rescheduleDialog": {
+      "title": "Reagendar la cita",
+      "description": "Elegí la nueva fecha y hora. La duración se mantiene.",
+      "date": "Fecha",
+      "time": "Hora",
+      "confirm": "Reagendar",
+      "cancel": "Cancelar",
+      "noAppointments": "Esta orden no tiene citas para mover.",
+      "success": "Cita reprogramada"
+    }
   }
 }

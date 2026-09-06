@@ -3058,3 +3058,201 @@ export type PatientAiQueryResponse = {
   suggestions?: string[];
   action?: PatientAiAction | null;
 };
+
+// ─── Órdenes de estudio ──────────────────────────────────────────────────────
+
+/**
+ * Estado persistido de la orden. Son cuatro y cada uno corresponde a un acto
+ * humano. El avance operativo (agendada, parcial, en curso) NO se guarda acá:
+ * se deriva de las citas — ver `StudyOrderBoardStatus`.
+ */
+export type StudyOrderStatus = 'draft' | 'submitted' | 'completed' | 'cancelled';
+
+/**
+ * Estado derivado que alimenta la bandeja de la clínica. Lo calcula la vista
+ * `v_study_orders_board` cruzando las líneas con las citas, de modo que quitar
+ * un servicio de una cita devuelve la línea a `unscheduled` sin que nadie tenga
+ * que sincronizar nada.
+ */
+export type StudyOrderBoardStatus =
+  | 'draft'
+  | 'new'                  // enviada, la clínica todavía no la tomó
+  | 'unscheduled'          // tomada, sin ninguna cita
+  | 'partially_scheduled'  // algunas líneas con cita
+  | 'scheduled'            // todas las líneas con cita
+  | 'in_progress'          // alguna línea ya atendida
+  | 'completed'
+  | 'cancelled';
+
+/** Tipo de opción del formulario, tal como vive en `study_order_options`. */
+export type StudyOrderOptionKind = 'modifier' | 'text' | 'region_group' | 'delivery';
+
+export type StudyOrderOptionInput = 'checkbox' | 'radio' | 'text' | 'textarea' | 'date';
+
+export interface StudyOrderOption {
+  id: string;
+  option_kind: StudyOrderOptionKind;
+  code: string;
+  label: string;
+  /** Ámbito sección: `miscellaneous_categories.code`. */
+  section_code?: string | null;
+  /** Ámbito línea: sólo aplica a este servicio. */
+  service_id?: string | null;
+  /** Agrupa opciones afines: tecnica, arcada, espesor, borde, indicacion_clinica. */
+  group_code?: string | null;
+  input_type: StudyOrderOptionInput;
+  sort_order: number;
+}
+
+/** Sección del formulario = categoría del catálogo. */
+export interface StudyOrderSection {
+  code: string;
+  name: string;
+  color?: string | null;
+  sort_order: number;
+  services: StudyOrderCatalogService[];
+}
+
+export interface StudyOrderCatalogService {
+  id: string;
+  name: string;
+  section_code: string;
+  duration_minutes?: number | null;
+  description?: string | null;
+}
+
+/** Respuesta de GET /study-orders/options — todo lo que el formulario necesita. */
+export interface StudyOrderFormOptions {
+  sections: StudyOrderSection[];
+  modifiers: StudyOrderOption[];
+  texts: StudyOrderOption[];
+  region_groups: StudyOrderOption[];
+  delivery: StudyOrderOption[];
+}
+
+export interface StudyOrderItem {
+  id: string;
+  study_order_id: string;
+  service_id: string;
+  service_name: string;
+  section_code: string;
+  sort_order: number;
+  quantity: number;
+  /** `{"tecnica":["frankfort"],"arcada":["escaneo-superior"]}` */
+  modifiers: Record<string, string[]>;
+  notes?: string | null;
+  is_cancelled: boolean;
+  /** Derivado: la línea ya tiene una cita viva que la cubre. */
+  is_scheduled?: boolean;
+  /** Derivado: la cita que la cubre ya fue atendida. */
+  is_completed?: boolean;
+}
+
+/** Cita asociada a una orden, en la forma reducida que muestra el detalle. */
+export interface StudyOrderAppointment {
+  id: string;
+  start_datetime: string;
+  end_datetime: string;
+  status: AppointmentStatus;
+  calendar_source_id?: string | null;
+  calendar_name?: string | null;
+  sede_name?: string | null;
+  service_ids: string[];
+}
+
+export interface StudyOrder {
+  id: string;
+  order_number: string;
+  doctor_id: string;
+  doctor_name?: string | null;
+  /** Puede faltar mientras la clínica no haya vinculado la ficha del paciente. */
+  patient_id?: string | null;
+  patient_name: string;
+  patient_document?: string | null;
+  patient_email?: string | null;
+  patient_phone?: string | null;
+  status: StudyOrderStatus;
+  /** Piezas por sección: `{"RX-INTRA":["16","17"]}`. El formulario tiene un odontograma por sección. */
+  regions: Record<string, string[]>;
+  /** `{"CONEBEAM":{"indicacion_clinica":["est-tipo-implante"]}}` */
+  section_modifiers: Record<string, Record<string, string[]>>;
+  /** Los 14 campos libres del formulario, indexados por `code`. */
+  texts: Record<string, string>;
+  delivery_methods: string[];
+  clinical_notes?: string | null;
+  preferred_sede_id?: string | null;
+  preferred_sede_name?: string | null;
+  submitted_at?: string | null;
+  acknowledged_at?: string | null;
+  acknowledged_by?: string | null;
+  completed_at?: string | null;
+  cancelled_at?: string | null;
+  cancellation_reason?: string | null;
+  created_at: string;
+  updated_at?: string | null;
+  items: StudyOrderItem[];
+  appointments?: StudyOrderAppointment[];
+}
+
+/** Fila de la bandeja. Los contadores y `board_status` vienen de la vista. */
+export interface StudyOrderListItem {
+  id: string;
+  order_number: string;
+  doctor_id: string;
+  doctor_name?: string | null;
+  patient_id?: string | null;
+  patient_name: string;
+  patient_document?: string | null;
+  patient_phone?: string | null;
+  status: StudyOrderStatus;
+  board_status: StudyOrderBoardStatus;
+  items_total: number;
+  items_scheduled: number;
+  items_completed: number;
+  /** Resumen para la columna: "Panorámica (OPT) +3". */
+  items_summary?: string | null;
+  /** Atrasada: hay una cita vencida sin atender, o superó el SLA sin agendarse. */
+  is_overdue: boolean;
+  hours_since_submitted?: number | null;
+  preferred_sede_id?: string | null;
+  preferred_sede_name?: string | null;
+  submitted_at?: string | null;
+  acknowledged_at?: string | null;
+  completed_at?: string | null;
+  created_at: string;
+}
+
+/** Payload de POST /study-orders/upsert. */
+export interface StudyOrderUpsertPayload {
+  id?: string;
+  /** Sólo lo acepta el backend con STUDY_ORDERS_CREATE_FOR_DOCTOR; si no, se ignora. */
+  doctor_id?: string;
+  patient_id?: string | null;
+  patient_name: string;
+  patient_document?: string;
+  patient_email?: string;
+  patient_phone?: string;
+  regions: Record<string, string[]>;
+  section_modifiers: Record<string, Record<string, string[]>>;
+  texts: Record<string, string>;
+  delivery_methods: string[];
+  clinical_notes?: string;
+  preferred_sede_id?: string | null;
+  items: Array<{
+    service_id: string;
+    service_name: string;
+    section_code: string;
+    sort_order: number;
+    quantity?: number;
+    modifiers?: Record<string, string[]>;
+    notes?: string;
+  }>;
+}
+
+/** Link de auto-agendamiento. El token en claro se devuelve una sola vez. */
+export interface StudyOrderBookingLink {
+  token: string;
+  url: string;
+  expires_at: string;
+  max_uses: number;
+}

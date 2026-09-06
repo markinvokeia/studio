@@ -1,0 +1,295 @@
+{
+  "name": "Study Orders - Reschedule",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## POST /study-orders/reschedule\n\nMueve una cita de la orden: cambia **sólo** fecha y hora.\n\n**Body:** `{ \"order_id\": \"uuid\", \"appointment_id\": \"123\", \"start\": \"2026-09-10T14:00:00\", \"end\": \"2026-09-10T14:10:00\" }`\n\n**Por qué no usa /appointments/reschedule:** ese flujo inserta una cita nueva y cancela la vieja, y su INSERT no incluye `study_order_id` — la cita quedaría desprendida de la orden. Acá se edita la fila existente.\n\n**LIMITACIÓN CONOCIDA:** no empuja el cambio a Google Calendar. La sincronización de salida vive en `/appointments/upsert`. Si la sede usa Google, hay que reagendar desde la agenda o extender este flujo.\n\n**409** si la cita no es de esa orden, ya fue atendida o cancelada, o el rango es inválido.",
+        "height": 420,
+        "width": 460,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -180
+      ],
+      "id": "resched-doc",
+      "name": "Contrato"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "study-orders/reschedule",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "resched-wh",
+      "name": "Webhook",
+      "webhookId": "study-orders-resched",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const userId = $json.jwtPayload?.userId;\nif (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];\n\nconst b = $json.body || {};\nconst orderId = (b.order_id || '').toString().trim();\nconst apptId = (b.appointment_id || '').toString().trim();\nconst start = (b.start || '').toString().trim();\nconst end = (b.end || '').toString().trim();\n\nif (!orderId || !apptId) {\n  return [{ json: { __error: true, __code: 400, __message: 'order_id y appointment_id son requeridos' } }];\n}\nif (!start || !end) {\n  return [{ json: { __error: true, __code: 400, __message: 'start y end son requeridos' } }];\n}\nif (new Date(end) <= new Date(start)) {\n  return [{ json: { __error: true, __code: 400, __message: 'El fin tiene que ser posterior al inicio' } }];\n}\n\nreturn [{ json: {\n  user_id: String(userId),\n  payload: JSON.stringify({ order_id: orderId, appointment_id: apptId, start, end }),\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "resched-val",
+      "name": "Validar Datos"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "resched-cond",
+              "leftValue": "={{ $json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "resched-if",
+      "name": "¿Hubo error?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 userId (token)  $2 payload { appointment_id, order_id, start, end }\n--\n-- Mueve una cita de la orden en el lugar: cambia sólo start/end.\n--\n-- NO se usa /appointments/reschedule a propósito. Ese flujo INSERTA una cita\n-- nueva y cancela la vieja, y su lista de columnas no incluye study_order_id:\n-- la cita resultante quedaría desprendida de la orden y la orden volvería sola\n-- a \"sin agendar\". Acá se edita la fila existente, así el vínculo sobrevive.\nWITH \nperms AS (\n    SELECT bool_or(p.code = 'STUDY_ORDERS_VIEW_ALL')  AS can_view_all,\n           bool_or(p.code = 'STUDY_ORDERS_CREATE_FOR_DOCTOR') AS can_create_for_doctor,\n           bool_or(p.code = 'STUDY_ORDERS_CANCEL')    AS can_cancel,\n           bool_or(p.code = 'STUDY_ORDERS_ACKNOWLEDGE') AS can_acknowledge,\n           bool_or(p.code = 'STUDY_ORDERS_SCHEDULE') AS can_schedule\n      FROM public.user_roles ur\n      JOIN public.role_permissions rp ON rp.role_id = ur.role_id\n      JOIN public.permissions p       ON p.id = rp.permission_id\n     WHERE ur.user_id = $1::uuid\n       AND ur.is_active IS NOT FALSE\n       AND p.code LIKE 'STUDY_ORDERS_%'\n),\nb AS (\n    SELECT $2::jsonb AS body\n),\nv AS (\n    SELECT (body ->> 'appointment_id')::int AS appointment_id,\n           (body ->> 'order_id')::uuid      AS order_id,\n           (body ->> 'start')::timestamp    AS starts_at,\n           (body ->> 'end')::timestamp      AS ends_at\n      FROM b\n)\nUPDATE public.appointments a\n   SET start_datetime = v.starts_at,\n       end_datetime   = v.ends_at,\n       updated_at     = now()\n  FROM v\n WHERE a.id = v.appointment_id\n   -- La cita tiene que ser de esa orden: sin esto, con el id de cualquier cita\n   -- se podría mover la agenda entera desde este endpoint.\n   AND a.study_order_id = v.order_id\n   AND a.status NOT IN ('completed', 'cancelled', 'deleted')\n   AND v.ends_at > v.starts_at\n   AND EXISTS (\n       SELECT 1 FROM public.study_orders so\n        WHERE so.id = v.order_id\n          AND ((SELECT can_schedule FROM perms) OR so.doctor_id = $1::uuid)\n   )\nRETURNING a.id::text, a.start_datetime, a.end_datetime;",
+        "options": {
+          "queryReplacement": "={{ [ $json.user_id, $json.payload ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        660,
+        120
+      ],
+      "id": "resched-sql",
+      "name": "Consulta",
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Arma el sobre { code, message, data, meta }. Un resultado vacío en una\n// operación de escritura significa que el WHERE de guarda no dejó pasar:\n// es un 409/404, no un 500.\nconst rows = $input.all().map((i) => i.json);\n\nif (!rows.length) {\n  return [{ json: { __error: true, __code: 409,\n    __message: 'No se pudo mover la cita: no pertenece a esta orden, ya fue atendida o cancelada, o no tenés permiso' } }];\n}\nreturn [{ json: { __data: rows[0], __message: 'Cita reprogramada' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        120
+      ],
+      "id": "resched-fmt",
+      "name": "Formatear Respuesta"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "resched-cond2",
+              "leftValue": "={{ $json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        120
+      ],
+      "id": "resched-if2",
+      "name": "¿Error de negocio?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: 200, message: $json.__message || \"OK\", data: $json.__data, meta: $json.__meta } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1320,
+        220
+      ],
+      "id": "resched-ok",
+      "name": "Responder OK"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: $json.__code || 400, message: $json.__message || \"Error\", data: null } }}",
+        "options": {
+          "responseCode": "={{ $json.__code || 400 }}"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1320,
+        -60
+      ],
+      "id": "resched-err",
+      "name": "Responder Error"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Datos": {
+      "main": [
+        [
+          {
+            "node": "¿Hubo error?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hubo error?": {
+      "main": [
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consulta": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "¿Error de negocio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Error de negocio?": {
+      "main": [
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    "study-orders",
+    "clinic"
+  ]
+}

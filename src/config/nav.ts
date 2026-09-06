@@ -1,5 +1,5 @@
 
-import { ALERT_CENTER_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS, CLINIC_PREFS_PERMISSIONS, PATIENT_PORTAL_CONFIG_PERMISSIONS, CASHIER_PERMISSIONS, CLINIC_CATALOG_PERMISSIONS, DASHBOARD_PERMISSIONS, DICOM_PERMISSIONS, LICENSING_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PURCHASES_PERMISSIONS, REPORTS_PERMISSIONS, SALES_PERMISSIONS, SUBSCRIPTIONS_PERMISSIONS, SYSTEM_PERMISSIONS, TV_DISPLAY_PERMISSIONS } from '@/constants/permissions';
+import { ALERT_CENTER_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS, CLINIC_PREFS_PERMISSIONS, PATIENT_PORTAL_CONFIG_PERMISSIONS, CASHIER_PERMISSIONS, CLINIC_CATALOG_PERMISSIONS, DASHBOARD_PERMISSIONS, DICOM_PERMISSIONS, LICENSING_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PURCHASES_PERMISSIONS, REPORTS_PERMISSIONS, SALES_PERMISSIONS, STUDY_ORDERS_PERMISSIONS, SUBSCRIPTIONS_PERMISSIONS, SYSTEM_PERMISSIONS, TV_DISPLAY_PERMISSIONS } from '@/constants/permissions';
 import type { LucideIcon } from 'lucide-react';
 import {
   Activity,
@@ -129,6 +129,21 @@ export const navItems: NavItem[] = [
     href: '/tv-display',
     icon: Tv,
     requiredPermission: TV_DISPLAY_PERMISSIONS.VIEW_MENU,
+  },
+  {
+    // El derivador ve el padre con un solo hijo ("Mis Órdenes"); la recepción,
+    // los dos. `filterNavByPermissions` colapsa lo que no corresponda.
+    title: 'StudyOrders',
+    href: '/study-orders/mine',
+    icon: ClipboardList,
+    requiredAnyPermission: [
+      STUDY_ORDERS_PERMISSIONS.VIEW_MINE,
+      STUDY_ORDERS_PERMISSIONS.VIEW_ALL,
+    ],
+    items: [
+      { title: 'MyStudyOrders', href: '/study-orders/mine', icon: FileText, isChidren: true, requiredPermission: STUDY_ORDERS_PERMISSIONS.VIEW_MINE },
+      { title: 'ClinicStudyOrders', href: '/study-orders', icon: Layers, isChidren: true, requiredPermission: STUDY_ORDERS_PERMISSIONS.VIEW_ALL },
+    ],
   },
   {
     title: 'Pacientes',

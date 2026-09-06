@@ -731,6 +731,36 @@ export const CLINIC_PREFS_PERMISSIONS = {
 export type ClinicPrefsPermission =
   (typeof CLINIC_PREFS_PERMISSIONS)[keyof typeof CLINIC_PREFS_PERMISSIONS];
 
+/**
+ * Órdenes de estudio. El odontólogo derivador pide estudios desde "Mis Órdenes";
+ * la clínica los trabaja desde la bandeja "Órdenes".
+ *
+ * `VIEW_MINE` y `VIEW_ALL` no son niveles de un mismo permiso: el doctor tiene
+ * sólo el primero a propósito, para que no vea derivaciones de sus colegas.
+ *
+ * `SEARCH_PATIENT` deja al derivador resolver o dar de alta el paciente de su
+ * orden sin `PATIENTS_VIEW_LIST`, que le abriría el padrón entero de la clínica.
+ */
+export const STUDY_ORDERS_PERMISSIONS = {
+  VIEW_MENU:         'STUDY_ORDERS_VIEW_MENU',
+  VIEW_MINE:         'STUDY_ORDERS_VIEW_MINE',
+  VIEW_ALL:          'STUDY_ORDERS_VIEW_ALL',
+  VIEW_DETAIL:       'STUDY_ORDERS_VIEW_DETAIL',
+  CREATE:            'STUDY_ORDERS_CREATE',
+  CREATE_FOR_DOCTOR: 'STUDY_ORDERS_CREATE_FOR_DOCTOR',
+  UPDATE:            'STUDY_ORDERS_UPDATE',
+  DELETE:            'STUDY_ORDERS_DELETE',
+  SUBMIT:            'STUDY_ORDERS_SUBMIT',
+  CANCEL:            'STUDY_ORDERS_CANCEL',
+  ACKNOWLEDGE:       'STUDY_ORDERS_ACKNOWLEDGE',
+  SCHEDULE:          'STUDY_ORDERS_SCHEDULE',
+  SHARE_LINK:        'STUDY_ORDERS_SHARE_LINK',
+  SEARCH_PATIENT:    'STUDY_ORDERS_SEARCH_PATIENT',
+} as const;
+
+export type StudyOrdersPermission =
+  (typeof STUDY_ORDERS_PERMISSIONS)[keyof typeof STUDY_ORDERS_PERMISSIONS];
+
 export const PATIENT_PORTAL_PERMISSIONS = {
   ACCESS:              'PATIENT_PORTAL_ACCESS',
   VIEW_INFO:           'PATIENT_PORTAL_VIEW_INFO',
