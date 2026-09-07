@@ -78,6 +78,7 @@ import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
 import { AppointmentPanel } from '@/components/appointments/AppointmentPanel';
+import { AppointmentQuickView } from '@/components/calendar/appointment-quick-view';
 import { PatientCreateDialog } from '@/components/patients/patient-create-dialog';
 import { BulkReassignDoctorDialog } from '@/components/appointments/BulkReassignDoctorDialog';
 import { reassignAppointmentField, type AppointmentReassignChange } from '@/lib/appointment-reassign';
@@ -713,6 +714,9 @@ export default function AppointmentsPage() {
 
     const [selectedAppointment, setSelectedAppointment] = React.useState<Appointment | null>(null);
     const [isDetailViewOpen, setIsDetailViewOpen] = React.useState(false);
+    // Ventana flotante de detalle (modo custom): la cita y el rect de su card, para
+    // anclarla. En el modo normal el clic simple sigue abriendo el panel lateral.
+    const [quickView, setQuickView] = React.useState<{ appointment: Appointment; anchorRect: DOMRect } | null>(null);
     const [selectedReminder, setSelectedReminder] = React.useState<CalendarReminder | null>(null);
     const [isReminderPanelOpen, setIsReminderPanelOpen] = React.useState(false);
     const [isReminderFormOpen, setIsReminderFormOpen] = React.useState(false);
@@ -1792,7 +1796,10 @@ export default function AppointmentsPage() {
         }
     }, []);
 
-    const handleEventClick = (eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' })) => {
+    const handleEventClick = (
+        eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' }),
+        anchorRect?: DOMRect,
+    ) => {
         if (eventData.kind === 'reminder') {
             setSelectedReminder(eventData);
             setIsReminderPanelOpen(true);
@@ -1801,9 +1808,13 @@ export default function AppointmentsPage() {
 
         const appointment = eventData as Appointment;
         if (calendarMode === 'custom') {
+            // En este modo el panel lateral no se usa: el clic simple abre la ventana
+            // flotante de detalle, anclada a la card. Sin rect (vistas que no
+            // posicionan cards) se mantiene el comportamiento anterior de no abrir nada.
             setSelectedAppointment(null);
             setIsDetailViewOpen(false);
             eventClickAbortRef.current?.abort();
+            setQuickView(anchorRect ? { appointment, anchorRect } : null);
             return;
         }
         eventClickAbortRef.current?.abort();
@@ -4645,6 +4656,15 @@ export default function AppointmentsPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            {quickView && (
+                <AppointmentQuickView
+                    appointment={quickView.appointment}
+                    anchorRect={quickView.anchorRect}
+                    locale={locale}
+                    onClose={() => setQuickView(null)}
+                    onEdit={(appointment) => { setQuickView(null); handleEditAppointment(appointment); }}
+                />
+            )}
             <AppointmentPanel
                 open={calendarMode !== 'custom' && isDetailViewOpen}
                 onOpenChange={setIsDetailViewOpen}

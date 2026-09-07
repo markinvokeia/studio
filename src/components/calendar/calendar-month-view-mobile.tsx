@@ -23,7 +23,7 @@ interface CalendarMonthViewMobileProps {
   events: CalendarEvent[];
   dateLocale: Locale;
   collapsed?: boolean;
-  onEventClick: (data: any) => void;
+  onEventClick: (data: any, anchorRect?: DOMRect) => void;
   onSlotClick?: CalendarSlotClickHandler;
   gaps?: Gap[];
   selectedGapKey?: string;
@@ -245,7 +245,7 @@ export function CalendarMonthViewMobile({
                     reminderIsDone && 'border-slate-200 bg-slate-50',
                   )}
                   style={reminderCardStyle}
-                  onClick={() => onEventClick(event.data)}
+                  onClick={(e) => onEventClick(event.data, e.currentTarget.getBoundingClientRect())}
                 >
                   {/* Color bar */}
                   <div

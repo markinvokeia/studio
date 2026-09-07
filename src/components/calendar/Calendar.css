@@ -566,6 +566,12 @@
   flex: 1 1 auto;
   min-width: 0;
   box-sizing: border-box;
+  /* Contexto de apilamiento propio: los z-index de las cards apiladas (10, 11, 12…)
+     quedan locales a la columna y nunca compiten con la columna de horas sticky
+     (z-11), con la línea de la hora actual (z-14) ni con el header. Sin esto, a
+     partir del primer nivel del apilado una cita taparía el gutter de horas.
+     Invariante a respetar: nada `position: fixed` acá adentro. */
+  isolation: isolate;
 }
 
 /* Thin clickable rail at the left edge of each column: shows the hour numbers and,
@@ -657,6 +663,13 @@
   z-index: 10;
   border: 1px solid rgba(255, 255, 255, 0.2);
   /* Add subtle border for visibility */
+  /* Dos sombras componibles: la interior es la de los recordatorios y la de apilado
+     marca el escalón de la cascada. Van por variable porque `box-shadow` no se acumula
+     entre reglas y `.event-in-day-view.event-reminder` gana por especificidad.
+     `0 0 #0000` es el valor neutro (una lista de sombras no admite `none` como ítem). */
+  --event-inset-shadow: 0 0 #0000;
+  --event-stack-shadow: 0 0 #0000;
+  box-shadow: var(--event-inset-shadow), var(--event-stack-shadow);
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -666,6 +679,26 @@
      una cita de 20 min a zoom bajo se dibujara más alta de lo que dura y tapara el
      hueco siguiente. Para que el contenido siga legible al achicarse, la card se
      compacta por tramos según su alto real — ver [data-density]. */
+}
+
+/* En la vista de día la sombra interior del recordatorio tiene que convivir con la
+   del apilado, así que se pasa por variable para que se dibujen las dos. Va después de
+   la regla de `.event-reminder` (misma especificidad, gana por orden) y solo aplica a
+   la card de la grilla; el chip de la vista de mes conserva la regla original. */
+.event-in-day-view.event-reminder {
+  --event-inset-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.55);
+  box-shadow: var(--event-inset-shadow), var(--event-stack-shadow);
+}
+
+/* Card apilada sobre otra: sin nada que las separe, dos vecinas del mismo color se
+   leen como una sola mancha. El peso lo lleva el CONTORNO —un canto claro y nítido en
+   el borde izquierdo, que es el que queda sobre la card de atrás— y no la sombra: una
+   sombra marcada hace que las cards floten como capas despegadas, cuando lo único que
+   se busca es que se distinga dónde termina una y empieza la otra. Queda apenas un
+   velo de 1px para que el canto también se lea sobre fondos claros. */
+.event-in-day-view[data-stacked="true"] {
+  --event-stack-shadow: -1px 0 2px -1px rgb(0 0 0 / 0.14);
+  border-left-color: rgb(255 255 255 / 0.72);
 }
 
 .event-day-title {

@@ -25,8 +25,18 @@ export interface CalendarEvent {
   colorId?: string;
   doctorGroupId?: string;
   calendarGroupId?: string;
-  totalColumns?: number;
-  column?: number;
+  /** Nivel de apilado dentro del grupo de citas solapadas: 0 es la de más atrás —la
+   *  más larga, o la creada primero— y cada nivel se corre hacia la derecha. Lo
+   *  calcula `getEventsWithLayout`. */
+  stackLevel?: number;
+  /** Geometría de la card, en % del ancho de la columna. El ancho no es fijo: cada
+   *  card se estira hacia la derecha hasta la que se le solapa, o hasta el borde
+   *  derecho si no hay ninguna. */
+  stackLeftPercent?: number;
+  stackWidthPercent?: number;
+  /** z-index de la card: a mayor valor, dibujada más arriba. Local a
+   *  `.day-column-content`, que aísla su contexto de apilamiento. */
+  stackZIndex?: number;
   data?: any;
 }
 
@@ -68,7 +78,9 @@ export interface CalendarProps {
   onDateChange?: (range: { start: Date; end: Date }) => void;
   children?: React.ReactNode;
   isLoading?: boolean;
-  onEventClick: (event: any) => void;
+  /** `anchorRect` es el rect del elemento clickeado, para anclarle una ventana
+   *  flotante de detalle. Lo mandan todas las vistas que dibujan citas. */
+  onEventClick: (event: any, anchorRect?: DOMRect) => void;
   view?: CalendarView;
   defaultView?: CalendarView;
   /** Height in px of one hour slot in the day/week time grid. Defaults to HOUR_SLOT_HEIGHT. */

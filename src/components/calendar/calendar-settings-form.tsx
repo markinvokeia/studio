@@ -326,27 +326,27 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
           </div>
         )}
 
-        {!isCustomMode && (
-          <div className="space-y-1.5">
-            <SettingHeader icon={Tag} label={t('eventLabel')} help={t('help.eventLabel')} htmlFor="event-label-format" />
-            <Select
-              value={settings.event_label_format ?? DEFAULT_EVENT_LABEL_FORMAT}
-              onValueChange={(val) => updateSettings({ event_label_format: val })}
-              disabled={isLoading}
-            >
-              <SelectTrigger id="event-label-format" className="h-9 text-xs bg-card border-border/50 shadow-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {EVENT_LABEL_FORMATS.map((opt) => (
-                  <SelectItem key={opt} value={opt} className="text-xs">
-                    {t(`eventLabelOptions.${opt}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+        {/* El formato de la etiqueta aplica también en modo custom: las cards de esa
+            vista se pintan con el mismo `event.label` que las del modo normal. */}
+        <div className="space-y-1.5">
+          <SettingHeader icon={Tag} label={t('eventLabel')} help={t('help.eventLabel')} htmlFor="event-label-format" />
+          <Select
+            value={settings.event_label_format ?? DEFAULT_EVENT_LABEL_FORMAT}
+            onValueChange={(val) => updateSettings({ event_label_format: val })}
+            disabled={isLoading}
+          >
+            <SelectTrigger id="event-label-format" className="h-9 text-xs bg-card border-border/50 shadow-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {EVENT_LABEL_FORMATS.map((opt) => (
+                <SelectItem key={opt} value={opt} className="text-xs">
+                  {t(`eventLabelOptions.${opt}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="flex items-center justify-between pt-4 px-1">
