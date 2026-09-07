@@ -1043,7 +1043,7 @@ export type CalendarSettings = {
   check_availability: boolean;
   filter_doctors_by_service: boolean;
   /** When true, blocks (greys out + prevents clicks on) time outside clinic
-   *  business hours, honoring schedules and exceptions. Default false. */
+   *  business hours, honoring schedules and exceptions. Default true. */
   block_unavailable?: boolean;
   /** Height in px of one hour slot in day/week views. */
   hour_height?: number;
@@ -1062,8 +1062,9 @@ export type CalendarSettings = {
    *  card with that status' color instead of the calendar/service/doctor color.
    *  Default true. */
   color_by_status?: boolean;
-  /** Display mode. 'invoke' = current behavior; 'custom' = a single agenda shown
-   *  at a time, chosen from the "Agendas" side panel. See CALENDAR_MODES. */
+  /** Display mode. 'invoke' = multi-column when grouped; 'custom' = a single
+   *  agenda shown at a time, chosen from the "Agendas" side panel. Default
+   *  'custom'. See CALENDAR_MODES. */
   mode?: string;
 };
 

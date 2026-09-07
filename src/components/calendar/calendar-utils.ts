@@ -20,7 +20,12 @@ import {
 } from 'date-fns';
 
 import type { CalendarEvent, CalendarGroupBy, CalendarView } from './calendar-types';
-import { HOUR_SLOT_HEIGHT } from './calendar-constants';
+import {
+  EVENT_STACK_BASE_Z_INDEX,
+  EVENT_STACK_LAP_RATIO,
+  EVENT_STACK_MAX_Z_BOOST,
+  HOUR_SLOT_HEIGHT,
+} from './calendar-constants';
 
 // ---------------------------------------------------------------------------
 // Date range computation
@@ -288,30 +293,105 @@ export function getEventGroupValue(
 // Event overlap layout algorithm
 // ---------------------------------------------------------------------------
 
+/** Milisegundos de un `start`/`end`, que puede venir como Date o como ISO. */
+function toMs(value: Date | string): number {
+  return (typeof value === 'string' ? parseISO(value) : value).getTime();
+}
+
+/**
+ * Momento de creación del evento en ms, o `null` si no se puede determinar.
+ * Se le saca la `Z` final como en el resto de la app: acá solo importa que el orden
+ * entre eventos sea consistente, no el huso. `data` puede ser una cita (`created_at`
+ * opcional), un recordatorio (obligatorio) o cualquier otra cosa: no se asume nada.
+ */
+function getCreationTime(event: CalendarEvent): number | null {
+  const raw = event.data?.created_at ?? event.data?.createdat ?? event.data?.createdAt;
+  if (typeof raw !== 'string' || raw.length === 0) return null;
+  const ms = parseISO(raw.replace(/Z$/, '')).getTime();
+  return Number.isNaN(ms) ? null : ms;
+}
+
+/**
+ * Id numérico del registro, respaldo del `created_at`: la PK de `appointments` es un
+ * autoincremental, o sea monótona por creación. Los recordatorios llegan con el id
+ * prefijado (`reminder-42`), así que se toma la primera corrida de dígitos.
+ */
+function getNumericId(event: CalendarEvent): number | null {
+  const digits = String(event.data?.id ?? event.id ?? '').match(/\d+/);
+  return digits ? Number(digits[0]) : null;
+}
+
+/**
+ * Desempate por antigüedad: primero la creada antes, que es la que queda al fondo.
+ *
+ * Los timestamps se comparan solo si los dos eventos los tienen — mezclar un timestamp
+ * (~1.7e12) con un id (~1e3) le daría siempre la ventaja al que tiene fecha, que es un
+ * orden arbitrario disfrazado. Si no, se comparan ids numéricos; y como último recurso
+ * el id textual, para que el layout sea función del CONJUNTO de eventos y no del orden
+ * en que los devolvió la API (que no está garantizado).
+ */
+function compareByCreation(a: CalendarEvent, b: CalendarEvent): number {
+  const createdA = getCreationTime(a);
+  const createdB = getCreationTime(b);
+  if (createdA !== null && createdB !== null && createdA !== createdB) {
+    return createdA - createdB;
+  }
+
+  const idA = getNumericId(a);
+  const idB = getNumericId(b);
+  if (idA !== null && idB !== null && idA !== idB) return idA - idB;
+
+  return String(a.id).localeCompare(String(b.id));
+}
+
+/**
+ * Reparte las citas solapadas de un día en una cascada estilo Google Calendar.
+ *
+ * El reparto se hace en dos pasos, como en Google Calendar. Primero cada cita cae en
+ * un nivel (columna) del grupo de solapadas, que le fija el borde izquierdo. Después
+ * cada card SE ESTIRA hacia la derecha hasta que choca con otra que se le solapa en el
+ * tiempo; si no hay ninguna, hasta el borde derecho de la columna.
+ *
+ * Ese segundo paso es el que hace la diferencia: repartir a ciegas dejaba a las tres
+ * citas de un grupo en un tercio del ancho aunque no se pisaran entre sí, y estirar
+ * todas hasta el borde derecho tapaba por completo a la de atrás. Así, la de atrás
+ * conserva su franja legible y las que no tienen nada al lado ocupan todo lo que hay.
+ *
+ * Devuelve COPIAS en orden de dibujado (la de más atrás primero) con la geometría ya
+ * resuelta. No muta la entrada: los eventos vienen memoizados desde la página y el
+ * layout se recalcula en cada render.
+ */
 export function getEventsWithLayout(dayEvents: CalendarEvent[]): CalendarEvent[] {
   if (dayEvents.length === 0) return [];
 
+  // Por hora de inicio (el agrupado de abajo lo necesita ascendente); a igual inicio,
+  // primero la más larga, que es la que queda atrás y a la izquierda; y a igual
+  // duración, la creada primero.
   const sortedEvents = [...dayEvents].sort((a, b) => {
-    const startA = (typeof a.start === 'string' ? parseISO(a.start) : a.start).getTime();
-    const startB = (typeof b.start === 'string' ? parseISO(b.start) : b.start).getTime();
+    const startA = toMs(a.start);
+    const startB = toMs(b.start);
     if (startA !== startB) return startA - startB;
-    const endA = (typeof a.end === 'string' ? parseISO(a.end) : a.end).getTime();
-    const endB = (typeof b.end === 'string' ? parseISO(b.end) : b.end).getTime();
-    return endA - endB;
+
+    const endA = toMs(a.end);
+    const endB = toMs(b.end);
+    if (endA !== endB) return endB - endA;
+
+    return compareByCreation(a, b);
   });
 
+  // Grupos de citas encadenadas por solapamiento. `clusterEnd` es el máximo `end`
+  // visto: una cita que arranca justo cuando termina la anterior (back-to-back) no
+  // solapa, abre un grupo nuevo y se dibuja a ancho completo.
   const clusters: CalendarEvent[][] = [];
   let currentCluster: CalendarEvent[] = [];
   let clusterEnd = 0;
 
   sortedEvents.forEach((event) => {
-    const start = (typeof event.start === 'string' ? parseISO(event.start) : event.start).getTime();
-    const end = (typeof event.end === 'string' ? parseISO(event.end) : event.end).getTime();
+    const start = toMs(event.start);
+    const end = toMs(event.end);
 
     if (start >= clusterEnd) {
-      if (currentCluster.length > 0) {
-        clusters.push(currentCluster);
-      }
+      if (currentCluster.length > 0) clusters.push(currentCluster);
       currentCluster = [event];
       clusterEnd = end;
     } else {
@@ -319,43 +399,75 @@ export function getEventsWithLayout(dayEvents: CalendarEvent[]): CalendarEvent[]
       clusterEnd = Math.max(clusterEnd, end);
     }
   });
-  if (currentCluster.length > 0) {
-    clusters.push(currentCluster);
-  }
+  if (currentCluster.length > 0) clusters.push(currentCluster);
 
   const positionedEvents: CalendarEvent[] = [];
 
   clusters.forEach((cluster) => {
-    const columns: CalendarEvent[][] = [];
+    // Packing greedy: cada cita ocupa el primer nivel cuyo último evento ya terminó.
+    // Reusar niveles mantiene la cascada lo más corta posible y, por lo tanto, las
+    // cards lo más anchas posible; dos citas del mismo nivel nunca se solapan en el
+    // tiempo, así que compartir corrimiento no las tapa.
+    const levelLastEnd: number[] = [];
+    const levels: number[] = [];
 
-    cluster.forEach((event) => {
-      let placed = false;
-      const eventStart = (typeof event.start === 'string' ? parseISO(event.start) : event.start).getTime();
-
-      for (let i = 0; i < columns.length; i++) {
-        const lastEventInColumn = columns[i][columns[i].length - 1];
-        const lastEventEnd = (typeof lastEventInColumn.end === 'string'
-          ? parseISO(lastEventInColumn.end)
-          : lastEventInColumn.end
-        ).getTime();
-
-        if (eventStart >= lastEventEnd) {
-          columns[i].push(event);
-          event.column = i;
-          placed = true;
-          break;
-        }
-      }
-
-      if (!placed) {
-        event.column = columns.length;
-        columns.push([event]);
-      }
+    cluster.forEach((event, index) => {
+      const start = toMs(event.start);
+      let level = levelLastEnd.findIndex((lastEnd) => lastEnd <= start);
+      if (level === -1) level = levelLastEnd.length;
+      levelLastEnd[level] = toMs(event.end);
+      levels[index] = level;
     });
 
-    cluster.forEach((event) => {
-      event.totalColumns = columns.length;
-      positionedEvents.push(event);
+    // Las citas de cada nivel, para poder preguntar si un nivel bloquea a una card.
+    const byLevel: CalendarEvent[][] = [];
+    cluster.forEach((event, index) => {
+      const level = levels[index];
+      if (!byLevel[level]) byLevel[level] = [];
+      byLevel[level].push(event);
+    });
+
+    // El corrimiento sale de la cantidad de niveles del grupo, así que se adapta solo
+    // a su densidad: con 2 niveles el escalón es del 50%, con 8 del 12,5%. No hace
+    // falta ningún tope artificial.
+    const totalLevels = levelLastEnd.length;
+    const levelWidth = 100 / totalLevels;
+    const lap = levelWidth * EVENT_STACK_LAP_RATIO;
+
+    cluster.forEach((event, index) => {
+      const level = levels[index];
+      const start = toMs(event.start);
+      const end = toMs(event.end);
+
+      // Hasta dónde puede estirarse: avanza por los niveles de la derecha mientras
+      // ninguno tenga una cita que se le solape en el tiempo.
+      let span = 1;
+      for (let next = level + 1; next < totalLevels; next += 1) {
+        const blocked = (byLevel[next] ?? []).some(
+          (other) => toMs(other.start) < end && toMs(other.end) > start,
+        );
+        if (blocked) break;
+        span += 1;
+      }
+
+      const left = level * levelWidth;
+      // Sin nada que la bloquee llega al borde derecho; si algo la bloquea se queda en
+      // los niveles que alcanzó más un pedacito por debajo de la de adelante.
+      const width = level + span >= totalLevels
+        ? 100 - left
+        : Math.min(span * levelWidth + lap, 100 - left);
+
+      positionedEvents.push({
+        ...event,
+        stackLevel: level,
+        stackLeftPercent: left,
+        stackWidthPercent: width,
+        // Derivado del NIVEL, no de la posición en el grupo: al reusar niveles, una
+        // cita de nivel bajo puede dibujarse después de una de nivel alto y, siendo
+        // más ancha, taparla. El z-index tiene que ser coherente con el corrimiento
+        // horizontal — a más corrida, más arriba.
+        stackZIndex: EVENT_STACK_BASE_Z_INDEX + Math.min(level, EVENT_STACK_MAX_Z_BOOST),
+      });
     });
   });
 

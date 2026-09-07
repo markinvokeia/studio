@@ -4,11 +4,11 @@ import { API_ROUTES } from '@/constants/routes';
 import { CALENDAR_MODES, DEFAULT_CALENDAR_MODE, DEFAULT_COLOR_BY_STATUS, DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, EVENT_LABEL_FORMATS, HOUR_SLOT_HEIGHT, SLOT_DURATION_OPTIONS } from './calendar-constants';
 
 export const DEFAULT_CALENDAR_SETTINGS: CalendarSettings = {
-  default_view: 'month',
+  default_view: 'week',
   grouped_by: 'none',
   check_availability: false,
   filter_doctors_by_service: false,
-  block_unavailable: false,
+  block_unavailable: true,
   hour_height: HOUR_SLOT_HEIGHT,
   slot_duration: DEFAULT_SLOT_DURATION,
   event_label_format: DEFAULT_EVENT_LABEL_FORMAT,

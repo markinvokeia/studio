@@ -410,7 +410,12 @@ export function CalendarDayViewMobile({
                               ))}
                               {showIndicator && (
                                 <div
-                                  className="absolute left-0 right-0 z-20 pointer-events-none flex items-center"
+                                  /* z alto: este indicador vive DENTRO de
+                                     .day-column-content (a diferencia del de desktop),
+                                     que ahora aísla su contexto de apilamiento, así que
+                                     tiene que quedar sobre cualquier profundidad de
+                                     citas apiladas. */
+                                  className="absolute left-0 right-0 z-[60] pointer-events-none flex items-center"
                                   style={{ top: `${currentTimePosition}px` }}
                                 >
                                   <div className="w-2.5 h-2.5 bg-red-500 rounded-full -ml-1" />

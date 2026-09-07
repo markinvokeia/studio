@@ -27,7 +27,7 @@ interface CalendarEventDayProps {
   event: CalendarEvent;
   style: React.CSSProperties;
   dateLocale: Locale;
-  onEventClick: (data: any) => void;
+  onEventClick: (data: any, anchorRect?: DOMRect) => void;
   /** @deprecated Color swatches are now rendered by the `onEventContextMenu` render prop. Kept for prop compatibility with the view components. */
   onEventColorChange?: (data: any, colorId: string) => void;
   onEventDoubleClick?: (data: any) => void;
@@ -63,6 +63,7 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
   const pxHeight = (durationMinutes / 60) * hourSlotHeight;
   const density =
     pxHeight >= EVENT_DENSITY_NORMAL_PX ? 'normal' : pxHeight >= EVENT_DENSITY_COMPACT_PX ? 'compact' : 'tiny';
+  const stackLevel = event.stackLevel ?? 0;
   const rawStatus = event.data?.status as string | undefined;
   const isReminder = event.data?.kind === 'reminder';
   const isNote = isReminder && event.data?.type === 'note';
@@ -88,6 +89,8 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
         <div
           data-testid="calendar-day-event"
           data-density={density}
+          data-stack-level={stackLevel}
+          data-stacked={stackLevel > 0 ? 'true' : undefined}
           title={event.label ?? event.title}
           className={cn(
             'event-in-day-view',
@@ -101,8 +104,13 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
             ...style,
             ...reminderCardStyle,
             color: textColor,
-            left: `${((event.column || 0) / (event.totalColumns || 1)) * 100}%`,
-            width: `${(1 / (event.totalColumns || 1)) * 100}%`,
+            // Cascada: cada nivel de solapamiento corre la card a la derecha un
+            // porcentaje del ancho de la columna, y todas llegan al borde derecho. Los
+            // tres valores los resuelve getEventsWithLayout; los defaults dejan la card
+            // a ancho completo si alguien la renderiza sin pasar por el layout.
+            left: `${event.stackLeftPercent ?? 0}%`,
+            width: `${event.stackWidthPercent ?? 100}%`,
+            ...(event.stackZIndex !== undefined ? { zIndex: event.stackZIndex } : {}),
             // La franja del estado se dibuja en un ::before que lee esta variable.
             ...(event.statusStripeColor
               ? ({ ['--status-stripe' as string]: event.statusStripeColor } as React.CSSProperties)
@@ -113,10 +121,13 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
           onClick={(e) => {
             if (e.button !== 0) return;
             e.stopPropagation();
-            if (!onEventDoubleClick) { onEventClick(event.data); return; }
+            // El rect se toma acá y no dentro del timeout: para cuando este corre,
+            // React ya anuló `currentTarget` del evento.
+            const anchorRect = e.currentTarget.getBoundingClientRect();
+            if (!onEventDoubleClick) { onEventClick(event.data, anchorRect); return; }
             if (e.detail > 1) return; // part of a double-click; ignore
             if (clickTimer.current) clearTimeout(clickTimer.current);
-            clickTimer.current = setTimeout(() => onEventClick(event.data), 220);
+            clickTimer.current = setTimeout(() => onEventClick(event.data, anchorRect), 220);
           }}
           onDoubleClick={(e) => {
             if (!onEventDoubleClick) return;

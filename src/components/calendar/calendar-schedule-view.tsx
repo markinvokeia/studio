@@ -57,7 +57,7 @@ interface CalendarScheduleViewProps {
   events: CalendarEvent[];
   dateLocale: Locale;
   breakpoint?: CalendarBreakpoint;
-  onEventClick: (data: any) => void;
+  onEventClick: (data: any, anchorRect?: DOMRect) => void;
   selectedAppointmentIds?: Set<string>;
   onToggleAppointmentSelect?: (id: string) => void;
 }
@@ -165,7 +165,7 @@ export function CalendarScheduleView({
                     onToggleAppointmentSelect!(appointmentId);
                     return;
                   }
-                  onEventClick(event.data);
+                  onEventClick(event.data, e.currentTarget.getBoundingClientRect());
                 }}
               >
                 {/* Accent bar — selection indicator */}

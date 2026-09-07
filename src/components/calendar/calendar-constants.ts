@@ -59,12 +59,30 @@ export const MIN_VISIBLE_SLOT_PX = 5;
 export const EVENT_DENSITY_NORMAL_PX = 34;
 export const EVENT_DENSITY_COMPACT_PX = 18;
 
+/** Cuánto se estira una card apilada por debajo de la que tiene a su derecha, como
+ *  fracción del ancho de una columna del grupo.
+ *
+ *  Es lo que hace que el apilado se lea como cards superpuestas y no como columnas
+ *  pegadas: donde la de adelante no la tapa —porque en esa altura no coinciden— la de
+ *  atrás asoma este pedazo de más. Solo se aplica a las cards que tienen algo que las
+ *  bloquea; las que no, se estiran hasta el borde derecho. */
+export const EVENT_STACK_LAP_RATIO = 0.25;
+
+/** z-index base de las cards; coincide con `.event-in-day-view` en Calendar.css. */
+export const EVENT_STACK_BASE_Z_INDEX = 10;
+
+/** Techo de lo que el z-index puede subir sobre la base. Generoso a propósito:
+ *  `.day-column-content` aísla su contexto de apilamiento, así que estos valores no
+ *  compiten con la columna de horas ni con la línea de la hora actual. */
+export const EVENT_STACK_MAX_Z_BOOST = 40;
+
 /** How the label shown on each appointment is composed.
- *  - time_patient_notes:     "HH:mm - Patient - (Notes)"   (default)
- *  - patient_treatment_time: "Patient - Treatment - HH:mm" */
-export const EVENT_LABEL_FORMATS = ['time_patient_notes', 'patient_treatment_time'] as const;
+ *  - time_patient_notes:           "HH:mm - Patient - (Notes)"
+ *  - patient_treatment_time:       "Patient - Treatment - HH:mm"
+ *  - time_patient_notes_treatment: "HH:mm - Patient - (Notes, Treatment)"   (default) */
+export const EVENT_LABEL_FORMATS = ['time_patient_notes', 'patient_treatment_time', 'time_patient_notes_treatment'] as const;
 export type EventLabelFormat = (typeof EVENT_LABEL_FORMATS)[number];
-export const DEFAULT_EVENT_LABEL_FORMAT: EventLabelFormat = 'time_patient_notes';
+export const DEFAULT_EVENT_LABEL_FORMAT: EventLabelFormat = 'time_patient_notes_treatment';
 
 /** Whether appointments in a status other than "scheduled" paint the whole card
  *  with the status color. On by default when the user's preferences are created. */
@@ -76,7 +94,7 @@ export const DEFAULT_SCROLL_HOUR = 8;
 /** Calendar display modes.
  *  - invoke: the calendar as it works today (multi-column when grouped).
  *  - custom: one agenda/calendar shown at a time, full-width, chosen from the
- *    "Agendas" side panel. */
+ *    "Agendas" side panel.   (default) */
 export const CALENDAR_MODES = ['invoke', 'custom'] as const;
 export type CalendarMode = (typeof CALENDAR_MODES)[number];
-export const DEFAULT_CALENDAR_MODE: CalendarMode = 'invoke';
+export const DEFAULT_CALENDAR_MODE: CalendarMode = 'custom';

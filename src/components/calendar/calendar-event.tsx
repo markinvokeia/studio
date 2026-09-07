@@ -25,7 +25,7 @@ import { getReminderCardStyle, getReminderPriorityColor, isGeneralReminder, isRe
 interface CalendarEventChipProps {
   event: CalendarEvent;
   dateLocale: Locale;
-  onEventClick: (data: any) => void;
+  onEventClick: (data: any, anchorRect?: DOMRect) => void;
   /** @deprecated Color swatches are now rendered by the `onEventContextMenu` render prop. Kept for prop compatibility with the view components. */
   onEventColorChange?: (data: any, colorId: string) => void;
   onEventContextMenu?: (data: any) => React.ReactNode;
@@ -88,7 +88,7 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
           onClick={(e) => {
             if (e.button !== 0) return;
             e.stopPropagation();
-            onEventClick(event.data);
+            onEventClick(event.data, e.currentTarget.getBoundingClientRect());
           }}
         >
           {event.label ? (
