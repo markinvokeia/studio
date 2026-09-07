@@ -88,6 +88,7 @@ args AS (
            coalesce(NULLIF(f ->> 'board_status', ''), 'all')    AS board_status,
            coalesce(f ->> 'search', '')                         AS search,
            NULLIF(f ->> 'sede_id', '')                          AS sede_id,
+           NULLIF(f ->> 'patient_id', '')                       AS patient_id,
            coalesce((f ->> 'sla_hours')::numeric, 48)           AS sla_hours,
            NULLIF(f ->> 'date_from', '')                        AS date_from,
            NULLIF(f ->> 'date_to', '')                          AS date_to,
@@ -131,6 +132,8 @@ base AS (
                           OR b.patient_document LIKE a.search || '%'
                           OR lower(b.order_number) LIKE lower(a.search) || '%')
        AND (a.sede_id IS NULL OR b.preferred_sede_id = a.sede_id::int)
+       -- Órdenes de un paciente concreto: lo usa el selector del diálogo de cita.
+       AND (a.patient_id IS NULL OR b.patient_id = a.patient_id::uuid)
        AND (a.date_from IS NULL OR b.submitted_at >= a.date_from::timestamp)
        AND (a.date_to   IS NULL OR b.submitted_at <  (a.date_to::timestamp + interval '1 day'))
 )
@@ -482,4 +485,141 @@ ${ORDER_METADATA} || jsonb_build_object(
   LEFT JOIN public.v_study_orders_board b ON b.id = so.id
  WHERE so.id = $1::uuid
    AND so.doctor_id IS NOT NULL
+   -- Un cambio vacío significa "no pasó nada que contar": /recompute es
+   -- idempotente y se llama de más a propósito, así que sin este guard el
+   -- derivador recibiría un aviso por cada recálculo que no cambió nada.
+   AND coalesce($2::text, '') <> ''
 RETURNING user_id::text AS user_id;`;
+
+export const LINK_APPOINTMENT_SQL = `
+-- $1 userId (token)  $2 payload { order_id, appointment_id }
+--
+-- Ata una cita recién creada a su orden. Se hace en un paso aparte, DESPUÉS de
+-- /appointments/upsert, en vez de agregarle la columna a ese flujo:
+--   · /appointments/upsert es un monolito compartido por todo el módulo de
+--     citas, con sincronización a Google Calendar y notificaciones adentro.
+--     Tocarlo para esto pone en riesgo la agenda entera.
+--   · El repo ya resuelve así el mismo problema con las facturas:
+--     /appointments/link_invoice, invocado desde services/billing-links.ts.
+--
+-- Idempotente: volver a atar la misma cita a la misma orden no cambia nada.
+WITH ${PERMS_CTE},
+b AS (
+    SELECT $2::jsonb AS body
+),
+v AS (
+    SELECT (body ->> 'order_id')::uuid      AS order_id,
+           (body ->> 'appointment_id')::int AS appointment_id
+      FROM b
+)
+UPDATE public.appointments a
+   SET study_order_id = v.order_id,
+       updated_at     = now()
+  FROM v
+ WHERE a.id = v.appointment_id
+   -- Una cita ya atada a OTRA orden no se roba.
+   AND (a.study_order_id IS NULL OR a.study_order_id = v.order_id)
+   AND EXISTS (
+       SELECT 1 FROM public.study_orders so
+        WHERE so.id = v.order_id
+          AND ((SELECT can_schedule FROM perms) OR so.doctor_id = $1::uuid)
+   )
+RETURNING a.id::text, a.study_order_id::text;`;
+
+export const BY_APPOINTMENT_SQL = `
+-- $1 userId (token)  $2 id de la cita.
+--
+-- A qué orden pertenece una cita. Hace falta porque el study_order_id no viaja
+-- con los datos de la cita: /appointments/upsert y Get_Appointments son
+-- workflows compartidos por todo el módulo de agenda y no se tocan para esto.
+-- Al abrir una cita, el selector consulta acá y muestra la orden asociada.
+--
+-- Devuelve vacío si la cita no tiene orden, o si el sujeto no puede verla.
+WITH ${PERMS_CTE}
+SELECT so.id::text        AS id,
+       so.order_number    AS order_number,
+       so.patient_id::text AS patient_id,
+       so.patient_name    AS patient_name,
+       so.doctor_id::text AS doctor_id,
+       d.name             AS doctor_name,
+       b.board_status     AS board_status
+  FROM public.appointments a
+  JOIN public.study_orders so ON so.id = a.study_order_id
+  LEFT JOIN public.users d ON d.id = so.doctor_id
+  LEFT JOIN public.v_study_orders_board b ON b.id = so.id
+ WHERE a.id = $2::int
+   AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms));`;
+
+export const RECOMPUTE_SQL = `
+-- $1 userId (token)  $2 payload { id, change }
+--
+-- Recalcula el estado PERSISTIDO de la orden contra el estado real de sus citas.
+--
+-- El estado operativo (nueva / sin agendar / parcial / agendada / en curso) no
+-- se toca acá: lo deriva v_study_orders_board de las citas y se corrige solo.
+-- Cancelar una cita ya devuelve sus líneas a "sin agendar" sin que nadie
+-- ejecute nada. Lo único que hay que persistir es el cierre, que sí es un hecho
+-- con fecha: todas las líneas atendidas -> 'completed'. Y su reverso, porque si
+-- la cita de una orden ya cerrada se cancela o se borra, dejar el 'completed'
+-- sería mentir: vuelve a 'submitted' y se limpia completed_at.
+--
+-- 'draft' y 'cancelled' no se tocan nunca: son decisiones humanas y un recálculo
+-- no las revierte.
+--
+-- El parámetro 'change' lo pone quien llama, porque quien llama es el único que
+-- sabe qué pasó. Al cancelar una cita no hay transición persistida que detectar
+-- -- la orden sigue 'submitted' -- y aun así el derivador tiene que enterarse.
+-- Si el recálculo sí produjo una transición, esa gana sobre lo que dijo el
+-- llamador. Vacío = no se notifica.
+WITH ${PERMS_CTE},
+b AS (
+    SELECT $2::jsonb AS body
+),
+v AS (
+    SELECT (body ->> 'id')::uuid                AS order_id,
+           coalesce(body ->> 'change', '')::text AS hint
+      FROM b
+),
+tgt AS (
+    SELECT so.id, so.status
+      FROM public.study_orders so, v
+     WHERE so.id = v.order_id
+       AND so.status IN ('submitted', 'completed')
+       AND ( (SELECT can_schedule FROM perms)
+             OR (SELECT can_view_all FROM perms)
+             OR so.doctor_id = $1::uuid )
+),
+target AS (
+    SELECT tgt.id,
+           tgt.status AS old_status,
+           CASE WHEN bo.items_total > 0 AND bo.items_completed = bo.items_total
+                THEN 'completed' ELSE 'submitted' END AS new_status,
+           bo.board_status
+      FROM tgt
+      JOIN public.v_study_orders_board bo ON bo.id = tgt.id
+),
+upd AS (
+    UPDATE public.study_orders so
+       SET status       = target.new_status,
+           completed_at = CASE WHEN target.new_status = 'completed' THEN now() ELSE NULL END,
+           updated_at   = now()
+      FROM target
+     WHERE so.id = target.id
+       AND so.status IS DISTINCT FROM target.new_status
+    RETURNING so.id
+)
+SELECT target.id::text     AS id,
+       target.old_status   AS old_status,
+       target.new_status   AS new_status,
+       -- Es el estado ANTES de este recálculo: los CTE leen el snapshot previo
+       -- a la sentencia, así que la vista todavía no ve el UPDATE de arriba. Va
+       -- para diagnóstico. El estado que le llega al doctor lo re-consulta el
+       -- aviso, que corre en una sentencia aparte y sí ve el resultado.
+       target.board_status AS board_status_before,
+       EXISTS (SELECT 1 FROM upd) AS changed,
+       CASE
+           WHEN EXISTS (SELECT 1 FROM upd) AND target.new_status = 'completed' THEN 'completed'
+           WHEN EXISTS (SELECT 1 FROM upd)                                     THEN 'reopened'
+           ELSE (SELECT hint FROM v)
+       END AS change
+  FROM target;`;

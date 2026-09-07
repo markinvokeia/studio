@@ -3,8 +3,8 @@
 import * as React from 'react';
 import type { ColumnFiltersState, PaginationState, RowSelectionState, SortingState } from '@tanstack/react-table';
 import { ClipboardList, Pencil } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,6 +24,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { formatDisplayDate } from '@/lib/utils';
+import { useStudyOrderScheduling } from '@/stores/study-order-scheduling-store';
 import type { StudyOrder, StudyOrderListItem } from '@/lib/types';
 import {
     acknowledgeStudyOrder,
@@ -118,8 +119,6 @@ function StudyOrdersTableWithCards({
             doctor_name: tCols('doctor'),
             items: tCols('items'),
             status: tCols('status'),
-            submitted_at: tCols('submittedAt'),
-            preferred_sede_name: tCols('sede'),
         }),
         [tCols],
     );
@@ -197,6 +196,11 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
     const t = useTranslations('StudyOrdersPage');
     const { toast } = useToast();
     const { hasPermission } = usePermissions();
+    const router = useRouter();
+    const locale = useLocale();
+    const searchParams = useSearchParams();
+    const { start: startScheduling } = useStudyOrderScheduling();
+
 
     const canCreate = hasPermission(STUDY_ORDERS_PERMISSIONS.CREATE);
     const canUpdate = hasPermission(STUDY_ORDERS_PERMISSIONS.UPDATE);
@@ -220,7 +224,11 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [bucket, setBucket] = React.useState('all');
     const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
-    const [sorting, setSorting] = React.useState<SortingState>([{ id: 'submitted_at', desc: true }]);
+    // Por número de orden descendente, que es cronológico: la secuencia
+    // OE-AAAA-NNNNNN se emite en orden. La columna `submitted_at` dejó de
+    // existir al fusionarse con `order_number`, y apuntar el orden a una
+    // columna inexistente rompía la tabla.
+    const [sorting, setSorting] = React.useState<SortingState>([{ id: 'order_number', desc: true }]);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 
     const [pendingSubmit, setPendingSubmit] = React.useState<PendingOrder | null>(null);
@@ -278,13 +286,68 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
         return () => clearTimeout(timer);
     }, [loadOrders]);
 
+    const handleRowSelect = React.useCallback((rows: StudyOrderListItem[]) => {
+        setSelected(rows[0] ?? null);
+    }, []);
+
+    /**
+     * Manda a la agenda con el paciente, el doctor y los estudios pendientes ya
+     * puestos. Reutiliza el deep link que la agenda ya entiende para las
+     * notificaciones (`?act=schedule&…`): los servicios no caben en la URL, así
+     * que viajan por sessionStorage, igual que hace notification-card.
+     *
+     * `studyOrderId` es lo único nuevo: la agenda lo guarda y, cuando el
+     * guardado devuelve el id de la cita, la ata a la orden.
+     */
+    const handleSchedule = React.useCallback(async (orderId: string) => {
+        const order = await getStudyOrder(orderId);
+        if (!order) return;
+
+        const pending = order.items.filter((i) => !i.is_cancelled && !i.is_scheduled);
+        const items = (pending.length > 0 ? pending : order.items).map((i) => ({
+            service_id: i.service_id,
+            service_name: i.service_name,
+        }));
+
+        // La operación queda en un store global: sobrevive al cierre del diálogo,
+        // al cambio de sede y a moverse por el calendario, y es lo que el aviso
+        // de la agenda muestra hasta que el operario la cancele.
+        startScheduling({
+            orderId: order.id,
+            orderNumber: order.order_number,
+            patientId: order.patient_id,
+            patientName: order.patient_name,
+            doctorId: order.doctor_id,
+            doctorName: order.doctor_name,
+            serviceIds: items.map((i) => i.service_id),
+        });
+
+        try {
+            sessionStorage.setItem(`notif-services:${order.id}`, JSON.stringify(items));
+        } catch {
+            // Sin sessionStorage se agenda igual: el selector de orden del
+            // diálogo vuelve a resolver los estudios.
+        }
+
+        const params = new URLSearchParams({
+            act: 'schedule',
+            patientId: order.patient_id ?? '',
+            patientName: order.patient_name,
+            sessionRef: order.id,
+            studyOrderId: order.id,
+        });
+        if (order.doctor_id) params.set('doctorId', order.doctor_id);
+        if (order.doctor_name) params.set('doctorName', order.doctor_name);
+
+        router.push(`/${locale}/appointments?${params.toString()}`);
+    }, [router, locale, startScheduling]);
+
     /**
      * Deep link desde la tarjeta de notificación: `?orderId=…&act=schedule|cancel`.
      * Abre el detalle de esa orden y, si viene `act=cancel`, el diálogo de
      * anulación con su motivo — meter ese formulario en la tarjeta habría sido
      * peor que traer al operario a donde ya está.
      */
-    const searchParams = useSearchParams();
     const handledDeepLinkRef = React.useRef<string | null>(null);
 
     React.useEffect(() => {
@@ -306,12 +369,9 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
             };
             setSelected(row as unknown as StudyOrderListItem);
             if (act === 'cancel') setPendingCancel(row);
+            if (act === 'schedule') void handleSchedule(order.id);
         });
-    }, [searchParams]);
-
-    const handleRowSelect = React.useCallback((rows: StudyOrderListItem[]) => {
-        setSelected(rows[0] ?? null);
-    }, []);
+    }, [searchParams, handleSchedule]);
 
     const handleCreate = React.useCallback(() => {
         setEditingId(null);
@@ -366,7 +426,7 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
         onAcknowledge: canAcknowledge
             ? (order) => void runMutation(() => acknowledgeStudyOrder(order.id), t('toast.acknowledgedTitle'))
             : undefined,
-        onSchedule: canSchedule ? () => { /* Fase 3: deep link a la agenda */ } : undefined,
+        onSchedule: canSchedule ? (order) => void handleSchedule(order.id) : undefined,
         onCancel: canCancel ? setPendingCancel : undefined,
     });
 
@@ -439,7 +499,7 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                             onCancel={setPendingCancel}
                             onAcknowledge={(order) =>
                                 void runMutation(() => acknowledgeStudyOrder(order.id), t('toast.acknowledgedTitle'))}
-                            onSchedule={() => { /* Fase 3: deep link a la agenda */ }}
+                            onSchedule={(order) => void handleSchedule(order.id)}
                             onReschedule={setReschedulingOrder}
                         />
                     )
