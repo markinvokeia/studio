@@ -77,12 +77,12 @@ export const EVENT_STACK_BASE_Z_INDEX = 10;
 export const EVENT_STACK_MAX_Z_BOOST = 40;
 
 /** How the label shown on each appointment is composed.
- *  - time_patient_notes:           "HH:mm - Patient - (Notes)"   (default)
+ *  - time_patient_notes:           "HH:mm - Patient - (Notes)"
  *  - patient_treatment_time:       "Patient - Treatment - HH:mm"
- *  - time_patient_notes_treatment: "HH:mm - Patient - (Notes, Treatment)" */
+ *  - time_patient_notes_treatment: "HH:mm - Patient - (Notes, Treatment)"   (default) */
 export const EVENT_LABEL_FORMATS = ['time_patient_notes', 'patient_treatment_time', 'time_patient_notes_treatment'] as const;
 export type EventLabelFormat = (typeof EVENT_LABEL_FORMATS)[number];
-export const DEFAULT_EVENT_LABEL_FORMAT: EventLabelFormat = 'time_patient_notes';
+export const DEFAULT_EVENT_LABEL_FORMAT: EventLabelFormat = 'time_patient_notes_treatment';
 
 /** Whether appointments in a status other than "scheduled" paint the whole card
  *  with the status color. On by default when the user's preferences are created. */
@@ -94,7 +94,7 @@ export const DEFAULT_SCROLL_HOUR = 8;
 /** Calendar display modes.
  *  - invoke: the calendar as it works today (multi-column when grouped).
  *  - custom: one agenda/calendar shown at a time, full-width, chosen from the
- *    "Agendas" side panel. */
+ *    "Agendas" side panel.   (default) */
 export const CALENDAR_MODES = ['invoke', 'custom'] as const;
 export type CalendarMode = (typeof CALENDAR_MODES)[number];
-export const DEFAULT_CALENDAR_MODE: CalendarMode = 'invoke';
+export const DEFAULT_CALENDAR_MODE: CalendarMode = 'custom';
