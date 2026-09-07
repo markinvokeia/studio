@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { canTransition } from '@/constants/appointment-status';
 import type { Appointment, AppointmentStatus, CancellationReason } from '@/lib/types';
 import { updateAppointmentStatusRequest } from '@/services/appointments';
+import { notifyStudyOrderAppointmentDropped } from '@/services/study-orders';
 
 const LOCALLY_UPDATED_PREFIX = 'doctor-workspace:locally-updated';
 const LOCALLY_CREATED_PREFIX = 'doctor-workspace:locally-created';
@@ -95,6 +96,16 @@ export function useAppointmentStatus(options: UseAppointmentStatusOptions = {}) 
           cancellation_note,
           note,
         });
+
+        // Una cita que deja de estar vigente desagenda las líneas de su orden.
+        // Va acá y no en cada pantalla porque este hook es el único camino por
+        // el que se cambia el estado de una cita: calendario, historia clínica,
+        // ficha del paciente y el panel de citas pasan todos por acá. ('deleted'
+        // no es un AppointmentStatus y no llega hasta acá: el borrado tiene su
+        // propio camino en la página de la agenda, que hace lo mismo.)
+        if (newStatus === 'cancelled' || newStatus === 'no_show') {
+          void notifyStudyOrderAppointmentDropped(appointment.id);
+        }
 
         if (user?.id) markLocallyUpdated(String(user.id), appointment.id);
         toast({

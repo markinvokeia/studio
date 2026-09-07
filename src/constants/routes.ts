@@ -526,6 +526,8 @@ export const API_ROUTES = {
         LINK_PATIENT:  '/study-orders/link-patient',
         RECOMPUTE:     '/study-orders/recompute',
         RESCHEDULE:    '/study-orders/reschedule',
+        LINK_APPOINTMENT: '/study-orders/link-appointment',
+        BY_APPOINTMENT:   '/study-orders/by-appointment',
         BOOKING_TOKEN: '/study-orders/booking-token',
         /** Públicos: el paciente llega con el token del link, sin sesión. */
         PUBLIC_DETAIL: '/study-orders/public_noauth',

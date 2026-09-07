@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { format } from 'date-fns';
-import { AlertTriangle, Building2, CalendarDays, CalendarX2, Check, ChevronsUpDown, Clock, FileText, Loader2, Palette, Pencil, Plus, StickyNote, Stethoscope, UserCog, UserRound, X } from 'lucide-react';
+import { AlertTriangle, Building2, CalendarDays, CalendarX2, Check, ChevronsUpDown, ClipboardList, Clock, FileText, Loader2, Palette, Pencil, Plus, StickyNote, Stethoscope, UserCog, UserRound, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { cn } from '@/lib/utils';
@@ -13,8 +13,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { InlineEntityPicker } from '@/components/appointments/InlineEntityPicker';
 import { InlineServicePicker } from '@/components/calendar/inline-service-picker';
+import { StudyOrderPicker } from '@/components/study-orders/study-order-picker';
 import { UserSelector } from '@/components/ui/user-selector';
 import type { Calendar as CalendarType, Service, User } from '@/lib/types';
+import { fetchServicesByIds } from '@/services/services';
+import { useStudyOrderScheduling } from '@/stores/study-order-scheduling-store';
 
 interface InlineColorOption {
   id: string;
@@ -44,6 +47,9 @@ interface InlineAppointmentDraftProps {
   onPatientChange: (user: User | null) => void;
   services: Service[];
   onServicesChange: (services: Service[]) => void;
+  /** Id de la cita que se está editando, si es edición. Lo usa el selector de
+   *  orden para mostrar a cuál está atada: ese dato no viene con la cita. */
+  appointmentId?: string | null;
   notes: string;
   onNotesChange: (notes: string) => void;
   /** Cita importada de Google Calendar. Muestra el campo de resumen (el título del
@@ -98,7 +104,7 @@ function CustomField({ label, children }: { label: string; children: React.React
 
 /** Inline searchable picker (doctor/room) shown as a badge + popover. */
 function PickerField({
-  icon, valueLabel, valueColor, placeholder, options, selectedId, onSelect, searchPlaceholder, emptyText,
+  icon, valueLabel, valueColor, placeholder, options, selectedId, onSelect, searchPlaceholder, emptyText, disabled,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   valueLabel?: string;
@@ -109,13 +115,20 @@ function PickerField({
   onSelect: (id: string) => void;
   searchPlaceholder: string;
   emptyText: string;
+  /** Campo fijado: se ve el valor pero no se puede cambiar. */
+  disabled?: boolean;
 }) {
   const [open, setOpen] = React.useState(false);
   return (
     <Field icon={icon}>
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={disabled ? false : open} onOpenChange={disabled ? undefined : setOpen}>
         <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" className="h-7 w-full justify-between px-2 text-xs font-normal">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={disabled}
+            className="h-7 w-full justify-between px-2 text-xs font-normal disabled:opacity-100"
+          >
             {valueLabel ? (
               <Badge variant="secondary" className="gap-1 px-1.5 py-0 text-[10px] font-normal">
                 {valueColor && <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: valueColor }} />}
@@ -124,7 +137,7 @@ function PickerField({
             ) : (
               <span className="truncate text-muted-foreground">{placeholder}</span>
             )}
-            <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+            {!disabled && <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-56 p-0" align="start">
@@ -293,6 +306,7 @@ export function InlineAppointmentDraft({
   onPatientChange,
   services,
   onServicesChange,
+  appointmentId,
   notes,
   onNotesChange,
   importedFromGoogle = false,
@@ -401,6 +415,20 @@ export function InlineAppointmentDraft({
     />
   );
 
+  const { context: studyOrderContext } = useStudyOrderScheduling();
+  const [studyOrderId, setStudyOrderId] = React.useState<string | null>(null);
+
+  /**
+   * Con una operación de agendado en curso, paciente, orden y doctor quedan
+   * fijados. El operario va a estar probando calendarios, sedes y horarios
+   * hasta dar con el mejor hueco, y en ese ir y venir es fácil cambiar por
+   * accidente a quién pertenece la cita. Los servicios quedan editables: puede
+   * hacer falta agendar sólo parte de la orden en este turno.
+   *
+   * La salida es "Cancelar operación" en el aviso, que es explícita.
+   */
+  const isStudyOrderLocked = !!studyOrderContext;
+
   const doctorField = (
     <PickerField
       icon={UserCog}
@@ -412,6 +440,9 @@ export function InlineAppointmentDraft({
       onSelect={(id) => onDoctorChange(doctorOptions.find((d) => String(d.id) === id) ?? null)}
       searchPlaceholder={t('searchDoctor')}
       emptyText={t('noDoctors')}
+      // Agendando para una orden, el doctor es el derivador y no se cambia: la
+      // cita tiene que quedar a nombre de quien pidió el estudio.
+      disabled={isStudyOrderLocked && !!studyOrderContext?.doctorId}
     />
   );
 
@@ -427,7 +458,43 @@ export function InlineAppointmentDraft({
       triggerText={t('selectPatient')}
       placeholder={t('searchPatient')}
       className="h-7 px-2 text-xs font-normal"
+      disabled={isStudyOrderLocked}
     />
+  );
+
+  /**
+   * Orden de estudio de esta cita. Vale lo mismo que en el diálogo completo: en
+   * modo personalizado la agenda abre esta tarjeta en vez del diálogo, así que
+   * sin esto la operación de agendado quedaba sin forma de elegir la orden.
+   */
+
+  React.useEffect(() => {
+    setStudyOrderId(studyOrderContext?.orderId ?? null);
+  }, [studyOrderContext?.orderId]);
+
+  const loadStudyOrderServices = React.useCallback(async (serviceIds: string[]) => {
+    if (serviceIds.length === 0) return;
+    const resolved = await fetchServicesByIds(serviceIds).catch(() => [] as Service[]);
+    if (resolved.length === 0) return;
+    // Se suman a lo que ya haya elegido el operario, sin pisarlo.
+    const existing = new Set(services.map((s: Service) => String(s.id)));
+    const added = resolved.filter((s: Service) => !existing.has(String(s.id)));
+    if (added.length > 0) onServicesChange([...services, ...added]);
+  }, [services, onServicesChange]);
+
+  const studyOrderField = (
+    <Field icon={ClipboardList}>
+      <StudyOrderPicker
+        compact
+        appointmentId={appointmentId ?? null}
+        patientId={patient?.id ?? null}
+        value={studyOrderId}
+        onChange={setStudyOrderId}
+        disabled={isStudyOrderLocked}
+        // Sólo en altas: editando, los servicios de la cita ya están guardados.
+        onServicesResolved={appointmentId ? undefined : (ids) => void loadStudyOrderServices(ids)}
+      />
+    </Field>
   );
 
   const serviceField = (
@@ -599,7 +666,8 @@ export function InlineAppointmentDraft({
             <div className="space-y-1.5">
               {roomField}
               {doctorField}
-              {serviceField}
+              {studyOrderField}
+          {serviceField}
             </div>
           </div>
         </>
@@ -680,6 +748,7 @@ export function InlineAppointmentDraft({
       {variant !== 'custom' && (
         <>
           {/* Service */}
+          {studyOrderField}
           {serviceField}
 
           {/* Note */}

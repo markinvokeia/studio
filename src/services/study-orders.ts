@@ -61,6 +61,8 @@ export interface GetStudyOrdersParams {
     boardStatus?: string;
     search?: string;
     sedeId?: string;
+    /** Órdenes de un paciente concreto. Lo usa el selector del diálogo de cita. */
+    patientId?: string;
     dateFrom?: string;
     dateTo?: string;
     /** Horas desde el envío sin agendar a partir de las cuales cuenta como atrasada. */
@@ -81,6 +83,7 @@ export async function getStudyOrders(params: GetStudyOrdersParams): Promise<Stud
     if (params.boardStatus) query.board_status = params.boardStatus;
     if (params.search) query.q = params.search;
     if (params.sedeId) query.sede_id = params.sedeId;
+    if (params.patientId) query.patient_id = params.patientId;
     if (params.dateFrom) query.date_from = params.dateFrom;
     if (params.dateTo) query.date_to = params.dateTo;
     if (params.slaHours !== undefined) query.sla_hours = String(params.slaHours);
@@ -161,20 +164,115 @@ export async function linkStudyOrderPatient(id: string, patientId: string): Prom
 }
 
 /**
+ * Qué le pasó a la orden, cuando el recálculo por sí solo no puede deducirlo.
+ *
+ * Cancelar una cita no cambia el estado persistido de la orden — sigue
+ * 'submitted' — pero sí devuelve sus líneas a "sin agendar", y de eso el
+ * derivador tiene que enterarse. El backend no tiene forma de detectarlo: la
+ * vista ya se corrigió sola y no guarda el estado anterior contra el cual
+ * comparar. Quien cancela sí lo sabe, así que lo dice.
+ */
+export type StudyOrderChangeHint = 'appointment_cancelled';
+
+/**
  * Recalcula el estado de la orden contra sus citas y, si ya está todo atendido,
  * la cierra y avisa al derivador. Es idempotente: se puede llamar de más.
  *
- * Se invoca al guardar una sesión clínica. Como la sesión se crea desde varios
- * lugares, un cron de reconciliación hace de red de seguridad por si algún
- * camino no llama acá.
+ * Se invoca al guardar una sesión clínica y al cancelar una cita. Como esas
+ * cosas pasan desde varios lugares, un cron de reconciliación hace de red de
+ * seguridad por si algún camino no llama acá.
+ *
+ * Sin `change`, sólo notifica si el recálculo produjo una transición real
+ * (cerró la orden, o la reabrió). Es lo que evita que guardar una sesión de una
+ * orden con varios estudios pendientes le mande un aviso al doctor cada vez.
  */
-export async function recomputeStudyOrder(id: string): Promise<void> {
+export async function recomputeStudyOrder(id: string, change?: StudyOrderChangeHint): Promise<void> {
     try {
-        const raw = await api.post(API_ROUTES.STUDY_ORDERS.RECOMPUTE, { id });
+        const raw = await api.post(API_ROUTES.STUDY_ORDERS.RECOMPUTE, { id, ...(change ? { change } : {}) });
         unwrap<unknown>(raw);
     } catch (error) {
         // Fire-and-forget, igual que billing-links: el cron lo va a corregir.
         console.warn('Failed to recompute study order status:', error);
+    }
+}
+
+/**
+ * Una cita dejó de estar vigente (cancelada, borrada o no-show): si venía de una
+ * orden, se recalcula la orden y se le avisa al derivador.
+ *
+ * Los tres estados van juntos porque son exactamente los que
+ * `v_study_orders_board` descuenta al calcular si una línea está agendada: para
+ * la orden, un no-show y una cancelación son lo mismo — el estudio no se hizo y
+ * hay que volver a agendarlo.
+ *
+ * Empieza por preguntar a qué orden pertenece la cita porque ese dato no viaja
+ * con los datos de la cita. La inmensa mayoría no viene de una orden y la
+ * respuesta es `null`, así que esto termina en nada casi siempre.
+ *
+ * Fire-and-forget: cancelar una cita no puede fallar porque el aviso a la orden
+ * falle.
+ */
+export async function notifyStudyOrderAppointmentDropped(appointmentId: string): Promise<void> {
+    try {
+        const order = await getStudyOrderByAppointment(appointmentId);
+        if (!order) return;
+        await recomputeStudyOrder(order.id, 'appointment_cancelled');
+    } catch (error) {
+        console.warn('[study-orders] No se pudo avisar a la orden de la cita cancelada', { appointmentId, error });
+    }
+}
+
+/** Lo mínimo para mostrar la orden de una cita ya existente. */
+export interface StudyOrderRef {
+    id: string;
+    order_number: string;
+    patient_id?: string | null;
+    patient_name: string;
+    doctor_id?: string | null;
+    doctor_name?: string | null;
+    board_status: string;
+}
+
+/**
+ * A qué orden pertenece una cita.
+ *
+ * Se consulta aparte porque `study_order_id` no viaja con los datos de la cita:
+ * `Get_Appointments` es parte del monolito de la agenda y no se toca para esto.
+ * Devuelve `null` cuando la cita no nació de una orden, que es lo habitual.
+ */
+export async function getStudyOrderByAppointment(appointmentId: string): Promise<StudyOrderRef | null> {
+    try {
+        const raw = await api.get(API_ROUTES.STUDY_ORDERS.BY_APPOINTMENT, { appointment_id: appointmentId });
+        return unwrap<StudyOrderRef | null>(raw).data ?? null;
+    } catch (error) {
+        console.warn('[study-orders] No se pudo resolver la orden de la cita', { appointmentId, error });
+        return null;
+    }
+}
+
+/**
+ * Ata una cita recién creada a su orden.
+ *
+ * Va DESPUÉS de `/appointments/upsert` y no adentro: ese endpoint es un monolito
+ * compartido por todo el módulo de citas, con sync a Google Calendar y
+ * notificaciones, y agregarle una columna para esto arriesgaría la agenda
+ * entera. Es el mismo patrón que `linkInvoiceToAppointment` en billing-links.
+ *
+ * Fire-and-forget: si falla, la cita queda creada igual y se puede atar después
+ * desde la orden. Nunca debe romper el guardado de una cita.
+ */
+export async function linkAppointmentToStudyOrder(
+    orderId: string,
+    appointmentId: string,
+): Promise<void> {
+    try {
+        const raw = await api.post(API_ROUTES.STUDY_ORDERS.LINK_APPOINTMENT, {
+            order_id: orderId,
+            appointment_id: appointmentId,
+        });
+        unwrap<unknown>(raw);
+    } catch (error) {
+        console.warn('[study-orders] No se pudo atar la cita a la orden', { orderId, appointmentId, error });
     }
 }
 

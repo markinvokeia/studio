@@ -1022,6 +1022,15 @@ function StudyOrderSubmittedCard({ notification }: { notification: StudyOrderSub
 }
 
 /** Cambió el estado de una orden del derivador. Sólo lectura. */
+/**
+ * Motivos con texto propio. Es una lista cerrada a propósito: el `change` lo
+ * escribe el backend y next-intl revienta con una clave que no existe, así que
+ * un valor nuevo tiene que mostrarse como nada, no tumbar el panel.
+ */
+const STUDY_ORDER_CHANGE_KEYS = new Set([
+  'appointment_cancelled', 'reopened', 'completed', 'scheduled', 'rescheduled',
+]);
+
 function StudyOrderStatusCard({ notification }: { notification: StudyOrderStatusChangedNotification }) {
   const { dismissNotification, closePanel } = useNotifications();
   const t = useTranslations('Notifications');
@@ -1053,6 +1062,11 @@ function StudyOrderStatusCard({ notification }: { notification: StudyOrderStatus
           <p className="mt-2 text-[11px] text-foreground">
             {t('studyOrderStatusChanged', { status: tStatus(notification.boardStatus) })}
           </p>
+          {STUDY_ORDER_CHANGE_KEYS.has(notification.change) && (
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              {t(`studyOrderChange_${notification.change}` as never)}
+            </p>
+          )}
           {notification.cancellationReason && (
             <p className="mt-1 text-[11px] italic text-muted-foreground">
               {notification.cancellationReason}

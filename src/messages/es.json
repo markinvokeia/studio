@@ -613,6 +613,11 @@
     "studyOrderTakenTitle": "Orden tomada",
     "studyOrderTakeError": "No se pudo tomar la orden",
     "studyOrderStatusChanged": "La clínica actualizó el estado de tu orden: {status}",
+    "studyOrderChange_appointment_cancelled": "Se canceló la cita: los estudios quedaron pendientes de agendar.",
+    "studyOrderChange_reopened": "Se dio de baja la cita que la cerraba: la orden volvió a quedar abierta.",
+    "studyOrderChange_completed": "Los estudios ya fueron realizados.",
+    "studyOrderChange_scheduled": "Ya tiene cita agendada.",
+    "studyOrderChange_rescheduled": "Se movió la fecha de la cita.",
     "studyOrderSubmittedTitle": "Nueva orden de estudio",
     "studyOrderStatusTitle": "Tu orden cambió de estado"
   },
@@ -9174,6 +9179,14 @@
       "cancel": "Cancelar",
       "noAppointments": "Esta orden no tiene citas para mover.",
       "success": "Cita reprogramada"
+    },
+    "scheduling": {
+      "active": "Estás agendando para la orden <order></order> de <patient></patient>. La cita que crees va a quedar asociada a esa orden.",
+      "cancelOperation": "Cancelar operación",
+      "orderField": "Orden de estudio",
+      "orderPlaceholder": "Sin orden asociada",
+      "noOrder": "Sin orden asociada",
+      "noOrdersForPatient": "Este paciente no tiene órdenes de estudio."
     }
   }
 }

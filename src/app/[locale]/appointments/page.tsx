@@ -69,6 +69,9 @@ import { getQuoteItems } from '@/services/quotes';
 import { updateAppointmentStatusRequest, fetchFuturePatientAppointments, type FuturePatientAppointment } from '@/services/appointments';
 import { FutureAppointmentsConfirmDialog } from '@/components/appointments/future-appointments-confirm-dialog';
 import { getSalesServices, getUsersServicesBatch, fetchServicesByIds } from '@/services/services';
+import { getStudyOrder, linkAppointmentToStudyOrder, notifyStudyOrderAppointmentDropped } from '@/services/study-orders';
+import { StudyOrderSchedulingBanner } from '@/components/study-orders/study-order-scheduling-banner';
+import { useStudyOrderScheduling } from '@/stores/study-order-scheduling-store';
 import { ColumnDef } from '@tanstack/react-table';
 import { addMinutes, eachDayOfInterval, endOfMonth, endOfWeek, format, isValid, parseISO, set, startOfMonth, startOfWeek } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
@@ -123,6 +126,7 @@ interface NotifActCallbacks {
         quoteId?: string,
         calendarId?: string,
         notifId?: string,
+        studyOrderId?: string,
     ) => void;
     onInvoice: (patientId: string, patientName: string, items?: SessionPreloadedService[], notifId?: string) => void | Promise<void>;
 }
@@ -168,7 +172,60 @@ function getInlineDraftSignature(draft: Omit<InlineAppointmentDraftState, 'initi
 }
 
 function createInlineDraftState(draft: Omit<InlineAppointmentDraftState, 'initialSignature'>): InlineAppointmentDraftState {
-    return { ...draft, initialSignature: getInlineDraftSignature(draft) };
+    // Con una operación de agendado en curso, una tarjeta nueva nace con el
+    // paciente de la orden ya puesto. Es lo que hace que el cartel no quede
+    // mintiendo: si el operario cierra la tarjeta para cambiar de calendario y
+    // abre otra, sigue agendando para la misma orden y no tiene que volver a
+    // buscar al paciente.
+    //
+    // Sólo se completa cuando el llamador no trajo paciente, así que editar una
+    // cita existente no se ve afectado. Y una vez puesto el paciente, el
+    // selector de orden aparece, preselecciona la orden y carga sus estudios.
+    const scheduling = useStudyOrderScheduling.getState().context;
+    let patient = draft.patient;
+    let doctor = draft.doctor;
+    if (scheduling) {
+        if (!patient && scheduling.patientId) {
+            patient = {
+                id: scheduling.patientId,
+                name: scheduling.patientName,
+                email: '',
+                phone_number: '',
+                is_active: true,
+                avatar: '',
+            } as UserType;
+        }
+        // El doctor de la cita es el derivador de la orden. Sin esto el upsert
+        // salía con doctor_id vacío y la cita quedaba sin doctor asignado.
+        if (!doctor && scheduling.doctorId) {
+            doctor = {
+                id: scheduling.doctorId,
+                name: scheduling.doctorName ?? '',
+                email: '',
+                phone_number: '',
+                is_active: true,
+                avatar: '',
+            } as UserType;
+        }
+    }
+    const next = { ...draft, patient, doctor };
+    return { ...next, initialSignature: getInlineDraftSignature(next) };
+}
+
+/**
+ * Saca el id de la cita de la respuesta de `/appointments/upsert`.
+ *
+ * La forma varía según el camino de guardado: el sobre normal trae
+ * `{ code, data: { id } }`, la reprogramación devuelve `{ id }` pelado, y
+ * algunas respuestas usan `appointment_id`. De ahí la cadena de alternativas.
+ */
+function extractAppointmentId(response: unknown): string | undefined {
+    const result = (Array.isArray(response) ? response[0] : response) as any;
+    const data = result?.data;
+    return (data?.id != null ? String(data.id) : undefined)
+        || (data?.appointment_id != null ? String(data.appointment_id) : undefined)
+        || (result?.id != null ? String(result.id) : undefined)
+        || (result?.appointment_id != null ? String(result.appointment_id) : undefined);
 }
 
 function NotificationActDeepLink({ onQuote, onSchedule, onInvoice }: NotifActCallbacks) {
@@ -222,6 +279,7 @@ function NotificationActDeepLink({ onQuote, onSchedule, onInvoice }: NotifActCal
                 searchParams.get('quoteId') ?? undefined,
                 searchParams.get('calendarId') ?? undefined,
                 notifId,
+                searchParams.get('studyOrderId') ?? undefined,
             );
         } else if (act === 'invoice') {
             onInvoice(patientId, patientName, preloadedItems, notifId);
@@ -1205,6 +1263,13 @@ export default function AppointmentsPage() {
         calendar?: CalendarType | null;
     } | null>(null);
 
+    /**
+     * Operación de agendado en curso para una orden de estudio. Vive en un store
+     * global para que el aviso y la vinculación sobrevivan a cerrar el diálogo,
+     * cambiar de sede o moverse por el calendario.
+     */
+    const { context: studyOrderScheduling, start: startStudyOrderScheduling, clear: clearStudyOrderScheduling } = useStudyOrderScheduling();
+
     const [scheduleNextData, setScheduleNextData] = React.useState<{
         patientId: string;
         patientName: string;
@@ -1426,6 +1491,21 @@ export default function AppointmentsPage() {
             // La notificación se marca solo tras el guardado exitoso (igual que
             // handleSaveSuccess para el dialog completo).
             if (inlineDraft.notifId) markSessionAction(inlineDraft.notifId, 'schedule');
+
+            // Si hay una operación de agendado en curso, la cita creada desde la
+            // tarjeta inline se ata a su orden igual que la del diálogo. Sin
+            // esto, agendar en modo personalizado dejaba la orden sin cita.
+            const studyOrderId = useStudyOrderScheduling.getState().context?.orderId;
+            if (studyOrderId) {
+                const appointmentId = editing?.id ? String(editing.id) : extractAppointmentId(response);
+                if (appointmentId) {
+                    void linkAppointmentToStudyOrder(studyOrderId, appointmentId);
+                    clearStudyOrderScheduling();
+                } else {
+                    console.warn('[study-orders] Cita creada desde la tarjeta inline sin id extraíble: no se pudo atar a la orden', studyOrderId);
+                }
+            }
+
             setInlineDraft(null);
             refreshCalendarDataRef.current();
         } catch (error) {
@@ -1433,7 +1513,7 @@ export default function AppointmentsPage() {
         } finally {
             setIsSavingInline(false);
         }
-    }, [inlineDraft, toast, tToasts, rescheduleAppointment, user?.id, calendars, isDateTimeBlocked, markSessionAction]);
+    }, [inlineDraft, toast, tToasts, rescheduleAppointment, user?.id, calendars, isDateTimeBlocked, markSessionAction, clearStudyOrderScheduling]);
 
     const isInlineDraftDirty = (
         inlineDraft
@@ -1515,6 +1595,9 @@ export default function AppointmentsPage() {
                 })}
                 notes={inlineDraft.notes}
                 onNotesChange={(n) => setInlineDraft((d) => (d ? { ...d, notes: n } : d))}
+                // Al abrir una cita existente, el selector consulta con este id qué
+                // orden tiene atada: ese dato no viaja con los datos de la cita.
+                appointmentId={inlineDraft.editing?.id ? String(inlineDraft.editing.id) : null}
                 importedFromGoogle={inlineDraft.editing?.imported_from_google === true}
                 summary={inlineDraft.summary}
                 onSummaryChange={(v) => setInlineDraft((d) => (d ? { ...d, summary: v } : d))}
@@ -2243,6 +2326,11 @@ export default function AppointmentsPage() {
             if (result?.error || (result?.code && result.code >= 400)) {
                 throw new Error(result?.message || 'Failed to delete appointment');
             }
+            // El borrado no pasa por useAppointmentStatus, así que el aviso a la
+            // orden se repite acá: para la orden, borrar una cita desagenda sus
+            // líneas igual que cancelarla.
+            void notifyStudyOrderAppointmentDropped(String(appointment.id));
+
             setAppointments((prev) => prev.filter((a) => a.id !== appointment.id));
             setIsDetailViewOpen(false);
             setSelectedAppointment(null);
@@ -2478,12 +2566,33 @@ export default function AppointmentsPage() {
         quoteId?: string,
         calendarId?: string,
         notifId?: string,
+        studyOrderId?: string,
     ) => {
         // La apertura se difiere: en modo personalizado va a la tarjeta simplificada
         // y en modo invoke al dialog completo, y el modo aún no está cargado aquí.
         setScheduleNextData({ patientId, patientName, date, doctorId, doctorName, services: items, quoteId, calendarId, notifId });
+        // Si se llegó por deep link sin pasar por la pantalla de órdenes (por
+        // ejemplo desde la tarjeta de notificación), se arranca la operación acá.
+        //
+        // Ojo: la pantalla de órdenes ya arrancó la operación ANTES de navegar,
+        // con el número de orden incluido. Este handler corre después, así que
+        // sólo debe intervenir si no hay operación para esa misma orden —
+        // pisarla dejaba el aviso sin número.
+        if (studyOrderId && useStudyOrderScheduling.getState().context?.orderId !== studyOrderId) {
+            void getStudyOrder(studyOrderId).then((order) => {
+                startStudyOrderScheduling({
+                    orderId: studyOrderId,
+                    orderNumber: order?.order_number ?? '',
+                    patientId,
+                    patientName,
+                    doctorId: order?.doctor_id ?? doctorId ?? null,
+                    doctorName: order?.doctor_name ?? doctorName ?? null,
+                    serviceIds: (items ?? []).map((i) => String(i.service_id)),
+                });
+            });
+        }
         setPendingScheduleOpen(true);
-    }, []);
+    }, [startStudyOrderScheduling]);
 
     const handleNotifInvoice = React.useCallback(async (patientId: string, patientName: string, items?: SessionPreloadedService[], notifId?: string) => {
         setInvoicePatient({ id: patientId, name: patientName, email: '', phone_number: '', is_active: true, avatar: '' } as UserType);
@@ -2659,7 +2768,7 @@ export default function AppointmentsPage() {
 
 
 
-    const handleSaveSuccess = () => {
+    const handleSaveSuccess = (savedAppointment?: any) => {
         forceRefresh();
         setCreateOpen(false);
         setEditingAppointment(null);
@@ -2667,6 +2776,22 @@ export default function AppointmentsPage() {
         if (pendingScheduleNotifId) {
             markSessionAction(pendingScheduleNotifId, 'schedule');
             setPendingScheduleNotifId(undefined);
+        }
+
+        // Si la cita nació de una orden de estudio, se la ata ahora. El id llega
+        // en formas distintas según el camino de guardado, de ahí las variantes.
+        const studyOrderId = studyOrderScheduling?.orderId;
+        if (studyOrderId) {
+            const appointmentId = extractAppointmentId(savedAppointment);
+            if (appointmentId) {
+                // Fire-and-forget: la cita ya está creada; si esto falla se ata
+                // después desde la orden.
+                void linkAppointmentToStudyOrder(studyOrderId, appointmentId);
+                // La operación terminó: se saca el aviso.
+                clearStudyOrderScheduling();
+            } else {
+                console.warn('[study-orders] Cita creada pero sin id extraíble: no se pudo atar a la orden', studyOrderId);
+            }
         }
     };
 
@@ -3913,6 +4038,9 @@ export default function AppointmentsPage() {
     return (
         <Card className="border-none shadow-none h-full">
             <CardContent className="relative p-0 h-[calc(100vh-6rem)] min-h-[600px]">
+                {/* Aviso de la operación de agendado en curso. Se mantiene sobre el
+                    calendario hasta que la cita se cree o el operario la cancele. */}
+                <StudyOrderSchedulingBanner />
                 {!calendarSettings ? (
                     <div className="flex h-full w-full items-center justify-center">
                         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

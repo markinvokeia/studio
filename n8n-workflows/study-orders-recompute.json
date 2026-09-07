@@ -1,9 +1,9 @@
 {
-  "name": "Study Orders - Acknowledge",
+  "name": "Study Orders - Recompute",
   "nodes": [
     {
       "parameters": {
-        "content": "## POST /study-orders/acknowledge\n\nLa clínica \"toma\" la orden: la saca del bucket **nuevas** y la pasa a **sin agendar**.\n\nEs el paso de revisión previa. No es un estado persistido: se guarda `acknowledged_at` y la vista `v_study_orders_board` deriva el resto.\n\n**Body:** `{ \"id\": \"uuid\" }` · Requiere STUDY_ORDERS_ACKNOWLEDGE.",
+        "content": "## POST /study-orders/recompute\n\nRecalcula el estado de la orden contra sus citas y avisa al derivador.\n\n**Body:** `{ \"id\": \"uuid\", \"change\": \"appointment_cancelled\" }` — `change` es opcional.\n\n**Qué persiste:** sólo el cierre. Todas las líneas atendidas → `completed`; y su reverso, si la cita de una orden cerrada se cancela vuelve a `submitted`. El estado operativo (sin agendar / parcial / agendada) lo deriva `v_study_orders_board` y se corrige solo.\n\n**Por qué `change` lo manda el cliente:** al cancelar una cita no hay transición persistida que detectar — la orden sigue `submitted` — y aun así el derivador tiene que enterarse. Si el recálculo sí produjo una transición, esa gana.\n\n**Idempotente y fire-and-forget:** llamarlo de más no cambia nada y, sin cambio que contar, no notifica.",
         "height": 420,
         "width": 460,
         "color": 4
@@ -14,13 +14,13 @@
         -560,
         -180
       ],
-      "id": "ack-doc",
+      "id": "recomp-doc",
       "name": "Contrato"
     },
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "study-orders/acknowledge",
+        "path": "study-orders/recompute",
         "authentication": "jwtAuth",
         "responseMode": "responseNode",
         "options": {
@@ -33,9 +33,9 @@
         0,
         0
       ],
-      "id": "ack-wh",
+      "id": "recomp-wh",
       "name": "Webhook",
-      "webhookId": "study-orders-ack",
+      "webhookId": "study-orders-recomp",
       "credentials": {
         "jwtAuth": {
           "id": "C6sB1r7ab5H5EmJj",
@@ -45,7 +45,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const userId = $json.jwtPayload?.userId;\nif (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];\nconst id = ($json.body?.id || '').toString().trim();\nif (!id) return [{ json: { __error: true, __code: 400, __message: 'id es requerido' } }];\nreturn [{ json: { user_id: String(userId), id } }];"
+        "jsCode": "const userId = $json.jwtPayload?.userId;\nif (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];\nconst b = $json.body || {};\nconst id = (b.id || '').toString().trim();\nif (!id) return [{ json: { __error: true, __code: 400, __message: 'id es requerido' } }];\n\n// Lista cerrada: el 'change' termina en el texto de la tarjeta del doctor y no\n// puede ser lo que el cliente quiera.\n//\n// Sólo va la cancelación. Guardar una sesión clínica NO lleva hint: si cerró la\n// orden, el recálculo devuelve 'completed' solo; si no la cerró, no hay nada que\n// contarle al derivador y un hint lo haría notificar en cada guardado.\nconst ALLOWED = ['appointment_cancelled'];\nconst hint = (b.change || '').toString().trim();\nconst change = ALLOWED.includes(hint) ? hint : '';\n\nreturn [{ json: { user_id: String(userId), payload: JSON.stringify({ id, change }) } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -53,7 +53,7 @@
         220,
         0
       ],
-      "id": "ack-val",
+      "id": "recomp-val",
       "name": "Validar Datos"
     },
     {
@@ -67,7 +67,7 @@
           },
           "conditions": [
             {
-              "id": "ack-cond",
+              "id": "recomp-cond",
               "leftValue": "={{ $json.__error }}",
               "rightValue": true,
               "operator": {
@@ -87,15 +87,15 @@
         440,
         0
       ],
-      "id": "ack-if",
+      "id": "recomp-if",
       "name": "¿Hubo error?"
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "\n-- $1 userId (token)  $2 id. Saca la orden del bucket \"nuevas\".\nWITH \nperms AS (\n    SELECT bool_or(p.code = 'STUDY_ORDERS_VIEW_ALL')  AS can_view_all,\n           bool_or(p.code = 'STUDY_ORDERS_CREATE_FOR_DOCTOR') AS can_create_for_doctor,\n           bool_or(p.code = 'STUDY_ORDERS_CANCEL')    AS can_cancel,\n           bool_or(p.code = 'STUDY_ORDERS_ACKNOWLEDGE') AS can_acknowledge,\n           bool_or(p.code = 'STUDY_ORDERS_SCHEDULE') AS can_schedule\n      FROM public.user_roles ur\n      JOIN public.role_permissions rp ON rp.role_id = ur.role_id\n      JOIN public.permissions p       ON p.id = rp.permission_id\n     WHERE ur.user_id = $1::uuid\n       AND ur.is_active IS NOT FALSE\n       AND p.code LIKE 'STUDY_ORDERS_%'\n)\nUPDATE public.study_orders so\n   SET acknowledged_at = now(), acknowledged_by = $1::uuid\n WHERE so.id = $2::uuid\n   AND so.status = 'submitted'\n   AND so.acknowledged_at IS NULL\n   AND (SELECT can_acknowledge FROM perms)\nRETURNING so.id::text, so.acknowledged_at;",
+        "query": "\n-- $1 userId (token)  $2 payload { id, change }\n--\n-- Recalcula el estado PERSISTIDO de la orden contra el estado real de sus citas.\n--\n-- El estado operativo (nueva / sin agendar / parcial / agendada / en curso) no\n-- se toca acá: lo deriva v_study_orders_board de las citas y se corrige solo.\n-- Cancelar una cita ya devuelve sus líneas a \"sin agendar\" sin que nadie\n-- ejecute nada. Lo único que hay que persistir es el cierre, que sí es un hecho\n-- con fecha: todas las líneas atendidas -> 'completed'. Y su reverso, porque si\n-- la cita de una orden ya cerrada se cancela o se borra, dejar el 'completed'\n-- sería mentir: vuelve a 'submitted' y se limpia completed_at.\n--\n-- 'draft' y 'cancelled' no se tocan nunca: son decisiones humanas y un recálculo\n-- no las revierte.\n--\n-- El parámetro 'change' lo pone quien llama, porque quien llama es el único que\n-- sabe qué pasó. Al cancelar una cita no hay transición persistida que detectar\n-- -- la orden sigue 'submitted' -- y aun así el derivador tiene que enterarse.\n-- Si el recálculo sí produjo una transición, esa gana sobre lo que dijo el\n-- llamador. Vacío = no se notifica.\nWITH \nperms AS (\n    SELECT bool_or(p.code = 'STUDY_ORDERS_VIEW_ALL')  AS can_view_all,\n           bool_or(p.code = 'STUDY_ORDERS_CREATE_FOR_DOCTOR') AS can_create_for_doctor,\n           bool_or(p.code = 'STUDY_ORDERS_CANCEL')    AS can_cancel,\n           bool_or(p.code = 'STUDY_ORDERS_ACKNOWLEDGE') AS can_acknowledge,\n           bool_or(p.code = 'STUDY_ORDERS_SCHEDULE') AS can_schedule\n      FROM public.user_roles ur\n      JOIN public.role_permissions rp ON rp.role_id = ur.role_id\n      JOIN public.permissions p       ON p.id = rp.permission_id\n     WHERE ur.user_id = $1::uuid\n       AND ur.is_active IS NOT FALSE\n       AND p.code LIKE 'STUDY_ORDERS_%'\n),\nb AS (\n    SELECT $2::jsonb AS body\n),\nv AS (\n    SELECT (body ->> 'id')::uuid                AS order_id,\n           coalesce(body ->> 'change', '')::text AS hint\n      FROM b\n),\ntgt AS (\n    SELECT so.id, so.status\n      FROM public.study_orders so, v\n     WHERE so.id = v.order_id\n       AND so.status IN ('submitted', 'completed')\n       AND ( (SELECT can_schedule FROM perms)\n             OR (SELECT can_view_all FROM perms)\n             OR so.doctor_id = $1::uuid )\n),\ntarget AS (\n    SELECT tgt.id,\n           tgt.status AS old_status,\n           CASE WHEN bo.items_total > 0 AND bo.items_completed = bo.items_total\n                THEN 'completed' ELSE 'submitted' END AS new_status,\n           bo.board_status\n      FROM tgt\n      JOIN public.v_study_orders_board bo ON bo.id = tgt.id\n),\nupd AS (\n    UPDATE public.study_orders so\n       SET status       = target.new_status,\n           completed_at = CASE WHEN target.new_status = 'completed' THEN now() ELSE NULL END,\n           updated_at   = now()\n      FROM target\n     WHERE so.id = target.id\n       AND so.status IS DISTINCT FROM target.new_status\n    RETURNING so.id\n)\nSELECT target.id::text     AS id,\n       target.old_status   AS old_status,\n       target.new_status   AS new_status,\n       -- Es el estado ANTES de este recálculo: los CTE leen el snapshot previo\n       -- a la sentencia, así que la vista todavía no ve el UPDATE de arriba. Va\n       -- para diagnóstico. El estado que le llega al doctor lo re-consulta el\n       -- aviso, que corre en una sentencia aparte y sí ve el resultado.\n       target.board_status AS board_status_before,\n       EXISTS (SELECT 1 FROM upd) AS changed,\n       CASE\n           WHEN EXISTS (SELECT 1 FROM upd) AND target.new_status = 'completed' THEN 'completed'\n           WHEN EXISTS (SELECT 1 FROM upd)                                     THEN 'reopened'\n           ELSE (SELECT hint FROM v)\n       END AS change\n  FROM target;",
         "options": {
-          "queryReplacement": "={{ [ $json.user_id, $json.id ] }}"
+          "queryReplacement": "={{ [ $json.user_id, $json.payload ] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
@@ -104,7 +104,7 @@
         660,
         120
       ],
-      "id": "ack-sql",
+      "id": "recomp-sql",
       "name": "Consulta",
       "credentials": {
         "postgres": {
@@ -116,7 +116,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Arma el sobre { code, message, data, meta }. Un resultado vacío en una\n// operación de escritura significa que el WHERE de guarda no dejó pasar:\n// es un 409/404, no un 500.\nconst rows = $input.all().map((i) => i.json);\n\nif (!rows.length) {\n  return [{ json: { __error: true, __code: 409,\n    __message: 'La orden ya fue tomada, no está enviada, o no tenés permiso' } }];\n}\nreturn [{ json: { __data: rows[0], __message: 'Orden tomada' } }];"
+        "jsCode": "// Arma el sobre { code, message, data, meta }. Un resultado vacío en una\n// operación de escritura significa que el WHERE de guarda no dejó pasar:\n// es un 409/404, no un 500.\nconst rows = $input.all().map((i) => i.json);\n\n// Sin filas: la orden no existe, es un borrador o está anulada, o el sujeto no\n// tiene nada que ver con ella. Como se llama fire-and-forget, no es un error\n// que valga la pena propagar: se responde OK con data null.\nreturn [{ json: { __data: rows[0] ?? null } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -124,7 +124,7 @@
         880,
         120
       ],
-      "id": "ack-fmt",
+      "id": "recomp-fmt",
       "name": "Formatear Respuesta"
     },
     {
@@ -138,7 +138,7 @@
           },
           "conditions": [
             {
-              "id": "ack-cond2",
+              "id": "recomp-cond2",
               "leftValue": "={{ $json.__error }}",
               "rightValue": true,
               "operator": {
@@ -158,7 +158,7 @@
         1100,
         120
       ],
-      "id": "ack-if2",
+      "id": "recomp-if2",
       "name": "¿Error de negocio?"
     },
     {
@@ -175,7 +175,7 @@
         1320,
         220
       ],
-      "id": "ack-ok",
+      "id": "recomp-ok",
       "name": "Responder OK"
     },
     {
@@ -192,7 +192,7 @@
         1320,
         -60
       ],
-      "id": "ack-err",
+      "id": "recomp-err",
       "name": "Responder Error"
     },
     {
@@ -200,7 +200,7 @@
         "operation": "executeQuery",
         "query": "\n-- $1 = id de la orden.  $2 = qué cambió, para el texto de la tarjeta.\n-- Aviso de sólo lectura al derivador. El estado que se manda es el DERIVADO de\n-- la vista, no el persistido: al doctor le importa \"agendada\" o \"completada\",\n-- que es lo que ve la clínica, no el 'submitted' de la columna.\nINSERT INTO public.notifications\n       (user_id, type, status, priority, patient_id, metadata, created_at)\nSELECT so.doctor_id,\n       'study_order_status_changed',\n       'pending',\n       'MEDIUM',\n       so.patient_id,\n\n       jsonb_build_object(\n           'order_id',      so.id::text,\n           'order_number',  so.order_number,\n           'patient_id',    so.patient_id::text,\n           'patient_name',  so.patient_name,\n           'doctor_id',     so.doctor_id::text,\n           'doctor_name',   d.name,\n           'sede_name',     se.name,\n           'items_total',   (SELECT count(*) FROM public.study_order_items i\n                              WHERE i.study_order_id = so.id AND i.is_cancelled = false),\n           'items_summary', (SELECT string_agg(i.service_name, ', ' ORDER BY i.sort_order, i.service_name)\n                               FROM public.study_order_items i\n                              WHERE i.study_order_id = so.id AND i.is_cancelled = false)\n       ) || jsonb_build_object(\n           'board_status', b.board_status,\n           'change',       $2::text,\n           'cancellation_reason', so.cancellation_reason\n       ),\n       now()\n  FROM public.study_orders so\n  LEFT JOIN public.users d  ON d.id  = so.doctor_id\n  LEFT JOIN public.sedes se ON se.id = so.preferred_sede_id\n  LEFT JOIN public.v_study_orders_board b ON b.id = so.id\n WHERE so.id = $1::uuid\n   AND so.doctor_id IS NOT NULL\n   -- Un cambio vacío significa \"no pasó nada que contar\": /recompute es\n   -- idempotente y se llama de más a propósito, así que sin este guard el\n   -- derivador recibiría un aviso por cada recálculo que no cambió nada.\n   AND coalesce($2::text, '') <> ''\nRETURNING user_id::text AS user_id;",
         "options": {
-          "queryReplacement": "={{ [ $('Validar Datos').first().json.id, 'acknowledged' ] }}"
+          "queryReplacement": "={{ [ $('Formatear Respuesta').first().json.__data?.id || '', $('Formatear Respuesta').first().json.__data?.change || '' ] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
@@ -209,7 +209,7 @@
         1540,
         220
       ],
-      "id": "ack-notify",
+      "id": "recomp-notify",
       "name": "Notificar",
       "credentials": {
         "postgres": {
@@ -244,7 +244,7 @@
         1760,
         220
       ],
-      "id": "ack-push",
+      "id": "recomp-push",
       "name": "Empujar por SSE",
       "onError": "continueRegularOutput"
     }

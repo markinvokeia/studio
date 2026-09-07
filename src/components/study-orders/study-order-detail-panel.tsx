@@ -154,7 +154,14 @@ export function StudyOrderDetailPanel({
         if (isClinic && isSubmitted && !order.acknowledged_at && onAcknowledge && can(STUDY_ORDERS_PERMISSIONS.ACKNOWLEDGE)) {
             actions.push({ key: 'ack', label: t('actions.acknowledge'), icon: Inbox, onClick: () => onAcknowledge(order), variant: 'default' });
         }
-        if (isClinic && isSubmitted && onSchedule && can(STUDY_ORDERS_PERMISSIONS.SCHEDULE)) {
+        // Con todas las líneas ya cubiertas por una cita, la orden sale del
+        // panel: mover o reprogramar esa cita es trabajo del calendario, que es
+        // donde se ven los huecos, las sedes y los choques de agenda. Acá sólo
+        // se ofrece agendar mientras quede algo sin agendar.
+        const activeItems = (order.items ?? []).filter((i) => !i.is_cancelled);
+        const isFullyScheduled = activeItems.length > 0 && activeItems.every((i) => i.is_scheduled);
+
+        if (isClinic && isSubmitted && !isFullyScheduled && onSchedule && can(STUDY_ORDERS_PERMISSIONS.SCHEDULE)) {
             actions.push({ key: 'schedule', label: t('actions.schedule'), icon: CalendarPlus, onClick: () => onSchedule(order), variant: 'default' });
         }
         // Reagendar aparece cuando hay una cita que todavía se puede mover: una
@@ -162,7 +169,7 @@ export function StudyOrderDetailPanel({
         const hasMovable = (order.appointments ?? []).some(
             (a) => !['completed', 'cancelled', 'deleted', 'no_show'].includes(a.status),
         );
-        if (isClinic && hasMovable && onReschedule && can(STUDY_ORDERS_PERMISSIONS.SCHEDULE)) {
+        if (isClinic && hasMovable && !isFullyScheduled && onReschedule && can(STUDY_ORDERS_PERMISSIONS.SCHEDULE)) {
             actions.push({ key: 'reschedule', label: t('actions.reschedule'), icon: CalendarClock, onClick: () => onReschedule(order), variant: 'default' });
         }
 

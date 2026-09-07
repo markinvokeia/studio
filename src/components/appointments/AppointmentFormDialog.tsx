@@ -29,12 +29,14 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { StudyOrderPicker } from '@/components/study-orders/study-order-picker';
+import { useStudyOrderScheduling } from '@/stores/study-order-scheduling-store';
 import { Appointment, Calendar as CalendarType, PatientSession, Quote, QuoteItem, Service, TreatmentSequence, TreatmentSequenceStepStatus, User as UserType } from '@/lib/types';
 import { cn, formatDisplayDate, toLocalISOString } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/services/api';
 import { markLocallyCreated } from '@/hooks/use-appointment-status';
-import { getSalesServices } from '@/services/services';
+import { fetchServicesByIds, getSalesServices } from '@/services/services';
 import { TreatmentPlanReviewDialog } from '@/components/appointments/TreatmentPlanReviewDialog';
 import { FutureAppointmentsConfirmDialog } from '@/components/appointments/future-appointments-confirm-dialog';
 import { fetchFuturePatientAppointments, type FuturePatientAppointment } from '@/services/appointments';
@@ -138,6 +140,35 @@ export function AppointmentFormDialog({
     const [patientDebt, setPatientDebt] = React.useState<{ currency: string; amount: number }[]>([]);
 
     // Form State
+    /**
+     * Orden de estudio a la que pertenece esta cita. Arranca con la del store
+     * cuando se llegó desde "Agendar" en una orden, y el operario puede
+     * cambiarla o quitarla desde el selector.
+     */
+    const { context: studyOrderContext } = useStudyOrderScheduling();
+    const [studyOrderId, setStudyOrderId] = React.useState<string | null>(null);
+
+    /**
+     * Con una operación de agendado en curso, paciente, orden y doctor quedan
+     * fijados. El operario va a probar calendarios, sedes y horarios hasta dar
+     * con el mejor hueco, y en ese ir y venir es fácil cambiar por accidente a
+     * quién pertenece la cita. Los servicios siguen editables: puede hacer
+     * falta agendar sólo parte de la orden en este turno.
+     *
+     * La salida es "Cancelar operación" en el aviso, que es explícita.
+     */
+    const isStudyOrderLocked = !!studyOrderContext;
+    /** El doctor sólo se fija si la orden trae derivador; si no, hay que poder elegirlo. */
+    const isDoctorLocked = isStudyOrderLocked && !!studyOrderContext?.doctorId;
+
+    // Al abrir se adopta la orden de la operación en curso, si la hay. Se hace
+    // en un efecto y no en el estado inicial porque el diálogo se monta una vez
+    // y se reabre muchas.
+    React.useEffect(() => {
+        if (!open) return;
+        setStudyOrderId(studyOrderContext?.orderId ?? null);
+    }, [open, studyOrderContext?.orderId]);
+
     const [appointment, setAppointment] = React.useState({
         user: null as UserType | null,
         services: [] as Service[],
@@ -446,10 +477,37 @@ export function AppointmentFormDialog({
                 });
                 setOriginalCalendarId(undefined);
             } else {
+                // Igual que la tarjeta inline: con una operación de agendado en
+                // curso, un alta nueva arranca con el paciente de la orden. Si no,
+                // cerrar y reabrir el diálogo perdía el paciente mientras el
+                // cartel seguía diciendo que se agenda para esa orden.
+                const scheduling = useStudyOrderScheduling.getState().context;
+                const schedulingUser = scheduling?.patientId
+                    ? ({
+                        id: scheduling.patientId,
+                        name: scheduling.patientName,
+                        email: '',
+                        phone_number: '',
+                        is_active: true,
+                        avatar: '',
+                    } as UserType)
+                    : null;
+                // El doctor de la cita es el derivador de la orden.
+                const schedulingDoctor = scheduling?.doctorId
+                    ? (allDoctors.find(d => String(d.id) === String(scheduling.doctorId))
+                        ?? ({
+                            id: scheduling.doctorId,
+                            name: scheduling.doctorName ?? '',
+                            email: '',
+                            phone_number: '',
+                            is_active: true,
+                            avatar: '',
+                        } as UserType))
+                    : null;
                 setAppointment({
-                    user: null,
+                    user: schedulingUser,
                     services: [],
-                    doctor: null,
+                    doctor: schedulingDoctor,
                     calendar: null,
                     date: format(new Date(), 'yyyy-MM-dd'),
                     time: format(new Date(), 'HH:mm'),
@@ -718,6 +776,24 @@ export function AppointmentFormDialog({
         setDurationInput(derivedDurationMinutes || '0');
     };
 
+
+    /**
+     * Carga en la cita los servicios de la orden elegida. Se resuelven contra el
+     * catálogo acá, ya montado el diálogo, en vez de precargarlos por
+     * `initialData`: por ahí llegaban tarde y la cita quedaba sin servicios.
+     */
+    const handleStudyOrderServices = React.useCallback(async (serviceIds: string[]) => {
+        if (serviceIds.length === 0) return;
+        const resolved = await fetchServicesByIds(serviceIds).catch(() => [] as Service[]);
+        if (resolved.length > 0) {
+            setAppointment((prev) => {
+                // Se agregan sin pisar lo que el operario haya puesto a mano.
+                const existing = new Set(prev.services.map((s) => String(s.id)));
+                const added = resolved.filter((s) => !existing.has(String(s.id)));
+                return added.length > 0 ? { ...prev, services: [...prev.services, ...added] } : prev;
+            });
+        }
+    }, []);
 
     const handleSave = async () => {
         const isEditing = !!editingAppointment;
@@ -1255,7 +1331,7 @@ export function AppointmentFormDialog({
                                                 setErrors(prev => prev.filter(err => err !== 'user'));
                                             }
                                         }}
-                                        disabled={readOnlyFields?.user || isLoadingQuotes}
+                                        disabled={readOnlyFields?.user || isLoadingQuotes || isStudyOrderLocked}
                                         triggerText={t('createDialog.selectUser')}
                                         placeholder={t('createDialog.searchUserPlaceholder')}
                                         className={errors.includes('user') ? 'border-destructive text-destructive' : undefined}
@@ -1403,6 +1479,17 @@ export function AppointmentFormDialog({
                                 </div>
                                 )}
 
+                                {/* Orden de estudio: al elegirla se cargan sus estudios en la cita. */}
+                                <StudyOrderPicker
+                                    appointmentId={editingAppointment?.id ?? null}
+                                    patientId={appointment.user?.id ?? null}
+                                    value={studyOrderId}
+                                    onChange={setStudyOrderId}
+                                    // Sólo en altas: editando, los servicios de la cita ya están guardados.
+                                    onServicesResolved={editingAppointment ? undefined : (ids) => void handleStudyOrderServices(ids)}
+                                    disabled={isStudyOrderLocked || readOnlyFields?.services}
+                                />
+
                                 <div className="space-y-2">
                                     <Label>{t('createDialog.serviceName')}</Label>
                                     <Popover open={isServiceSearchOpen} onOpenChange={(o) => { if (!o) { setIsCreatingService(false); setServiceSearchQuery(''); } setServiceSearchOpen(o); }}>
@@ -1527,11 +1614,18 @@ export function AppointmentFormDialog({
                                 </div>
                                 <div className="space-y-2">
                                     <Label>{tColumns('doctor')}</Label>
-                                    <Popover open={isDoctorSearchOpen} onOpenChange={(open) => { setDoctorSearchOpen(open); if (!open) setDoctorSearchQuery(''); }}>
+                                    <Popover
+                                        open={isDoctorLocked ? false : isDoctorSearchOpen}
+                                        onOpenChange={(open) => { if (isDoctorLocked) return; setDoctorSearchOpen(open); if (!open) setDoctorSearchQuery(''); }}
+                                    >
                                         <PopoverTrigger asChild>
-                                            <Button variant="outline" className="w-full justify-start">
+                                            <Button
+                                                variant="outline"
+                                                className="w-full justify-start disabled:opacity-100"
+                                                disabled={isDoctorLocked}
+                                            >
                                                 {appointment.doctor ? appointment.doctor.name : t('createDialog.selectDoctor')}
-                                                <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                                                {!isDoctorLocked && <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />}
                                             </Button>
                                         </PopoverTrigger>
                                         <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">

@@ -346,6 +346,11 @@ function StudyOrderSubmittedBody({ item }: { item: StudyOrderSubmittedNotificati
   );
 }
 
+/** Ver la nota en notification-card.tsx: lista cerrada para no romper con un valor nuevo. */
+const STUDY_ORDER_CHANGE_KEYS = new Set([
+  'appointment_cancelled', 'reopened', 'completed', 'scheduled', 'rescheduled',
+]);
+
 function StudyOrderStatusBody({ item }: { item: StudyOrderStatusChangedNotification }) {
   const t = useTranslations('Notifications');
   const tStatus = useTranslations('StudyOrdersPage.status');
@@ -364,6 +369,11 @@ function StudyOrderStatusBody({ item }: { item: StudyOrderStatusChangedNotificat
         </p>
         <h2 className="font-mono text-xl font-bold leading-tight text-foreground">{item.orderNumber}</h2>
         <p className="text-sm text-muted-foreground">{item.patientName}</p>
+        {STUDY_ORDER_CHANGE_KEYS.has(item.change) && (
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            {t(`studyOrderChange_${item.change}` as never)}
+          </p>
+        )}
         {item.cancellationReason && (
           <p className="text-sm italic leading-relaxed text-muted-foreground">{item.cancellationReason}</p>
         )}

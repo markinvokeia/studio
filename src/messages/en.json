@@ -613,6 +613,11 @@
     "studyOrderTakenTitle": "Order taken",
     "studyOrderTakeError": "The order could not be taken",
     "studyOrderStatusChanged": "The clinic updated your order status: {status}",
+    "studyOrderChange_appointment_cancelled": "The appointment was cancelled: the studies are pending scheduling again.",
+    "studyOrderChange_reopened": "The appointment that closed it was dropped: the order is open again.",
+    "studyOrderChange_completed": "The studies have been performed.",
+    "studyOrderChange_scheduled": "It now has an appointment scheduled.",
+    "studyOrderChange_rescheduled": "The appointment date was moved.",
     "studyOrderSubmittedTitle": "New study order",
     "studyOrderStatusTitle": "Your order changed status"
   },
@@ -9195,6 +9200,14 @@
       "cancel": "Cancel",
       "noAppointments": "This order has no appointments to move.",
       "success": "Appointment rescheduled"
+    },
+    "scheduling": {
+      "active": "You are scheduling for order <order></order> of <patient></patient>. The appointment you create will be linked to that order.",
+      "cancelOperation": "Cancel operation",
+      "orderField": "Study order",
+      "orderPlaceholder": "No linked order",
+      "noOrder": "No linked order",
+      "noOrdersForPatient": "This patient has no study orders."
     }
   }
 }
