@@ -194,6 +194,59 @@
       ],
       "id": "resched-err",
       "name": "Responder Error"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 = id de la orden.  $2 = qué cambió, para el texto de la tarjeta.\n-- Aviso de sólo lectura al derivador. El estado que se manda es el DERIVADO de\n-- la vista, no el persistido: al doctor le importa \"agendada\" o \"completada\",\n-- que es lo que ve la clínica, no el 'submitted' de la columna.\nINSERT INTO public.notifications\n       (user_id, type, status, priority, patient_id, metadata, created_at)\nSELECT so.doctor_id,\n       'study_order_status_changed',\n       'pending',\n       'MEDIUM',\n       so.patient_id,\n\n       jsonb_build_object(\n           'order_id',      so.id::text,\n           'order_number',  so.order_number,\n           'patient_id',    so.patient_id::text,\n           'patient_name',  so.patient_name,\n           'doctor_id',     so.doctor_id::text,\n           'doctor_name',   d.name,\n           'sede_name',     se.name,\n           'items_total',   (SELECT count(*) FROM public.study_order_items i\n                              WHERE i.study_order_id = so.id AND i.is_cancelled = false),\n           'items_summary', (SELECT string_agg(i.service_name, ', ' ORDER BY i.sort_order, i.service_name)\n                               FROM public.study_order_items i\n                              WHERE i.study_order_id = so.id AND i.is_cancelled = false)\n       ) || jsonb_build_object(\n           'board_status', b.board_status,\n           'change',       $2::text,\n           'cancellation_reason', so.cancellation_reason\n       ),\n       now()\n  FROM public.study_orders so\n  LEFT JOIN public.users d  ON d.id  = so.doctor_id\n  LEFT JOIN public.sedes se ON se.id = so.preferred_sede_id\n  LEFT JOIN public.v_study_orders_board b ON b.id = so.id\n WHERE so.id = $1::uuid\n   AND so.doctor_id IS NOT NULL\nRETURNING user_id::text AS user_id;",
+        "options": {
+          "queryReplacement": "={{ [ JSON.parse($('Validar Datos').first().json.payload).order_id, 'rescheduled' ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1540,
+        220
+      ],
+      "id": "resched-notify",
+      "name": "Notificar",
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "W5SZnwkaTigFrHO6",
+          "mode": "list",
+          "cachedResultName": "Events"
+        },
+        "mode": "each",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_type": "study_order_status_changed",
+            "user_ids": "={{ [$json.user_id] }}",
+            "channels": "={{ [] }}",
+            "payload": "={{ $json }}"
+          }
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1760,
+        220
+      ],
+      "id": "resched-push",
+      "name": "Empujar por SSE",
+      "onError": "continueRegularOutput"
     }
   ],
   "connections": {
@@ -260,6 +313,28 @@
         [
           {
             "node": "¿Error de negocio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Responder OK": {
+      "main": [
+        [
+          {
+            "node": "Notificar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notificar": {
+      "main": [
+        [
+          {
+            "node": "Empujar por SSE",
             "type": "main",
             "index": 0
           }

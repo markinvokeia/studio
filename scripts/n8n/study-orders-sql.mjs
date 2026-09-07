@@ -408,3 +408,78 @@ UPDATE public.appointments a
           AND ((SELECT can_schedule FROM perms) OR so.doctor_id = $1::uuid)
    )
 RETURNING a.id::text, a.start_datetime, a.end_datetime;`;
+
+/**
+ * Datos de la orden que viajan en `notifications.metadata`. Se arman leyendo la
+ * base y no encadenando expresiones de n8n: así la tarjeta recibe siempre lo
+ * mismo, sin depender de qué devolvió el nodo anterior.
+ */
+const ORDER_METADATA = `
+       jsonb_build_object(
+           'order_id',      so.id::text,
+           'order_number',  so.order_number,
+           'patient_id',    so.patient_id::text,
+           'patient_name',  so.patient_name,
+           'doctor_id',     so.doctor_id::text,
+           'doctor_name',   d.name,
+           'sede_name',     se.name,
+           'items_total',   (SELECT count(*) FROM public.study_order_items i
+                              WHERE i.study_order_id = so.id AND i.is_cancelled = false),
+           'items_summary', (SELECT string_agg(i.service_name, ', ' ORDER BY i.sort_order, i.service_name)
+                               FROM public.study_order_items i
+                              WHERE i.study_order_id = so.id AND i.is_cancelled = false)
+       )`;
+
+export const NOTIFY_RECEPTION_SQL = `
+-- $1 = id de la orden recién enviada.
+-- Una fila por persona de recepción o administración. DISTINCT porque alguien
+-- con los dos roles recibiría la notificación dos veces.
+INSERT INTO public.notifications
+       (user_id, type, status, priority, patient_id, metadata, created_at)
+SELECT r.user_id,
+       'study_order_submitted',
+       'pending',
+       'MEDIUM',
+       so.patient_id,
+${ORDER_METADATA},
+       now()
+  FROM public.study_orders so
+  LEFT JOIN public.users d  ON d.id  = so.doctor_id
+  LEFT JOIN public.sedes se ON se.id = so.preferred_sede_id
+  CROSS JOIN LATERAL (
+      SELECT DISTINCT u.id AS user_id
+        FROM public.users u
+        JOIN public.user_roles ur ON ur.user_id = u.id
+        JOIN public.roles rr      ON rr.id = ur.role_id
+       WHERE rr.name ILIKE ANY (ARRAY['recepcionista', 'administrador'])
+         AND ur.is_active IS NOT FALSE
+         AND u.is_active IS NOT FALSE
+  ) r
+ WHERE so.id = $1::uuid
+RETURNING user_id::text AS user_id;`;
+
+export const NOTIFY_DOCTOR_SQL = `
+-- $1 = id de la orden.  $2 = qué cambió, para el texto de la tarjeta.
+-- Aviso de sólo lectura al derivador. El estado que se manda es el DERIVADO de
+-- la vista, no el persistido: al doctor le importa "agendada" o "completada",
+-- que es lo que ve la clínica, no el 'submitted' de la columna.
+INSERT INTO public.notifications
+       (user_id, type, status, priority, patient_id, metadata, created_at)
+SELECT so.doctor_id,
+       'study_order_status_changed',
+       'pending',
+       'MEDIUM',
+       so.patient_id,
+${ORDER_METADATA} || jsonb_build_object(
+           'board_status', b.board_status,
+           'change',       $2::text,
+           'cancellation_reason', so.cancellation_reason
+       ),
+       now()
+  FROM public.study_orders so
+  LEFT JOIN public.users d  ON d.id  = so.doctor_id
+  LEFT JOIN public.sedes se ON se.id = so.preferred_sede_id
+  LEFT JOIN public.v_study_orders_board b ON b.id = so.id
+ WHERE so.id = $1::uuid
+   AND so.doctor_id IS NOT NULL
+RETURNING user_id::text AS user_id;`;

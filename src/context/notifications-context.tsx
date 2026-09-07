@@ -26,6 +26,9 @@ import type {
   SessionCompletedNotification,
   UnifiedNotification,
   WhatsappHandoffRequestedNotification,
+  StudyOrderBoardStatus,
+  StudyOrderStatusChangedNotification,
+  StudyOrderSubmittedNotification,
 } from '@/lib/types';
 import { normalizeTratamiento } from '@/lib/utils';
 
@@ -86,7 +89,9 @@ interface BackendNotification {
     | 'appointment_rescheduled'
     | 'appointment_reassigned'
     | 'appointment_updated'
-    | 'whatsapp_handoff_requested';
+    | 'whatsapp_handoff_requested'
+    | 'study_order_submitted'
+    | 'study_order_status_changed';
   reminder_id?: string | null;
   status: 'pending' | 'read' | 'dismissed';
   appointment_id?: string | null;
@@ -196,6 +201,33 @@ function normalizeBackendNotification(n: BackendNotification): UnifiedNotificati
           : null,
         actions_taken: readActionsTaken(id),
       } satisfies SessionCompletedNotification;
+
+    case 'study_order_submitted':
+      return {
+        ...base,
+        type: 'study_order_submitted',
+        orderId: String(m.order_id ?? ''),
+        orderNumber: String(m.order_number ?? ''),
+        patientId: patientId || null,
+        patientName: String(m.patient_name ?? ''),
+        doctorName: String(m.doctor_name ?? ''),
+        itemsSummary: String(m.items_summary ?? ''),
+        itemsTotal: Number(m.items_total ?? 0),
+        sedeName: m.sede_name ?? null,
+        acknowledged: readActionsTaken(id).length > 0,
+      } satisfies StudyOrderSubmittedNotification;
+
+    case 'study_order_status_changed':
+      return {
+        ...base,
+        type: 'study_order_status_changed',
+        orderId: String(m.order_id ?? ''),
+        orderNumber: String(m.order_number ?? ''),
+        patientName: String(m.patient_name ?? ''),
+        boardStatus: (m.board_status ?? 'new') as StudyOrderBoardStatus,
+        change: String(m.change ?? ''),
+        cancellationReason: m.cancellation_reason ?? null,
+      } satisfies StudyOrderStatusChangedNotification;
 
     case 'new_appointment':
       return {
