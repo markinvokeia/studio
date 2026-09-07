@@ -603,7 +603,18 @@
     "appointmentRescheduledTitle": "Cita reagendada",
     "appointmentReassignedTitle": "Cita reasignada",
     "appointmentUpdatedTitle": "Cita editada",
-    "reminderDueTitle": "Recordatorio vencido"
+    "reminderDueTitle": "Recordatorio vencido",
+    "studyOrderSubmittedBy": "Orden derivada por {doctor}",
+    "studyOrderActionSchedule": "Agendar",
+    "studyOrderActionTake": "Tomar",
+    "studyOrderActionTaken": "Tomada",
+    "studyOrderActionCancel": "Anular",
+    "studyOrderActionView": "Ver la orden",
+    "studyOrderTakenTitle": "Orden tomada",
+    "studyOrderTakeError": "No se pudo tomar la orden",
+    "studyOrderStatusChanged": "La clínica actualizó el estado de tu orden: {status}",
+    "studyOrderSubmittedTitle": "Nueva orden de estudio",
+    "studyOrderStatusTitle": "Tu orden cambió de estado"
   },
   "Header": {
     "toggleLanguage": "Cambiar idioma",

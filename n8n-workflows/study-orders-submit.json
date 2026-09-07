@@ -194,6 +194,59 @@
       ],
       "id": "submit-err",
       "name": "Responder Error"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 = id de la orden recién enviada.\n-- Una fila por persona de recepción o administración. DISTINCT porque alguien\n-- con los dos roles recibiría la notificación dos veces.\nINSERT INTO public.notifications\n       (user_id, type, status, priority, patient_id, metadata, created_at)\nSELECT r.user_id,\n       'study_order_submitted',\n       'pending',\n       'MEDIUM',\n       so.patient_id,\n\n       jsonb_build_object(\n           'order_id',      so.id::text,\n           'order_number',  so.order_number,\n           'patient_id',    so.patient_id::text,\n           'patient_name',  so.patient_name,\n           'doctor_id',     so.doctor_id::text,\n           'doctor_name',   d.name,\n           'sede_name',     se.name,\n           'items_total',   (SELECT count(*) FROM public.study_order_items i\n                              WHERE i.study_order_id = so.id AND i.is_cancelled = false),\n           'items_summary', (SELECT string_agg(i.service_name, ', ' ORDER BY i.sort_order, i.service_name)\n                               FROM public.study_order_items i\n                              WHERE i.study_order_id = so.id AND i.is_cancelled = false)\n       ),\n       now()\n  FROM public.study_orders so\n  LEFT JOIN public.users d  ON d.id  = so.doctor_id\n  LEFT JOIN public.sedes se ON se.id = so.preferred_sede_id\n  CROSS JOIN LATERAL (\n      SELECT DISTINCT u.id AS user_id\n        FROM public.users u\n        JOIN public.user_roles ur ON ur.user_id = u.id\n        JOIN public.roles rr      ON rr.id = ur.role_id\n       WHERE rr.name ILIKE ANY (ARRAY['recepcionista', 'administrador'])\n         AND ur.is_active IS NOT FALSE\n         AND u.is_active IS NOT FALSE\n  ) r\n WHERE so.id = $1::uuid\nRETURNING user_id::text AS user_id;",
+        "options": {
+          "queryReplacement": "={{ [ $('Validar Datos').first().json.id ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1540,
+        220
+      ],
+      "id": "submit-notify",
+      "name": "Notificar",
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "W5SZnwkaTigFrHO6",
+          "mode": "list",
+          "cachedResultName": "Events"
+        },
+        "mode": "each",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_type": "study_order_submitted",
+            "user_ids": "={{ [$json.user_id] }}",
+            "channels": "={{ [] }}",
+            "payload": "={{ $json }}"
+          }
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1760,
+        220
+      ],
+      "id": "submit-push",
+      "name": "Empujar por SSE",
+      "onError": "continueRegularOutput"
     }
   ],
   "connections": {
@@ -260,6 +313,28 @@
         [
           {
             "node": "¿Error de negocio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Responder OK": {
+      "main": [
+        [
+          {
+            "node": "Notificar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notificar": {
+      "main": [
+        [
+          {
+            "node": "Empujar por SSE",
             "type": "main",
             "index": 0
           }

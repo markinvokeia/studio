@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { ArrowRight, BellRing, CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, Clock, Headset, Pencil, UserCog } from 'lucide-react';
+import { ArrowRight, BellRing, CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, ClipboardList, Clock, Headset, Pencil, UserCog } from 'lucide-react';
 import { format, isValid, parseISO } from 'date-fns';
 import { useTranslations } from 'next-intl';
 
@@ -20,6 +20,8 @@ import type {
   SessionCompletedNotification,
   UnifiedNotification,
   WhatsappHandoffRequestedNotification,
+  StudyOrderStatusChangedNotification,
+  StudyOrderSubmittedNotification,
 } from '@/lib/types';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -311,6 +313,68 @@ function HandoffBody({ item }: { item: WhatsappHandoffRequestedNotification }) {
   );
 }
 
+
+function StudyOrderSubmittedBody({ item }: { item: StudyOrderSubmittedNotification }) {
+  const t = useTranslations('Notifications');
+
+  return (
+    <div className="flex flex-col items-center gap-5 px-2 py-4">
+      <div
+        className="grid h-16 w-16 place-items-center rounded-full text-white shadow-lg"
+        style={{ backgroundColor: '#3b82f6', animation: 'global-alert-sway 1.4s ease-in-out infinite' }}
+      >
+        <ClipboardList className="h-8 w-8" />
+      </div>
+      <div className="space-y-1 text-center">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          {t('studyOrderSubmittedTitle')}
+        </p>
+        <h2 className="text-xl font-bold leading-tight text-foreground">
+          {item.patientName || t('unknownPatient')}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {t('studyOrderSubmittedBy', { doctor: item.doctorName || '—' })}
+        </p>
+        {item.itemsSummary && (
+          <p className="text-sm leading-relaxed text-muted-foreground">{item.itemsSummary}</p>
+        )}
+      </div>
+      <div className="flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/50 px-3 py-1 font-mono text-sm text-muted-foreground">
+        {item.orderNumber}
+      </div>
+    </div>
+  );
+}
+
+function StudyOrderStatusBody({ item }: { item: StudyOrderStatusChangedNotification }) {
+  const t = useTranslations('Notifications');
+  const tStatus = useTranslations('StudyOrdersPage.status');
+
+  return (
+    <div className="flex flex-col items-center gap-5 px-2 py-4">
+      <div
+        className="grid h-16 w-16 place-items-center rounded-full text-white shadow-lg"
+        style={{ backgroundColor: '#6366f1', animation: 'global-alert-sway 1.4s ease-in-out infinite' }}
+      >
+        <ClipboardList className="h-8 w-8" />
+      </div>
+      <div className="space-y-1 text-center">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          {t('studyOrderStatusTitle')}
+        </p>
+        <h2 className="font-mono text-xl font-bold leading-tight text-foreground">{item.orderNumber}</h2>
+        <p className="text-sm text-muted-foreground">{item.patientName}</p>
+        {item.cancellationReason && (
+          <p className="text-sm italic leading-relaxed text-muted-foreground">{item.cancellationReason}</p>
+        )}
+      </div>
+      <Badge variant="secondary" className="px-3 py-1 text-sm">
+        {tStatus(item.boardStatus)}
+      </Badge>
+    </div>
+  );
+}
+
 function NotificationBody({ item }: { item: UnifiedNotification }) {
   if (item.type === 'new_appointment') return <NewAppointmentBody item={item} />;
   if (item.type === 'appointment_status_change') return <StatusChangeBody item={item} />;
@@ -319,7 +383,12 @@ function NotificationBody({ item }: { item: UnifiedNotification }) {
   if (item.type === 'appointment_updated') return <UpdatedBody item={item} />;
   if (item.type === 'session_completed') return <SessionCompletedBody item={item} />;
   if (item.type === 'whatsapp_handoff_requested') return <HandoffBody item={item} />;
-  return <ReminderBody item={item as ReminderPanelNotification} />;
+  if (item.type === 'study_order_submitted') return <StudyOrderSubmittedBody item={item} />;
+  if (item.type === 'study_order_status_changed') return <StudyOrderStatusBody item={item} />;
+  // El recordatorio es el último caso real de la unión, no un comodín: si llega
+  // un tipo que este archivo no conoce, `reminder` viene undefined y revienta.
+  if (item.type === 'reminder') return <ReminderBody item={item} />;
+  return null;
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -352,6 +421,8 @@ export function GlobalNotificationAlerts({ items, onDismissAll }: GlobalNotifica
     if (current.type === 'appointment_updated') return tN('appointmentUpdatedTitle');
     if (current.type === 'session_completed') return tN('sessionCompletedAlertTitle');
     if (current.type === 'whatsapp_handoff_requested') return tN('handoffRequestedTitle');
+    if (current.type === 'study_order_submitted') return tN('studyOrderSubmittedTitle');
+    if (current.type === 'study_order_status_changed') return tN('studyOrderStatusTitle');
     return tN('reminderDueTitle');
   }
 

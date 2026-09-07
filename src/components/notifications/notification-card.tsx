@@ -8,6 +8,9 @@ import {
   Bell,
   CalendarClock,
   CalendarPlus,
+  ClipboardList,
+  Inbox,
+  XCircle,
   Check,
   Clock,
   ExternalLink,
@@ -30,6 +33,8 @@ import { normalizeAppointmentStatus, STATUS_BADGE_VARIANT } from '@/constants/ap
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/notifications-context';
+import { useToast } from '@/hooks/use-toast';
+import { acknowledgeStudyOrder } from '@/services/study-orders';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { fetchAppointmentBillingState } from '@/services/billing-preflight';
 import { getSalesServices } from '@/services/services';
@@ -47,6 +52,8 @@ import type {
   TreatmentDetail,
   UnifiedNotification,
   WhatsappHandoffRequestedNotification,
+  StudyOrderStatusChangedNotification,
+  StudyOrderSubmittedNotification,
 } from '@/lib/types';
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
@@ -908,6 +915,165 @@ function WhatsappHandoffCard({ notification }: { notification: WhatsappHandoffRe
 
 // ── Dispatcher ────────────────────────────────────────────────────────────────
 
+
+// ── Study order cards ─────────────────────────────────────────────────────────
+
+/**
+ * Entró una orden nueva. Va a recepción y administración, con las mismas tres
+ * acciones de la bandeja.
+ *
+ * "Tomar" se resuelve acá mismo, que es un solo POST. "Agendar" y "Anular"
+ * navegan a la orden: agendar necesita elegir sede y horario, y anular exige un
+ * motivo — meter esos formularios dentro de una tarjeta de 300px sería peor que
+ * llevar al operario a donde ya están.
+ */
+function StudyOrderSubmittedCard({ notification }: { notification: StudyOrderSubmittedNotification }) {
+  const { dismissNotification, closePanel, markSessionAction } = useNotifications();
+  const t = useTranslations('Notifications');
+  const locale = useLocale();
+  const router = useRouter();
+  const { toast } = useToast();
+  const [isTaking, setIsTaking] = React.useState(false);
+  const [taken, setTaken] = React.useState(!!notification.acknowledged);
+
+  const goToOrder = (act?: 'schedule' | 'cancel') => {
+    closePanel();
+    const params = new URLSearchParams({ orderId: notification.orderId });
+    if (act) params.set('act', act);
+    router.push(`/${locale}/study-orders?${params.toString()}`);
+  };
+
+  const handleTake = async () => {
+    setIsTaking(true);
+    try {
+      await acknowledgeStudyOrder(notification.orderId);
+      setTaken(true);
+      markSessionAction(notification.id, 'schedule');
+      toast({ title: t('studyOrderTakenTitle') });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: t('studyOrderTakeError'),
+        description: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setIsTaking(false);
+    }
+  };
+
+  return (
+    <CardWrapper onDismiss={() => dismissNotification(notification.id)} accent="border-l-[3px] border-l-info">
+      <div className="flex items-start gap-3 pr-6">
+        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-500/10">
+          <ClipboardList className="h-3.5 w-3.5 text-blue-500" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs font-semibold text-foreground truncate">
+              {notification.patientName || t('unknownPatient')}
+            </span>
+            <RelativeTime iso={notification.createdAt} />
+          </div>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
+            {t('studyOrderSubmittedBy', { doctor: notification.doctorName || '—' })}
+          </p>
+          <p className="mt-1 text-[11px] text-muted-foreground truncate">
+            <span className="font-mono">{notification.orderNumber}</span>
+            {notification.itemsSummary ? ` · ${notification.itemsSummary}` : ''}
+          </p>
+          {notification.sedeName && (
+            <p className="mt-0.5 text-[11px] text-muted-foreground">{notification.sedeName}</p>
+          )}
+
+          <div className="mt-3 grid grid-cols-3 gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1 px-1 text-[11px]"
+              onClick={() => goToOrder('schedule')}
+            >
+              <CalendarPlus className="h-3.5 w-3.5 text-primary" />
+              {t('studyOrderActionSchedule')}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1 px-1 text-[11px]"
+              disabled={taken || isTaking}
+              onClick={handleTake}
+            >
+              <Inbox className="h-3.5 w-3.5 text-primary" />
+              {taken ? t('studyOrderActionTaken') : t('studyOrderActionTake')}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1 px-1 text-[11px] text-destructive"
+              onClick={() => goToOrder('cancel')}
+            >
+              <XCircle className="h-3.5 w-3.5" />
+              {t('studyOrderActionCancel')}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </CardWrapper>
+  );
+}
+
+/** Cambió el estado de una orden del derivador. Sólo lectura. */
+function StudyOrderStatusCard({ notification }: { notification: StudyOrderStatusChangedNotification }) {
+  const { dismissNotification, closePanel } = useNotifications();
+  const t = useTranslations('Notifications');
+  const tStatus = useTranslations('StudyOrdersPage.status');
+  const locale = useLocale();
+  const router = useRouter();
+
+  const handleView = () => {
+    closePanel();
+    router.push(`/${locale}/study-orders/mine?orderId=${notification.orderId}`);
+  };
+
+  return (
+    <CardWrapper onDismiss={() => dismissNotification(notification.id)} accent="border-l-[3px] border-l-primary/50">
+      <div className="flex items-start gap-3 pr-6">
+        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
+          <ClipboardList className="h-3.5 w-3.5 text-primary" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="font-mono text-xs font-semibold text-foreground truncate">
+              {notification.orderNumber}
+            </span>
+            <RelativeTime iso={notification.createdAt} />
+          </div>
+          <p className="mt-0.5 text-[11px] text-muted-foreground truncate">
+            {notification.patientName}
+          </p>
+          <p className="mt-2 text-[11px] text-foreground">
+            {t('studyOrderStatusChanged', { status: tStatus(notification.boardStatus) })}
+          </p>
+          {notification.cancellationReason && (
+            <p className="mt-1 text-[11px] italic text-muted-foreground">
+              {notification.cancellationReason}
+            </p>
+          )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3 h-7 w-full justify-start gap-2 text-[11px]"
+            onClick={handleView}
+          >
+            <ExternalLink className="h-3.5 w-3.5 text-primary" />
+            {t('studyOrderActionView')}
+          </Button>
+        </div>
+      </div>
+    </CardWrapper>
+  );
+}
+
 export function NotificationCard({ notification }: { notification: UnifiedNotification }) {
   switch (notification.type) {
     case 'new_appointment':
@@ -926,5 +1092,9 @@ export function NotificationCard({ notification }: { notification: UnifiedNotifi
       return <ReminderCard notification={notification} />;
     case 'whatsapp_handoff_requested':
       return <WhatsappHandoffCard notification={notification} />;
+    case 'study_order_submitted':
+      return <StudyOrderSubmittedCard notification={notification} />;
+    case 'study_order_status_changed':
+      return <StudyOrderStatusCard notification={notification} />;
   }
 }

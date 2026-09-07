@@ -24,7 +24,8 @@ import { fileURLToPath } from 'node:url';
 
 import {
     ACKNOWLEDGE_SQL, CANCEL_SQL, DELETE_SQL, DETAIL_SQL,
-    LIST_SQL, OPTIONS_SQL, RESCHEDULE_SQL, SUBMIT_SQL, UPSERT_SQL,
+    LIST_SQL, NOTIFY_DOCTOR_SQL, NOTIFY_RECEPTION_SQL, OPTIONS_SQL,
+    RESCHEDULE_SQL, SUBMIT_SQL, UPSERT_SQL,
 } from './study-orders-sql.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -290,6 +291,11 @@ if (!id) return [{ json: { __error: true, __code: 400, __message: 'id es requeri
 return [{ json: { user_id: String(userId), id } }];`.trim(),
     sql: SUBMIT_SQL,
     replacement: '={{ [ $json.user_id, $json.id ] }}',
+    notify: {
+        sql: NOTIFY_RECEPTION_SQL,
+        replacement: "={{ [ $('Validar Datos').first().json.id ] }}",
+        eventType: 'study_order_submitted',
+    },
     format: formatCode(`
 if (!rows.length || !rows[0].id) {
   return [{ json: { __error: true, __code: 409,
@@ -338,6 +344,11 @@ if (!id) return [{ json: { __error: true, __code: 400, __message: 'id es requeri
 return [{ json: { user_id: String(userId), id } }];`.trim(),
     sql: ACKNOWLEDGE_SQL,
     replacement: '={{ [ $json.user_id, $json.id ] }}',
+    notify: {
+        sql: NOTIFY_DOCTOR_SQL,
+        replacement: "={{ [ $('Validar Datos').first().json.id, 'acknowledged' ] }}",
+        eventType: 'study_order_status_changed',
+    },
     format: formatCode(`
 if (!rows.length) {
   return [{ json: { __error: true, __code: 409,
@@ -365,6 +376,11 @@ if (!reason) return [{ json: { __error: true, __code: 400, __message: 'El motivo
 return [{ json: { user_id: String(userId), id, reason } }];`.trim(),
     sql: CANCEL_SQL,
     replacement: '={{ [ $json.user_id, $json.id, $json.reason ] }}',
+    notify: {
+        sql: NOTIFY_DOCTOR_SQL,
+        replacement: "={{ [ $('Validar Datos').first().json.id, 'cancelled' ] }}",
+        eventType: 'study_order_status_changed',
+    },
     format: formatCode(`
 if (!rows.length) {
   return [{ json: { __error: true, __code: 409,
@@ -407,6 +423,11 @@ return [{ json: {
 } }];`.trim(),
     sql: RESCHEDULE_SQL,
     replacement: '={{ [ $json.user_id, $json.payload ] }}',
+    notify: {
+        sql: NOTIFY_DOCTOR_SQL,
+        replacement: "={{ [ JSON.parse($('Validar Datos').first().json.payload).order_id, 'rescheduled' ] }}",
+        eventType: 'study_order_status_changed',
+    },
     format: formatCode(`
 if (!rows.length) {
   return [{ json: { __error: true, __code: 409,
@@ -414,6 +435,52 @@ if (!rows.length) {
 }
 return [{ json: { __data: rows[0], __message: 'Cita reprogramada' } }];`),
 });
+
+/**
+ * Nodos de notificación. Se cuelgan de "Responder OK": n8n sigue ejecutando
+ * después de responder al webhook, así que el cliente no espera por esto.
+ *
+ * El id del workflow `Events` sale de los exports de la instancia; es el que
+ * usan los flujos de citas para empujar por SSE.
+ */
+const EVENTS_WORKFLOW_ID = 'W5SZnwkaTigFrHO6';
+
+function notifyNodes(id, sql, replacement, eventType) {
+    return [
+        {
+            parameters: { operation: 'executeQuery', query: sql, options: { queryReplacement: replacement } },
+            type: 'n8n-nodes-base.postgres',
+            typeVersion: 2.6,
+            position: [1540, 220],
+            id: `${id}-notify`,
+            name: 'Notificar',
+            credentials: PG_CREDENTIAL,
+            // Que falle el aviso no puede tumbar la operación, que ya respondió OK.
+            onError: 'continueRegularOutput',
+        },
+        {
+            parameters: {
+                workflowId: { __rl: true, value: EVENTS_WORKFLOW_ID, mode: 'list', cachedResultName: 'Events' },
+                mode: 'each',
+                workflowInputs: {
+                    mappingMode: 'defineBelow',
+                    value: {
+                        event_type: eventType,
+                        user_ids: '={{ [$json.user_id] }}',
+                        channels: '={{ [] }}',
+                        payload: '={{ $json }}',
+                    },
+                },
+            },
+            type: 'n8n-nodes-base.executeWorkflow',
+            typeVersion: 1.2,
+            position: [1760, 220],
+            id: `${id}-push`,
+            name: 'Empujar por SSE',
+            onError: 'continueRegularOutput',
+        },
+    ];
+}
 
 // ── Ensamblado ───────────────────────────────────────────────────────────────
 mkdirSync(OUT_DIR, { recursive: true });
@@ -468,6 +535,7 @@ for (const wf of workflows) {
         },
         respondNode(`${wf.id}-ok`, 'Responder OK', [1320, 220], RESPOND_OK, 200),
         respondNode(`${wf.id}-err`, 'Responder Error', [1320, -60], RESPOND_ERR, '={{ $json.__code || 400 }}'),
+        ...(wf.notify ? notifyNodes(wf.id, wf.notify.sql, wf.notify.replacement, wf.notify.eventType) : []),
     ];
 
     const connections = {
@@ -486,6 +554,12 @@ for (const wf of workflows) {
             ],
         },
         'Formatear Respuesta': { main: [[{ node: '¿Error de negocio?', type: 'main', index: 0 }]] },
+        ...(wf.notify
+            ? {
+                'Responder OK': { main: [[{ node: 'Notificar', type: 'main', index: 0 }]] },
+                Notificar: { main: [[{ node: 'Empujar por SSE', type: 'main', index: 0 }]] },
+            }
+            : {}),
         '¿Error de negocio?': {
             main: [
                 [{ node: 'Responder Error', type: 'main', index: 0 }],

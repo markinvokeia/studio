@@ -815,6 +815,46 @@ export type WhatsappHandoffRequestedNotification = {
   reason: string;
 };
 
+/**
+ * Entró una orden de estudio. Va al canal de recepción y administración, y la
+ * tarjeta ofrece las mismas acciones que la bandeja: tomar, agendar y anular.
+ */
+export type StudyOrderSubmittedNotification = {
+  id: string;
+  type: 'study_order_submitted';
+  createdAt: string;
+  seen?: boolean;
+  orderId: string;
+  orderNumber: string;
+  patientId?: string | null;
+  patientName: string;
+  doctorName: string;
+  itemsSummary: string;
+  itemsTotal: number;
+  sedeName?: string | null;
+  /** Se marca al tomar la orden desde la tarjeta, para no ofrecerlo dos veces. */
+  acknowledged?: boolean;
+};
+
+/**
+ * La clínica movió el estado de una orden. Es de sólo lectura: le llega al
+ * derivador para que sepa en qué anda su derivación, sin acciones.
+ */
+export type StudyOrderStatusChangedNotification = {
+  id: string;
+  type: 'study_order_status_changed';
+  createdAt: string;
+  seen?: boolean;
+  orderId: string;
+  orderNumber: string;
+  patientName: string;
+  /** Estado derivado de la bandeja, que es el que le importa al doctor. */
+  boardStatus: StudyOrderBoardStatus;
+  /** Qué acción lo provocó: acknowledged, cancelled, rescheduled... */
+  change: string;
+  cancellationReason?: string | null;
+};
+
 export type UnifiedNotification =
   | AppointmentStatusChangeNotification
   | SessionCompletedNotification
@@ -823,7 +863,9 @@ export type UnifiedNotification =
   | AppointmentRescheduledNotification
   | AppointmentReassignedNotification
   | AppointmentUpdatedNotification
-  | WhatsappHandoffRequestedNotification;
+  | WhatsappHandoffRequestedNotification
+  | StudyOrderSubmittedNotification
+  | StudyOrderStatusChangedNotification;
 
 // ─────────────────────────────────────────────────────────────────────────────
 

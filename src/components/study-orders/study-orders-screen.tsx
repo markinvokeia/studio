@@ -3,6 +3,7 @@
 import * as React from 'react';
 import type { ColumnFiltersState, PaginationState, RowSelectionState, SortingState } from '@tanstack/react-table';
 import { ClipboardList, Pencil } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -28,6 +29,7 @@ import {
     acknowledgeStudyOrder,
     cancelStudyOrder,
     deleteStudyOrder,
+    getStudyOrder,
     getStudyOrders,
     submitStudyOrder,
     type StudyOrderScope,
@@ -275,6 +277,37 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
         const timer = setTimeout(() => { void loadOrders(); }, 400);
         return () => clearTimeout(timer);
     }, [loadOrders]);
+
+    /**
+     * Deep link desde la tarjeta de notificación: `?orderId=…&act=schedule|cancel`.
+     * Abre el detalle de esa orden y, si viene `act=cancel`, el diálogo de
+     * anulación con su motivo — meter ese formulario en la tarjeta habría sido
+     * peor que traer al operario a donde ya está.
+     */
+    const searchParams = useSearchParams();
+    const handledDeepLinkRef = React.useRef<string | null>(null);
+
+    React.useEffect(() => {
+        const orderId = searchParams.get('orderId');
+        if (!orderId || handledDeepLinkRef.current === orderId) return;
+        handledDeepLinkRef.current = orderId;
+        const act = searchParams.get('act');
+
+        // Se limpia la URL enseguida para que un segundo clic en la misma
+        // notificación vuelva a disparar.
+        window.history.replaceState({}, '', window.location.pathname);
+
+        void getStudyOrder(orderId).then((order) => {
+            if (!order) return;
+            const row: PendingOrder = {
+                id: order.id,
+                order_number: order.order_number,
+                patient_name: order.patient_name,
+            };
+            setSelected(row as unknown as StudyOrderListItem);
+            if (act === 'cancel') setPendingCancel(row);
+        });
+    }, [searchParams]);
 
     const handleRowSelect = React.useCallback((rows: StudyOrderListItem[]) => {
         setSelected(rows[0] ?? null);

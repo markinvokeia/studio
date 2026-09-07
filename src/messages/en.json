@@ -603,7 +603,18 @@
     "appointmentRescheduledTitle": "Appointment rescheduled",
     "appointmentReassignedTitle": "Appointment reassigned",
     "appointmentUpdatedTitle": "Appointment updated",
-    "reminderDueTitle": "Reminder due"
+    "reminderDueTitle": "Reminder due",
+    "studyOrderSubmittedBy": "Order referred by {doctor}",
+    "studyOrderActionSchedule": "Schedule",
+    "studyOrderActionTake": "Take",
+    "studyOrderActionTaken": "Taken",
+    "studyOrderActionCancel": "Cancel",
+    "studyOrderActionView": "View order",
+    "studyOrderTakenTitle": "Order taken",
+    "studyOrderTakeError": "The order could not be taken",
+    "studyOrderStatusChanged": "The clinic updated your order status: {status}",
+    "studyOrderSubmittedTitle": "New study order",
+    "studyOrderStatusTitle": "Your order changed status"
   },
   "Header": {
     "toggleLanguage": "Toggle language",
