@@ -54,16 +54,41 @@ function RowAction({ label, icon: Icon, onClick, destructive, disabledReason }: 
             disabled={isDisabled}
             onClick={isDisabled ? undefined : onClick}
             className={
-                'flex flex-col items-center gap-0.5 rounded px-1.5 py-1 transition-colors ' +
+                'flex w-[46px] shrink-0 flex-col items-center gap-0.5 rounded px-1 py-1 transition-colors ' +
                 (isDisabled ? 'cursor-not-allowed opacity-40 ' : 'hover:bg-accent ') +
                 (destructive ? 'text-destructive' : 'text-muted-foreground')
             }
         >
             <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-            <span className="text-[9px] leading-none">{label}</span>
+            <span className="w-full truncate text-center text-[9px] leading-none">{label}</span>
         </button>
     );
 }
+
+/**
+ * Anchos de columna.
+ *
+ * Todas llevan ancho fijo MENOS "Estudios", que va sin `size` a propósito:
+ * `DataTable` sólo escribe el atributo `width` cuando el tamaño difiere del
+ * default de TanStack (150), así que la columna sin `size` queda sin ancho
+ * declarado y, con la tabla en `width: 100%`, absorbe todo el espacio que
+ * sobra. Es la que más texto tiene, así que es la que tiene que estirarse:
+ *
+ *   viewport 1280 → ~275px    viewport 1680 → ~675px
+ *
+ * Los fijos suman poco justamente para dejarle margen. El recorte a dos líneas
+ * evita que un resumen largo empuje el ancho de la tabla y fuerce scroll.
+ */
+const WIDTHS = {
+    select: 36,
+    // "OE-2026-000004" en monoespaciada de 12px entra en 100px.
+    order: 105,
+    patient: 140,
+    referrer: 120,
+    status: 120,
+    // Tres acciones simultáneas como máximo, de 46px cada una, más los huecos.
+    actions: 145,
+} as const;
 
 export const StudyOrderColumnsWrapper = ({
     scope,
@@ -78,20 +103,29 @@ export const StudyOrderColumnsWrapper = ({
     const tActions = useTranslations('StudyOrdersPage.actions');
 
     const columns: ColumnDef<StudyOrderListItem>[] = [
-        createSelectColumn<StudyOrderListItem>(),
+        { ...createSelectColumn<StudyOrderListItem>(), size: WIDTHS.select },
         {
+            // Número y fecha en una sola columna: por separado eran dos anchos de
+            // 100px para dos datos cortos que siempre se leen juntos.
             accessorKey: 'order_number',
+            size: WIDTHS.order,
             header: ({ column }) => <DataTableColumnHeader column={column} title={t('orderNumber')} />,
             cell: ({ row }) => (
-                <span className="font-mono text-xs tabular-nums">{row.original.order_number}</span>
+                <div className="min-w-0 leading-snug">
+                    <div className="truncate font-mono text-xs tabular-nums">{row.original.order_number}</div>
+                    <div className="truncate text-[11px] text-muted-foreground">
+                        {row.original.submitted_at ? formatDisplayDate(row.original.submitted_at) : '—'}
+                    </div>
+                </div>
             ),
         },
         {
             accessorKey: 'patient_name',
+            size: WIDTHS.patient,
             header: ({ column }) => <DataTableColumnHeader column={column} title={t('patient')} />,
             cell: ({ row }) => (
                 <div className="min-w-0">
-                    <div className="truncate font-medium">{row.original.patient_name}</div>
+                    <div className="line-clamp-2 font-medium leading-snug">{row.original.patient_name}</div>
                     {row.original.patient_document && (
                         <div className="truncate text-xs text-muted-foreground">{row.original.patient_document}</div>
                     )}
@@ -102,10 +136,21 @@ export const StudyOrderColumnsWrapper = ({
 
     if (scope === 'clinic') {
         columns.push({
+            // Derivador y sede juntos: la sede suele venir vacía y no justifica
+            // una columna propia.
             accessorKey: 'doctor_name',
+            size: WIDTHS.referrer,
+            enableSorting: false,
             header: ({ column }) => <DataTableColumnHeader column={column} title={t('doctor')} />,
             cell: ({ row }) => (
-                <span className="truncate text-sm">{row.original.doctor_name ?? '—'}</span>
+                <div className="min-w-0 leading-snug">
+                    <div className="line-clamp-2 text-sm">{row.original.doctor_name ?? '—'}</div>
+                    {row.original.preferred_sede_name && (
+                        <div className="truncate text-[11px] text-muted-foreground">
+                            {row.original.preferred_sede_name}
+                        </div>
+                    )}
+                </div>
             ),
         });
     }
@@ -114,19 +159,34 @@ export const StudyOrderColumnsWrapper = ({
         {
             id: 'items',
             accessorKey: 'items_summary',
-            header: ({ column }) => <DataTableColumnHeader column={column} title={t('items')} />,
+            // Sin `size`: es la columna elástica (ver el comentario de WIDTHS).
             enableSorting: false,
+            header: ({ column }) => <DataTableColumnHeader column={column} title={t('items')} />,
             cell: ({ row }) => {
                 const { items_summary, items_total } = row.original;
                 if (!items_summary) {
-                    return <span className="text-xs text-muted-foreground tabular-nums">{items_total}</span>;
+                    return <span className="text-xs tabular-nums text-muted-foreground">{items_total}</span>;
                 }
-                return <span className="truncate text-sm">{items_summary}</span>;
+                // Dos líneas y puntos suspensivos: el resumen de once estudios no
+                // puede decidir el ancho de la tabla. El detalle los muestra todos.
+                return (
+                    <span
+                        className="line-clamp-2 min-w-0 break-words text-sm leading-snug"
+                        title={items_summary}
+                    >
+                        {items_summary}
+                    </span>
+                );
             },
         },
         {
             id: 'status',
             accessorKey: 'board_status',
+            size: WIDTHS.status,
+            // El backend no sabe ordenar por estado derivado: se calcula en la
+            // vista y no está en la lista blanca de `sort`. Sin esto la cabecera
+            // parecería ordenable y el clic no haría nada visible.
+            enableSorting: false,
             header: ({ column }) => <DataTableColumnHeader column={column} title={t('status')} />,
             cell: ({ row }) => (
                 <StudyOrderStatusBadge
@@ -138,26 +198,8 @@ export const StudyOrderColumnsWrapper = ({
             ),
         },
         {
-            accessorKey: 'submitted_at',
-            header: ({ column }) => <DataTableColumnHeader column={column} title={t('submittedAt')} />,
-            cell: ({ row }) => (
-                <span className="whitespace-nowrap text-sm text-muted-foreground">
-                    {row.original.submitted_at ? formatDisplayDate(row.original.submitted_at) : '—'}
-                </span>
-            ),
-        },
-        {
-            accessorKey: 'preferred_sede_name',
-            header: ({ column }) => <DataTableColumnHeader column={column} title={t('sede')} />,
-            enableSorting: false,
-            cell: ({ row }) => (
-                <span className="truncate text-sm text-muted-foreground">
-                    {row.original.preferred_sede_name ?? '—'}
-                </span>
-            ),
-        },
-        {
             id: 'actions',
+            size: WIDTHS.actions,
             enableSorting: false,
             enableHiding: false,
             header: () => <span className="sr-only">{t('actions')}</span>,
@@ -169,7 +211,7 @@ export const StudyOrderColumnsWrapper = ({
 
                 return (
                     // stopPropagation para que tocar una acción no abra el detalle.
-                    <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-end gap-0.5" onClick={(e) => e.stopPropagation()}>
                         {isDraft && onEdit && (
                             <RowAction label={tActions('edit')} icon={Pencil} onClick={() => onEdit(order)} />
                         )}
@@ -179,7 +221,9 @@ export const StudyOrderColumnsWrapper = ({
                         {isClinic && isSubmitted && !order.acknowledged_at && onAcknowledge && (
                             <RowAction label={tActions('acknowledge')} icon={Inbox} onClick={() => onAcknowledge(order)} />
                         )}
-                        {isClinic && isSubmitted && onSchedule && (
+                        {/* Una orden con todas sus líneas agendadas se gestiona
+                            desde el calendario: acá deja de ofrecerse. */}
+                        {isClinic && isSubmitted && order.board_status !== 'scheduled' && onSchedule && (
                             <RowAction label={tActions('schedule')} icon={CalendarPlus} onClick={() => onSchedule(order)} />
                         )}
                         {isDraft && onDelete && (

@@ -24,8 +24,8 @@ import { fileURLToPath } from 'node:url';
 
 import {
     ACKNOWLEDGE_SQL, CANCEL_SQL, DELETE_SQL, DETAIL_SQL,
-    LIST_SQL, NOTIFY_DOCTOR_SQL, NOTIFY_RECEPTION_SQL, OPTIONS_SQL,
-    RESCHEDULE_SQL, SUBMIT_SQL, UPSERT_SQL,
+    BY_APPOINTMENT_SQL, LINK_APPOINTMENT_SQL, LIST_SQL, NOTIFY_DOCTOR_SQL, NOTIFY_RECEPTION_SQL, OPTIONS_SQL,
+    RECOMPUTE_SQL, RESCHEDULE_SQL, SUBMIT_SQL, UPSERT_SQL,
 } from './study-orders-sql.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -165,6 +165,7 @@ const filters = {
   board_status: q.board_status || 'all',
   search: (q.q || '').trim(),
   sede_id: q.sede_id || '',
+  patient_id: q.patient_id || '',
   sla_hours: Number(q.sla_hours) > 0 ? Number(q.sla_hours) : 48,
   date_from: q.date_from || '',
   date_to: q.date_to || '',
@@ -434,6 +435,103 @@ if (!rows.length) {
     __message: 'No se pudo mover la cita: no pertenece a esta orden, ya fue atendida o cancelada, o no tenés permiso' } }];
 }
 return [{ json: { __data: rows[0], __message: 'Cita reprogramada' } }];`),
+});
+
+// ── 10. POST /study-orders/link-appointment ──────────────────────────────────
+workflows.push({
+    file: 'study-orders-link-appointment.json',
+    name: 'Study Orders - Link Appointment',
+    sticky: `## POST /study-orders/link-appointment\n\nAta una cita a su orden, **después** de crearla con /appointments/upsert.\n\n**Body:** \`{ "order_id": "uuid", "appointment_id": "123" }\`\n\n**Por qué en dos pasos:** /appointments/upsert es un monolito compartido, con sync a Google Calendar y notificaciones adentro; agregarle una columna para esto arriesga la agenda entera. El repo ya usa este patrón con las facturas (\`/appointments/link_invoice\`, desde \`services/billing-links.ts\`).\n\nEs idempotente y no le roba una cita a otra orden. Se llama fire-and-forget: si falla, la cita queda creada igual y la orden se puede atar después.`,
+    method: 'POST',
+    path: 'study-orders/link-appointment',
+    id: 'link',
+    validate: `
+const userId = $json.jwtPayload?.userId;
+if (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];
+const b = $json.body || {};
+const orderId = (b.order_id || '').toString().trim();
+const apptId = (b.appointment_id || '').toString().trim();
+if (!orderId || !apptId) {
+  return [{ json: { __error: true, __code: 400, __message: 'order_id y appointment_id son requeridos' } }];
+}
+return [{ json: {
+  user_id: String(userId),
+  payload: JSON.stringify({ order_id: orderId, appointment_id: apptId }),
+} }];`.trim(),
+    sql: LINK_APPOINTMENT_SQL,
+    replacement: '={{ [ $json.user_id, $json.payload ] }}',
+    format: formatCode(`
+if (!rows.length) {
+  return [{ json: { __error: true, __code: 409,
+    __message: 'No se pudo atar la cita: ya pertenece a otra orden, o no tenés permiso sobre esta' } }];
+}
+return [{ json: { __data: rows[0], __message: 'Cita vinculada a la orden' } }];`),
+    notify: {
+        sql: NOTIFY_DOCTOR_SQL,
+        replacement: "={{ [ JSON.parse($('Validar Datos').first().json.payload).order_id, 'scheduled' ] }}",
+        eventType: 'study_order_status_changed',
+    },
+});
+
+// ── 11. GET /study-orders/by-appointment ─────────────────────────────────────
+workflows.push({
+    file: 'study-orders-by-appointment.json',
+    name: 'Study Orders - By Appointment',
+    sticky: `## GET /study-orders/by-appointment?appointment_id=123\n\nA qué orden pertenece una cita.\n\n**Por qué existe:** \`study_order_id\` no viaja con los datos de la cita — \`Get_Appointments\` es parte del monolito de la agenda y no se toca para esto. Al abrir una cita, el selector de orden consulta acá para mostrar la que tiene asociada.\n\n**Response 200** con \`data: null\` si la cita no tiene orden. No es un error: la mayoría de las citas no vienen de una orden.`,
+    method: 'GET',
+    path: 'study-orders/by-appointment',
+    id: 'byappt',
+    validate: `
+const userId = $json.jwtPayload?.userId;
+if (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];
+const id = ($json.query?.appointment_id || '').toString().trim();
+if (!id) return [{ json: { __error: true, __code: 400, __message: 'appointment_id es requerido' } }];
+return [{ json: { user_id: String(userId), appointment_id: id } }];`.trim(),
+    sql: BY_APPOINTMENT_SQL,
+    replacement: '={{ [ $json.user_id, $json.appointment_id ] }}',
+    format: formatCode(`
+// Sin orden asociada no es un error: la mayoría de las citas no vienen de una.
+return [{ json: { __data: rows[0] ?? null } }];`),
+});
+
+// ── 12. POST /study-orders/recompute ─────────────────────────────────────────
+workflows.push({
+    file: 'study-orders-recompute.json',
+    name: 'Study Orders - Recompute',
+    sticky: `## POST /study-orders/recompute\n\nRecalcula el estado de la orden contra sus citas y avisa al derivador.\n\n**Body:** \`{ "id": "uuid", "change": "appointment_cancelled" }\` — \`change\` es opcional.\n\n**Qué persiste:** sólo el cierre. Todas las líneas atendidas → \`completed\`; y su reverso, si la cita de una orden cerrada se cancela vuelve a \`submitted\`. El estado operativo (sin agendar / parcial / agendada) lo deriva \`v_study_orders_board\` y se corrige solo.\n\n**Por qué \`change\` lo manda el cliente:** al cancelar una cita no hay transición persistida que detectar — la orden sigue \`submitted\` — y aun así el derivador tiene que enterarse. Si el recálculo sí produjo una transición, esa gana.\n\n**Idempotente y fire-and-forget:** llamarlo de más no cambia nada y, sin cambio que contar, no notifica.`,
+    method: 'POST',
+    path: 'study-orders/recompute',
+    id: 'recomp',
+    validate: `
+const userId = $json.jwtPayload?.userId;
+if (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];
+const b = $json.body || {};
+const id = (b.id || '').toString().trim();
+if (!id) return [{ json: { __error: true, __code: 400, __message: 'id es requerido' } }];
+
+// Lista cerrada: el 'change' termina en el texto de la tarjeta del doctor y no
+// puede ser lo que el cliente quiera.
+//
+// Sólo va la cancelación. Guardar una sesión clínica NO lleva hint: si cerró la
+// orden, el recálculo devuelve 'completed' solo; si no la cerró, no hay nada que
+// contarle al derivador y un hint lo haría notificar en cada guardado.
+const ALLOWED = ['appointment_cancelled'];
+const hint = (b.change || '').toString().trim();
+const change = ALLOWED.includes(hint) ? hint : '';
+
+return [{ json: { user_id: String(userId), payload: JSON.stringify({ id, change }) } }];`.trim(),
+    sql: RECOMPUTE_SQL,
+    replacement: '={{ [ $json.user_id, $json.payload ] }}',
+    format: formatCode(`
+// Sin filas: la orden no existe, es un borrador o está anulada, o el sujeto no
+// tiene nada que ver con ella. Como se llama fire-and-forget, no es un error
+// que valga la pena propagar: se responde OK con data null.
+return [{ json: { __data: rows[0] ?? null } }];`),
+    notify: {
+        sql: NOTIFY_DOCTOR_SQL,
+        replacement: "={{ [ $('Formatear Respuesta').first().json.__data?.id || '', $('Formatear Respuesta').first().json.__data?.change || '' ] }}",
+        eventType: 'study_order_status_changed',
+    },
 });
 
 /**
