@@ -60,6 +60,7 @@ import { ToothIcon } from '@/components/users/dental-record/tooth-icon';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
 import { InlineAppointmentDraftHost } from '@/components/appointments/inline-appointment-draft-host';
+import { fetchAppointmentCalendars, fetchAppointmentDoctors } from '@/services/appointments';
 import { getCalendarSettings } from '@/components/calendar/calendar-settings-utils';
 import { InvoiceFormDialog } from '@/components/tables/invoices-table';
 import { PrepaidFormDialog } from '@/components/sales/payments/PrepaidFormDialog';
@@ -219,34 +220,6 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyDe
     console.error("Failed to fetch users:", error);
     return { users: [], total: 0 };
   }
-}
-
-async function fetchCalendarsForAppt(): Promise<CalendarType[]> {
-  try {
-    const data = await api.get(API_ROUTES.CALENDARS);
-    const list = Array.isArray(data) ? data : (data.calendars || data.data || data.result || []);
-    return list.map((c: any) => ({
-      id: String(c.id),
-      name: c.name,
-      google_calendar_id: c.google_calendar_id,
-      is_active: c.is_active,
-      color: c.color,
-    }));
-  } catch { return []; }
-}
-
-async function fetchDoctorsForAppt(): Promise<User[]> {
-  try {
-    const data = await api.get(API_ROUTES.USERS, { filter_type: 'DOCTOR' });
-    let list: any[] = [];
-    if (Array.isArray(data) && data.length > 0) {
-      const first = data[0];
-      list = first.json?.data || first.data || [];
-    } else if (data?.data) {
-      list = data.data;
-    }
-    return list.map((d: any) => ({ ...d, id: String(d.id) }));
-  } catch { return []; }
 }
 
 
@@ -625,8 +598,8 @@ export default function UsersPage() {
     setIsLoadingApptData(true);
     try {
       const [calendars, doctors, services, calendarSettings] = await Promise.all([
-        fetchCalendarsForAppt(),
-        fetchDoctorsForAppt(),
+        fetchAppointmentCalendars(),
+        fetchAppointmentDoctors(),
         getSalesServices({ limit: 100 }).then(r => r.items.map((s: any) => ({ ...s, id: String(s.id) }))).catch(() => [] as Service[]),
         getCalendarSettings(),
       ]);

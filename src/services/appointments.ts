@@ -2,8 +2,42 @@ import { addMonths, format, isValid, parseISO } from 'date-fns';
 
 import { API_ROUTES } from '@/constants/routes';
 import { normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
-import type { Appointment, AppointmentStatus, Calendar, CancellationReason } from '@/lib/types';
+import type { Appointment, AppointmentStatus, Calendar, CancellationReason, User } from '@/lib/types';
 import { api } from '@/services/api';
+
+/**
+ * Agendas activas para los formularios de cita. Vive acá y no en una pantalla porque
+ * lo necesitan varias superficies (el perfil del paciente, su hoja de detalle y el
+ * formulario completo).
+ */
+export async function fetchAppointmentCalendars(): Promise<Calendar[]> {
+  try {
+    const data = await api.get(API_ROUTES.CALENDARS);
+    const list = Array.isArray(data) ? data : (data.calendars || data.data || data.result || []);
+    return list.map((c: Record<string, unknown>) => ({
+      id: String(c.id),
+      name: c.name as string,
+      google_calendar_id: c.google_calendar_id as string | undefined,
+      is_active: c.is_active as boolean,
+      color: c.color as string | undefined,
+    }));
+  } catch { return []; }
+}
+
+/** Doctores para los formularios de cita. La API los devuelve con varias formas. */
+export async function fetchAppointmentDoctors(): Promise<User[]> {
+  try {
+    const data = await api.get(API_ROUTES.USERS, { filter_type: 'DOCTOR' });
+    let list: Record<string, unknown>[] = [];
+    if (Array.isArray(data) && data.length > 0) {
+      const first = data[0];
+      list = first.json?.data || first.data || [];
+    } else if (data?.data) {
+      list = data.data;
+    }
+    return list.map((d) => ({ ...d, id: String(d.id) }) as User);
+  } catch { return []; }
+}
 
 interface UpdateAppointmentStatusParams {
   appointment: Pick<Appointment, 'id' | 'googleEventId' | 'calendar_source_id'>;
