@@ -23,6 +23,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { toLocalISOString } from '@/lib/utils';
 import api from '@/services/api';
+import { fetchAppointmentCalendars, fetchAppointmentDoctors } from '@/services/appointments';
 
 import type { Appointment, Calendar as CalendarType, Service, User as UserType } from '@/lib/types';
 
@@ -47,8 +48,11 @@ interface InlineAppointmentDraftHostProps {
   appointment?: Appointment | null;
   /** Paciente de la cita. Queda fijo: esta vía siempre opera sobre un paciente. */
   patient: UserType;
-  calendars: CalendarType[];
-  doctors: UserType[];
+  /** Agendas y doctores. Si no se pasan, el host los carga solo al abrirse: así una
+   *  pantalla que no los tenga a mano (la hoja de detalle del paciente) puede montar
+   *  la tarjeta sin replicar esas consultas. */
+  calendars?: CalendarType[];
+  doctors?: UserType[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Se llama después de guardar con éxito, para que el consumidor refresque. */
@@ -69,8 +73,8 @@ const colorHexById = new Map(GOOGLE_CALENDAR_COLORS.map((c) => [c.id, c.hex]));
 export function InlineAppointmentDraftHost({
   appointment,
   patient,
-  calendars,
-  doctors,
+  calendars: calendarsProp,
+  doctors: doctorsProp,
   open,
   onOpenChange,
   onSaved,
@@ -86,13 +90,42 @@ export function InlineAppointmentDraftHost({
   const [isSaving, setIsSaving] = React.useState(false);
   const [isDiscardOpen, setIsDiscardOpen] = React.useState(false);
 
-  // Se arma al abrir. Editando, todo sale de la cita; creando, arranca en la próxima
-  // hora en punto, que es lo mismo que hace el diálogo completo.
+  // Cargados solo cuando el consumidor no los provee.
+  const [loadedCalendars, setLoadedCalendars] = React.useState<CalendarType[]>([]);
+  const [loadedDoctors, setLoadedDoctors] = React.useState<UserType[]>([]);
+  const [dataReady, setDataReady] = React.useState(false);
+  const needsData = !calendarsProp || !doctorsProp;
+  React.useEffect(() => {
+    if (!open || !needsData) return;
+    let active = true;
+    Promise.all([fetchAppointmentCalendars(), fetchAppointmentDoctors()]).then(([cals, docs]) => {
+      if (!active) return;
+      setLoadedCalendars(cals);
+      setLoadedDoctors(docs);
+      setDataReady(true);
+    });
+    return () => { active = false; };
+  }, [open, needsData]);
+
+  const calendars = calendarsProp ?? loadedCalendars;
+  const doctors = doctorsProp ?? loadedDoctors;
+
+  // Se arma UNA vez por apertura. El ref es lo que evita que un cambio de identidad en
+  // `calendars`/`doctors`/`patient` —o la llegada de los datos que carga el host— vuelva
+  // a ejecutar esto y borre lo que el usuario venía editando.
+  const initializedRef = React.useRef(false);
   React.useEffect(() => {
     if (!open) {
+      initializedRef.current = false;
+      setDataReady(false);
       setDraft(null);
       return;
     }
+    if (initializedRef.current) return;
+    // Sin agendas ni doctores todavía, esperar: si no, una cita existente arrancaría
+    // sin agenda ni doctor resueltos.
+    if (needsData && !dataReady) return;
+    initializedRef.current = true;
 
     if (appointment) {
       const startStr = appointment.start?.dateTime;
@@ -127,7 +160,7 @@ export function InlineAppointmentDraftHost({
       notes: '',
       editing: null,
     });
-  }, [open, appointment, patient, calendars, doctors]);
+  }, [open, appointment, patient, calendars, doctors, needsData, dataReady]);
 
   const handleSave = React.useCallback(async () => {
     if (!draft) return;

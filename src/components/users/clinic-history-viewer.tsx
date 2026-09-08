@@ -2565,8 +2565,11 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                             {/* Editar la cita (fecha, hora, agenda, doctor, tratamientos) en la
                                                                 tarjeta inline. El gate vive en el consumidor: sin el permiso
                                                                 correspondiente no pasa el handler y el botón no existe, así queda
-                                                                fuera del alcance del rol médico. */}
-                                                            {onEditAppointment && !readOnly && (
+                                                                fuera del alcance del rol médico.
+                                                                A propósito NO se mira `readOnly`: eso significa "no puede escribir
+                                                                en la historia clínica", que es otra cosa. La recepcionista no tiene
+                                                                permisos clínicos y necesita poder reagendar igual. */}
+                                                            {onEditAppointment && (
                                                                 <Button
                                                                     variant="ghost"
                                                                     size="icon"

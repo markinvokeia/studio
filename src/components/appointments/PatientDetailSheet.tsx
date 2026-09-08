@@ -10,6 +10,7 @@ import {
 import { PatientInfoTab } from '@/components/patients/patient-info-tab';
 import { PatientQuickActions } from '@/components/patients/patient-quick-actions';
 
+import { InlineAppointmentDraftHost } from '@/components/appointments/inline-appointment-draft-host';
 import { usePermissions } from '@/hooks/usePermissions';
 import { CLINICAL_HISTORY_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
 import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/components/users/clinic-history-viewer';
@@ -26,7 +27,7 @@ import { useFinanceViewPreference } from '@/hooks/use-finance-view-preference';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { useToast } from '@/hooks/use-toast';
 import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
-import type { User } from '@/lib/types';
+import type { Appointment, User } from '@/lib/types';
 import {
   AlertTriangle, Lock, Mail, Phone, Users,
 } from 'lucide-react';
@@ -123,6 +124,14 @@ export function PatientDetailSheet({
   // In doctor mode the workspace owns write access (it gates by appointment
   // date), so the permission check only applies to the default/quick-view mode.
   const isReadOnly = readOnly || (!isDoctorMode && !canWriteClinical);
+
+  // Editar una cita desde la línea de tiempo. Permiso propio, independiente de
+  // `isReadOnly`: eso gobierna la escritura clínica, que es otra cosa — la recepcionista
+  // no tiene permisos clínicos y necesita poder reagendar igual. El modo doctor queda
+  // afuera porque su rama de la línea de tiempo no ofrece la acción.
+  const canManageAppointments = hasPermission(PATIENTS_PERMISSIONS.MANAGE_APPOINTMENTS);
+  const [editingAppointment, setEditingAppointment] = React.useState<Appointment | null>(null);
+  const [apptRefreshTrigger, setApptRefreshTrigger] = React.useState(0);
 
   const resolveInitialTab = React.useCallback((): PatientSheetMacroTab => {
     if (isDoctorMode) return 'clinical';
@@ -318,7 +327,7 @@ export function PatientDetailSheet({
           showFinancial={showFinancialTab}
           infoContent={showInfoTab ? <PatientInfoTab userId={userId} /> : undefined}
           anamnesisContent={<AnamnesisViewer userId={userId} readOnly={isReadOnly} />}
-          clinicalHistoryContent={<ClinicHistoryViewer userId={userId} userName={userName} deepLinkView={clinicalHistoryDefaultView} isDoctorMode={isDoctorMode} createSessionTrigger={createSessionTrigger} createOdontogramTrigger={createOdontogramTrigger} readOnly={isReadOnly} />}
+          clinicalHistoryContent={<ClinicHistoryViewer userId={userId} userName={userName} deepLinkView={clinicalHistoryDefaultView} isDoctorMode={isDoctorMode} createSessionTrigger={createSessionTrigger} createOdontogramTrigger={createOdontogramTrigger} refreshAppointmentsTrigger={apptRefreshTrigger} onEditAppointment={canManageAppointments ? setEditingAppointment : undefined} readOnly={isReadOnly} />}
           treatmentPlansContent={<UserTreatmentPlans userId={userId} userName={userName} readOnly={isReadOnly} />}
           medicalInstructionsContent={<PatientInstructionsSection userId={userId} userName={userName} readOnly={isReadOnly} />}
           documentsContent={<DocumentsViewer userId={userId} createTrigger={createDocumentTrigger} readOnly={isReadOnly} />}
@@ -368,6 +377,19 @@ export function PatientDetailSheet({
           setRefreshPaymentsTrigger((n) => n + 1);
         }}
       />
+
+      {editingAppointment && (
+        <InlineAppointmentDraftHost
+          open
+          appointment={editingAppointment}
+          patient={patientForDialogs}
+          onOpenChange={(open) => { if (!open) setEditingAppointment(null); }}
+          onSaved={() => {
+            setEditingAppointment(null);
+            setApptRefreshTrigger((n) => n + 1);
+          }}
+        />
+      )}
     </ResizableSheet>
   );
 }
