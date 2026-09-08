@@ -133,9 +133,11 @@ export async function fetchAppointmentTechnicians(
             }
         }
     } catch (error) {
-        // Sin esto el menú contextual no marca al técnico actual, pero la agenda
-        // sigue funcionando: no vale romper la pantalla por un adorno.
-        console.error('Failed to fetch appointment technicians:', error);
+        // `warn` y no `error`: si esto falla, el menú contextual no marca al
+        // técnico actual y nada más — la agenda sigue funcionando. Con `error`,
+        // el overlay de Next en desarrollo lo muestra como si algo se hubiera
+        // roto, y no es el caso.
+        console.warn('Failed to fetch appointment technicians:', error);
     }
     return result;
 }

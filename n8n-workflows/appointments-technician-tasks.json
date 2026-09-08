@@ -112,11 +112,12 @@
           "name": "Postgres"
         }
       },
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "alwaysOutputData": true
     },
     {
       "parameters": {
-        "jsCode": "// Arma el sobre { code, message, data, meta }. Un resultado vacío en una\n// operación de escritura significa que el WHERE de guarda no dejó pasar:\n// es un 409/404, no un 500.\nconst rows = $input.all().map((i) => i.json);\n\n// Sin tareas no es un error: el técnico puede tener el día libre.\nreturn [{ json: { __data: rows } }];"
+        "jsCode": "// Arma el sobre { code, message, data, meta }. Un resultado vacío en una\n// operación de escritura significa que el WHERE de guarda no dejó pasar:\n// es un 409/404, no un 500.\n//\n// El filtro descarta el item vacio que emite el nodo de Postgres cuando la\n// consulta no devuelve filas (lleva alwaysOutputData para que el flujo llegue a\n// responder). Sin el, ese {} se colaria como si fuera una fila real: un detalle\n// de orden vacio en vez de un 404, o un listado con un elemento fantasma.\nconst rows = $input.all()\n  .map((i) => i.json)\n  .filter((r) => r && typeof r === 'object' && Object.keys(r).length > 0);\n\n// Sin tareas no es un error: el técnico puede tener el día libre.\nreturn [{ json: { __data: rows } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
