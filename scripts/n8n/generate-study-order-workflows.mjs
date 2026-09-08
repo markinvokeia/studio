@@ -81,6 +81,22 @@ const postgresNode = (id, query, queryReplacement, position) => ({
     name: 'Consulta',
     credentials: PG_CREDENTIAL,
     onError: 'continueErrorOutput',
+    /**
+     * CRÍTICO. Sin esto, una consulta que no devuelve filas no emite ítems, y en
+     * n8n un nodo sin ítems de entrada NO se ejecuta: se saltean "Formatear
+     * Respuesta", el IF y los dos nodos de respuesta. El webhook nunca contesta y
+     * el cliente recibe un cuerpo vacío.
+     *
+     * Y cero filas es una respuesta legítima en casi todos estos flujos: una cita
+     * sin técnico, un paciente sin órdenes, un técnico sin tareas, un listado
+     * vacío. Con `alwaysOutputData` n8n emite un ítem con json vacío, el flujo
+     * sigue y `formatCode` lo descarta (ver el filtro allá).
+     *
+     * Los nodos de aviso y bitácora NO llevan esta bandera a propósito: ahí cero
+     * filas significa "no hay a quién notificar" y cortar la cadena es lo que se
+     * busca.
+     */
+    alwaysOutputData: true,
 });
 
 const respondNode = (id, name, position, body, code) => ({
@@ -118,7 +134,14 @@ const formatCode = (body) => `
 // Arma el sobre { code, message, data, meta }. Un resultado vacío en una
 // operación de escritura significa que el WHERE de guarda no dejó pasar:
 // es un 409/404, no un 500.
-const rows = $input.all().map((i) => i.json);
+//
+// El filtro descarta el item vacio que emite el nodo de Postgres cuando la
+// consulta no devuelve filas (lleva alwaysOutputData para que el flujo llegue a
+// responder). Sin el, ese {} se colaria como si fuera una fila real: un detalle
+// de orden vacio en vez de un 404, o un listado con un elemento fantasma.
+const rows = $input.all()
+  .map((i) => i.json)
+  .filter((r) => r && typeof r === 'object' && Object.keys(r).length > 0);
 ${body}
 `.trim();
 
