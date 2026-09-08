@@ -3210,6 +3210,8 @@ export interface StudyOrderAppointment {
   created_at?: string | null;
   updated_at?: string | null;
   imported_from_google?: boolean;
+  /** Necesario para propagar a Google un cambio de estado hecho desde la orden. */
+  google_event_id?: string | null;
   quote_id?: string | null;
   service_ids: string[];
   services?: Array<{ id: string; name: string; duration_minutes?: number | null }>;

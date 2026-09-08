@@ -429,7 +429,9 @@
     "PrescriptionTemplates": "Plantillas de Receta",
     "StudyOrders": "Órdenes de Estudio",
     "MyStudyOrders": "Mis Órdenes",
-    "ClinicStudyOrders": "Órdenes"
+    "ClinicStudyOrders": "Órdenes",
+    "Technicians": "Técnicos y Operadores",
+    "Tasks": "Mis Tareas"
   },
   "TVDisplayPage": {
     "title": "Pantalla TV",
@@ -1282,7 +1284,12 @@
       "title": "Plan de Tratamiento",
       "stepRef": "Paso del plan #{id}"
     },
-    "importedFromGoogle": "Importado de Google Calendar"
+    "importedFromGoogle": "Importado de Google Calendar",
+    "technician": {
+      "label": "Técnico asignado",
+      "placeholder": "Sin técnico",
+      "unassigned": "Sin técnico asignado"
+    }
   },
   "AppointmentsColumns": {
     "service": "Servicio",
@@ -1380,7 +1387,12 @@
     "deleteTitle": "Eliminar cita",
     "deleteDescription": "Esta acción eliminará la cita por completo del sistema y no se podrá volver a ver. ¿Deseas continuar?",
     "deleteConfirm": "Sí, eliminar",
-    "deleteCancel": "Cancelar"
+    "deleteCancel": "Cancelar",
+    "assignTechnician": "Asignar técnico",
+    "changeTechnician": "Cambiar técnico",
+    "noTechnician": "Sin técnico asignado",
+    "technicianAssigned": "Técnico asignado",
+    "technicianCleared": "Se quitó el técnico"
   },
   "AppointmentReschedule": {
     "action": "Reagendar",
@@ -9092,7 +9104,8 @@
       "appointments": "Citas",
       "patient": "Paciente",
       "link": "Link",
-      "activity": "Actividad"
+      "activity": "Actividad",
+      "sessions": "Sesión"
     },
     "form": {
       "title": "Nueva orden de estudio",
@@ -9249,6 +9262,20 @@
       "mutualSociety": "Mutualista",
       "assignedDoctor": "Doctor asignado",
       "address": "Dirección"
+    },
+    "sessionTab": {
+      "title": "Sesión clínica",
+      "none": "Todavía no se registró ninguna sesión clínica para esta orden.",
+      "registeredBy": "Registrada por",
+      "registeredAt": "Fecha de registro",
+      "forAppointment": "Cita",
+      "procedure": "Procedimiento realizado",
+      "diagnosis": "Diagnóstico",
+      "saved": "Sesión clínica registrada",
+      "recordTitle": "Registrar la sesión clínica",
+      "chooseAppointment": "¿Sobre qué cita?",
+      "record": "Registrar sesión",
+      "recordHint": "Va a quedar registrada a nombre de {name}."
     }
   },
   "StudyOrderBooking": {
@@ -9278,5 +9305,107 @@
       "studies": "Orden {order}",
       "cta": "Elegir día y hora"
     }
+  },
+  "TechniciansPage": {
+    "title": "Técnicos y Operadores",
+    "description": "Todos los técnicos y operadores para la clínica",
+    "filterPlaceholder": "Filtrar aquí...",
+    "DoctorColumns": {
+      "name": "Nombre",
+      "email": "Correo Electrónico",
+      "identity_document": "Documento de Identidad",
+      "phone": "Teléfono",
+      "status": "Estado",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "deactivate": "Desactivar",
+      "activate": "Activar",
+      "copyId": "Copiar ID",
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "openMenu": "Abrir menú",
+      "selectRow": "Seleccionar fila"
+    },
+    "createDialog": {
+      "createTitle": "Crear técnico",
+      "createDescription": "Crear un nuevo técnico para la clínica",
+      "name": "Nombre",
+      "namePlaceholder": "ej. Dr. Smith",
+      "email": "Correo Electrónico",
+      "emailPlaceholder": "ej. dr.smith@ejemplo.com",
+      "phone": "Teléfono",
+      "phonePlaceholder": "ej. 123-456-7890",
+      "identity_document": "Documento de Identidad",
+      "identity_document_placeholder": "ej. 1234567890",
+      "color": "Color",
+      "isActive": "¿Está Activo?",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "editTitle": "Editar técnico",
+      "editDescription": "Editar el técnico para la clínica",
+      "editSave": "Guardar Cambios",
+      "createSuccessTitle": "Técnico Creado",
+      "createSuccessDescription": "El técnico ha sido guardado exitosamente.",
+      "editSuccessTitle": "Técnico Actualizado",
+      "editSuccessDescription": "El técnico ha sido actualizado exitosamente.",
+      "SuccessActivate": "Técnico Activado",
+      "SuccessActivateDescription": "El técnico ha sido activado exitosamente.",
+      "SuccessDeactivate": "Técnico Desactivado",
+      "SuccessDeactivateDescription": "El técnico ha sido desactivado exitosamente.",
+      "ErrorActivate": "Error Activando Técnico",
+      "ErrorActivateDescription": "No se pudo activar el técnico.",
+      "ErrorDeactivate": "Error Desactivando Técnico",
+      "ErrorDeactivateDescription": "No se pudo desactivar el técnico.",
+      "validation": {
+        "errorTitle": "Error",
+        "nameRequired": "Nombre es obligatorio.",
+        "emailInvalid": "Correo electrónico inválido.",
+        "phoneInvalid": "Número de teléfono inválido.",
+        "identityInvalid": "Documento de identidad inválido.",
+        "identityRequired": "La cedula de identidad es requerida.",
+        "identityMaxLength": "Documento de identidad debe tener como máximo 10 caracteres.",
+        "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono.",
+        "genericError": "Ocurrió un error inesperado. Inténtalo de nuevo.",
+        "serverError": "Error del servidor, inténtalo de nuevo más tarde.",
+        "uniqueConflict": "Los siguientes campos ya están registrados: {fields}",
+        "fields": {
+          "email": "Correo Electrónico",
+          "phone": "Teléfono",
+          "identity_document": "Documento de Identidad"
+        }
+      },
+      "defaultCalendar": "Consultorio por defecto",
+      "selectCalendar": "Seleccionar consultorio...",
+      "searchCalendarPlaceholder": "Buscar consultorio...",
+      "noCalendar": "Sin consultorio por defecto"
+    },
+    "filters": {
+      "showOnlyActive": "Mostrar solo activos"
+    },
+    "tabs": {
+      "details": "Detalles",
+      "availability": "Disponibilidad",
+      "exceptions": "Excepciones",
+      "calendars": "Calendarios con acceso",
+      "preferences": "Preferencias",
+      "signature": "Firma"
+    },
+    "calendarAccess": {
+      "title": "Calendarios con acceso",
+      "description": "Selecciona los calendarios cuyas citas podrá ver este técnico desde su workspace.",
+      "selectPlaceholder": "Seleccionar calendarios...",
+      "search": "Buscar calendario...",
+      "noItems": "No hay calendarios disponibles",
+      "empty": "Sin acceso a calendarios",
+      "count": "{count} con acceso",
+      "save": "Guardar accesos",
+      "saved": "Accesos actualizados",
+      "saveError": "No se pudieron guardar los accesos"
+    }
+  },
+  "TasksPage": {
+    "title": "Mis Tareas",
+    "accessDenied": "Acceso denegado",
+    "noPermission": "No tenés permiso para ver este panel."
   }
 }

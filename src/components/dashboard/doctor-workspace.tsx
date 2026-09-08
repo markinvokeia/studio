@@ -55,6 +55,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { fetchTechnicianTasks } from '@/services/technicians';
 
 type PatientAlertTag = {
   label: string;
@@ -65,6 +66,16 @@ interface DoctorWorkspaceProps {
   locale: string;
   /** When set, auto-selects this appointment on first load (from notification deep-link) */
   initialAppointmentId?: string | null;
+  /**
+   * Quién mira. `doctor` es Mi Consultorio: las citas donde el usuario es el
+   * derivador, con el selector de calendario. `technician` es el panel de
+   * Tareas: lo mismo en pantalla, pero la fuente son las citas que el usuario
+   * tiene asignadas como técnico más las de sus calendarios.
+   *
+   * Es la misma vista a propósito — el técnico hace el mismo trabajo clínico que
+   * el doctor sobre la cita, sólo que sobre otro conjunto.
+   */
+  variant?: 'doctor' | 'technician';
 }
 
 type DoctorAgentActionResult = {
@@ -725,29 +736,48 @@ function markAppointmentLocallyUpdated(doctorId: string, appointmentId: string) 
 
 type WorkspaceAppointmentSource =
   | { mode: 'doctor'; doctorId: string }
-  | { mode: 'calendar'; calendarId: string };
+  | { mode: 'calendar'; calendarId: string }
+  /**
+   * Panel de tareas del técnico. No filtra por doctor: trae lo que tiene
+   * asignado MÁS lo que caiga en los calendarios a los que tenga acceso, que es
+   * lo que el backend resuelve en una sola consulta. Por eso es una fuente
+   * aparte y no el modo 'doctor' con otro id.
+   */
+  | { mode: 'technician'; technicianId: string };
 
 async function getAppointmentsForRange(source: WorkspaceAppointmentSource, from: Date, to: Date): Promise<Appointment[]> {
   const rangeStart = new Date(from.getFullYear(), from.getMonth(), from.getDate(), 0, 0, 0);
   const rangeEnd = new Date(to.getFullYear(), to.getMonth(), to.getDate(), 23, 59, 59);
   const formatDateForAPI = (date: Date) => format(date, 'yyyy-MM-dd HH:mm:ss');
 
-  const query: Record<string, string> = {
-    startingDateAndTime: formatDateForAPI(rangeStart),
-    endingDateAndTime: formatDateForAPI(rangeEnd),
-  };
-  if (source.mode === 'doctor') query.doctor_id = source.doctorId;
-  else query.calendar_source_ids = source.calendarId;
-
   const fallbackDoctorId = source.mode === 'doctor' ? source.doctorId : '';
 
-  const data = await api.get(API_ROUTES.USERS_APPOINTMENTS, query);
-
   let rawAppointments: any[] = [];
-  if (Array.isArray(data) && data.length > 0 && 'json' in data[0]) {
-    rawAppointments = data.map((item: any) => item.json);
-  } else if (Array.isArray(data)) {
-    rawAppointments = data;
+
+  if (source.mode === 'technician') {
+    // Endpoint propio: el de /users/appointments filtra por doctor y no sabe de
+    // técnicos ni de calendar_users. El shape que devuelve ya espeja al de aquél,
+    // así que el mapeo de abajo sirve igual para los dos.
+    rawAppointments = await fetchTechnicianTasks({
+      from: formatDateForAPI(rangeStart),
+      to: formatDateForAPI(rangeEnd),
+      technicianId: source.technicianId,
+    });
+  } else {
+    const query: Record<string, string> = {
+      startingDateAndTime: formatDateForAPI(rangeStart),
+      endingDateAndTime: formatDateForAPI(rangeEnd),
+    };
+    if (source.mode === 'doctor') query.doctor_id = source.doctorId;
+    else query.calendar_source_ids = source.calendarId;
+
+    const data = await api.get(API_ROUTES.USERS_APPOINTMENTS, query);
+
+    if (Array.isArray(data) && data.length > 0 && 'json' in data[0]) {
+      rawAppointments = data.map((item: any) => item.json);
+    } else if (Array.isArray(data)) {
+      rawAppointments = data;
+    }
   }
 
   return rawAppointments
@@ -809,7 +839,7 @@ async function getAppointmentsForRange(source: WorkspaceAppointmentSource, from:
     ));
 }
 
-export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspaceProps) {
+export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'doctor' }: DoctorWorkspaceProps) {
   const t = useTranslations('DoctorWorkspace');
   const tStatus = useTranslations('AppointmentStatus');
   const { user } = useAuth();
@@ -935,10 +965,14 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     else setIsLoadingAppointments(true);
 
     try {
-      const useCalendar = viewMode === 'calendar' && !!selectedCalendarId;
-      const source: WorkspaceAppointmentSource = useCalendar
-        ? { mode: 'calendar', calendarId: selectedCalendarId }
-        : { mode: 'doctor', doctorId: String(user.id) };
+      // El técnico no elige fuente: su endpoint ya suma lo asignado y lo de sus
+      // calendarios. El selector doctor/calendario es del consultorio del médico.
+      const useCalendar = variant === 'doctor' && viewMode === 'calendar' && !!selectedCalendarId;
+      const source: WorkspaceAppointmentSource = variant === 'technician'
+        ? { mode: 'technician', technicianId: String(user.id) }
+        : useCalendar
+          ? { mode: 'calendar', calendarId: selectedCalendarId }
+          : { mode: 'doctor', doctorId: String(user.id) };
       const data = await getAppointmentsForRange(source, dateRange.from, dateRange.to);
       const todayKey = formatDate(new Date());
 
@@ -963,7 +997,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
       setIsRefreshing(false);
       setIsLoadingAppointments(false);
     }
-  }, [user?.id, viewMode, selectedCalendarId, dateRange]);
+  }, [user?.id, variant, viewMode, selectedCalendarId, dateRange]);
 
   // Load the calendars this doctor has been granted access to. If none, the agenda
   // source switch is hidden and the doctor only sees their own appointments.
@@ -1215,8 +1249,14 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   // assigned to a different doctor than the one actually completing it right now.
   // In that case, default the session's doctor to the logged-in doctor instead of
   // whatever (or whoever) is configured on the appointment.
-  const isAppointmentUnownedInCalendar = viewMode === 'calendar'
-    && (!selectedAppointment?.doctorId || selectedAppointment.doctorId !== String(user?.id ?? ''));
+  //
+  // En el panel del técnico es SIEMPRE así: el doctor de la cita es el derivador
+  // —quien mandó al paciente—, nunca el técnico que está tomando el estudio. La
+  // sesión tiene que quedar a nombre de quien la registra, así que acá no hay
+  // caso en que valga el doctor de la cita.
+  const isAppointmentUnownedInCalendar = variant === 'technician'
+    || (viewMode === 'calendar'
+        && (!selectedAppointment?.doctorId || selectedAppointment.doctorId !== String(user?.id ?? '')));
 
   const sessionDoctorId = isAppointmentUnownedInCalendar
     ? String(user?.id ?? '')
@@ -1312,6 +1352,13 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
         newStatus: 'completed',
       });
     }
+
+    // Este camino —sesión guardada desde el odontograma— también cierra la cita,
+    // así que también tiene que recalcular la orden. Sin esto la orden quedaba
+    // esperando al cron de reconciliación y el derivador no se enteraba de que
+    // sus estudios ya estaban.
+    void recomputeStudyOrderForAppointment(String(selectedAppointment.id));
+
     await loadAppointments(true);
   }, [isSessionEditingBlockedByDate, loadAppointments, selectedAppointment, user?.id]);
 

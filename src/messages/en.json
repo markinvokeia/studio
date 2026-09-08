@@ -429,7 +429,9 @@
     "PrescriptionTemplates": "Prescription Templates",
     "StudyOrders": "Study Orders",
     "MyStudyOrders": "My Orders",
-    "ClinicStudyOrders": "Orders"
+    "ClinicStudyOrders": "Orders",
+    "Technicians": "Technicians & Operators",
+    "Tasks": "My Tasks"
   },
   "TVDisplayPage": {
     "title": "TV Display",
@@ -1282,7 +1284,12 @@
       "title": "Treatment Plan",
       "stepRef": "Plan step #{id}"
     },
-    "importedFromGoogle": "Imported from Google Calendar"
+    "importedFromGoogle": "Imported from Google Calendar",
+    "technician": {
+      "label": "Assigned technician",
+      "placeholder": "No technician",
+      "unassigned": "No technician assigned"
+    }
   },
   "AppointmentsColumns": {
     "service": "Service",
@@ -1380,7 +1387,12 @@
     "deleteTitle": "Delete appointment",
     "deleteDescription": "This will completely remove the appointment from the system and it can no longer be viewed. Do you want to continue?",
     "deleteConfirm": "Yes, delete",
-    "deleteCancel": "Cancel"
+    "deleteCancel": "Cancel",
+    "assignTechnician": "Assign technician",
+    "changeTechnician": "Change technician",
+    "noTechnician": "No technician assigned",
+    "technicianAssigned": "Technician assigned",
+    "technicianCleared": "Technician removed"
   },
   "AppointmentReschedule": {
     "action": "Reschedule",
@@ -9113,7 +9125,8 @@
       "appointments": "Appointments",
       "patient": "Patient",
       "link": "Link",
-      "activity": "Activity"
+      "activity": "Activity",
+      "sessions": "Session"
     },
     "form": {
       "title": "New study order",
@@ -9270,6 +9283,20 @@
       "mutualSociety": "Health insurer",
       "assignedDoctor": "Assigned doctor",
       "address": "Address"
+    },
+    "sessionTab": {
+      "title": "Clinical session",
+      "none": "No clinical session has been recorded for this order yet.",
+      "registeredBy": "Recorded by",
+      "registeredAt": "Recorded on",
+      "forAppointment": "Appointment",
+      "procedure": "Procedure performed",
+      "diagnosis": "Diagnosis",
+      "saved": "Clinical session recorded",
+      "recordTitle": "Record the clinical session",
+      "chooseAppointment": "For which appointment?",
+      "record": "Record session",
+      "recordHint": "It will be recorded under {name}."
     }
   },
   "StudyOrderBooking": {
@@ -9299,5 +9326,107 @@
       "studies": "Order {order}",
       "cta": "Pick a day and time"
     }
+  },
+  "TechniciansPage": {
+    "title": "Technicians & Operators",
+    "description": "All doctors for the clinic",
+    "filterPlaceholder": "Filter here...",
+    "DoctorColumns": {
+      "name": "Name",
+      "email": "Email",
+      "identity_document": "Identity Document",
+      "phone": "Phone",
+      "status": "Status",
+      "actions": "Actions",
+      "edit": "Edit",
+      "deactivate": "Deactivate",
+      "activate": "Activate",
+      "copyId": "Copy ID",
+      "active": "Active",
+      "inactive": "Inactive",
+      "openMenu": "Open menu",
+      "selectRow": "Select row"
+    },
+    "createDialog": {
+      "createTitle": "Create technician",
+      "createDescription": "Create a new technician for the clinic",
+      "name": "Name",
+      "namePlaceholder": "e.g. Dr. Smith",
+      "email": "Email",
+      "emailPlaceholder": "e.g. dr.smith@example.com",
+      "phone": "Phone",
+      "phonePlaceholder": "e.g. 123-456-7890",
+      "identity_document": "Identity Document",
+      "identity_document_placeholder": "e.g. 1234567890",
+      "color": "Color",
+      "isActive": "Is Active?",
+      "save": "Save",
+      "cancel": "Cancel",
+      "editTitle": "Edit technician",
+      "editDescription": "Edit the technician for the clinic",
+      "editSave": "Save Changes",
+      "createSuccessTitle": "Technician Created",
+      "createSuccessDescription": "The technician has been created successfully.",
+      "editSuccessTitle": "Technician Updated",
+      "editSuccessDescription": "The technician has been updated successfully.",
+      "SuccessActivate": "Technician Activated",
+      "SuccessDeactivate": "Technician Deactivated",
+      "ErrorActivate": "Error Activating Technician",
+      "ErrorDeactivate": "Error Deactivating Technician",
+      "ErrorActivateDescription": "Could not activate doctor.",
+      "ErrorDeactivateDescription": "Could not deactivate doctor.",
+      "validation": {
+        "errorTitle": "Error",
+        "nameRequired": "Name is required.",
+        "emailInvalid": "Invalid email.",
+        "phoneInvalid": "Invalid phone number.",
+        "identityInvalid": "Invalid identity document.",
+        "identityRequired": "Identity is required.",
+        "identityMaxLength": "Identity document must be at most 10 characters long.",
+        "emailOrPhoneRequired": "You must provide at least an email address or a phone number.",
+        "genericError": "An unexpected error occurred. Please try again.",
+        "serverError": "Server error, please try again later.",
+        "uniqueConflict": "The following fields are already registered: {fields}",
+        "fields": {
+          "email": "Email",
+          "phone": "Phone",
+          "identity_document": "Identity Document"
+        }
+      },
+      "SuccessActivateDescription": "The technician has been activated sucessfully",
+      "SuccessDeactivateDescription": "The technician has been deactivated sucessfully",
+      "defaultCalendar": "Default Consultorio",
+      "selectCalendar": "Select consultorio...",
+      "searchCalendarPlaceholder": "Search consultorio...",
+      "noCalendar": "No default consultorio"
+    },
+    "filters": {
+      "showOnlyActive": "Show only active"
+    },
+    "tabs": {
+      "details": "Detalles",
+      "availability": "Availability",
+      "exceptions": "Exceptions",
+      "calendars": "Calendars with access",
+      "preferences": "Preferences",
+      "signature": "Signature"
+    },
+    "calendarAccess": {
+      "title": "Calendars with access",
+      "description": "Select the calendars whose appointments this technician can see from their workspace.",
+      "selectPlaceholder": "Select calendars...",
+      "search": "Search calendar...",
+      "noItems": "No calendars available",
+      "empty": "No calendar access",
+      "count": "{count} with access",
+      "save": "Save access",
+      "saved": "Access updated",
+      "saveError": "Failed to save access"
+    }
+  },
+  "TasksPage": {
+    "title": "My Tasks",
+    "accessDenied": "Access denied",
+    "noPermission": "You do not have permission to view this panel."
   }
 }

@@ -29,8 +29,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { TechnicianPicker } from '@/components/appointments/technician-picker';
 import { StudyOrderPicker } from '@/components/study-orders/study-order-picker';
 import { logStudyOrderAppointmentUpdated } from '@/services/study-orders';
+import { assignAppointmentTechnician } from '@/services/technicians';
 import { useStudyOrderScheduling } from '@/stores/study-order-scheduling-store';
 import { Appointment, Calendar as CalendarType, PatientSession, Quote, QuoteItem, Service, TreatmentSequence, TreatmentSequenceStepStatus, User as UserType } from '@/lib/types';
 import { cn, formatDisplayDate, toLocalISOString } from '@/lib/utils';
@@ -50,6 +52,8 @@ import { usePatientView } from '@/stores/patient-view-store';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
+import { usePermissions } from '@/hooks/usePermissions';
 
 interface WorkflowStep {
     id: number | string;
@@ -148,6 +152,12 @@ export function AppointmentFormDialog({
      */
     const { context: studyOrderContext } = useStudyOrderScheduling();
     const [studyOrderId, setStudyOrderId] = React.useState<string | null>(null);
+    /**
+     * Técnico que ejecuta. Se guarda en un paso aparte, después del upsert: el
+     * flujo de citas es el monolito compartido de la agenda y no escribe esta
+     * columna. Mismo patrón que la orden de estudio.
+     */
+    const [technicianId, setTechnicianId] = React.useState<string | null>(null);
 
     /**
      * Con una operación de agendado en curso, paciente, orden y doctor quedan
@@ -158,6 +168,9 @@ export function AppointmentFormDialog({
      *
      * La salida es "Cancelar operación" en el aviso, que es explícita.
      */
+    const { hasPermission } = usePermissions();
+    const canAssignTechnician = hasPermission(BUSINESS_CONFIG_PERMISSIONS.APPOINTMENT_ASSIGN_TECHNICIAN);
+
     const isStudyOrderLocked = !!studyOrderContext;
     /** El doctor sólo se fija si la orden trae derivador; si no, hay que poder elegirlo. */
     const isDoctorLocked = isStudyOrderLocked && !!studyOrderContext?.doctorId;
@@ -989,6 +1002,16 @@ export function AppointmentFormDialog({
                 if (isEditing && editingAppointment?.id) {
                     void logStudyOrderAppointmentUpdated(String(editingAppointment.id));
                 }
+
+                // El técnico va en un paso aparte, como la orden: fire-and-forget,
+                // porque la cita ya quedó guardada y esto se puede rehacer desde
+                // el panel de tareas si falla.
+                const savedId = editingAppointment?.id
+                    ?? result.data?.id ?? result.data?.appointment_id ?? result.id ?? result.appointment_id ?? result.appointmentId;
+                if (canAssignTechnician && savedId) {
+                    void assignAppointmentTechnician(String(savedId), technicianId)
+                        .catch((error) => console.warn('[technicians] No se pudo asignar el técnico', error));
+                }
                 if (!isEditing && currentUser?.id) {
                     const newId = result.data?.id ?? result.data?.appointment_id ?? result.id ?? result.appointment_id ?? result.appointmentId;
                     if (newId) markLocallyCreated(String(currentUser.id), String(newId));
@@ -1484,6 +1507,14 @@ export function AppointmentFormDialog({
                                         <p className="text-xs text-muted-foreground">{t('createDialog.selectUserFirst')}</p>
                                     )}
                                 </div>
+                                )}
+
+                                {canAssignTechnician && (
+                                    <TechnicianPicker
+                                        value={technicianId}
+                                        onChange={setTechnicianId}
+                                        disabled={readOnlyFields?.services}
+                                    />
                                 )}
 
                                 {/* Orden de estudio: al elegirla se cargan sus estudios en la cita. */}

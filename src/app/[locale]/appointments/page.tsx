@@ -58,7 +58,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
 import { API_ROUTES } from '@/constants/routes';
-import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
+import { BUSINESS_CONFIG_PERMISSIONS, PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
@@ -70,12 +70,13 @@ import { updateAppointmentStatusRequest, fetchFuturePatientAppointments, type Fu
 import { FutureAppointmentsConfirmDialog } from '@/components/appointments/future-appointments-confirm-dialog';
 import { getSalesServices, getUsersServicesBatch, fetchServicesByIds } from '@/services/services';
 import { getStudyOrder, linkAppointmentToStudyOrder, logStudyOrderAppointmentUpdated, notifyStudyOrderAppointmentDropped, recomputeStudyOrderForAppointment } from '@/services/study-orders';
+import { assignAppointmentTechnician, fetchAppointmentTechnicians, fetchTechnicians, type TechnicianOption } from '@/services/technicians';
 import { StudyOrderSchedulingBanner } from '@/components/study-orders/study-order-scheduling-banner';
 import { useStudyOrderScheduling } from '@/stores/study-order-scheduling-store';
 import { ColumnDef } from '@tanstack/react-table';
 import { addMinutes, eachDayOfInterval, endOfMonth, endOfWeek, format, isValid, parseISO, set, startOfMonth, startOfWeek } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
-import { BellRing, BookOpenText, Building2, Calendar as CalendarIcon, CalendarDays, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileText, History, Images, Layers, Link2, Loader2, Palette, PlusCircle, Receipt, RefreshCw, Stethoscope, Trash2, UserCog, UserRound, Users, X, Zap } from 'lucide-react';
+import { BellRing, BookOpenText, Building2, Calendar as CalendarIcon, CalendarDays, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileText, History, HardHat, Images, Layers, Link2, Loader2, Palette, PlusCircle, Receipt, RefreshCw, Stethoscope, Trash2, UserCog, UserRound, Users, X, Zap } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
@@ -153,6 +154,8 @@ interface InlineAppointmentDraftState {
     quoteId?: string;
     /** Notification whose 'schedule' action is marked done after a successful save. */
     notifId?: string;
+    /** Técnico que ejecuta. Se guarda tras el upsert, como la orden de estudio. */
+    technicianId?: string | null;
     /** Stable signature used to detect changes made after the inline window opened. */
     initialSignature: string;
 }
@@ -753,6 +756,8 @@ export default function AppointmentsPage() {
     const { hasPermission } = usePermissions();
     const canCreateInlinePatient = hasPermission(PATIENTS_PERMISSIONS.CREATE);
     const canEditInlinePatient = hasPermission(PATIENTS_PERMISSIONS.UPDATE);
+    /** Elegir quién ejecuta la cita. Sin esto no se muestra el campo ni el submenú. */
+    const canAssignTechnician = hasPermission(BUSINESS_CONFIG_PERMISSIONS.APPOINTMENT_ASSIGN_TECHNICIAN);
 
     const { toast } = useToast();
     const { reschedule: rescheduleAppointment } = useAppointmentReschedule();
@@ -763,6 +768,15 @@ export default function AppointmentsPage() {
     const [sedes, setSedes] = React.useState<Sede[]>([]);
     const [services, setServices] = React.useState<Service[]>([]);
     const [doctors, setDoctors] = React.useState<UserType[]>([]);
+    /** Operadores disponibles, para el submenú de técnico. */
+    const [technicians, setTechnicians] = React.useState<TechnicianOption[]>([]);
+    /**
+     * Qué técnico tiene cada cita visible. Va aparte del objeto Appointment
+     * porque `technician_id` no viaja con los datos de la cita: Get_Appointments
+     * es el monolito compartido de la agenda y no se toca para esto.
+     */
+    const [techniciansByAppointment, setTechniciansByAppointment] =
+        React.useState<Map<string, { id: string; name: string }>>(new Map());
     const [doctorServiceMap, setDoctorServiceMap] = React.useState<Map<string, Service[]>>(new Map());
     const [doctorCalendarMap, setDoctorCalendarMap] = React.useState<Map<string, CalendarType[]>>(new Map());
     const [selectedCalendarIds, setSelectedCalendarIds] = React.useState<string[]>([]);
@@ -1495,6 +1509,18 @@ export default function AppointmentsPage() {
             // Si hay una operación de agendado en curso, la cita creada desde la
             // tarjeta inline se ata a su orden igual que la del diálogo. Sin
             // esto, agendar en modo personalizado dejaba la orden sin cita.
+            // El técnico va en un paso aparte, como la orden: /appointments/upsert
+            // no escribe esa columna. Se manda siempre que el usuario pueda
+            // asignar, también cuando lo dejó vacío — así queda desasignada.
+            const savedIdForTechnician = editing?.id ? String(editing.id) : extractAppointmentId(response);
+            if (canAssignTechnician && savedIdForTechnician) {
+                const technicianToSave = inlineDraft.technicianId !== undefined
+                    ? inlineDraft.technicianId
+                    : (editing?.id ? techniciansByAppointment.get(String(editing.id))?.id ?? null : null);
+                void assignAppointmentTechnician(savedIdForTechnician, technicianToSave)
+                    .catch((error) => console.warn('[technicians] No se pudo asignar el técnico', error));
+            }
+
             // Editar una cita ya existente que pertenece a una orden queda
             // anotado en el historial de esa orden. Va antes del bloque de abajo
             // porque son casos distintos: acá se edita algo ya atado, allá se ata
@@ -1521,7 +1547,7 @@ export default function AppointmentsPage() {
         } finally {
             setIsSavingInline(false);
         }
-    }, [inlineDraft, toast, tToasts, rescheduleAppointment, user?.id, calendars, isDateTimeBlocked, markSessionAction, clearStudyOrderScheduling]);
+    }, [inlineDraft, toast, tToasts, rescheduleAppointment, user?.id, calendars, isDateTimeBlocked, markSessionAction, clearStudyOrderScheduling, canAssignTechnician, techniciansByAppointment]);
 
     const isInlineDraftDirty = (
         inlineDraft
@@ -1606,6 +1632,17 @@ export default function AppointmentsPage() {
                 // Al abrir una cita existente, el selector consulta con este id qué
                 // orden tiene atada: ese dato no viaja con los datos de la cita.
                 appointmentId={inlineDraft.editing?.id ? String(inlineDraft.editing.id) : null}
+                // Sin tocar, muestra el técnico que la cita ya tiene; una vez
+                // que el usuario elige, manda lo suyo. `undefined` distingue
+                // "no lo toqué" de "lo dejé vacío a propósito".
+                technicianId={inlineDraft.technicianId !== undefined
+                    ? inlineDraft.technicianId
+                    : (inlineDraft.editing?.id
+                        ? techniciansByAppointment.get(String(inlineDraft.editing.id))?.id ?? null
+                        : null)}
+                onTechnicianChange={canAssignTechnician
+                    ? (id) => setInlineDraft((d) => (d ? { ...d, technicianId: id } : d))
+                    : undefined}
                 importedFromGoogle={inlineDraft.editing?.imported_from_google === true}
                 summary={inlineDraft.summary}
                 onSummaryChange={(v) => setInlineDraft((d) => (d ? { ...d, summary: v } : d))}
@@ -2285,6 +2322,61 @@ export default function AppointmentsPage() {
             openBillingWizard({ ...base, appointmentDate: appointment.date, preloadedItems: preloadedItems.length > 0 ? preloadedItems : undefined }, () => refreshCalendarDataRef.current());
         }
     }, [openBillingWizard]);
+
+    /**
+     * Asigna o quita el técnico de una cita. Optimista: la agenda se actualiza al
+     * instante y, si el backend rechaza, se revierte y se avisa. Es una acción de
+     * un clic desde el menú contextual y esperar la ida y vuelta la haría sentir
+     * rota.
+     */
+    const handleAssignTechnician = React.useCallback(async (
+        appointment: Appointment,
+        technician: TechnicianOption | null,
+    ) => {
+        const key = String(appointment.id);
+        const previous = techniciansByAppointment.get(key);
+        setTechniciansByAppointment((prev) => {
+            const next = new Map(prev);
+            if (technician) next.set(key, { id: technician.id, name: technician.name });
+            else next.delete(key);
+            return next;
+        });
+        try {
+            await assignAppointmentTechnician(key, technician?.id ?? null);
+            toast({ title: technician ? tPanel('technicianAssigned') : tPanel('technicianCleared') });
+        } catch (error) {
+            setTechniciansByAppointment((prev) => {
+                const next = new Map(prev);
+                if (previous) next.set(key, previous);
+                else next.delete(key);
+                return next;
+            });
+            toast({
+                variant: 'destructive',
+                title: tToasts('error'),
+                description: error instanceof Error ? error.message : tToasts('unexpectedError'),
+            });
+        }
+    }, [techniciansByAppointment, toast, tPanel, tToasts]);
+
+    // El catálogo de operadores se pide una vez: son pocos y no cambian entre citas.
+    React.useEffect(() => {
+        let cancelled = false;
+        void fetchTechnicians().then((list) => { if (!cancelled) setTechnicians(list); });
+        return () => { cancelled = true; };
+    }, []);
+
+    // Quién atiende cada cita visible, en una sola consulta por carga de agenda.
+    React.useEffect(() => {
+        if (technicians.length === 0 || appointments.length === 0) {
+            setTechniciansByAppointment(new Map());
+            return;
+        }
+        let cancelled = false;
+        void fetchAppointmentTechnicians(appointments.map((a) => String(a.id)))
+            .then((map) => { if (!cancelled) setTechniciansByAppointment(map); });
+        return () => { cancelled = true; };
+    }, [appointments, technicians.length]);
 
     const handleCancel = (appointment: Appointment) => {
         setDeletingAppointment(appointment);
@@ -3581,6 +3673,48 @@ export default function AppointmentsPage() {
                 </ContextMenuSubContent>
             </ContextMenuSub>
         );
+        const assignedTechnician = techniciansByAppointment.get(String(appointment.id));
+        const technicianSubmenu = technicians.length === 0 ? null : (
+            <ContextMenuSub>
+                <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                    <HardHat className="h-4 w-4 shrink-0" />
+                    <span className="flex min-w-0 flex-col">
+                        <span>{assignedTechnician ? tPanel('changeTechnician') : tPanel('assignTechnician')}</span>
+                        {assignedTechnician && (
+                            <span className="truncate text-xs italic text-muted-foreground">{assignedTechnician.name}</span>
+                        )}
+                    </span>
+                </ContextMenuSubTrigger>
+                <ContextMenuSubContent className="max-h-72 w-60 overflow-y-auto">
+                    {/* Quitarlo es tan necesario como ponerlo: una cita mal
+                        repartida tiene que poder volver a quedar libre. */}
+                    <ContextMenuItem
+                        onSelect={() => { if (assignedTechnician) void handleAssignTechnician(appointment, null); }}
+                        className="flex cursor-pointer items-center gap-2"
+                    >
+                        <Check className={cn('h-4 w-4 shrink-0', assignedTechnician ? 'opacity-0' : 'opacity-100')} />
+                        <span className="min-w-0 flex-1 truncate text-muted-foreground">{tPanel('noTechnician')}</span>
+                    </ContextMenuItem>
+                    {technicians.map((technician) => (
+                        <ContextMenuItem
+                            key={technician.id}
+                            onSelect={() => {
+                                if (technician.id !== assignedTechnician?.id) {
+                                    void handleAssignTechnician(appointment, technician);
+                                }
+                            }}
+                            className="flex cursor-pointer items-center gap-2"
+                        >
+                            <Check className={cn('h-4 w-4 shrink-0', technician.id === assignedTechnician?.id ? 'opacity-100' : 'opacity-0')} />
+                            {technician.color && (
+                                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: technician.color }} />
+                            )}
+                            <span className="min-w-0 flex-1 truncate">{technician.name}</span>
+                        </ContextMenuItem>
+                    ))}
+                </ContextMenuSubContent>
+            </ContextMenuSub>
+        );
         const calendarSubmenu = (
             <ContextMenuSub>
                 <ContextMenuSubTrigger className="cursor-pointer gap-2">
@@ -3744,6 +3878,7 @@ export default function AppointmentsPage() {
                         </ContextMenuSubContent>
                     </ContextMenuSub>
                     {doctorSubmenu}
+                    {technicianSubmenu}
                     {calendarSubmenu}
                 </>
             );
@@ -3756,6 +3891,7 @@ export default function AppointmentsPage() {
             {editItem}
             {statusSubmenu}
             {doctorSubmenu}
+            {technicianSubmenu}
             {calendarSubmenu}
             {rescheduleItem}
             <ContextMenuItem

@@ -203,6 +203,10 @@ SELECT row_to_json(o) AS data
                       'cancellation_note', a.cancellation_note,
                       'created_at', a.created_at, 'updated_at', a.updated_at,
                       'imported_from_google', a.imported_from_google,
+                      -- Lo necesita /appointments/update_status para propagar el
+                      -- cambio a Google; sin esto, cerrar la cita desde la orden
+                      -- la dejaría desincronizada en el calendario de la sede.
+                      'google_event_id', a.google_event_id,
                       'quote_id', a.quote_id::text,
                       'service_ids', coalesce((SELECT json_agg(x.service_id::text)
                                                  FROM public.appointment_service_catalog x
@@ -939,3 +943,178 @@ SELECT (b.body ->> 'order_id')::uuid,
    AND EXISTS (SELECT 1 FROM public.study_orders so
                 WHERE so.id = (b.body ->> 'order_id')::uuid)
 RETURNING id::text;`;
+
+/** Permisos de citas del sujeto del token. Espeja PERMS_CTE, otro prefijo. */
+const APPT_PERMS_CTE = `
+appt_perms AS (
+    SELECT bool_or(p.code = 'APPOINTMENTS_ASSIGN_TECHNICIAN') AS can_assign
+      FROM public.user_roles ur
+      JOIN public.role_permissions rp ON rp.role_id = ur.role_id
+      JOIN public.permissions p       ON p.id = rp.permission_id
+     WHERE ur.user_id = $1::uuid
+       AND ur.is_active IS NOT FALSE
+       AND p.code = 'APPOINTMENTS_ASSIGN_TECHNICIAN'
+)`;
+
+export const ASSIGN_TECHNICIAN_SQL = `
+-- $1 userId (token)  $2 payload { appointment_id, technician_id }
+--
+-- Asigna (o quita, con technician_id vacío) el técnico que ejecuta la cita.
+--
+-- Va en un endpoint aparte y no dentro de /appointments/upsert por lo mismo de
+-- siempre: ese flujo es el monolito compartido de la agenda, con sync a Google y
+-- notificaciones adentro. Mismo patrón que /appointments/link_invoice y
+-- /study-orders/link-appointment.
+--
+-- Dos caminos para pasar:
+--   · con APPOINTMENTS_ASSIGN_TECHNICIAN se puede asignar a cualquiera —
+--     recepción repartiendo el trabajo del día;
+--   · sin el permiso, uno puede asignarse A SÍ MISMO una cita libre. Es "tomar
+--     la tarea", y es lo que permite que el técnico se organice sin depender de
+--     que alguien le asigne cada estudio.
+-- Quitarse a uno mismo también entra en el segundo caso; robarle una cita ya
+-- tomada a otro, no.
+WITH ${APPT_PERMS_CTE},
+b AS (
+    SELECT $2::jsonb AS body
+),
+v AS (
+    SELECT (body ->> 'appointment_id')::int              AS appointment_id,
+           NULLIF(body ->> 'technician_id', '')::uuid    AS technician_id
+      FROM b
+)
+UPDATE public.appointments a
+   SET technician_id = v.technician_id,
+       updated_at    = now()
+  FROM v
+ WHERE a.id = v.appointment_id
+   AND a.status NOT IN ('cancelled', 'deleted')
+   -- El destinatario tiene que ser un operador de verdad. Sin esto se podría
+   -- "asignar" la cita a un paciente y aparecerle en un panel que no le toca.
+   AND (v.technician_id IS NULL OR EXISTS (
+           SELECT 1 FROM public.user_roles ur
+             JOIN public.roles r ON r.id = ur.role_id
+            WHERE ur.user_id = v.technician_id
+              AND ur.is_active IS NOT FALSE
+              AND r.name = 'operador'
+   ))
+   AND (
+        (SELECT can_assign FROM appt_perms)
+        OR (
+            -- Auto-asignarse: sólo sobre algo que no le pertenece a otro.
+            coalesce(v.technician_id, $1::uuid) = $1::uuid
+            AND (a.technician_id IS NULL OR a.technician_id = $1::uuid)
+        )
+   )
+RETURNING a.id::text AS appointment_id,
+          a.technician_id::text AS technician_id,
+          a.study_order_id::text AS study_order_id;`;
+
+export const TECHNICIAN_TASKS_SQL = `
+-- $1 userId (token)  $2 payload { from, to, technician_id }
+--
+-- Las citas que le tocan a un técnico en un rango. Alimenta el panel de Tareas,
+-- que es Mi Consultorio con otra fuente.
+--
+-- Dos caminos que SE SUMAN, como pidió el cliente:
+--   · lo asignado directamente (appointments.technician_id), y
+--   · lo que caiga en un calendario al que tenga acceso (public.calendar_users,
+--     la misma tabla que ya usa Mi Consultorio para su selector).
+-- Un técnico sin calendarios asignados ve sólo lo suyo; uno con acceso a la sala
+-- ve todo lo de esa sala, esté o no repartido.
+--
+-- technician_id del body sólo lo respeta quien puede asignar (recepción mirando
+-- la carga de otro). Sin ese permiso, se ignora y se usa el sujeto del token:
+-- el panel de uno nunca puede pedir el de otro.
+WITH ${APPT_PERMS_CTE},
+b AS (
+    SELECT $2::jsonb AS body
+),
+v AS (
+    SELECT (body ->> 'from')::timestamp AS starts_at,
+           (body ->> 'to')::timestamp   AS ends_at,
+           CASE WHEN (SELECT can_assign FROM appt_perms)
+                 AND coalesce(body ->> 'technician_id', '') <> ''
+                THEN (body ->> 'technician_id')::uuid
+                ELSE $1::uuid
+           END AS subject
+      FROM b
+)
+SELECT a.id::text                    AS appointment_id,
+       a.patient_id::text            AS patient_id,
+       pu.name                       AS patient_name,
+       pu.email                      AS patient_email,
+       pu.phone_number               AS patient_phone,
+       a.assignee_id::text           AS doctor_id,
+       du.name                       AS doctor_name,
+       du.email                      AS doctor_email,
+       a.technician_id::text         AS technician_id,
+       tu.name                       AS technician_name,
+       a.summary                     AS summary,
+       a.description                 AS description,
+       a.notes                       AS notes,
+       a.status                      AS status,
+       a.start_datetime              AS start_time,
+       a.end_datetime                AS end_time,
+       a.created_at                  AS created_at,
+       a.google_event_id             AS google_event_id,
+       a.calendar_source_id::text    AS calendar_source_id,
+       cs.name                       AS calendar_name,
+       cs.google_calendar_id         AS google_calendar_id,
+       a.color                       AS color,
+       a.quote_id::text              AS quote_id,
+       a.study_order_id::text        AS study_order_id,
+       so.order_number               AS study_order_number,
+       coalesce((
+         SELECT json_agg(json_build_object('id', sc.id::text, 'name', sc.name, 'price', sc.price))
+           FROM public.appointment_service_catalog asc2
+           JOIN public.service_catalog sc ON sc.id = asc2.service_id
+          WHERE asc2.appointment_id = a.id
+       ), '[]'::json)               AS services
+  FROM public.appointments a
+  CROSS JOIN v
+  LEFT JOIN public.users pu          ON pu.id = a.patient_id
+  LEFT JOIN public.users du          ON du.id = a.assignee_id
+  LEFT JOIN public.users tu          ON tu.id = a.technician_id
+  LEFT JOIN public.calendar_sources cs ON cs.id = a.calendar_source_id
+  LEFT JOIN public.study_orders so    ON so.id = a.study_order_id
+ WHERE a.status <> 'deleted'
+   AND a.start_datetime >= v.starts_at
+   AND a.start_datetime <= v.ends_at
+   AND (
+        a.technician_id = v.subject
+        OR EXISTS (SELECT 1 FROM public.calendar_users cu
+                    WHERE cu.user_id = v.subject
+                      AND cu.calendar_source_id = a.calendar_source_id)
+   )
+ ORDER BY a.start_datetime;`;
+
+export const APPOINTMENT_TECHNICIANS_SQL = `
+-- $1 userId (token)  $2 payload { appointment_ids: [..] }
+--
+-- Qué técnico tiene asignado cada cita de una lista.
+--
+-- Existe por lo mismo que /study-orders/by-appointment: technician_id no viaja
+-- con los datos de la cita, porque Get_Appointments es el monolito compartido de
+-- la agenda y no se toca para esto. El calendario carga sus citas y después
+-- pregunta acá, de una sola vez para todas las visibles.
+--
+-- Sólo devuelve las que TIENEN técnico: las demás se leen por ausencia y así la
+-- respuesta no crece con la agenda entera.
+--
+-- No lleva guarda de permisos a propósito: saber quién atiende una cita es lo
+-- mismo que ya muestra la agenda de la clínica, y quien llega hasta acá tiene
+-- token válido y está mirando esas citas.
+WITH b AS (
+    SELECT $2::jsonb AS body
+)
+SELECT a.id::text            AS appointment_id,
+       a.technician_id::text AS technician_id,
+       u.name                AS technician_name
+  FROM public.appointments a
+  JOIN public.users u ON u.id = a.technician_id
+  CROSS JOIN b
+ WHERE a.technician_id IS NOT NULL
+   AND a.id = ANY (
+       SELECT (jsonb_array_elements_text(coalesce(b.body -> 'appointment_ids', '[]'::jsonb)))::int
+   );`;

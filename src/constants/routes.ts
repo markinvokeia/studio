@@ -20,6 +20,12 @@ export const API_ROUTES = {
     CALENDARS_DELETE: '/calendarios/delete',
     CALENDAR_SETTINGS_SEARCH: '/calendar_settings/search',
     CALENDAR_SETTINGS_UPSERT: '/calendar_settings/upsert',
+    /** Técnico que ejecuta la cita. Endpoint aparte: /appointments/upsert es el monolito. */
+    APPOINTMENTS_ASSIGN_TECHNICIAN: '/appointments/assign-technician',
+    /** Qué técnico tiene cada cita de una lista. No viaja con los datos de la cita. */
+    APPOINTMENTS_TECHNICIANS: '/appointments/technicians',
+    /** Las citas que le tocan a un técnico: asignadas + las de sus calendarios. */
+    APPOINTMENTS_TECHNICIAN_TASKS: '/appointments/technician-tasks',
     CALENDAR_USERS_SEARCH: '/calendar_users/search',
     CALENDAR_USERS_UPSERT: '/calendar_users/upsert',
     SERVICES: '/services',

@@ -94,7 +94,13 @@ export const getColumns = (t: (key: string) => string, onToggleActivate: (user: 
 ];
 
 
-export function DoctorsColumnsWrapper({ onToggleActivate, onEdit }: { onToggleActivate: (user: User) => void; onEdit: (user: User) => void; }) {
+/**
+ * `namespace` permite que la misma tabla sirva a Doctores y a Técnicos: los
+ * encabezados son los mismos, pero cada pantalla tiene su bloque de mensajes
+ * para poder decir "Doctor" o "Técnico" donde corresponda sin acoplarse a la
+ * otra.
+ */
+export function DoctorsColumnsWrapper({ onToggleActivate, onEdit, namespace = 'DoctorsPage' }: { onToggleActivate: (user: User) => void; onEdit: (user: User) => void; namespace?: string; }) {
   const t = useTranslations('DoctorsPage.DoctorColumns');
   const columns = React.useMemo(() => {
     return getColumns(t, onToggleActivate, onEdit);
