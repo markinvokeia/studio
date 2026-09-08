@@ -95,6 +95,13 @@ export function ReminderQuickView({
 
   const accentColor = reminder.color || '#8b5cf6';
 
+  // En la vista de agenda (y en móvil) la card ocupa casi todo el ancho: anclar
+  // el popover "a la derecha" lo deja sin espacio y Radix lo aplasta contra el
+  // borde izquierdo o lo empuja fuera de pantalla. Si el ancla es ancha respecto
+  // al viewport, se abre debajo de la fila.
+  const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
+  const side = anchorRect.width > viewportWidth * 0.6 ? 'bottom' : 'right';
+
   return (
     <Popover open onOpenChange={(open) => { if (!open) onClose(); }}>
       <PopoverAnchor asChild>
@@ -111,7 +118,7 @@ export function ReminderQuickView({
       </PopoverAnchor>
       <PopoverContent
         data-testid="reminder-quick-view"
-        side="right"
+        side={side}
         align="start"
         sideOffset={8}
         collisionPadding={12}

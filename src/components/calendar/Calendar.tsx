@@ -275,6 +275,9 @@ const Calendar: React.FC<CalendarProps> = ({
             dateLocale={dateLocale}
             breakpoint={breakpoint}
             onEventClick={onEventClick}
+            onEventDoubleClick={onEventDoubleClick}
+            onEventContextMenu={onEventContextMenu}
+            onEventContextMenuOpen={onEventContextMenuOpen}
             selectedAppointmentIds={selectedAppointmentIds}
             onToggleAppointmentSelect={onToggleAppointmentSelect}
           />

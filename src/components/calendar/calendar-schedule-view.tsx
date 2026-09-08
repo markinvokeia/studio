@@ -8,6 +8,7 @@ import { format, parseISO } from 'date-fns';
 import { BellRing, CheckCircle2, Clock, Lock, Stethoscope, FileText } from 'lucide-react';
 
 import { Checkbox } from '@/components/ui/checkbox';
+import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from '@/components/ui/context-menu';
 import { getStatusIcon } from '@/components/appointments/status-icons';
 import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
 import { cn } from '@/lib/utils';
@@ -58,6 +59,12 @@ interface CalendarScheduleViewProps {
   dateLocale: Locale;
   breakpoint?: CalendarBreakpoint;
   onEventClick: (data: any, anchorRect?: DOMRect) => void;
+  /** Doble clic sobre la cita/recordatorio: abre el modal de edición (igual que día/semana). */
+  onEventDoubleClick?: (data: any) => void;
+  /** Cuerpo del menú contextual de una cita/recordatorio (mismo render prop que las demás vistas). */
+  onEventContextMenu?: (data: any) => React.ReactNode;
+  /** Aviso de que el menú contextual se abrió, para prefetch de datos. */
+  onEventContextMenuOpen?: (data: any) => void;
   selectedAppointmentIds?: Set<string>;
   onToggleAppointmentSelect?: (id: string) => void;
 }
@@ -67,11 +74,18 @@ export function CalendarScheduleView({
   dateLocale,
   breakpoint = 'desktop',
   onEventClick,
+  onEventDoubleClick,
+  onEventContextMenu,
+  onEventContextMenuOpen,
   selectedAppointmentIds,
   onToggleAppointmentSelect,
 }: CalendarScheduleViewProps) {
   const tAppointments = useTranslations('AppointmentsPage');
   const isBulkMode = !!onToggleAppointmentSelect;
+  // El clic simple se difiere para no dispararse al hacer doble clic (que abre el
+  // modal de edición). Una sola interacción a la vez, así que basta un ref.
+  const clickTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  React.useEffect(() => () => { if (clickTimer.current) clearTimeout(clickTimer.current); }, []);
   const groupedEvents = events.reduce<Record<string, CalendarEvent[]>>((acc, event) => {
     if (!event.start) return acc;
     try {
@@ -140,9 +154,8 @@ export function CalendarScheduleView({
               const cancellationReason = (event.data?.cancellation_reason as CancellationReason | undefined) ?? null;
               const appointmentId: string = event.data?.id ?? event.id;
               const isSelected = !isReminder && isBulkMode && (selectedAppointmentIds?.has(appointmentId) ?? false);
-              return (
+              const card = (
               <div
-                key={event.id}
                 title={event.label ?? event.title}
                 data-testid="calendar-schedule-event"
                 className={cn(
@@ -165,7 +178,18 @@ export function CalendarScheduleView({
                     onToggleAppointmentSelect!(appointmentId);
                     return;
                   }
-                  onEventClick(event.data, e.currentTarget.getBoundingClientRect());
+                  // El rect se toma acá y no dentro del timeout: para cuando corre,
+                  // React ya anuló `currentTarget` del evento.
+                  const anchorRect = e.currentTarget.getBoundingClientRect();
+                  if (!onEventDoubleClick) { onEventClick(event.data, anchorRect); return; }
+                  if (e.detail > 1) return; // parte de un doble clic; se ignora
+                  if (clickTimer.current) clearTimeout(clickTimer.current);
+                  clickTimer.current = setTimeout(() => onEventClick(event.data, anchorRect), 220);
+                }}
+                onDoubleClick={() => {
+                  if (!onEventDoubleClick || (isBulkMode && !isReminder)) return;
+                  if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null; }
+                  onEventDoubleClick(event.data);
                 }}
               >
                 {/* Accent bar — selection indicator */}
@@ -286,6 +310,23 @@ export function CalendarScheduleView({
                   </div>
                 )}
               </div>
+              );
+
+              // En modo selección múltiple el clic ya no abre nada y el menú
+              // contextual queda deshabilitado, igual que en el resto de vistas.
+              if (!onEventContextMenu || (isBulkMode && !isReminder)) {
+                return <React.Fragment key={event.id}>{card}</React.Fragment>;
+              }
+              return (
+                <ContextMenu
+                  key={event.id}
+                  onOpenChange={(open) => { if (open) onEventContextMenuOpen?.(event.data); }}
+                >
+                  <ContextMenuTrigger asChild>{card}</ContextMenuTrigger>
+                  <ContextMenuContent className="w-[min(18rem,calc(100vw-1rem))]">
+                    {onEventContextMenu(event.data)}
+                  </ContextMenuContent>
+                </ContextMenu>
               );
             })}
           </div>

@@ -107,6 +107,13 @@ export function AppointmentQuickView({
 
   const accentColor = STATUS_ACCENT_COLOR[appointment.status] ?? appointment.color;
 
+  // En la vista de agenda (y en móvil) la card ocupa casi todo el ancho, así que
+  // anclar el popover "a la derecha" lo deja sin espacio: Radix lo aplasta contra
+  // el borde izquierdo o lo empuja fuera de pantalla. Si el ancla es ancha
+  // respecto al viewport, se abre debajo de la fila.
+  const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
+  const side = anchorRect.width > viewportWidth * 0.6 ? 'bottom' : 'right';
+
   return (
     <Popover open onOpenChange={(open) => { if (!open) onClose(); }}>
       <PopoverAnchor asChild>
@@ -123,7 +130,7 @@ export function AppointmentQuickView({
       </PopoverAnchor>
       <PopoverContent
         data-testid="appointment-quick-view"
-        side="right"
+        side={side}
         align="start"
         sideOffset={8}
         collisionPadding={12}
