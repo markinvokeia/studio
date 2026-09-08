@@ -362,7 +362,7 @@ export type CreditNote = Invoice & {
 export interface DocPrintTemplate {
   id: string;
   clinic_id: string;
-  template_type: 'quote' | 'invoice' | 'payment' | 'credit_note' | 'prepayment' | 'financial_summary' | 'ledger' | 'caja_apertura' | 'caja_cierre' | 'caja_sesion' | 'clinic_history';
+  template_type: 'quote' | 'invoice' | 'payment' | 'credit_note' | 'prepayment' | 'financial_summary' | 'ledger' | 'caja_apertura' | 'caja_cierre' | 'caja_sesion' | 'clinic_history' | 'study_order';
   template_html: string;
   is_active: boolean;
   createdAt: string;
@@ -3293,8 +3293,28 @@ export interface StudyOrderUpsertPayload {
 
 /** Link de auto-agendamiento. El token en claro se devuelve una sola vez. */
 export interface StudyOrderBookingLink {
+  /**
+   * Token en claro. El backend lo devuelve UNA sola vez, al generarlo: en la
+   * base vive sólo su sha256. Si se pierde, hay que generar otro link.
+   */
   token: string;
-  url: string;
   expires_at: string;
   max_uses: number;
+}
+
+/**
+ * Lo que ve el paciente al abrir el link de auto-agendamiento, sin cuenta.
+ *
+ * Deliberadamente magro: cualquiera con el link ve esto. Alcanza para
+ * reconocer la orden como propia y saber qué estudios faltan, y nada más —
+ * sin documento, teléfono, mail ni las notas clínicas del derivador.
+ */
+export interface PublicStudyOrder {
+  id: string;
+  order_number: string;
+  patient_first_name: string;
+  doctor_name?: string | null;
+  preferred_sede_id?: number | null;
+  preferred_sede_name?: string | null;
+  pending_services: Array<{ id: string; name: string; duration_minutes?: number | null }>;
 }

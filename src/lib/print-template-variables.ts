@@ -140,4 +140,5 @@ export const PRINT_TEMPLATE_VARIABLES: Record<PrintDocumentType, PrintTemplateVa
   ledger: [],
   // The clinic history is a React-only print (not a customizable HTML template).
   clinic_history: [],
+  study_order: [],
 };

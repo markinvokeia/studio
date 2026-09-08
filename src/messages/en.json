@@ -9128,11 +9128,12 @@
       "deliverySection": "Delivery method",
       "clinicalNotes": "Notes",
       "clinicalNotesPlaceholder": "Anything the clinic should know before the study",
-      "regionsLabel": "Select region of interest",
+      "regionsLabel": "Teeth",
       "noServicesSelected": "Select at least one study.",
       "saveDraft": "Save draft",
       "submit": "Send to clinic",
-      "selectedCount": "{count} studies selected"
+      "selectedCount": "{count} studies selected",
+      "textsSection": "Details"
     },
     "submitDialog": {
       "title": "Send the order to the clinic?",
@@ -9208,6 +9209,38 @@
       "orderPlaceholder": "No linked order",
       "noOrder": "No linked order",
       "noOrdersForPatient": "This patient has no study orders."
-    }
+    },
+    "bookingLink": {
+      "description": "Generate a link so the patient can pick a day and time themselves. Valid for {days} days, good for one booking.",
+      "generate": "Generate link",
+      "copy": "Copy link",
+      "copied": "Link copied",
+      "copyFailed": "Could not copy. Select it and copy manually.",
+      "expiresAt": "Expires on {date}",
+      "showOnce": "Copy it now: for security it will not be shown again.",
+      "revokesPrevious": "Generating a new link voids the previous one.",
+      "error": "Could not generate the link",
+      "blockedNotSubmitted": "The order must be submitted before a link can be generated.",
+      "blockedNoPatient": "Link the patient record before generating the link.",
+      "blockedScheduled": "This order already has all of its studies scheduled."
+    },
+    "printTitle": "Study Order"
+  },
+  "StudyOrderBooking": {
+    "greeting": "Hi {name}",
+    "intro": "Pick a day and time for your studies.",
+    "introWithDoctor": "{doctor} referred you for these studies. Pick the day and time that suit you best.",
+    "chooseSede": "Which location works best for you?",
+    "noSedes": "No locations are available right now. Please contact the clinic.",
+    "previousDays": "Previous days",
+    "nextDays": "Next days",
+    "noSlots": "No times left that day. Try another one.",
+    "durationHint": "The studies take about {minutes} minutes.",
+    "bookingError": "We could not book that time. Please try again.",
+    "invalidTitle": "This link no longer works",
+    "invalidBody": "It may have expired or already been used. Contact the clinic to get a new one.",
+    "doneTitle": "All set!",
+    "doneBody": "We will see you on {date} at {time} at {sede}.",
+    "doneHint": "If you need to change the time, please contact the clinic."
   }
 }

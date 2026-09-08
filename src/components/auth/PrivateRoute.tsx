@@ -62,7 +62,9 @@ export function PrivateRoute({
   const router = useRouter();
   const locale = useLocale();
 
-  const isPublicPage = pathname === `/${locale}/login` || pathname === `/${locale}/patient-login` || pathname.startsWith(`/${locale}/reset-password`) || pathname.startsWith(`/${locale}/set-first-password`);
+  // `/orden/<token>` es el link de auto-agendamiento: el paciente llega sin
+  // cuenta y lo que autoriza es el token de la URL, validado en el backend.
+  const isPublicPage = pathname === `/${locale}/login` || pathname === `/${locale}/patient-login` || pathname.startsWith(`/${locale}/reset-password`) || pathname.startsWith(`/${locale}/set-first-password`) || pathname.startsWith(`/${locale}/orden/`);
   const isTVScreenPage = pathname === `/${locale}/tv-display/screen`;
   const isPatientPortalPage = pathname.startsWith(`/${locale}/my-profile`);
 
@@ -71,7 +73,7 @@ export function PrivateRoute({
       if (!user && !isPublicPage) {
         // Un paciente que pierde la sesión vuelve a SU login, no al del staff.
         router.replace(`/${locale}/${isPatientPortalPage ? 'patient-login' : 'login'}`);
-      } else if (user && isPublicPage && !pathname.startsWith(`/${locale}/reset-password`) && !pathname.startsWith(`/${locale}/set-first-password`)) {
+      } else if (user && isPublicPage && !pathname.startsWith(`/${locale}/reset-password`) && !pathname.startsWith(`/${locale}/set-first-password`) && !pathname.startsWith(`/${locale}/orden/`)) {
         // Quien se autenticó por la landing de pacientes va al portal, aunque
         // además sea staff: es la puerta por la que decidió entrar.
         //
@@ -113,7 +115,7 @@ export function PrivateRoute({
     return null;
   }
 
-  if (user && isPublicPage && !pathname.startsWith(`/${locale}/reset-password`) && !pathname.startsWith(`/${locale}/set-first-password`)) {
+  if (user && isPublicPage && !pathname.startsWith(`/${locale}/reset-password`) && !pathname.startsWith(`/${locale}/set-first-password`) && !pathname.startsWith(`/${locale}/orden/`)) {
     return null;
   }
 

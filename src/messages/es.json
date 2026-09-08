@@ -9107,11 +9107,12 @@
       "deliverySection": "Medio de envío",
       "clinicalNotes": "Aclaración",
       "clinicalNotesPlaceholder": "Lo que la clínica tenga que saber antes del estudio",
-      "regionsLabel": "Indique región de interés",
+      "regionsLabel": "Piezas",
       "noServicesSelected": "Seleccioná al menos un estudio.",
       "saveDraft": "Guardar borrador",
       "submit": "Enviar a la clínica",
-      "selectedCount": "{count} estudios seleccionados"
+      "selectedCount": "{count} estudios seleccionados",
+      "textsSection": "Detalles"
     },
     "submitDialog": {
       "title": "¿Enviar la orden a la clínica?",
@@ -9187,6 +9188,38 @@
       "orderPlaceholder": "Sin orden asociada",
       "noOrder": "Sin orden asociada",
       "noOrdersForPatient": "Este paciente no tiene órdenes de estudio."
-    }
+    },
+    "bookingLink": {
+      "description": "Generá un link para que el paciente elija día y hora por su cuenta. Vale {days} días y sirve para una reserva.",
+      "generate": "Generar link",
+      "copy": "Copiar link",
+      "copied": "Link copiado",
+      "copyFailed": "No se pudo copiar. Seleccionalo y copialo a mano.",
+      "expiresAt": "Vence el {date}",
+      "showOnce": "Copialo ahora: por seguridad no se vuelve a mostrar.",
+      "revokesPrevious": "Generar un link nuevo anula el anterior.",
+      "error": "No se pudo generar el link",
+      "blockedNotSubmitted": "La orden tiene que estar enviada para poder generar el link.",
+      "blockedNoPatient": "Falta vincular la ficha del paciente antes de generar el link.",
+      "blockedScheduled": "Esta orden ya tiene todos sus estudios agendados."
+    },
+    "printTitle": "Orden de Estudio"
+  },
+  "StudyOrderBooking": {
+    "greeting": "Hola {name}",
+    "intro": "Elegí el día y la hora para tus estudios.",
+    "introWithDoctor": "{doctor} te derivó estos estudios. Elegí el día y la hora que te queden mejor.",
+    "chooseSede": "¿En qué sede preferís atenderte?",
+    "noSedes": "No hay sedes disponibles en este momento. Comunicate con la clínica.",
+    "previousDays": "Días anteriores",
+    "nextDays": "Días siguientes",
+    "noSlots": "No quedan horarios libres ese día. Probá con otro.",
+    "durationHint": "Los estudios llevan unos {minutes} minutos.",
+    "bookingError": "No pudimos reservar el horario. Probá de nuevo.",
+    "invalidTitle": "Este link ya no sirve",
+    "invalidBody": "Puede haber vencido o haberse usado. Comunicate con la clínica para que te envíen uno nuevo.",
+    "doneTitle": "¡Listo!",
+    "doneBody": "Te esperamos el {date} a las {time} en {sede}.",
+    "doneHint": "Si necesitás cambiar el horario, comunicate con la clínica."
   }
 }
