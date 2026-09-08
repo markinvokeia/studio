@@ -25,7 +25,7 @@ import { fileURLToPath } from 'node:url';
 import {
     ACKNOWLEDGE_SQL, CANCEL_SQL, DELETE_SQL, DETAIL_SQL,
     BY_APPOINTMENT_SQL, LINK_APPOINTMENT_SQL, LIST_SQL, NOTIFY_DOCTOR_SQL, NOTIFY_RECEPTION_SQL, OPTIONS_SQL,
-    BOOKING_TOKEN_SQL, LOG_EVENT_SQL, PUBLIC_BOOK_SQL, PUBLIC_DETAIL_SQL, RECONCILE_SQL,
+    APPOINTMENT_TECHNICIANS_SQL, ASSIGN_TECHNICIAN_SQL, BOOKING_TOKEN_SQL, LOG_EVENT_SQL, TECHNICIAN_TASKS_SQL, PUBLIC_BOOK_SQL, PUBLIC_DETAIL_SQL, RECONCILE_SQL,
     RECOMPUTE_SQL, RESCHEDULE_SQL, SUBMIT_SQL, UPSERT_SQL,
 } from './study-orders-sql.mjs';
 
@@ -545,13 +545,15 @@ const b = $json.body || {};
 const id = (b.id || '').toString().trim();
 if (!id) return [{ json: { __error: true, __code: 400, __message: 'id es requerido' } }];
 
-// Lista cerrada: el 'change' termina en el texto de la tarjeta del doctor y no
-// puede ser lo que el cliente quiera.
+// Lista cerrada: el 'change' termina en la bitácora y en la tarjeta del doctor,
+// y no puede ser lo que el cliente quiera.
 //
-// Sólo va la cancelación. Guardar una sesión clínica NO lleva hint: si cerró la
-// orden, el recálculo devuelve 'completed' solo; si no la cerró, no hay nada que
-// contarle al derivador y un hint lo haría notificar en cada guardado.
-const ALLOWED = ['appointment_cancelled'];
+// 'session_saved' es LOG-ONLY: se anota en el historial pero no notifica. Una
+// orden de cinco estudios se atiende en varias sesiones y de las cuatro primeras
+// el derivador no tiene nada que saber; se entera cuando la última cierra la
+// orden, y ahí el recálculo devuelve 'completed' por su cuenta.
+const ALLOWED = ['appointment_cancelled', 'session_saved'];
+const LOG_ONLY = ['session_saved'];
 const hint = (b.change || '').toString().trim();
 const change = ALLOWED.includes(hint) ? hint : '';
 
@@ -559,7 +561,15 @@ const change = ALLOWED.includes(hint) ? hint : '';
 // la bitácora sí, para poder decir "se canceló la cita del 10 a las 14".
 const apptId = (b.appointment_id || '').toString().trim();
 
-return [{ json: { user_id: String(userId), appointment_id: apptId, payload: JSON.stringify({ id, change }) } }];`.trim(),
+return [{ json: {
+  user_id: String(userId),
+  appointment_id: apptId,
+  // Lo que se anota y lo que se avisa son dos cosas distintas: el nodo de
+  // bitacora usa change, y el de aviso usa notify_change, que va vacio en los
+  // eventos log-only.
+  notify_change: LOG_ONLY.includes(change) ? '' : change,
+  payload: JSON.stringify({ id, change }),
+} }];`.trim(),
     event: { replacement: `={{ JSON.stringify({ order_id: $('Formatear Respuesta').first().json.__data?.id || '', event_type: $('Formatear Respuesta').first().json.__data?.change || '', actor_id: $('Validar Datos').first().json.user_id, appointment_id: $('Validar Datos').first().json.appointment_id || '' }) }}` },
     sql: RECOMPUTE_SQL,
     replacement: '={{ [ $json.user_id, $json.payload ] }}',
@@ -570,7 +580,7 @@ return [{ json: { user_id: String(userId), appointment_id: apptId, payload: JSON
 return [{ json: { __data: rows[0] ?? null } }];`),
     notify: {
         sql: NOTIFY_DOCTOR_SQL,
-        replacement: `={{ [ $('Formatear Respuesta').first().json.__data?.id || '', $('Formatear Respuesta').first().json.__data?.change || '', $('Validar Datos').first().json.user_id ] }}`,
+        replacement: `={{ [ $('Formatear Respuesta').first().json.__data?.id || '', ($('Formatear Respuesta').first().json.__data?.changed ? $('Formatear Respuesta').first().json.__data?.change : $('Validar Datos').first().json.notify_change) || '', $('Validar Datos').first().json.user_id ] }}`,
         eventType: 'study_order_status_changed',
     },
 });
@@ -704,6 +714,93 @@ return [{ json: { __data: rows[0], __message: 'Cita reservada' } }];`),
             eventType: 'study_order_submitted',
         },
     ],
+});
+
+// ── 16. POST /appointments/assign-technician ─────────────────────────────────
+workflows.push({
+    file: 'appointments-assign-technician.json',
+    name: 'Appointments - Assign Technician',
+    sticky: `## POST /appointments/assign-technician\n\nQuién ejecuta la cita. **No** es el derivador: \`assignee_id\` sigue siendo el odontólogo que mandó al paciente, y esta columna (\`technician_id\`) es el técnico que toma el estudio.\n\n**Body:** \`{ "appointment_id": "123", "technician_id": "uuid" }\` — \`technician_id\` vacío desasigna.\n\n**Dos caminos:** con \`APPOINTMENTS_ASSIGN_TECHNICIAN\` se asigna a cualquiera (recepción repartiendo el día). Sin el permiso, uno puede tomar para sí una cita libre, pero no robarle una ya tomada a otro.\n\nEl destinatario tiene que tener rol \`operador\`: si no, la cita le aparecería en un panel que no le toca.\n\n**Endpoint aparte** de /appointments/upsert por lo mismo que link_invoice: ese flujo es el monolito de la agenda.\n\n**409** si la cita está cancelada, el destinatario no es operador, o no hay permiso.`,
+    method: 'POST',
+    path: 'appointments/assign-technician',
+    id: 'asgtec',
+    validate: `
+const userId = $json.jwtPayload?.userId;
+if (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];
+const b = $json.body || {};
+const apptId = (b.appointment_id || '').toString().trim();
+if (!apptId) return [{ json: { __error: true, __code: 400, __message: 'appointment_id es requerido' } }];
+// Vacío es válido: significa desasignar.
+const techId = (b.technician_id || '').toString().trim();
+return [{ json: {
+  user_id: String(userId),
+  appointment_id: apptId,
+  payload: JSON.stringify({ appointment_id: apptId, technician_id: techId }),
+} }];`.trim(),
+    sql: ASSIGN_TECHNICIAN_SQL,
+    replacement: '={{ [ $json.user_id, $json.payload ] }}',
+    format: formatCode(`
+if (!rows.length) {
+  return [{ json: { __error: true, __code: 409,
+    __message: 'No se pudo asignar: la cita está cancelada, el destinatario no es un operador, o no tenés permiso' } }];
+}
+return [{ json: { __data: rows[0], __message: 'Técnico asignado' } }];`),
+});
+
+// ── 17. GET /appointments/technician-tasks ───────────────────────────────────
+workflows.push({
+    file: 'appointments-technician-tasks.json',
+    name: 'Appointments - Technician Tasks',
+    sticky: `## GET /appointments/technician-tasks?from=...&to=...\n\nLas citas que le tocan a un técnico. Alimenta el panel de Tareas, que es Mi Consultorio con otra fuente.\n\n**Dos caminos que se suman:** lo asignado directamente (\`technician_id\`) **y** lo que caiga en un calendario al que tenga acceso (\`calendar_users\`, la misma tabla que ya usa Mi Consultorio). Un técnico sin calendarios ve sólo lo suyo; uno con acceso a la sala ve todo lo de esa sala.\n\n**\`technician_id\` en el query sólo lo respeta quien puede asignar** (recepción mirando la carga de otro). Sin ese permiso se ignora y se usa el sujeto del token: el panel de uno nunca puede pedir el de otro.\n\nEl formato de salida espeja el de \`/users/appointments\`, que es lo que el workspace ya sabe leer.`,
+    method: 'GET',
+    path: 'appointments/technician-tasks',
+    id: 'tectask',
+    validate: `
+const userId = $json.jwtPayload?.userId;
+if (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];
+const q = $json.query || {};
+const from = (q.from || q.startingDateAndTime || '').toString().trim();
+const to = (q.to || q.endingDateAndTime || '').toString().trim();
+if (!from || !to) {
+  return [{ json: { __error: true, __code: 400, __message: 'from y to son requeridos' } }];
+}
+return [{ json: {
+  user_id: String(userId),
+  payload: JSON.stringify({ from, to, technician_id: (q.technician_id || '').toString().trim() }),
+} }];`.trim(),
+    sql: TECHNICIAN_TASKS_SQL,
+    replacement: '={{ [ $json.user_id, $json.payload ] }}',
+    format: formatCode(`
+// Sin tareas no es un error: el técnico puede tener el día libre.
+return [{ json: { __data: rows } }];`),
+});
+
+// ── 18. GET /appointments/technicians ────────────────────────────────────────
+workflows.push({
+    file: 'appointments-technicians.json',
+    name: 'Appointments - Technicians By Ids',
+    sticky: `## GET /appointments/technicians?appointment_ids=1,2,3\n\nQué técnico tiene asignado cada cita de una lista.\n\n**Por qué existe:** \`technician_id\` no viaja con los datos de la cita — \`Get_Appointments\` es el monolito compartido de la agenda y no se toca para esto. El calendario carga sus citas y pregunta acá de una sola vez por todas las visibles, para poder marcar el técnico actual en el menú contextual y en los diálogos.\n\n**Sólo devuelve las que tienen técnico.** Las demás se leen por ausencia, así la respuesta no crece con la agenda entera.\n\nMismo patrón que \`/study-orders/by-appointment\`.`,
+    method: 'GET',
+    path: 'appointments/technicians',
+    id: 'apptec',
+    validate: `
+const userId = $json.jwtPayload?.userId;
+if (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];
+
+// Se aceptan separados por coma (lo natural en un query) y se limpian: un id no
+// numerico rompe el cast a int del SQL.
+const raw = ($json.query?.appointment_ids || '').toString();
+const ids = raw.split(',').map((v) => v.trim()).filter((v) => /^\d+$/.test(v)).slice(0, 500);
+
+// Una lista vacia sigue igual y devuelve cero filas: un calendario sin citas no
+// es un error, y cortar aca con 400 obligaria al cliente a decidir si llamar.
+return [{ json: { user_id: String(userId), payload: JSON.stringify({ appointment_ids: ids }) } }];`.trim(),
+    sql: APPOINTMENT_TECHNICIANS_SQL,
+    replacement: '={{ [ $json.user_id, $json.payload ] }}',
+    format: formatCode(`
+// Sin asignaciones no es un error: lo normal es que la mayoria de las citas no
+// tengan tecnico.
+return [{ json: { __data: rows } }];`),
 });
 
 /**

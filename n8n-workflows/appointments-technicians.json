@@ -1,0 +1,295 @@
+{
+  "name": "Appointments - Technicians By Ids",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## GET /appointments/technicians?appointment_ids=1,2,3\n\nQué técnico tiene asignado cada cita de una lista.\n\n**Por qué existe:** `technician_id` no viaja con los datos de la cita — `Get_Appointments` es el monolito compartido de la agenda y no se toca para esto. El calendario carga sus citas y pregunta acá de una sola vez por todas las visibles, para poder marcar el técnico actual en el menú contextual y en los diálogos.\n\n**Sólo devuelve las que tienen técnico.** Las demás se leen por ausencia, así la respuesta no crece con la agenda entera.\n\nMismo patrón que `/study-orders/by-appointment`.",
+        "height": 420,
+        "width": 460,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -180
+      ],
+      "id": "apptec-doc",
+      "name": "Contrato"
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "appointments/technicians",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "apptec-wh",
+      "name": "Webhook",
+      "webhookId": "study-orders-apptec",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const userId = $json.jwtPayload?.userId;\nif (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];\n\n// Se aceptan separados por coma (lo natural en un query) y se limpian: un id no\n// numerico rompe el cast a int del SQL.\nconst raw = ($json.query?.appointment_ids || '').toString();\nconst ids = raw.split(',').map((v) => v.trim()).filter((v) => /^d+$/.test(v)).slice(0, 500);\n\n// Una lista vacia sigue igual y devuelve cero filas: un calendario sin citas no\n// es un error, y cortar aca con 400 obligaria al cliente a decidir si llamar.\nreturn [{ json: { user_id: String(userId), payload: JSON.stringify({ appointment_ids: ids }) } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "apptec-val",
+      "name": "Validar Datos"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "apptec-cond",
+              "leftValue": "={{ $json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "apptec-if",
+      "name": "¿Hubo error?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 userId (token)  $2 payload { appointment_ids: [..] }\n--\n-- Qué técnico tiene asignado cada cita de una lista.\n--\n-- Existe por lo mismo que /study-orders/by-appointment: technician_id no viaja\n-- con los datos de la cita, porque Get_Appointments es el monolito compartido de\n-- la agenda y no se toca para esto. El calendario carga sus citas y después\n-- pregunta acá, de una sola vez para todas las visibles.\n--\n-- Sólo devuelve las que TIENEN técnico: las demás se leen por ausencia y así la\n-- respuesta no crece con la agenda entera.\n--\n-- No lleva guarda de permisos a propósito: saber quién atiende una cita es lo\n-- mismo que ya muestra la agenda de la clínica, y quien llega hasta acá tiene\n-- token válido y está mirando esas citas.\nWITH b AS (\n    SELECT $2::jsonb AS body\n)\nSELECT a.id::text            AS appointment_id,\n       a.technician_id::text AS technician_id,\n       u.name                AS technician_name\n  FROM public.appointments a\n  JOIN public.users u ON u.id = a.technician_id\n  CROSS JOIN b\n WHERE a.technician_id IS NOT NULL\n   AND a.id = ANY (\n       SELECT (jsonb_array_elements_text(coalesce(b.body -> 'appointment_ids', '[]'::jsonb)))::int\n   );",
+        "options": {
+          "queryReplacement": "={{ [ $json.user_id, $json.payload ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        660,
+        120
+      ],
+      "id": "apptec-sql",
+      "name": "Consulta",
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Arma el sobre { code, message, data, meta }. Un resultado vacío en una\n// operación de escritura significa que el WHERE de guarda no dejó pasar:\n// es un 409/404, no un 500.\nconst rows = $input.all().map((i) => i.json);\n\n// Sin asignaciones no es un error: lo normal es que la mayoria de las citas no\n// tengan tecnico.\nreturn [{ json: { __data: rows } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        120
+      ],
+      "id": "apptec-fmt",
+      "name": "Formatear Respuesta"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "apptec-cond2",
+              "leftValue": "={{ $json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        120
+      ],
+      "id": "apptec-if2",
+      "name": "¿Error de negocio?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: 200, message: $json.__message || \"OK\", data: $json.__data, meta: $json.__meta } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1320,
+        220
+      ],
+      "id": "apptec-ok",
+      "name": "Responder OK"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: $json.__code || 400, message: $json.__message || \"Error\", data: null } }}",
+        "options": {
+          "responseCode": "={{ $json.__code || 400 }}"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1320,
+        -60
+      ],
+      "id": "apptec-err",
+      "name": "Responder Error"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Datos": {
+      "main": [
+        [
+          {
+            "node": "¿Hubo error?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hubo error?": {
+      "main": [
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consulta": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "¿Error de negocio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Error de negocio?": {
+      "main": [
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    "study-orders",
+    "clinic"
+  ]
+}
