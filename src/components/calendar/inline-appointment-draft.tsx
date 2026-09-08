@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { format } from 'date-fns';
-import { AlertTriangle, Building2, CalendarDays, CalendarX2, Check, ChevronsUpDown, ClipboardList, Clock, FileText, Loader2, Palette, Pencil, Plus, StickyNote, Stethoscope, UserCog, UserRound, X } from 'lucide-react';
+import { AlertTriangle, Building2, CalendarDays, CalendarX2, Check, ChevronsUpDown, ClipboardList, Clock, HardHat, FileText, Loader2, Palette, Pencil, Plus, StickyNote, Stethoscope, UserCog, UserRound, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { cn } from '@/lib/utils';
@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { InlineEntityPicker } from '@/components/appointments/InlineEntityPicker';
 import { InlineServicePicker } from '@/components/calendar/inline-service-picker';
+import { TechnicianPicker } from '@/components/appointments/technician-picker';
 import { StudyOrderPicker } from '@/components/study-orders/study-order-picker';
 import { UserSelector } from '@/components/ui/user-selector';
 import type { Calendar as CalendarType, Service, User } from '@/lib/types';
@@ -50,6 +51,9 @@ interface InlineAppointmentDraftProps {
   /** Id de la cita que se está editando, si es edición. Lo usa el selector de
    *  orden para mostrar a cuál está atada: ese dato no viene con la cita. */
   appointmentId?: string | null;
+  /** Técnico que ejecuta. Lo guarda el padre en un paso aparte, tras el upsert. */
+  technicianId?: string | null;
+  onTechnicianChange?: (technicianId: string | null) => void;
   notes: string;
   onNotesChange: (notes: string) => void;
   /** Cita importada de Google Calendar. Muestra el campo de resumen (el título del
@@ -307,6 +311,8 @@ export function InlineAppointmentDraft({
   services,
   onServicesChange,
   appointmentId,
+  technicianId = null,
+  onTechnicianChange,
   notes,
   onNotesChange,
   importedFromGoogle = false,
@@ -481,6 +487,17 @@ export function InlineAppointmentDraft({
     const added = resolved.filter((s: Service) => !existing.has(String(s.id)));
     if (added.length > 0) onServicesChange([...services, ...added]);
   }, [services, onServicesChange]);
+
+  /**
+   * Quién ejecuta la cita. No es el doctor de arriba: ése es el derivador, y es
+   * lo que hace que la cita aparezca en su agenda. Éste es el técnico que la va
+   * a ver en su panel de Tareas.
+   */
+  const technicianField = onTechnicianChange ? (
+    <Field icon={HardHat}>
+      <TechnicianPicker compact value={technicianId} onChange={onTechnicianChange} />
+    </Field>
+  ) : null;
 
   const studyOrderField = (
     <Field icon={ClipboardList}>
@@ -667,6 +684,7 @@ export function InlineAppointmentDraft({
               {roomField}
               {doctorField}
               {studyOrderField}
+              {technicianField}
           {serviceField}
             </div>
           </div>
@@ -749,6 +767,7 @@ export function InlineAppointmentDraft({
         <>
           {/* Service */}
           {studyOrderField}
+          {technicianField}
           {serviceField}
 
           {/* Note */}

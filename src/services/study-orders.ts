@@ -167,13 +167,18 @@ export async function linkStudyOrderPatient(id: string, patientId: string): Prom
 /**
  * Qué le pasó a la orden, cuando el recálculo por sí solo no puede deducirlo.
  *
+ * `session_saved` es log-only: queda en el historial pero no dispara aviso al
+ * derivador — de las sesiones intermedias de una orden de varios estudios no
+ * tiene nada que enterarse. Se entera cuando la última la cierra, y eso lo
+ * detecta el recálculo por su cuenta.
+ *
  * Cancelar una cita no cambia el estado persistido de la orden — sigue
  * 'submitted' — pero sí devuelve sus líneas a "sin agendar", y de eso el
  * derivador tiene que enterarse. El backend no tiene forma de detectarlo: la
  * vista ya se corrigió sola y no guarda el estado anterior contra el cual
  * comparar. Quien cancela sí lo sabe, así que lo dice.
  */
-export type StudyOrderChangeHint = 'appointment_cancelled';
+export type StudyOrderChangeHint = 'appointment_cancelled' | 'session_saved';
 
 /**
  * Recalcula el estado de la orden contra sus citas y, si ya está todo atendido,
@@ -240,7 +245,7 @@ export async function recomputeStudyOrderForAppointment(appointmentId: string): 
     try {
         const order = await getStudyOrderByAppointment(appointmentId);
         if (!order) return;
-        await recomputeStudyOrder(order.id, undefined, appointmentId);
+        await recomputeStudyOrder(order.id, 'session_saved', appointmentId);
     } catch (error) {
         console.warn('[study-orders] No se pudo recalcular la orden de la cita atendida', { appointmentId, error });
     }

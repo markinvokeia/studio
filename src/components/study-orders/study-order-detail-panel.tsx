@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Activity, CalendarClock, CalendarDays, CalendarPlus, FileText, Inbox, Link2, Pencil, Printer, Send, Trash2, User, UserRoundX, X, XCircle } from 'lucide-react';
+import { Activity, CalendarClock, CalendarDays, CalendarPlus, FileText, Inbox, Link2, Pencil, Printer, Send, Stethoscope, Trash2, User, UserRoundX, X, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +14,7 @@ import { VerticalTabStrip, type VerticalTab } from '@/components/ui/vertical-tab
 
 import { StudyOrderAppointmentCard } from './study-order-appointment-card';
 import { StudyOrderBookingLinkTab } from './study-order-booking-link-tab';
+import { StudyOrderSessionTab } from './study-order-session-tab';
 import { StudyOrderStatusBadge } from './study-order-status-badge';
 import {
     StudyOrderSummary, labelForDelivery, labelForModifier, labelForText,
@@ -21,7 +22,7 @@ import {
 } from './study-order-summary';
 import { StudyOrderTimeline } from './study-order-timeline';
 
-import { STUDY_ORDERS_PERMISSIONS } from '@/constants/permissions';
+import { STUDY_ORDERS_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
 import { usePermissions } from '@/hooks/usePermissions';
 import { formatDisplayDate } from '@/lib/utils';
 import type { StudyOrder, StudyOrderBoardStatus, StudyOrderFormOptions } from '@/lib/types';
@@ -89,6 +90,15 @@ export function StudyOrderDetailPanel({
 
     const [order, setOrder] = React.useState<StudyOrder | null>(null);
     const [isLoading, setIsLoading] = React.useState(true);
+    /** Recarga pedida desde adentro del panel, sin depender del padre. */
+    const [reloadKey, setReloadKey] = React.useState(0);
+    /**
+     * El header pide abrir el formulario de sesión. Va por un contador y no por
+     * un booleano para que pedirlo dos veces seguidas vuelva a abrirlo: si fuera
+     * un flag, cerrar el diálogo lo dejaría en true y el segundo clic no haría
+     * nada.
+     */
+    const [sessionRequest, setSessionRequest] = React.useState(0);
     const [activeTab, setActiveTab] = React.useState('order');
 
     React.useEffect(() => {
@@ -101,7 +111,7 @@ export function StudyOrderDetailPanel({
         });
         // Evita que una respuesta lenta de la orden anterior pise a la actual.
         return () => { cancelled = true; };
-    }, [orderId, refreshKey]);
+    }, [orderId, refreshKey, reloadKey]);
 
     const tabs = React.useMemo<VerticalTab[]>(
         () => [
@@ -109,6 +119,11 @@ export function StudyOrderDetailPanel({
             ...(scope === 'clinic' && hasPermission(STUDY_ORDERS_PERMISSIONS.SCHEDULE)
                 ? [{ id: 'appointments', icon: CalendarDays, label: t('tabs.appointments') }]
                 : []),
+            // A diferencia de Citas, esta pestaña también se ve en Mis Órdenes: al
+            // derivador le importa qué se le hizo a su paciente y quién lo hizo,
+            // que es el desenlace de la orden que mandó. Registrar, en cambio,
+            // está gateado por CLINICAL_SESSION_CREATE dentro de la pestaña.
+            { id: 'sessions', icon: Stethoscope, label: t('tabs.sessions') },
             ...(scope === 'clinic'
                 ? [{ id: 'patient', icon: User, label: t('tabs.patient') }]
                 : []),
@@ -179,6 +194,22 @@ export function StudyOrderDetailPanel({
         );
         if (isClinic && hasMovable && !isFullyScheduled && onReschedule && can(STUDY_ORDERS_PERMISSIONS.SCHEDULE)) {
             actions.push({ key: 'reschedule', label: t('actions.reschedule'), icon: CalendarClock, onClick: () => onReschedule(order), variant: 'default' });
+        }
+
+        // Registrar la sesión desde la cabecera: es el mismo alta de la pestaña
+        // Sesión, a un clic. Sólo cuando hay una cita agendada sin sesión — sin
+        // cita no hay nada que registrar, y con todas registradas tampoco.
+        const recordable = (order.appointments ?? []).some(
+            (a) => !a.session && !['cancelled', 'deleted', 'no_show'].includes(a.status),
+        );
+        if (isSubmitted && recordable && order.patient_id && can(TIMELINE_PERMISSIONS.CREATE)) {
+            actions.push({
+                key: 'session',
+                label: t('sessionTab.record'),
+                icon: Stethoscope,
+                onClick: () => { setActiveTab('sessions'); setSessionRequest((n) => n + 1); },
+                variant: 'default',
+            });
         }
 
         // Imprimir: cualquiera que pueda ver la orden puede llevársela en papel.
@@ -296,6 +327,16 @@ export function StudyOrderDetailPanel({
                             </p>
                         )}
                     </div>
+                )}
+
+                {activeTab === 'sessions' && (
+                    <StudyOrderSessionTab
+                        order={order}
+                        openRequest={sessionRequest}
+                        // Recargar la orden tras guardar: la sesión recién creada
+                        // llega con el detalle, no se puede pintar desde el form.
+                        onSaved={() => setReloadKey((k) => k + 1)}
+                    />
                 )}
 
                 {activeTab === 'patient' && <PatientTab order={order} />}
