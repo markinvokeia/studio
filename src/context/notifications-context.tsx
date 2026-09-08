@@ -448,14 +448,28 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
   // ── SSE event stream ──────────────────────────────────────────────────────
 
-  const handleSSEEvent = React.useCallback((_eventType: string, data: unknown) => {
+  const handleSSEEvent = React.useCallback((eventType: string, data: unknown) => {
     try {
       const normalized = normalizeBackendNotification(data as BackendNotification);
-      if (!normalized) return;
-      setNotifications((prev) => {
-        if (prev.some((n) => n.id === normalized.id)) return prev;
-        return [normalized, ...prev];
-      });
+      if (normalized) {
+        setNotifications((prev) => {
+          if (prev.some((n) => n.id === normalized.id)) return prev;
+          return [normalized, ...prev];
+        });
+        return;
+      }
+
+      // Llegó un evento pero no se pudo armar la notificación con lo que trajo:
+      // el flujo de n8n mandó un payload incompleto, o es un tipo que este
+      // cliente todavía no conoce. Antes se descartaba en silencio y el aviso
+      // sólo aparecía al refrescar la página.
+      //
+      // El evento igual dice que ALGO pasó, así que se recarga el listado desde
+      // el backend, que sí tiene la fila entera. Es el mismo remedio que el
+      // catch de abajo, y hace que un flujo nuevo con el payload mal armado
+      // degrade a "tarda un poco" en vez de a "no llega nunca".
+      console.warn('[Notifications] evento SSE sin datos suficientes; recargando', { eventType, data });
+      void fetchNotifications();
     } catch {
       void fetchNotifications();
     }
