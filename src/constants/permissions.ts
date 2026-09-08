@@ -94,6 +94,11 @@ export const PATIENTS_PERMISSIONS = {
   CREATE_NOTE: 'PATIENTS_CREATE_NOTE',
   UPDATE_NOTE: 'PATIENTS_UPDATE_NOTE',
   DELETE_NOTE: 'PATIENTS_DELETE_NOTE',
+  /** Crear y editar citas desde el perfil del paciente (opción "Cita" del menú Crear y
+   *  el lápiz de una cita en la línea de tiempo del historial). Independiente de los
+   *  APPOINTMENTS_* del calendario: permite dar acceso al calendario sin habilitar esta
+   *  vía, o al revés. */
+  MANAGE_APPOINTMENTS: 'PATIENTS_MANAGE_APPOINTMENTS',
 } as const;
 
 export type PatientsPermission = (typeof PATIENTS_PERMISSIONS)[keyof typeof PATIENTS_PERMISSIONS];

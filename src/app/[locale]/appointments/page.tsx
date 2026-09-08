@@ -348,13 +348,16 @@ function buildEventLabel(appt: Appointment, start: Date, fmt: string, noneLabel:
     const patient = isImported ? summary : (cleanEventLabelPart(appt.patientName, noneLabel) || summary);
     const treatment = isImported ? '' : buildTreatmentPart(appt, patient, noneLabel);
     const notes = isImported ? '' : (appt.notes || '').trim();
+    // Solo lo usa el formato que lo pide, y solo si el paciente lo tiene cargado.
+    const phone = isImported ? '' : cleanEventLabelPart(appt.patientPhone, noneLabel);
     if (fmt === 'patient_treatment_time') {
         return [patient, treatment, time].filter(Boolean).join(' ');
     }
     if (fmt === 'time_patient_notes_treatment') {
-        // Como el default, pero sumando el tratamiento dentro del paréntesis. Se omite
-        // lo que falte, y sin notas ni tratamiento no se muestra el paréntesis.
-        const base = [time, patient].filter(Boolean).join(' ');
+        // Como el default, pero con el teléfono del paciente después del nombre y el
+        // tratamiento dentro del paréntesis. Se omite lo que falte, y sin notas ni
+        // tratamiento no se muestra el paréntesis.
+        const base = [time, patient, phone].filter(Boolean).join(' ');
         const extras = [notes, treatment].filter(Boolean).join(', ');
         return extras ? `${base} (${extras})` : base;
     }
@@ -362,6 +365,9 @@ function buildEventLabel(appt: Appointment, start: Date, fmt: string, noneLabel:
     const base = [time, patient].filter(Boolean).join(' ');
     return notes ? `${base} (${notes})` : base;
 }
+
+/** Clave de localStorage del panel de agendas fijo (preferencia por navegador). */
+const AGENDAS_PANEL_PINNED_KEY = 'calendar-agendas-panel-pinned';
 
 const SETTINGS_VIEW_MAP: Record<string, CalendarView> = {
     day: 'day',
@@ -771,6 +777,21 @@ export default function AppointmentsPage() {
     const [calendarMode, setCalendarMode] = React.useState<string>(DEFAULT_CALENDAR_MODE);
     const [personalizedCalendarId, setPersonalizedCalendarId] = React.useState<string | null>(null);
     const [agendasPanelOpen, setAgendasPanelOpen] = React.useState(false);
+    // Panel de agendas fijo: elegir una agenda no lo cierra. Se recuerda por navegador,
+    // igual que el zoom y la columna de horas del calendario.
+    const [agendasPanelPinned, setAgendasPanelPinned] = React.useState(false);
+    React.useEffect(() => {
+        try {
+            setAgendasPanelPinned(window.localStorage.getItem(AGENDAS_PANEL_PINNED_KEY) === 'true');
+        } catch { /* localStorage bloqueado: queda sin fijar */ }
+    }, []);
+    const handleToggleAgendasPinned = React.useCallback(() => {
+        setAgendasPanelPinned((prev) => {
+            const next = !prev;
+            try { window.localStorage.setItem(AGENDAS_PANEL_PINNED_KEY, String(next)); } catch { /* ignore */ }
+            return next;
+        });
+    }, []);
     const isCustomMode = calendarMode === 'custom';
     const firstVisibleCalendarId = React.useMemo(
         () => calendars.find((calendar) => selectedCalendarIds.includes(calendar.id))?.id ?? null,
@@ -3904,8 +3925,13 @@ export default function AppointmentsPage() {
                                 noSede={calendarSedeGroups.noSede}
                                 visibleIds={selectedCalendarIds}
                                 selectedId={personalizedCalendarId}
-                                onSelect={(id) => { setPersonalizedCalendarId(id); setAgendasPanelOpen(false); }}
+                                onSelect={(id) => {
+                                    setPersonalizedCalendarId(id);
+                                    if (!agendasPanelPinned) setAgendasPanelOpen(false);
+                                }}
                                 onClose={() => setAgendasPanelOpen(false)}
+                                pinned={agendasPanelPinned}
+                                onTogglePinned={handleToggleAgendasPinned}
                             />
                         )}
                         <div className={cn('relative h-full min-w-0 flex-1', isCustomMode && agendasPanelOpen && '[&_.calendar-container]:rounded-l-none')}>

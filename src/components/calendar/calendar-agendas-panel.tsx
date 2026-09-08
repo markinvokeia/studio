@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { X, CalendarDays } from 'lucide-react';
+import { X, CalendarDays, Pin, PinOff } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { cn } from '@/lib/utils';
@@ -32,6 +32,9 @@ interface CalendarAgendasPanelProps {
   /** Choose a calendar to show (single-select). */
   onSelect: (id: string) => void;
   onClose: () => void;
+  /** Panel fijo: elegir una agenda no lo cierra. Se recuerda entre sesiones. */
+  pinned?: boolean;
+  onTogglePinned?: () => void;
 }
 
 /**
@@ -103,7 +106,7 @@ function AgendaItem({ cal, active, onSelect }: { cal: AgendaCalendar; active: bo
  * Docked left side panel (custom mode) listing the visible agendas/calendars,
  * rendered beside the calendar. Selecting one shows only that agenda full-width.
  */
-export function CalendarAgendasPanel({ sedeGroups, noSede, visibleIds, selectedId, onSelect, onClose }: CalendarAgendasPanelProps) {
+export function CalendarAgendasPanel({ sedeGroups, noSede, visibleIds, selectedId, onSelect, onClose, pinned = false, onTogglePinned }: CalendarAgendasPanelProps) {
   const t = useTranslations('Calendar');
   const visibleSet = React.useMemo(() => new Set(visibleIds), [visibleIds]);
 
@@ -130,9 +133,23 @@ export function CalendarAgendasPanel({ sedeGroups, noSede, visibleIds, selectedI
           <CalendarDays className="h-4 w-4 shrink-0" />
           <span className="text-sm font-semibold truncate">{t('agendasPanelTitle')}</span>
         </div>
-        <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 rounded-full" onClick={onClose} title={t('gaps.close')}>
-          <X className="h-3.5 w-3.5" />
-        </Button>
+        <div className="flex items-center gap-0.5 shrink-0">
+          {onTogglePinned && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn('h-6 w-6 rounded-full', pinned && 'bg-background text-foreground shadow-sm')}
+              onClick={onTogglePinned}
+              title={t(pinned ? 'agendasPanelUnpin' : 'agendasPanelPin')}
+              aria-pressed={pinned}
+            >
+              {pinned ? <Pin className="h-3.5 w-3.5" /> : <PinOff className="h-3.5 w-3.5" />}
+            </Button>
+          )}
+          <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full" onClick={onClose} title={t('gaps.close')}>
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-3">
