@@ -157,7 +157,7 @@ export function AppointmentFormDialog({
      * flujo de citas es el monolito compartido de la agenda y no escribe esta
      * columna. Mismo patrón que la orden de estudio.
      */
-    const [technicianId, setTechnicianId] = React.useState<string | null>(null);
+    const [technicianId, setTechnicianId] = React.useState<string | null | undefined>(undefined);
 
     /**
      * Con una operación de agendado en curso, paciente, orden y doctor quedan
@@ -1008,7 +1008,9 @@ export function AppointmentFormDialog({
                 // el panel de tareas si falla.
                 const savedId = editingAppointment?.id
                     ?? result.data?.id ?? result.data?.appointment_id ?? result.id ?? result.appointment_id ?? result.appointmentId;
-                if (canAssignTechnician && savedId) {
+                // `undefined` = el picker todavía no resolvió, o nadie tocó el
+                // campo: no se manda nada, para no desasignar por guardar rápido.
+                if (canAssignTechnician && savedId && technicianId !== undefined) {
                     void assignAppointmentTechnician(String(savedId), technicianId)
                         .catch((error) => console.warn('[technicians] No se pudo asignar el técnico', error));
                 }
@@ -1511,6 +1513,9 @@ export function AppointmentFormDialog({
 
                                 {canAssignTechnician && (
                                     <TechnicianPicker
+                                        // Al editar, el picker consulta y muestra
+                                        // el técnico que la cita ya tiene.
+                                        appointmentId={editingAppointment?.id ? String(editingAppointment.id) : null}
                                         value={technicianId}
                                         onChange={setTechnicianId}
                                         disabled={readOnlyFields?.services}

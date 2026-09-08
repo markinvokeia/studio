@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 import { cn } from '@/lib/utils';
-import { fetchTechnicians, type TechnicianOption } from '@/services/technicians';
+import { fetchAppointmentTechnicians, fetchTechnicians, type TechnicianOption } from '@/services/technicians';
 
 /**
  * Quién ejecuta la cita.
@@ -31,11 +31,19 @@ export interface TechnicianPickerProps {
      * ningún campo lleva label.
      */
     compact?: boolean;
+    /**
+     * Cita que se está editando. Al abrirla se consulta qué técnico tiene
+     * asignado y se muestra seleccionado: ese dato no viaja con los datos de la
+     * cita, porque Get_Appointments es el monolito compartido de la agenda.
+     *
+     * Mismo mecanismo que `StudyOrderPicker`, por el mismo motivo.
+     */
+    appointmentId?: string | null;
 }
 
 const NONE = '__none__';
 
-export function TechnicianPicker({ value, onChange, disabled = false, compact = false }: TechnicianPickerProps) {
+export function TechnicianPicker({ value, onChange, disabled = false, compact = false, appointmentId }: TechnicianPickerProps) {
     const t = useTranslations('AppointmentsPage.technician');
 
     const [technicians, setTechnicians] = React.useState<TechnicianOption[]>([]);
@@ -50,6 +58,24 @@ export function TechnicianPicker({ value, onChange, disabled = false, compact = 
         });
         return () => { cancelled = true; };
     }, []);
+
+    // El callback va por ref para no re-disparar la consulta cada vez que el
+    // padre recrea la función.
+    const onChangeRef = React.useRef(onChange);
+    React.useEffect(() => { onChangeRef.current = onChange; });
+
+    // Al abrir una cita existente se busca su técnico y se muestra seleccionado.
+    // Se hace una sola vez por cita: si el usuario después elige otro, no hay que
+    // pisárselo con el que estaba guardado.
+    const resolvedForRef = React.useRef<string | null>(null);
+    React.useEffect(() => {
+        if (!appointmentId || resolvedForRef.current === appointmentId) return;
+        resolvedForRef.current = appointmentId;
+        void fetchAppointmentTechnicians([appointmentId]).then((map) => {
+            const current = map.get(appointmentId);
+            if (current) onChangeRef.current(current.id);
+        });
+    }, [appointmentId]);
 
     // Sin operadores cargados el campo no aporta nada y sólo ocupa lugar: la
     // clínica que no usa técnicos no tiene por qué verlo.

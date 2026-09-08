@@ -495,7 +495,12 @@ export function InlineAppointmentDraft({
    */
   const technicianField = onTechnicianChange ? (
     <Field icon={HardHat}>
-      <TechnicianPicker compact value={technicianId} onChange={onTechnicianChange} />
+      <TechnicianPicker
+        compact
+        appointmentId={appointmentId ?? null}
+        value={technicianId}
+        onChange={onTechnicianChange}
+      />
     </Field>
   ) : null;
 

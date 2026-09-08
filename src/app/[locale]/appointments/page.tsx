@@ -1512,12 +1512,15 @@ export default function AppointmentsPage() {
             // El técnico va en un paso aparte, como la orden: /appointments/upsert
             // no escribe esa columna. Se manda siempre que el usuario pueda
             // asignar, también cuando lo dejó vacío — así queda desasignada.
+            //
+            // `undefined` significa "todavía no se sabe": el picker no terminó de
+            // resolver el técnico de la cita, o el usuario nunca tocó el campo. En
+            // ese caso NO se manda nada — mandar null desasignaría al técnico que
+            // la cita ya tiene sólo por haber guardado rápido. `null` explícito sí
+            // se manda: es el usuario eligiendo "Sin técnico".
             const savedIdForTechnician = editing?.id ? String(editing.id) : extractAppointmentId(response);
-            if (canAssignTechnician && savedIdForTechnician) {
-                const technicianToSave = inlineDraft.technicianId !== undefined
-                    ? inlineDraft.technicianId
-                    : (editing?.id ? techniciansByAppointment.get(String(editing.id))?.id ?? null : null);
-                void assignAppointmentTechnician(savedIdForTechnician, technicianToSave)
+            if (canAssignTechnician && savedIdForTechnician && inlineDraft.technicianId !== undefined) {
+                void assignAppointmentTechnician(savedIdForTechnician, inlineDraft.technicianId)
                     .catch((error) => console.warn('[technicians] No se pudo asignar el técnico', error));
             }
 
@@ -1547,7 +1550,7 @@ export default function AppointmentsPage() {
         } finally {
             setIsSavingInline(false);
         }
-    }, [inlineDraft, toast, tToasts, rescheduleAppointment, user?.id, calendars, isDateTimeBlocked, markSessionAction, clearStudyOrderScheduling, canAssignTechnician, techniciansByAppointment]);
+    }, [inlineDraft, toast, tToasts, rescheduleAppointment, user?.id, calendars, isDateTimeBlocked, markSessionAction, clearStudyOrderScheduling, canAssignTechnician]);
 
     const isInlineDraftDirty = (
         inlineDraft
@@ -1632,14 +1635,9 @@ export default function AppointmentsPage() {
                 // Al abrir una cita existente, el selector consulta con este id qué
                 // orden tiene atada: ese dato no viaja con los datos de la cita.
                 appointmentId={inlineDraft.editing?.id ? String(inlineDraft.editing.id) : null}
-                // Sin tocar, muestra el técnico que la cita ya tiene; una vez
-                // que el usuario elige, manda lo suyo. `undefined` distingue
-                // "no lo toqué" de "lo dejé vacío a propósito".
-                technicianId={inlineDraft.technicianId !== undefined
-                    ? inlineDraft.technicianId
-                    : (inlineDraft.editing?.id
-                        ? techniciansByAppointment.get(String(inlineDraft.editing.id))?.id ?? null
-                        : null)}
+                // El picker resuelve solo el técnico de la cita que se edita, y
+                // avisa por onChange; acá sólo se refleja lo que haya.
+                technicianId={inlineDraft.technicianId}
                 onTechnicianChange={canAssignTechnician
                     ? (id) => setInlineDraft((d) => (d ? { ...d, technicianId: id } : d))
                     : undefined}

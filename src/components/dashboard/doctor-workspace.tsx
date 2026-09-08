@@ -738,12 +738,14 @@ type WorkspaceAppointmentSource =
   | { mode: 'doctor'; doctorId: string }
   | { mode: 'calendar'; calendarId: string }
   /**
-   * Panel de tareas del técnico. No filtra por doctor: trae lo que tiene
-   * asignado MÁS lo que caiga en los calendarios a los que tenga acceso, que es
-   * lo que el backend resuelve en una sola consulta. Por eso es una fuente
-   * aparte y no el modo 'doctor' con otro id.
+   * Panel de tareas del técnico. No filtra por doctor — el doctor de la cita es
+   * el derivador, no quien la ejecuta.
+   *
+   * `calendarId` decide cuál de las dos pestañas se está mirando: sin él, lo
+   * asignado al usuario ("Asignadas a mí"); con él, todo lo de ese calendario
+   * ("Mis calendarios"). Son excluyentes, igual que para el doctor.
    */
-  | { mode: 'technician'; technicianId: string };
+  | { mode: 'technician'; calendarId?: string };
 
 async function getAppointmentsForRange(source: WorkspaceAppointmentSource, from: Date, to: Date): Promise<Appointment[]> {
   const rangeStart = new Date(from.getFullYear(), from.getMonth(), from.getDate(), 0, 0, 0);
@@ -761,7 +763,7 @@ async function getAppointmentsForRange(source: WorkspaceAppointmentSource, from:
     rawAppointments = await fetchTechnicianTasks({
       from: formatDateForAPI(rangeStart),
       to: formatDateForAPI(rangeEnd),
-      technicianId: source.technicianId,
+      calendarSourceId: source.calendarId,
     });
   } else {
     const query: Record<string, string> = {
@@ -965,11 +967,12 @@ export function DoctorWorkspace({ locale, initialAppointmentId, variant = 'docto
     else setIsLoadingAppointments(true);
 
     try {
-      // El técnico no elige fuente: su endpoint ya suma lo asignado y lo de sus
-      // calendarios. El selector doctor/calendario es del consultorio del médico.
-      const useCalendar = variant === 'doctor' && viewMode === 'calendar' && !!selectedCalendarId;
+      // El selector "Asignadas a mí" / "Mis calendarios" vale para los dos: el
+      // médico lo resuelve contra su endpoint y el técnico contra el suyo, pero
+      // la pregunta que hace el usuario es la misma.
+      const useCalendar = viewMode === 'calendar' && !!selectedCalendarId;
       const source: WorkspaceAppointmentSource = variant === 'technician'
-        ? { mode: 'technician', technicianId: String(user.id) }
+        ? { mode: 'technician', calendarId: useCalendar ? selectedCalendarId : undefined }
         : useCalendar
           ? { mode: 'calendar', calendarId: selectedCalendarId }
           : { mode: 'doctor', doctorId: String(user.id) };

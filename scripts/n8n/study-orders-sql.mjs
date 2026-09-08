@@ -1025,33 +1025,39 @@ RETURNING a.id::text AS appointment_id,
           a.study_order_id::text AS study_order_id;`;
 
 export const TECHNICIAN_TASKS_SQL = `
--- $1 userId (token)  $2 payload { from, to, technician_id }
+-- $1 userId (token)  $2 payload { from, to, calendar_source_id }
 --
 -- Las citas que le tocan a un técnico en un rango. Alimenta el panel de Tareas,
 -- que es Mi Consultorio con otra fuente.
 --
--- Dos caminos que SE SUMAN, como pidió el cliente:
---   · lo asignado directamente (appointments.technician_id), y
---   · lo que caiga en un calendario al que tenga acceso (public.calendar_users,
---     la misma tabla que ya usa Mi Consultorio para su selector).
--- Un técnico sin calendarios asignados ve sólo lo suyo; uno con acceso a la sala
--- ve todo lo de esa sala, esté o no repartido.
+-- DOS MODOS EXCLUYENTES, uno por cada pestaña del panel:
 --
--- technician_id del body sólo lo respeta quien puede asignar (recepción mirando
--- la carga de otro). Sin ese permiso, se ignora y se usa el sujeto del token:
--- el panel de uno nunca puede pedir el de otro.
-WITH ${APPT_PERMS_CTE},
-b AS (
+--   · "Asignadas a mí"  (sin calendar_source_id)
+--         las citas cuyo technician_id es el sujeto DEL TOKEN.
+--
+--   · "Mis calendarios" (con calendar_source_id)
+--         todas las citas de ese calendario, estén asignadas o no.
+--
+-- Es uno o el otro, nunca los dos: son dos preguntas distintas y sumarlas daba
+-- un resultado que no correspondía a ninguna de las dos pestañas.
+--
+-- El técnico sale SIEMPRE del token y nunca del body. La versión anterior lo
+-- aceptaba por parámetro con una comprobación de permisos, y cuando el que
+-- llamaba no tenía el permiso el valor se ignoraba en silencio y devolvía las
+-- citas del propio llamador — para un administrador con acceso a todo, eso se
+-- veía como "no filtra nada". Sin parámetro no hay forma de que se ignore.
+--
+-- El calendario tampoco se valida contra calendar_users: la pestaña sólo ofrece
+-- los calendarios a los que el usuario tiene acceso, y comprobarlo acá volvería
+-- a introducir un camino donde el filtro se cae en silencio. Además no expone
+-- nada nuevo: la agenda de la clínica ya muestra esas citas.
+WITH b AS (
     SELECT $2::jsonb AS body
 ),
 v AS (
     SELECT (body ->> 'from')::timestamp AS starts_at,
            (body ->> 'to')::timestamp   AS ends_at,
-           CASE WHEN (SELECT can_assign FROM appt_perms)
-                 AND coalesce(body ->> 'technician_id', '') <> ''
-                THEN (body ->> 'technician_id')::uuid
-                ELSE $1::uuid
-           END AS subject
+           NULLIF(body ->> 'calendar_source_id', '')::bigint AS calendar_source_id
       FROM b
 )
 SELECT a.id::text                    AS appointment_id,
@@ -1095,12 +1101,11 @@ SELECT a.id::text                    AS appointment_id,
  WHERE a.status <> 'deleted'
    AND a.start_datetime >= v.starts_at
    AND a.start_datetime <= v.ends_at
-   AND (
-        a.technician_id = v.subject
-        OR EXISTS (SELECT 1 FROM public.calendar_users cu
-                    WHERE cu.user_id = v.subject
-                      AND cu.calendar_source_id = a.calendar_source_id)
-   )
+   AND CASE
+         WHEN v.calendar_source_id IS NOT NULL
+              THEN a.calendar_source_id = v.calendar_source_id
+         ELSE a.technician_id = $1::uuid
+       END
  ORDER BY a.start_datetime;`;
 
 export const APPOINTMENT_TECHNICIANS_SQL = `
