@@ -5464,11 +5464,10 @@
     "timeLabel": "Hora",
     "durationLabel": "Duración (min)",
     "priorityLabel": "Prioridad",
-    "visibilityLabel": "Alcance",
-    "visibility": {
-      "personal": "Personal",
-      "general": "General (todo el staff)"
-    },
+    "onlyForMeLabel": "Solo para mí",
+    "onlyForMeHint": "Si lo dejás sin marcar, todo el equipo puede verlo, editarlo y eliminarlo.",
+    "onlyForMeLockedHint": "Solo quien lo creó puede cambiar el alcance.",
+    "personalBadge": "Personal",
     "generalBadge": "General",
     "calendarLabel": "Calendario",
     "noCalendar": "Sin calendario",

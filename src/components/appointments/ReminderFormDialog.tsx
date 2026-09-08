@@ -6,6 +6,7 @@ import { BellRing, FileText } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DatePickerInput } from '@/components/ui/date-picker';
 import {
   Dialog,
@@ -32,7 +33,7 @@ import { MagicWandButton } from '@/components/ai/magic-wand-button';
 import { GOOGLE_CALENDAR_COLORS } from '@/components/calendar/calendar-constants';
 
 import { useLocalAI } from '@/hooks/use-local-ai';
-import { getPriorityColor } from '@/lib/reminders';
+import { getPriorityColor, isReminderAuthor } from '@/lib/reminders';
 import { cn, toLocalISOString } from '@/lib/utils';
 
 import type { Calendar, CalendarItemType, CalendarReminder, CalendarReminderPriority, CalendarReminderVisibility } from '@/lib/types';
@@ -56,6 +57,8 @@ interface ReminderFormDialogProps {
   initialType?: CalendarItemType;
   initialCalendarId?: string | null;
   calendars: Calendar[];
+  /** Usuario en sesión: define si el alcance del ítem que se edita se puede cambiar. */
+  currentUserId?: string | null;
   editingReminder?: CalendarReminder | null;
   onSave: (values: ReminderFormValues) => void;
 }
@@ -98,6 +101,7 @@ export function ReminderFormDialog({
   initialType = 'reminder',
   initialCalendarId = null,
   calendars,
+  currentUserId,
   editingReminder,
   onSave,
 }: ReminderFormDialogProps) {
@@ -111,13 +115,17 @@ export function ReminderFormDialog({
   const [time, setTime] = React.useState(format(new Date(), 'HH:mm'));
   const [duration, setDuration] = React.useState(String(DEFAULT_DURATION_MINUTES));
   const [priority, setPriority] = React.useState<CalendarReminderPriority>('MEDIUM');
-  const [visibility, setVisibility] = React.useState<CalendarReminderVisibility>('personal');
+  const [visibility, setVisibility] = React.useState<CalendarReminderVisibility>('clinic');
   const [calendarId, setCalendarId] = React.useState<string | null>(null);
   const [color, setColor] = React.useState(getPriorityColor('MEDIUM'));
   const [error, setError] = React.useState<string | null>(null);
   const isColorManuallySelectedRef = React.useRef(false);
   const itemType = editingReminder?.type ?? initialType;
   const isNote = itemType === 'note';
+  // El alcance solo lo cambia el autor. Si B marcara "solo para mí" un ítem creado por A,
+  // el backend preserva created_by = A: el ítem pasaría a ser personal DE A y
+  // desaparecería del calendario de B, sin forma de revertirlo desde la UI.
+  const isScopeLocked = !!editingReminder && !isReminderAuthor(editingReminder, currentUserId);
 
   React.useEffect(() => {
     if (!open) return;
@@ -134,7 +142,7 @@ export function ReminderFormDialog({
     setTime(format(start, 'HH:mm'));
     setDuration(String(durationMinutes));
     setPriority(nextPriority);
-    setVisibility(editingReminder?.visibility ?? 'personal');
+    setVisibility(editingReminder?.visibility ?? 'clinic');
     setCalendarId(editingReminder?.calendar_id ?? initialCalendarId);
     setColor(persistedColor ?? getPriorityColor(nextPriority));
     isColorManuallySelectedRef.current = persistedColor !== null;
@@ -204,7 +212,7 @@ export function ReminderFormDialog({
       end_datetime: toLocalISOString(addMinutes(start, durationMinutes)),
       color,
       priority,
-      visibility: itemType === 'reminder' ? visibility : 'personal',
+      visibility,
     });
     onOpenChange(false);
   };
@@ -292,21 +300,6 @@ export function ReminderFormDialog({
               </div>
             )}
 
-            {!isNote && (
-              <div className="space-y-2">
-                <Label>{t('visibilityLabel')}</Label>
-                <Select value={visibility} onValueChange={(value) => setVisibility(value as CalendarReminderVisibility)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="personal">{t('visibility.personal')}</SelectItem>
-                    <SelectItem value="clinic">{t('visibility.general')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Label>{t('colorLabel')}</Label>
@@ -362,6 +355,25 @@ export function ReminderFormDialog({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Alcance. Sin marcar (el default) el ítem es del equipo: todo el staff lo
+                ve, lo edita y lo elimina. Aplica a notas y a recordatorios. */}
+            <div className="flex items-start gap-3 rounded-lg border p-3">
+              <Checkbox
+                id="reminder-only-me"
+                data-testid="reminder-only-me"
+                className="mt-0.5"
+                checked={visibility === 'personal'}
+                disabled={isScopeLocked}
+                onCheckedChange={(checked) => setVisibility(checked === true ? 'personal' : 'clinic')}
+              />
+              <div className="space-y-1 leading-none">
+                <Label htmlFor="reminder-only-me" className="font-normal">{t('onlyForMeLabel')}</Label>
+                <p className="text-xs text-muted-foreground">
+                  {t(isScopeLocked ? 'onlyForMeLockedHint' : 'onlyForMeHint')}
+                </p>
+              </div>
             </div>
           </DialogBody>
 

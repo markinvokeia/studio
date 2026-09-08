@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 
 import type { Locale } from 'date-fns';
 import { format, parseISO } from 'date-fns';
-import { BellRing, CheckCircle2, Clock, Stethoscope, FileText, Users } from 'lucide-react';
+import { BellRing, CheckCircle2, Clock, Lock, Stethoscope, FileText } from 'lucide-react';
 
 import { Checkbox } from '@/components/ui/checkbox';
 import { getStatusIcon } from '@/components/appointments/status-icons';
@@ -16,7 +16,7 @@ import type { AppointmentStatus, CalendarReminderPriority, CalendarReminderStatu
 import { GOOGLE_IMPORT_BADGE_COLOR } from './calendar-constants';
 import type { CalendarBreakpoint, CalendarEvent } from './calendar-types';
 import { formatEventTime, getContrastingIconColor } from './calendar-utils';
-import { getReminderCardStyle, getReminderPriorityColor, isGeneralReminder, isReminderDone } from './reminder-visuals';
+import { getReminderCardStyle, getReminderPriorityColor, isPersonalReminder, isReminderDone } from './reminder-visuals';
 
 /** Marca de "importado de Google Calendar": un punto chico junto al badge de estado. */
 function ImportedBadge({ label }: { label: string }) {
@@ -134,8 +134,8 @@ export function CalendarScheduleView({
               const reminderIsDone = isReminderDone(reminderStatus);
               const reminderColor = getReminderPriorityColor(reminderPriority);
               const reminderCardStyle = isReminder ? getReminderCardStyle(event.color, reminderIsDone) : {};
-              const reminderIsGeneral = isReminder && isGeneralReminder(event.data);
-              const ReminderIcon = isNote ? FileText : reminderIsDone ? CheckCircle2 : reminderIsGeneral ? Users : BellRing;
+              const reminderIsPersonal = isReminder && isPersonalReminder(event.data);
+              const ReminderIcon = isNote ? FileText : reminderIsDone ? CheckCircle2 : reminderIsPersonal ? Lock : BellRing;
               const status = (rawStatus?.toLowerCase() as AppointmentStatus | undefined) ?? undefined;
               const cancellationReason = (event.data?.cancellation_reason as CancellationReason | undefined) ?? null;
               const appointmentId: string = event.data?.id ?? event.id;

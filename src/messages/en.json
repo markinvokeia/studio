@@ -5487,11 +5487,10 @@
     "timeLabel": "Time",
     "durationLabel": "Duration (min)",
     "priorityLabel": "Priority",
-    "visibilityLabel": "Scope",
-    "visibility": {
-      "personal": "Personal",
-      "general": "General (entire staff)"
-    },
+    "onlyForMeLabel": "Only for me",
+    "onlyForMeHint": "If left unchecked, the whole team can see, edit and delete it.",
+    "onlyForMeLockedHint": "Only the author can change the scope.",
+    "personalBadge": "Personal",
     "generalBadge": "General",
     "calendarLabel": "Calendar",
     "noCalendar": "No calendar",
