@@ -506,6 +506,13 @@ export const NOTIFY_RECEPTION_SQL = `
 -- Una fila por persona de recepción o administración. DISTINCT porque alguien
 -- con los dos roles recibiría la notificación dos veces.
 --
+-- RETURNING * y no sólo el user_id: lo que devuelve este nodo es EXACTAMENTE lo
+-- que viaja por SSE al navegador. El cliente normaliza esa fila igual que las
+-- que trae por REST, así que necesita id, type, status, metadata y created_at;
+-- con sólo el user_id la normalización devuelve null y el aviso se descarta en
+-- silencio — la notificación queda en la base y recién aparece al refrescar.
+-- Es la convención de los flujos de citas, que ya devuelven la fila entera.
+--
 -- El mismo aviso sirve para tres cosas que a recepción le importan igual: entró
 -- una orden nueva, el derivador anuló una que quizás ya estaban trabajando, o un
 -- paciente reservó solo por el link y nadie de la clínica se enteró.
@@ -532,7 +539,7 @@ ${ORDER_METADATA} || jsonb_build_object('change', coalesce($2::text, '')),
   ) r
  WHERE so.id = $1::uuid
    AND r.user_id IS DISTINCT FROM NULLIF($3::text, '')::uuid
-RETURNING user_id::text AS user_id;`;
+RETURNING *;`;
 
 export const NOTIFY_DOCTOR_SQL = `
 -- $1 = id de la orden.  $2 = qué cambió, para el texto de la tarjeta.
@@ -541,6 +548,13 @@ export const NOTIFY_DOCTOR_SQL = `
 -- Aviso de sólo lectura al derivador. El estado que se manda es el DERIVADO de
 -- la vista, no el persistido: al doctor le importa "agendada" o "completada",
 -- que es lo que ve la clínica, no el 'submitted' de la columna.
+--
+-- RETURNING * y no sólo el user_id: lo que devuelve este nodo es EXACTAMENTE lo
+-- que viaja por SSE al navegador. El cliente normaliza esa fila igual que las
+-- que trae por REST, así que necesita id, type, status, metadata y created_at;
+-- con sólo el user_id la normalización devuelve null y el aviso se descarta en
+-- silencio — la notificación queda en la base y recién aparece al refrescar.
+-- Es la convención de los flujos de citas, que ya devuelven la fila entera.
 INSERT INTO public.notifications
        (user_id, type, status, priority, patient_id, metadata, created_at)
 SELECT so.doctor_id,
@@ -565,7 +579,7 @@ ${ORDER_METADATA} || jsonb_build_object(
    -- derivador recibiría un aviso por cada recálculo que no cambió nada.
    AND coalesce($2::text, '') <> ''
    AND so.doctor_id IS DISTINCT FROM NULLIF($3::text, '')::uuid
-RETURNING user_id::text AS user_id;`;
+RETURNING *;`;
 
 export const LINK_APPOINTMENT_SQL = `
 -- $1 userId (token)  $2 payload { order_id, appointment_id }
