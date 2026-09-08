@@ -189,21 +189,83 @@ SELECT row_to_json(o) AS data
                     ) ORDER BY i.sort_order, i.service_name)
                FROM public.study_order_items i WHERE i.study_order_id = so.id
            ), '[]'::json) AS items,
+           -- La cita completa, no un resumen: la pestaña Citas muestra lo mismo
+           -- que el panel del calendario, para no obligar a saltar de pantalla.
            coalesce((
              SELECT json_agg(json_build_object(
                       'id', a.id::text, 'start_datetime', a.start_datetime,
                       'end_datetime', a.end_datetime, 'status', a.status,
                       'calendar_source_id', a.calendar_source_id::text,
                       'calendar_name', cs.name, 'sede_name', s2.name,
+                      'doctor_id', a.assignee_id::text, 'doctor_name', ad.name,
+                      'summary', a.summary, 'notes', a.notes, 'color', a.color,
+                      'cancellation_reason', a.cancellation_reason,
+                      'cancellation_note', a.cancellation_note,
+                      'created_at', a.created_at, 'updated_at', a.updated_at,
+                      'imported_from_google', a.imported_from_google,
+                      'quote_id', a.quote_id::text,
                       'service_ids', coalesce((SELECT json_agg(x.service_id::text)
                                                  FROM public.appointment_service_catalog x
-                                                WHERE x.appointment_id = a.id), '[]'::json)
+                                                WHERE x.appointment_id = a.id), '[]'::json),
+                      'services', coalesce((
+                          SELECT json_agg(json_build_object(
+                                   'id', sc3.id::text, 'name', sc3.name,
+                                   'duration_minutes', sc3.duration_minutes)
+                                 ORDER BY sc3.name)
+                            FROM public.appointment_service_catalog x2
+                            JOIN public.service_catalog sc3 ON sc3.id = x2.service_id
+                           WHERE x2.appointment_id = a.id), '[]'::json),
+                      -- La sesión clínica cierra la cita: quién la registró y
+                      -- qué hizo es parte de lo que el derivador quiere ver.
+                      'session', (
+                          SELECT json_build_object(
+                                   'id', sc4.id::text,
+                                   'doctor_id', sc4.doctor_id::text,
+                                   'doctor_name', sd.name,
+                                   'fecha_sesion', sc4.fecha_sesion,
+                                   'procedimiento_realizado', sc4.procedimiento_realizado,
+                                   'diagnostico', sc4.diagnostico)
+                            FROM public.sesiones_clinicas sc4
+                            LEFT JOIN public.users sd ON sd.id = sc4.doctor_id
+                           WHERE sc4.appointment_id = a.id
+                           ORDER BY sc4.fecha_sesion DESC LIMIT 1)
                     ) ORDER BY a.start_datetime)
                FROM public.appointments a
                LEFT JOIN public.calendar_sources cs ON cs.id = a.calendar_source_id
                LEFT JOIN public.sedes s2 ON s2.id = cs.sede_id
+               LEFT JOIN public.users ad ON ad.id = a.assignee_id
               WHERE a.study_order_id = so.id AND a.status <> 'deleted'
-           ), '[]'::json) AS appointments
+           ), '[]'::json) AS appointments,
+           -- Ficha del paciente, sólo datos básicos. Nada financiero: la
+           -- pestaña es para saber a quién se atiende, no cuánto debe.
+           (SELECT json_build_object(
+                     'id', pu.id::text, 'name', pu.name,
+                     'identity_document', pu.identity_document,
+                     'internal_id', pu.internal_id,
+                     'email', pu.email, 'phone_number', pu.phone_number,
+                     'alternative_phone', pu.alternative_phone,
+                     'address', pu.address, 'birthday', pu.birthday,
+                     'sex', pu.sex, 'is_active', pu.is_active,
+                     'mutual_society_name', ms.name,
+                     'assigned_doctor_name', pd.name)
+              FROM public.users pu
+              LEFT JOIN public.mutual_societies ms ON ms.id = pu.mutual_society_id
+              LEFT JOIN public.users pd ON pd.id = pu.doctor_id
+             WHERE pu.id = so.patient_id) AS patient,
+           -- Línea de tiempo. Del más viejo al más nuevo: se lee como se leería
+           -- el relato de lo que fue pasando.
+           coalesce((
+             SELECT json_agg(json_build_object(
+                      'id', ev.id::text, 'event_type', ev.event_type,
+                      'actor_id', ev.actor_id::text, 'actor_kind', ev.actor_kind,
+                      'actor_name', au.name,
+                      'appointment_id', ev.appointment_id::text,
+                      'metadata', ev.metadata, 'created_at', ev.created_at)
+                    ORDER BY ev.created_at, ev.id)
+               FROM public.study_order_events ev
+               LEFT JOIN public.users au ON au.id = ev.actor_id
+              WHERE ev.study_order_id = so.id
+           ), '[]'::json) AS events
       FROM public.study_orders so
       LEFT JOIN public.users d  ON d.id  = so.doctor_id
       LEFT JOIN public.sedes se ON se.id = so.preferred_sede_id
@@ -434,9 +496,15 @@ const ORDER_METADATA = `
        )`;
 
 export const NOTIFY_RECEPTION_SQL = `
--- $1 = id de la orden recién enviada.
+-- $1 = id de la orden.  $2 = qué pasó ('' = una orden nueva entró).
+-- $3 = quién lo hizo, para no avisarle a quien ya lo sabe.
+--
 -- Una fila por persona de recepción o administración. DISTINCT porque alguien
 -- con los dos roles recibiría la notificación dos veces.
+--
+-- El mismo aviso sirve para tres cosas que a recepción le importan igual: entró
+-- una orden nueva, el derivador anuló una que quizás ya estaban trabajando, o un
+-- paciente reservó solo por el link y nadie de la clínica se enteró.
 INSERT INTO public.notifications
        (user_id, type, status, priority, patient_id, metadata, created_at)
 SELECT r.user_id,
@@ -444,7 +512,7 @@ SELECT r.user_id,
        'pending',
        'MEDIUM',
        so.patient_id,
-${ORDER_METADATA},
+${ORDER_METADATA} || jsonb_build_object('change', coalesce($2::text, '')),
        now()
   FROM public.study_orders so
   LEFT JOIN public.users d  ON d.id  = so.doctor_id
@@ -459,10 +527,13 @@ ${ORDER_METADATA},
          AND u.is_active IS NOT FALSE
   ) r
  WHERE so.id = $1::uuid
+   AND r.user_id IS DISTINCT FROM NULLIF($3::text, '')::uuid
 RETURNING user_id::text AS user_id;`;
 
 export const NOTIFY_DOCTOR_SQL = `
 -- $1 = id de la orden.  $2 = qué cambió, para el texto de la tarjeta.
+-- $3 = quién lo hizo. Si es el propio derivador, no se le avisa: nadie necesita
+--      una notificación de lo que acaba de hacer. Vacío = avisar igual.
 -- Aviso de sólo lectura al derivador. El estado que se manda es el DERIVADO de
 -- la vista, no el persistido: al doctor le importa "agendada" o "completada",
 -- que es lo que ve la clínica, no el 'submitted' de la columna.
@@ -489,6 +560,7 @@ ${ORDER_METADATA} || jsonb_build_object(
    -- idempotente y se llama de más a propósito, así que sin este guard el
    -- derivador recibiría un aviso por cada recálculo que no cambió nada.
    AND coalesce($2::text, '') <> ''
+   AND so.doctor_id IS DISTINCT FROM NULLIF($3::text, '')::uuid
 RETURNING user_id::text AS user_id;`;
 
 export const LINK_APPOINTMENT_SQL = `
@@ -838,3 +910,32 @@ SELECT ins.id::text          AS appointment_id,
        o.order_number        AS order_number,
        (SELECT count(*) FROM svc) AS services_linked
   FROM ins, o;`;
+
+export const LOG_EVENT_SQL = `
+-- $1 payload { order_id, event_type, actor_id, actor_kind, appointment_id, metadata }
+--
+-- Registro de la bitácora. Un solo parámetro: el payload entero como JSON, por
+-- el mismo motivo que el upsert — sin array posicional no hay desalineación
+-- posible.
+--
+-- El actor sale SIEMPRE del token en el nodo que arma el payload, nunca del
+-- cuerpo que manda el cliente. El tipo de evento se valida dos veces: contra la
+-- lista cerrada del nodo y contra el CHECK de la tabla.
+--
+-- Nunca hace fallar la operación que lo provocó: el nodo va colgado después de
+-- responder al webhook y con onError continueRegularOutput. Perder un renglón
+-- del historial es malo; perder la operación es peor.
+INSERT INTO public.study_order_events
+       (study_order_id, event_type, actor_id, actor_kind, appointment_id, metadata)
+SELECT (b.body ->> 'order_id')::uuid,
+       b.body ->> 'event_type',
+       NULLIF(b.body ->> 'actor_id', '')::uuid,
+       coalesce(NULLIF(b.body ->> 'actor_kind', ''), 'user'),
+       NULLIF(b.body ->> 'appointment_id', '')::int,
+       coalesce(b.body -> 'metadata', '{}'::jsonb)
+  FROM (SELECT $1::jsonb AS body) b
+ WHERE coalesce(b.body ->> 'order_id', '') <> ''
+   AND coalesce(b.body ->> 'event_type', '') <> ''
+   AND EXISTS (SELECT 1 FROM public.study_orders so
+                WHERE so.id = (b.body ->> 'order_id')::uuid)
+RETURNING id::text;`;

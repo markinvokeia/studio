@@ -25,7 +25,7 @@ import { fileURLToPath } from 'node:url';
 import {
     ACKNOWLEDGE_SQL, CANCEL_SQL, DELETE_SQL, DETAIL_SQL,
     BY_APPOINTMENT_SQL, LINK_APPOINTMENT_SQL, LIST_SQL, NOTIFY_DOCTOR_SQL, NOTIFY_RECEPTION_SQL, OPTIONS_SQL,
-    BOOKING_TOKEN_SQL, PUBLIC_BOOK_SQL, PUBLIC_DETAIL_SQL, RECONCILE_SQL,
+    BOOKING_TOKEN_SQL, LOG_EVENT_SQL, PUBLIC_BOOK_SQL, PUBLIC_DETAIL_SQL, RECONCILE_SQL,
     RECOMPUTE_SQL, RESCHEDULE_SQL, SUBMIT_SQL, UPSERT_SQL,
 } from './study-orders-sql.mjs';
 
@@ -121,6 +121,9 @@ const formatCode = (body) => `
 const rows = $input.all().map((i) => i.json);
 ${body}
 `.trim();
+
+/** `notify` admite un destinatario o varios. Normaliza a lista. */
+const notifyList = (wf) => (wf.notify ? (Array.isArray(wf.notify) ? wf.notify : [wf.notify]) : []);
 
 const workflows = [];
 
@@ -272,6 +275,7 @@ const payload = {
 };
 
 return [{ json: { user_id: String(userId), payload: JSON.stringify(payload) } }];`.trim(),
+    event: { replacement: `={{ JSON.stringify({ order_id: $('Formatear Respuesta').first().json.__data?.id || '', event_type: JSON.parse($('Validar Datos').first().json.payload).id ? 'updated' : 'created', actor_id: $('Validar Datos').first().json.user_id }) }}` },
     sql: UPSERT_SQL,
     replacement: '={{ [ $json.user_id, $json.payload ] }}',
     format: formatCode(`
@@ -297,11 +301,13 @@ if (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin
 const id = ($json.body?.id || '').toString().trim();
 if (!id) return [{ json: { __error: true, __code: 400, __message: 'id es requerido' } }];
 return [{ json: { user_id: String(userId), id } }];`.trim(),
+    event: { replacement: `={{ JSON.stringify({ order_id: $('Validar Datos').first().json.id, event_type: 'submitted', actor_id: $('Validar Datos').first().json.user_id }) }}` },
     sql: SUBMIT_SQL,
     replacement: '={{ [ $json.user_id, $json.id ] }}',
     notify: {
         sql: NOTIFY_RECEPTION_SQL,
-        replacement: "={{ [ $('Validar Datos').first().json.id ] }}",
+        to: 'recepción',
+        replacement: `={{ [ $('Validar Datos').first().json.id, '', $('Validar Datos').first().json.user_id ] }}`,
         eventType: 'study_order_submitted',
     },
     format: formatCode(`
@@ -350,11 +356,12 @@ if (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin
 const id = ($json.body?.id || '').toString().trim();
 if (!id) return [{ json: { __error: true, __code: 400, __message: 'id es requerido' } }];
 return [{ json: { user_id: String(userId), id } }];`.trim(),
+    event: { replacement: `={{ JSON.stringify({ order_id: $('Validar Datos').first().json.id, event_type: 'acknowledged', actor_id: $('Validar Datos').first().json.user_id }) }}` },
     sql: ACKNOWLEDGE_SQL,
     replacement: '={{ [ $json.user_id, $json.id ] }}',
     notify: {
         sql: NOTIFY_DOCTOR_SQL,
-        replacement: "={{ [ $('Validar Datos').first().json.id, 'acknowledged' ] }}",
+        replacement: `={{ [ $('Validar Datos').first().json.id, 'acknowledged', $('Validar Datos').first().json.user_id ] }}`,
         eventType: 'study_order_status_changed',
     },
     format: formatCode(`
@@ -382,13 +389,26 @@ const reason = (b.reason || '').toString().trim();
 if (!id) return [{ json: { __error: true, __code: 400, __message: 'id es requerido' } }];
 if (!reason) return [{ json: { __error: true, __code: 400, __message: 'El motivo de anulación es requerido' } }];
 return [{ json: { user_id: String(userId), id, reason } }];`.trim(),
+    event: { replacement: `={{ JSON.stringify({ order_id: $('Validar Datos').first().json.id, event_type: 'cancelled', actor_id: $('Validar Datos').first().json.user_id, metadata: { reason: $('Validar Datos').first().json.reason || '' } }) }}` },
     sql: CANCEL_SQL,
     replacement: '={{ [ $json.user_id, $json.id, $json.reason ] }}',
-    notify: {
-        sql: NOTIFY_DOCTOR_SQL,
-        replacement: "={{ [ $('Validar Datos').first().json.id, 'cancelled' ] }}",
-        eventType: 'study_order_status_changed',
-    },
+    // Dos destinatarios: el derivador —salvo que haya sido él quien anuló— y la
+    // clínica, que puede haber empezado a trabajar la orden. Cada SQL descarta al
+    // actor, así que nadie recibe el aviso de su propia acción.
+    notify: [
+        {
+            to: 'derivador',
+            sql: NOTIFY_DOCTOR_SQL,
+            replacement: `={{ [ $('Validar Datos').first().json.id, 'cancelled', $('Validar Datos').first().json.user_id ] }}`,
+            eventType: 'study_order_status_changed',
+        },
+        {
+            to: 'recepción',
+            sql: NOTIFY_RECEPTION_SQL,
+            replacement: `={{ [ $('Validar Datos').first().json.id, 'cancelled', $('Validar Datos').first().json.user_id ] }}`,
+            eventType: 'study_order_submitted',
+        },
+    ],
     format: formatCode(`
 if (!rows.length) {
   return [{ json: { __error: true, __code: 409,
@@ -429,11 +449,12 @@ return [{ json: {
   user_id: String(userId),
   payload: JSON.stringify({ order_id: orderId, appointment_id: apptId, start, end }),
 } }];`.trim(),
+    event: { replacement: `={{ JSON.stringify({ order_id: JSON.parse($('Validar Datos').first().json.payload).order_id, event_type: 'rescheduled', actor_id: $('Validar Datos').first().json.user_id, appointment_id: JSON.parse($('Validar Datos').first().json.payload).appointment_id, metadata: { to_start: JSON.parse($('Validar Datos').first().json.payload).start, to_end: JSON.parse($('Validar Datos').first().json.payload).end } }) }}` },
     sql: RESCHEDULE_SQL,
     replacement: '={{ [ $json.user_id, $json.payload ] }}',
     notify: {
         sql: NOTIFY_DOCTOR_SQL,
-        replacement: "={{ [ JSON.parse($('Validar Datos').first().json.payload).order_id, 'rescheduled' ] }}",
+        replacement: `={{ [ JSON.parse($('Validar Datos').first().json.payload).order_id, 'rescheduled', $('Validar Datos').first().json.user_id ] }}`,
         eventType: 'study_order_status_changed',
     },
     format: formatCode(`
@@ -461,10 +482,18 @@ const apptId = (b.appointment_id || '').toString().trim();
 if (!orderId || !apptId) {
   return [{ json: { __error: true, __code: 400, __message: 'order_id y appointment_id son requeridos' } }];
 }
+// Lista cerrada: el tipo de evento termina en la línea de tiempo del derivador
+// y no puede ser lo que el cliente quiera. 'scheduled' cuando la cita se ata por
+// primera vez; 'appointment_updated' cuando se editó una que ya estaba atada.
+const EVENTS = ['scheduled', 'appointment_updated'];
+const evt = EVENTS.includes((b.event_type || '').toString()) ? b.event_type : 'scheduled';
+
 return [{ json: {
   user_id: String(userId),
+  event_type: evt,
   payload: JSON.stringify({ order_id: orderId, appointment_id: apptId }),
 } }];`.trim(),
+    event: { replacement: `={{ JSON.stringify({ order_id: JSON.parse($('Validar Datos').first().json.payload).order_id, event_type: $('Validar Datos').first().json.event_type, actor_id: $('Validar Datos').first().json.user_id, appointment_id: JSON.parse($('Validar Datos').first().json.payload).appointment_id }) }}` },
     sql: LINK_APPOINTMENT_SQL,
     replacement: '={{ [ $json.user_id, $json.payload ] }}',
     format: formatCode(`
@@ -475,7 +504,7 @@ if (!rows.length) {
 return [{ json: { __data: rows[0], __message: 'Cita vinculada a la orden' } }];`),
     notify: {
         sql: NOTIFY_DOCTOR_SQL,
-        replacement: "={{ [ JSON.parse($('Validar Datos').first().json.payload).order_id, 'scheduled' ] }}",
+        replacement: `={{ [ JSON.parse($('Validar Datos').first().json.payload).order_id, 'scheduled', $('Validar Datos').first().json.user_id ] }}`,
         eventType: 'study_order_status_changed',
     },
 });
@@ -526,7 +555,12 @@ const ALLOWED = ['appointment_cancelled'];
 const hint = (b.change || '').toString().trim();
 const change = ALLOWED.includes(hint) ? hint : '';
 
-return [{ json: { user_id: String(userId), payload: JSON.stringify({ id, change }) } }];`.trim(),
+// El id de la cita viaja aparte del payload SQL: la consulta no lo usa, pero
+// la bitácora sí, para poder decir "se canceló la cita del 10 a las 14".
+const apptId = (b.appointment_id || '').toString().trim();
+
+return [{ json: { user_id: String(userId), appointment_id: apptId, payload: JSON.stringify({ id, change }) } }];`.trim(),
+    event: { replacement: `={{ JSON.stringify({ order_id: $('Formatear Respuesta').first().json.__data?.id || '', event_type: $('Formatear Respuesta').first().json.__data?.change || '', actor_id: $('Validar Datos').first().json.user_id, appointment_id: $('Validar Datos').first().json.appointment_id || '' }) }}` },
     sql: RECOMPUTE_SQL,
     replacement: '={{ [ $json.user_id, $json.payload ] }}',
     format: formatCode(`
@@ -536,7 +570,7 @@ return [{ json: { user_id: String(userId), payload: JSON.stringify({ id, change 
 return [{ json: { __data: rows[0] ?? null } }];`),
     notify: {
         sql: NOTIFY_DOCTOR_SQL,
-        replacement: "={{ [ $('Formatear Respuesta').first().json.__data?.id || '', $('Formatear Respuesta').first().json.__data?.change || '' ] }}",
+        replacement: `={{ [ $('Formatear Respuesta').first().json.__data?.id || '', $('Formatear Respuesta').first().json.__data?.change || '', $('Validar Datos').first().json.user_id ] }}`,
         eventType: 'study_order_status_changed',
     },
 });
@@ -574,6 +608,7 @@ return [{ json: {
   token_clear: clear,
   payload: JSON.stringify({ order_id: orderId, token_hash: hash, expires_at: expiresAt, max_uses: maxUses }),
 } }];`.trim(),
+    event: { replacement: `={{ JSON.stringify({ order_id: JSON.parse($('Validar Datos').first().json.payload).order_id, event_type: 'link_created', actor_id: $('Validar Datos').first().json.user_id }) }}` },
     sql: BOOKING_TOKEN_SQL,
     replacement: '={{ [ $json.user_id, $json.payload ] }}',
     format: formatCode(`
@@ -643,6 +678,7 @@ return [{ json: {
   token_hash: crypto.createHash('sha256').update(token).digest('hex'),
   payload: JSON.stringify({ calendar_source_id: cal, start, end, summary: (b.summary || '').toString().trim() }),
 } }];`.trim(),
+    event: { replacement: `={{ JSON.stringify({ order_id: $('Formatear Respuesta').first().json.__data?.order_id || '', event_type: 'patient_booked', actor_kind: 'patient', appointment_id: $('Formatear Respuesta').first().json.__data?.appointment_id || '' }) }}` },
     sql: PUBLIC_BOOK_SQL,
     replacement: '={{ [ $json.token_hash, $json.payload ] }}',
     format: formatCode(`
@@ -651,11 +687,23 @@ if (!rows.length) {
     __message: 'No se pudo reservar: el link venció o ya se usó, o el horario elegido no está disponible' } }];
 }
 return [{ json: { __data: rows[0], __message: 'Cita reservada' } }];`),
-    notify: {
-        sql: NOTIFY_DOCTOR_SQL,
-        replacement: "={{ [ $('Formatear Respuesta').first().json.__data?.order_id || '', 'scheduled' ] }}",
-        eventType: 'study_order_status_changed',
-    },
+    // El paciente reservó por su cuenta: se enteran el derivador y la clínica.
+    // Sin el segundo aviso, una cita aparece en la agenda y nadie sabe de dónde
+    // salió. No hay actor que descartar: quien reservó no tiene cuenta.
+    notify: [
+        {
+            to: 'derivador',
+            sql: NOTIFY_DOCTOR_SQL,
+            replacement: `={{ [ $('Formatear Respuesta').first().json.__data?.order_id || '', 'scheduled', '' ] }}`,
+            eventType: 'study_order_status_changed',
+        },
+        {
+            to: 'recepción',
+            sql: NOTIFY_RECEPTION_SQL,
+            replacement: `={{ [ $('Formatear Respuesta').first().json.__data?.order_id || '', 'patient_booked', '' ] }}`,
+            eventType: 'study_order_submitted',
+        },
+    ],
 });
 
 /**
@@ -667,41 +715,70 @@ return [{ json: { __data: rows[0], __message: 'Cita reservada' } }];`),
  */
 const EVENTS_WORKFLOW_ID = 'W5SZnwkaTigFrHO6';
 
-function notifyNodes(id, sql, replacement, eventType) {
-    return [
-        {
-            parameters: { operation: 'executeQuery', query: sql, options: { queryReplacement: replacement } },
-            type: 'n8n-nodes-base.postgres',
-            typeVersion: 2.6,
-            position: [1540, 220],
-            id: `${id}-notify`,
-            name: 'Notificar',
-            credentials: PG_CREDENTIAL,
-            // Que falle el aviso no puede tumbar la operación, que ya respondió OK.
-            onError: 'continueRegularOutput',
-        },
-        {
-            parameters: {
-                workflowId: { __rl: true, value: EVENTS_WORKFLOW_ID, mode: 'list', cachedResultName: 'Events' },
-                mode: 'each',
-                workflowInputs: {
-                    mappingMode: 'defineBelow',
-                    value: {
-                        event_type: eventType,
-                        user_ids: '={{ [$json.user_id] }}',
-                        channels: '={{ [] }}',
-                        payload: '={{ $json }}',
+/**
+ * Nodo de bitácora. Va colgado de "Responder OK", antes del aviso: el historial
+ * se escribe aunque la notificación falle, y en ese orden porque el renglón
+ * tiene que existir cuando el doctor abra la tarjeta.
+ *
+ * `replacement` arma el payload leyendo los nodos anteriores. El actor sale
+ * siempre del token, nunca del cuerpo del request.
+ */
+function eventNode(id, replacement) {
+    return {
+        parameters: { operation: 'executeQuery', query: LOG_EVENT_SQL, options: { queryReplacement: replacement } },
+        type: 'n8n-nodes-base.postgres',
+        typeVersion: 2.6,
+        position: [1540, 400],
+        id: `${id}-event`,
+        name: 'Registrar evento',
+        credentials: PG_CREDENTIAL,
+        // Perder un renglón del historial es malo; tumbar la operación, peor.
+        onError: 'continueRegularOutput',
+    };
+}
+
+function notifyNodes(id, list) {
+    return list.flatMap((n, i) => {
+        // Nombres únicos y descriptivos: en el editor de n8n se ve a quién le
+        // avisa cada rama sin tener que abrir el nodo.
+        const notifyName = list.length > 1 ? `Notificar ${n.to}` : 'Notificar';
+        const pushName = list.length > 1 ? `Empujar por SSE ${n.to}` : 'Empujar por SSE';
+        const y = 220 + i * 180;
+        return [
+            {
+                parameters: { operation: 'executeQuery', query: n.sql, options: { queryReplacement: n.replacement } },
+                type: 'n8n-nodes-base.postgres',
+                typeVersion: 2.6,
+                position: [1540, y],
+                id: `${id}-notify-${i}`,
+                name: notifyName,
+                credentials: PG_CREDENTIAL,
+                // Que falle el aviso no puede tumbar la operación, que ya respondió OK.
+                onError: 'continueRegularOutput',
+            },
+            {
+                parameters: {
+                    workflowId: { __rl: true, value: EVENTS_WORKFLOW_ID, mode: 'list', cachedResultName: 'Events' },
+                    mode: 'each',
+                    workflowInputs: {
+                        mappingMode: 'defineBelow',
+                        value: {
+                            event_type: n.eventType,
+                            user_ids: '={{ [$json.user_id] }}',
+                            channels: '={{ [] }}',
+                            payload: '={{ $json }}',
+                        },
                     },
                 },
+                type: 'n8n-nodes-base.executeWorkflow',
+                typeVersion: 1.2,
+                position: [1760, y],
+                id: `${id}-push-${i}`,
+                name: pushName,
+                onError: 'continueRegularOutput',
             },
-            type: 'n8n-nodes-base.executeWorkflow',
-            typeVersion: 1.2,
-            position: [1760, 220],
-            id: `${id}-push`,
-            name: 'Empujar por SSE',
-            onError: 'continueRegularOutput',
-        },
-    ];
+        ];
+    });
 }
 
 /**
@@ -732,13 +809,32 @@ function reconcileWorkflow() {
                 onError: 'continueRegularOutput',
             },
             {
+                // El cron también deja su renglón en la bitácora, con actor
+                // 'system': en la línea de tiempo se distingue de una corrección
+                // hecha por una persona.
+                parameters: {
+                    operation: 'executeQuery',
+                    query: LOG_EVENT_SQL,
+                    options: {
+                        queryReplacement: "={{ JSON.stringify({ order_id: $json.order_id, event_type: $json.change, actor_kind: 'system' }) }}",
+                    },
+                },
+                type: 'n8n-nodes-base.postgres',
+                typeVersion: 2.6,
+                position: [480, 180],
+                id: 'recon-event',
+                name: 'Registrar evento',
+                credentials: PG_CREDENTIAL,
+                onError: 'continueRegularOutput',
+            },
+            {
                 // Corre una vez por orden corregida. Se reusa el mismo SQL de
                 // aviso que los demás flujos, así el doctor recibe la tarjeta
                 // idéntica venga de donde venga.
                 parameters: {
                     operation: 'executeQuery',
                     query: NOTIFY_DOCTOR_SQL,
-                    options: { queryReplacement: '={{ [ $json.order_id, $json.change ] }}' },
+                    options: { queryReplacement: '={{ [ $json.order_id, $json.change, \'\' ] }}' },
                 },
                 type: 'n8n-nodes-base.postgres',
                 typeVersion: 2.6,
@@ -772,7 +868,10 @@ function reconcileWorkflow() {
         ],
         connections: {
             'Cada 2 horas': { main: [[{ node: 'Reconciliar', type: 'main', index: 0 }]] },
-            Reconciliar:    { main: [[{ node: 'Notificar', type: 'main', index: 0 }]] },
+            Reconciliar:    { main: [[
+                { node: 'Registrar evento', type: 'main', index: 0 },
+                { node: 'Notificar', type: 'main', index: 0 },
+            ]] },
             Notificar:      { main: [[{ node: 'Empujar por SSE', type: 'main', index: 0 }]] },
         },
         settings: { executionOrder: 'v1' },
@@ -833,7 +932,8 @@ for (const wf of workflows) {
         },
         respondNode(`${wf.id}-ok`, 'Responder OK', [1320, 220], RESPOND_OK, 200),
         respondNode(`${wf.id}-err`, 'Responder Error', [1320, -60], RESPOND_ERR, '={{ $json.__code || 400 }}'),
-        ...(wf.notify ? notifyNodes(wf.id, wf.notify.sql, wf.notify.replacement, wf.notify.eventType) : []),
+        ...(wf.event ? [eventNode(wf.id, wf.event.replacement)] : []),
+        ...(notifyList(wf).length ? notifyNodes(wf.id, notifyList(wf)) : []),
     ];
 
     const connections = {
@@ -852,10 +952,27 @@ for (const wf of workflows) {
             ],
         },
         'Formatear Respuesta': { main: [[{ node: '¿Error de negocio?', type: 'main', index: 0 }]] },
-        ...(wf.notify
+        // "Responder OK" dispara en paralelo la bitácora y el aviso: n8n sigue
+        // ejecutando después de responder al webhook, así que el cliente no
+        // espera por ninguno de los dos, y que uno falle no afecta al otro.
+        ...((notifyList(wf).length || wf.event)
             ? {
-                'Responder OK': { main: [[{ node: 'Notificar', type: 'main', index: 0 }]] },
-                Notificar: { main: [[{ node: 'Empujar por SSE', type: 'main', index: 0 }]] },
+                'Responder OK': {
+                    main: [[
+                        ...(wf.event ? [{ node: 'Registrar evento', type: 'main', index: 0 }] : []),
+                        ...notifyList(wf).map((n) => ({
+                            node: notifyList(wf).length > 1 ? `Notificar ${n.to}` : 'Notificar',
+                            type: 'main', index: 0,
+                        })),
+                    ]],
+                },
+                ...Object.fromEntries(notifyList(wf).map((n) => {
+                    const many = notifyList(wf).length > 1;
+                    return [
+                        many ? `Notificar ${n.to}` : 'Notificar',
+                        { main: [[{ node: many ? `Empujar por SSE ${n.to}` : 'Empujar por SSE', type: 'main', index: 0 }]] },
+                    ];
+                })),
             }
             : {}),
         '¿Error de negocio?': {

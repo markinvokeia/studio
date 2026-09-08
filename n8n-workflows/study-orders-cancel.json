@@ -198,9 +198,33 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "\n-- $1 = id de la orden.  $2 = qué cambió, para el texto de la tarjeta.\n-- Aviso de sólo lectura al derivador. El estado que se manda es el DERIVADO de\n-- la vista, no el persistido: al doctor le importa \"agendada\" o \"completada\",\n-- que es lo que ve la clínica, no el 'submitted' de la columna.\nINSERT INTO public.notifications\n       (user_id, type, status, priority, patient_id, metadata, created_at)\nSELECT so.doctor_id,\n       'study_order_status_changed',\n       'pending',\n       'MEDIUM',\n       so.patient_id,\n\n       jsonb_build_object(\n           'order_id',      so.id::text,\n           'order_number',  so.order_number,\n           'patient_id',    so.patient_id::text,\n           'patient_name',  so.patient_name,\n           'doctor_id',     so.doctor_id::text,\n           'doctor_name',   d.name,\n           'sede_name',     se.name,\n           'items_total',   (SELECT count(*) FROM public.study_order_items i\n                              WHERE i.study_order_id = so.id AND i.is_cancelled = false),\n           'items_summary', (SELECT string_agg(i.service_name, ', ' ORDER BY i.sort_order, i.service_name)\n                               FROM public.study_order_items i\n                              WHERE i.study_order_id = so.id AND i.is_cancelled = false)\n       ) || jsonb_build_object(\n           'board_status', b.board_status,\n           'change',       $2::text,\n           'cancellation_reason', so.cancellation_reason\n       ),\n       now()\n  FROM public.study_orders so\n  LEFT JOIN public.users d  ON d.id  = so.doctor_id\n  LEFT JOIN public.sedes se ON se.id = so.preferred_sede_id\n  LEFT JOIN public.v_study_orders_board b ON b.id = so.id\n WHERE so.id = $1::uuid\n   AND so.doctor_id IS NOT NULL\n   -- Un cambio vacío significa \"no pasó nada que contar\": /recompute es\n   -- idempotente y se llama de más a propósito, así que sin este guard el\n   -- derivador recibiría un aviso por cada recálculo que no cambió nada.\n   AND coalesce($2::text, '') <> ''\nRETURNING user_id::text AS user_id;",
+        "query": "\n-- $1 payload { order_id, event_type, actor_id, actor_kind, appointment_id, metadata }\n--\n-- Registro de la bitácora. Un solo parámetro: el payload entero como JSON, por\n-- el mismo motivo que el upsert — sin array posicional no hay desalineación\n-- posible.\n--\n-- El actor sale SIEMPRE del token en el nodo que arma el payload, nunca del\n-- cuerpo que manda el cliente. El tipo de evento se valida dos veces: contra la\n-- lista cerrada del nodo y contra el CHECK de la tabla.\n--\n-- Nunca hace fallar la operación que lo provocó: el nodo va colgado después de\n-- responder al webhook y con onError continueRegularOutput. Perder un renglón\n-- del historial es malo; perder la operación es peor.\nINSERT INTO public.study_order_events\n       (study_order_id, event_type, actor_id, actor_kind, appointment_id, metadata)\nSELECT (b.body ->> 'order_id')::uuid,\n       b.body ->> 'event_type',\n       NULLIF(b.body ->> 'actor_id', '')::uuid,\n       coalesce(NULLIF(b.body ->> 'actor_kind', ''), 'user'),\n       NULLIF(b.body ->> 'appointment_id', '')::int,\n       coalesce(b.body -> 'metadata', '{}'::jsonb)\n  FROM (SELECT $1::jsonb AS body) b\n WHERE coalesce(b.body ->> 'order_id', '') <> ''\n   AND coalesce(b.body ->> 'event_type', '') <> ''\n   AND EXISTS (SELECT 1 FROM public.study_orders so\n                WHERE so.id = (b.body ->> 'order_id')::uuid)\nRETURNING id::text;",
         "options": {
-          "queryReplacement": "={{ [ $('Validar Datos').first().json.id, 'cancelled' ] }}"
+          "queryReplacement": "={{ JSON.stringify({ order_id: $('Validar Datos').first().json.id, event_type: 'cancelled', actor_id: $('Validar Datos').first().json.user_id, metadata: { reason: $('Validar Datos').first().json.reason || '' } }) }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1540,
+        400
+      ],
+      "id": "cancel-event",
+      "name": "Registrar evento",
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 = id de la orden.  $2 = qué cambió, para el texto de la tarjeta.\n-- $3 = quién lo hizo. Si es el propio derivador, no se le avisa: nadie necesita\n--      una notificación de lo que acaba de hacer. Vacío = avisar igual.\n-- Aviso de sólo lectura al derivador. El estado que se manda es el DERIVADO de\n-- la vista, no el persistido: al doctor le importa \"agendada\" o \"completada\",\n-- que es lo que ve la clínica, no el 'submitted' de la columna.\nINSERT INTO public.notifications\n       (user_id, type, status, priority, patient_id, metadata, created_at)\nSELECT so.doctor_id,\n       'study_order_status_changed',\n       'pending',\n       'MEDIUM',\n       so.patient_id,\n\n       jsonb_build_object(\n           'order_id',      so.id::text,\n           'order_number',  so.order_number,\n           'patient_id',    so.patient_id::text,\n           'patient_name',  so.patient_name,\n           'doctor_id',     so.doctor_id::text,\n           'doctor_name',   d.name,\n           'sede_name',     se.name,\n           'items_total',   (SELECT count(*) FROM public.study_order_items i\n                              WHERE i.study_order_id = so.id AND i.is_cancelled = false),\n           'items_summary', (SELECT string_agg(i.service_name, ', ' ORDER BY i.sort_order, i.service_name)\n                               FROM public.study_order_items i\n                              WHERE i.study_order_id = so.id AND i.is_cancelled = false)\n       ) || jsonb_build_object(\n           'board_status', b.board_status,\n           'change',       $2::text,\n           'cancellation_reason', so.cancellation_reason\n       ),\n       now()\n  FROM public.study_orders so\n  LEFT JOIN public.users d  ON d.id  = so.doctor_id\n  LEFT JOIN public.sedes se ON se.id = so.preferred_sede_id\n  LEFT JOIN public.v_study_orders_board b ON b.id = so.id\n WHERE so.id = $1::uuid\n   AND so.doctor_id IS NOT NULL\n   -- Un cambio vacío significa \"no pasó nada que contar\": /recompute es\n   -- idempotente y se llama de más a propósito, así que sin este guard el\n   -- derivador recibiría un aviso por cada recálculo que no cambió nada.\n   AND coalesce($2::text, '') <> ''\n   AND so.doctor_id IS DISTINCT FROM NULLIF($3::text, '')::uuid\nRETURNING user_id::text AS user_id;",
+        "options": {
+          "queryReplacement": "={{ [ $('Validar Datos').first().json.id, 'cancelled', $('Validar Datos').first().json.user_id ] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
@@ -209,8 +233,8 @@
         1540,
         220
       ],
-      "id": "cancel-notify",
-      "name": "Notificar",
+      "id": "cancel-notify-0",
+      "name": "Notificar derivador",
       "credentials": {
         "postgres": {
           "id": "POSTGRES_CREDENTIAL_ID",
@@ -244,8 +268,61 @@
         1760,
         220
       ],
-      "id": "cancel-push",
-      "name": "Empujar por SSE",
+      "id": "cancel-push-0",
+      "name": "Empujar por SSE derivador",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 = id de la orden.  $2 = qué pasó ('' = una orden nueva entró).\n-- $3 = quién lo hizo, para no avisarle a quien ya lo sabe.\n--\n-- Una fila por persona de recepción o administración. DISTINCT porque alguien\n-- con los dos roles recibiría la notificación dos veces.\n--\n-- El mismo aviso sirve para tres cosas que a recepción le importan igual: entró\n-- una orden nueva, el derivador anuló una que quizás ya estaban trabajando, o un\n-- paciente reservó solo por el link y nadie de la clínica se enteró.\nINSERT INTO public.notifications\n       (user_id, type, status, priority, patient_id, metadata, created_at)\nSELECT r.user_id,\n       'study_order_submitted',\n       'pending',\n       'MEDIUM',\n       so.patient_id,\n\n       jsonb_build_object(\n           'order_id',      so.id::text,\n           'order_number',  so.order_number,\n           'patient_id',    so.patient_id::text,\n           'patient_name',  so.patient_name,\n           'doctor_id',     so.doctor_id::text,\n           'doctor_name',   d.name,\n           'sede_name',     se.name,\n           'items_total',   (SELECT count(*) FROM public.study_order_items i\n                              WHERE i.study_order_id = so.id AND i.is_cancelled = false),\n           'items_summary', (SELECT string_agg(i.service_name, ', ' ORDER BY i.sort_order, i.service_name)\n                               FROM public.study_order_items i\n                              WHERE i.study_order_id = so.id AND i.is_cancelled = false)\n       ) || jsonb_build_object('change', coalesce($2::text, '')),\n       now()\n  FROM public.study_orders so\n  LEFT JOIN public.users d  ON d.id  = so.doctor_id\n  LEFT JOIN public.sedes se ON se.id = so.preferred_sede_id\n  CROSS JOIN LATERAL (\n      SELECT DISTINCT u.id AS user_id\n        FROM public.users u\n        JOIN public.user_roles ur ON ur.user_id = u.id\n        JOIN public.roles rr      ON rr.id = ur.role_id\n       WHERE rr.name ILIKE ANY (ARRAY['recepcionista', 'administrador'])\n         AND ur.is_active IS NOT FALSE\n         AND u.is_active IS NOT FALSE\n  ) r\n WHERE so.id = $1::uuid\n   AND r.user_id IS DISTINCT FROM NULLIF($3::text, '')::uuid\nRETURNING user_id::text AS user_id;",
+        "options": {
+          "queryReplacement": "={{ [ $('Validar Datos').first().json.id, 'cancelled', $('Validar Datos').first().json.user_id ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1540,
+        400
+      ],
+      "id": "cancel-notify-1",
+      "name": "Notificar recepción",
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "W5SZnwkaTigFrHO6",
+          "mode": "list",
+          "cachedResultName": "Events"
+        },
+        "mode": "each",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_type": "study_order_submitted",
+            "user_ids": "={{ [$json.user_id] }}",
+            "channels": "={{ [] }}",
+            "payload": "={{ $json }}"
+          }
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1760,
+        400
+      ],
+      "id": "cancel-push-1",
+      "name": "Empujar por SSE recepción",
       "onError": "continueRegularOutput"
     }
   ],
@@ -323,18 +400,39 @@
       "main": [
         [
           {
-            "node": "Notificar",
+            "node": "Registrar evento",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notificar derivador",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notificar recepción",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Notificar": {
+    "Notificar derivador": {
       "main": [
         [
           {
-            "node": "Empujar por SSE",
+            "node": "Empujar por SSE derivador",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notificar recepción": {
+      "main": [
+        [
+          {
+            "node": "Empujar por SSE recepción",
             "type": "main",
             "index": 0
           }
