@@ -956,7 +956,7 @@
       "eventLabelOptions": {
         "time_patient_notes": "Hora - Paciente - (Notas)",
         "patient_treatment_time": "Paciente - Tratamiento - Hora",
-        "time_patient_notes_treatment": "Hora - Paciente - (Notas, Tratamiento)"
+        "time_patient_notes_treatment": "Hora - Paciente teléfono - (Notas, Tratamiento)"
       },
       "groupBy": "Agrupar por",
       "checkAvailability": "Verificar disponibilidad",
@@ -5496,6 +5496,8 @@
     "createAppointment": "Crear cita",
     "agendas": "Agendas",
     "agendasPanelTitle": "Agendas",
+    "agendasPanelPin": "Fijar el panel",
+    "agendasPanelUnpin": "Dejar de fijar el panel",
     "agendasEmpty": "No hay agendas visibles.",
     "back": "Atrás",
     "view": "Ver",
@@ -5551,11 +5553,10 @@
     "timeLabel": "Hora",
     "durationLabel": "Duración (min)",
     "priorityLabel": "Prioridad",
-    "visibilityLabel": "Alcance",
-    "visibility": {
-      "personal": "Personal",
-      "general": "General (todo el staff)"
-    },
+    "onlyForMeLabel": "Solo para mí",
+    "onlyForMeHint": "Si lo dejás sin marcar, todo el equipo puede verlo, editarlo y eliminarlo.",
+    "onlyForMeLockedHint": "Solo quien lo creó puede cambiar el alcance.",
+    "personalBadge": "Personal",
     "generalBadge": "General",
     "calendarLabel": "Calendario",
     "noCalendar": "Sin calendario",

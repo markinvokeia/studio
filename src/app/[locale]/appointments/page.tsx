@@ -79,6 +79,7 @@ import * as React from 'react';
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
 import { AppointmentPanel } from '@/components/appointments/AppointmentPanel';
 import { AppointmentQuickView } from '@/components/calendar/appointment-quick-view';
+import { ReminderQuickView } from '@/components/calendar/reminder-quick-view';
 import { PatientCreateDialog } from '@/components/patients/patient-create-dialog';
 import { BulkReassignDoctorDialog } from '@/components/appointments/BulkReassignDoctorDialog';
 import { reassignAppointmentField, type AppointmentReassignChange } from '@/lib/appointment-reassign';
@@ -99,7 +100,7 @@ import { CancellationNoteDialog } from '@/components/appointments/CancellationNo
 import { getAppointmentColumns } from './columns';
 import { useNotifications } from '@/context/notifications-context';
 import { useAuth } from '@/context/AuthContext';
-import { normalizeReminder } from '@/lib/reminders';
+import { canManageReminder, normalizeReminder } from '@/lib/reminders';
 import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
 import { InvoiceFormDialog } from '@/components/tables/invoices-table';
 
@@ -347,13 +348,16 @@ function buildEventLabel(appt: Appointment, start: Date, fmt: string, noneLabel:
     const patient = isImported ? summary : (cleanEventLabelPart(appt.patientName, noneLabel) || summary);
     const treatment = isImported ? '' : buildTreatmentPart(appt, patient, noneLabel);
     const notes = isImported ? '' : (appt.notes || '').trim();
+    // Solo lo usa el formato que lo pide, y solo si el paciente lo tiene cargado.
+    const phone = isImported ? '' : cleanEventLabelPart(appt.patientPhone, noneLabel);
     if (fmt === 'patient_treatment_time') {
         return [patient, treatment, time].filter(Boolean).join(' ');
     }
     if (fmt === 'time_patient_notes_treatment') {
-        // Como el default, pero sumando el tratamiento dentro del paréntesis. Se omite
-        // lo que falte, y sin notas ni tratamiento no se muestra el paréntesis.
-        const base = [time, patient].filter(Boolean).join(' ');
+        // Como el default, pero con el teléfono del paciente después del nombre y el
+        // tratamiento dentro del paréntesis. Se omite lo que falte, y sin notas ni
+        // tratamiento no se muestra el paréntesis.
+        const base = [time, patient, phone].filter(Boolean).join(' ');
         const extras = [notes, treatment].filter(Boolean).join(', ');
         return extras ? `${base} (${extras})` : base;
     }
@@ -361,6 +365,9 @@ function buildEventLabel(appt: Appointment, start: Date, fmt: string, noneLabel:
     const base = [time, patient].filter(Boolean).join(' ');
     return notes ? `${base} (${notes})` : base;
 }
+
+/** Clave de localStorage del panel de agendas fijo (preferencia por navegador). */
+const AGENDAS_PANEL_PINNED_KEY = 'calendar-agendas-panel-pinned';
 
 const SETTINGS_VIEW_MAP: Record<string, CalendarView> = {
     day: 'day',
@@ -542,10 +549,13 @@ async function getReminders(startDate: Date, endDate: Date, userId?: string | nu
     const formatDateForAPI = (date: Date) => format(date, 'yyyy-MM-dd HH:mm:ss');
 
     try {
+        // `userId` solo sirve de gate: sin sesión no se pide nada. No se manda
+        // `created_by` porque el endpoint devuelve los ítems de todo el staff y el
+        // filtrado por visibilidad se hace en el cliente (ver `reminderEvents`); mandarlo
+        // invitaba a "arreglar" el backend para honrarlo y dejar de ver lo compartido.
         const response = await api.get(API_ROUTES.REMINDERS, {
             from: formatDateForAPI(startDate),
             to: formatDateForAPI(endDate),
-            created_by: userId,
         });
         const remindersData = Array.isArray(response)
             ? response
@@ -717,6 +727,7 @@ export default function AppointmentsPage() {
     // Ventana flotante de detalle (modo custom): la cita y el rect de su card, para
     // anclarla. En el modo normal el clic simple sigue abriendo el panel lateral.
     const [quickView, setQuickView] = React.useState<{ appointment: Appointment; anchorRect: DOMRect } | null>(null);
+    const [reminderQuickView, setReminderQuickView] = React.useState<{ reminder: CalendarReminder; anchorRect: DOMRect } | null>(null);
     const [selectedReminder, setSelectedReminder] = React.useState<CalendarReminder | null>(null);
     const [isReminderPanelOpen, setIsReminderPanelOpen] = React.useState(false);
     const [isReminderFormOpen, setIsReminderFormOpen] = React.useState(false);
@@ -766,6 +777,21 @@ export default function AppointmentsPage() {
     const [calendarMode, setCalendarMode] = React.useState<string>(DEFAULT_CALENDAR_MODE);
     const [personalizedCalendarId, setPersonalizedCalendarId] = React.useState<string | null>(null);
     const [agendasPanelOpen, setAgendasPanelOpen] = React.useState(false);
+    // Panel de agendas fijo: elegir una agenda no lo cierra. Se recuerda por navegador,
+    // igual que el zoom y la columna de horas del calendario.
+    const [agendasPanelPinned, setAgendasPanelPinned] = React.useState(false);
+    React.useEffect(() => {
+        try {
+            setAgendasPanelPinned(window.localStorage.getItem(AGENDAS_PANEL_PINNED_KEY) === 'true');
+        } catch { /* localStorage bloqueado: queda sin fijar */ }
+    }, []);
+    const handleToggleAgendasPinned = React.useCallback(() => {
+        setAgendasPanelPinned((prev) => {
+            const next = !prev;
+            try { window.localStorage.setItem(AGENDAS_PANEL_PINNED_KEY, String(next)); } catch { /* ignore */ }
+            return next;
+        });
+    }, []);
     const isCustomMode = calendarMode === 'custom';
     const firstVisibleCalendarId = React.useMemo(
         () => calendars.find((calendar) => selectedCalendarIds.includes(calendar.id))?.id ?? null,
@@ -1801,6 +1827,14 @@ export default function AppointmentsPage() {
         anchorRect?: DOMRect,
     ) => {
         if (eventData.kind === 'reminder') {
+            // En modo custom, igual que las citas: ventana flotante anclada a la card en
+            // vez del panel lateral. Sin rect (vistas que no posicionan cards) se cae al
+            // panel, que siempre funciona.
+            if (calendarMode === 'custom' && anchorRect) {
+                setQuickView(null);
+                setReminderQuickView({ reminder: eventData, anchorRect });
+                return;
+            }
             setSelectedReminder(eventData);
             setIsReminderPanelOpen(true);
             return;
@@ -1814,6 +1848,7 @@ export default function AppointmentsPage() {
             setSelectedAppointment(null);
             setIsDetailViewOpen(false);
             eventClickAbortRef.current?.abort();
+            setReminderQuickView(null);
             setQuickView(anchorRect ? { appointment, anchorRect } : null);
             return;
         }
@@ -1865,7 +1900,7 @@ export default function AppointmentsPage() {
             priority: values.priority,
             status: editingReminder?.status ?? 'pending',
             visibility: values.visibility,
-            created_by: editingReminder?.created_by ?? null,
+            created_by: editingReminder?.created_by ?? user?.id ?? null,
             created_at: editingReminder?.created_at ?? now,
             updated_at: editingReminder ? now : null,
         };
@@ -1980,10 +2015,6 @@ export default function AppointmentsPage() {
             refreshCalendarDataRef.current();
         }
     }, [tReminders, toast]);
-
-    const isReminderOwner = React.useCallback((reminder: CalendarReminder) => (
-        !reminder.created_by || reminder.created_by === user?.id
-    ), [user]);
 
     const handleEdit = (appointment: Appointment) => {
         if (calendarMode === 'custom' && openInlineDraftForAppointment(appointment, false)) {
@@ -2813,6 +2844,9 @@ export default function AppointmentsPage() {
 
         const reminderEvents = reminders
             .filter((reminder) => reminder.status !== 'cancelled')
+            // Lo personal de otros no llega al calendario. Este filtro es la única fuente
+            // de verdad: si un ítem se dibuja, el usuario puede gestionarlo.
+            .filter((reminder) => canManageReminder(reminder, user?.id))
             .filter((reminder) => !reminder.calendar_id || selectedCalendarIdSet.has(String(reminder.calendar_id)))
             .map((reminder) => {
                 const start = parseISO(reminder.start_datetime.replace(/Z$/, ''));
@@ -2834,17 +2868,18 @@ export default function AppointmentsPage() {
             .filter((event): event is NonNullable<typeof event> => event !== null);
 
         return [...events, ...reminderEvents];
-    }, [appointments, calendars, reminders, selectedCalendarIds, selectedDoctorIds, eventLabelFormat, colorByStatus, isBulkMode, t]);
+    }, [appointments, calendars, reminders, selectedCalendarIds, selectedDoctorIds, eventLabelFormat, colorByStatus, isBulkMode, user?.id, t]);
 
     const visibleCalendarItems = React.useMemo(
         () => reminders.filter((reminder) => {
             if (reminder.status === 'cancelled') return false;
+            if (!canManageReminder(reminder, user?.id)) return false;
             if (reminder.calendar_id && !selectedCalendarIds.includes(String(reminder.calendar_id))) return false;
             if (!fetchRange) return true;
             const start = parseISO(reminder.start_datetime.replace(/Z$/, ''));
             return isValid(start) && start >= fetchRange.start && start <= fetchRange.end;
         }),
-        [fetchRange, reminders, selectedCalendarIds],
+        [fetchRange, reminders, selectedCalendarIds, user?.id],
     );
     const hasVisibleCalendarItems = visibleCalendarItems.length > 0;
     const hasVisibleUnassignedItems = visibleCalendarItems.some((reminder) => !reminder.calendar_id);
@@ -3295,8 +3330,9 @@ export default function AppointmentsPage() {
 
         if (eventData.kind === 'reminder') {
             const reminder = eventData as CalendarReminder;
-            const canManage = isReminderOwner(reminder);
-            if (!canManage) return null;
+            // Sin guarda de propiedad: el filtro de `reminderEvents` ya garantiza que
+            // solo llegan acá ítems que el usuario puede gestionar. La guarda anterior
+            // devolvía null y dejaba un ContextMenuContent vacío — el "no aparece menú".
             return (
                 <>
                     {colorSwatchGrid}
@@ -3889,8 +3925,13 @@ export default function AppointmentsPage() {
                                 noSede={calendarSedeGroups.noSede}
                                 visibleIds={selectedCalendarIds}
                                 selectedId={personalizedCalendarId}
-                                onSelect={(id) => { setPersonalizedCalendarId(id); setAgendasPanelOpen(false); }}
+                                onSelect={(id) => {
+                                    setPersonalizedCalendarId(id);
+                                    if (!agendasPanelPinned) setAgendasPanelOpen(false);
+                                }}
                                 onClose={() => setAgendasPanelOpen(false)}
+                                pinned={agendasPanelPinned}
+                                onTogglePinned={handleToggleAgendasPinned}
                             />
                         )}
                         <div className={cn('relative h-full min-w-0 flex-1', isCustomMode && agendasPanelOpen && '[&_.calendar-container]:rounded-l-none')}>
@@ -4589,6 +4630,7 @@ export default function AppointmentsPage() {
                 initialType={reminderInitialType}
                 initialCalendarId={reminderInitialCalendarId}
                 calendars={calendars}
+                currentUserId={user?.id}
                 editingReminder={editingReminder}
                 onSave={handleSaveReminder}
             />
@@ -4656,6 +4698,16 @@ export default function AppointmentsPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            {reminderQuickView && (
+                <ReminderQuickView
+                    reminder={reminderQuickView.reminder}
+                    anchorRect={reminderQuickView.anchorRect}
+                    calendarName={calendars.find((c) => String(c.id) === String(reminderQuickView.reminder.calendar_id))?.name}
+                    locale={locale}
+                    onClose={() => setReminderQuickView(null)}
+                    onEdit={(reminder) => { setReminderQuickView(null); handleEditReminder(reminder); }}
+                />
+            )}
             {quickView && (
                 <AppointmentQuickView
                     appointment={quickView.appointment}

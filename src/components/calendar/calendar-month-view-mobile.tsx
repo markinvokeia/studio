@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { BellRing, CheckCircle2, FileText, Users } from 'lucide-react';
+import { BellRing, CheckCircle2, FileText, Lock } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 
@@ -16,7 +16,7 @@ import { GOOGLE_IMPORT_BADGE_COLOR } from './calendar-constants';
 import type { CalendarEvent, CalendarSlotClickHandler } from './calendar-types';
 import { formatEventTime, getContrastingIconColor } from './calendar-utils';
 import { type Gap, gapKey } from './calendar-gaps';
-import { getReminderCardStyle, getReminderPriorityColor, isGeneralReminder, isReminderDone } from './reminder-visuals';
+import { getReminderCardStyle, getReminderPriorityColor, isPersonalReminder, isReminderDone } from './reminder-visuals';
 
 interface CalendarMonthViewMobileProps {
   currentDate: Date;
@@ -228,8 +228,8 @@ export function CalendarMonthViewMobile({
               const reminderStatus = event.data?.status as CalendarReminderStatus | undefined;
               const reminderPriority = event.data?.priority as CalendarReminderPriority | undefined;
               const reminderIsDone = isReminderDone(reminderStatus);
-              const reminderIsGeneral = isReminder && isGeneralReminder(event.data);
-              const ReminderIcon = isNote ? FileText : reminderIsDone ? CheckCircle2 : reminderIsGeneral ? Users : BellRing;
+              const reminderIsPersonal = isReminder && isPersonalReminder(event.data);
+              const ReminderIcon = isNote ? FileText : reminderIsDone ? CheckCircle2 : reminderIsPersonal ? Lock : BellRing;
               const status = (rawStatus?.toLowerCase() as AppointmentStatus | undefined) ?? undefined;
               const StatusIcon = status ? STATUS_ICONS[status] : null;
               const statusColor = status ? STATUS_ACCENT_COLOR[status] : undefined;

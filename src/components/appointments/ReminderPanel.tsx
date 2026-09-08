@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { format, parseISO } from 'date-fns';
-import { BellRing, Calendar, CalendarDays, CheckCircle2, Clock, Edit, FileText, Flag, Info, Receipt, ShoppingCart, Sparkles, Trash2, Users } from 'lucide-react';
+import { BellRing, Calendar, CalendarDays, CheckCircle2, Clock, Edit, FileText, Flag, Info, Lock, Receipt, ShoppingCart, Sparkles, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { ResizableSheet, SheetDescription, SheetTitle } from '@/components/ui/resizable-sheet';
 import { useLocalAI } from '@/hooks/use-local-ai';
 import type { NoteActionKey } from '@/hooks/use-local-ai';
+import { canManageReminder } from '@/lib/reminders';
 import { cn, formatDisplayDate } from '@/lib/utils';
 import type { CalendarReminder } from '@/lib/types';
 
@@ -162,8 +163,9 @@ export function ReminderPanel({
   const endTime = formatLocalTime(reminder.end_datetime);
   const isDone = reminder.status === 'done';
   const isNote = reminder.type === 'note';
-  const isGeneral = reminder.visibility === 'clinic';
-  const isOwner = !reminder.created_by || reminder.created_by === currentUserId;
+  const isPersonal = reminder.visibility === 'personal';
+  // Lo compartido lo gestiona cualquiera; lo personal, solo su autor.
+  const canManage = canManageReminder(reminder, currentUserId);
   const ItemIcon = isNote ? FileText : BellRing;
 
   const displayTitle = enhancement?.title ?? reminder.title;
@@ -211,10 +213,10 @@ export function ReminderPanel({
                 >
                   {t(`status.${reminder.status}`)}
                 </span>
-                {isGeneral && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-transparent bg-purple-500 px-2.5 py-0.5 text-xs font-semibold text-white">
-                    <Users className="h-3 w-3" />
-                    {t('generalBadge')}
+                {isPersonal && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-transparent bg-slate-500 px-2.5 py-0.5 text-xs font-semibold text-white">
+                    <Lock className="h-3 w-3" />
+                    {t('personalBadge')}
                   </span>
                 )}
               </SheetDescription>
@@ -285,19 +287,19 @@ export function ReminderPanel({
                   tooltipText={t('enhanceTooltip')}
                 />
               )}
-              {isOwner && !isDone && (
+              {canManage && !isDone && (
                 <Button variant="outline" className="gap-2" onClick={() => onMarkDone(reminder)}>
                   <CheckCircle2 className="h-4 w-4" />
                   {t('markDone')}
                 </Button>
               )}
-              {isOwner && (
+              {canManage && (
                 <Button variant="outline" className="gap-2" onClick={() => onEdit(reminderForEdit)}>
                   <Edit className="h-4 w-4" />
                   {t('edit')}
                 </Button>
               )}
-              {isOwner && (
+              {canManage && (
                 <Button variant="destructive" className="gap-2" onClick={() => onDelete(reminder)}>
                   <Trash2 className="h-4 w-4" />
                   {t('delete')}

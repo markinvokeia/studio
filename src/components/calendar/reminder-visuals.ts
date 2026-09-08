@@ -22,8 +22,12 @@ export function isReminderDone(status?: CalendarReminderStatus | string | null) 
   return status === 'done';
 }
 
-export function isGeneralReminder(reminder?: Pick<CalendarReminder, 'visibility'> | null) {
-  return reminder?.visibility === 'clinic';
+/**
+ * Un ítem `personal` es la excepción: `clinic` —visible y editable por todo el staff— es
+ * el default del modelo. La UI marca lo excepcional, no lo normal.
+ */
+export function isPersonalReminder(reminder?: Pick<CalendarReminder, 'visibility'> | null) {
+  return reminder?.visibility === 'personal';
 }
 
 export function getReminderCardStyle(color?: string | null, done = false): React.CSSProperties {

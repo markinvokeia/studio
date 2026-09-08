@@ -136,10 +136,12 @@ interface ClinicHistoryViewerProps {
     onClinicalDataChange?: () => void;
     deepLinkView?: string;
     onEditAppointment?: (appointment: Appointment) => void;
+    /** Se incrementa desde afuera para releer las citas (p. ej. tras guardar una). */
+    refreshAppointmentsTrigger?: number;
     readOnly?: boolean;
 }
 
-export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, createOdontogramTrigger = 0, sessionPrefill, onSessionCreated, editSessionId, onClinicalDataChange, onEditAppointment, isDoctorMode = false, readOnly = false }: ClinicHistoryViewerProps) {
+export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, createOdontogramTrigger = 0, sessionPrefill, onSessionCreated, editSessionId, onClinicalDataChange, onEditAppointment, refreshAppointmentsTrigger = 0, isDoctorMode = false, readOnly = false }: ClinicHistoryViewerProps) {
     const {
         patientSessions,
         isLoadingPatientSessions,
@@ -287,6 +289,13 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
             setLocalSessionTrigger(t => t + 1);
         }
     }, [createSessionTrigger]);
+
+    // Releer las citas cuando el consumidor guarda una desde afuera del timeline.
+    React.useEffect(() => {
+        if (refreshAppointmentsTrigger > 0) {
+            fetchPatientAppointments(userId);
+        }
+    }, [refreshAppointmentsTrigger, userId, fetchPatientAppointments]);
 
     React.useEffect(() => {
         if (createOdontogramTrigger > 0) {
@@ -2563,7 +2572,24 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                                 )}
                                                             </p>
                                                         </div>
-                                                        {apptStatusBadge}
+                                                        <div className="flex items-center gap-1 shrink-0">
+                                                            {apptStatusBadge}
+                                                            {/* Editar la cita (fecha, hora, agenda, doctor, tratamientos) en la
+                                                                tarjeta inline. El gate vive en el consumidor: sin el permiso
+                                                                correspondiente no pasa el handler y el botón no existe, así queda
+                                                                fuera del alcance del rol médico. */}
+                                                            {onEditAppointment && !readOnly && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-6 w-6"
+                                                                    title={t('edit')}
+                                                                    onClick={(e) => { e.stopPropagation(); onEditAppointment(appt); }}
+                                                                >
+                                                                    <Edit3 className="h-3.5 w-3.5" />
+                                                                </Button>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             );

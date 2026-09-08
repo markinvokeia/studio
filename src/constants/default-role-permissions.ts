@@ -303,6 +303,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'PATIENTS_CREATE_NOTE',
     'PATIENTS_UPDATE_NOTE',
     'PATIENTS_DELETE_NOTE',
+    'PATIENTS_MANAGE_APPOINTMENTS',
     // Clinical History
     ...CLINICAL_HISTORY_ALL,
     // Sales
@@ -763,6 +764,9 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'PATIENTS_SEARCH_DEBTORS',
     'PATIENTS_CREATE_NOTE',
     'PATIENTS_UPDATE_NOTE',
+    // Crear/editar citas desde el perfil del paciente. Va con los APPOINTMENTS_
+    // CREATE/UPDATE que este rol ya tiene para el calendario.
+    'PATIENTS_MANAGE_APPOINTMENTS',
     // Sales - presupuestos y pagos completos, facturas básicas
     'SALES_VIEW_MENU',
     // Quotes

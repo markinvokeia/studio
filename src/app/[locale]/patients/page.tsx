@@ -59,6 +59,7 @@ import {
 import { ToothIcon } from '@/components/users/dental-record/tooth-icon';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
+import { InlineAppointmentDraftHost } from '@/components/appointments/inline-appointment-draft-host';
 import { getCalendarSettings } from '@/components/calendar/calendar-settings-utils';
 import { InvoiceFormDialog } from '@/components/tables/invoices-table';
 import { PrepaidFormDialog } from '@/components/sales/payments/PrepaidFormDialog';
@@ -542,6 +543,10 @@ export default function UsersPage() {
   const canCreateInvoice = hasPermission(SALES_PERMISSIONS.INVOICES_CREATE);
   const canCreatePrepaid = hasPermission(SALES_PERMISSIONS.PREPAYMENTS_CREATE);
   const canCreateAppointment = hasPermission(BUSINESS_CONFIG_PERMISSIONS.APPOINTMENT_CREATE);
+  // Crear y editar citas desde el perfil tiene su propio permiso, independiente de los
+  // APPOINTMENTS_* del calendario: se puede dar acceso al calendario sin habilitar esta
+  // vía, o al revés. El rol Doctor no lo tiene, así que le queda oculta.
+  const canManagePatientAppointments = hasPermission(PATIENTS_PERMISSIONS.MANAGE_APPOINTMENTS);
 
   const [mutualSocieties, setMutualSocieties] = React.useState<MutualSociety[]>([]);
   const [isLoadingMutualSocieties, setIsLoadingMutualSocieties] = React.useState(false);
@@ -575,6 +580,11 @@ export default function UsersPage() {
   const [refreshOrdersTrigger, setRefreshOrdersTrigger] = React.useState(0);
   const [refreshPaymentsTrigger, setRefreshPaymentsTrigger] = React.useState(0);
   const [isAppointmentDialogOpen, setIsAppointmentDialogOpen] = React.useState(false);
+  // Tarjeta inline de cita (la misma del calendario) para crear/editar desde el perfil.
+  // `appointment: null` = crear. Estado propio para no interferir con los flujos de
+  // deep-link, que siguen abriendo el diálogo completo.
+  const [inlineAppt, setInlineAppt] = React.useState<{ appointment: Appointment | null } | null>(null);
+  const [apptRefreshTrigger, setApptRefreshTrigger] = React.useState(0);
   const [editingAppointmentForPlan, setEditingAppointmentForPlan] = React.useState<Appointment | null>(null);
   const [editSessionId, setEditSessionId] = React.useState<number | null>(null);
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = React.useState(false);
@@ -632,6 +642,12 @@ export default function UsersPage() {
       setIsLoadingApptData(false);
     }
   }, []);
+
+  /** Abre la tarjeta inline. `appointment: null` crea una nueva para el paciente. */
+  const openInlineAppt = React.useCallback(async (appointment: Appointment | null) => {
+    await loadApptData();
+    setInlineAppt({ appointment });
+  }, [loadApptData]);
 
   const handleViewApptFromPlan = React.useCallback(async (appointmentId: string, scheduledDate?: string, serviceId?: string, serviceName?: string) => {
     await loadApptData();
@@ -1417,7 +1433,7 @@ export default function UsersPage() {
                         onCreateQuote={canCreateQuote ? () => setIsQuoteDialogOpen(true) : undefined}
                         onCreateInvoice={canCreateInvoice ? () => setIsInvoiceDialogOpen(true) : undefined}
                         onCreatePrepaid={canCreatePrepaid ? () => setIsPrepaidDialogOpen(true) : undefined}
-                        onCreateAppointment={canCreateAppointment ? () => { loadApptData(); setIsAppointmentDialogOpen(true); } : undefined}
+                        onCreateAppointment={canManagePatientAppointments ? () => openInlineAppt(null) : undefined}
                         onEmail={() => setIsEmailDialogOpen(true)}
                         onWhatsApp={() => setIsWhatsAppDialogOpen(true)}
                         onSendWhatsAppTemplate={canSendWhatsAppTemplate ? () => setIsWhatsAppTemplateDialogOpen(true) : undefined}
@@ -1508,11 +1524,8 @@ export default function UsersPage() {
                             createOdontogramTrigger={createOdontogramTrigger}
                             sessionPrefill={sessionPrefill}
                             editSessionId={editSessionId}
-                            onEditAppointment={(appt) => {
-                              setEditingAppointmentForPlan(appt);
-                              loadApptData();
-                              setIsAppointmentDialogOpen(true);
-                            }}
+                            refreshAppointmentsTrigger={apptRefreshTrigger}
+                            onEditAppointment={canManagePatientAppointments ? (appt) => openInlineAppt(appt) : undefined}
                             onSessionCreated={async (sesionId, stepId) => {
                               if (stepId) {
                                 try {
@@ -1937,6 +1950,22 @@ export default function UsersPage() {
             } else {
               setRefreshInvoicesTrigger(t => t + 1);
             }
+            loadUsers();
+          }}
+        />
+      )}
+
+      {selectedUser && inlineAppt && (
+        <InlineAppointmentDraftHost
+          open
+          appointment={inlineAppt.appointment}
+          patient={selectedUser}
+          calendars={apptCalendars}
+          doctors={apptDoctors}
+          onOpenChange={(open) => { if (!open) setInlineAppt(null); }}
+          onSaved={() => {
+            setInlineAppt(null);
+            setApptRefreshTrigger((n) => n + 1);
             loadUsers();
           }}
         />
