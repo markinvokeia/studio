@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Activity, CalendarClock, CalendarDays, CalendarPlus, FileText, Inbox, Link2, Pencil, Printer, Send, Trash2, User, X, XCircle } from 'lucide-react';
+import { Activity, CalendarClock, CalendarDays, CalendarPlus, FileText, Inbox, Link2, Pencil, Printer, Send, Trash2, User, UserRoundX, X, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
@@ -12,15 +12,20 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Skeleton } from '@/components/ui/skeleton';
 import { VerticalTabStrip, type VerticalTab } from '@/components/ui/vertical-tab-strip';
 
+import { StudyOrderAppointmentCard } from './study-order-appointment-card';
 import { StudyOrderBookingLinkTab } from './study-order-booking-link-tab';
 import { StudyOrderStatusBadge } from './study-order-status-badge';
-import { ToothGridPicker } from './tooth-grid-picker';
+import {
+    StudyOrderSummary, labelForDelivery, labelForModifier, labelForText,
+    type StudyOrderSummarySection,
+} from './study-order-summary';
+import { StudyOrderTimeline } from './study-order-timeline';
 
 import { STUDY_ORDERS_PERMISSIONS } from '@/constants/permissions';
 import { usePermissions } from '@/hooks/usePermissions';
-import { formatDateTime } from '@/lib/utils';
-import type { StudyOrder, StudyOrderBoardStatus } from '@/lib/types';
-import { getStudyOrder } from '@/services/study-orders';
+import { formatDisplayDate } from '@/lib/utils';
+import type { StudyOrder, StudyOrderBoardStatus, StudyOrderFormOptions } from '@/lib/types';
+import { getStudyOrder, getStudyOrderFormOptions } from '@/services/study-orders';
 
 /**
  * Panel de detalle de una orden. La pestaña "Orden" es la vista precargada de
@@ -278,123 +283,214 @@ export function StudyOrderDetailPanel({
             <VerticalTabStrip tabs={tabs} activeTabId={activeTab} onTabClick={(tab) => setActiveTab(tab.id)} />
 
             <CardContent className="flex-1 space-y-4 overflow-y-auto pt-4">
-                {activeTab === 'order' && (
-                    <>
-                        <dl className="grid grid-cols-2 gap-3">
-                            <Field label={t('form.patientDocument')} value={order.patient_document} />
-                            <Field label={t('form.patientPhone')} value={order.patient_phone} />
-                            <Field label={t('columns.doctor')} value={order.doctor_name} />
-                            <Field label={t('form.preferredSede')} value={order.preferred_sede_name} />
-                        </dl>
-
-                        {order.delivery_methods.length > 0 && (
-                            <div className="space-y-1.5">
-                                <p className="text-xs text-muted-foreground">{t('form.deliverySection')}</p>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {order.delivery_methods.map((method) => (
-                                        <Badge key={method} variant="outline">{method}</Badge>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        <Separator />
-
-                        {itemsBySection.map(([sectionCode, items]) => (
-                            <div key={sectionCode} className="space-y-2">
-                                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                    {sectionCode}
-                                </p>
-                                <ul className="space-y-1.5">
-                                    {items.map((item) => (
-                                        <li key={item.id} className="text-sm">
-                                            <div className="flex items-start justify-between gap-2">
-                                                <span className={item.is_cancelled ? 'line-through opacity-60' : ''}>
-                                                    {item.service_name}
-                                                </span>
-                                                {item.is_completed ? (
-                                                    <Badge variant="success" className="shrink-0">{t('status.completed')}</Badge>
-                                                ) : item.is_scheduled ? (
-                                                    <Badge variant="default" className="shrink-0">{t('status.scheduled')}</Badge>
-                                                ) : null}
-                                            </div>
-                                            {Object.values(item.modifiers ?? {}).flat().length > 0 && (
-                                                <p className="mt-0.5 text-xs text-muted-foreground">
-                                                    {Object.values(item.modifiers).flat().join(' · ')}
-                                                </p>
-                                            )}
-                                            {item.notes && (
-                                                <p className="mt-0.5 text-xs italic text-muted-foreground">{item.notes}</p>
-                                            )}
-                                        </li>
-                                    ))}
-                                </ul>
-                                {order.regions[sectionCode]?.length > 0 && (
-                                    <ToothGridPicker
-                                        value={order.regions[sectionCode]}
-                                        onChange={() => { /* sólo lectura */ }}
-                                        disabled
-                                        testIdPrefix={`detail-tooth-${sectionCode.toLowerCase()}`}
-                                    />
-                                )}
-                            </div>
-                        ))}
-
-                        {order.clinical_notes && (
-                            <>
-                                <Separator />
-                                <div className="space-y-1">
-                                    <p className="text-xs text-muted-foreground">{t('form.clinicalNotes')}</p>
-                                    <p className="whitespace-pre-wrap text-sm">{order.clinical_notes}</p>
-                                </div>
-                            </>
-                        )}
-                    </>
-                )}
+                {activeTab === 'order' && <OrderTab order={order} />}
 
                 {activeTab === 'appointments' && (
-                    <ul className="space-y-2">
+                    <div className="space-y-3">
                         {(order.appointments ?? []).map((appointment) => (
-                            <li key={appointment.id} className="rounded-md border p-3 text-sm">
-                                <div className="flex items-center justify-between gap-2">
-                                    <span>{formatDateTime(appointment.start_datetime)}</span>
-                                    <Badge variant="outline">{appointment.status}</Badge>
-                                </div>
-                                {appointment.sede_name && (
-                                    <p className="mt-1 text-xs text-muted-foreground">{appointment.sede_name}</p>
-                                )}
-                            </li>
+                            <StudyOrderAppointmentCard key={appointment.id} appointment={appointment} />
                         ))}
                         {(order.appointments ?? []).length === 0 && (
-                            <p className="text-sm text-muted-foreground">{t('noResults')}</p>
+                            <p className="py-6 text-center text-sm text-muted-foreground">
+                                {t('appointmentCard.none')}
+                            </p>
                         )}
-                    </ul>
+                    </div>
                 )}
 
-                {activeTab === 'patient' && (
-                    <dl className="grid grid-cols-2 gap-3">
-                        <Field label={t('form.patientName')} value={order.patient_name} />
-                        <Field label={t('form.patientDocument')} value={order.patient_document} />
-                        <Field label={t('form.patientPhone')} value={order.patient_phone} />
-                        <Field label={t('form.patientEmail')} value={order.patient_email} />
-                    </dl>
-                )}
+                {activeTab === 'patient' && <PatientTab order={order} />}
 
                 {activeTab === 'link' && (
                     <StudyOrderBookingLinkTab order={order} />
                 )}
 
-                {activeTab === 'activity' && (
-                    <dl className="space-y-3">
-                        <Field label={t('columns.submittedAt')} value={order.submitted_at ? formatDateTime(order.submitted_at) : null} />
-                        <Field label={t('actions.acknowledge')} value={order.acknowledged_at ? formatDateTime(order.acknowledged_at) : null} />
-                        <Field label={t('status.completed')} value={order.completed_at ? formatDateTime(order.completed_at) : null} />
-                        <Field label={t('status.cancelled')} value={order.cancelled_at ? formatDateTime(order.cancelled_at) : null} />
-                        <Field label={t('cancelDialog.reasonLabel')} value={order.cancellation_reason} />
-                    </dl>
-                )}
+                {activeTab === 'activity' && <StudyOrderTimeline events={order.events ?? []} />}
             </CardContent>
         </Card>
+    );
+}
+
+/**
+ * Ficha del paciente, sólo lectura y sólo datos básicos.
+ *
+ * Nada financiero a propósito: la pestaña contesta "a quién estoy atendiendo",
+ * no "cuánto debe". Para lo otro está el estado de cuenta, que tiene su propio
+ * permiso.
+ *
+ * Cuando la orden todavía no está vinculada a una ficha —el derivador la cargó
+ * a mano— se muestran igual los datos sueltos que trae la orden, avisando que
+ * son eso. Esconderlos sería peor: son los únicos que hay.
+ */
+function PatientTab({ order }: { order: StudyOrder }) {
+    const t = useTranslations('StudyOrdersPage');
+    const p = order.patient;
+
+    if (!p) {
+        return (
+            <div className="space-y-3">
+                <div className="flex items-start gap-2.5 rounded-lg border border-dashed p-3">
+                    <UserRoundX className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                    <p className="text-sm text-muted-foreground">{t('patientTab.notLinked')}</p>
+                </div>
+                <dl className="grid grid-cols-2 gap-3">
+                    <Field label={t('form.patientName')} value={order.patient_name} />
+                    <Field label={t('form.patientDocument')} value={order.patient_document} />
+                    <Field label={t('form.patientPhone')} value={order.patient_phone} />
+                    <Field label={t('form.patientEmail')} value={order.patient_email} />
+                </dl>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-4">
+            <div className="flex items-center gap-3">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                    {p.name.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase()}
+                </span>
+                <div className="min-w-0">
+                    <p className="truncate font-semibold">{p.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                        {[p.internal_id, p.identity_document].filter(Boolean).join(' · ')}
+                    </p>
+                </div>
+                {p.is_active === false && (
+                    <Badge variant="destructive" className="ml-auto shrink-0">{t('patientTab.inactive')}</Badge>
+                )}
+            </div>
+
+            <Separator />
+
+            <dl className="grid grid-cols-2 gap-3">
+                <Field label={t('patientTab.birthday')} value={birthdayLabel(p.birthday, t)} />
+                <Field label={t('patientTab.sex')} value={p.sex} />
+                <Field label={t('form.patientPhone')} value={p.phone_number} />
+                <Field label={t('patientTab.alternativePhone')} value={p.alternative_phone} />
+                <Field label={t('form.patientEmail')} value={p.email} />
+                <Field label={t('patientTab.mutualSociety')} value={p.mutual_society_name} />
+                <Field label={t('patientTab.assignedDoctor')} value={p.assigned_doctor_name} />
+            </dl>
+
+            {p.address && (
+                <>
+                    <Separator />
+                    <Field label={t('patientTab.address')} value={p.address} />
+                </>
+            )}
+        </div>
+    );
+}
+
+/**
+ * Fecha de nacimiento con la edad al lado, que es lo que se mira en la clínica.
+ * La fecha se corta antes de parsear: `new Date` sobre un ISO con zona puede
+ * correr el día y cambiar la edad justo en el cumpleaños.
+ */
+function birthdayLabel(
+    birthday: string | null | undefined,
+    t: ReturnType<typeof useTranslations<'StudyOrdersPage'>>,
+): string | null {
+    if (!birthday) return null;
+    const shown = formatDisplayDate(birthday);
+    const born = new Date(`${birthday.replace('Z', '').split('T')[0]}T00:00:00`);
+    if (Number.isNaN(born.getTime())) return shown;
+
+    const now = new Date();
+    let age = now.getFullYear() - born.getFullYear();
+    const beforeBirthday = now.getMonth() < born.getMonth()
+        || (now.getMonth() === born.getMonth() && now.getDate() < born.getDate());
+    if (beforeBirthday) age -= 1;
+
+    return age >= 0 && age < 130 ? `${shown} (${t('patientTab.years', { age })})` : shown;
+}
+
+/**
+ * La orden, con el mismo resumen que el derivador confirmó al enviarla.
+ *
+ * Comparte componente con el último paso del asistente a propósito: lo que se
+ * revisa antes de mandar y lo que se lee después tiene que ser idéntico. Antes
+ * esta pestaña maquetaba lo suyo y, además, mostraba los códigos crudos de las
+ * secciones y los modificadores; el catálogo que los traduce es el mismo que
+ * arma el formulario, así que se pide acá y se resuelven igual que allá.
+ */
+function OrderTab({ order }: { order: StudyOrder }) {
+    const t = useTranslations('StudyOrdersPage');
+    const [options, setOptions] = React.useState<StudyOrderFormOptions | null>(null);
+
+    React.useEffect(() => {
+        let cancelled = false;
+        void getStudyOrderFormOptions().then((fetched) => {
+            if (!cancelled) setOptions(fetched);
+        });
+        return () => { cancelled = true; };
+    }, []);
+
+    /**
+     * Las líneas guardadas, agrupadas por sección. Se recorre el catálogo y no
+     * las líneas para respetar el orden del formulario; una sección cuyo código
+     * ya no exista en el catálogo se agrega igual al final, con su código por
+     * nombre, para que una orden vieja no pierda contenido en pantalla.
+     */
+    const sections = React.useMemo<StudyOrderSummarySection[]>(() => {
+        const itemsByCode = new Map<string, StudyOrder['items']>();
+        for (const item of order.items) {
+            const bucket = itemsByCode.get(item.section_code);
+            if (bucket) bucket.push(item);
+            else itemsByCode.set(item.section_code, [item]);
+        }
+
+        const toSummary = (code: string, name: string, color?: string | null): StudyOrderSummarySection => ({
+            code,
+            name,
+            color,
+            teeth: order.regions?.[code] ?? [],
+            items: (itemsByCode.get(code) ?? []).map((item) => ({
+                id: item.id,
+                name: item.service_name,
+                modifiers: Object.values(item.modifiers ?? {}).flat()
+                    .map((mod) => labelForModifier(options, mod)),
+                notes: item.notes,
+                isCancelled: item.is_cancelled,
+                isScheduled: item.is_scheduled,
+                isCompleted: item.is_completed,
+            })),
+        });
+
+        const known = options?.sections ?? [];
+        const knownCodes = new Set(known.map((s) => s.code));
+        const orphanCodes = [...itemsByCode.keys(), ...Object.keys(order.regions ?? {})]
+            .filter((code) => !knownCodes.has(code));
+
+        return [
+            ...known.map((section) => toSummary(section.code, section.name, section.color)),
+            ...Array.from(new Set(orphanCodes)).map((code) => toSummary(code, code)),
+        ];
+    }, [order, options]);
+
+    const texts = React.useMemo(
+        () => Object.entries(order.texts ?? {})
+            .filter(([, value]) => (value ?? '').trim())
+            .map(([code, value]) => ({ label: labelForText(options, code), value })),
+        [order.texts, options],
+    );
+
+    return (
+        <StudyOrderSummary
+            patientName={order.patient_name}
+            patientDocument={order.patient_document}
+            patientPhone={order.patient_phone}
+            patientEmail={order.patient_email}
+            deliveryLabels={(order.delivery_methods ?? []).map((code) => labelForDelivery(options, code))}
+            sections={sections}
+            texts={texts}
+            clinicalNotes={order.clinical_notes}
+            header={
+                <dl className="mt-3 grid grid-cols-2 gap-3 border-t pt-3">
+                    <Field label={t('columns.doctor')} value={order.doctor_name} />
+                    <Field label={t('form.preferredSede')} value={order.preferred_sede_name} />
+                </dl>
+            }
+        />
     );
 }
 
