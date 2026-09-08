@@ -10,6 +10,25 @@
  *    es el `assert_self_or_staff` que hoy no existe en ningún flujo del repo.
  */
 
+
+/**
+ * Ahora, en la hora de pared de la clínica.
+ *
+ * Las columnas de fecha de este módulo son `timestamp WITHOUT time zone` y el
+ * servidor corre en UTC, así que `now()` a secas guarda las 21:40 cuando en
+ * Uruguay son las 18:40 — el front las lee como hora local y las muestra tres
+ * horas adelantadas.
+ *
+ * `AT TIME ZONE` convierte el timestamptz a la hora de pared de esa zona y
+ * devuelve un timestamp sin zona: exactamente lo que la columna espera. Se usa
+ * el nombre de la zona y no un offset fijo para que un eventual cambio de huso
+ * lo resuelva la base y no nosotros.
+ *
+ * Vale también para las COMPARACIONES: si un lado se mide en hora local y el
+ * otro en UTC, un token vence tres horas antes de lo que dice su fecha.
+ */
+const NOW = `(now() AT TIME ZONE 'America/Montevideo')`;
+
 /** CTE reutilizable: qué permisos STUDY_ORDERS_* tiene el sujeto del token. */
 const PERMS_CTE = `
 perms AS (
@@ -389,7 +408,7 @@ export const SUBMIT_SQL = `
 WITH ${PERMS_CTE},
 updated AS (
     UPDATE public.study_orders so
-       SET status = 'submitted', submitted_at = now()
+       SET status = 'submitted', submitted_at = ${NOW}
      WHERE so.id = $2::uuid
        AND so.status = 'draft'
        AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms))
@@ -415,7 +434,7 @@ export const ACKNOWLEDGE_SQL = `
 -- $1 userId (token)  $2 id. Saca la orden del bucket "nuevas".
 WITH ${PERMS_CTE}
 UPDATE public.study_orders so
-   SET acknowledged_at = now(), acknowledged_by = $1::uuid
+   SET acknowledged_at = ${NOW}, acknowledged_by = $1::uuid
  WHERE so.id = $2::uuid
    AND so.status = 'submitted'
    AND so.acknowledged_at IS NULL
@@ -433,7 +452,7 @@ export const CANCEL_SQL = `
 --     vive acá: un botón gris no es control de acceso.
 WITH ${PERMS_CTE}
 UPDATE public.study_orders so
-   SET status = 'cancelled', cancelled_at = now(), cancellation_reason = $3
+   SET status = 'cancelled', cancelled_at = ${NOW}, cancellation_reason = $3
  WHERE so.id = $2::uuid
    AND so.status IN ('draft', 'submitted')
    AND ((SELECT can_cancel FROM perms)
@@ -463,7 +482,7 @@ v AS (
 UPDATE public.appointments a
    SET start_datetime = v.starts_at,
        end_datetime   = v.ends_at,
-       updated_at     = now()
+       updated_at     = ${NOW}
   FROM v
  WHERE a.id = v.appointment_id
    -- La cita tiene que ser de esa orden: sin esto, con el id de cualquier cita
@@ -524,7 +543,7 @@ SELECT r.user_id,
        'MEDIUM',
        so.patient_id,
 ${ORDER_METADATA} || jsonb_build_object('change', coalesce($2::text, '')),
-       now()
+       ${NOW}
   FROM public.study_orders so
   LEFT JOIN public.users d  ON d.id  = so.doctor_id
   LEFT JOIN public.sedes se ON se.id = so.preferred_sede_id
@@ -567,7 +586,7 @@ ${ORDER_METADATA} || jsonb_build_object(
            'change',       $2::text,
            'cancellation_reason', so.cancellation_reason
        ),
-       now()
+       ${NOW}
   FROM public.study_orders so
   LEFT JOIN public.users d  ON d.id  = so.doctor_id
   LEFT JOIN public.sedes se ON se.id = so.preferred_sede_id
@@ -604,7 +623,7 @@ v AS (
 )
 UPDATE public.appointments a
    SET study_order_id = v.order_id,
-       updated_at     = now()
+       updated_at     = ${NOW}
   FROM v
  WHERE a.id = v.appointment_id
    -- Una cita ya atada a OTRA orden no se roba.
@@ -691,8 +710,8 @@ target AS (
 upd AS (
     UPDATE public.study_orders so
        SET status       = target.new_status,
-           completed_at = CASE WHEN target.new_status = 'completed' THEN now() ELSE NULL END,
-           updated_at   = now()
+           completed_at = CASE WHEN target.new_status = 'completed' THEN ${NOW} ELSE NULL END,
+           updated_at   = ${NOW}
       FROM target
      WHERE so.id = target.id
        AND so.status IS DISTINCT FROM target.new_status
@@ -735,8 +754,8 @@ WITH state AS (
 )
 UPDATE public.study_orders o
    SET status       = state.target,
-       completed_at = CASE WHEN state.target = 'completed' THEN now() ELSE NULL END,
-       updated_at   = now()
+       completed_at = CASE WHEN state.target = 'completed' THEN ${NOW} ELSE NULL END,
+       updated_at   = ${NOW}
   FROM state
  WHERE o.id = state.id
    AND o.status IS DISTINCT FROM state.target
@@ -776,7 +795,7 @@ allowed AS (
 ),
 revoked AS (
     UPDATE public.study_order_booking_tokens bt
-       SET revoked_at = now()
+       SET revoked_at = ${NOW}
       FROM allowed
      WHERE bt.study_order_id = allowed.id
        AND bt.revoked_at IS NULL
@@ -804,7 +823,7 @@ WITH t AS (
       FROM public.study_order_booking_tokens bt
      WHERE bt.token_hash = $1::text
        AND bt.revoked_at IS NULL
-       AND bt.expires_at > now()
+       AND bt.expires_at > ${NOW}
        AND bt.used_count < bt.max_uses
 )
 SELECT so.id::text          AS id,
@@ -867,7 +886,7 @@ t AS (
       FROM public.study_order_booking_tokens bt
      WHERE bt.token_hash = $1::text
        AND bt.revoked_at IS NULL
-       AND bt.expires_at > now()
+       AND bt.expires_at > ${NOW}
        AND bt.used_count < bt.max_uses
      -- Bloquea la fila: dos clics simultáneos no pueden gastar el mismo uso.
      FOR UPDATE
@@ -890,10 +909,10 @@ ins AS (
            v.starts_at, v.ends_at, 'scheduled',
            v.calendar_source_id, o.id,
            v.summary || ' - ' || o.order_number,
-           now(), now()
+           ${NOW}, ${NOW}
       FROM o, v
      WHERE v.ends_at > v.starts_at
-       AND v.starts_at > now()
+       AND v.starts_at > ${NOW}
        AND v.calendar_source_id IS NOT NULL
        AND EXISTS (SELECT 1 FROM public.calendar_sources cs
                     WHERE cs.id = v.calendar_source_id AND cs.is_active)
@@ -918,7 +937,7 @@ svc AS (
 bump AS (
     UPDATE public.study_order_booking_tokens bt
        SET used_count   = bt.used_count + 1,
-           last_used_at = now()
+           last_used_at = ${NOW}
       FROM t, ins
      WHERE bt.id = t.id
     RETURNING bt.id
@@ -999,7 +1018,7 @@ v AS (
 )
 UPDATE public.appointments a
    SET technician_id = v.technician_id,
-       updated_at    = now()
+       updated_at    = ${NOW}
   FROM v
  WHERE a.id = v.appointment_id
    AND a.status NOT IN ('cancelled', 'deleted')
