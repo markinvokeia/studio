@@ -17,7 +17,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { UserSelector } from '@/components/ui/user-selector';
 
 import { StudyOrderSection } from './study-order-section';
-import { ToothGridPicker } from './tooth-grid-picker';
+import {
+    StudyOrderSummary, labelForDelivery, labelForModifier,
+    type StudyOrderSummarySection,
+} from './study-order-summary';
 
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -229,6 +232,39 @@ export function StudyOrderWizard({
         }
         return map;
     }, [selection.services]);
+
+    /**
+     * La selección en curso, en la forma que entiende el resumen compartido.
+     * Traducir acá los códigos a etiquetas es lo que permite que el asistente y
+     * el detalle de la orden dibujen exactamente lo mismo desde datos distintos.
+     */
+    const summarySections = React.useMemo<StudyOrderSummarySection[]>(
+        () => (options?.sections ?? []).map((section) => ({
+            code: section.code,
+            name: section.name,
+            color: section.color,
+            teeth: selection.teeth[section.code] ?? [],
+            items: (selectedIdsBySection.get(section.code) ?? []).flatMap((id) => {
+                const service = selection.services.get(id);
+                if (!service) return [];
+                return [{
+                    id,
+                    name: service.name,
+                    modifiers: Object.values(selection.itemModifiers[id] ?? {}).flat()
+                        .map((code) => labelForModifier(options, code)),
+                    notes: selection.itemNotes[id],
+                }];
+            }),
+        })),
+        [options, selectedIdsBySection, selection.services, selection.itemModifiers, selection.itemNotes, selection.teeth],
+    );
+
+    const summaryTexts = React.useMemo(
+        () => (options?.texts ?? [])
+            .filter((option) => (texts[option.code] ?? '').trim())
+            .map((option) => ({ label: option.label, value: texts[option.code] })),
+        [options, texts],
+    );
 
     /** Sólo entran al recorrido las secciones que tienen algo para elegir. */
     const steps = React.useMemo<Step[]>(() => {
@@ -613,91 +649,17 @@ export function StudyOrderWizard({
                             />
                         </div>
                     ) : (
-                        <div className="mx-auto max-w-5xl space-y-5">
-                            <div className="rounded-lg border p-4">
-                                <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                                    {t('form.patientSection')}
-                                </p>
-                                <p className="mt-1 font-medium">{patientName || '—'}</p>
-                                <p className="text-sm text-muted-foreground">
-                                    {[patientDocument, patientPhone, patientEmail].filter(Boolean).join(' · ') || '—'}
-                                </p>
-                                {deliveryMethods.length > 0 && (
-                                    <div className="mt-2 flex flex-wrap gap-1.5">
-                                        {deliveryMethods.map((code) => (
-                                            <Badge key={code} variant="outline">
-                                                {options?.delivery.find((d) => d.code === code)?.label ?? code}
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-
-                            {totalSelected === 0 ? (
-                                <p className="py-8 text-center text-sm text-muted-foreground">
-                                    {t('form.noServicesSelected')}
-                                </p>
-                            ) : (
-                                (options?.sections ?? []).map((section) => {
-                                    const ids = selectedIdsBySection.get(section.code) ?? [];
-                                    const teeth = selection.teeth[section.code] ?? [];
-                                    if (ids.length === 0 && teeth.length === 0) return null;
-                                    return (
-                                        <div key={section.code} className="rounded-lg border p-4">
-                                            <div className="flex items-center gap-2">
-                                                <span
-                                                    className="h-2.5 w-2.5 rounded-full"
-                                                    style={{ backgroundColor: section.color || 'hsl(var(--muted-foreground))' }}
-                                                />
-                                                <p className="text-sm font-semibold">{section.name}</p>
-                                            </div>
-                                            <ul className="mt-2 space-y-1.5">
-                                                {ids.map((id) => {
-                                                    const service = selection.services.get(id);
-                                                    if (!service) return null;
-                                                    const mods = Object.values(selection.itemModifiers[id] ?? {}).flat();
-                                                    return (
-                                                        <li key={id} className="text-sm">
-                                                            <span>{service.name}</span>
-                                                            {mods.length > 0 && (
-                                                                <span className="ml-2 text-xs text-muted-foreground">
-                                                                    {mods.map((code) =>
-                                                                        options?.modifiers.find((m) => m.code === code)?.label ?? code,
-                                                                    ).join(' · ')}
-                                                                </span>
-                                                            )}
-                                                            {selection.itemNotes[id] && (
-                                                                <span className="ml-2 text-xs italic text-muted-foreground">
-                                                                    {selection.itemNotes[id]}
-                                                                </span>
-                                                            )}
-                                                        </li>
-                                                    );
-                                                })}
-                                            </ul>
-                                            {teeth.length > 0 && (
-                                                <div className="mt-3">
-                                                    <ToothGridPicker
-                                                        value={teeth}
-                                                        onChange={() => { /* sólo lectura en el resumen */ }}
-                                                        disabled
-                                                        testIdPrefix={`review-tooth-${section.code.toLowerCase()}`}
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })
-                            )}
-
-                            {clinicalNotes.trim() && (
-                                <div className="rounded-lg border p-4">
-                                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                                        {t('form.clinicalNotes')}
-                                    </p>
-                                    <p className="mt-1 whitespace-pre-wrap text-sm">{clinicalNotes}</p>
-                                </div>
-                            )}
+                        <div className="mx-auto max-w-5xl">
+                            <StudyOrderSummary
+                                patientName={patientName}
+                                patientDocument={patientDocument}
+                                patientPhone={patientPhone}
+                                patientEmail={patientEmail}
+                                deliveryLabels={deliveryMethods.map((code) => labelForDelivery(options, code))}
+                                sections={summarySections}
+                                texts={summaryTexts}
+                                clinicalNotes={clinicalNotes}
+                            />
                         </div>
                     )}
 

@@ -194,6 +194,30 @@
       ],
       "id": "upsert-err",
       "name": "Responder Error"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 payload { order_id, event_type, actor_id, actor_kind, appointment_id, metadata }\n--\n-- Registro de la bitácora. Un solo parámetro: el payload entero como JSON, por\n-- el mismo motivo que el upsert — sin array posicional no hay desalineación\n-- posible.\n--\n-- El actor sale SIEMPRE del token en el nodo que arma el payload, nunca del\n-- cuerpo que manda el cliente. El tipo de evento se valida dos veces: contra la\n-- lista cerrada del nodo y contra el CHECK de la tabla.\n--\n-- Nunca hace fallar la operación que lo provocó: el nodo va colgado después de\n-- responder al webhook y con onError continueRegularOutput. Perder un renglón\n-- del historial es malo; perder la operación es peor.\nINSERT INTO public.study_order_events\n       (study_order_id, event_type, actor_id, actor_kind, appointment_id, metadata)\nSELECT (b.body ->> 'order_id')::uuid,\n       b.body ->> 'event_type',\n       NULLIF(b.body ->> 'actor_id', '')::uuid,\n       coalesce(NULLIF(b.body ->> 'actor_kind', ''), 'user'),\n       NULLIF(b.body ->> 'appointment_id', '')::int,\n       coalesce(b.body -> 'metadata', '{}'::jsonb)\n  FROM (SELECT $1::jsonb AS body) b\n WHERE coalesce(b.body ->> 'order_id', '') <> ''\n   AND coalesce(b.body ->> 'event_type', '') <> ''\n   AND EXISTS (SELECT 1 FROM public.study_orders so\n                WHERE so.id = (b.body ->> 'order_id')::uuid)\nRETURNING id::text;",
+        "options": {
+          "queryReplacement": "={{ JSON.stringify({ order_id: $('Formatear Respuesta').first().json.__data?.id || '', event_type: JSON.parse($('Validar Datos').first().json.payload).id ? 'updated' : 'created', actor_id: $('Validar Datos').first().json.user_id }) }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1540,
+        400
+      ],
+      "id": "upsert-event",
+      "name": "Registrar evento",
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "onError": "continueRegularOutput"
     }
   ],
   "connections": {
@@ -260,6 +284,17 @@
         [
           {
             "node": "¿Error de negocio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Responder OK": {
+      "main": [
+        [
+          {
+            "node": "Registrar evento",
             "type": "main",
             "index": 0
           }
