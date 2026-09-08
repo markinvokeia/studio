@@ -80,12 +80,16 @@ export async function assignAppointmentTechnician(
 }
 
 /**
- * Las tareas de un técnico en un rango: lo asignado a él más lo que caiga en un
- * calendario al que tenga acceso.
+ * Las tareas de un técnico en un rango. Dos modos excluyentes, uno por pestaña:
  *
- * `technicianId` sólo lo respeta el backend si quien pregunta puede asignar
- * (recepción mirando la carga de alguien). Sin ese permiso se ignora y devuelve
- * lo del sujeto del token — el panel de uno nunca puede pedir el de otro.
+ *   · sin `calendarSourceId` — "Asignadas a mí": las citas cuyo técnico es el
+ *     sujeto del token;
+ *   · con `calendarSourceId` — "Mis calendarios": todas las citas de ese
+ *     calendario, asignadas o no.
+ *
+ * El técnico NO viaja como parámetro a propósito: sale del token. La versión
+ * anterior lo aceptaba y, cuando el que llamaba no tenía cierto permiso, el
+ * valor se ignoraba en silencio y devolvía las citas del propio llamador.
  *
  * Devuelve `[]` ante cualquier fallo: un panel vacío es mejor que una pantalla
  * rota, y el técnico puede simplemente no tener nada asignado.
@@ -93,11 +97,11 @@ export async function assignAppointmentTechnician(
 export async function fetchTechnicianTasks(params: {
     from: string;
     to: string;
-    technicianId?: string;
+    calendarSourceId?: string;
 }): Promise<TechnicianTask[]> {
     try {
         const query: Record<string, string> = { from: params.from, to: params.to };
-        if (params.technicianId) query.technician_id = params.technicianId;
+        if (params.calendarSourceId) query.calendar_source_id = params.calendarSourceId;
         const raw = await api.get(API_ROUTES.APPOINTMENTS_TECHNICIAN_TASKS, query);
         const data = unwrap<TechnicianTask[]>(raw);
         return Array.isArray(data) ? data : [];
