@@ -45,7 +45,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const userId = $json.jwtPayload?.userId;\nif (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];\n\n// Se aceptan separados por coma (lo natural en un query) y se limpian: un id no\n// numerico rompe el cast a int del SQL.\nconst raw = ($json.query?.appointment_ids || '').toString();\nconst ids = raw.split(',').map((v) => v.trim()).filter((v) => /^d+$/.test(v)).slice(0, 500);\n\n// Una lista vacia sigue igual y devuelve cero filas: un calendario sin citas no\n// es un error, y cortar aca con 400 obligaria al cliente a decidir si llamar.\nreturn [{ json: { user_id: String(userId), payload: JSON.stringify({ appointment_ids: ids }) } }];"
+        "jsCode": "const userId = $json.jwtPayload?.userId;\nif (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];\n\n// Se aceptan separados por coma (lo natural en un query) y se limpian: un id no\n// numerico rompe el cast a int del SQL.\nconst raw = ($json.query?.appointment_ids || '').toString();\nconst ids = raw.split(',').map((v) => v.trim()).filter((v) => /^\\d+$/.test(v)).slice(0, 500);\n\n// Una lista vacia sigue igual y devuelve cero filas: un calendario sin citas no\n// es un error, y cortar aca con 400 obligaria al cliente a decidir si llamar.\nreturn [{ json: { user_id: String(userId), payload: JSON.stringify({ appointment_ids: ids }) } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,

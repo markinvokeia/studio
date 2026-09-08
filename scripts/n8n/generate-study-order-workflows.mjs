@@ -593,7 +593,27 @@ return [{ json: {
   notify_change: LOG_ONLY.includes(change) ? '' : change,
   payload: JSON.stringify({ id, change }),
 } }];`.trim(),
-    event: { replacement: `={{ JSON.stringify({ order_id: $('Formatear Respuesta').first().json.__data?.id || '', event_type: $('Formatear Respuesta').first().json.__data?.change || '', actor_id: $('Validar Datos').first().json.user_id, appointment_id: $('Validar Datos').first().json.appointment_id || '' }) }}` },
+    // DOS renglones, no uno.
+    //
+    // Un guardado de sesión clínica que además cierra la orden es dos hechos:
+    // alguien registró el estudio, y la orden quedó completa. El SQL devuelve un
+    // solo `change` —la transición pisa al hint— así que si se registrara sólo
+    // eso, la línea de tiempo diría "se completaron los estudios" y se perdería
+    // QUIÉN los hizo, que es justamente lo que hay que auditar.
+    //
+    // El primero anota la acción de quien llamó, con su actor. El segundo, la
+    // transición persistida, y sólo si hubo. Cuando coinciden en el tiempo se
+    // ven los dos, en orden.
+    event: [
+        {
+            name: 'Registrar acción',
+            replacement: `={{ JSON.stringify({ order_id: $('Formatear Respuesta').first().json.__data?.id || '', event_type: JSON.parse($('Validar Datos').first().json.payload).change || '', actor_id: $('Validar Datos').first().json.user_id, appointment_id: $('Validar Datos').first().json.appointment_id || '' }) }}`,
+        },
+        {
+            name: 'Registrar cierre',
+            replacement: `={{ JSON.stringify({ order_id: $('Formatear Respuesta').first().json.__data?.id || '', event_type: $('Formatear Respuesta').first().json.__data?.changed ? $('Formatear Respuesta').first().json.__data?.change : '', actor_id: $('Validar Datos').first().json.user_id, appointment_id: $('Validar Datos').first().json.appointment_id || '' }) }}`,
+        },
+    ],
     sql: RECOMPUTE_SQL,
     replacement: '={{ [ $json.user_id, $json.payload ] }}',
     format: formatCode(`
@@ -774,7 +794,7 @@ return [{ json: { __data: rows[0], __message: 'Técnico asignado' } }];`),
 workflows.push({
     file: 'appointments-technician-tasks.json',
     name: 'Appointments - Technician Tasks',
-    sticky: `## GET /appointments/technician-tasks?from=...&to=...\n\nLas citas que le tocan a un técnico. Alimenta el panel de Tareas, que es Mi Consultorio con otra fuente.\n\n**Dos caminos que se suman:** lo asignado directamente (\`technician_id\`) **y** lo que caiga en un calendario al que tenga acceso (\`calendar_users\`, la misma tabla que ya usa Mi Consultorio). Un técnico sin calendarios ve sólo lo suyo; uno con acceso a la sala ve todo lo de esa sala.\n\n**\`technician_id\` en el query sólo lo respeta quien puede asignar** (recepción mirando la carga de otro). Sin ese permiso se ignora y se usa el sujeto del token: el panel de uno nunca puede pedir el de otro.\n\nEl formato de salida espeja el de \`/users/appointments\`, que es lo que el workspace ya sabe leer.`,
+    sticky: `## GET /appointments/technician-tasks?from=...&to=...\n\nLas citas que le tocan a un técnico. Alimenta el panel de Tareas, que es Mi Consultorio con otra fuente.\n\n**\`technician_id\` en el query sólo lo respeta quien puede asignar** (recepción mirando la carga de otro). Sin ese permiso se ignora y se usa el sujeto del token: el panel de uno nunca puede pedir el de otro.\n\nEl formato de salida espeja el de \`/users/appointments\`, que es lo que el workspace ya sabe leer.`,
     method: 'GET',
     path: 'appointments/technician-tasks',
     id: 'tectask',
@@ -787,9 +807,14 @@ const to = (q.to || q.endingDateAndTime || '').toString().trim();
 if (!from || !to) {
   return [{ json: { __error: true, __code: 400, __message: 'from y to son requeridos' } }];
 }
+// Uno o el otro: con calendario, todo lo de ese calendario; sin calendario, lo
+// asignado al sujeto del token. El tecnico NO se acepta por parametro — sale
+// siempre del token, para que no haya forma de que el filtro se caiga.
+const calendarId = (q.calendar_source_id || '').toString().trim();
+
 return [{ json: {
   user_id: String(userId),
-  payload: JSON.stringify({ from, to, technician_id: (q.technician_id || '').toString().trim() }),
+  payload: JSON.stringify({ from, to, calendar_source_id: /^\\d+$/.test(calendarId) ? calendarId : '' }),
 } }];`.trim(),
     sql: TECHNICIAN_TASKS_SQL,
     replacement: '={{ [ $json.user_id, $json.payload ] }}',
@@ -813,7 +838,7 @@ if (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin
 // Se aceptan separados por coma (lo natural en un query) y se limpian: un id no
 // numerico rompe el cast a int del SQL.
 const raw = ($json.query?.appointment_ids || '').toString();
-const ids = raw.split(',').map((v) => v.trim()).filter((v) => /^\d+$/.test(v)).slice(0, 500);
+const ids = raw.split(',').map((v) => v.trim()).filter((v) => /^\\d+$/.test(v)).slice(0, 500);
 
 // Una lista vacia sigue igual y devuelve cero filas: un calendario sin citas no
 // es un error, y cortar aca con 400 obligaria al cliente a decidir si llamar.
@@ -843,19 +868,25 @@ const EVENTS_WORKFLOW_ID = 'W5SZnwkaTigFrHO6';
  * `replacement` arma el payload leyendo los nodos anteriores. El actor sale
  * siempre del token, nunca del cuerpo del request.
  */
-function eventNode(id, replacement) {
-    return {
-        parameters: { operation: 'executeQuery', query: LOG_EVENT_SQL, options: { queryReplacement: replacement } },
+function eventNodes(id, list) {
+    return list.map((e, i) => ({
+        parameters: { operation: 'executeQuery', query: LOG_EVENT_SQL, options: { queryReplacement: e.replacement } },
         type: 'n8n-nodes-base.postgres',
         typeVersion: 2.6,
-        position: [1540, 400],
-        id: `${id}-event`,
-        name: 'Registrar evento',
+        position: [1540, list.length > 1 ? 400 + i * 120 : 400],
+        // El sufijo sólo si hay más de uno: cambiar el id de un nodo hace que
+        // n8n lo trate como otro al reimportar, y no hay nada que ganar con eso
+        // en los flujos que tienen un único renglón de bitácora.
+        id: list.length > 1 ? `${id}-event-${i}` : `${id}-event`,
+        name: e.name ?? 'Registrar evento',
         credentials: PG_CREDENTIAL,
         // Perder un renglón del historial es malo; tumbar la operación, peor.
         onError: 'continueRegularOutput',
-    };
+    }));
 }
+
+/** `event` admite uno o varios renglones de bitácora por operación. */
+const eventList = (wf) => (wf.event ? (Array.isArray(wf.event) ? wf.event : [wf.event]) : []);
 
 function notifyNodes(id, list) {
     return list.flatMap((n, i) => {
@@ -870,6 +901,9 @@ function notifyNodes(id, list) {
                 type: 'n8n-nodes-base.postgres',
                 typeVersion: 2.6,
                 position: [1540, y],
+                // Con sufijo siempre: así se publicaron y así están en n8n.
+                // Cambiar el id de un nodo ya desplegado no aporta nada y hace
+                // que al reimportar se trate como un nodo distinto.
                 id: `${id}-notify-${i}`,
                 name: notifyName,
                 credentials: PG_CREDENTIAL,
@@ -1052,7 +1086,7 @@ for (const wf of workflows) {
         },
         respondNode(`${wf.id}-ok`, 'Responder OK', [1320, 220], RESPOND_OK, 200),
         respondNode(`${wf.id}-err`, 'Responder Error', [1320, -60], RESPOND_ERR, '={{ $json.__code || 400 }}'),
-        ...(wf.event ? [eventNode(wf.id, wf.event.replacement)] : []),
+        ...eventNodes(wf.id, eventList(wf)),
         ...(notifyList(wf).length ? notifyNodes(wf.id, notifyList(wf)) : []),
     ];
 
@@ -1075,11 +1109,11 @@ for (const wf of workflows) {
         // "Responder OK" dispara en paralelo la bitácora y el aviso: n8n sigue
         // ejecutando después de responder al webhook, así que el cliente no
         // espera por ninguno de los dos, y que uno falle no afecta al otro.
-        ...((notifyList(wf).length || wf.event)
+        ...((notifyList(wf).length || eventList(wf).length)
             ? {
                 'Responder OK': {
                     main: [[
-                        ...(wf.event ? [{ node: 'Registrar evento', type: 'main', index: 0 }] : []),
+                        ...eventList(wf).map((e) => ({ node: e.name ?? 'Registrar evento', type: 'main', index: 0 })),
                         ...notifyList(wf).map((n) => ({
                             node: notifyList(wf).length > 1 ? `Notificar ${n.to}` : 'Notificar',
                             type: 'main', index: 0,
