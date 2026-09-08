@@ -37,6 +37,7 @@ import { cn, formatDate } from '@/lib/utils';
 import { normalizeResponsibleContact } from '@/lib/appointment-contact';
 import { api } from '@/services/api';
 import { updateAppointmentStatusRequest } from '@/services/appointments';
+import { recomputeStudyOrderForAppointment } from '@/services/study-orders';
 import { getQuoteItems } from '@/services/quotes';
 import { format, isSameDay, parseISO } from 'date-fns';
 import type { Locale } from 'date-fns';
@@ -1184,6 +1185,11 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
         newStatus: 'completed',
       });
     }
+
+    // La cita quedó atendida: si venía de una orden de estudio y era la
+    // última que faltaba, la orden se cierra y el derivador recibe el
+    // aviso de que sus estudios están listos. Fire-and-forget.
+    void recomputeStudyOrderForAppointment(String(selectedAppointment.id));
 
     await loadLinkedSession(selectedAppointment);
     await loadAppointments(true);

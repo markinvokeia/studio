@@ -1,5 +1,6 @@
 import { API_ROUTES } from '@/constants/routes';
 import type {
+    PublicStudyOrder,
     StudyOrder,
     StudyOrderBookingLink,
     StudyOrderFormOptions,
@@ -197,6 +198,27 @@ export async function recomputeStudyOrder(id: string, change?: StudyOrderChangeH
 }
 
 /**
+ * Se guardó la sesión clínica de una cita: si venía de una orden, se recalcula.
+ *
+ * Sin hint a propósito. Una orden de cinco estudios se atiende en varias
+ * sesiones, y de las cuatro primeras el derivador no tiene nada que saber. El
+ * recálculo sólo notifica cuando la última cierra la orden — ahí sí, con
+ * `change='completed'`, que es el "sus estudios están listos".
+ *
+ * Va después de que la cita quede en 'completed': es ese estado el que la vista
+ * mira para contar la línea como atendida.
+ */
+export async function recomputeStudyOrderForAppointment(appointmentId: string): Promise<void> {
+    try {
+        const order = await getStudyOrderByAppointment(appointmentId);
+        if (!order) return;
+        await recomputeStudyOrder(order.id);
+    } catch (error) {
+        console.warn('[study-orders] No se pudo recalcular la orden de la cita atendida', { appointmentId, error });
+    }
+}
+
+/**
  * Una cita dejó de estar vigente (cancelada, borrada o no-show): si venía de una
  * orden, se recalcula la orden y se le avisa al derivador.
  *
@@ -304,9 +326,47 @@ export async function createStudyOrderBookingLink(
     options: { expiresInDays?: number; maxUses?: number } = {},
 ): Promise<StudyOrderBookingLink> {
     const raw = await api.post(API_ROUTES.STUDY_ORDERS.BOOKING_TOKEN, {
-        id,
-        expires_in_days: options.expiresInDays,
+        order_id: id,
+        days_valid: options.expiresInDays,
         max_uses: options.maxUses,
     });
     return unwrap<StudyOrderBookingLink>(raw).data;
+}
+
+/**
+ * Lo que ve el paciente al abrir el link, sin tener cuenta.
+ *
+ * El backend devuelve deliberadamente poco: primer nombre, número de orden,
+ * estudios pendientes y sede sugerida. Cualquiera con el link ve esto, así que
+ * no viajan documento, teléfono, mail ni las notas clínicas del derivador.
+ *
+ * Un link vencido, revocado, agotado o inventado devuelve `null` — el backend
+ * no distingue entre esos casos a propósito, para no confirmarle a un curioso
+ * que el token existió.
+ */
+export async function getPublicStudyOrder(token: string): Promise<PublicStudyOrder | null> {
+    try {
+        const raw = await api.get(API_ROUTES.STUDY_ORDERS.PUBLIC_DETAIL, { token });
+        return unwrap<PublicStudyOrder>(raw).data ?? null;
+    } catch {
+        return null;
+    }
+}
+
+/** El paciente confirma el horario. Devuelve el id de la cita creada. */
+export async function bookPublicStudyOrder(params: {
+    token: string;
+    calendarSourceId: string;
+    start: string;
+    end: string;
+    summary?: string;
+}): Promise<{ appointment_id: string; order_number: string }> {
+    const raw = await api.post(API_ROUTES.STUDY_ORDERS.PUBLIC_BOOK, {
+        token: params.token,
+        calendar_source_id: params.calendarSourceId,
+        start: params.start,
+        end: params.end,
+        summary: params.summary,
+    });
+    return unwrap<{ appointment_id: string; order_number: string }>(raw).data;
 }

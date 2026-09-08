@@ -1,0 +1,295 @@
+{
+  "name": "Study Orders - Booking Token",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## POST /study-orders/booking-token\n\nGenera el link con el que el paciente elige horario, sin cuenta.\n\n**Body:** `{ \"order_id\": \"uuid\", \"days_valid\": 7, \"max_uses\": 1 }`\n\n**Devuelve el token en claro UNA sola vez.** En la base se guarda sólo el sha256, igual que `users.login_code` del portal de pacientes: si alguien lee la tabla, no puede usar los links.\n\n**Generar uno nuevo revoca los anteriores** de esa orden — un link viejo circulando por WhatsApp es una puerta que nadie recuerda cerrar.\n\n**409** si la orden no está enviada o todavía no tiene ficha de paciente.",
+        "height": 420,
+        "width": 460,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -180
+      ],
+      "id": "btok-doc",
+      "name": "Contrato"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "study-orders/booking-token",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "btok-wh",
+      "name": "Webhook",
+      "webhookId": "study-orders-btok",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\n\nconst userId = $json.jwtPayload?.userId;\nif (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];\nconst b = $json.body || {};\nconst orderId = (b.order_id || '').toString().trim();\nif (!orderId) return [{ json: { __error: true, __code: 400, __message: 'order_id es requerido' } }];\n\nconst days = Math.min(Math.max(parseInt(b.days_valid, 10) || 7, 1), 90);\nconst maxUses = Math.min(Math.max(parseInt(b.max_uses, 10) || 1, 1), 10);\n\n// 32 bytes en base64url: suficiente para que no se adivine y corto para un\n// WhatsApp. El claro se devuelve y se olvida; a la base va sólo el hash.\nconst clear = crypto.randomBytes(32).toString('base64url');\nconst hash = crypto.createHash('sha256').update(clear).digest('hex');\n\nconst expires = new Date(Date.now() + days * 86400000);\nconst expiresAt = expires.toISOString().slice(0, 19).replace('T', ' ');\n\nreturn [{ json: {\n  user_id: String(userId),\n  token_clear: clear,\n  payload: JSON.stringify({ order_id: orderId, token_hash: hash, expires_at: expiresAt, max_uses: maxUses }),\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "btok-val",
+      "name": "Validar Datos"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "btok-cond",
+              "leftValue": "={{ $json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "btok-if",
+      "name": "¿Hubo error?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 userId (token)  $2 payload { order_id, token_hash, expires_at, max_uses }\n--\n-- Genera el link con el que el paciente elige horario sin tener cuenta.\n--\n-- El token en claro NUNCA llega acá: se genera y se hashea en el nodo de\n-- validación, y sólo el sha256 se guarda. Mismo criterio que users.login_code\n-- del portal de pacientes: si alguien lee la tabla, no puede usar los links.\n--\n-- Generar uno nuevo revoca los anteriores de esa orden. Un link viejo circulando\n-- por WhatsApp es una puerta abierta que nadie recuerda cerrar.\nWITH \nperms AS (\n    SELECT bool_or(p.code = 'STUDY_ORDERS_VIEW_ALL')  AS can_view_all,\n           bool_or(p.code = 'STUDY_ORDERS_CREATE_FOR_DOCTOR') AS can_create_for_doctor,\n           bool_or(p.code = 'STUDY_ORDERS_CANCEL')    AS can_cancel,\n           bool_or(p.code = 'STUDY_ORDERS_ACKNOWLEDGE') AS can_acknowledge,\n           bool_or(p.code = 'STUDY_ORDERS_SCHEDULE') AS can_schedule\n      FROM public.user_roles ur\n      JOIN public.role_permissions rp ON rp.role_id = ur.role_id\n      JOIN public.permissions p       ON p.id = rp.permission_id\n     WHERE ur.user_id = $1::uuid\n       AND ur.is_active IS NOT FALSE\n       AND p.code LIKE 'STUDY_ORDERS_%'\n),\nb AS (\n    SELECT $2::jsonb AS body\n),\nv AS (\n    SELECT (body ->> 'order_id')::uuid        AS order_id,\n           (body ->> 'token_hash')::text      AS token_hash,\n           (body ->> 'expires_at')::timestamp AS expires_at,\n           coalesce((body ->> 'max_uses')::smallint, 1) AS max_uses\n      FROM b\n),\nallowed AS (\n    SELECT so.id\n      FROM public.study_orders so, v\n     WHERE so.id = v.order_id\n       AND so.status = 'submitted'\n       -- Sin ficha de paciente no hay a nombre de quién crear la cita.\n       AND so.patient_id IS NOT NULL\n       AND ((SELECT can_schedule FROM perms) OR so.doctor_id = $1::uuid)\n),\nrevoked AS (\n    UPDATE public.study_order_booking_tokens bt\n       SET revoked_at = now()\n      FROM allowed\n     WHERE bt.study_order_id = allowed.id\n       AND bt.revoked_at IS NULL\n    RETURNING bt.id\n)\nINSERT INTO public.study_order_booking_tokens\n       (study_order_id, token_hash, expires_at, max_uses, created_by)\nSELECT allowed.id, v.token_hash, v.expires_at, v.max_uses, $1::uuid\n  FROM allowed, v\nRETURNING id::text, study_order_id::text AS order_id, expires_at, max_uses;",
+        "options": {
+          "queryReplacement": "={{ [ $json.user_id, $json.payload ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        660,
+        120
+      ],
+      "id": "btok-sql",
+      "name": "Consulta",
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Arma el sobre { code, message, data, meta }. Un resultado vacío en una\n// operación de escritura significa que el WHERE de guarda no dejó pasar:\n// es un 409/404, no un 500.\nconst rows = $input.all().map((i) => i.json);\n\nif (!rows.length) {\n  return [{ json: { __error: true, __code: 409,\n    __message: 'No se pudo generar el link: la orden no está enviada, no tiene ficha de paciente, o no tenés permiso' } }];\n}\n// El token en claro se devuelve acá y no vuelve a existir en ningún lado.\nreturn [{ json: { __data: { ...rows[0], token: $('Validar Datos').first().json.token_clear },\n                  __message: 'Link generado' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        120
+      ],
+      "id": "btok-fmt",
+      "name": "Formatear Respuesta"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "btok-cond2",
+              "leftValue": "={{ $json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        120
+      ],
+      "id": "btok-if2",
+      "name": "¿Error de negocio?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: 200, message: $json.__message || \"OK\", data: $json.__data, meta: $json.__meta } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1320,
+        220
+      ],
+      "id": "btok-ok",
+      "name": "Responder OK"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: $json.__code || 400, message: $json.__message || \"Error\", data: null } }}",
+        "options": {
+          "responseCode": "={{ $json.__code || 400 }}"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1320,
+        -60
+      ],
+      "id": "btok-err",
+      "name": "Responder Error"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Datos": {
+      "main": [
+        [
+          {
+            "node": "¿Hubo error?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hubo error?": {
+      "main": [
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consulta": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "¿Error de negocio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Error de negocio?": {
+      "main": [
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    "study-orders",
+    "clinic"
+  ]
+}

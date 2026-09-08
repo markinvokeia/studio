@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Quote, QuoteItem, Invoice, InvoiceItem, CreditNote, Payment, DocPrintTemplate, FinancialSummaryReport, CajaSessionDetails, PatientSession } from '@/lib/types';
+import type { Quote, QuoteItem, Invoice, InvoiceItem, CreditNote, Payment, DocPrintTemplate, FinancialSummaryReport, CajaSessionDetails, PatientSession, StudyOrder } from '@/lib/types';
 import type { LedgerRow } from '@/lib/patient-ledger';
 import type {
   AllergyItem,
@@ -10,7 +10,7 @@ import type {
 } from '@/hooks/useClinicHistory';
 import type { ClinicHistoryPatientInfo } from '@/services/clinic-history-print-data';
 
-export type PrintDocumentType = 'quote' | 'invoice' | 'payment' | 'credit_note' | 'prepayment' | 'financial_summary' | 'ledger' | 'caja_apertura' | 'caja_cierre' | 'caja_sesion' | 'clinic_history';
+export type PrintDocumentType = 'quote' | 'invoice' | 'payment' | 'credit_note' | 'prepayment' | 'financial_summary' | 'ledger' | 'caja_apertura' | 'caja_cierre' | 'caja_sesion' | 'clinic_history' | 'study_order';
 
 export type PrintInvoiceRow = Invoice & { items: InvoiceItem[]; payments: Payment[] };
 
@@ -86,6 +86,17 @@ export type ClinicHistoryPrintData = {
   emittedAt: string;
 };
 
+/**
+ * La orden de estudio impresa: la misma que el derivador llenaba a mano antes.
+ * Se imprime tal cual está guardada, así que el papel y la pantalla no pueden
+ * discrepar.
+ */
+export type StudyOrderPrintData = {
+  order: StudyOrder;
+  /** ISO del momento de impresión, para el pie. */
+  emittedAt: string;
+};
+
 export type PrintData =
   | QuotePrintData
   | InvoicePrintData
@@ -97,7 +108,8 @@ export type PrintData =
   | CajaAperturaPrintData
   | CajaCierrePrintData
   | CajaSesionPrintData
-  | ClinicHistoryPrintData;
+  | ClinicHistoryPrintData
+  | StudyOrderPrintData;
 
 interface PrintDocumentStore {
   isActive: boolean;

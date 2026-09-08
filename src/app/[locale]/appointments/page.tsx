@@ -76,7 +76,7 @@ import { updateAppointmentStatusRequest, fetchFuturePatientAppointments, searchA
 import { FutureAppointmentsConfirmDialog } from '@/components/appointments/future-appointments-confirm-dialog';
 import { useAsyncAction, useKeyedAsyncAction } from '@/hooks/use-async-action';
 import { getSalesServices, getUsersServicesBatch, fetchServicesByIds } from '@/services/services';
-import { getStudyOrder, linkAppointmentToStudyOrder, notifyStudyOrderAppointmentDropped } from '@/services/study-orders';
+import { getStudyOrder, linkAppointmentToStudyOrder, notifyStudyOrderAppointmentDropped, recomputeStudyOrderForAppointment } from '@/services/study-orders';
 import { StudyOrderSchedulingBanner } from '@/components/study-orders/study-order-scheduling-banner';
 import { useStudyOrderScheduling } from '@/stores/study-order-scheduling-store';
 import { ColumnDef } from '@tanstack/react-table';
@@ -3209,6 +3209,11 @@ export default function AppointmentsPage() {
                 }
                 toast({ title: t('toasts.sessionCreated'), description: t('toasts.sessionCreatedDesc') });
             }
+
+            // La cita quedó atendida: si venía de una orden de estudio y era la
+            // última que faltaba, la orden se cierra y el derivador recibe el
+            // aviso de que sus estudios están listos. Fire-and-forget.
+            void recomputeStudyOrderForAppointment(String(clinicSessionAppointment.id));
 
             // The appointment now has a session → next context-menu open says "Edit".
             setSessionExistsMap((prev) => ({ ...prev, [clinicSessionAppointment.id]: true }));
