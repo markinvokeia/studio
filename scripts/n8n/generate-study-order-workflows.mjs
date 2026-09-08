@@ -25,6 +25,7 @@ import { fileURLToPath } from 'node:url';
 import {
     ACKNOWLEDGE_SQL, CANCEL_SQL, DELETE_SQL, DETAIL_SQL,
     BY_APPOINTMENT_SQL, LINK_APPOINTMENT_SQL, LIST_SQL, NOTIFY_DOCTOR_SQL, NOTIFY_RECEPTION_SQL, OPTIONS_SQL,
+    BOOKING_TOKEN_SQL, PUBLIC_BOOK_SQL, PUBLIC_DETAIL_SQL, RECONCILE_SQL,
     RECOMPUTE_SQL, RESCHEDULE_SQL, SUBMIT_SQL, UPSERT_SQL,
 } from './study-orders-sql.mjs';
 
@@ -34,12 +35,18 @@ const OUT_DIR = join(ROOT, 'n8n-workflows');
 const JWT_CREDENTIAL = { jwtAuth: { id: 'C6sB1r7ab5H5EmJj', name: 'JWT Auth account' } };
 const PG_CREDENTIAL  = { postgres: { id: 'POSTGRES_CREDENTIAL_ID', name: 'Postgres' } };
 
-/** Nodo webhook. `authentication: jwtAuth` hace que n8n verifique la firma. */
-const webhookNode = (method, path, id) => ({
+/**
+ * Nodo webhook. `authentication: jwtAuth` hace que n8n verifique la firma.
+ *
+ * Los flujos `_noauth` van sin credencial a propósito: el paciente llega con el
+ * link y no tiene cuenta. Lo que hace de autenticación ahí es el token del
+ * link, que se valida dentro del SQL contra study_order_booking_tokens.
+ */
+const webhookNode = (method, path, id, isPublic = false) => ({
     parameters: {
         httpMethod: method,
         path,
-        authentication: 'jwtAuth',
+        ...(isPublic ? {} : { authentication: 'jwtAuth' }),
         responseMode: 'responseNode',
         options: { allowedOrigins: '*' },
     },
@@ -49,7 +56,7 @@ const webhookNode = (method, path, id) => ({
     id: `${id}-wh`,
     name: 'Webhook',
     webhookId: `study-orders-${id}`,
-    credentials: JWT_CREDENTIAL,
+    ...(isPublic ? {} : { credentials: JWT_CREDENTIAL }),
 });
 
 const codeNode = (name, id, jsCode, position) => ({
@@ -534,6 +541,123 @@ return [{ json: { __data: rows[0] ?? null } }];`),
     },
 });
 
+// ── 13. POST /study-orders/booking-token ─────────────────────────────────────
+workflows.push({
+    file: 'study-orders-booking-token.json',
+    name: 'Study Orders - Booking Token',
+    sticky: `## POST /study-orders/booking-token\n\nGenera el link con el que el paciente elige horario, sin cuenta.\n\n**Body:** \`{ "order_id": "uuid", "days_valid": 7, "max_uses": 1 }\`\n\n**Devuelve el token en claro UNA sola vez.** En la base se guarda sólo el sha256, igual que \`users.login_code\` del portal de pacientes: si alguien lee la tabla, no puede usar los links.\n\n**Generar uno nuevo revoca los anteriores** de esa orden — un link viejo circulando por WhatsApp es una puerta que nadie recuerda cerrar.\n\n**409** si la orden no está enviada o todavía no tiene ficha de paciente.`,
+    method: 'POST',
+    path: 'study-orders/booking-token',
+    id: 'btok',
+    validate: `
+const crypto = require('crypto');
+
+const userId = $json.jwtPayload?.userId;
+if (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];
+const b = $json.body || {};
+const orderId = (b.order_id || '').toString().trim();
+if (!orderId) return [{ json: { __error: true, __code: 400, __message: 'order_id es requerido' } }];
+
+const days = Math.min(Math.max(parseInt(b.days_valid, 10) || 7, 1), 90);
+const maxUses = Math.min(Math.max(parseInt(b.max_uses, 10) || 1, 1), 10);
+
+// 32 bytes en base64url: suficiente para que no se adivine y corto para un
+// WhatsApp. El claro se devuelve y se olvida; a la base va sólo el hash.
+const clear = crypto.randomBytes(32).toString('base64url');
+const hash = crypto.createHash('sha256').update(clear).digest('hex');
+
+const expires = new Date(Date.now() + days * 86400000);
+const expiresAt = expires.toISOString().slice(0, 19).replace('T', ' ');
+
+return [{ json: {
+  user_id: String(userId),
+  token_clear: clear,
+  payload: JSON.stringify({ order_id: orderId, token_hash: hash, expires_at: expiresAt, max_uses: maxUses }),
+} }];`.trim(),
+    sql: BOOKING_TOKEN_SQL,
+    replacement: '={{ [ $json.user_id, $json.payload ] }}',
+    format: formatCode(`
+if (!rows.length) {
+  return [{ json: { __error: true, __code: 409,
+    __message: 'No se pudo generar el link: la orden no está enviada, no tiene ficha de paciente, o no tenés permiso' } }];
+}
+// El token en claro se devuelve acá y no vuelve a existir en ningún lado.
+return [{ json: { __data: { ...rows[0], token: $('Validar Datos').first().json.token_clear },
+                  __message: 'Link generado' } }];`),
+});
+
+// ── 14. GET /study-orders/public_noauth ──────────────────────────────────────
+workflows.push({
+    file: 'study-orders-public.json',
+    name: 'Study Orders - Public Detail (noauth)',
+    isPublic: true,
+    sticky: `## GET /study-orders/public_noauth?token=...\n\nQué ve el paciente al abrir el link. **Sin autenticación.**\n\nDevuelve lo mínimo para que reconozca su orden y sepa qué le van a hacer: primer nombre, número de orden, estudios pendientes y sede sugerida. **No** viajan documento, teléfono, mail ni las notas clínicas del derivador — cualquiera con el link ve esta respuesta.\n\nEl token se valida en el SQL: vencido, revocado o agotado → **404**, sin distinguir cuál de los tres, para no confirmarle a un curioso que el token existió.`,
+    method: 'GET',
+    path: 'study-orders/public_noauth',
+    id: 'pubdet',
+    validate: `
+const crypto = require('crypto');
+const token = ($json.query?.token || '').toString().trim();
+if (!token) return [{ json: { __error: true, __code: 400, __message: 'token es requerido' } }];
+return [{ json: { token_hash: crypto.createHash('sha256').update(token).digest('hex') } }];`.trim(),
+    sql: PUBLIC_DETAIL_SQL,
+    replacement: '={{ [ $json.token_hash ] }}',
+    format: formatCode(`
+if (!rows.length) {
+  // Un solo mensaje para vencido, revocado, agotado e inexistente: distinguirlos
+  // le confirmaría a un curioso que el token existió alguna vez.
+  return [{ json: { __error: true, __code: 404, __message: 'El link no es válido o ya venció' } }];
+}
+return [{ json: { __data: rows[0] } }];`),
+});
+
+// ── 15. POST /study-orders/public-book_noauth ────────────────────────────────
+workflows.push({
+    file: 'study-orders-public-book.json',
+    name: 'Study Orders - Public Book (noauth)',
+    isPublic: true,
+    sticky: `## POST /study-orders/public-book_noauth\n\nEl paciente confirma el horario. **Sin autenticación**: lo que autoriza es el token del link.\n\n**Body:** \`{ "token": "...", "calendar_source_id": 12, "start": "2026-09-10T14:00:00", "end": "2026-09-10T14:30:00" }\`\n\nCrea la cita, la ata a la orden, le carga los estudios pendientes y consume un uso del token — todo en una sentencia, con \`FOR UPDATE\` sobre el token para que dos clics no gasten el mismo uso.\n\n**LIMITACIÓN CONOCIDA:** no empuja la cita a Google Calendar (la sincronización vive en \`/appointments/upsert\`). Si la sede sincroniza, la cita aparece en InvokeIA pero no en Google hasta que alguien la edite desde la agenda.\n\n**409** si el token venció entre que abrió el link y confirmó, o si el horario ya no sirve.`,
+    method: 'POST',
+    path: 'study-orders/public-book_noauth',
+    id: 'pubbook',
+    validate: `
+const crypto = require('crypto');
+const b = $json.body || {};
+const token = (b.token || '').toString().trim();
+if (!token) return [{ json: { __error: true, __code: 400, __message: 'token es requerido' } }];
+
+const cal = (b.calendar_source_id || '').toString().trim();
+const start = (b.start || '').toString().trim();
+const end = (b.end || '').toString().trim();
+if (!cal || !start || !end) {
+  return [{ json: { __error: true, __code: 400, __message: 'calendar_source_id, start y end son requeridos' } }];
+}
+if (new Date(end) <= new Date(start)) {
+  return [{ json: { __error: true, __code: 400, __message: 'El fin tiene que ser posterior al inicio' } }];
+}
+if (new Date(start) <= new Date()) {
+  return [{ json: { __error: true, __code: 400, __message: 'No se puede agendar en el pasado' } }];
+}
+
+return [{ json: {
+  token_hash: crypto.createHash('sha256').update(token).digest('hex'),
+  payload: JSON.stringify({ calendar_source_id: cal, start, end, summary: (b.summary || '').toString().trim() }),
+} }];`.trim(),
+    sql: PUBLIC_BOOK_SQL,
+    replacement: '={{ [ $json.token_hash, $json.payload ] }}',
+    format: formatCode(`
+if (!rows.length) {
+  return [{ json: { __error: true, __code: 409,
+    __message: 'No se pudo reservar: el link venció o ya se usó, o el horario elegido no está disponible' } }];
+}
+return [{ json: { __data: rows[0], __message: 'Cita reservada' } }];`),
+    notify: {
+        sql: NOTIFY_DOCTOR_SQL,
+        replacement: "={{ [ $('Formatear Respuesta').first().json.__data?.order_id || '', 'scheduled' ] }}",
+        eventType: 'study_order_status_changed',
+    },
+});
+
 /**
  * Nodos de notificación. Se cuelgan de "Responder OK": n8n sigue ejecutando
  * después de responder al webhook, así que el cliente no espera por esto.
@@ -580,13 +704,89 @@ function notifyNodes(id, sql, replacement, eventType) {
     ];
 }
 
+/**
+ * El cron de reconciliación no entra en el molde de arriba: no tiene webhook ni
+ * responde nada. Se arma aparte.
+ */
+function reconcileWorkflow() {
+    return {
+        name: 'Study Orders - Reconcile (cron)',
+        nodes: [
+            stickyNode('recon-doc', `## Cron de reconciliación\n\nCorre cada 2 horas y corrige las órdenes cuyo estado persistido no refleja sus citas.\n\n**Por qué existe:** \`/study-orders/recompute\` lo llama el front al guardar una sesión clínica y al cancelar una cita, pero el front no siempre llega — la pestaña se cierra, la red se corta, o el estado de la cita cambia por un camino que no lo invoca. Sin esto, una orden puede quedarse en "en curso" para siempre y el derivador nunca se entera de que sus estudios están listos.\n\nSin nada que corregir devuelve cero filas y la ejecución se corta ahí: no notifica de más.`, [-560, -180], 380),
+            {
+                parameters: { rule: { interval: [{ field: 'hours', hoursInterval: 2 }] } },
+                type: 'n8n-nodes-base.scheduleTrigger',
+                typeVersion: 1.2,
+                position: [0, 0],
+                id: 'recon-cron',
+                name: 'Cada 2 horas',
+            },
+            {
+                parameters: { operation: 'executeQuery', query: RECONCILE_SQL, options: {} },
+                type: 'n8n-nodes-base.postgres',
+                typeVersion: 2.6,
+                position: [240, 0],
+                id: 'recon-sql',
+                name: 'Reconciliar',
+                credentials: PG_CREDENTIAL,
+                onError: 'continueRegularOutput',
+            },
+            {
+                // Corre una vez por orden corregida. Se reusa el mismo SQL de
+                // aviso que los demás flujos, así el doctor recibe la tarjeta
+                // idéntica venga de donde venga.
+                parameters: {
+                    operation: 'executeQuery',
+                    query: NOTIFY_DOCTOR_SQL,
+                    options: { queryReplacement: '={{ [ $json.order_id, $json.change ] }}' },
+                },
+                type: 'n8n-nodes-base.postgres',
+                typeVersion: 2.6,
+                position: [480, 0],
+                id: 'recon-notify',
+                name: 'Notificar',
+                credentials: PG_CREDENTIAL,
+                onError: 'continueRegularOutput',
+            },
+            {
+                parameters: {
+                    workflowId: { __rl: true, value: EVENTS_WORKFLOW_ID, mode: 'list', cachedResultName: 'Events' },
+                    mode: 'each',
+                    workflowInputs: {
+                        mappingMode: 'defineBelow',
+                        value: {
+                            event_type: 'study_order_status_changed',
+                            user_ids: '={{ [$json.user_id] }}',
+                            channels: '={{ [] }}',
+                            payload: '={{ $json }}',
+                        },
+                    },
+                },
+                type: 'n8n-nodes-base.executeWorkflow',
+                typeVersion: 1.2,
+                position: [720, 0],
+                id: 'recon-push',
+                name: 'Empujar por SSE',
+                onError: 'continueRegularOutput',
+            },
+        ],
+        connections: {
+            'Cada 2 horas': { main: [[{ node: 'Reconciliar', type: 'main', index: 0 }]] },
+            Reconciliar:    { main: [[{ node: 'Notificar', type: 'main', index: 0 }]] },
+            Notificar:      { main: [[{ node: 'Empujar por SSE', type: 'main', index: 0 }]] },
+        },
+        settings: { executionOrder: 'v1' },
+        tags: ['study-orders', 'clinic'],
+    };
+}
+
 // ── Ensamblado ───────────────────────────────────────────────────────────────
 mkdirSync(OUT_DIR, { recursive: true });
 
 for (const wf of workflows) {
     const nodes = [
         stickyNode(`${wf.id}-doc`, wf.sticky, [-560, -180]),
-        webhookNode(wf.method, wf.path, wf.id),
+        webhookNode(wf.method, wf.path, wf.id, wf.isPublic === true),
         codeNode('Validar Datos', `${wf.id}-val`, wf.validate, [220, 0]),
         {
             // Los errores de validación cortan antes de tocar la base.
@@ -678,4 +878,8 @@ for (const wf of workflows) {
     console.log(`  ${wf.method.padEnd(6)} /${wf.path.padEnd(28)} → ${wf.file}`);
 }
 
-console.log(`\n${workflows.length} workflows escritos en n8n-workflows/`);
+writeFileSync(join(OUT_DIR, 'study-orders-reconcile.json'),
+    JSON.stringify(reconcileWorkflow(), null, 2) + '\n');
+console.log('  CRON   cada 2 horas               → study-orders-reconcile.json');
+
+console.log(`\n${workflows.length + 1} workflows escritos en n8n-workflows/`);

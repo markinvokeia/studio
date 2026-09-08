@@ -26,6 +26,7 @@ import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { formatDisplayDate } from '@/lib/utils';
 import { useStudyOrderScheduling } from '@/stores/study-order-scheduling-store';
 import type { StudyOrder, StudyOrderListItem } from '@/lib/types';
+import { usePrintDocument } from '@/hooks/usePrintDocument';
 import {
     acknowledgeStudyOrder,
     cancelStudyOrder,
@@ -200,6 +201,7 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
     const locale = useLocale();
     const searchParams = useSearchParams();
     const { start: startScheduling } = useStudyOrderScheduling();
+    const { printStudyOrder } = usePrintDocument();
 
 
     const canCreate = hasPermission(STUDY_ORDERS_PERMISSIONS.CREATE);
@@ -299,6 +301,22 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
      * `studyOrderId` es lo único nuevo: la agenda lo guarda y, cuando el
      * guardado devuelve el id de la cita, la ata a la orden.
      */
+    /**
+     * Imprime la orden. El hook la vuelve a pedir al backend, así que el papel
+     * refleja el estado de este momento y no el que tenía el panel al abrirse.
+     */
+    const handlePrint = React.useCallback(async (orderId: string) => {
+        try {
+            await printStudyOrder(orderId);
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: t('toast.genericError'),
+                description: error instanceof Error && error.message !== 'no_data' ? error.message : undefined,
+            });
+        }
+    }, [printStudyOrder, toast, t]);
+
     const handleSchedule = React.useCallback(async (orderId: string) => {
         const order = await getStudyOrder(orderId);
         if (!order) return;
@@ -501,6 +519,7 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                                 void runMutation(() => acknowledgeStudyOrder(order.id), t('toast.acknowledgedTitle'))}
                             onSchedule={(order) => void handleSchedule(order.id)}
                             onReschedule={setReschedulingOrder}
+                            onPrint={(order) => void handlePrint(order.id)}
                         />
                     )
                 }

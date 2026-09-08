@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Activity, CalendarClock, CalendarDays, CalendarPlus, FileText, Inbox, Link2, Pencil, Send, Trash2, User, X, XCircle } from 'lucide-react';
+import { Activity, CalendarClock, CalendarDays, CalendarPlus, FileText, Inbox, Link2, Pencil, Printer, Send, Trash2, User, X, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Skeleton } from '@/components/ui/skeleton';
 import { VerticalTabStrip, type VerticalTab } from '@/components/ui/vertical-tab-strip';
 
+import { StudyOrderBookingLinkTab } from './study-order-booking-link-tab';
 import { StudyOrderStatusBadge } from './study-order-status-badge';
 import { ToothGridPicker } from './tooth-grid-picker';
 
@@ -44,6 +45,8 @@ export interface StudyOrderDetailPanelProps {
     /** Mover una cita existente de la orden a otra fecha y hora. */
     onReschedule?: (order: StudyOrder) => void;
     onCancel?: (order: StudyOrder) => void;
+    /** Imprime la orden. Disponible en cualquier estado salvo borrador. */
+    onPrint?: (order: StudyOrder) => void;
     /** Se incrementa al guardar para forzar la recarga del detalle abierto. */
     refreshKey?: number;
 }
@@ -74,7 +77,7 @@ function Field({ label, value }: { label: string; value?: React.ReactNode }) {
 
 export function StudyOrderDetailPanel({
     orderId, scope, onClose, refreshKey = 0,
-    onEdit, onSubmit, onDelete, onAcknowledge, onSchedule, onReschedule, onCancel,
+    onEdit, onSubmit, onDelete, onAcknowledge, onSchedule, onReschedule, onCancel, onPrint,
 }: StudyOrderDetailPanelProps) {
     const t = useTranslations('StudyOrdersPage');
     const { hasPermission } = usePermissions();
@@ -173,6 +176,13 @@ export function StudyOrderDetailPanel({
             actions.push({ key: 'reschedule', label: t('actions.reschedule'), icon: CalendarClock, onClick: () => onReschedule(order), variant: 'default' });
         }
 
+        // Imprimir: cualquiera que pueda ver la orden puede llevársela en papel.
+        // No se ofrece en borrador — lo que no se envió todavía puede cambiar, y
+        // un papel con una orden que después se editó es peor que ningún papel.
+        if (!isDraft && onPrint) {
+            actions.push({ key: 'print', label: t('actions.print'), icon: Printer, onClick: () => onPrint(order), variant: 'default' });
+        }
+
         if (isDraft && onDelete && can(STUDY_ORDERS_PERMISSIONS.DELETE)) {
             actions.push({ key: 'delete', label: t('actions.delete'), icon: Trash2, onClick: () => onDelete(order), variant: 'destructive' });
         }
@@ -197,7 +207,7 @@ export function StudyOrderDetailPanel({
         }
 
         return actions;
-    }, [order, scope, hasPermission, t, onEdit, onSubmit, onDelete, onAcknowledge, onSchedule, onReschedule, onCancel]);
+    }, [order, scope, hasPermission, t, onEdit, onSubmit, onDelete, onAcknowledge, onSchedule, onReschedule, onCancel, onPrint]);
 
     if (isLoading) {
         return (
@@ -371,7 +381,7 @@ export function StudyOrderDetailPanel({
                 )}
 
                 {activeTab === 'link' && (
-                    <p className="text-sm text-muted-foreground">{t('actions.shareLink')}</p>
+                    <StudyOrderBookingLinkTab order={order} />
                 )}
 
                 {activeTab === 'activity' && (

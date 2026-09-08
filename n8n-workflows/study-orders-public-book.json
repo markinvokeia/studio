@@ -1,0 +1,363 @@
+{
+  "name": "Study Orders - Public Book (noauth)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## POST /study-orders/public-book_noauth\n\nEl paciente confirma el horario. **Sin autenticación**: lo que autoriza es el token del link.\n\n**Body:** `{ \"token\": \"...\", \"calendar_source_id\": 12, \"start\": \"2026-09-10T14:00:00\", \"end\": \"2026-09-10T14:30:00\" }`\n\nCrea la cita, la ata a la orden, le carga los estudios pendientes y consume un uso del token — todo en una sentencia, con `FOR UPDATE` sobre el token para que dos clics no gasten el mismo uso.\n\n**LIMITACIÓN CONOCIDA:** no empuja la cita a Google Calendar (la sincronización vive en `/appointments/upsert`). Si la sede sincroniza, la cita aparece en InvokeIA pero no en Google hasta que alguien la edite desde la agenda.\n\n**409** si el token venció entre que abrió el link y confirmó, o si el horario ya no sirve.",
+        "height": 420,
+        "width": 460,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -180
+      ],
+      "id": "pubbook-doc",
+      "name": "Contrato"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "study-orders/public-book_noauth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "pubbook-wh",
+      "name": "Webhook",
+      "webhookId": "study-orders-pubbook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst b = $json.body || {};\nconst token = (b.token || '').toString().trim();\nif (!token) return [{ json: { __error: true, __code: 400, __message: 'token es requerido' } }];\n\nconst cal = (b.calendar_source_id || '').toString().trim();\nconst start = (b.start || '').toString().trim();\nconst end = (b.end || '').toString().trim();\nif (!cal || !start || !end) {\n  return [{ json: { __error: true, __code: 400, __message: 'calendar_source_id, start y end son requeridos' } }];\n}\nif (new Date(end) <= new Date(start)) {\n  return [{ json: { __error: true, __code: 400, __message: 'El fin tiene que ser posterior al inicio' } }];\n}\nif (new Date(start) <= new Date()) {\n  return [{ json: { __error: true, __code: 400, __message: 'No se puede agendar en el pasado' } }];\n}\n\nreturn [{ json: {\n  token_hash: crypto.createHash('sha256').update(token).digest('hex'),\n  payload: JSON.stringify({ calendar_source_id: cal, start, end, summary: (b.summary || '').toString().trim() }),\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "pubbook-val",
+      "name": "Validar Datos"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "pubbook-cond",
+              "leftValue": "={{ $json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "pubbook-if",
+      "name": "¿Hubo error?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 = sha256 del token.  $2 payload { calendar_source_id, start, end, summary }\n--\n-- Crea la cita que el paciente eligió, la ata a la orden, le carga los estudios\n-- pendientes y consume un uso del token. Todo en una sentencia: si algo del\n-- camino no da, no queda una cita a medio armar.\n--\n-- LIMITACIÓN CONOCIDA, la misma que /study-orders/reschedule: no empuja la cita\n-- a Google Calendar. La sincronización de salida vive dentro de\n-- /appointments/upsert, que es el monolito de la agenda. Si la sede sincroniza\n-- con Google, la cita aparece en InvokeIA pero no en el calendario de Google\n-- hasta que alguien la edite desde la agenda.\n--\n-- El token se valida de nuevo acá aunque el detalle ya lo haya validado: entre\n-- una llamada y la otra puede haberse vencido, y el que llama es un anónimo.\nWITH b AS (\n    SELECT $2::jsonb AS body\n),\nv AS (\n    SELECT (body ->> 'calendar_source_id')::bigint AS calendar_source_id,\n           (body ->> 'start')::timestamp           AS starts_at,\n           (body ->> 'end')::timestamp             AS ends_at,\n           coalesce(NULLIF(body ->> 'summary', ''), 'Estudios') AS summary\n      FROM b\n),\nt AS (\n    SELECT bt.id, bt.study_order_id\n      FROM public.study_order_booking_tokens bt\n     WHERE bt.token_hash = $1::text\n       AND bt.revoked_at IS NULL\n       AND bt.expires_at > now()\n       AND bt.used_count < bt.max_uses\n     -- Bloquea la fila: dos clics simultáneos no pueden gastar el mismo uso.\n     FOR UPDATE\n),\no AS (\n    SELECT so.id, so.patient_id, so.doctor_id, so.order_number\n      FROM public.study_orders so\n      JOIN t ON t.study_order_id = so.id\n     WHERE so.status = 'submitted'\n       AND so.patient_id IS NOT NULL\n),\nins AS (\n    INSERT INTO public.appointments\n           (patient_id, assignee_id, start_datetime, end_datetime, status,\n            calendar_source_id, study_order_id, summary, created_at, updated_at)\n    SELECT o.patient_id,\n           -- El doctor de la cita es el derivador, no el técnico. Decisión del\n           -- cliente: es lo que hace que la cita aparezca en su agenda.\n           o.doctor_id,\n           v.starts_at, v.ends_at, 'scheduled',\n           v.calendar_source_id, o.id,\n           v.summary || ' - ' || o.order_number,\n           now(), now()\n      FROM o, v\n     WHERE v.ends_at > v.starts_at\n       AND v.starts_at > now()\n       AND v.calendar_source_id IS NOT NULL\n       AND EXISTS (SELECT 1 FROM public.calendar_sources cs\n                    WHERE cs.id = v.calendar_source_id AND cs.is_active)\n    RETURNING id, study_order_id\n),\nsvc AS (\n    INSERT INTO public.appointment_service_catalog (appointment_id, service_id)\n    SELECT ins.id, i.service_id\n      FROM ins\n      JOIN public.study_order_items i ON i.study_order_id = ins.study_order_id\n     WHERE i.is_cancelled = false\n       AND NOT EXISTS (\n           SELECT 1 FROM public.appointments a\n             JOIN public.appointment_service_catalog asc2 ON asc2.appointment_id = a.id\n            WHERE a.study_order_id = ins.study_order_id\n              AND asc2.service_id = i.service_id\n              AND a.id <> ins.id\n              AND a.status NOT IN ('cancelled', 'deleted', 'no_show')\n       )\n    RETURNING appointment_id\n),\nbump AS (\n    UPDATE public.study_order_booking_tokens bt\n       SET used_count   = bt.used_count + 1,\n           last_used_at = now()\n      FROM t, ins\n     WHERE bt.id = t.id\n    RETURNING bt.id\n)\nSELECT ins.id::text          AS appointment_id,\n       o.id::text            AS order_id,\n       o.order_number        AS order_number,\n       (SELECT count(*) FROM svc) AS services_linked\n  FROM ins, o;",
+        "options": {
+          "queryReplacement": "={{ [ $json.token_hash, $json.payload ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        660,
+        120
+      ],
+      "id": "pubbook-sql",
+      "name": "Consulta",
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Arma el sobre { code, message, data, meta }. Un resultado vacío en una\n// operación de escritura significa que el WHERE de guarda no dejó pasar:\n// es un 409/404, no un 500.\nconst rows = $input.all().map((i) => i.json);\n\nif (!rows.length) {\n  return [{ json: { __error: true, __code: 409,\n    __message: 'No se pudo reservar: el link venció o ya se usó, o el horario elegido no está disponible' } }];\n}\nreturn [{ json: { __data: rows[0], __message: 'Cita reservada' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        120
+      ],
+      "id": "pubbook-fmt",
+      "name": "Formatear Respuesta"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "pubbook-cond2",
+              "leftValue": "={{ $json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        120
+      ],
+      "id": "pubbook-if2",
+      "name": "¿Error de negocio?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: 200, message: $json.__message || \"OK\", data: $json.__data, meta: $json.__meta } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1320,
+        220
+      ],
+      "id": "pubbook-ok",
+      "name": "Responder OK"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: $json.__code || 400, message: $json.__message || \"Error\", data: null } }}",
+        "options": {
+          "responseCode": "={{ $json.__code || 400 }}"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1320,
+        -60
+      ],
+      "id": "pubbook-err",
+      "name": "Responder Error"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 = id de la orden.  $2 = qué cambió, para el texto de la tarjeta.\n-- Aviso de sólo lectura al derivador. El estado que se manda es el DERIVADO de\n-- la vista, no el persistido: al doctor le importa \"agendada\" o \"completada\",\n-- que es lo que ve la clínica, no el 'submitted' de la columna.\nINSERT INTO public.notifications\n       (user_id, type, status, priority, patient_id, metadata, created_at)\nSELECT so.doctor_id,\n       'study_order_status_changed',\n       'pending',\n       'MEDIUM',\n       so.patient_id,\n\n       jsonb_build_object(\n           'order_id',      so.id::text,\n           'order_number',  so.order_number,\n           'patient_id',    so.patient_id::text,\n           'patient_name',  so.patient_name,\n           'doctor_id',     so.doctor_id::text,\n           'doctor_name',   d.name,\n           'sede_name',     se.name,\n           'items_total',   (SELECT count(*) FROM public.study_order_items i\n                              WHERE i.study_order_id = so.id AND i.is_cancelled = false),\n           'items_summary', (SELECT string_agg(i.service_name, ', ' ORDER BY i.sort_order, i.service_name)\n                               FROM public.study_order_items i\n                              WHERE i.study_order_id = so.id AND i.is_cancelled = false)\n       ) || jsonb_build_object(\n           'board_status', b.board_status,\n           'change',       $2::text,\n           'cancellation_reason', so.cancellation_reason\n       ),\n       now()\n  FROM public.study_orders so\n  LEFT JOIN public.users d  ON d.id  = so.doctor_id\n  LEFT JOIN public.sedes se ON se.id = so.preferred_sede_id\n  LEFT JOIN public.v_study_orders_board b ON b.id = so.id\n WHERE so.id = $1::uuid\n   AND so.doctor_id IS NOT NULL\n   -- Un cambio vacío significa \"no pasó nada que contar\": /recompute es\n   -- idempotente y se llama de más a propósito, así que sin este guard el\n   -- derivador recibiría un aviso por cada recálculo que no cambió nada.\n   AND coalesce($2::text, '') <> ''\nRETURNING user_id::text AS user_id;",
+        "options": {
+          "queryReplacement": "={{ [ $('Formatear Respuesta').first().json.__data?.order_id || '', 'scheduled' ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1540,
+        220
+      ],
+      "id": "pubbook-notify",
+      "name": "Notificar",
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "W5SZnwkaTigFrHO6",
+          "mode": "list",
+          "cachedResultName": "Events"
+        },
+        "mode": "each",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_type": "study_order_status_changed",
+            "user_ids": "={{ [$json.user_id] }}",
+            "channels": "={{ [] }}",
+            "payload": "={{ $json }}"
+          }
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1760,
+        220
+      ],
+      "id": "pubbook-push",
+      "name": "Empujar por SSE",
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Datos": {
+      "main": [
+        [
+          {
+            "node": "¿Hubo error?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hubo error?": {
+      "main": [
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consulta": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "¿Error de negocio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Responder OK": {
+      "main": [
+        [
+          {
+            "node": "Notificar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notificar": {
+      "main": [
+        [
+          {
+            "node": "Empujar por SSE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Error de negocio?": {
+      "main": [
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    "study-orders",
+    "clinic"
+  ]
+}

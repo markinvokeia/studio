@@ -20,6 +20,7 @@ import { fetchClinicInfo } from '@/hooks/useClinicInfo';
 import { fetchPatientLedgerData } from '@/services/patient-ledger-data';
 import { fetchClinicHistoryPrintData } from '@/services/clinic-history-print-data';
 import { buildPatientLedger, type LedgerRow } from '@/lib/patient-ledger';
+import { getStudyOrder } from '@/services/study-orders';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
 import { elementToPdfBase64 } from '@/lib/document-pdf';
 
