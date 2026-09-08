@@ -653,8 +653,15 @@ const maxUses = Math.min(Math.max(parseInt(b.max_uses, 10) || 1, 1), 10);
 const clear = crypto.randomBytes(32).toString('base64url');
 const hash = crypto.createHash('sha256').update(clear).digest('hex');
 
+// En hora de pared de la clinica, no UTC. La columna expires_at no lleva zona y
+// el SQL la compara contra now() AT TIME ZONE 'America/Montevideo'; con un
+// toISOString() el token venceria tres horas antes de lo que dice su fecha.
 const expires = new Date(Date.now() + days * 86400000);
-const expiresAt = expires.toISOString().slice(0, 19).replace('T', ' ');
+const expiresAt = new Intl.DateTimeFormat('sv-SE', {
+  timeZone: 'America/Montevideo',
+  year: 'numeric', month: '2-digit', day: '2-digit',
+  hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+}).format(expires);
 
 return [{ json: {
   user_id: String(userId),
