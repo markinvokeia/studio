@@ -1,9 +1,9 @@
-
 'use client';
 
 import { UniqueConflictDialog } from '@/components/patients/duplicate-contact-dialog';
 import { getUniqueConflict } from '@/components/patients/patient-form-utils';
 import type { UniqueConflict } from '@/lib/types';
+import { DOCTORS_DIRECTORY_CONFIG, StaffDirectory } from '@/components/config/staff-directory';
 import { TwoPanelLayout, useNarrowMode } from '@/components/layout/two-panel-layout';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataCard } from '@/components/ui/data-card';
@@ -994,4 +994,5 @@ export default function DoctorsPage() {
       </Dialog>
     </div>
   );
+    return <StaffDirectory config={DOCTORS_DIRECTORY_CONFIG} />;
 }

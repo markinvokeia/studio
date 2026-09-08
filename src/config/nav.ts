@@ -65,6 +65,8 @@ import {
   UserCheck,
   UserPlus,
   Users,
+  ClipboardCheck,
+  HardHat,
   UserSquare,
   UsersRound,
   UserX,
@@ -99,6 +101,14 @@ export const navItems: NavItem[] = [
     href: '/workspace',
     icon: Stethoscope,
     requiredPermission: DASHBOARD_PERMISSIONS.DOCTOR_WORKSPACE_ACCESS,
+  },
+  {
+    // Mismo lugar en el menú que Mi Consultorio: para el técnico es su pantalla
+    // de trabajo, igual que aquélla lo es para el médico.
+    title: 'Tasks',
+    href: '/tasks',
+    icon: ClipboardCheck,
+    requiredPermission: DASHBOARD_PERMISSIONS.TASKS_VIEW_MENU,
   },
   {
     title: 'AlertsCenter',
@@ -257,6 +267,7 @@ export const navItems: NavItem[] = [
       { title: 'Calendars', href: '/config/calendars', icon: Calendar, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.CALENDARS_VIEW_LIST },
       { title: 'CalendarColors', href: '/config/calendar-colors', icon: Palette, isChidren: true, requiredPermission: CALENDAR_DISPLAY_PERMISSIONS.VIEW },
       { title: 'Doctors', href: '/config/doctors', icon: UserSquare, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.DOCTORS_VIEW_LIST },
+      { title: 'Technicians', href: '/config/technicians', icon: HardHat, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.TECHNICIANS_VIEW_LIST },
       { title: 'Staff', href: '/system/staff', icon: UserPlus, isChidren: true, requiredPermission: SYSTEM_PERMISSIONS.STAFF_VIEW_MENU },
       { title: 'DoctorAvailability', href: '/config/doctor-availability', icon: CalendarPlus, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.AVAILABILITY_RULES_VIEW },
       { title: 'DoctorAvailabilityExceptions', href: '/config/availability-exceptions', icon: UserX, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.AVAILABILITY_EXCEPTIONS_VIEW },
