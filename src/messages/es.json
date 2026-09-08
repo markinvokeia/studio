@@ -9203,7 +9203,53 @@
       "blockedNoPatient": "Falta vincular la ficha del paciente antes de generar el link.",
       "blockedScheduled": "Esta orden ya tiene todos sus estudios agendados."
     },
-    "printTitle": "Orden de Estudio"
+    "printTitle": "Orden de Estudio",
+    "timeline": {
+      "empty": "Todavía no hay actividad registrada en esta orden.",
+      "actorPatient": "El paciente",
+      "actorSystem": "El sistema",
+      "movedTo": "Nueva fecha: {date}",
+      "event": {
+        "created": "Se creó la orden",
+        "updated": "Se editó el borrador",
+        "submitted": "Se envió a la clínica",
+        "acknowledged": "La clínica tomó la orden",
+        "scheduled": "Se agendó una cita",
+        "rescheduled": "Se reagendó la cita",
+        "appointment_updated": "Se editó la cita",
+        "appointment_cancelled": "Se canceló la cita",
+        "session_saved": "Se registró la sesión clínica",
+        "completed": "Se completaron los estudios",
+        "reopened": "La orden volvió a abrirse",
+        "cancelled": "Se anuló la orden",
+        "link_created": "Se generó el link para el paciente",
+        "patient_booked": "El paciente reservó su horario"
+      }
+    },
+    "appointmentCard": {
+      "none": "Esta orden todavía no tiene citas.",
+      "minutes": "{minutes} min",
+      "session": "Sesión clínica",
+      "createdAt": "Creada el {date}",
+      "fromGoogle": "Importada de Google Calendar",
+      "doctor": "Doctor",
+      "sede": "Sede",
+      "calendar": "Calendario",
+      "summary": "Título",
+      "services": "Estudios",
+      "notes": "Notas"
+    },
+    "patientTab": {
+      "notLinked": "Esta orden todavía no está vinculada a una ficha de paciente. Estos son los datos que cargó el derivador.",
+      "inactive": "Inactivo",
+      "birthday": "Fecha de nacimiento",
+      "years": "{age} años",
+      "sex": "Sexo",
+      "alternativePhone": "Teléfono alternativo",
+      "mutualSociety": "Mutualista",
+      "assignedDoctor": "Doctor asignado",
+      "address": "Dirección"
+    }
   },
   "StudyOrderBooking": {
     "greeting": "Hola {name}",
@@ -9220,6 +9266,17 @@
     "invalidBody": "Puede haber vencido o haberse usado. Comunicate con la clínica para que te envíen uno nuevo.",
     "doneTitle": "¡Listo!",
     "doneBody": "Te esperamos el {date} a las {time} en {sede}.",
-    "doneHint": "Si necesitás cambiar el horario, comunicate con la clínica."
+    "doneHint": "Si necesitás cambiar el horario, comunicate con la clínica.",
+    "genericClinicName": "la clínica",
+    "chooseSlot": "Elegí día y hora",
+    "header": {
+      "tagline": "Reserva de estudios"
+    },
+    "hero": {
+      "title": "Hola {name}, reservá tus estudios",
+      "videoTitle": "Bienvenida de {clinic}",
+      "studies": "Orden {order}",
+      "cta": "Elegir día y hora"
+    }
   }
 }

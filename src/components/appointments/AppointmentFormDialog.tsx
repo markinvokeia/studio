@@ -30,6 +30,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { StudyOrderPicker } from '@/components/study-orders/study-order-picker';
+import { logStudyOrderAppointmentUpdated } from '@/services/study-orders';
 import { useStudyOrderScheduling } from '@/stores/study-order-scheduling-store';
 import { Appointment, Calendar as CalendarType, PatientSession, Quote, QuoteItem, Service, TreatmentSequence, TreatmentSequenceStepStatus, User as UserType } from '@/lib/types';
 import { cn, formatDisplayDate, toLocalISOString } from '@/lib/utils';
@@ -982,6 +983,12 @@ export function AppointmentFormDialog({
 
             if (isSuccess) {
                 toast({ title: isEditing ? tToasts('appointmentUpdated') : tToasts('appointmentCreated') });
+                // Editar una cita que pertenece a una orden queda anotado en el
+                // historial de esa orden, y el derivador se entera. Sólo al
+                // editar: el alta la ata el llamador, con su propio evento.
+                if (isEditing && editingAppointment?.id) {
+                    void logStudyOrderAppointmentUpdated(String(editingAppointment.id));
+                }
                 if (!isEditing && currentUser?.id) {
                     const newId = result.data?.id ?? result.data?.appointment_id ?? result.id ?? result.appointment_id ?? result.appointmentId;
                     if (newId) markLocallyCreated(String(currentUser.id), String(newId));

@@ -69,7 +69,7 @@ import { getQuoteItems } from '@/services/quotes';
 import { updateAppointmentStatusRequest, fetchFuturePatientAppointments, type FuturePatientAppointment } from '@/services/appointments';
 import { FutureAppointmentsConfirmDialog } from '@/components/appointments/future-appointments-confirm-dialog';
 import { getSalesServices, getUsersServicesBatch, fetchServicesByIds } from '@/services/services';
-import { getStudyOrder, linkAppointmentToStudyOrder, notifyStudyOrderAppointmentDropped, recomputeStudyOrderForAppointment } from '@/services/study-orders';
+import { getStudyOrder, linkAppointmentToStudyOrder, logStudyOrderAppointmentUpdated, notifyStudyOrderAppointmentDropped, recomputeStudyOrderForAppointment } from '@/services/study-orders';
 import { StudyOrderSchedulingBanner } from '@/components/study-orders/study-order-scheduling-banner';
 import { useStudyOrderScheduling } from '@/stores/study-order-scheduling-store';
 import { ColumnDef } from '@tanstack/react-table';
@@ -1495,6 +1495,14 @@ export default function AppointmentsPage() {
             // Si hay una operación de agendado en curso, la cita creada desde la
             // tarjeta inline se ata a su orden igual que la del diálogo. Sin
             // esto, agendar en modo personalizado dejaba la orden sin cita.
+            // Editar una cita ya existente que pertenece a una orden queda
+            // anotado en el historial de esa orden. Va antes del bloque de abajo
+            // porque son casos distintos: acá se edita algo ya atado, allá se ata
+            // algo recién creado.
+            if (editing?.id) {
+                void logStudyOrderAppointmentUpdated(String(editing.id));
+            }
+
             const studyOrderId = useStudyOrderScheduling.getState().context?.orderId;
             if (studyOrderId) {
                 const appointmentId = editing?.id ? String(editing.id) : extractAppointmentId(response);

@@ -187,13 +187,41 @@ export type StudyOrderChangeHint = 'appointment_cancelled';
  * (cerró la orden, o la reabrió). Es lo que evita que guardar una sesión de una
  * orden con varios estudios pendientes le mande un aviso al doctor cada vez.
  */
-export async function recomputeStudyOrder(id: string, change?: StudyOrderChangeHint): Promise<void> {
+export async function recomputeStudyOrder(
+    id: string,
+    change?: StudyOrderChangeHint,
+    /** Sobre qué cita, para que la bitácora pueda decir cuál se cayó. */
+    appointmentId?: string,
+): Promise<void> {
     try {
-        const raw = await api.post(API_ROUTES.STUDY_ORDERS.RECOMPUTE, { id, ...(change ? { change } : {}) });
+        const raw = await api.post(API_ROUTES.STUDY_ORDERS.RECOMPUTE, {
+            id,
+            ...(change ? { change } : {}),
+            ...(appointmentId ? { appointment_id: appointmentId } : {}),
+        });
         unwrap<unknown>(raw);
     } catch (error) {
         // Fire-and-forget, igual que billing-links: el cron lo va a corregir.
         console.warn('Failed to recompute study order status:', error);
+    }
+}
+
+/**
+ * Se editó una cita: si pertenece a una orden, queda anotado en su historial.
+ *
+ * Pregunta primero a qué orden pertenece porque ese dato no viaja con la cita, y
+ * porque la enorme mayoría de las citas no vienen de una orden: la respuesta es
+ * `null` y esto termina en nada. Reusa /link-appointment, que es idempotente —
+ * el vínculo no cambia, lo único que cambia es el renglón de la bitácora y el
+ * aviso al derivador, que es justamente lo que se busca.
+ */
+export async function logStudyOrderAppointmentUpdated(appointmentId: string): Promise<void> {
+    try {
+        const order = await getStudyOrderByAppointment(appointmentId);
+        if (!order) return;
+        await linkAppointmentToStudyOrder(order.id, appointmentId, 'appointment_updated');
+    } catch (error) {
+        console.warn('[study-orders] No se pudo registrar la edición de la cita', { appointmentId, error });
     }
 }
 
@@ -212,7 +240,7 @@ export async function recomputeStudyOrderForAppointment(appointmentId: string): 
     try {
         const order = await getStudyOrderByAppointment(appointmentId);
         if (!order) return;
-        await recomputeStudyOrder(order.id);
+        await recomputeStudyOrder(order.id, undefined, appointmentId);
     } catch (error) {
         console.warn('[study-orders] No se pudo recalcular la orden de la cita atendida', { appointmentId, error });
     }
@@ -238,7 +266,7 @@ export async function notifyStudyOrderAppointmentDropped(appointmentId: string):
     try {
         const order = await getStudyOrderByAppointment(appointmentId);
         if (!order) return;
-        await recomputeStudyOrder(order.id, 'appointment_cancelled');
+        await recomputeStudyOrder(order.id, 'appointment_cancelled', appointmentId);
     } catch (error) {
         console.warn('[study-orders] No se pudo avisar a la orden de la cita cancelada', { appointmentId, error });
     }
@@ -286,11 +314,19 @@ export async function getStudyOrderByAppointment(appointmentId: string): Promise
 export async function linkAppointmentToStudyOrder(
     orderId: string,
     appointmentId: string,
+    /**
+     * Qué contar en la bitácora. `scheduled` cuando la cita nace atada a la
+     * orden; `appointment_updated` cuando se editó una que ya lo estaba. El
+     * endpoint es idempotente, así que la segunda llamada no cambia el vínculo:
+     * lo único que cambia es el renglón del historial y a quién se le avisa.
+     */
+    eventType: 'scheduled' | 'appointment_updated' = 'scheduled',
 ): Promise<void> {
     try {
         const raw = await api.post(API_ROUTES.STUDY_ORDERS.LINK_APPOINTMENT, {
             order_id: orderId,
             appointment_id: appointmentId,
+            event_type: eventType,
         });
         unwrap<unknown>(raw);
     } catch (error) {

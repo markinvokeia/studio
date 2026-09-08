@@ -3199,7 +3199,68 @@ export interface StudyOrderAppointment {
   calendar_source_id?: string | null;
   calendar_name?: string | null;
   sede_name?: string | null;
+  /** El derivador. En Clínica Imagen la cita va a nombre de quien derivó. */
+  doctor_id?: string | null;
+  doctor_name?: string | null;
+  summary?: string | null;
+  notes?: string | null;
+  color?: string | null;
+  cancellation_reason?: string | null;
+  cancellation_note?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  imported_from_google?: boolean;
+  quote_id?: string | null;
   service_ids: string[];
+  services?: Array<{ id: string; name: string; duration_minutes?: number | null }>;
+  /** Sesión clínica que cerró la cita, si ya se registró. */
+  session?: {
+    id: string;
+    doctor_id?: string | null;
+    doctor_name?: string | null;
+    fecha_sesion?: string | null;
+    procedimiento_realizado?: string | null;
+    diagnostico?: string | null;
+  } | null;
+}
+
+/**
+ * Ficha del paciente que acompaña al detalle de la orden. Sólo datos básicos:
+ * la pestaña sirve para saber a quién se atiende, no cuánto debe.
+ */
+export interface StudyOrderPatient {
+  id: string;
+  name: string;
+  identity_document?: string | null;
+  internal_id?: string | null;
+  email?: string | null;
+  phone_number?: string | null;
+  alternative_phone?: string | null;
+  address?: string | null;
+  birthday?: string | null;
+  sex?: string | null;
+  is_active?: boolean;
+  mutual_society_name?: string | null;
+  assigned_doctor_name?: string | null;
+}
+
+/** Un renglón de la bitácora: qué pasó, quién lo hizo y cuándo. */
+export type StudyOrderEventType =
+  | 'created' | 'updated' | 'submitted' | 'acknowledged'
+  | 'scheduled' | 'rescheduled' | 'appointment_updated' | 'appointment_cancelled'
+  | 'session_saved' | 'completed' | 'reopened' | 'cancelled'
+  | 'link_created' | 'patient_booked';
+
+export interface StudyOrderEvent {
+  id: string;
+  event_type: StudyOrderEventType;
+  /** Nulo cuando no hay persona: el paciente por el link, o el cron. */
+  actor_id?: string | null;
+  actor_kind: 'user' | 'patient' | 'system';
+  actor_name?: string | null;
+  appointment_id?: string | null;
+  metadata?: Record<string, unknown> | null;
+  created_at: string;
 }
 
 export interface StudyOrder {
@@ -3234,6 +3295,10 @@ export interface StudyOrder {
   updated_at?: string | null;
   items: StudyOrderItem[];
   appointments?: StudyOrderAppointment[];
+  /** Ficha del paciente, cuando la orden ya está vinculada a una. */
+  patient?: StudyOrderPatient | null;
+  /** Línea de tiempo, del evento más viejo al más nuevo. */
+  events?: StudyOrderEvent[];
 }
 
 /** Fila de la bandeja. Los contadores y `board_status` vienen de la vista. */

@@ -9224,7 +9224,53 @@
       "blockedNoPatient": "Link the patient record before generating the link.",
       "blockedScheduled": "This order already has all of its studies scheduled."
     },
-    "printTitle": "Study Order"
+    "printTitle": "Study Order",
+    "timeline": {
+      "empty": "No activity recorded on this order yet.",
+      "actorPatient": "The patient",
+      "actorSystem": "The system",
+      "movedTo": "New date: {date}",
+      "event": {
+        "created": "Order created",
+        "updated": "Draft edited",
+        "submitted": "Sent to the clinic",
+        "acknowledged": "Clinic took the order",
+        "scheduled": "Appointment scheduled",
+        "rescheduled": "Appointment moved",
+        "appointment_updated": "Appointment edited",
+        "appointment_cancelled": "Appointment cancelled",
+        "session_saved": "Clinical session recorded",
+        "completed": "Studies completed",
+        "reopened": "Order reopened",
+        "cancelled": "Order voided",
+        "link_created": "Patient link generated",
+        "patient_booked": "Patient booked their slot"
+      }
+    },
+    "appointmentCard": {
+      "none": "This order has no appointments yet.",
+      "minutes": "{minutes} min",
+      "session": "Clinical session",
+      "createdAt": "Created on {date}",
+      "fromGoogle": "Imported from Google Calendar",
+      "doctor": "Doctor",
+      "sede": "Location",
+      "calendar": "Calendar",
+      "summary": "Title",
+      "services": "Studies",
+      "notes": "Notes"
+    },
+    "patientTab": {
+      "notLinked": "This order is not linked to a patient record yet. These are the details the referrer entered.",
+      "inactive": "Inactive",
+      "birthday": "Date of birth",
+      "years": "{age} years old",
+      "sex": "Sex",
+      "alternativePhone": "Alternative phone",
+      "mutualSociety": "Health insurer",
+      "assignedDoctor": "Assigned doctor",
+      "address": "Address"
+    }
   },
   "StudyOrderBooking": {
     "greeting": "Hi {name}",
@@ -9241,6 +9287,17 @@
     "invalidBody": "It may have expired or already been used. Contact the clinic to get a new one.",
     "doneTitle": "All set!",
     "doneBody": "We will see you on {date} at {time} at {sede}.",
-    "doneHint": "If you need to change the time, please contact the clinic."
+    "doneHint": "If you need to change the time, please contact the clinic.",
+    "genericClinicName": "the clinic",
+    "chooseSlot": "Pick a day and time",
+    "header": {
+      "tagline": "Study booking"
+    },
+    "hero": {
+      "title": "Hi {name}, book your studies",
+      "videoTitle": "Welcome from {clinic}",
+      "studies": "Order {order}",
+      "cta": "Pick a day and time"
+    }
   }
 }
