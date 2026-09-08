@@ -72,7 +72,7 @@ import { getSalesServices, getUsersServicesBatch, fetchServicesByIds } from '@/s
 import { ColumnDef } from '@tanstack/react-table';
 import { addMinutes, eachDayOfInterval, endOfMonth, endOfWeek, format, isValid, parseISO, set, startOfMonth, startOfWeek } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
-import { BellRing, BookOpenText, Building2, Calendar as CalendarIcon, CalendarDays, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileText, History, Images, Layers, Link2, Loader2, Palette, PlusCircle, Receipt, RefreshCw, Stethoscope, Trash2, UserCog, UserRound, Users, X, Zap } from 'lucide-react';
+import { BellRing, BookOpenText, Building2, Calendar as CalendarIcon, CalendarDays, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileSpreadsheet, FileText, History, Images, Layers, Link2, Loader2, Palette, PlusCircle, Receipt, RefreshCw, Stethoscope, Trash2, UserCog, UserRound, Users, X, Zap } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
@@ -82,6 +82,7 @@ import { AppointmentQuickView } from '@/components/calendar/appointment-quick-vi
 import { ReminderQuickView } from '@/components/calendar/reminder-quick-view';
 import { PatientCreateDialog } from '@/components/patients/patient-create-dialog';
 import { BulkReassignDoctorDialog } from '@/components/appointments/BulkReassignDoctorDialog';
+import { PrintScheduleDialog } from '@/components/appointments/PrintScheduleDialog';
 import { reassignAppointmentField, type AppointmentReassignChange } from '@/lib/appointment-reassign';
 import { ContextEntityPicker } from '@/components/appointments/ContextEntityPicker';
 import { InlineAppointmentDraft } from '@/components/calendar/inline-appointment-draft';
@@ -710,6 +711,7 @@ export default function AppointmentsPage() {
     const [selectedCalendarIds, setSelectedCalendarIds] = React.useState<string[]>([]);
     const [isDataLoading, setIsDataLoading] = React.useState(true);
     const [isCreateOpen, setCreateOpen] = React.useState(false);
+    const [isPrintScheduleOpen, setIsPrintScheduleOpen] = React.useState(false);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [fetchRange, setFetchRange] = React.useState<{ start: Date; end: Date } | null>(null);
     const [checkCalendarAvailability, setCheckCalendarAvailability] = React.useState(false);
@@ -4335,6 +4337,16 @@ export default function AppointmentsPage() {
                                 <TooltipProvider>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
+                                            <Button onClick={() => setIsPrintScheduleOpen(true)} variant="ghost" size="icon" className={isMobile ? "h-8 w-8" : "h-10 w-10"}>
+                                                <FileSpreadsheet className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            {t('printSchedule')}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
                                             <Button onClick={forceRefresh} variant="ghost" size="icon" disabled={isRefreshing} className={isMobile ? "h-8 w-8" : "h-10 w-10"}>
                                                 <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                                             </Button>
@@ -4560,6 +4572,14 @@ export default function AppointmentsPage() {
                 checkCalendarAvailability={checkCalendarAvailability}
                 checkDoctorAvailability={checkDoctorAvailability}
                 isDateTimeBlocked={isDateTimeBlocked}
+            />
+            <PrintScheduleDialog
+                open={isPrintScheduleOpen}
+                onOpenChange={setIsPrintScheduleOpen}
+                calendars={calendars
+                    .filter((c) => c.is_active !== false)
+                    .map((c) => ({ id: c.id, name: c.name }))}
+                defaultCalendarId={selectedCalendarIds[0] ?? null}
             />
             <PatientCreateDialog
                 open={inlineCreatePatient.open}
