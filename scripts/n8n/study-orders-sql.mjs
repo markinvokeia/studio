@@ -623,3 +623,218 @@ SELECT target.id::text     AS id,
            ELSE (SELECT hint FROM v)
        END AS change
   FROM target;`;
+
+export const RECONCILE_SQL = `
+-- Sin parámetros: corre como el sistema, desde un cron.
+--
+-- Red de seguridad de /recompute. Ese endpoint lo llama el front al guardar una
+-- sesión clínica y al cancelar una cita, pero el front no siempre llega: la
+-- pestaña se cierra, la red se corta, o alguien cambia el estado de una cita
+-- desde un camino que no lo invoca. Esto barre todas las órdenes y corrige las
+-- que quedaron con un estado persistido que no refleja sus citas.
+--
+-- Devuelve una fila por orden corregida, para que el nodo siguiente notifique.
+-- Sin nada que corregir devuelve cero filas y ahí se corta la ejecución.
+WITH state AS (
+    SELECT o.id,
+           CASE WHEN b.items_total > 0 AND b.items_completed = b.items_total
+                THEN 'completed' ELSE 'submitted' END AS target
+      FROM public.study_orders o
+      JOIN public.v_study_orders_board b ON b.id = o.id
+     WHERE o.status IN ('submitted', 'completed')
+)
+UPDATE public.study_orders o
+   SET status       = state.target,
+       completed_at = CASE WHEN state.target = 'completed' THEN now() ELSE NULL END,
+       updated_at   = now()
+  FROM state
+ WHERE o.id = state.id
+   AND o.status IS DISTINCT FROM state.target
+RETURNING o.id::text AS order_id,
+          CASE WHEN state.target = 'completed' THEN 'completed' ELSE 'reopened' END AS change;`;
+
+export const BOOKING_TOKEN_SQL = `
+-- $1 userId (token)  $2 payload { order_id, token_hash, expires_at, max_uses }
+--
+-- Genera el link con el que el paciente elige horario sin tener cuenta.
+--
+-- El token en claro NUNCA llega acá: se genera y se hashea en el nodo de
+-- validación, y sólo el sha256 se guarda. Mismo criterio que users.login_code
+-- del portal de pacientes: si alguien lee la tabla, no puede usar los links.
+--
+-- Generar uno nuevo revoca los anteriores de esa orden. Un link viejo circulando
+-- por WhatsApp es una puerta abierta que nadie recuerda cerrar.
+WITH ${PERMS_CTE},
+b AS (
+    SELECT $2::jsonb AS body
+),
+v AS (
+    SELECT (body ->> 'order_id')::uuid        AS order_id,
+           (body ->> 'token_hash')::text      AS token_hash,
+           (body ->> 'expires_at')::timestamp AS expires_at,
+           coalesce((body ->> 'max_uses')::smallint, 1) AS max_uses
+      FROM b
+),
+allowed AS (
+    SELECT so.id
+      FROM public.study_orders so, v
+     WHERE so.id = v.order_id
+       AND so.status = 'submitted'
+       -- Sin ficha de paciente no hay a nombre de quién crear la cita.
+       AND so.patient_id IS NOT NULL
+       AND ((SELECT can_schedule FROM perms) OR so.doctor_id = $1::uuid)
+),
+revoked AS (
+    UPDATE public.study_order_booking_tokens bt
+       SET revoked_at = now()
+      FROM allowed
+     WHERE bt.study_order_id = allowed.id
+       AND bt.revoked_at IS NULL
+    RETURNING bt.id
+)
+INSERT INTO public.study_order_booking_tokens
+       (study_order_id, token_hash, expires_at, max_uses, created_by)
+SELECT allowed.id, v.token_hash, v.expires_at, v.max_uses, $1::uuid
+  FROM allowed, v
+RETURNING id::text, study_order_id::text AS order_id, expires_at, max_uses;`;
+
+export const PUBLIC_DETAIL_SQL = `
+-- $1 = sha256 del token que trae el paciente en el link.
+--
+-- Endpoint SIN autenticación: cualquiera con el link ve esto. Por eso devuelve
+-- lo mínimo para que el paciente reconozca que la orden es suya y sepa qué le
+-- van a hacer: primer nombre, número de orden, estudios pendientes y la sede
+-- sugerida. NO viajan documento, teléfono, mail, ni las notas clínicas del
+-- derivador.
+--
+-- El token se valida acá y no en el flujo: vencido, revocado o agotado devuelve
+-- cero filas, que el formateador traduce a 404.
+WITH t AS (
+    SELECT bt.study_order_id
+      FROM public.study_order_booking_tokens bt
+     WHERE bt.token_hash = $1::text
+       AND bt.revoked_at IS NULL
+       AND bt.expires_at > now()
+       AND bt.used_count < bt.max_uses
+)
+SELECT so.id::text          AS id,
+       so.order_number      AS order_number,
+       -- Sólo el primer nombre: alcanza para reconocerse y no expone el resto.
+       split_part(so.patient_name, ' ', 1) AS patient_first_name,
+       d.name               AS doctor_name,
+       so.preferred_sede_id AS preferred_sede_id,
+       se.name              AS preferred_sede_name,
+       (SELECT coalesce(json_agg(json_build_object(
+                   'id',   i.service_id::text,
+                   'name', i.service_name,
+                   'duration_minutes', sc.duration_minutes
+               ) ORDER BY i.sort_order), '[]'::json)
+          FROM public.study_order_items i
+          LEFT JOIN public.service_catalog sc ON sc.id = i.service_id
+         WHERE i.study_order_id = so.id
+           AND i.is_cancelled = false
+           -- Sólo lo que falta agendar: si ya tiene cita, no se ofrece de nuevo.
+           AND NOT EXISTS (
+               SELECT 1 FROM public.appointments a
+                 JOIN public.appointment_service_catalog asc2 ON asc2.appointment_id = a.id
+                WHERE a.study_order_id = so.id
+                  AND asc2.service_id = i.service_id
+                  AND a.status NOT IN ('cancelled', 'deleted', 'no_show')
+           )) AS pending_services
+  FROM public.study_orders so
+  JOIN t ON t.study_order_id = so.id
+  LEFT JOIN public.users d  ON d.id  = so.doctor_id
+  LEFT JOIN public.sedes se ON se.id = so.preferred_sede_id
+ WHERE so.status = 'submitted';`;
+
+export const PUBLIC_BOOK_SQL = `
+-- $1 = sha256 del token.  $2 payload { calendar_source_id, start, end, summary }
+--
+-- Crea la cita que el paciente eligió, la ata a la orden, le carga los estudios
+-- pendientes y consume un uso del token. Todo en una sentencia: si algo del
+-- camino no da, no queda una cita a medio armar.
+--
+-- LIMITACIÓN CONOCIDA, la misma que /study-orders/reschedule: no empuja la cita
+-- a Google Calendar. La sincronización de salida vive dentro de
+-- /appointments/upsert, que es el monolito de la agenda. Si la sede sincroniza
+-- con Google, la cita aparece en InvokeIA pero no en el calendario de Google
+-- hasta que alguien la edite desde la agenda.
+--
+-- El token se valida de nuevo acá aunque el detalle ya lo haya validado: entre
+-- una llamada y la otra puede haberse vencido, y el que llama es un anónimo.
+WITH b AS (
+    SELECT $2::jsonb AS body
+),
+v AS (
+    SELECT (body ->> 'calendar_source_id')::bigint AS calendar_source_id,
+           (body ->> 'start')::timestamp           AS starts_at,
+           (body ->> 'end')::timestamp             AS ends_at,
+           coalesce(NULLIF(body ->> 'summary', ''), 'Estudios') AS summary
+      FROM b
+),
+t AS (
+    SELECT bt.id, bt.study_order_id
+      FROM public.study_order_booking_tokens bt
+     WHERE bt.token_hash = $1::text
+       AND bt.revoked_at IS NULL
+       AND bt.expires_at > now()
+       AND bt.used_count < bt.max_uses
+     -- Bloquea la fila: dos clics simultáneos no pueden gastar el mismo uso.
+     FOR UPDATE
+),
+o AS (
+    SELECT so.id, so.patient_id, so.doctor_id, so.order_number
+      FROM public.study_orders so
+      JOIN t ON t.study_order_id = so.id
+     WHERE so.status = 'submitted'
+       AND so.patient_id IS NOT NULL
+),
+ins AS (
+    INSERT INTO public.appointments
+           (patient_id, assignee_id, start_datetime, end_datetime, status,
+            calendar_source_id, study_order_id, summary, created_at, updated_at)
+    SELECT o.patient_id,
+           -- El doctor de la cita es el derivador, no el técnico. Decisión del
+           -- cliente: es lo que hace que la cita aparezca en su agenda.
+           o.doctor_id,
+           v.starts_at, v.ends_at, 'scheduled',
+           v.calendar_source_id, o.id,
+           v.summary || ' - ' || o.order_number,
+           now(), now()
+      FROM o, v
+     WHERE v.ends_at > v.starts_at
+       AND v.starts_at > now()
+       AND v.calendar_source_id IS NOT NULL
+       AND EXISTS (SELECT 1 FROM public.calendar_sources cs
+                    WHERE cs.id = v.calendar_source_id AND cs.is_active)
+    RETURNING id, study_order_id
+),
+svc AS (
+    INSERT INTO public.appointment_service_catalog (appointment_id, service_id)
+    SELECT ins.id, i.service_id
+      FROM ins
+      JOIN public.study_order_items i ON i.study_order_id = ins.study_order_id
+     WHERE i.is_cancelled = false
+       AND NOT EXISTS (
+           SELECT 1 FROM public.appointments a
+             JOIN public.appointment_service_catalog asc2 ON asc2.appointment_id = a.id
+            WHERE a.study_order_id = ins.study_order_id
+              AND asc2.service_id = i.service_id
+              AND a.id <> ins.id
+              AND a.status NOT IN ('cancelled', 'deleted', 'no_show')
+       )
+    RETURNING appointment_id
+),
+bump AS (
+    UPDATE public.study_order_booking_tokens bt
+       SET used_count   = bt.used_count + 1,
+           last_used_at = now()
+      FROM t, ins
+     WHERE bt.id = t.id
+    RETURNING bt.id
+)
+SELECT ins.id::text          AS appointment_id,
+       o.id::text            AS order_id,
+       o.order_number        AS order_number,
+       (SELECT count(*) FROM svc) AS services_linked
+  FROM ins, o;`;

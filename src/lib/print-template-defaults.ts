@@ -258,4 +258,7 @@ export const PRINT_TEMPLATE_DEFAULTS: Record<PrintDocumentType, string> = {
   caja_sesion:       CAJA_SESION_DEFAULT,
   // The clinic history is a React-only print (multi-section, not a customizable HTML template).
   clinic_history:    '',
+  // La orden de estudio también: su cuerpo son secciones, odontogramas y
+  // modificadores anidados, que no se dejan describir con variables planas.
+  study_order:       '',
 };

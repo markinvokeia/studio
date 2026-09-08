@@ -19,6 +19,7 @@ import { Appointment, AppointmentStatus, CancellationReason, Invoice, Order, Pat
 import { api } from '@/services/api';
 import { getQuoteItems } from '@/services/quotes';
 import { updateAppointmentStatusRequest } from '@/services/appointments';
+import { recomputeStudyOrderForAppointment } from '@/services/study-orders';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { FileText } from 'lucide-react';
 import { addMonths, format, parseISO } from 'date-fns';
@@ -500,6 +501,11 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
         }
         toast({ title: tAppointmentsPage('toasts.sessionCreated'), description: tAppointmentsPage('toasts.sessionCreatedDesc') });
       }
+
+      // La cita quedó atendida: si venía de una orden de estudio y era la
+      // última que faltaba, la orden se cierra y el derivador recibe el
+      // aviso de que sus estudios están listos. Fire-and-forget.
+      void recomputeStudyOrderForAppointment(String(clinicSessionAppointment.id));
 
       setIsClinicSessionOpen(false);
       setClinicSessionAppointment(null);
