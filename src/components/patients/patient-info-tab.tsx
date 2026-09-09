@@ -3,13 +3,13 @@
 import * as React from 'react';
 import { useForm, type UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertTriangle, Check, ChevronsUpDown, Loader2 } from 'lucide-react';
+import { AlertTriangle, Check, ChevronsUpDown, Loader2, UserPlus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { DatePickerInput } from '@/components/ui/date-picker';
 import { DialogCancelButton } from '@/components/ui/dialog';
 import { DoctorSelector } from '@/components/ui/doctor-selector';
@@ -19,9 +19,12 @@ import { PhoneInput } from '@/components/ui/phone-input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { PatientFormDialogShell } from '@/components/patients/patient-form-dialog-shell';
 import { PatientGroupsField, savePatientGroups } from '@/components/patients/patient-groups-field';
 import { useReadOnly } from '@/components/patient-portal/read-only-context';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
+import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import { cn } from '@/lib/utils';
 import type { MutualSociety, User } from '@/lib/types';
 import {
@@ -41,18 +44,26 @@ export function ResponsibleContactField({
   currentUserId,
   initialDisplayName,
   onDisplayNameChange,
+  showCancelAction = false,
 }: {
   form: UseFormReturn<UserFormValues>;
   currentUserId?: string;
   initialDisplayName?: string;
   onDisplayNameChange?: (name: string) => void;
+  /** Se propaga a la ventana de alta del tutor, igual que en el resto de los hosts. */
+  showCancelAction?: boolean;
 }) {
   const t = useTranslations();
+  const { hasPermission } = usePermissions();
+  const canCreatePatient = hasPermission(PATIENTS_PERMISSIONS.CREATE);
   const [query, setQuery] = React.useState('');
   const [results, setResults] = React.useState<User[]>([]);
   const [isSearching, setIsSearching] = React.useState(false);
   const [isOpen, setIsOpen] = React.useState(false);
   const [displayName, setDisplayName] = React.useState(initialDisplayName || '');
+  const [isCreateOpen, setIsCreateOpen] = React.useState(false);
+  const [isGuardianFormDirty, setIsGuardianFormDirty] = React.useState(false);
+  const guardianName = query.trim();
 
   React.useEffect(() => { setDisplayName(initialDisplayName || ''); }, [initialDisplayName, currentUserId]);
   React.useEffect(() => { onDisplayNameChange?.(displayName); }, [displayName, onDisplayNameChange]);
@@ -90,11 +101,43 @@ export function ResponsibleContactField({
                 </Button>
               </FormControl>
             </PopoverTrigger>
-            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+            {/* `collisionPadding` para que Radix lo dé vuelta hacia arriba cuando el
+                campo queda al fondo de la ventana: si no, el popover se salía de la
+                pantalla y el pie con la acción de alta quedaba fuera de la vista. */}
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start" collisionPadding={12}>
               <Command shouldFilter={false}>
                 <CommandInput placeholder={t('UsersPage.createDialog.searchGuardianPlaceholder')} value={query} onValueChange={setQuery} />
-                <CommandList>
-                  <CommandEmpty>{t('UsersPage.createDialog.noGuardianResults')}</CommandEmpty>
+                {/* Arriba y fuera de `CommandList`: el popover se abre hacia abajo y con
+                    la lista llena su pie puede quedar fuera de la pantalla, así que la
+                    salida "el tutor no existe" tiene que estar donde siempre se ve.
+                    Aparece con cualquier texto escrito y no sólo cuando no hay
+                    resultados: la búsqueda del backend matchea por palabra suelta, así
+                    que un tutor inexistente igual devuelve homónimos parciales. */}
+                {guardianName && canCreatePatient && (
+                  <div className="border-b p-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start gap-2 font-normal"
+                      onClick={() => { setIsOpen(false); setIsCreateOpen(true); }}
+                    >
+                      <UserPlus className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{t('UsersPage.createDialog.createGuardian', { name: guardianName })}</span>
+                    </Button>
+                  </div>
+                )}
+                {/* Con tope de alto: sin él la lista crecía hasta pasarse del alto de
+                    la ventana y empujaba la acción de alta fuera de la pantalla. */}
+                <CommandList className="max-h-48">
+                  {/* El vacío se arma a mano en vez de con `CommandEmpty` para poder
+                      distinguir "todavía no escribiste" de "no hay nadie con ese
+                      nombre". */}
+                  {!isSearching && results.length === 0 && (
+                    <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+                      {guardianName ? t('UsersPage.createDialog.noGuardianResults') : t('UsersPage.createDialog.searchGuardianHint')}
+                    </p>
+                  )}
                   <CommandGroup>
                     {isSearching && (
                       <div className="flex items-center gap-2 px-2 py-3 text-sm text-muted-foreground">
@@ -120,6 +163,38 @@ export function ResponsibleContactField({
               </Command>
             </PopoverContent>
           </Popover>
+
+          {/* Fuera del `Popover`: al abrir la ventana el popover se cierra, y si el
+              diálogo colgara de su contenido se desmontaría con él. Al tutor no se le
+              ofrece la casilla de dependiente —sería un tutor a cargo de otro tutor—,
+              y eso además corta la recursión: sin esa casilla no hay otro picker. */}
+          <PatientFormDialogShell
+            open={isCreateOpen}
+            onOpenChange={setIsCreateOpen}
+            title={t('UsersPage.createDialog.createGuardianTitle')}
+            description={t('UsersPage.createDialog.createGuardianDescription')}
+            confirmOnClose={showCancelAction}
+            isDirty={isGuardianFormDirty}
+          >
+            {isCreateOpen && (
+              <PatientInfoTab
+                variant="dialog"
+                initialName={guardianName}
+                showDependentField={false}
+                showCancelAction={showCancelAction}
+                onDirtyChange={setIsGuardianFormDirty}
+                onSaved={(created) => {
+                  setIsCreateOpen(false);
+                  // El alta resuelve el id buscando por nombre; si no lo encuentra
+                  // llega un `User` armado con id vacío, que no sirve para vincular.
+                  if (!created.id) return;
+                  field.onChange(String(created.id));
+                  setDisplayName(created.name);
+                  setQuery('');
+                }}
+              />
+            )}
+          </PatientFormDialogShell>
           <FormMessage />
         </FormItem>
       )}
@@ -156,6 +231,13 @@ interface PatientInfoTabProps {
    * alinearse con el `px-6` de la cabecera en vez de pegarse al borde.
    */
   variant?: 'tab' | 'dialog';
+  /**
+   * Muestra la casilla "paciente dependiente" y, con ella, el picker de tutor.
+   * Se apaga cuando el paciente que se está creando *es* el tutor de otro: un
+   * tutor a cargo de un tutor no tiene sentido, y sin la casilla el formulario no
+   * se puede volver a abrir a sí mismo.
+   */
+  showDependentField?: boolean;
 }
 
 /** Padding del área de campos y del pie de guardado, por host. */
@@ -180,6 +262,7 @@ export function PatientInfoTab({
   allowEdit = false,
   onDirtyChange,
   variant = 'tab',
+  showDependentField = true,
 }: PatientInfoTabProps) {
   const padding = VARIANT_PADDING[variant];
   const isCreateMode = !userId && !userProp;
@@ -500,7 +583,7 @@ export function PatientInfoTab({
                 <FormMessage />
               </FormItem>
             )} />
-            {!isPortal && (
+            {!isPortal && showDependentField && (
               <FormField control={infoForm.control} name="is_dependent" render={({ field }) => (
                 <FormItem className="flex flex-row items-center space-x-3 space-y-0">
                   <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
@@ -508,12 +591,13 @@ export function PatientInfoTab({
                 </FormItem>
               )} />
             )}
-            {!isPortal && isDependent ? (
+            {!isPortal && showDependentField && isDependent ? (
               <ResponsibleContactField
                 form={infoForm}
                 currentUserId={userId}
                 initialDisplayName={responsibleContactName}
                 onDisplayNameChange={setResponsibleContactName}
+                showCancelAction={showCancelAction}
               />
             ) : null}
             {showNotes && (

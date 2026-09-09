@@ -3,8 +3,7 @@
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 
-import { Dialog, DialogBody, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-
+import { PatientFormDialogShell } from '@/components/patients/patient-form-dialog-shell';
 import { PatientInfoTab } from '@/components/patients/patient-info-tab';
 
 import type { User } from '@/lib/types';
@@ -34,33 +33,27 @@ export function PatientCreateDialog({ open, onOpenChange, initialName, onCreated
   }, [initialName, open]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        maxWidth="xl"
-        className="p-0"
-        confirmOnClose={showCancelAction}
-        isDirty={isPatientFormDirty}
-      >
-        <DialogHeader className="border-b px-6 py-4">
-          <DialogTitle>{t('title')}</DialogTitle>
-          <DialogDescription>{t('description')}</DialogDescription>
-        </DialogHeader>
-        <DialogBody className="flex min-h-0 flex-col overflow-hidden p-0">
-          {/* Remount per open so every "new patient" starts from a clean form */}
-          {open && (
-            <PatientInfoTab
-              variant="dialog"
-              initialName={initialName}
-              showCancelAction={showCancelAction}
-              onDirtyChange={setIsPatientFormDirty}
-              onSaved={(created) => {
-                onCreated(created);
-                onOpenChange(false);
-              }}
-            />
-          )}
-        </DialogBody>
-      </DialogContent>
-    </Dialog>
+    <PatientFormDialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      title={t('title')}
+      description={t('description')}
+      confirmOnClose={showCancelAction}
+      isDirty={isPatientFormDirty}
+    >
+      {/* Remount per open so every "new patient" starts from a clean form */}
+      {open && (
+        <PatientInfoTab
+          variant="dialog"
+          initialName={initialName}
+          showCancelAction={showCancelAction}
+          onDirtyChange={setIsPatientFormDirty}
+          onSaved={(created) => {
+            onCreated(created);
+            onOpenChange(false);
+          }}
+        />
+      )}
+    </PatientFormDialogShell>
   );
 }
