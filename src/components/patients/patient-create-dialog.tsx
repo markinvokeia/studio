@@ -49,6 +49,7 @@ export function PatientCreateDialog({ open, onOpenChange, initialName, onCreated
           {/* Remount per open so every "new patient" starts from a clean form */}
           {open && (
             <PatientInfoTab
+              variant="dialog"
               initialName={initialName}
               showCancelAction={showCancelAction}
               onDirtyChange={setIsPatientFormDirty}
