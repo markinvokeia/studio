@@ -957,7 +957,7 @@
         "time_patient_notes": "Hora - Paciente - (Notas)",
         "patient_treatment_time": "Paciente - Tratamiento - Hora",
         "time_patient_notes_treatment": "Hora - Paciente teléfono - (Notas, Tratamiento)",
-        "time_treatment_patient_notes": "Hora - Tratamiento - Paciente - (Notas)"
+        "time_treatment_patient_notes": "Hora - Tratamiento - Paciente - Teléfono - (Notas)"
       },
       "groupBy": "Agrupar por",
       "checkAvailability": "Verificar disponibilidad",

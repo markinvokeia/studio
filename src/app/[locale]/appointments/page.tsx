@@ -364,8 +364,9 @@ function buildEventLabel(appt: Appointment, start: Date, fmt: string, noneLabel:
     }
     if (fmt === 'time_treatment_patient_notes') {
         // El tratamiento va antes que el paciente: en las clínicas que lo usan lo que
-        // se escanea de la grilla es qué se hace en cada hueco, no quién viene.
-        const base = [time, treatment, patient].filter(Boolean).join(' ');
+        // se escanea de la grilla es qué se hace en cada hueco, no quién viene. El
+        // teléfono va detrás del paciente, como en `time_patient_notes_treatment`.
+        const base = [time, treatment, patient, phone].filter(Boolean).join(' ');
         return notes ? `${base} (${notes})` : base;
     }
     // default: time_patient_notes -> "HH:mm Patient (Notes)"
