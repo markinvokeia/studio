@@ -5572,6 +5572,11 @@
     },
     "blocked": {
       "label": "No disponible"
+    },
+    "drag": {
+      "moveTo": "Mover a…",
+      "duration": "Duración",
+      "minutes": "{minutes} min"
     }
   },
   "Reminders": {

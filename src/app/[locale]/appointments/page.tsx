@@ -4,6 +4,7 @@
 import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
 import Calendar, { type CalendarGroupBy, type CalendarGroupingColumn, type CalendarView, type CalendarEvent } from '@/components/calendar/Calendar';
 import type { CalendarDragMode, CalendarDragResult, CalendarSlotContextMenuContext } from '@/components/calendar/calendar-types';
+import { DatePicker } from '@/components/ui/date-picker';
 import { CalendarSettingsPopover } from '@/components/calendar/calendar-settings-popover';
 import { CalendarSettingsForm } from '@/components/calendar/calendar-settings-form';
 import { getCalendarSettings } from '@/components/calendar/calendar-settings-utils';
@@ -72,7 +73,7 @@ import { getSalesServices, getUsersServicesBatch, fetchServicesByIds } from '@/s
 import { ColumnDef } from '@tanstack/react-table';
 import { addMinutes, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isValid, parseISO, set, startOfMonth, startOfWeek } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
-import { BellRing, BookOpenText, Building2, Calendar as CalendarIcon, CalendarDays, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileSpreadsheet, FileText, History, Images, Layers, Link2, Loader2, Palette, PlusCircle, Receipt, RefreshCw, Stethoscope, Trash2, UserCog, UserRound, Users, X, Zap } from 'lucide-react';
+import { BellRing, BookOpenText, Building2, Calendar as CalendarIcon, CalendarDays, Clock, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileSpreadsheet, FileText, History, Images, Layers, Link2, Loader2, Palette, PlusCircle, Receipt, RefreshCw, Stethoscope, Trash2, UserCog, UserRound, Users, X, Zap } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
@@ -670,6 +671,11 @@ async function getDoctorCalendarMap(calendars: CalendarType[]): Promise<Map<stri
     return map;
 }
 
+/** Duraciones ofrecidas por el submenú "Duración". Cubren los tramos habituales de
+ *  la clínica sin volverse una lista interminable; para algo fuera de esto está la
+ *  edición inline. */
+const DURATION_PRESET_MINUTES = [15, 20, 30, 45, 60, 90] as const;
+
 export default function AppointmentsPage() {
     const breakpoint = useCalendarBreakpoint();
     const isMobile = breakpoint === 'mobile';
@@ -688,6 +694,7 @@ export default function AppointmentsPage() {
     const tPanel = useTranslations('AppointmentPanel');
     const tInline = useTranslations('AppointmentsPage.inlineCreate');
     const tGaps = useTranslations('Calendar.gaps');
+    const tDrag = useTranslations('Calendar.drag');
     const tConfirmClose = useTranslations('ConfirmCloseDialog');
     const locale = useLocale();
     const gapsDateLocale = locale === 'es' ? es : enUS;
@@ -3567,6 +3574,87 @@ export default function AppointmentsPage() {
                 </ContextMenuSubContent>
             </ContextMenuSub>
         );
+        // Alternativa por menú a los gestos de arrastre: cubre teclado y lector de
+        // pantalla, la vista de mes en móvil (donde las filas de agenda no tienen
+        // rejilla sobre la cual arrastrar) y las cards demasiado bajas como para
+        // tener tiradores de resize.
+        const apptStart = appointment.start?.dateTime ? parseISO(appointment.start.dateTime.replace(/Z$/, '')) : null;
+        const apptEnd = appointment.end?.dateTime ? parseISO(appointment.end.dateTime.replace(/Z$/, '')) : null;
+        const apptDurationMin = apptStart && apptEnd ? Math.max(0, (apptEnd.getTime() - apptStart.getTime()) / 60000) : 0;
+        const canRetimeAppointment = canUpdateAppointments
+            && canReschedule(normalizeAppointmentStatus(appointment.status))
+            && !!apptStart && !!apptEnd && isValid(apptStart) && isValid(apptEnd);
+
+        const retimeAppointment = (nextStart: Date, nextEnd: Date) => {
+            if (!apptStart || !apptEnd) return;
+            applyEventTimeChange({
+                data: { ...appointment, kind: 'appointment' as const },
+                eventId: String(appointment.id),
+                mode: nextStart.getTime() === apptStart.getTime() ? 'resize-end' : 'move',
+                start: nextStart,
+                end: nextEnd,
+                originalStart: apptStart,
+                originalEnd: apptEnd,
+                blocked: false,
+            });
+        };
+
+        const moveToSubmenu = canRetimeAppointment ? (
+            <ContextMenuSub>
+                <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                    <CalendarIcon className="h-4 w-4 shrink-0" />
+                    <span className="flex min-w-0 flex-col">
+                        <span>{tDrag('moveTo')}</span>
+                        <span className="truncate text-xs italic text-muted-foreground">{format(apptStart!, 'dd/MM/yyyy HH:mm')}</span>
+                    </span>
+                </ContextMenuSubTrigger>
+                <ContextMenuSubContent className="p-0">
+                    <DatePicker
+                        mode="single"
+                        selected={apptStart!}
+                        onSelect={(date) => {
+                            if (!date || !apptStart) return;
+                            const nextStart = set(apptStart, {
+                                year: date.getFullYear(),
+                                month: date.getMonth(),
+                                date: date.getDate(),
+                            });
+                            if (nextStart.getTime() === apptStart.getTime()) return;
+                            retimeAppointment(nextStart, addMinutes(nextStart, apptDurationMin));
+                        }}
+                        initialFocus
+                    />
+                </ContextMenuSubContent>
+            </ContextMenuSub>
+        ) : null;
+
+        const durationSubmenu = canRetimeAppointment ? (
+            <ContextMenuSub>
+                <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                    <Clock className="h-4 w-4 shrink-0" />
+                    <span className="flex min-w-0 flex-col">
+                        <span>{tDrag('duration')}</span>
+                        <span className="truncate text-xs italic text-muted-foreground">{tDrag('minutes', { minutes: Math.round(apptDurationMin) })}</span>
+                    </span>
+                </ContextMenuSubTrigger>
+                <ContextMenuSubContent>
+                    {DURATION_PRESET_MINUTES.map((minutes) => (
+                        <ContextMenuItem
+                            key={minutes}
+                            onSelect={() => {
+                                if (!apptStart || Math.round(apptDurationMin) === minutes) return;
+                                retimeAppointment(apptStart, addMinutes(apptStart, minutes));
+                            }}
+                            className="flex items-center gap-2 cursor-pointer"
+                        >
+                            <Check className={cn('h-4 w-4 shrink-0', Math.round(apptDurationMin) === minutes ? 'opacity-100' : 'opacity-0')} />
+                            {tDrag('minutes', { minutes })}
+                        </ContextMenuItem>
+                    ))}
+                </ContextMenuSubContent>
+            </ContextMenuSub>
+        ) : null;
+
         const doctorSubmenu = (
             <ContextMenuSub>
                 <ContextMenuSubTrigger className="cursor-pointer gap-2">
@@ -3767,6 +3855,8 @@ export default function AppointmentsPage() {
                     </ContextMenuSub>
                     {doctorSubmenu}
                     {calendarSubmenu}
+                    {moveToSubmenu}
+                    {durationSubmenu}
                 </>
             );
         }
@@ -3779,6 +3869,8 @@ export default function AppointmentsPage() {
             {statusSubmenu}
             {doctorSubmenu}
             {calendarSubmenu}
+            {moveToSubmenu}
+            {durationSubmenu}
             {rescheduleItem}
             <ContextMenuItem
                 key="clinic-session"

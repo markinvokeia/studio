@@ -316,6 +316,8 @@ const Calendar: React.FC<CalendarProps> = ({
               dateLocale={dateLocale}
               collapsed={monthCollapsed}
               onEventClick={onEventClick}
+              onEventContextMenu={onEventContextMenu}
+              onEventContextMenuOpen={onEventContextMenuOpen}
               onSlotClick={onSlotClick}
               {...gapProps}
               blockedFullDays={blockedFullDays}

@@ -5595,6 +5595,11 @@
     },
     "blocked": {
       "label": "Unavailable"
+    },
+    "drag": {
+      "moveTo": "Move to…",
+      "duration": "Duration",
+      "minutes": "{minutes} min"
     }
   },
   "Reminders": {
