@@ -1037,6 +1037,35 @@
 }
 
 /* ───────────────────────────────────────────────────────────────────────────
+   Cita enfocada (resultado de búsqueda elegido): aro de "hormigas en marcha",
+   el mismo efecto que el hueco máximo en "Buscar huecos". Es un overlay que
+   Calendar.tsx posiciona por rAF sobre la card (no una clase en la card, que
+   los re-render de la grilla borraban). Persiste hasta elegir otro resultado
+   o cerrar el buscador.
+   ─────────────────────────────────────────────────────────────────────────── */
+.calendar-focus-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 45;
+  pointer-events: none;
+  border-radius: 8px;
+  will-change: transform;
+  background:
+    linear-gradient(90deg, hsl(var(--primary)) 50%, transparent 0) repeat-x,
+    linear-gradient(90deg, hsl(var(--primary)) 50%, transparent 0) repeat-x,
+    linear-gradient(0deg, hsl(var(--primary)) 50%, transparent 0) repeat-y,
+    linear-gradient(0deg, hsl(var(--primary)) 50%, transparent 0) repeat-y;
+  background-size: 12px 2px, 12px 2px, 2px 12px, 2px 12px;
+  background-position: 0 0, 0 100%, 0 0, 100% 0;
+  background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
+  animation: calendar-gap-march 0.6s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .calendar-focus-ring { animation: none; }
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
    Out-of-office blocking ("No disponible") — schedules + exceptions
    ─────────────────────────────────────────────────────────────────────────── */
 .calendar-blocked {

@@ -5593,6 +5593,20 @@
       "maxBadge": "Largest",
       "close": "Close"
     },
+    "search": {
+      "button": "Search appointment",
+      "panelTitle": "Search appointments",
+      "placeholder": "Patient or appointment title…",
+      "hint": "Search by appointment title or by patient name, phone, email or ID. Covers every date.",
+      "minChars": "Type at least {count} characters.",
+      "empty": "No appointments match your search.",
+      "untitled": "Untitled appointment",
+      "clear": "Clear",
+      "close": "Close",
+      "allCalendars": "All calendars",
+      "nCalendars": "{count} calendars",
+      "calendarFilter": "Filter by calendar"
+    },
     "blocked": {
       "label": "Unavailable"
     },

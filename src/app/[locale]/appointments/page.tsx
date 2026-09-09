@@ -9,6 +9,7 @@ import { CalendarSettingsPopover } from '@/components/calendar/calendar-settings
 import { CalendarSettingsForm } from '@/components/calendar/calendar-settings-form';
 import { getCalendarSettings } from '@/components/calendar/calendar-settings-utils';
 import { CalendarGapsPanel } from '@/components/calendar/calendar-gaps-panel';
+import { CalendarSearchPanel, CalendarSearchResultsChip, type CalendarSearchResult } from '@/components/calendar/calendar-search-panel';
 import { CalendarAgendasPanel } from '@/components/calendar/calendar-agendas-panel';
 import { CalendarViewMenu } from '@/components/calendar/calendar-view-menu';
 import { CalendarZoomMenu } from '@/components/calendar/calendar-zoom-menu';
@@ -67,13 +68,13 @@ import { Appointment, AppointmentBulkFilterParams, AppointmentColorSource, Appoi
 import { cn, toLocalISOString } from '@/lib/utils';
 import api from '@/services/api';
 import { getQuoteItems } from '@/services/quotes';
-import { updateAppointmentStatusRequest, fetchFuturePatientAppointments, type FuturePatientAppointment } from '@/services/appointments';
+import { updateAppointmentStatusRequest, fetchFuturePatientAppointments, searchAppointments, type FuturePatientAppointment } from '@/services/appointments';
 import { FutureAppointmentsConfirmDialog } from '@/components/appointments/future-appointments-confirm-dialog';
 import { getSalesServices, getUsersServicesBatch, fetchServicesByIds } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
 import { addMinutes, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isValid, parseISO, set, startOfMonth, startOfWeek } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
-import { BellRing, BookOpenText, Building2, Calendar as CalendarIcon, CalendarDays, Clock, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileSpreadsheet, FileText, History, Images, Layers, Link2, Loader2, Palette, PlusCircle, Receipt, RefreshCw, Stethoscope, Trash2, UserCog, UserRound, Users, X, Zap } from 'lucide-react';
+import { BellRing, BookOpenText, Building2, Calendar as CalendarIcon, CalendarDays, Clock, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileSpreadsheet, FileText, History, Images, Layers, Link2, Loader2, Palette, PlusCircle, Receipt, RefreshCw, Search, Stethoscope, Trash2, UserCog, UserRound, Users, X, Zap } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
@@ -395,6 +396,11 @@ const isWhite = (color: string | null | undefined) => {
 };
 
 
+/** Mínimo de caracteres para disparar la búsqueda global de citas. */
+const SEARCH_MIN_CHARS = 2;
+/** Inactividad (ms) antes de lanzar el pedido de búsqueda. */
+const SEARCH_DEBOUNCE_MS = 350;
+
 async function getAppointments(
     calendarSourceIds: string[],
     startDate: Date,
@@ -432,7 +438,28 @@ async function getAppointments(
             return [];
         }
 
-        return appointmentsData.map((apiAppt: any) => {
+        return appointmentsData
+            .map((apiAppt: any) => mapApiAppointmentRow(apiAppt, calendars, services, doctors, t))
+            .filter((apt): apt is Appointment => apt !== null);
+    } catch (error) {
+        console.error("Failed to fetch appointments:", error);
+        return [];
+    }
+}
+
+/**
+ * Mapea una fila cruda de cita del backend (misma forma en `/users_appointments`
+ * y en `/appointments/search`) al modelo `Appointment` de la app: resuelve color
+ * con su cadena de fallbacks, doctor, servicios y los alias snake/camel de los
+ * nombres. Devuelve null si la fila no trae un inicio válido.
+ */
+function mapApiAppointmentRow(
+    apiAppt: any,
+    calendars: CalendarType[],
+    services: Service[],
+    doctors: UserType[],
+    t: (key: string) => string,
+): Appointment | null {
             // Handle both structure where start is an object or a direct string
             const startNode = apiAppt.start_time || apiAppt.start;
             const appointmentDateTimeStr = typeof startNode === 'string' ? startNode : (startNode?.dateTime);
@@ -546,11 +573,6 @@ async function getAppointments(
             };
 
             return appointment;
-        }).filter((apt): apt is Appointment => apt !== null);
-    } catch (error) {
-        console.error("Failed to fetch appointments:", error);
-        return [];
-    }
 }
 
 async function getReminders(startDate: Date, endDate: Date, userId?: string | null): Promise<CalendarReminder[]> {
@@ -695,6 +717,7 @@ export default function AppointmentsPage() {
     const tPanel = useTranslations('AppointmentPanel');
     const tInline = useTranslations('AppointmentsPage.inlineCreate');
     const tGaps = useTranslations('Calendar.gaps');
+    const tSearch = useTranslations('Calendar.search');
     const tDrag = useTranslations('Calendar.drag');
     const tConfirmClose = useTranslations('ConfirmCloseDialog');
     const locale = useLocale();
@@ -767,6 +790,38 @@ export default function AppointmentsPage() {
     const [groupBy, setGroupBy] = React.useState<CalendarGroupBy>('none');
     const [currentView, setCurrentView] = React.useState<CalendarView>('month');
 
+    // ── Buscar cita — búsqueda global por texto (título de la cita / datos del
+    //    paciente). Pega a `/appointments/search`; los resultados van a un panel
+    //    lateral y al elegir uno el calendario salta a esa fecha y abre el detalle.
+    const [searchActive, setSearchActive] = React.useState(false);
+    // Solo en mobile: al elegir un resultado el panel se colapsa (se oculta pero la
+    // búsqueda sigue activa) y aparece un chip flotante para reabrirlo o cerrarlo,
+    // así se puede ver la cita marcada en la grilla. En desktop nunca se pone true.
+    const [searchCollapsed, setSearchCollapsed] = React.useState(false);
+    const [searchQuery, setSearchQuery] = React.useState('');
+    // Calendarios a los que se acota la búsqueda. Vacío = todos.
+    const [searchCalendarIds, setSearchCalendarIds] = React.useState<string[]>([]);
+    const [searchResults, setSearchResults] = React.useState<Appointment[]>([]);
+    const [isSearching, setIsSearching] = React.useState(false);
+    const [searchHasSearched, setSearchHasSearched] = React.useState(false);
+    const [selectedSearchId, setSelectedSearchId] = React.useState<string | null>(null);
+    const [searchFocusDate, setSearchFocusDate] = React.useState<Date | null>(null);
+    // Cita a resaltar en la grilla al elegir un resultado. El nonce re-dispara el
+    // halo aunque se vuelva a elegir la misma cita.
+    const [focusedEvent, setFocusedEvent] = React.useState<{ id: string; nonce: number } | null>(null);
+    const searchReqIdRef = React.useRef(0);
+
+    /** Limpia todo el estado de la búsqueda (resultados, filtros, cita resaltada). */
+    const resetSearchState = React.useCallback(() => {
+        setSearchQuery('');
+        setSearchCalendarIds([]);
+        setSearchResults([]);
+        setSearchHasSearched(false);
+        setSelectedSearchId(null);
+        setFocusedEvent(null);
+        setSearchCollapsed(false);
+    }, []);
+
     // ── "Huecos" — free-slot finder ──────────────────────────────────────────
     const [gapsActive, setGapsActive] = React.useState(false);
     const [selectedGap, setSelectedGap] = React.useState<Gap | null>(null);
@@ -835,6 +890,13 @@ export default function AppointmentsPage() {
         () => calendars.filter((c) => c.is_active !== false).map((c) => ({ id: c.id, name: c.name })),
         [calendars],
     );
+    // Calendarios ofrecidos en el filtro del buscador de citas (incluye color).
+    const searchPanelCalendars = React.useMemo(
+        () => calendars
+            .filter((c) => c.is_active !== false)
+            .map((c) => ({ id: c.id, name: c.name, color: c.color })),
+        [calendars],
+    );
     // Zoom is controlled here in custom mode (a dropdown replaces the floating slider).
     // Persisted in the same localStorage key the Calendar uses internally.
     const [calendarZoom, setCalendarZoom] = React.useState<number>(0.9);
@@ -899,6 +961,8 @@ export default function AppointmentsPage() {
             if (!prev) {
                 setGapsActive(false); // gaps and bulk modes are mutually exclusive
                 setSelectedGap(null);
+                setSearchActive(false); // idem con Buscar cita
+                resetSearchState();
                 skipNextBulkFilterRef.current = true; // entering — skip auto-trigger
                 prevViewRef.current = currentView;
                 setCurrentView('schedule');
@@ -912,7 +976,7 @@ export default function AppointmentsPage() {
         setBulkCalendarIds([]);
         setBulkStatuses([]);
         setBulkDatePreset('today');
-    }, [currentView]);
+    }, [currentView, resetSearchState]);
 
     const handleApplyBulkFilter = React.useCallback(async () => {
         setIsBulkLoading(true);
@@ -1880,6 +1944,7 @@ export default function AppointmentsPage() {
     const handleEventClick = React.useCallback((
         eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' }),
         anchorRect?: DOMRect,
+        opts?: { forceSidePanel?: boolean },
     ) => {
         if (eventData.kind === 'reminder') {
             // En modo custom, igual que las citas: ventana flotante anclada a la card en
@@ -1896,7 +1961,7 @@ export default function AppointmentsPage() {
         }
 
         const appointment = eventData as Appointment;
-        if (calendarMode === 'custom') {
+        if (calendarMode === 'custom' && !opts?.forceSidePanel) {
             // En este modo el panel lateral no se usa: el clic simple abre la ventana
             // flotante de detalle, anclada a la card. Sin rect (vistas que no
             // posicionan cards) se mantiene el comportamiento anterior de no abrir nada.
@@ -1922,6 +1987,154 @@ export default function AppointmentsPage() {
         if (appointment.quote_id) tasks.push(loadQuoteInfo(appointment.quote_id, controller.signal));
         Promise.all(tasks);
     }, [calendarMode, loadLinkedSession, loadQuoteInfo]);
+
+    // ── Buscar cita — efecto de búsqueda con debounce ────────────────────────
+    // Se dispara solo con el panel abierto y >= SEARCH_MIN_CHARS. El pedido (y el
+    // spinner) esperan SEARCH_DEBOUNCE_MS de inactividad: mientras se tipea, el
+    // cleanup cancela el timeout y `isSearching` nunca se prende, así el ícono de
+    // carga no parpadea tecla a tecla. `searchReqIdRef` descarta respuestas fuera
+    // de orden (el cliente HTTP no soporta abortar).
+    React.useEffect(() => {
+        if (!searchActive) return;
+        const term = searchQuery.trim();
+        if (term.length < SEARCH_MIN_CHARS) {
+            searchReqIdRef.current++; // invalida cualquier respuesta en vuelo
+            setSearchResults([]);
+            setIsSearching(false);
+            setSearchHasSearched(false);
+            return;
+        }
+        const handle = setTimeout(async () => {
+            const reqId = ++searchReqIdRef.current;
+            setIsSearching(true);
+            try {
+                const rows = await searchAppointments({
+                    q: term,
+                    calendarSourceIds: searchCalendarIds.length > 0 ? searchCalendarIds : undefined,
+                    limit: 50,
+                });
+                if (reqId !== searchReqIdRef.current) return;
+                const mapped = rows
+                    .map((row) => mapApiAppointmentRow(row, calendars, services, doctors, t))
+                    .filter((a): a is Appointment => a !== null);
+                setSearchResults(mapped);
+            } catch (err) {
+                if (reqId !== searchReqIdRef.current) return;
+                console.error('Appointment search failed:', err);
+                setSearchResults([]);
+            } finally {
+                if (reqId === searchReqIdRef.current) {
+                    setIsSearching(false);
+                    setSearchHasSearched(true);
+                }
+            }
+        }, SEARCH_DEBOUNCE_MS);
+        return () => clearTimeout(handle);
+    }, [searchActive, searchQuery, searchCalendarIds, calendars, services, doctors, t]);
+
+    // El chip colapsado es solo para mobile: en desktop el panel siempre se muestra.
+    React.useEffect(() => {
+        if (!isMobile && searchCollapsed) setSearchCollapsed(false);
+    }, [isMobile, searchCollapsed]);
+
+    const searchResultItems = React.useMemo<CalendarSearchResult[]>(() => {
+        const noneLabel = t('createDialog.none');
+        return searchResults
+            .map((a): CalendarSearchResult | null => {
+                const startStr = a.start?.dateTime;
+                const start = startStr ? parseISO(startStr.replace(/Z$/, '')) : null;
+                if (!start || !isValid(start)) return null;
+                const patient = a.patientName && a.patientName !== 'N/A' ? a.patientName : undefined;
+                const summary = a.summary && a.summary !== noneLabel ? a.summary : undefined;
+                const title = summary || a.services?.[0]?.name || patient || tSearch('untitled');
+                return {
+                    id: a.id,
+                    title,
+                    subtitle: patient,
+                    meta: a.doctorName && a.doctorName !== 'Doctor' ? a.doctorName : undefined,
+                    start,
+                    status: a.status,
+                };
+            })
+            .filter((r): r is CalendarSearchResult => r !== null);
+    }, [searchResults, t, tSearch]);
+
+    const handleToggleSearch = React.useCallback(() => {
+        if (!searchActive) {
+            // Buscar, huecos y lotes son mutuamente excluyentes.
+            setIsBulkMode(false);
+            setGapsActive(false);
+            setSelectedGap(null);
+            setSearchCollapsed(false);
+            setSearchActive(true);
+            return;
+        }
+        // Activo + colapsado (mobile, tras elegir un resultado): reabrir el panel.
+        if (searchCollapsed) {
+            setSearchCollapsed(false);
+            return;
+        }
+        // Activo + visible: cerrar del todo.
+        setSearchActive(false);
+        resetSearchState();
+    }, [searchActive, searchCollapsed, resetSearchState]);
+
+    /** Vuelve a mostrar el panel desde el chip flotante (mobile). */
+    const handleExpandSearch = React.useCallback(() => setSearchCollapsed(false), []);
+
+    const handleCloseSearch = React.useCallback(() => {
+        setSearchActive(false);
+        resetSearchState();
+    }, [resetSearchState]);
+
+    const handleSelectSearchResult = React.useCallback((result: CalendarSearchResult) => {
+        const appt = searchResults.find((a) => a.id === result.id);
+        if (!appt) return;
+        setSelectedSearchId(result.id);
+
+        // La búsqueda es global, pero la grilla solo dibuja las citas de las agendas
+        // y los doctores visibles. Si la cita elegida cae fuera de ese filtro, se
+        // suman su agenda y su doctor a lo visible (sin quitar nada) para que
+        // aparezca en la grilla y se pueda resaltar. Cambiar `selectedCalendarIds`
+        // además re-dispara el fetch, que está acotado a esas agendas.
+        const calId = String(appt.calendar_source_id || appt.calendar_id || '');
+        if (calId) {
+            setSelectedCalendarIds((prev) => (prev.includes(calId) ? prev : [...prev, calId]));
+            // En modo personalizado la grilla muestra una sola agenda: hay que
+            // apuntarla a la de esta cita.
+            if (isCustomMode) setPersonalizedCalendarId(calId);
+        }
+        const docId = String(appt.doctorId || '');
+        if (docId) {
+            setSelectedDoctorIds((prev) => (prev.includes(docId) ? prev : [...prev, docId]));
+        }
+
+        const startStr = appt.start?.dateTime;
+        const start = startStr ? parseISO(startStr.replace(/Z$/, '')) : null;
+        const focusDate = start && isValid(start) ? new Date(start.getTime()) : null;
+
+        // En mobile, si la vista es multi-día o mes, la cita quedaría en otra
+        // columna (sin scroll horizontal a mano) o como un punto sin card. Se
+        // cambia a vista "día" para caer exactamente en su día; `Calendar`
+        // re-aplica el `focusDate` al adoptar la vista nueva. La agenda ya lista
+        // todos los días, así que se deja.
+        if (isMobile) {
+            setCurrentView((cur) => (cur !== 'day' && cur !== 'schedule' ? 'day' : cur));
+            setInlineDraft(null);
+        }
+
+        // Salta el calendario a la fecha de la cita — Date nuevo en cada elección
+        // para que el efecto de `focusDate` corra aunque el día no cambie.
+        if (focusDate) setSearchFocusDate(focusDate);
+
+        // Resalta su card en la grilla (scroll + halo). El nonce fuerza el re-halo.
+        setFocusedEvent((prev) => ({ id: appt.id, nonce: (prev?.nonce ?? 0) + 1 }));
+        // En mobile el panel tapa casi toda la pantalla: se colapsa a un chip
+        // flotante para poder ver la cita marcada. En desktop se deja abierto.
+        if (isMobile) setSearchCollapsed(true);
+        // Abre el detalle en el panel lateral, sea cual sea el modo del calendario.
+        handleEventClick({ ...appt, kind: 'appointment' }, undefined, { forceSidePanel: true });
+    }, [searchResults, handleEventClick, isCustomMode, isMobile, setCurrentView, setInlineDraft]);
 
     // Keep the panel's quote/invoice section in sync when the selected appointment's
     // quote changes (inline change/associate/create a quote, or quick bill).
@@ -2941,7 +3154,17 @@ export default function AppointmentsPage() {
     };
 
     const onDateChange = React.useCallback((newRange: { start: Date; end: Date }) => {
-        setFetchRange(newRange);
+        // Ignora el re-aviso cuando el rango no cambió (p. ej. al "saltar" a una
+        // fecha que ya está dentro de la vista actual desde el buscador): así no
+        // se dispara un refetch que vacía la grilla un instante y hace que la
+        // cita resaltada "desaparezca y vuelva".
+        setFetchRange((prev) =>
+            prev &&
+            prev.start.getTime() === newRange.start.getTime() &&
+            prev.end.getTime() === newRange.end.getTime()
+                ? prev
+                : newRange,
+        );
     }, []);
 
     const calendarEvents = React.useMemo(() => {
@@ -3233,11 +3456,15 @@ export default function AppointmentsPage() {
     const handleToggleGaps = React.useCallback(() => {
         setGapsActive((prev) => {
             const next = !prev;
-            if (next) setIsBulkMode(false); // gaps and bulk modes are mutually exclusive
+            if (next) {
+                setIsBulkMode(false); // gaps y bulk son mutuamente excluyentes
+                setSearchActive(false); // idem con Buscar cita
+                resetSearchState();
+            }
             if (!next) setSelectedGap(null);
             return next;
         });
-    }, []);
+    }, [resetSearchState]);
 
     const handleCloseGaps = React.useCallback(() => {
         setGapsActive(false);
@@ -4205,12 +4432,43 @@ export default function AppointmentsPage() {
                                 onClose={handleCloseGaps}
                             />
                         )}
+                        {searchActive && !searchCollapsed && (
+                            <CalendarSearchPanel
+                                query={searchQuery}
+                                onQueryChange={setSearchQuery}
+                                results={searchResultItems}
+                                isLoading={isSearching}
+                                hasSearched={searchHasSearched}
+                                minChars={SEARCH_MIN_CHARS}
+                                selectedId={selectedSearchId ?? undefined}
+                                dateLocale={gapsDateLocale}
+                                calendars={searchPanelCalendars}
+                                selectedCalendarIds={searchCalendarIds}
+                                onSelectedCalendarIdsChange={setSearchCalendarIds}
+                                onSelect={handleSelectSearchResult}
+                                onClose={handleCloseSearch}
+                            />
+                        )}
+                        {searchActive && searchCollapsed && (
+                            <CalendarSearchResultsChip
+                                query={searchQuery}
+                                count={searchResultItems.length}
+                                onExpand={handleExpandSearch}
+                                onClose={handleCloseSearch}
+                            />
+                        )}
                         <Calendar
                             view={currentView}
                             headerActionsClusterRef={setHeaderActionsEl}
                             hourSlotHeight={hourSlotHeight}
                             slotMinutes={slotDuration}
                             events={effectiveEvents}
+                            focusDate={searchFocusDate}
+                            focusedEventId={focusedEvent?.id ?? null}
+                            focusEventNonce={focusedEvent?.nonce ?? 0}
+                            // Desktop: el panel de búsqueda (w-80 + right-3) tapa el
+                            // borde derecho; se descuenta al centrar la cita elegida.
+                            focusScrollRightInset={!isMobile && searchActive && !searchCollapsed ? 344 : 0}
                             onDateChange={onDateChange}
                             isLoading={isRefreshing}
                             onEventClick={handleEventClick}
@@ -4267,8 +4525,17 @@ export default function AppointmentsPage() {
                             onEventResize={applyEventTimeChange}
                             filterSheet={
                                 <div className="space-y-6">
-                                    {/* Quick actions (compact layouts): Buscar huecos / Operaciones en Lotes
-                                        live here instead of the header row to keep it on a single line. */}
+                                    {/* Quick actions (compact layouts): Buscar cita / Buscar huecos / Operaciones
+                                        en Lotes live here instead of the header row to keep it on a single line. */}
+                                    <Button
+                                        variant={searchActive ? 'default' : 'outline'}
+                                        size="sm"
+                                        className="h-10 w-full justify-start gap-2"
+                                        onClick={handleToggleSearch}
+                                    >
+                                        <Search className="h-4 w-4 shrink-0" />
+                                        <span className="truncate">{tSearch('button')}</span>
+                                    </Button>
                                     <div className="grid grid-cols-2 gap-2">
                                         <Button
                                             variant={gapsActive ? 'default' : 'outline'}
@@ -4476,6 +4743,22 @@ export default function AppointmentsPage() {
                             extraActions={
                                 <TooltipProvider>
                                     <div className="flex items-center gap-1.5">
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    variant={searchActive ? 'default' : 'outline'}
+                                                    size={secondaryIconOnly ? 'icon' : 'sm'}
+                                                    className={secondaryIconOnly ? (isMobile ? 'h-8 w-8 shrink-0' : 'h-10 w-10 shrink-0') : 'h-10 gap-1.5 shrink-0'}
+                                                    onClick={handleToggleSearch}
+                                                >
+                                                    <Search className="h-4 w-4 shrink-0" />
+                                                    {!secondaryIconOnly && (
+                                                        <span className="block w-[3.5rem] whitespace-normal text-left leading-[1.1] text-[11px]">{tSearch('button')}</span>
+                                                    )}
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>{tSearch('button')}</TooltipContent>
+                                        </Tooltip>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <Button

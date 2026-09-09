@@ -169,6 +169,19 @@ export interface InlineDraft {
 export interface CalendarProps {
   events?: CalendarEvent[];
   onDateChange?: (range: { start: Date; end: Date }) => void;
+  /** Cuando cambia (por referencia), el calendario navega a esa fecha. Se usa para
+   *  saltar al resultado de una búsqueda. Pasar un `new Date` nuevo en cada salto
+   *  para forzar el efecto aunque el día sea el mismo. */
+  focusDate?: Date | null;
+  /** Id de la cita a resaltar en la grilla: el calendario hace scroll hasta su card
+   *  y la marca con un halo temporal. Pensado para el resultado de búsqueda elegido,
+   *  para ubicarlo entre muchas citas. */
+  focusedEventId?: string | null;
+  /** Cambiar en cada selección (aunque el id se repita) para re-disparar el halo. */
+  focusEventNonce?: number;
+  /** Px a descontar del borde derecho al centrar la cita enfocada, para que no
+   *  quede tapada por un panel flotante (el buscador en desktop). Default 0. */
+  focusScrollRightInset?: number;
   children?: React.ReactNode;
   isLoading?: boolean;
   /** `anchorRect` es el rect del elemento clickeado, para anclarle una ventana

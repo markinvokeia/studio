@@ -5570,6 +5570,20 @@
       "maxBadge": "Mayor",
       "close": "Cerrar"
     },
+    "search": {
+      "button": "Buscar cita",
+      "panelTitle": "Buscar citas",
+      "placeholder": "Paciente o título de la cita…",
+      "hint": "Buscá por título de la cita o por nombre, teléfono, email o documento del paciente. Incluye todas las fechas.",
+      "minChars": "Escribí al menos {count} caracteres.",
+      "empty": "Ninguna cita coincide con la búsqueda.",
+      "untitled": "Cita sin título",
+      "clear": "Limpiar",
+      "close": "Cerrar",
+      "allCalendars": "Todos los calendarios",
+      "nCalendars": "{count} calendarios",
+      "calendarFilter": "Filtrar por calendario"
+    },
     "blocked": {
       "label": "No disponible"
     },
