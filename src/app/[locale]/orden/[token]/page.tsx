@@ -4,7 +4,7 @@ import * as React from 'react';
 import { addDays, format, isSameDay, startOfDay } from 'date-fns';
 import { es as esLocale } from 'date-fns/locale';
 import {
-    ArrowDown, CalendarCheck, ChevronLeft, ChevronRight, ClipboardList, Globe,
+    ArrowDown, CalendarCheck, ChevronLeft, ChevronRight, Globe,
     Loader2, MapPin, TriangleAlert,
 } from 'lucide-react';
 import Image from 'next/image';
@@ -23,6 +23,7 @@ import { UyFlagIcon } from '@/components/icons/uy-flag-icon';
 import { ClinicFooter } from '@/components/patient-portal/clinic-footer';
 import { WelcomeVideo } from '@/components/patient-portal/welcome-video';
 
+import { getWebhookBaseUrl } from '@/lib/runtime-config';
 import { cn, toLocalISOString } from '@/lib/utils';
 import { resolveVideoEmbed } from '@/lib/video-embed';
 import type { ClinicSchedule, PublicClinicInfo, PublicStudyOrder } from '@/lib/types';
@@ -203,7 +204,7 @@ export default function StudyOrderBookingPage() {
         <div className="flex h-[100dvh] flex-col overflow-hidden bg-background text-foreground">
             <header className="flex-none border-b bg-card/60 backdrop-blur">
                 <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-2.5 sm:px-6">
-                    <ClinicLogo clinic={clinic} isLoading={isLoading} />
+                    <ClinicLogo isLoading={isLoading} />
                     <div className="min-w-0 flex-1">
                         {isLoading ? (
                             <Skeleton className="h-4 w-36" />
@@ -476,15 +477,32 @@ function Done({ date, time, sede }: { date: string; time: string; sede: string }
     );
 }
 
-/** Logo de la clínica, con el isotipo de Invoke IA como respaldo. */
-function ClinicLogo({ clinic, isLoading }: { clinic: PublicClinicInfo | null; isLoading: boolean }) {
+/**
+ * Logo de la clínica, con el isotipo de Invoke IA como respaldo.
+ *
+ * Se sirve desde `/clinic/logo`, que devuelve el binario y NO pide token — es el
+ * mismo endpoint que usa la app del staff. `PublicClinicInfo.logo_url` no sirve
+ * acá: el flujo `patient-public-clinic` lo devuelve fijo en `null` (su comentario
+ * anuncia un nodo que adjunta el data URI, y ese nodo no existe).
+ *
+ * Si el endpoint falla o la clínica no cargó logo, `onError` deja ver el
+ * respaldo en vez de un cuadro roto en la cara del paciente.
+ */
+function ClinicLogo({ isLoading }: { isLoading: boolean }) {
+    const [failed, setFailed] = React.useState(false);
     if (isLoading) return <Skeleton className="h-9 w-9 shrink-0 rounded-lg" />;
-    const src = clinic?.logo_url || INVOKEIA_LOGO;
-    return (
-        <span className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg bg-muted">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <Image src={src} alt="" fill sizes="36px" className="object-contain p-0.5" unoptimized />
-            <ClipboardList className="h-4 w-4 text-muted-foreground opacity-0" aria-hidden="true" />
-        </span>
-    );
+
+    if (!failed) {
+        return (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+                src={`${getWebhookBaseUrl()}/clinic/logo`}
+                alt=""
+                onError={() => setFailed(true)}
+                className="h-9 w-9 shrink-0 rounded-lg object-contain"
+            />
+        );
+    }
+
+    return <Image src={INVOKEIA_LOGO} width={36} height={36} alt="" className="h-9 w-9 shrink-0" />;
 }
