@@ -79,8 +79,9 @@ export const EVENT_STACK_MAX_Z_BOOST = 40;
 /** How the label shown on each appointment is composed.
  *  - time_patient_notes:           "HH:mm - Patient - (Notes)"
  *  - patient_treatment_time:       "Patient - Treatment - HH:mm"
- *  - time_patient_notes_treatment: "HH:mm - Patient phone - (Notes, Treatment)"   (default) */
-export const EVENT_LABEL_FORMATS = ['time_patient_notes', 'patient_treatment_time', 'time_patient_notes_treatment'] as const;
+ *  - time_patient_notes_treatment: "HH:mm - Patient phone - (Notes, Treatment)"   (default)
+ *  - time_treatment_patient_notes: "HH:mm - Treatment - Patient - (Notes)" */
+export const EVENT_LABEL_FORMATS = ['time_patient_notes', 'patient_treatment_time', 'time_patient_notes_treatment', 'time_treatment_patient_notes'] as const;
 export type EventLabelFormat = (typeof EVENT_LABEL_FORMATS)[number];
 export const DEFAULT_EVENT_LABEL_FORMAT: EventLabelFormat = 'time_patient_notes_treatment';
 

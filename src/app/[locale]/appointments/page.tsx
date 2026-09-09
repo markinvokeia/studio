@@ -362,6 +362,12 @@ function buildEventLabel(appt: Appointment, start: Date, fmt: string, noneLabel:
         const extras = [notes, treatment].filter(Boolean).join(', ');
         return extras ? `${base} (${extras})` : base;
     }
+    if (fmt === 'time_treatment_patient_notes') {
+        // El tratamiento va antes que el paciente: en las clínicas que lo usan lo que
+        // se escanea de la grilla es qué se hace en cada hueco, no quién viene.
+        const base = [time, treatment, patient].filter(Boolean).join(' ');
+        return notes ? `${base} (${notes})` : base;
+    }
     // default: time_patient_notes -> "HH:mm Patient (Notes)"
     const base = [time, patient].filter(Boolean).join(' ');
     return notes ? `${base} (${notes})` : base;
