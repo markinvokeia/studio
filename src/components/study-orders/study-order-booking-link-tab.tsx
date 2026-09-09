@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Check, Copy, Link2, Loader2, TriangleAlert } from 'lucide-react';
+import { Check, Copy, Link2, Loader2, Mail, MessageCircle, TriangleAlert } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
@@ -48,6 +48,24 @@ export function StudyOrderBookingLinkTab({ order }: StudyOrderBookingLinkTabProp
         : !order.patient_id ? t('blockedNoPatient')
         : isFullyScheduled ? t('blockedScheduled')
         : null;
+
+    /**
+     * A dónde mandar el link. Se prefiere la ficha del paciente sobre lo que el
+     * derivador escribió a mano en la orden: la ficha es el dato que la clínica
+     * mantiene, el de la orden se cargó una vez y puede estar viejo.
+     */
+    const phone = (order.patient?.phone_number || order.patient_phone || '').trim();
+    const email = (order.patient?.email || order.patient_email || '').trim();
+
+    const message = link
+        ? t('shareMessage', { patient: order.patient_name, order: order.order_number, url: link.url })
+        : '';
+
+    // wa.me quiere el número sin signos ni el más inicial.
+    const whatsappHref = `https://wa.me/${phone.replace(/^\+/, '').replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+    const mailtoHref = `mailto:${encodeURIComponent(email)}`
+        + `?subject=${encodeURIComponent(t('shareSubject', { order: order.order_number }))}`
+        + `&body=${encodeURIComponent(message)}`;
 
     const handleGenerate = React.useCallback(async () => {
         setIsGenerating(true);
@@ -98,17 +116,49 @@ export function StudyOrderBookingLinkTab({ order }: StudyOrderBookingLinkTabProp
             </div>
 
             {link ? (
-                <div className="space-y-2">
+                <div className="space-y-3">
                     <div className="flex gap-2">
                         <Input readOnly value={link.url} className="font-mono text-xs" onFocus={(e) => e.currentTarget.select()} />
                         <Button variant="outline" size="icon" onClick={() => void handleCopy()} aria-label={t('copy')}>
                             {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
                         </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                        {t('expiresAt', { date: formatDateTime(link.expiresAt) })}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{t('showOnce')}</p>
+
+                    {/* Enviar por WhatsApp o por mail. Los dos abren la app del
+                        usuario con el mensaje ya escrito — no mandan nada desde
+                        el servidor, así que no hace falta backend ni quedan
+                        envíos a medias si algo falla.
+
+                        El botón sólo aparece si hay a dónde mandar: un WhatsApp
+                        sin teléfono abriría la app en blanco. */}
+                    <div className="flex flex-wrap gap-2">
+                        {phone && (
+                            <Button variant="outline" size="sm" asChild>
+                                <a href={whatsappHref} target="_blank" rel="noopener noreferrer">
+                                    <MessageCircle className="mr-2 h-4 w-4" />
+                                    {t('sendWhatsapp')}
+                                </a>
+                            </Button>
+                        )}
+                        {email && (
+                            <Button variant="outline" size="sm" asChild>
+                                <a href={mailtoHref}>
+                                    <Mail className="mr-2 h-4 w-4" />
+                                    {t('sendEmail')}
+                                </a>
+                            </Button>
+                        )}
+                    </div>
+                    {!phone && !email && (
+                        <p className="text-xs text-muted-foreground">{t('noContact')}</p>
+                    )}
+
+                    <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">
+                            {t('expiresAt', { date: formatDateTime(link.expiresAt) })}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{t('showOnce')}</p>
+                    </div>
                 </div>
             ) : (
                 <Button onClick={() => void handleGenerate()} disabled={isGenerating}>
