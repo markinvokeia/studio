@@ -35,6 +35,12 @@ interface ServiceSelectorProps {
     disabled?: boolean;
 }
 
+/**
+ * Altura aproximada que el popover intenta ocupar. Si hacia abajo hay menos que
+ * esto y hacia arriba hay más espacio, el desplegable se abre hacia arriba.
+ */
+const DESIRED_POPOVER_HEIGHT = 320;
+
 export function ServiceSelector({
     isSales = true,
     value,
@@ -48,6 +54,8 @@ export function ServiceSelector({
     disabled = false,
 }: ServiceSelectorProps) {
     const t = useTranslations('General');
+    const triggerRef = React.useRef<HTMLButtonElement>(null);
+    const [side, setSide] = React.useState<'top' | 'bottom'>('bottom');
     const [open, setOpen] = React.useState(false);
     const [searchQuery, setSearchQuery] = React.useState('');
     const [services, setServices] = React.useState<Service[]>([]);
@@ -64,7 +72,19 @@ export function ServiceSelector({
     }, [searchQuery]);
 
     const handleOpenChange = (nextOpen: boolean) => {
-        if (!nextOpen) setIsCreating(false);
+        if (nextOpen) {
+            // Decide el lado al abrir: si abajo no entra un desplegable cómodo y
+            // arriba hay más aire, se abre hacia arriba. Radix mantiene su propia
+            // detección de colisión encima de esto como red de seguridad.
+            const rect = triggerRef.current?.getBoundingClientRect();
+            if (rect) {
+                const spaceBelow = window.innerHeight - rect.bottom;
+                const spaceAbove = rect.top;
+                setSide(spaceBelow < DESIRED_POPOVER_HEIGHT && spaceAbove > spaceBelow ? 'top' : 'bottom');
+            }
+        } else {
+            setIsCreating(false);
+        }
         setOpen(nextOpen);
     };
 
@@ -175,6 +195,7 @@ export function ServiceSelector({
         <Popover open={open} onOpenChange={handleOpenChange}>
             <PopoverTrigger asChild>
                 <Button
+                    ref={triggerRef}
                     variant="outline"
                     role="combobox"
                     className={cn("w-full justify-between", !value && "text-muted-foreground", className)}
@@ -186,14 +207,14 @@ export function ServiceSelector({
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start" side={side}>
                 <Command shouldFilter={false}>
                     <CommandInput
                         placeholder={placeholder}
                         value={searchQuery}
                         onValueChange={setSearchQuery}
                     />
-                    <CommandList>
+                    <CommandList className="max-h-[320px]">
                         {isLoading ? (
                             <div className="flex items-center justify-center p-4">
                                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
