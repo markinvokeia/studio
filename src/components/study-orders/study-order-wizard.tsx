@@ -119,6 +119,24 @@ export function StudyOrderWizard({
     const [patientDocument, setPatientDocument] = React.useState('');
     const [patientPhone, setPatientPhone] = React.useState('');
     const [patientEmail, setPatientEmail] = React.useState('');
+    /**
+     * Qué campos vienen de la ficha del paciente y no de la mano del derivador.
+     *
+     * Hace falta para no arrastrar datos entre pacientes: si se elige a uno con
+     * teléfono y después se cambia a otro que no tiene, el teléfono del primero
+     * se quedaría en el formulario y terminaría guardado en la orden del
+     * segundo. Al cambiar de paciente se limpia lo autocompletado y se rellena
+     * con lo del nuevo.
+     *
+     * Lo que el derivador escribió a mano no se toca: si se tomó el trabajo de
+     * cargar un teléfono que la ficha no tiene, es dato bueno.
+     */
+    const [autoFilled, setAutoFilled] = React.useState<Record<'document' | 'phone' | 'email', boolean>>({
+        document: false, phone: false, email: false,
+    });
+    const markManual = React.useCallback((field: 'document' | 'phone' | 'email') => {
+        setAutoFilled((prev) => (prev[field] ? { ...prev, [field]: false } : prev));
+    }, []);
     const [sedeId, setSedeId] = React.useState('');
     const [deliveryMethods, setDeliveryMethods] = React.useState<string[]>([]);
     const [clinicalNotes, setClinicalNotes] = React.useState('');
@@ -129,6 +147,7 @@ export function StudyOrderWizard({
     const scrollRef = React.useRef<HTMLDivElement>(null);
 
     const resetForm = React.useCallback(() => {
+        setAutoFilled({ document: false, phone: false, email: false });
         setPatientId(''); setPatientName(''); setPatientDocument('');
         setPatientPhone(''); setPatientEmail(''); setSedeId('');
         setDeliveryMethods([]); setClinicalNotes(''); setTexts({});
@@ -462,14 +481,34 @@ export function StudyOrderWizard({
                                 className="absolute inset-0 z-20 bg-background/70 backdrop-blur-[1px] sm:hidden"
                             />
                         )}
+                        {/* Botón flotante del cajón. Vive acá y no en el pie para
+                            quedar sobre el contenido, al alcance del pulgar, y
+                            desaparece mientras el cajón está abierto: ahí lo que
+                            hace falta es cerrarlo tocando fuera. */}
+                        {!isRailOpen && (
+                            <Button
+                                type="button"
+                                size="icon"
+                                onClick={() => setIsRailOpen(true)}
+                                aria-label={t('wizard.steps')}
+                                className="absolute bottom-4 left-4 z-20 h-12 w-12 rounded-full shadow-lg sm:hidden"
+                            >
+                                <PanelLeft className="h-5 w-5" />
+                            </Button>
+                        )}
                         <nav
                             aria-label={t('wizard.steps')}
                             className={cn(
-                                'w-64 flex-none overflow-y-auto border-r bg-card p-2',
+                                'w-64 flex-none overflow-y-auto border-r p-2',
+                                // Violeta claro: separa el riel del contenido sin
+                                // competir con los colores de estado de cada paso
+                                // (verde/rojo/gris). En oscuro se baja mucho la
+                                // luminosidad para que siga siendo un fondo.
+                                'bg-violet-50 dark:bg-violet-950/30',
                                 // Mobile: cajón que entra desde la izquierda por encima
                                 // del contenido. Escritorio: columna fija de siempre.
                                 'absolute inset-y-0 left-0 z-30 shadow-xl transition-transform duration-200',
-                                'sm:static sm:z-auto sm:translate-x-0 sm:bg-muted/20 sm:shadow-none',
+                                'sm:static sm:z-auto sm:translate-x-0 sm:shadow-none',
                                 isRailOpen ? 'translate-x-0' : '-translate-x-full',
                             )}
                         >
@@ -490,7 +529,12 @@ export function StudyOrderWizard({
                                         aria-current={isCurrent ? 'step' : undefined}
                                         className={cn(
                                             'group flex w-full items-start gap-2.5 rounded-md px-2.5 py-2.5 text-left transition-colors',
-                                            isCurrent ? 'bg-primary/10 ring-1 ring-primary/30' : 'hover:bg-accent',
+                                            // Más marcado que antes: sobre el riel violeta,
+                                            // un 10% del primary —que en este tema TAMBIÉN es
+                                            // violeta— quedaba casi invisible.
+                                            isCurrent
+                                                ? 'bg-primary/20 ring-1 ring-primary/40'
+                                                : 'hover:bg-primary/10',
                                         )}
                                     >
                                         {/* Punto de estado: verde hecho, rojo incompleto, gris sin tocar */}
@@ -554,25 +598,45 @@ export function StudyOrderWizard({
                                         triggerText={t('form.patientName')}
                                         onValueChange={(id, user) => {
                                             setPatientId(id);
-                                            if (user) {
-                                                setPatientName(user.name);
-                                                setPatientPhone(user.phone_number || '');
-                                                setPatientEmail(user.email || '');
-                                            }
+                                            if (!user) return;
+                                            setPatientName(user.name);
+
+                                            // Cada campo se resuelve igual: si lo había puesto
+                                            // el paciente anterior, se reemplaza por el del
+                                            // nuevo —vacío incluido, para no arrastrar un dato
+                                            // ajeno—; si lo escribió el derivador, se respeta.
+                                            //
+                                            // Se decide todo primero y recién después se
+                                            // aplica: poner los setters dentro del updater de
+                                            // `setAutoFilled` los ejecutaría dos veces en modo
+                                            // estricto.
+                                            const resolve = (wasAuto: boolean, current: string, incoming: string) =>
+                                                (!wasAuto && current.trim())
+                                                    ? { value: current, auto: false }
+                                                    : { value: incoming, auto: !!incoming };
+
+                                            const doc = resolve(autoFilled.document, patientDocument, user.identity_document || '');
+                                            const tel = resolve(autoFilled.phone, patientPhone, user.phone_number || '');
+                                            const mail = resolve(autoFilled.email, patientEmail, user.email || '');
+
+                                            setPatientDocument(doc.value);
+                                            setPatientPhone(tel.value);
+                                            setPatientEmail(mail.value);
+                                            setAutoFilled({ document: doc.auto, phone: tel.auto, email: mail.auto });
                                         }}
                                     />
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label htmlFor="so-doc">{t('form.patientDocument')}</Label>
-                                    <Input id="so-doc" value={patientDocument} onChange={(e) => setPatientDocument(e.target.value)} />
+                                    <Input id="so-doc" value={patientDocument} onChange={(e) => { setPatientDocument(e.target.value); markManual('document'); }} />
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label htmlFor="so-phone">{t('form.patientPhone')}</Label>
-                                    <Input id="so-phone" value={patientPhone} onChange={(e) => setPatientPhone(e.target.value)} />
+                                    <Input id="so-phone" value={patientPhone} onChange={(e) => { setPatientPhone(e.target.value); markManual('phone'); }} />
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label htmlFor="so-email">{t('form.patientEmail')}</Label>
-                                    <Input id="so-email" type="email" value={patientEmail} onChange={(e) => setPatientEmail(e.target.value)} />
+                                    <Input id="so-email" type="email" value={patientEmail} onChange={(e) => { setPatientEmail(e.target.value); markManual('email'); }} />
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label>{t('form.preferredSede')}</Label>
@@ -676,18 +740,6 @@ export function StudyOrderWizard({
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         {t('wizard.back')}
                     </Button>
-
-                    {steps.length > 2 ? (
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setIsRailOpen(true)}
-                            className="min-w-0 sm:hidden"
-                        >
-                            <PanelLeft className="mr-2 h-4 w-4 flex-none" />
-                            <span className="truncate">{t('wizard.steps')}</span>
-                        </Button>
-                    ) : null}
 
                     <span className="hidden text-xs text-muted-foreground tabular-nums sm:inline">
                         {stepIndex + 1} / {steps.length}

@@ -17,6 +17,7 @@ import { StudyOrderColumnsWrapper } from '@/app/[locale]/study-orders/columns';
 import { StudyOrderDetailPanel } from './study-order-detail-panel';
 import { StudyOrderRescheduleDialog } from './study-order-reschedule-dialog';
 import { StudyOrderWizard } from './study-order-wizard';
+import { referralLabel } from './study-order-referral-line';
 import { StudyOrderStatusBadge } from './study-order-status-badge';
 
 import { STUDY_ORDERS_PERMISSIONS } from '@/constants/permissions';
@@ -64,6 +65,13 @@ export interface StudyOrdersScreenProps {
 }
 
 interface TableWithCardsProps {
+    /**
+     * En "Mis Órdenes" todas las filas son del mismo derivador —el que está
+     * mirando—, así que repetir "derivado por X" en cada tarjeta no informa
+     * nada. Sólo se muestra en la bandeja de la clínica, donde conviven órdenes
+     * de distintos doctores.
+     */
+    scope: StudyOrderScope;
     orders: StudyOrderListItem[];
     total: number;
     columns: ReturnType<typeof StudyOrderColumnsWrapper>;
@@ -92,6 +100,7 @@ interface TableWithCardsProps {
  * tarjetas en vez de tabla tiene que tomarse acá adentro y no en la página.
  */
 function StudyOrdersTableWithCards({
+    scope,
     orders, total, columns, selected, rowSelection, setRowSelection, onRowSelect,
     pagination, setPagination, sorting, setSorting, columnFilters, setColumnFilters,
     bucket, onBucketChange, onCreate, onEditOrder, onRefresh, isRefreshing, isLoading,
@@ -157,7 +166,9 @@ function StudyOrdersTableWithCards({
             renderCard={(order, isSelected) => (
                 <DataCard
                     isSelected={isSelected}
-                    title={order.patient_name}
+                    // "Ana Pérez derivado por Dra. García": el derivador es parte
+                    // de la identidad de la orden, no un dato secundario.
+                    title={referralLabel(order.patient_name, scope === 'clinic' ? order.doctor_name : null, t)}
                     // `subtitle` es un string, así que los tres datos restantes
                     // (número, fecha y cantidad) van en una línea separados por punto.
                     subtitle={[
@@ -476,6 +487,7 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                         </CardHeader>
                         <CardContent className="flex min-h-0 flex-1 flex-col overflow-hidden bg-card p-4 sm:p-6">
                             <StudyOrdersTableWithCards
+                                scope={scope}
                                 orders={orders}
                                 total={total}
                                 columns={columns}
