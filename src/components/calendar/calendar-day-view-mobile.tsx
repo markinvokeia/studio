@@ -15,9 +15,12 @@ import {
 } from '@/components/ui/carousel';
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from '@/components/ui/context-menu';
 
-import { DEFAULT_SCROLL_HOUR, HOUR_SLOT_HEIGHT } from './calendar-constants';
+import { DEFAULT_SCROLL_HOUR, DEFAULT_SLOT_DURATION, HOUR_SLOT_HEIGHT, MINUTES_IN_DAY } from './calendar-constants';
 import type {
+  CalendarDragMode,
+  CalendarDragResolver,
   CalendarEvent,
+  CalendarEventDropHandler,
   CalendarGroupBy,
   CalendarGroupingColumn,
   CalendarSlotClickHandler,
@@ -26,19 +29,24 @@ import type {
   CalendarView,
 } from './calendar-types';
 import {
+  dateFromDayMinutes,
   filterEventsByDay,
   filterEventsByDayAndGroup,
   getCalendarViewStartDate,
   getEventStyle,
   getEventsWithLayout,
+  resolveTimeGridTarget,
   slotTimeFromOffset,
+  snapMinutesFromOffset,
 } from './calendar-utils';
+import { CalendarDragGhost } from './calendar-drag-ghost';
+import { useCalendarDragDrop } from '@/hooks/use-calendar-drag-drop';
 import { CalendarEventDay } from './calendar-event-day';
 import { TimeSlotDividers } from './calendar-time-column';
 import { CalendarHourRail } from './calendar-hour-rail';
 import { CalendarGapOverlays } from './calendar-gap-overlay';
 import { CalendarBlockedOverlays } from './calendar-blocked-overlay';
-import { isSlotBlocked, type Gap, type BlockedRange } from './calendar-gaps';
+import { isRangeBlocked, isSlotBlocked, type Gap, type BlockedRange } from './calendar-gaps';
 
 interface CalendarDayViewMobileProps {
   currentDate: Date;
@@ -62,6 +70,10 @@ interface CalendarDayViewMobileProps {
   onGapClick?: (gap: Gap) => void;
   blockedRanges?: BlockedRange[];
   slotMinutes?: number;
+  enableEventDrag?: boolean;
+  canDragEvent?: (event: CalendarEvent, mode: CalendarDragMode) => boolean;
+  onEventDrop?: CalendarEventDropHandler;
+  onEventResize?: CalendarEventDropHandler;
 }
 
 export function CalendarDayViewMobile({
@@ -86,6 +98,10 @@ export function CalendarDayViewMobile({
   onGapClick,
   blockedRanges,
   slotMinutes,
+  enableEventDrag = false,
+  canDragEvent,
+  onEventDrop,
+  onEventResize,
 }: CalendarDayViewMobileProps) {
   const t = useTranslations('Calendar');
   const [api, setApi] = React.useState<CarouselApi>();
@@ -136,6 +152,89 @@ export function CalendarDayViewMobile({
     }
   }, [hourSlotHeight]);
 
+  // ── Arrastre táctil ─────────────────────────────────────────────────────
+  const slotForSnap = slotMinutes && slotMinutes > 0 ? slotMinutes : DEFAULT_SLOT_DURATION;
+  // Mientras dura el gesto se apaga el menú contextual de las cards. Es un solo
+  // re-render al empezar y otro al terminar, no por frame.
+  const [isDraggingEvent, setIsDraggingEvent] = React.useState(false);
+
+  const resolveDrag = React.useCallback<CalendarDragResolver>((gesture, pointer) => {
+    const target = resolveTimeGridTarget(pointer.x, pointer.y, timeGridScrollRef.current);
+    if (!target) return null;
+
+    const durationMin = Math.max(
+      slotForSnap,
+      (gesture.originalEnd.getTime() - gesture.originalStart.getTime()) / 60000,
+    );
+    const isResize = gesture.mode !== 'move';
+    const day = isResize ? gesture.sourceTarget.day : target.day;
+    const rect = isResize ? gesture.sourceTarget.element.getBoundingClientRect() : target.rect;
+    const offsetY = pointer.y - rect.top;
+
+    let startMin: number;
+    let endMin: number;
+    if (gesture.mode === 'move') {
+      startMin = snapMinutesFromOffset(offsetY - gesture.grabOffsetY, hourSlotHeight, slotForSnap);
+      startMin = Math.min(startMin, MINUTES_IN_DAY - durationMin);
+      endMin = startMin + durationMin;
+    } else if (gesture.mode === 'resize-end') {
+      startMin = gesture.originalStart.getHours() * 60 + gesture.originalStart.getMinutes();
+      endMin = Math.max(startMin + slotForSnap, Math.min(snapMinutesFromOffset(offsetY, hourSlotHeight, slotForSnap), MINUTES_IN_DAY));
+    } else {
+      endMin = gesture.originalEnd.getHours() * 60 + gesture.originalEnd.getMinutes();
+      startMin = Math.min(Math.max(0, snapMinutesFromOffset(offsetY, hourSlotHeight, slotForSnap)), endMin - slotForSnap);
+    }
+
+    const start = dateFromDayMinutes(day, startMin);
+    const end = dateFromDayMinutes(day, endMin);
+    const groupValue = isResize ? gesture.sourceTarget.groupValue : target.groupValue;
+    return {
+      target: isResize ? gesture.sourceTarget : target,
+      candidate: { start, end, invalid: isRangeBlocked(blockedRanges, start, end, groupValue) },
+    };
+  }, [blockedRanges, hourSlotHeight, slotForSnap]);
+
+  const handleDragCommit = React.useCallback((result: Parameters<CalendarEventDropHandler>[0]) => {
+    if (result.mode === 'move') onEventDrop?.(result);
+    else onEventResize?.(result);
+  }, [onEventDrop, onEventResize]);
+
+  const buildDragContext = React.useCallback((target: { groupValue?: string }) => (
+    groupBy !== 'none' && target.groupValue ? { groupBy, value: target.groupValue } : undefined
+  ), [groupBy]);
+
+  const handleDragStart = React.useCallback(() => setIsDraggingEvent(true), []);
+  const handleDragEnd = React.useCallback(() => setIsDraggingEvent(false), []);
+
+  const { onDragPointerDown, dragStateRef, store: dragStore, isDraggable } = useCalendarDragDrop({
+    enabled: enableEventDrag && (!!onEventDrop || !!onEventResize),
+    scrollRef: timeGridScrollRef,
+    resolve: resolveDrag,
+    canDrag: canDragEvent,
+    onCommit: handleDragCommit,
+    onDragStart: handleDragStart,
+    onDragEnd: handleDragEnd,
+    buildContext: buildDragContext,
+    // Una slide ocupa el 85 % del ancho: no hay otra columna visible a la que
+    // soltar, así que el destino se queda en la de origen y el eje horizontal
+    // no hace nada.
+    lockToSourceColumn: true,
+  });
+
+  // Embla escucha `touchstart`/`mousedown` NATIVOS en su nodo raíz, o sea antes de
+  // que React delegue: el `stopPropagation` de la card no lo frena y, sin esto, un
+  // arrastre horizontal sobre una cita hace swipe de slide. `watchDrag` es el punto
+  // de integración que la propia librería ofrece para vetar un gesto. No hace falta
+  // reInit: Embla compara las opciones-función por su código fuente, así que una
+  // arrow estable no reinicializa el carrusel.
+  const carouselOpts = React.useMemo(() => ({
+    align: 'start' as const,
+    containScroll: 'trimSnaps' as const,
+    dragFree: false,
+    watchDrag: (_api: unknown, evt: Event) =>
+      !(evt.target as HTMLElement | null)?.closest?.('.event-in-day-view'),
+  }), []);
+
   React.useEffect(() => {
     if (!api) return;
     const onSelect = () => setActiveIndex(api.selectedScrollSnap());
@@ -173,6 +272,8 @@ export function CalendarDayViewMobile({
   const handleSlotClick = (day: Date, column: CalendarGroupingColumn | null, e: React.MouseEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     if (suppressSlotClickRef.current) return;
+    // Este click cierra un arrastre, no es un toque sobre un slot vacío.
+    if (dragStateRef.current.didDrag) return;
     // Ignore synthetic clicks that bubbled from portalled children (Sheets, DropdownMenu, ContextMenu).
     if (!e.currentTarget.contains(e.target as Node)) return;
     if (onSlotClick) {
@@ -346,11 +447,7 @@ export function CalendarDayViewMobile({
           {/* Carousel of resource/day columns */}
           <div className="relative">
             <Carousel
-              opts={{
-                align: 'start',
-                containScroll: 'trimSnaps',
-                dragFree: false,
-              }}
+              opts={carouselOpts}
               setApi={setApi}
               className="h-full"
             >
@@ -377,6 +474,8 @@ export function CalendarDayViewMobile({
                             />
                             <div
                               className="day-column-content"
+                              data-day={format(slide.day, 'yyyy-MM-dd')}
+                              data-group-col={slide.column?.value}
                               onClick={(e) => handleSlotClick(slide.day, slide.column, e)}
                             >
                               <TimeSlotDividers keyPrefix={slide.key} />
@@ -406,8 +505,18 @@ export function CalendarDayViewMobile({
                                   onEventDoubleClick={onEventDoubleClick}
                                   onEventContextMenu={onEventContextMenu}
                                   onEventContextMenuOpen={onEventContextMenuOpen}
+                                  onDragPointerDown={onDragPointerDown}
+                                  dragStateRef={dragStateRef}
+                                  draggable={isDraggable(event)}
+                                  contextMenuDisabled={isDraggingEvent}
                                 />
                               ))}
+                              <CalendarDragGhost
+                                dayKey={format(slide.day, 'yyyy-MM-dd')}
+                                groupValue={slide.column?.value}
+                                hourSlotHeight={hourSlotHeight}
+                                store={dragStore}
+                              />
                               {showIndicator && (
                                 <div
                                   /* z alto: este indicador vive DENTRO de

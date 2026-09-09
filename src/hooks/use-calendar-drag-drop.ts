@@ -49,6 +49,8 @@ export interface UseCalendarDragDropOptions {
   onCommit: (result: CalendarDragResult) => void;
   /** Se llama al confirmarse el arrastre, para cerrar popovers y demás. */
   onDragStart?: () => void;
+  /** Se llama al terminar un arrastre que llegó a confirmarse. */
+  onDragEnd?: () => void;
   /** Contexto de columna del destino, para que la página resuelva la agenda. */
   buildContext?: (target: { groupValue?: string }) => CalendarSlotClickContext | undefined;
   threshold?: number;
@@ -106,6 +108,7 @@ export function useCalendarDragDrop({
   canDrag,
   onCommit,
   onDragStart,
+  onDragEnd,
   buildContext,
   threshold = DRAG_THRESHOLD_PX,
   longPressMs = DRAG_LONG_PRESS_MS,
@@ -135,9 +138,9 @@ export function useCalendarDragDrop({
   // no en el cuerpo del render: escribir un ref durante el render es justamente lo
   // que la regla `react-hooks/refs` señala. Todos sus lectores (event handlers y
   // rAF) corren después de que los efectos se aplicaron.
-  const optsRef = React.useRef({ resolve, canDrag, onCommit, onDragStart, buildContext, lockToSourceColumn, horizontalAutoScroll, enabled });
+  const optsRef = React.useRef({ resolve, canDrag, onCommit, onDragStart, onDragEnd, buildContext, lockToSourceColumn, horizontalAutoScroll, enabled });
   React.useEffect(() => {
-    optsRef.current = { resolve, canDrag, onCommit, onDragStart, buildContext, lockToSourceColumn, horizontalAutoScroll, enabled };
+    optsRef.current = { resolve, canDrag, onCommit, onDragStart, onDragEnd, buildContext, lockToSourceColumn, horizontalAutoScroll, enabled };
   });
 
   // ── Store del preview ────────────────────────────────────────────────────
@@ -229,6 +232,7 @@ export function useCalendarDragDrop({
     publishPreview(null);
 
     dragStateRef.current = { phase: 'idle', didDrag };
+    if (didDrag) optsRef.current.onDragEnd?.();
     if (didDrag) {
       // Se libera en el tick siguiente: el `click` sintético ya se despachó, y los
       // handlers de clic que lo consultan corren antes que este timeout.
@@ -305,12 +309,7 @@ export function useCalendarDragDrop({
       if (!gesture || !origin || e.pointerId !== gesture.pointerId) return;
       pointerRef.current = { x: e.clientX, y: e.clientY };
 
-      if (dragStateRef.current.phase === 'dragging') {
-        // Con touch-action:none el navegador ya no scrollea, pero en algunos
-        // motores el pan solo se corta con un preventDefault explícito.
-        if (e.cancelable) e.preventDefault();
-        return;
-      }
+      if (dragStateRef.current.phase === 'dragging') return;
       if (dragStateRef.current.phase !== 'pending') return;
 
       const dx = e.clientX - origin.x;
@@ -373,13 +372,25 @@ export function useCalendarDragDrop({
       cleanup(dragStateRef.current.phase === 'dragging');
     };
 
-    // `pointermove` no pasivo: es el que puede cortar el pan táctil.
-    document.addEventListener('pointermove', onPointerMove, { passive: false });
+    // El scroll táctil NO se corta con preventDefault sobre `pointermove` (la
+    // especificación no lo hace cancelable para eso) ni cambiando `touch-action` a
+    // mitad del gesto (Chrome lo fija al empezar). El único punto que funciona es
+    // un `touchmove` no pasivo. Como el arrastre táctil exige primero mantener
+    // apretado 300 ms casi sin moverse, para cuando esto entra en juego el
+    // navegador todavía no empezó a scrollear.
+    const onTouchMove = (e: TouchEvent) => {
+      if (dragStateRef.current.phase !== 'dragging') return;
+      if (e.cancelable) e.preventDefault();
+    };
+
+    document.addEventListener('pointermove', onPointerMove);
+    document.addEventListener('touchmove', onTouchMove, { passive: false });
     document.addEventListener('pointerup', onPointerUp);
     document.addEventListener('pointercancel', onPointerCancel);
     document.addEventListener('keydown', onKeyDown, true);
     return () => {
       document.removeEventListener('pointermove', onPointerMove);
+      document.removeEventListener('touchmove', onTouchMove);
       document.removeEventListener('pointerup', onPointerUp);
       document.removeEventListener('pointercancel', onPointerCancel);
       document.removeEventListener('keydown', onKeyDown, true);

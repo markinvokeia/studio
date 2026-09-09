@@ -44,6 +44,13 @@ interface CalendarEventDayProps {
   dragStateRef?: React.MutableRefObject<{ phase: CalendarDragPhase; didDrag: boolean }>;
   /** Si la card admite arrastre. La vista lo resuelve con el veto de la página. */
   draggable?: boolean;
+  /** Apaga el menú contextual de la card mientras hay un arrastre en curso.
+   *  En táctil, Radix arma un long-press de 700 ms en su propio pointerdown; lo
+   *  cancela cualquier pointermove, así que en el caso normal ya está limpio para
+   *  cuando el arrastre se confirma (300 ms + movimiento). Pero si el dedo se queda
+   *  quieto justo después de confirmar, el menú saltaría a mitad del gesto. Radix
+   *  limpia su timer pendiente al recibir `disabled`, así que esto lo cierra. */
+  contextMenuDisabled?: boolean;
 }
 
 export const CalendarEventDay = React.memo(function CalendarEventDay({
@@ -58,6 +65,7 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
   onDragPointerDown,
   dragStateRef,
   draggable = false,
+  contextMenuDisabled = false,
 }: CalendarEventDayProps) {
   // Distinguish single vs double click: delay the single-click action briefly so a
   // double-click (inline edit) can cancel it. Only delays when a dbl handler exists.
@@ -102,7 +110,7 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
 
   return (
     <ContextMenu onOpenChange={(o) => { if (o) onEventContextMenuOpen?.(event.data); }}>
-      <ContextMenuTrigger asChild>
+      <ContextMenuTrigger asChild disabled={contextMenuDisabled}>
         <div
           data-testid="calendar-day-event"
           data-event-id={event.id}

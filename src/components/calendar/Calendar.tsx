@@ -230,6 +230,7 @@ const Calendar: React.FC<CalendarProps> = ({
               {...eventHandlers}
               {...gapProps}
               {...blockProps}
+              {...dragProps}
             />
           );
         }

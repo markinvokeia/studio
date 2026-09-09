@@ -223,12 +223,21 @@ export function CalendarDayViewGrouped({
     groupBy !== 'none' && target.groupValue ? { groupBy, value: target.groupValue } : undefined
   ), [groupBy]);
 
+  // Con un arrastre en curso se apaga el menú contextual de las cards, para que el
+  // long-press de Radix no salte a mitad del gesto en pantallas táctiles. Un solo
+  // re-render al empezar y otro al terminar.
+  const [isDraggingEvent, setIsDraggingEvent] = React.useState(false);
+  const handleDragStart = React.useCallback(() => setIsDraggingEvent(true), []);
+  const handleDragEnd = React.useCallback(() => setIsDraggingEvent(false), []);
+
   const { onDragPointerDown, dragStateRef, store: dragStore, isDraggable } = useCalendarDragDrop({
     enabled: enableEventDrag && (!!onEventDrop || !!onEventResize),
     scrollRef: scrollContainerRef,
     resolve: resolveDrag,
     canDrag: canDragEvent,
     onCommit: handleDragCommit,
+    onDragStart: handleDragStart,
+    onDragEnd: handleDragEnd,
     buildContext: buildDragContext,
     horizontalAutoScroll: true,
     // Táctil en desktop/tablet grande: el carrusel de la vista móvil no está en
@@ -398,6 +407,7 @@ export function CalendarDayViewGrouped({
                               onDragPointerDown={onDragPointerDown}
                               dragStateRef={dragStateRef}
                               draggable={isDraggable(event)}
+                              contextMenuDisabled={isDraggingEvent}
                             />
                           ))}
                           <CalendarDragGhost
