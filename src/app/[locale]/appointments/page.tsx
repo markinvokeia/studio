@@ -2356,10 +2356,17 @@ export default function AppointmentsPage() {
             ? String(result.context.value)
             : (personalizedCalendarId ?? undefined);
 
+        const isReminder = (data as { kind?: string }).kind === 'reminder';
+
         // La vista ya lo marcó en rojo mientras se arrastraba; acá se vuelve a
         // preguntar contra los horarios directamente, que es la fuente autoritativa
         // y cubre días fuera de la ventana renderizada.
-        if (result.blocked || isDateTimeBlocked(start, targetCalendarId, end)) {
+        //
+        // Solo para las citas: "no disponible" acota cuándo se puede atender a un
+        // paciente, no cuándo el equipo puede anotarse una nota o un recordatorio.
+        // Uno puesto justo en el hueco de cierre es un caso legítimo, y de hecho se
+        // puede crear ahí — cortarlo acá solo impedía moverlo después.
+        if (!isReminder && (result.blocked || isDateTimeBlocked(start, targetCalendarId, end))) {
             toast({ variant: 'destructive', title: tToasts('slotBlockedTitle'), description: tToasts('slotBlockedDescription') });
             return;
         }
@@ -2368,7 +2375,7 @@ export default function AppointmentsPage() {
         const nextStart = toLocalISOString(start);
         const nextEnd = toLocalISOString(end);
 
-        if ((data as { kind?: string }).kind === 'reminder') {
+        if (isReminder) {
             const reminder = data as CalendarReminder;
             // Un recordatorio puntual que solo se mueve sigue siendo puntual.
             const nextEndValue = (!reminder.end_datetime && mode === 'move') ? null : nextEnd;

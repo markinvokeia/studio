@@ -188,9 +188,14 @@ export function CalendarDayViewMobile({
     const start = dateFromDayMinutes(day, startMin);
     const end = dateFromDayMinutes(day, endMin);
     const groupValue = isResize ? gesture.sourceTarget.groupValue : target.groupValue;
+    // La banda de "no disponible" es una regla de la agenda de pacientes: acota
+    // cuándo se puede atender, no cuándo el equipo puede anotarse algo. Una nota o
+    // un recordatorio puesto justo en el hueco de cierre —o en un feriado— es un
+    // caso legítimo, así que el bloqueo solo se le aplica a las citas.
+    const enforcesBlocked = gesture.event.data?.kind !== 'reminder';
     return {
       target: isResize ? gesture.sourceTarget : target,
-      candidate: { start, end, invalid: isRangeBlocked(blockedRanges, start, end, groupValue) },
+      candidate: { start, end, invalid: enforcesBlocked && isRangeBlocked(blockedRanges, start, end, groupValue) },
     };
   }, [blockedRanges, hourSlotHeight, slotForSnap]);
 
