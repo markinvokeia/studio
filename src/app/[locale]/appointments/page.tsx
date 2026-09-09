@@ -100,6 +100,7 @@ import { canReschedule, normalizeAppointmentStatus, normalizeCancellationReason,
 import { useAppointmentReschedule } from '@/hooks/use-appointment-reschedule';
 import { CancellationNoteDialog } from '@/components/appointments/CancellationNoteDialog';
 import { getAppointmentColumns } from './columns';
+import { useCalendarLiveRefresh } from '@/hooks/use-calendar-live-refresh';
 import { useNotifications } from '@/context/notifications-context';
 import { useAuth } from '@/context/AuthContext';
 import { canManageReminder, normalizeReminder } from '@/lib/reminders';
@@ -727,6 +728,10 @@ export default function AppointmentsPage() {
     const [doctorServiceMap, setDoctorServiceMap] = React.useState<Map<string, Service[]>>(new Map());
     const [doctorCalendarMap, setDoctorCalendarMap] = React.useState<Map<string, CalendarType[]>>(new Map());
     const [selectedCalendarIds, setSelectedCalendarIds] = React.useState<string[]>([]);
+    // Refresco en vivo: cuando otro usuario crea/edita/reprograma/reasigna/cancela
+    // una cita, el backend publica `calendar_changed` en el canal del calendario y
+    // esto dispara el `clinic:calendar:refresh` que ya escucha el efecto de abajo.
+    useCalendarLiveRefresh(selectedCalendarIds);
     const [isDataLoading, setIsDataLoading] = React.useState(true);
     const [isCreateOpen, setCreateOpen] = React.useState(false);
     const [isPrintScheduleOpen, setIsPrintScheduleOpen] = React.useState(false);

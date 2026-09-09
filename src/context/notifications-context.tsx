@@ -6,8 +6,8 @@ import { useTranslations } from 'next-intl';
 
 import { GlobalNotificationAlerts } from '@/components/notifications/GlobalNotificationAlerts';
 import { useAuth } from '@/context/AuthContext';
+import { useEventStreamSubscription, useRegisterEventChannels } from '@/context/event-stream-context';
 import { useDoctorAlertStyle } from '@/hooks/use-doctor-alert-style';
-import { useEventStream } from '@/hooks/use-event-stream';
 import { usePatientPortal } from '@/hooks/usePatientPortal';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeAppointmentStatus } from '@/constants/appointment-status';
@@ -429,7 +429,8 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     }
   }, [fetchNotifications]);
 
-  useEventStream(userId, handleSSEEvent, channels);
+  useRegisterEventChannels('notifications', channels);
+  useEventStreamSubscription(handleSSEEvent);
 
   // ── Global alert queue (modal / toast) ───────────────────────────────────
 
