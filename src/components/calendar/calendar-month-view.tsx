@@ -1,5 +1,7 @@
 'use client';
 
+import * as React from 'react';
+
 import { cn } from '@/lib/utils';
 
 import type { Locale } from 'date-fns';
@@ -7,9 +9,12 @@ import { addDays, format, getDaysInMonth, isSameDay, parseISO, startOfWeek } fro
 
 import { Skeleton } from '@/components/ui/skeleton';
 
-import type { CalendarEvent, CalendarSlotClickHandler } from './calendar-types';
+import type { CalendarDragMode, CalendarDragResolver, CalendarEvent, CalendarEventDropHandler, CalendarSlotClickHandler } from './calendar-types';
 import { CalendarEventChip } from './calendar-event';
 import { type Gap, gapKey } from './calendar-gaps';
+import { CalendarDragChip } from './calendar-drag-ghost';
+import { dateFromDayMinutes, dayFromKey } from './calendar-utils';
+import { useCalendarDragDrop } from '@/hooks/use-calendar-drag-drop';
 
 interface CalendarMonthViewProps {
   currentDate: Date;
@@ -25,6 +30,9 @@ interface CalendarMonthViewProps {
   selectedGapKey?: string;
   onGapClick?: (gap: Gap) => void;
   blockedFullDays?: Set<string>;
+  enableEventDrag?: boolean;
+  canDragEvent?: (event: CalendarEvent, mode: CalendarDragMode) => boolean;
+  onEventDrop?: CalendarEventDropHandler;
 }
 
 export function CalendarMonthView({
@@ -41,7 +49,59 @@ export function CalendarMonthView({
   selectedGapKey,
   onGapClick,
   blockedFullDays,
+  enableEventDrag = false,
+  canDragEvent,
+  onEventDrop,
 }: CalendarMonthViewProps) {
+  // ── Arrastre de fecha ───────────────────────────────────────────────────
+  // En el mes no hay eje de horas: mover conserva la hora del día y la duración,
+  // y solo cambia la fecha. Es la misma fórmula que usa el date picker del panel
+  // de detalle. No hay resize.
+  const gridRef = React.useRef<HTMLDivElement>(null);
+
+  const resolveDrag = React.useCallback<CalendarDragResolver>((gesture, pointer) => {
+    const hit = document.elementFromPoint(pointer.x, pointer.y) as HTMLElement | null;
+    const cell = hit?.closest<HTMLElement>('.calendar-day[data-day]');
+    if (!cell || !gridRef.current?.contains(cell)) return null;
+    const dayKey = cell.dataset.day;
+    if (!dayKey) return null;
+
+    const day = dayFromKey(dayKey);
+    const startMin = gesture.originalStart.getHours() * 60 + gesture.originalStart.getMinutes();
+    const durationMin = (gesture.originalEnd.getTime() - gesture.originalStart.getTime()) / 60000;
+    const start = dateFromDayMinutes(day, startMin);
+    const end = dateFromDayMinutes(day, startMin + durationMin);
+    return {
+      target: { dayKey, day, element: cell, rect: cell.getBoundingClientRect() },
+      candidate: { start, end, invalid: cell.dataset.blocked === 'true' },
+    };
+  }, []);
+
+  const handleDragCommit = React.useCallback((result: Parameters<CalendarEventDropHandler>[0]) => {
+    onEventDrop?.(result);
+  }, [onEventDrop]);
+
+  const { onDragPointerDown, dragStateRef, store: dragStore, isDraggable } = useCalendarDragDrop({
+    enabled: enableEventDrag && !!onEventDrop,
+    scrollRef: gridRef,
+    resolve: resolveDrag,
+    canDrag: canDragEvent,
+    onCommit: handleDragCommit,
+    cardSelector: '.event',
+    containerSelector: '.calendar-day',
+  });
+
+  // El destino se resalta por estado y no imperativamente: el snapshot solo cambia
+  // al cruzar de celda —unas pocas veces por arrastre—, no por frame. Lo que sí va
+  // a 60 fps es el chip, que se mueve solo y no re-renderiza esta vista.
+  const dragPreview = React.useSyncExternalStore(
+    dragStore.subscribe,
+    dragStore.getSnapshot,
+    dragStore.getServerSnapshot,
+  );
+  const dropTargetDayKey = dragPreview?.dayKey;
+  const dropTargetInvalid = dragPreview?.invalid ?? false;
+
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   const firstDayOfWeek = 1; // Monday
@@ -84,11 +144,21 @@ export function CalendarMonthView({
       dayElements.push(
         <div
           key={day}
-          className={cn('calendar-day', isBlocked && 'calendar-day--blocked')}
+          data-day={dayKey}
+          data-blocked={isBlocked ? 'true' : undefined}
+          className={cn(
+            'calendar-day',
+            isBlocked && 'calendar-day--blocked',
+            dropTargetDayKey === dayKey && 'calendar-day--drop-target',
+            dropTargetDayKey === dayKey && dropTargetInvalid && 'calendar-day--drop-invalid',
+          )}
           onClick={(e) => {
             if (e.button !== 0) return;
             // Ignore synthetic clicks that bubbled from portalled children.
             if (!e.currentTarget.contains(e.target as Node)) return;
+            // Este click cierra un arrastre: sin la guarda, soltar la cita en otra
+            // celda abriría además la creación en ese día.
+            if (dragStateRef.current.didDrag) return;
             if (isBlocked) return; // closed day — not bookable
             if (onSlotClick) {
               e.stopPropagation();
@@ -124,6 +194,9 @@ export function CalendarMonthView({
                 onEventColorChange={onEventColorChange}
                 onEventContextMenu={onEventContextMenu}
                 onEventContextMenuOpen={onEventContextMenuOpen}
+                onDragPointerDown={onDragPointerDown}
+                dragStateRef={dragStateRef}
+                draggable={isDraggable(event)}
               />
             ))}
           </div>
@@ -162,7 +235,8 @@ export function CalendarMonthView({
       <div className="calendar-day-name-grid">
         {dayNames.map((name) => <div key={name}>{name}</div>)}
       </div>
-      <div className="calendar-grid month-view">{renderDays()}</div>
+      <div ref={gridRef} className="calendar-grid month-view">{renderDays()}</div>
+      <CalendarDragChip store={dragStore} />
     </>
   );
 }

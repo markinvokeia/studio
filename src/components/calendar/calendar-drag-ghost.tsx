@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 import { format } from 'date-fns';
 
 import { cn } from '@/lib/utils';
@@ -53,5 +54,55 @@ export function CalendarDragGhost({ dayKey, groupValue, hourSlotHeight, store }:
         {format(preview.start, 'HH:mm')} – {format(preview.end, 'HH:mm')}
       </span>
     </div>
+  );
+}
+
+interface CalendarDragChipProps {
+  store: CalendarDragStore;
+  /** Texto a mostrar. Lo resuelve la vista, que es la que conoce el evento. */
+  label?: string;
+}
+
+/**
+ * Chip flotante que sigue al puntero mientras se arrastra en la vista de mes.
+ *
+ * A diferencia del fantasma de la rejilla, este SÍ va portalado a `body` con
+ * `position: fixed`: en el mes no hay ningún contexto de apilamiento aislado que
+ * respetar, y en cambio las celdas tienen `overflow-y: auto`, así que un elemento
+ * dentro de la celda quedaría recortado apenas saliera de ella.
+ *
+ * La posición no pasa por el store: el snapshot solo cambia al cruzar de celda, y
+ * el chip tiene que seguir al puntero de forma continua. Se mueve escribiendo el
+ * `transform` directamente desde un listener propio, sin re-render.
+ */
+export function CalendarDragChip({ store, label }: CalendarDragChipProps) {
+  const preview = React.useSyncExternalStore(store.subscribe, store.getSnapshot, store.getServerSnapshot);
+  const nodeRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!preview) return;
+    const move = (e: PointerEvent) => {
+      const node = nodeRef.current;
+      if (node) node.style.transform = `translate3d(${e.clientX + 12}px, ${e.clientY + 12}px, 0)`;
+    };
+    document.addEventListener('pointermove', move);
+    return () => document.removeEventListener('pointermove', move);
+  }, [preview]);
+
+  if (!preview || typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div
+      ref={nodeRef}
+      data-testid="calendar-drag-chip"
+      data-invalid={preview.invalid ? 'true' : undefined}
+      className={cn('calendar-drag-chip', preview.invalid && 'calendar-drag-chip--invalid')}
+      style={{ transform: `translate3d(${preview.pointer.x + 12}px, ${preview.pointer.y + 12}px, 0)` }}
+      aria-hidden
+    >
+      {format(preview.start, 'dd/MM')} · {format(preview.start, 'HH:mm')}
+      {label ? ` · ${label}` : ''}
+    </div>,
+    document.body,
   );
 }

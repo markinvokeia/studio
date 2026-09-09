@@ -333,6 +333,9 @@ const Calendar: React.FC<CalendarProps> = ({
             onSlotClick={onSlotClick}
             {...gapProps}
             blockedFullDays={blockedFullDays}
+            enableEventDrag={enableEventDrag}
+            canDragEvent={canDragEvent}
+            onEventDrop={onEventDrop}
           />
         );
     }

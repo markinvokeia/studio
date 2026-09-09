@@ -1123,9 +1123,11 @@
   cursor: not-allowed;
 }
 
-/* Además de matar el hover, deja que `elementFromPoint` devuelva la columna y no
-   la card que va bajo el cursor: es lo que permite el hit-test de un solo paso. */
-.calendar-dragging .event-in-day-view {
+/* Además de matar el hover, deja que `elementFromPoint` devuelva la columna (o la
+   celda del mes) y no la card que va bajo el cursor: es lo que permite el hit-test
+   de un solo paso. */
+.calendar-dragging .event-in-day-view,
+.calendar-dragging .event {
   pointer-events: none;
 }
 
@@ -1199,4 +1201,47 @@
 
 @media (prefers-reduced-motion: reduce) {
   .event-in-day-view[data-dragging='true'] { opacity: 0.5; }
+}
+
+/* ── Vista de mes ──────────────────────────────────────────────────────────
+   Sin eje de horas no hay resize: arrastrar solo cambia la fecha, conservando la
+   hora del día y la duración. */
+
+.event[data-draggable='true'] { cursor: grab; }
+
+.calendar-day--drop-target {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: -2px;
+  background-color: hsl(var(--primary) / 0.08);
+}
+
+.calendar-day--drop-invalid {
+  outline-color: hsl(var(--destructive));
+  background-color: hsl(var(--destructive) / 0.08);
+}
+
+/* Portalado a body: las celdas tienen overflow-y auto y lo recortarían. */
+.calendar-drag-chip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 60;
+  pointer-events: none;
+  max-width: 220px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  border-radius: 4px;
+  border: 1px solid hsl(var(--primary));
+  background: hsl(var(--background));
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.18);
+  padding: 3px 7px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+}
+
+.calendar-drag-chip--invalid {
+  border-color: hsl(var(--destructive));
+  color: hsl(var(--destructive));
 }

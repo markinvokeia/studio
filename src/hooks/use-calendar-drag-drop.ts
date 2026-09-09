@@ -57,6 +57,12 @@ export interface UseCalendarDragDropOptions {
   /** El destino no puede salirse de la columna donde empezó el gesto. */
   lockToSourceColumn?: boolean;
   horizontalAutoScroll?: boolean;
+  /** Selector de la card arrastrable. La rejilla usa `.event-in-day-view`; el mes,
+   *  `.event`. Es desde donde se mide el offset de agarre. */
+  cardSelector?: string;
+  /** Selector del contenedor que representa un destino (columna del día en la
+   *  rejilla, celda del día en el mes). Tiene que llevar `data-day`. */
+  containerSelector?: string;
 }
 
 export interface CalendarDragState {
@@ -105,6 +111,8 @@ export function useCalendarDragDrop({
   longPressMs = DRAG_LONG_PRESS_MS,
   lockToSourceColumn = false,
   horizontalAutoScroll = false,
+  cardSelector = '.event-in-day-view',
+  containerSelector = '.day-column-content',
 }: UseCalendarDragDropOptions): UseCalendarDragDropResult {
   const dragStateRef = React.useRef<CalendarDragState>({ phase: 'idle', didDrag: false });
   const gestureRef = React.useRef<CalendarDragGesture | null>(null);
@@ -409,9 +417,9 @@ export function useCalendarDragDrop({
     if (optsRef.current.canDrag && !optsRef.current.canDrag(event, mode)) return;
     if (gestureRef.current) return;
 
-    const element = e.currentTarget.closest<HTMLElement>('.event-in-day-view') ?? e.currentTarget;
+    const element = e.currentTarget.closest<HTMLElement>(cardSelector) ?? e.currentTarget;
     const rect = element.getBoundingClientRect();
-    const sourceTarget = element.closest<HTMLElement>('.day-column-content');
+    const sourceTarget = element.closest<HTMLElement>(containerSelector);
     if (!sourceTarget?.dataset.day) return;
 
     const start = typeof event.start === 'string' ? new Date(event.start) : event.start;
@@ -443,7 +451,7 @@ export function useCalendarDragDrop({
         longPressTimerRef.current = null;
       }, longPressMs);
     }
-  }, [longPressMs]);
+  }, [longPressMs, cardSelector, containerSelector]);
 
   return { onDragPointerDown, dragStateRef, store, isDraggable };
 }
