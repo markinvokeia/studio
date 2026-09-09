@@ -63,6 +63,17 @@ export const MIN_VISIBLE_SLOT_PX = 5;
 export const EVENT_DENSITY_NORMAL_PX = 34;
 export const EVENT_DENSITY_COMPACT_PX = 18;
 
+/** Alto mínimo de card, en px reales, para ofrecer el tirador de duración.
+ *
+ *  No coincide con ningún tramo de densidad a propósito: una cita de 10 min mide
+ *  `alturaHora / 6`, o sea 13 px con la altura de hora por defecto (80) y menos
+ *  con el zoom bajo, así que atarlo a `compact` (18 px) dejaba sin tirador a todas
+ *  las citas cortas salvo con la hora en 108 px o más. El tirador entra igual: son
+ *  4 px dentro de la card más los que gana por fuera con el `overflow-clip-margin`
+ *  de Calendar.css. Por debajo de este piso sí desaparece — no quedaría card de la
+ *  que agarrar para mover, que es la acción más frecuente. */
+export const EVENT_RESIZE_MIN_PX = 10;
+
 /** Cuánto se estira una card apilada por debajo de la que tiene a su derecha, como
  *  fracción del ancho de una columna del grupo.
  *

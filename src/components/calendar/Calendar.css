@@ -1196,6 +1196,36 @@
   height: 5px;
 }
 
+/* Y más finito todavía cuando la card baja de 18px: una cita de 10 min mide 13px
+   con la altura de hora por defecto, así que 4px es lo máximo que puede ocupar sin
+   comerse el lugar por donde se la agarra para moverla. */
+.event-in-day-view[data-density='tiny'] .event-resize-grip {
+  height: 4px;
+}
+
+/* Lo que la card no puede dar por dentro se compensa por fuera: en estos tramos el
+   área de agarre se estira hacia abajo. */
+.event-in-day-view[data-density='compact'] .event-resize-grip--bottom::after,
+.event-in-day-view[data-density='tiny'] .event-resize-grip--bottom::after {
+  inset: -4px 0 -6px;
+}
+
+/* El `overflow: hidden` de la card recortaba el `::after` del tirador, así que su
+   área de agarre real era solo lo que medía el tirador por dentro —4 o 5px—. Con
+   `clip` + margen ese `::after` puede asomar por debajo del borde y sumar unos px
+   agarrables sin que la card crezca ni un píxel: su alto sigue siendo exactamente
+   proporcional a la duración. El contenido no se derrama porque lo que podría
+   hacerlo, el título, recorta por su cuenta (overflow + line-clamp propios), y el
+   resto —hora, círculo de estado, punto de origen— ya está oculto en estos tramos. */
+.event-in-day-view[data-density='compact'],
+.event-in-day-view[data-density='tiny'] {
+  overflow: clip;
+  /* Holgado a propósito: el margen solo levanta el recorte, quien fija cuánto
+     asoma es el `::after` del tirador. Con 8 aquí y -6px abajo, el área agarrable
+     termina ~5px por debajo de la card. */
+  overflow-clip-margin: 8px;
+}
+
 /* Fantasma del destino. `absolute` dentro de la columna, nunca `fixed`: ver la
    invariante de `.day-column-content`. */
 .calendar-drag-ghost {

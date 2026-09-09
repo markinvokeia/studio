@@ -18,7 +18,7 @@ import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
 import type { AppointmentStatus, CalendarReminderPriority, CalendarReminderStatus, CancellationReason } from '@/lib/types';
 import { getStatusIcon } from '@/components/appointments/status-icons';
 
-import { EVENT_DENSITY_COMPACT_PX, EVENT_DENSITY_NORMAL_PX, GOOGLE_IMPORT_BADGE_COLOR, HOUR_SLOT_HEIGHT } from './calendar-constants';
+import { EVENT_DENSITY_COMPACT_PX, EVENT_DENSITY_NORMAL_PX, EVENT_RESIZE_MIN_PX, GOOGLE_IMPORT_BADGE_COLOR, HOUR_SLOT_HEIGHT } from './calendar-constants';
 import type { CalendarDragMode, CalendarDragPhase, CalendarEvent } from './calendar-types';
 import { formatEventTime, getContrastingIconColor, getReadableTextColor } from './calendar-utils';
 import { getReminderCardStyle, getReminderPriorityColor, isPersonalReminder, isReminderDone } from './reminder-visuals';
@@ -84,11 +84,15 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
     pxHeight >= EVENT_DENSITY_NORMAL_PX ? 'normal' : pxHeight >= EVENT_DENSITY_COMPACT_PX ? 'compact' : 'tiny';
   const stackLevel = event.stackLevel ?? 0;
   const isDraggable = draggable && !event.locked && !!onDragPointerDown;
-  // Con la card por debajo de EVENT_DENSITY_COMPACT_PX no hay dónde agarrar: a zoom
-  // mínimo una cita de 15 min mide ~5 px, y el 37 % de las citas dura eso o menos.
-  // Mover sigue funcionando; la duración se cambia por doble clic (edición inline).
-  const showResizeGrips = isDraggable && density !== 'tiny';
-  const showTopGrip = showResizeGrips && density === 'normal';
+  // El tirador de abajo se ofrece desde EVENT_RESIZE_MIN_PX y no desde el tramo
+  // `compact`: una cita de 10 min mide 13 px con la altura de hora por defecto, así
+  // que atarlo a la densidad la dejaba sin forma de alargarse salvo con la hora en
+  // 108 px o más. Por debajo del piso no queda card de la que agarrar para mover, y
+  // ahí la duración se sigue cambiando por doble clic (edición inline).
+  const showResizeGrips = isDraggable && pxHeight >= EVENT_RESIZE_MIN_PX;
+  // El de arriba solo cuando sobra alto: dos tiradores en una card de 13 px no
+  // dejarían dónde empezar un arrastre.
+  const showTopGrip = isDraggable && density === 'normal';
   const rawStatus = event.data?.status as string | undefined;
   const isReminder = event.data?.kind === 'reminder';
   const isNote = isReminder && event.data?.type === 'note';
