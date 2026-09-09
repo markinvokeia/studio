@@ -95,7 +95,7 @@ import { usePatientAppointmentsSheet } from '@/stores/patient-appointments-sheet
 import { usePatientDocumentsSheet } from '@/stores/patient-documents-sheet-store';
 import { AppointmentStatusContextItems } from '@/components/appointments/AppointmentStatusMenu';
 import { useAppointmentStatus } from '@/hooks/use-appointment-status';
-import { canReschedule, normalizeAppointmentStatus, normalizeCancellationReason, STATUS_ACCENT_COLOR, STATUS_NEUTRAL_ON_CALENDAR } from '@/constants/appointment-status';
+import { canReschedule, normalizeAppointmentStatus, normalizeCancellationReason, STATUS_ACCENT_COLOR, STATUS_FORCED_CALENDAR_COLOR } from '@/constants/appointment-status';
 import { useAppointmentReschedule } from '@/hooks/use-appointment-reschedule';
 import { CancellationNoteDialog } from '@/components/appointments/CancellationNoteDialog';
 import { getAppointmentColumns } from './columns';
@@ -2835,12 +2835,16 @@ export default function AppointmentsPage() {
                     // Preferencia "colorear por estado". Un color propio o de servicio es una
                     // decisión que alguien tomó sobre esa cita y no se pisa: ahí el estado va
                     // en una franja lateral. Heredar el color del doctor o del consultorio no
-                    // lo es, así que esas citas sí se pintan enteras. Los estados neutros
-                    // (programada) no muestran nada. `appt.color` queda intacto en los dos
-                    // casos para el selector de color y el panel de detalle.
+                    // lo es, así que esas citas sí se pintan enteras. `appt.color` queda
+                    // intacto en los dos casos para el selector de color y el panel de detalle.
+                    // Programada y No asistió (STATUS_FORCED_CALENDAR_COLOR) son la excepción:
+                    // pintan la card entera siempre, le ganen a la preferencia o al color que
+                    // haya elegido alguien, porque son los estados que hay que ver de un
+                    // vistazo. Desde confirmada en adelante vuelve a mandar el color de la cita.
                     const status = normalizeAppointmentStatus(appt.status);
-                    const showsStatus = colorByStatus && !STATUS_NEUTRAL_ON_CALENDAR.includes(status);
-                    const keepsOwnColor = appt.colorSource === 'appointment' || appt.colorSource === 'service';
+                    const forcesStatus = STATUS_FORCED_CALENDAR_COLOR.includes(status);
+                    const showsStatus = forcesStatus || colorByStatus;
+                    const keepsOwnColor = !forcesStatus && (appt.colorSource === 'appointment' || appt.colorSource === 'service');
                     const statusColored = showsStatus && !keepsOwnColor;
                     return {
                         id: String(appt.id),

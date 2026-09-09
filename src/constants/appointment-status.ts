@@ -41,32 +41,42 @@ export const STATUS_BADGE_VARIANT: Record<AppointmentStatus, string> = {
  */
 export const STATUS_ACCENT_COLOR: Record<AppointmentStatus, string> = {
   pending:       '#9ca3af', // gray-400
-  scheduled:     '#3b82f6', // blue-500
+  // violet-400 (lila) — 'Programada' pinta siempre la cita, así que su color no
+  // es un acento más: es la señal de "sin confirmar". El lila no lo usa ningún
+  // otro estado y se separa del sky-600 de confirmed, que es el color que la cita
+  // adopta recién al confirmarse.
+  scheduled:     '#a78bfa',
   // sky-600 — fuera de la familia verde: antes era emerald-500 (#10b981) y se
   // confundía con completed (#16a34a), sobre todo porque sus íconos son Check y
   // CheckCheck, que a 14px se distinguen por un palito.
-  // Queda a ΔE2000 9.2 de scheduled (#3b82f6), que normalmente sería demasiado
-  // cerca, pero en el calendario no compiten: scheduled está en
-  // STATUS_NEUTRAL_ON_CALENDAR y no pinta ni franja ni card. Donde sí aparecen
-  // juntos (menú de estados, rail, panel de detalle) cada uno lleva su etiqueta.
+  // Ya no compite con scheduled: ese pasó a lila (#a78bfa), justamente para que
+  // el salto de "sin confirmar" a "confirmada" se note de un vistazo.
   confirmed:     '#0284c7', // sky-600
   arrived:       '#f59e0b', // amber-500
   arrived_late:  '#d97706', // amber-600 (arrived, but late)
   in_progress:   '#f97316', // orange-500
   completed:     '#16a34a', // green-600
   attended_late: '#0d9488', // teal-600 (attended, but late)
-  no_show:       '#ef4444', // red-500
+  // gray-600 — 'No asistió' se lee como cita muerta, no como alerta. Un paso más
+  // oscuro que el gray-500 de cancelled (que además va rayada) y que el gray-400
+  // de pending, para que los tres grises sigan distinguiéndose.
+  no_show:       '#4b5563',
   cancelled:     '#6b7280', // gray-500 (used for the stripe pattern)
 };
 
 /**
- * Estados que no muestran su color en el calendario cuando la preferencia
- * "colorear por estado" está activa: la cita se ve exactamente igual que con la
- * preferencia apagada. El resto muestra su STATUS_ACCENT_COLOR, como franja
- * lateral si la cita tiene color propio o de servicio, o pintando toda la card
- * si solo hereda el del doctor o el consultorio.
+ * Estados que pintan la cita entera con su STATUS_ACCENT_COLOR siempre, sin
+ * importar la preferencia "colorear por estado" ni el color propio, de servicio,
+ * de doctor o de consultorio: son los dos estados que hay que reconocer de un
+ * vistazo. 'Programada' (sin confirmar) va en lila y 'No asistió' en gris; recién
+ * al confirmarse la cita vuelve a tomar el color de la clínica con su orden
+ * habitual (propio > servicio > doctor > consultorio).
+ *
+ * El resto de los estados sí dependen de la preferencia: muestran su color como
+ * franja lateral si la cita tiene color propio o de servicio, o pintando toda la
+ * card si solo hereda el del doctor o el consultorio.
  */
-export const STATUS_NEUTRAL_ON_CALENDAR: AppointmentStatus[] = ['scheduled'];
+export const STATUS_FORCED_CALENDAR_COLOR: AppointmentStatus[] = ['scheduled', 'no_show'];
 
 export function canTransition(from: AppointmentStatus, to: AppointmentStatus): boolean {
   return from !== to;
