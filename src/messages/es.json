@@ -9214,7 +9214,13 @@
       "error": "No se pudo generar el link",
       "blockedNotSubmitted": "La orden tiene que estar enviada para poder generar el link.",
       "blockedNoPatient": "Falta vincular la ficha del paciente antes de generar el link.",
-      "blockedScheduled": "Esta orden ya tiene todos sus estudios agendados."
+      "blockedScheduled": "Esta orden ya tiene todos sus estudios agendados.",
+      "send": "Enviar link",
+      "sendWhatsapp": "Enviar por WhatsApp",
+      "sendEmail": "Enviar por email",
+      "noContact": "Este paciente no tiene teléfono ni email cargados. Copiá el link y mandáselo por otra vía.",
+      "shareSubject": "Reservá el horario de tus estudios · {order}",
+      "shareMessage": "Hola {patient}, ya podés elegir el día y la hora de tus estudios (orden {order}). Entrá acá: {url}"
     },
     "printTitle": "Orden de Estudio",
     "timeline": {
@@ -9275,8 +9281,11 @@
       "recordTitle": "Registrar la sesión clínica",
       "chooseAppointment": "¿Sobre qué cita?",
       "record": "Registrar sesión",
-      "recordHint": "Va a quedar registrada a nombre de {name}."
-    }
+      "recordHint": "Va a quedar registrada a nombre de {name}.",
+      "attachments": "{count, plural, =1 {1 adjunto} other {# adjuntos}}",
+      "openAttachment": "Abrir archivo"
+    },
+    "referredByShort": "derivado por {doctor}"
   },
   "StudyOrderBooking": {
     "greeting": "Hola {name}",

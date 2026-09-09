@@ -7,8 +7,10 @@ import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 
+import { StudyOrderSessionAttachments } from './study-order-session-attachments';
+
 import { formatDateTime, formatDisplayDate } from '@/lib/utils';
-import type { StudyOrderAppointment } from '@/lib/types';
+import type { AttachedFile, StudyOrderAppointment } from '@/lib/types';
 
 /**
  * La sesión clínica de una cita de la orden, con el mismo tratamiento que la
@@ -22,9 +24,11 @@ import type { StudyOrderAppointment } from '@/lib/types';
 
 export interface StudyOrderSessionCardProps {
     appointment: StudyOrderAppointment;
+    /** Adjuntos de la sesión. Vienen aparte: el detalle de la orden no los trae. */
+    attachments?: { sessionId: string; files: AttachedFile[] };
 }
 
-export function StudyOrderSessionCard({ appointment }: StudyOrderSessionCardProps) {
+export function StudyOrderSessionCard({ appointment, attachments }: StudyOrderSessionCardProps) {
     const t = useTranslations('StudyOrdersPage');
     const session = appointment.session;
     if (!session) return null;
@@ -76,6 +80,16 @@ export function StudyOrderSessionCard({ appointment }: StudyOrderSessionCardProp
                         <p className="text-xs text-muted-foreground">{t('sessionTab.diagnosis')}</p>
                         <p className="whitespace-pre-wrap text-sm">{session.diagnostico}</p>
                     </div>
+                )}
+
+                {attachments && attachments.files.length > 0 && (
+                    <>
+                        <Separator />
+                        <StudyOrderSessionAttachments
+                            sessionId={attachments.sessionId}
+                            attachments={attachments.files}
+                        />
+                    </>
                 )}
             </div>
         </article>

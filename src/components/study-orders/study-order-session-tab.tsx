@@ -56,8 +56,31 @@ export function StudyOrderSessionTab({ order, onSaved, openRequest = 0 }: StudyO
     const t = useTranslations('StudyOrdersPage');
     const { user } = useAuth();
     const { hasPermission } = usePermissions();
-    const { createSession } = useClinicHistory();
+    const { createSession, fetchPatientSessions, patientSessions } = useClinicHistory();
     const { toast } = useToast();
+
+    /**
+     * Las sesiones del paciente, para poder mostrar sus adjuntos.
+     *
+     * El detalle de la orden trae la sesión resumida —quién, cuándo, qué hizo—
+     * pero no los archivos: viven en otra tabla y no se sumaron a esa consulta.
+     * Se piden acá al endpoint de historia clínica, que ya los devuelve, y se
+     * cruzan por appointment_id. Así no hubo que tocar ningún flujo.
+     */
+    React.useEffect(() => {
+        if (!order.patient_id) return;
+        void fetchPatientSessions(order.patient_id);
+    }, [order.patient_id, fetchPatientSessions]);
+
+    const attachmentsByAppointment = React.useMemo(() => {
+        const map = new Map<string, { sessionId: string; files: typeof patientSessions[number]['archivos_adjuntos'] }>();
+        for (const session of patientSessions) {
+            const files = session.archivos_adjuntos ?? [];
+            if (!session.appointment_id || files.length === 0) continue;
+            map.set(String(session.appointment_id), { sessionId: String(session.sesion_id), files });
+        }
+        return map;
+    }, [patientSessions]);
 
     const appointments = order.appointments ?? [];
     const withSession = appointments.filter((appointment) => appointment.session);
@@ -130,7 +153,11 @@ export function StudyOrderSessionTab({ order, onSaved, openRequest = 0 }: StudyO
     return (
         <div className="space-y-3">
             {withSession.map((appointment) => (
-                <StudyOrderSessionCard key={appointment.id} appointment={appointment} />
+                <StudyOrderSessionCard
+                    key={appointment.id}
+                    appointment={appointment}
+                    attachments={attachmentsByAppointment.get(String(appointment.id))}
+                />
             ))}
 
             {withSession.length === 0 && (

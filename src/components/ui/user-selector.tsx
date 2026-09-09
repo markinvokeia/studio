@@ -112,6 +112,9 @@ export function UserSelector({
                     name: u.name || 'Sin nombre',
                     email: u.email || '',
                     phone_number: u.phone_number || '',
+                    // El backend lo devuelve y hay pantallas que lo precargan al
+                    // elegir a alguien; sin esto se perdía acá y llegaba vacío.
+                    identity_document: u.identity_document || '',
                     is_active: u.is_active ?? true,
                     avatar: '',
                     doctor_id: u.doctor_id ? String(u.doctor_id) : null,
@@ -217,6 +220,7 @@ export function UserSelector({
                 name: u.name || 'Sin nombre',
                 email: u.email || '',
                 phone_number: u.phone_number || '',
+                identity_document: u.identity_document || '',
                 is_active: u.is_active ?? true,
                 avatar: '',
                 doctor_id: u.doctor_id ? String(u.doctor_id) : null,

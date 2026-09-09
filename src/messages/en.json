@@ -9235,7 +9235,13 @@
       "error": "Could not generate the link",
       "blockedNotSubmitted": "The order must be submitted before a link can be generated.",
       "blockedNoPatient": "Link the patient record before generating the link.",
-      "blockedScheduled": "This order already has all of its studies scheduled."
+      "blockedScheduled": "This order already has all of its studies scheduled.",
+      "send": "Send link",
+      "sendWhatsapp": "Send via WhatsApp",
+      "sendEmail": "Send via email",
+      "noContact": "This patient has no phone or email on file. Copy the link and send it another way.",
+      "shareSubject": "Book your studies · {order}",
+      "shareMessage": "Hi {patient}, you can now pick the day and time for your studies (order {order}). Go here: {url}"
     },
     "printTitle": "Study Order",
     "timeline": {
@@ -9296,8 +9302,11 @@
       "recordTitle": "Record the clinical session",
       "chooseAppointment": "For which appointment?",
       "record": "Record session",
-      "recordHint": "It will be recorded under {name}."
-    }
+      "recordHint": "It will be recorded under {name}.",
+      "attachments": "{count, plural, =1 {1 attachment} other {# attachments}}",
+      "openAttachment": "Open file"
+    },
+    "referredByShort": "referred by {doctor}"
   },
   "StudyOrderBooking": {
     "greeting": "Hi {name}",

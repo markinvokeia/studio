@@ -14,6 +14,7 @@ import { VerticalTabStrip, type VerticalTab } from '@/components/ui/vertical-tab
 
 import { StudyOrderAppointmentCard } from './study-order-appointment-card';
 import { StudyOrderBookingLinkTab } from './study-order-booking-link-tab';
+import { StudyOrderReferralLine } from './study-order-referral-line';
 import { StudyOrderSessionTab } from './study-order-session-tab';
 import { StudyOrderStatusBadge } from './study-order-status-badge';
 import {
@@ -24,7 +25,7 @@ import { StudyOrderTimeline } from './study-order-timeline';
 
 import { STUDY_ORDERS_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
 import { usePermissions } from '@/hooks/usePermissions';
-import { formatDisplayDate } from '@/lib/utils';
+import { cn, formatDisplayDate } from '@/lib/utils';
 import type { StudyOrder, StudyOrderBoardStatus, StudyOrderFormOptions } from '@/lib/types';
 import { getStudyOrder, getStudyOrderFormOptions } from '@/services/study-orders';
 
@@ -163,6 +164,13 @@ export function StudyOrderDetailPanel({
             onClick: () => void; variant: 'default' | 'destructive';
             /** Motivo por el que no se puede usar. Presente = botón gris con tooltip. */
             disabledReason?: string;
+            /**
+             * Con la cabecera angosta, este botón se queda sólo con el icono.
+             * Se marcan Imprimir y Anular porque la impresora y la cruz se leen
+             * sin texto; "Agendar" o "Enviar link" no, y ésos conservan su
+             * etiqueta aunque haya que bajarlos de fila.
+             */
+            collapsible?: boolean;
         }> = [];
 
         if (isDraft && onEdit && can(STUDY_ORDERS_PERMISSIONS.UPDATE)) {
@@ -196,6 +204,24 @@ export function StudyOrderDetailPanel({
             actions.push({ key: 'reschedule', label: t('actions.reschedule'), icon: CalendarClock, onClick: () => onReschedule(order), variant: 'default' });
         }
 
+        // Enviar el link del paciente. No genera nada: lleva a la pestaña Link,
+        // que es donde se decide la vigencia y desde donde se manda. Un botón de
+        // cabecera que emitiera un token al primer clic sería demasiado fácil de
+        // apretar sin querer, y cada uno revoca el anterior.
+        //
+        // Mismas condiciones que la pestaña, para no ofrecer un atajo hacia algo
+        // que allá va a estar bloqueado.
+        if (isSubmitted && !isFullyScheduled && order.patient_id
+            && can(STUDY_ORDERS_PERMISSIONS.SHARE_LINK)) {
+            actions.push({
+                key: 'share-link',
+                label: t('bookingLink.send'),
+                icon: Send,
+                onClick: () => setActiveTab('link'),
+                variant: 'default',
+            });
+        }
+
         // Registrar la sesión desde la cabecera: es el mismo alta de la pestaña
         // Sesión, a un clic. Sólo cuando hay una cita agendada sin sesión — sin
         // cita no hay nada que registrar, y con todas registradas tampoco.
@@ -216,7 +242,7 @@ export function StudyOrderDetailPanel({
         // No se ofrece en borrador — lo que no se envió todavía puede cambiar, y
         // un papel con una orden que después se editó es peor que ningún papel.
         if (!isDraft && onPrint) {
-            actions.push({ key: 'print', label: t('actions.print'), icon: Printer, onClick: () => onPrint(order), variant: 'default' });
+            actions.push({ key: 'print', label: t('actions.print'), icon: Printer, onClick: () => onPrint(order), variant: 'default', collapsible: true });
         }
 
         if (isDraft && onDelete && can(STUDY_ORDERS_PERMISSIONS.DELETE)) {
@@ -237,6 +263,7 @@ export function StudyOrderDetailPanel({
                     icon: XCircle,
                     onClick: () => onCancel(order),
                     variant: 'destructive',
+                    collapsible: true,
                     disabledReason: blocked ? t('actions.cancelBlocked') : undefined,
                 });
             }
@@ -268,17 +295,29 @@ export function StudyOrderDetailPanel({
 
     return (
         <Card className="flex h-full flex-col border-0 shadow-none lg:border lg:shadow-sm">
-            <CardHeader className="flex flex-col gap-3 space-y-0 pb-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0 space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                        <CardTitle className="font-mono text-base tabular-nums">{order.order_number}</CardTitle>
+            {/* `flex-wrap`: cuando la botonera ya no entra al lado, baja a una
+                segunda fila entera en vez de comprimir el número de la orden. */}
+            <CardHeader className="study-order-header flex flex-wrap items-start justify-between gap-3 space-y-0 pb-3">
+                <div className="min-w-0 flex-1 space-y-1">
+                    <CardTitle className="font-mono text-base tabular-nums">{order.order_number}</CardTitle>
+                    {/* El estado va pegado al paciente y no al número: la pregunta
+                        que trae a alguien acá es "¿en qué anda lo de fulano?", no
+                        "¿en qué anda la OE-000123?". */}
+                    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                        <p className="truncate text-sm">
+                            <StudyOrderReferralLine
+                                patientName={order.patient_name}
+                                // En Mis Órdenes el derivador es quien está
+                                // mirando: decírselo es redundante.
+                                doctorName={scope === 'clinic' ? order.doctor_name : null}
+                            />
+                        </p>
                         <StudyOrderStatusBadge status={deriveBoardStatus(order)} />
                     </div>
-                    <p className="truncate text-sm text-muted-foreground">{order.patient_name}</p>
                 </div>
                 {/* En mobile la botonera cae debajo del número; en escritorio va a la derecha. */}
-                <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0 sm:justify-end">
-                    {headerActions.map(({ key, label, icon: Icon, onClick, variant, disabledReason }) => {
+                <div className="flex flex-wrap items-center justify-end gap-1.5">
+                    {headerActions.map(({ key, label, icon: Icon, onClick, variant, disabledReason, collapsible }) => {
                         const button = (
                             <Button
                                 key={key}
@@ -286,9 +325,15 @@ export function StudyOrderDetailPanel({
                                 size="sm"
                                 onClick={onClick}
                                 disabled={!!disabledReason}
+                                // Al quedarse sin texto el botón pierde su nombre.
+                                // `aria-label` lo sostiene siempre; el `title`
+                                // nativo sólo cuando no hay tooltip de Radix
+                                // encima, para que no se pisen dos globos.
+                                title={collapsible && !disabledReason ? label : undefined}
+                                aria-label={collapsible ? label : undefined}
                             >
-                                <Icon className="mr-2 h-4 w-4" />
-                                {label}
+                                <Icon className={cn('h-4 w-4', collapsible ? 'action-btn-icon' : 'mr-2')} />
+                                {collapsible ? <span className="action-btn-label">{label}</span> : label}
                             </Button>
                         );
                         if (!disabledReason) return button;
