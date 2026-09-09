@@ -661,6 +661,11 @@
   overflow: hidden;
   cursor: pointer;
   z-index: 10;
+  /* Sin esto, arrastrar el mouse sobre las cards selecciona el texto de media
+     columna. La card no tiene texto seleccionable útil: su contenido completo
+     está en el `title`. */
+  user-select: none;
+  -webkit-user-select: none;
   border: 1px solid rgba(255, 255, 255, 0.2);
   /* Add subtle border for visibility */
   /* Dos sombras componibles: la interior es la de los recordatorios y la de apilado

@@ -158,8 +158,10 @@ const Calendar: React.FC<CalendarProps> = ({
   const isMultiDayView = effectiveView === 'week' || effectiveView === '2-day' || effectiveView === '3-day' || effectiveView === '4-day' || effectiveView === '5-day' || effectiveView === '6-day';
   const useMobileDayLayout = (isMobile && (isGrouped || !isMultiDayView)) || (breakpoint === 'tablet' && isGrouped);
 
-  // Shared event handler props
-  const eventHandlers = {
+  // Shared event handler props. Memoizado porque se esparce sobre las vistas de
+  // rejilla, que renderizan una card memoizada por cita: un objeto nuevo por render
+  // invalidaría todas. Solo paga si los handlers que llegan son estables.
+  const eventHandlers = React.useMemo(() => ({
     onEventClick,
     onEventColorChange,
     onEventDoubleClick,
@@ -167,7 +169,15 @@ const Calendar: React.FC<CalendarProps> = ({
     onEventContextMenuOpen,
     onSlotClick,
     renderSlotContextMenu,
-  };
+  }), [
+    onEventClick,
+    onEventColorChange,
+    onEventDoubleClick,
+    onEventContextMenu,
+    onEventContextMenuOpen,
+    onSlotClick,
+    renderSlotContextMenu,
+  ]);
 
   // Free-slot ("Huecos") overlay props, threaded into the grid/month views.
   const gapProps = { gaps, selectedGapKey, onGapClick };

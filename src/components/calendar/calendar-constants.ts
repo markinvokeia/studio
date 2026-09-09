@@ -33,6 +33,10 @@ export const GROUPED_COLUMN_MIN_WIDTH = 280;
 /** Gap between grouped day blocks in rem */
 export const GROUPED_DAY_GAP = 1.6;
 
+/** Horas y minutos de un día. Cotas de la conversión px <-> tiempo de la rejilla. */
+export const HOURS_IN_DAY = 24;
+export const MINUTES_IN_DAY = HOURS_IN_DAY * 60;
+
 /** Default height of one hour time slot in px (subdivided into 15-min quarters) */
 export const HOUR_SLOT_HEIGHT = 80;
 

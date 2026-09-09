@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from '@/components/ui/context-menu';
 
 import type { Locale } from 'date-fns';
-import { addDays, format, isSameDay, set } from 'date-fns';
+import { addDays, format, isSameDay, parseISO, set } from 'date-fns';
 
 import { DEFAULT_SCROLL_HOUR, GROUPED_COLUMN_MIN_WIDTH, HOUR_SLOT_HEIGHT, TABLET_MAX_RESOURCE_COLS } from './calendar-constants';
 import type { CalendarBreakpoint, CalendarEvent, CalendarGroupBy, CalendarGroupingColumn, CalendarSlotClickHandler, CalendarSlotContextMenuContext, CalendarSlotContextMenuRenderer, CalendarView } from './calendar-types';
@@ -27,6 +27,9 @@ import { CalendarGapOverlays } from './calendar-gap-overlay';
 import { CalendarBlockedOverlays } from './calendar-blocked-overlay';
 import { isSlotBlocked } from './calendar-gaps';
 import type { Gap, BlockedRange } from './calendar-gaps';
+
+/** Referencia estable para columnas sin eventos: evita un array nuevo por celda. */
+const EMPTY_EVENTS: CalendarEvent[] = [];
 
 interface CalendarDayViewGroupedProps {
   currentDate: Date;
@@ -91,7 +94,16 @@ export function CalendarDayViewGrouped({
   const startDay = view === 'week'
     ? getCalendarViewStartDate(currentDate, view)
     : currentDate;
-  const days = Array.from({ length: numDays }, (_, i) => addDays(startDay, i));
+  const startDayKey = format(startDay, 'yyyy-MM-dd');
+  // Memoizado por su clave de fecha y no por la instancia de Date: `currentDate`
+  // cambia de identidad en cada render del padre aunque sea el mismo día. La fecha
+  // se reconstruye adentro para que la dependencia sea el string. Normalizar a
+  // medianoche no afecta a nadie: los consumidores usan `format`, `isSameDay` o
+  // `set`, que pisa la hora.
+  const days = React.useMemo(
+    () => Array.from({ length: numDays }, (_, i) => addDays(parseISO(startDayKey), i)),
+    [startDayKey, numDays],
+  );
   // Custom mode hides the 60px gutter; the leading grid track collapses to 0.
   const gutterTrack = hideTimeGutter ? '' : '60px ';
 
@@ -104,6 +116,21 @@ export function CalendarDayViewGrouped({
   const effectiveColCount = isTablet ? Math.min(columns.length, TABLET_MAX_RESOURCE_COLS) : columns.length;
   const groupedDayMinWidth = effectiveColCount * groupedColumnMinWidth;
   const contentMinWidth = `${60 + (days.length * groupedDayMinWidth) + ((days.length - 1) * groupedDayGap)}px`;
+
+  // Un solo recorrido por (día x columna) en vez de uno por celda en cada render:
+  // `filterEventsByDayAndGroup` barre el array COMPLETO de la semana cada vez que
+  // se lo llama, y `getEventsWithLayout` reconstruye copias de cada evento. Con el
+  // tick de un minuto del reloj eso se pagaba una vez por minuto sobre toda la grilla.
+  const layoutByColumn = React.useMemo(() => {
+    const map = new Map<string, CalendarEvent[]>();
+    days.forEach((day) => {
+      const dayKey = format(day, 'yyyy-MM-dd');
+      columns.forEach((col) => {
+        map.set(`${dayKey}|${col.value}`, getEventsWithLayout(filterEventsByDayAndGroup(events, day, groupBy, col.value)));
+      });
+    });
+    return map;
+  }, [days, columns, events, groupBy]);
 
   const currentTimePosition = (currentTime.getHours() + currentTime.getMinutes() / 60) * hourSlotHeight;
   const showTimeIndicator = days.some((day) => isSameDay(day, currentTime));
@@ -234,8 +261,7 @@ export function CalendarDayViewGrouped({
               style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(${groupedColumnMinWidth}px, 1fr))` }}
             >
               {columns.map((col) => {
-                const dayColEvents = filterEventsByDayAndGroup(events, day, groupBy, col.value);
-                const eventsWithLayout = getEventsWithLayout(dayColEvents);
+                const eventsWithLayout = layoutByColumn.get(`${format(day, 'yyyy-MM-dd')}|${col.value}`) ?? EMPTY_EVENTS;
 
                 return (
                   <ContextMenu key={`${format(day, 'yyyy-MM-dd')}-${col.id}`}>

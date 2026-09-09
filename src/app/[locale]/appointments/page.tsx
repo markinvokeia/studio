@@ -13,7 +13,7 @@ import { CalendarViewMenu } from '@/components/calendar/calendar-view-menu';
 import { CalendarZoomMenu } from '@/components/calendar/calendar-zoom-menu';
 import { computeRangeGaps, computeDayGaps, computeDayGapsForIntervals, getBusinessWindow, getAvailableIntervals, computeBlockedRanges, filterExceptionsForSede, gapKey, DEFAULT_MIN_GAP_MINUTES, type Gap, type BlockedRange } from '@/components/calendar/calendar-gaps';
 import { filterEventsByDayAndGroup } from '@/components/calendar/calendar-utils';
-import { DEFAULT_CALENDAR_MODE, DEFAULT_COLOR_BY_STATUS, DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, HOUR_SLOT_HEIGHT } from '@/components/calendar/calendar-constants';
+import { DEFAULT_CALENDAR_MODE, DEFAULT_COLOR_BY_STATUS, DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, HOUR_SLOT_HEIGHT, MINUTES_IN_DAY } from '@/components/calendar/calendar-constants';
 import { ReminderFormDialog, type ReminderFormValues } from '@/components/appointments/ReminderFormDialog';
 import { ReminderPanel } from '@/components/appointments/ReminderPanel';
 import { useCalendarBreakpoint } from '@/hooks/use-calendar-breakpoint';
@@ -70,7 +70,7 @@ import { updateAppointmentStatusRequest, fetchFuturePatientAppointments, type Fu
 import { FutureAppointmentsConfirmDialog } from '@/components/appointments/future-appointments-confirm-dialog';
 import { getSalesServices, getUsersServicesBatch, fetchServicesByIds } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
-import { addMinutes, eachDayOfInterval, endOfMonth, endOfWeek, format, isValid, parseISO, set, startOfMonth, startOfWeek } from 'date-fns';
+import { addMinutes, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isValid, parseISO, set, startOfMonth, startOfWeek } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
 import { BellRing, BookOpenText, Building2, Calendar as CalendarIcon, CalendarDays, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileSpreadsheet, FileText, History, Images, Layers, Link2, Loader2, Palette, PlusCircle, Receipt, RefreshCw, Stethoscope, Trash2, UserCog, UserRound, Users, X, Zap } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
@@ -1156,6 +1156,8 @@ export default function AppointmentsPage() {
     const { createSession, updateSession, isSubmittingSession } = useClinicHistory();
     const eventClickAbortRef = React.useRef<AbortController | null>(null);
     const refreshCalendarDataRef = React.useRef<() => void>(() => undefined);
+    /** Descarta respuestas de `loadAppointments` que llegan fuera de orden. */
+    const loadAppointmentsRequestIdRef = React.useRef(0);
 
 
 
@@ -1301,12 +1303,16 @@ export default function AppointmentsPage() {
         return () => { active = false; };
     }, [inlineDraft?.patient?.id]);
 
-    // True when "block out-of-office hours" is on and the given start time falls
-    // inside a non-working band for that specific day. Computed from the schedules
-    // directly (not the visible `blockedRanges`) so it also validates dates in other
-    // weeks. When a calendar is given, its sede's schedules are preferred. Used to
-    // block save on create/edit/reschedule.
-    const isDateTimeBlocked = React.useCallback((start: Date, calendarId?: string): boolean => {
+    // True when "block out-of-office hours" is on and the given time falls inside a
+    // non-working band for that specific day. Computed from the schedules directly
+    // (not the visible `blockedRanges`) so it also validates dates in other weeks.
+    // When a calendar is given, its sede's schedules are preferred. Used to block
+    // save on create/edit/reschedule y para rechazar un drop en la rejilla.
+    //
+    // Con `end`, evalúa el RANGO completo por solape en vez del instante inicial:
+    // una cita que empieza en horario válido y termina pasado el cierre está fuera
+    // de horario igual. Sin `end` conserva la semántica puntual de siempre.
+    const isDateTimeBlocked = React.useCallback((start: Date, calendarId?: string, end?: Date): boolean => {
         if (!blockUnavailable || !isValid(start) || clinicSchedules.length === 0) return false;
         // Clinic-wide schedules scoped to the default sede (matches the block overlay);
         // never over-filter to empty.
@@ -1326,9 +1332,16 @@ export default function AppointmentsPage() {
         }
         // Exceptions of that branch (an empty result is legitimate → no fallback).
         const exc = filterExceptionsForSede(clinicExceptions, sedeId || undefined);
-        const minuteOfDay = start.getHours() * 60 + start.getMinutes();
-        return computeBlockedRanges(start, sched, exc)
-            .some((b) => minuteOfDay >= b.startMin && minuteOfDay < b.endMin);
+        const startMin = start.getHours() * 60 + start.getMinutes();
+        const ranges = computeBlockedRanges(start, sched, exc);
+        if (!end || !isValid(end)) {
+            return ranges.some((b) => startMin >= b.startMin && startMin < b.endMin);
+        }
+        // Un fin en otro día ya se sale del horario del día de inicio.
+        const endMin = isSameDay(start, end)
+            ? Math.max(startMin + 1, end.getHours() * 60 + end.getMinutes())
+            : MINUTES_IN_DAY;
+        return ranges.some((b) => startMin < b.endMin && endMin > b.startMin);
     }, [blockUnavailable, clinicSchedules, defaultSede, clinicExceptions, calendars]);
 
     const handleSaveInlineDraft = React.useCallback(async () => {
@@ -1364,9 +1377,11 @@ export default function AppointmentsPage() {
                 return;
             }
 
-            // Block save when the chosen date/time falls outside the calendar's
-            // working hours (only when "block out-of-office hours" is enabled).
-            if (isDateTimeBlocked(start, calendar?.id ? String(calendar.id) : undefined)) {
+            // Block save when the chosen slot falls outside the calendar's working
+            // hours (only when "block out-of-office hours" is enabled). Se valida el
+            // rango completo y no solo el inicio: una cita que arranca 17:45 y termina
+            // 18:15 con cierre a las 18:00 está fuera de horario igual.
+            if (isDateTimeBlocked(start, calendar?.id ? String(calendar.id) : undefined, end)) {
                 toast({ variant: 'destructive', title: tToasts('slotBlockedTitle'), description: tToasts('slotBlockedDescription') });
                 setIsSavingInline(false);
                 return;
@@ -1842,7 +1857,9 @@ export default function AppointmentsPage() {
         }
     }, []);
 
-    const handleEventClick = (
+    // Estable a propósito: es prop de cada card de la rejilla, que está memoizada.
+    // `loadLinkedSession` y `loadQuoteInfo` son useCallback sin dependencias.
+    const handleEventClick = React.useCallback((
         eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' }),
         anchorRect?: DOMRect,
     ) => {
@@ -1886,7 +1903,7 @@ export default function AppointmentsPage() {
         const tasks: Promise<void>[] = [loadLinkedSession(appointment, controller.signal)];
         if (appointment.quote_id) tasks.push(loadQuoteInfo(appointment.quote_id, controller.signal));
         Promise.all(tasks);
-    };
+    }, [calendarMode, loadLinkedSession, loadQuoteInfo]);
 
     // Keep the panel's quote/invoice section in sync when the selected appointment's
     // quote changes (inline change/associate/create a quote, or quick bill).
@@ -2394,16 +2411,23 @@ export default function AppointmentsPage() {
             return;
         }
 
+        // Dos cargas concurrentes (cambio de rango + refresco por SSE, por ejemplo)
+        // pueden resolver fuera de orden y dejar ganando a la vieja. Solo la última
+        // lanzada tiene derecho a escribir el estado.
+        const requestId = ++loadAppointmentsRequestIdRef.current;
         setIsRefreshing(true);
-        const [fetchedAppointments, fetchedReminders] = await Promise.all([
-            getAppointments(selectedCalendarIds, fetchRange.start, fetchRange.end, calendars, services, doctors, t),
-            getReminders(fetchRange.start, fetchRange.end, user?.id),
-        ]);
-        // Defensive: exclude soft-deleted appointments (the backend also excludes them).
-        setAppointments(fetchedAppointments.filter((a) => (a.status as string) !== 'deleted'));
-        setReminders(fetchedReminders);
-
-        setIsRefreshing(false);
+        try {
+            const [fetchedAppointments, fetchedReminders] = await Promise.all([
+                getAppointments(selectedCalendarIds, fetchRange.start, fetchRange.end, calendars, services, doctors, t),
+                getReminders(fetchRange.start, fetchRange.end, user?.id),
+            ]);
+            if (requestId !== loadAppointmentsRequestIdRef.current) return;
+            // Defensive: exclude soft-deleted appointments (the backend also excludes them).
+            setAppointments(fetchedAppointments.filter((a) => (a.status as string) !== 'deleted'));
+            setReminders(fetchedReminders);
+        } finally {
+            if (requestId === loadAppointmentsRequestIdRef.current) setIsRefreshing(false);
+        }
     }, [selectedCalendarIds, fetchRange, calendars, services, doctors, t, user?.id]);
 
     const forceRefresh = React.useCallback(() => {

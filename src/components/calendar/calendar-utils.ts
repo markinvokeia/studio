@@ -25,6 +25,7 @@ import {
   EVENT_STACK_LAP_RATIO,
   EVENT_STACK_MAX_Z_BOOST,
   HOUR_SLOT_HEIGHT,
+  HOURS_IN_DAY,
 } from './calendar-constants';
 
 // ---------------------------------------------------------------------------
@@ -513,6 +514,11 @@ export function generateTimeSlots(count = 24): string[] {
  * the slot it falls in, based on the configured slot duration. With 10-min slots
  * (6 per hour) clicking the 13:00 hour yields 13:00/13:10/.../13:50; with 20-min
  * slots (3 per hour) it yields 13:00/13:20/13:40.
+ *
+ * `y` se acota al día antes de convertir. Con un clic nunca se sale de la caja,
+ * pero al arrastrar el puntero sí: sin la cota, una `y` negativa da `hour = -1` y
+ * `set(day, { hours: -1 })` cae callado en el día anterior a las 23:00, y una `y`
+ * mayor al alto de la columna hace roll-over al día siguiente.
  */
 export function slotTimeFromOffset(
   y: number,
@@ -521,9 +527,10 @@ export function slotTimeFromOffset(
 ): { hour: number; minute: number } {
   const safeSlot = slotMinutes > 0 ? slotMinutes : 15;
   const slotsPerHour = Math.max(1, Math.round(60 / safeSlot));
-  const hour = Math.floor(y / hourSlotHeight);
+  const safeY = Math.max(0, Math.min(y, HOURS_IN_DAY * hourSlotHeight - 1));
+  const hour = Math.min(HOURS_IN_DAY - 1, Math.floor(safeY / hourSlotHeight));
   const slotPx = hourSlotHeight / slotsPerHour;
-  const idx = Math.max(0, Math.min(slotsPerHour - 1, Math.floor((y % hourSlotHeight) / slotPx)));
+  const idx = Math.max(0, Math.min(slotsPerHour - 1, Math.floor((safeY % hourSlotHeight) / slotPx)));
   return { hour, minute: idx * safeSlot };
 }
 
