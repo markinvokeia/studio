@@ -1104,3 +1104,99 @@
     transparent 12px
   );
 }
+
+/* ==========================================================================
+   Arrastre y redimensionado de citas (modo custom)
+
+   Todo lo de acá se togglea imperativamente desde use-calendar-drag-drop: durante
+   el gesto no hay un solo re-render de React, así que el estado visual vive en
+   clases y atributos sobre nodos que ya estaban montados.
+   ========================================================================== */
+
+/* Estado global mientras se arrastra. La clase va sobre el contenedor con scroll. */
+.calendar-dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.calendar-dragging[data-drag-invalid='true'] {
+  cursor: not-allowed;
+}
+
+/* Además de matar el hover, deja que `elementFromPoint` devuelva la columna y no
+   la card que va bajo el cursor: es lo que permite el hit-test de un solo paso. */
+.calendar-dragging .event-in-day-view {
+  pointer-events: none;
+}
+
+/* La card origen se queda en su lugar, atenuada, como referencia de dónde estaba. */
+.event-in-day-view[data-dragging='true'] {
+  opacity: 0.35;
+}
+
+.event-in-day-view[data-draggable='true'] {
+  cursor: grab;
+}
+
+/* Tiradores de resize. El `::after` agranda el área de agarre sin tocar el alto de
+   la card: el `height` en línea es exactamente proporcional a la duración, y
+   inflarlo taparía el hueco siguiente. */
+.event-resize-grip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 7px;
+  cursor: ns-resize;
+  touch-action: none;
+  z-index: 1;
+}
+
+.event-resize-grip::after {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
+}
+
+.event-resize-grip--top { top: -1px; }
+.event-resize-grip--bottom { bottom: -1px; }
+
+/* Con la card compacta solo queda el tirador de abajo, y más finito. */
+.event-in-day-view[data-density='compact'] .event-resize-grip {
+  height: 5px;
+}
+
+/* Fantasma del destino. `absolute` dentro de la columna, nunca `fixed`: ver la
+   invariante de `.day-column-content`. */
+.calendar-drag-ghost {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: 4px;
+  border: 2px solid hsl(var(--primary));
+  background: hsl(var(--primary) / 0.18);
+  padding: 2px 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.1;
+  color: hsl(var(--foreground));
+}
+
+.calendar-drag-ghost--invalid {
+  border-color: hsl(var(--destructive));
+  background-color: hsl(var(--destructive) / 0.16);
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent 0 6px,
+    hsl(var(--destructive) / 0.18) 6px 12px
+  );
+}
+
+.calendar-drag-ghost__time {
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .event-in-day-view[data-dragging='true'] { opacity: 0.5; }
+}

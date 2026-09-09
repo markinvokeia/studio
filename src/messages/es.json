@@ -1170,7 +1170,11 @@
       "calendarReassigned": "Consultorio actualizado",
       "quoteLinked": "Presupuesto enlazado",
       "quoteUnlinked": "Presupuesto desvinculado",
-      "invoiceLinked": "Factura enlazada"
+      "invoiceLinked": "Factura enlazada",
+      "appointmentMoved": "Cita movida",
+      "appointmentMovedDesc": "Nuevo horario: {date} · {time}",
+      "appointmentResized": "Duración actualizada",
+      "appointmentResizedDesc": "{start} – {end} ({minutes} min)"
     },
     "inlineCreate": {
       "title": "Nueva cita",

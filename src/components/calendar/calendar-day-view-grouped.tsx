@@ -11,21 +11,27 @@ import type { Locale } from 'date-fns';
 import { addDays, format, isSameDay, parseISO, set } from 'date-fns';
 
 import { DEFAULT_SCROLL_HOUR, GROUPED_COLUMN_MIN_WIDTH, HOUR_SLOT_HEIGHT, TABLET_MAX_RESOURCE_COLS } from './calendar-constants';
-import type { CalendarBreakpoint, CalendarEvent, CalendarGroupBy, CalendarGroupingColumn, CalendarSlotClickHandler, CalendarSlotContextMenuContext, CalendarSlotContextMenuRenderer, CalendarView } from './calendar-types';
+import type { CalendarBreakpoint, CalendarDragMode, CalendarDragResolver, CalendarEvent, CalendarEventDropHandler, CalendarGroupBy, CalendarGroupingColumn, CalendarSlotClickHandler, CalendarSlotContextMenuContext, CalendarSlotContextMenuRenderer, CalendarView } from './calendar-types';
 import {
+  dateFromDayMinutes,
   filterEventsByDayAndGroup,
   getCalendarViewStartDate,
   getEventStyle,
   getEventsWithLayout,
+  resolveTimeGridTarget,
   slotTimeFromOffset,
+  snapMinutesFromOffset,
 } from './calendar-utils';
+import { CalendarDragGhost } from './calendar-drag-ghost';
+import { useCalendarDragDrop } from '@/hooks/use-calendar-drag-drop';
+import { DEFAULT_SLOT_DURATION, MINUTES_IN_DAY } from './calendar-constants';
 import { CalendarEventDay } from './calendar-event-day';
 import { CalendarTimeColumn } from './calendar-time-column';
 import { TimeSlotDividers } from './calendar-time-column';
 import { CalendarHourRail } from './calendar-hour-rail';
 import { CalendarGapOverlays } from './calendar-gap-overlay';
 import { CalendarBlockedOverlays } from './calendar-blocked-overlay';
-import { isSlotBlocked } from './calendar-gaps';
+import { isRangeBlocked, isSlotBlocked } from './calendar-gaps';
 import type { Gap, BlockedRange } from './calendar-gaps';
 
 /** Referencia estable para columnas sin eventos: evita un array nuevo por celda. */
@@ -60,6 +66,10 @@ interface CalendarDayViewGroupedProps {
   onToggleTimeColumn?: (value: boolean) => void;
   /** Hide the 60px hour gutter entirely (custom mode) — hours stay on each column rail. */
   hideTimeGutter?: boolean;
+  enableEventDrag?: boolean;
+  canDragEvent?: (event: CalendarEvent, mode: CalendarDragMode) => boolean;
+  onEventDrop?: CalendarEventDropHandler;
+  onEventResize?: CalendarEventDropHandler;
 }
 
 export function CalendarDayViewGrouped({
@@ -89,6 +99,10 @@ export function CalendarDayViewGrouped({
   showTimeColumn = false,
   onToggleTimeColumn,
   hideTimeGutter = false,
+  enableEventDrag = false,
+  canDragEvent,
+  onEventDrop,
+  onEventResize,
 }: CalendarDayViewGroupedProps) {
   const t = useTranslations('Calendar');
   const startDay = view === 'week'
@@ -151,6 +165,76 @@ export function CalendarDayViewGrouped({
     prevHourRef.current = hourSlotHeight;
   }, [hourSlotHeight]);
 
+  // ── Arrastre y redimensionado ───────────────────────────────────────────
+  const bodyRef = React.useRef<HTMLDivElement>(null);
+  const slotForSnap = slotMinutes && slotMinutes > 0 ? slotMinutes : DEFAULT_SLOT_DURATION;
+
+  // Traduce la posición del puntero a un candidato {start, end}. Se lee por ref
+  // dentro del loop del gesto, así que se memoiza para que su identidad no cambie
+  // a mitad del arrastre.
+  const resolveDrag = React.useCallback<CalendarDragResolver>((gesture, pointer) => {
+    const target = resolveTimeGridTarget(pointer.x, pointer.y, bodyRef.current);
+    if (!target) return null;
+
+    const durationMin = Math.max(
+      slotForSnap,
+      (gesture.originalEnd.getTime() - gesture.originalStart.getTime()) / 60000,
+    );
+    // Un resize no cambia de columna: solo mueve un borde dentro de su día.
+    const isResize = gesture.mode !== 'move';
+    const day = isResize ? gesture.sourceTarget.day : target.day;
+    const rect = isResize ? gesture.sourceTarget.element.getBoundingClientRect() : target.rect;
+    const offsetY = pointer.y - rect.top;
+
+    let startMin: number;
+    let endMin: number;
+    if (gesture.mode === 'move') {
+      // Se descuenta dónde se agarró la card, si no salta para poner su inicio
+      // bajo el cursor. El tope deja la cita entera dentro del día: cruzar
+      // medianoche la dibujaría cortada y desaparecería del día siguiente.
+      startMin = snapMinutesFromOffset(offsetY - gesture.grabOffsetY, hourSlotHeight, slotForSnap);
+      startMin = Math.min(startMin, MINUTES_IN_DAY - durationMin);
+      endMin = startMin + durationMin;
+    } else if (gesture.mode === 'resize-end') {
+      startMin = gesture.originalStart.getHours() * 60 + gesture.originalStart.getMinutes();
+      endMin = snapMinutesFromOffset(offsetY, hourSlotHeight, slotForSnap);
+      endMin = Math.max(startMin + slotForSnap, Math.min(endMin, MINUTES_IN_DAY));
+    } else {
+      endMin = gesture.originalEnd.getHours() * 60 + gesture.originalEnd.getMinutes();
+      startMin = snapMinutesFromOffset(offsetY, hourSlotHeight, slotForSnap);
+      startMin = Math.min(Math.max(0, startMin), endMin - slotForSnap);
+    }
+
+    const start = dateFromDayMinutes(day, startMin);
+    const end = dateFromDayMinutes(day, endMin);
+    const groupValue = isResize ? gesture.sourceTarget.groupValue : target.groupValue;
+    return {
+      target: isResize ? gesture.sourceTarget : target,
+      candidate: { start, end, invalid: isRangeBlocked(blockedRanges, start, end, groupValue) },
+    };
+  }, [blockedRanges, hourSlotHeight, slotForSnap]);
+
+  const handleDragCommit = React.useCallback((result: Parameters<CalendarEventDropHandler>[0]) => {
+    if (result.mode === 'move') onEventDrop?.(result);
+    else onEventResize?.(result);
+  }, [onEventDrop, onEventResize]);
+
+  const buildDragContext = React.useCallback((target: { groupValue?: string }) => (
+    groupBy !== 'none' && target.groupValue ? { groupBy, value: target.groupValue } : undefined
+  ), [groupBy]);
+
+  const { onDragPointerDown, dragStateRef, store: dragStore, isDraggable } = useCalendarDragDrop({
+    enabled: enableEventDrag && (!!onEventDrop || !!onEventResize),
+    scrollRef: scrollContainerRef,
+    resolve: resolveDrag,
+    canDrag: canDragEvent,
+    onCommit: handleDragCommit,
+    buildContext: buildDragContext,
+    horizontalAutoScroll: true,
+    // Táctil en desktop/tablet grande: el carrusel de la vista móvil no está en
+    // juego acá, así que alcanza con el hold + movimiento del hook.
+  });
+
   const slotDateFromEvent = (day: Date, e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - rect.top;
@@ -160,6 +244,9 @@ export function CalendarDayViewGrouped({
 
   const handleSlotClick = (day: Date, col: CalendarGroupingColumn, e: React.MouseEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
+    // Este click cierra un arrastre: sin la guarda, soltar una cita fuera de su
+    // card abriría además la creación inline en el slot de destino.
+    if (dragStateRef.current.didDrag) return;
     // Ignore synthetic clicks that bubbled from portalled children (Sheets, DropdownMenu, ContextMenu).
     if (!e.currentTarget.contains(e.target as Node)) return;
     if (onSlotClick) {
@@ -250,6 +337,7 @@ export function CalendarDayViewGrouped({
 
         {/* Body: time grid with grouped columns */}
         <div
+          ref={bodyRef}
           className="day-view-body-grouped"
           style={{ gridTemplateColumns: `${gutterTrack}repeat(${days.length}, minmax(${groupedDayMinWidth}px, 1fr))`, '--hour-slot-height': `${hourSlotHeight}px` } as React.CSSProperties}
         >
@@ -275,6 +363,8 @@ export function CalendarDayViewGrouped({
                         />
                         <div
                           className="day-column-content"
+                          data-day={format(day, 'yyyy-MM-dd')}
+                          data-group-col={col.value}
                           onClick={(e) => handleSlotClick(day, col, e)}
                           onContextMenu={(e) => handleSlotContextMenu(day, col, e)}
                         >
@@ -305,8 +395,17 @@ export function CalendarDayViewGrouped({
                               onEventDoubleClick={onEventDoubleClick}
                               onEventContextMenu={onEventContextMenu}
                               onEventContextMenuOpen={onEventContextMenuOpen}
+                              onDragPointerDown={onDragPointerDown}
+                              dragStateRef={dragStateRef}
+                              draggable={isDraggable(event)}
                             />
                           ))}
+                          <CalendarDragGhost
+                            dayKey={format(day, 'yyyy-MM-dd')}
+                            groupValue={col.value}
+                            hourSlotHeight={hourSlotHeight}
+                            store={dragStore}
+                          />
                         </div>
                       </div>
                     </ContextMenuTrigger>

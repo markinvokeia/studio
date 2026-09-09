@@ -80,6 +80,30 @@ export const EVENT_STACK_BASE_Z_INDEX = 10;
  *  compiten con la columna de horas ni con la línea de la hora actual. */
 export const EVENT_STACK_MAX_Z_BOOST = 40;
 
+/** Umbral de movimiento, en px, para que un pointerdown con mouse pase a ser un
+ *  arrastre. En px fijos y no en minutos a propósito: a zoom mínimo (20 px/hora)
+ *  5 px ya son 15 minutos, así que el snap se calcula desde la posición absoluta
+ *  del puntero, nunca desde el delta. */
+export const DRAG_THRESHOLD_PX = 4;
+
+/** Táctil: cuánto hay que mantener apretado antes de que el gesto pueda pasar a
+ *  arrastre. Por debajo del long-press de 700 ms del menú contextual de Radix, que
+ *  se conserva: si el dedo NO se mueve, gana el menú. */
+export const DRAG_LONG_PRESS_MS = 300;
+
+/** Táctil: cuánto se puede mover el dedo antes de que gane el scroll de la grilla. */
+export const DRAG_TOUCH_SLOP_PX = 8;
+
+/** Banda del borde del contenedor donde el arrastre empieza a auto-scrollear. */
+export const DRAG_AUTO_SCROLL_EDGE_PX = 48;
+
+/** Velocidad máxima del auto-scroll, en px por frame. */
+export const DRAG_AUTO_SCROLL_MAX_SPEED_PX = 18;
+
+/** z-index del fantasma. Local a `.day-column-content`, que aísla su contexto de
+ *  apilamiento, así que solo compite con las cards de su propia columna. */
+export const DRAG_GHOST_Z_INDEX = EVENT_STACK_BASE_Z_INDEX + EVENT_STACK_MAX_Z_BOOST + 1;
+
 /** How the label shown on each appointment is composed.
  *  - time_patient_notes:           "HH:mm - Patient - (Notes)"
  *  - patient_treatment_time:       "Patient - Treatment - HH:mm"

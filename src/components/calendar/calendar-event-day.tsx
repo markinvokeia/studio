@@ -19,7 +19,7 @@ import type { AppointmentStatus, CalendarReminderPriority, CalendarReminderStatu
 import { getStatusIcon } from '@/components/appointments/status-icons';
 
 import { EVENT_DENSITY_COMPACT_PX, EVENT_DENSITY_NORMAL_PX, GOOGLE_IMPORT_BADGE_COLOR, HOUR_SLOT_HEIGHT } from './calendar-constants';
-import type { CalendarEvent } from './calendar-types';
+import type { CalendarDragMode, CalendarDragPhase, CalendarEvent } from './calendar-types';
 import { formatEventTime, getContrastingIconColor, getReadableTextColor } from './calendar-utils';
 import { getReminderCardStyle, getReminderPriorityColor, isPersonalReminder, isReminderDone } from './reminder-visuals';
 
@@ -36,6 +36,14 @@ interface CalendarEventDayProps {
   /** Alto efectivo de una hora en px (altura configurada x zoom). Con él la card
    *  sabe cuántos píxeles mide de verdad y compacta su contenido en consecuencia. */
   hourSlotHeight?: number;
+  /** Arranca un arrastre o un resize. Una única función compartida por todas las
+   *  cards de la vista, para no recrear la prop en cada render y anular el memo. */
+  onDragPointerDown?: (event: CalendarEvent, mode: CalendarDragMode, e: React.PointerEvent<HTMLElement>) => void;
+  /** Estado del gesto, leído por ref: los handlers de clic lo consultan sin que la
+   *  card tenga que re-renderizarse mientras se arrastra. */
+  dragStateRef?: React.MutableRefObject<{ phase: CalendarDragPhase; didDrag: boolean }>;
+  /** Si la card admite arrastre. La vista lo resuelve con el veto de la página. */
+  draggable?: boolean;
 }
 
 export const CalendarEventDay = React.memo(function CalendarEventDay({
@@ -47,6 +55,9 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
   onEventContextMenu,
   onEventContextMenuOpen,
   hourSlotHeight = HOUR_SLOT_HEIGHT,
+  onDragPointerDown,
+  dragStateRef,
+  draggable = false,
 }: CalendarEventDayProps) {
   // Distinguish single vs double click: delay the single-click action briefly so a
   // double-click (inline edit) can cancel it. Only delays when a dbl handler exists.
@@ -64,6 +75,12 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
   const density =
     pxHeight >= EVENT_DENSITY_NORMAL_PX ? 'normal' : pxHeight >= EVENT_DENSITY_COMPACT_PX ? 'compact' : 'tiny';
   const stackLevel = event.stackLevel ?? 0;
+  const isDraggable = draggable && !event.locked && !!onDragPointerDown;
+  // Con la card por debajo de EVENT_DENSITY_COMPACT_PX no hay dónde agarrar: a zoom
+  // mínimo una cita de 15 min mide ~5 px, y el 37 % de las citas dura eso o menos.
+  // Mover sigue funcionando; la duración se cambia por doble clic (edición inline).
+  const showResizeGrips = isDraggable && density !== 'tiny';
+  const showTopGrip = showResizeGrips && density === 'normal';
   const rawStatus = event.data?.status as string | undefined;
   const isReminder = event.data?.kind === 'reminder';
   const isNote = isReminder && event.data?.type === 'note';
@@ -88,6 +105,8 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
       <ContextMenuTrigger asChild>
         <div
           data-testid="calendar-day-event"
+          data-event-id={event.id}
+          data-draggable={isDraggable ? 'true' : undefined}
           data-density={density}
           data-stack-level={stackLevel}
           data-stacked={stackLevel > 0 ? 'true' : undefined}
@@ -116,10 +135,19 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
               ? ({ ['--status-stripe' as string]: event.statusStripeColor } as React.CSSProperties)
               : {}),
           }}
-          onPointerDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            if (!isDraggable) return;
+            // Un arrastre que arranca dentro de los 220 ms del timer dejaría salir
+            // el quick-view a mitad del gesto.
+            if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null; }
+            onDragPointerDown?.(event, 'move', e);
+          }}
           onContextMenu={(e) => e.stopPropagation()}
           onClick={(e) => {
             if (e.button !== 0) return;
+            // Este click cierra un arrastre, no es un clic sobre la cita.
+            if (dragStateRef?.current.didDrag) return;
             e.stopPropagation();
             // El rect se toma acá y no dentro del timeout: para cuando este corre,
             // React ya anuló `currentTarget` del evento.
@@ -127,15 +155,44 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
             if (!onEventDoubleClick) { onEventClick(event.data, anchorRect); return; }
             if (e.detail > 1) return; // part of a double-click; ignore
             if (clickTimer.current) clearTimeout(clickTimer.current);
-            clickTimer.current = setTimeout(() => onEventClick(event.data, anchorRect), 220);
+            clickTimer.current = setTimeout(() => {
+              // Segunda guarda: el arrastre pudo empezar después de este click.
+              if (dragStateRef?.current.didDrag) return;
+              onEventClick(event.data, anchorRect);
+            }, 220);
           }}
           onDoubleClick={(e) => {
             if (!onEventDoubleClick) return;
+            if (dragStateRef?.current.didDrag) return;
             e.stopPropagation();
             if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null; }
             onEventDoubleClick(event.data);
           }}
         >
+          {showTopGrip && (
+            <div
+              data-testid="calendar-resize-grip-top"
+              className="event-resize-grip event-resize-grip--top"
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null; }
+                onDragPointerDown?.(event, 'resize-start', e);
+              }}
+              aria-hidden
+            />
+          )}
+          {showResizeGrips && (
+            <div
+              data-testid="calendar-resize-grip-bottom"
+              className="event-resize-grip event-resize-grip--bottom"
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null; }
+                onDragPointerDown?.(event, 'resize-end', e);
+              }}
+              aria-hidden
+            />
+          )}
           {event.label ? (
             <span className="event-day-title">{event.label}</span>
           ) : (

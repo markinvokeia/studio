@@ -37,6 +37,10 @@ export interface CalendarEvent {
   /** z-index de la card: a mayor valor, dibujada más arriba. Local a
    *  `.day-column-content`, que aísla su contexto de apilamiento. */
   stackZIndex?: number;
+  /** El evento no se puede mover ni redimensionar (estado terminal, sin permiso,
+   *  recordatorio ajeno). Lo resuelve la página al construir los eventos, para no
+   *  meter reglas de permisos ni de negocio en los componentes del calendario. */
+  locked?: boolean;
   data?: any;
 }
 
@@ -62,6 +66,95 @@ export interface CalendarSlotContextMenuContext {
 }
 
 export type CalendarSlotContextMenuRenderer = (slot: CalendarSlotContextMenuContext) => React.ReactNode;
+
+// ---------------------------------------------------------------------------
+// Drag & drop / resize
+// ---------------------------------------------------------------------------
+
+export type CalendarDragMode = 'move' | 'resize-start' | 'resize-end';
+
+/** Fase del gesto. `pending` = hubo pointerdown pero todavía no se cruzó el umbral
+ *  (mouse) ni se confirmó el hold (táctil): el clic y el doble clic siguen vivos. */
+export type CalendarDragPhase = 'idle' | 'pending' | 'dragging';
+
+/** Columna (día x grupo) bajo el puntero. `element` es el `.day-column-content` en
+ *  las rejillas y la celda `.calendar-day` en el mes. */
+export interface CalendarDragTarget {
+  dayKey: string;
+  day: Date;
+  groupValue?: string;
+  element: HTMLElement;
+  rect: DOMRect;
+}
+
+/** Gesto en curso, congelado en el pointerdown. */
+export interface CalendarDragGesture {
+  event: CalendarEvent;
+  mode: CalendarDragMode;
+  originalStart: Date;
+  originalEnd: Date;
+  /** px entre el puntero y el borde superior de la card (solo `move`): sin esto la
+   *  card salta para que su inicio quede bajo el cursor. */
+  grabOffsetY: number;
+  pointerId: number;
+  pointerType: string;
+  element: HTMLElement;
+  sourceTarget: CalendarDragTarget;
+}
+
+/** Placement candidato mientras se arrastra. Solo cambia al cruzar un slot. */
+export interface CalendarDragCandidate {
+  start: Date;
+  end: Date;
+  /** La vista ya sabe que cae sobre una banda bloqueada de esa columna. */
+  invalid: boolean;
+}
+
+export type CalendarDragResolver = (
+  gesture: CalendarDragGesture,
+  pointer: { x: number; y: number },
+) => { target: CalendarDragTarget; candidate: CalendarDragCandidate } | null;
+
+/** Lo que el fantasma necesita saber. Referencia estable mientras no cambie el snap. */
+export interface CalendarDragPreview {
+  eventId: string;
+  mode: CalendarDragMode;
+  dayKey: string;
+  groupValue?: string;
+  start: Date;
+  end: Date;
+  invalid: boolean;
+  pointer: { x: number; y: number };
+}
+
+/** Lo que sube a la página al soltar. Fechas en hora local de pared. */
+export interface CalendarDragResult {
+  /** `event.data`: la cita o el recordatorio. */
+  data: any;
+  eventId: string;
+  mode: CalendarDragMode;
+  start: Date;
+  end: Date;
+  originalStart: Date;
+  originalEnd: Date;
+  /** Misma forma que el contexto del clic en un slot, así la página reutiliza el
+   *  mapeo `context.value -> calendar id` que ya tiene en `handleSlotClick`. */
+  context?: CalendarSlotClickContext;
+  /** La vista determinó que el destino está bloqueado. La página igual corre su
+   *  chequeo autoritativo, pero con esto puede cortar sin preguntar nada. */
+  blocked: boolean;
+}
+
+export type CalendarEventDropHandler = (result: CalendarDragResult) => void;
+
+/** Store del preview. Lo consume solo el fantasma, vía useSyncExternalStore. */
+export interface CalendarDragStore {
+  subscribe: (fn: () => void) => () => void;
+  /** Debe devolver SIEMPRE la misma referencia hasta que el snap cambie: una
+   *  referencia nueva por llamada haría loop infinito en useSyncExternalStore. */
+  getSnapshot: () => CalendarDragPreview | null;
+  getServerSnapshot: () => null;
+}
 
 /** A pending in-canvas appointment being created at a slot. */
 export interface InlineDraft {
@@ -151,4 +244,14 @@ export interface CalendarProps {
   blockedRanges?: import('./calendar-gaps').BlockedRange[];
   /** Days (yyyy-MM-dd) fully closed — month cells become non-clickable */
   blockedFullDays?: Set<string>;
+  /** Habilita mover y redimensionar eventos en la rejilla. Apagado por defecto: la
+   *  página lo prende solo en modo custom y cuando el usuario puede actualizar. */
+  enableEventDrag?: boolean;
+  /** Veto por evento y por modo, evaluado en el pointerdown. Si devuelve false no
+   *  se arma el gesto ni se dibujan los tiradores. */
+  canDragEvent?: (event: CalendarEvent, mode: CalendarDragMode) => boolean;
+  /** Se dispara una vez, al soltar, con el resultado ya snappeado al slot. */
+  onEventDrop?: CalendarEventDropHandler;
+  /** Ídem, cuando se arrastró uno de los bordes. */
+  onEventResize?: CalendarEventDropHandler;
 }

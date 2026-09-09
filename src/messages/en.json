@@ -1170,7 +1170,11 @@
       "calendarReassigned": "Room updated",
       "quoteLinked": "Quote linked",
       "quoteUnlinked": "Quote unlinked",
-      "invoiceLinked": "Invoice linked"
+      "invoiceLinked": "Invoice linked",
+      "appointmentMoved": "Appointment moved",
+      "appointmentMovedDesc": "New time: {date} · {time}",
+      "appointmentResized": "Duration updated",
+      "appointmentResizedDesc": "{start} – {end} ({minutes} min)"
     },
     "inlineCreate": {
       "title": "New appointment",

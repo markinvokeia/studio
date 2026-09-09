@@ -80,6 +80,10 @@ const Calendar: React.FC<CalendarProps> = ({
   onGapClick,
   blockedRanges,
   blockedFullDays,
+  enableEventDrag,
+  canDragEvent,
+  onEventDrop,
+  onEventResize,
 }) => {
   const t = useTranslations('Calendar');
   const breakpoint = useCalendarBreakpoint();
@@ -183,6 +187,13 @@ const Calendar: React.FC<CalendarProps> = ({
   const gapProps = { gaps, selectedGapKey, onGapClick };
   // Out-of-office blocking overlay props (independent of Huecos).
   const blockProps = { blockedRanges };
+  // Mover/redimensionar. Solo lo consume la rejilla agrupada, que es la que el modo
+  // custom renderiza en desktop; el resto de las vistas no recibe estas props y por
+  // lo tanto no engancha ningún gesto.
+  const dragProps = React.useMemo(
+    () => ({ enableEventDrag, canDragEvent, onEventDrop, onEventResize }),
+    [enableEventDrag, canDragEvent, onEventDrop, onEventResize],
+  );
 
   const renderView = () => {
     switch (effectiveView) {
@@ -245,6 +256,7 @@ const Calendar: React.FC<CalendarProps> = ({
               {...eventHandlers}
               {...gapProps}
               {...blockProps}
+              {...dragProps}
             />
           );
         }

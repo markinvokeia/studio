@@ -3,7 +3,7 @@
 
 import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
 import Calendar, { type CalendarGroupBy, type CalendarGroupingColumn, type CalendarView, type CalendarEvent } from '@/components/calendar/Calendar';
-import type { CalendarSlotContextMenuContext } from '@/components/calendar/calendar-types';
+import type { CalendarDragMode, CalendarDragResult, CalendarSlotContextMenuContext } from '@/components/calendar/calendar-types';
 import { CalendarSettingsPopover } from '@/components/calendar/calendar-settings-popover';
 import { CalendarSettingsForm } from '@/components/calendar/calendar-settings-form';
 import { getCalendarSettings } from '@/components/calendar/calendar-settings-utils';
@@ -58,7 +58,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
 import { API_ROUTES } from '@/constants/routes';
-import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
+import { BUSINESS_CONFIG_PERMISSIONS, PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
@@ -703,6 +703,10 @@ export default function AppointmentsPage() {
     const { hasPermission } = usePermissions();
     const canCreateInlinePatient = hasPermission(PATIENTS_PERMISSIONS.CREATE);
     const canEditInlinePatient = hasPermission(PATIENTS_PERMISSIONS.UPDATE);
+    // Hasta ahora la rejilla no escribía nada, así que la página no gateaba este
+    // permiso (el único call-site de la app estaba en AppointmentPanel). Mover o
+    // redimensionar una cita sí es escritura.
+    const canUpdateAppointments = hasPermission(BUSINESS_CONFIG_PERMISSIONS.APPOINTMENT_UPDATE);
 
     const { toast } = useToast();
     const { reschedule: rescheduleAppointment } = useAppointmentReschedule();
@@ -2093,6 +2097,110 @@ export default function AppointmentsPage() {
         }
     }, [toast, tToasts]);
 
+    // ── Mover / redimensionar por arrastre ───────────────────────────────────
+
+    /** Veto por evento y modo, evaluado en el pointerdown de la card. */
+    const canDragCalendarEvent = React.useCallback((event: CalendarEvent, mode: CalendarDragMode): boolean => {
+        const data = event.data as (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' }) | undefined;
+        if (!data) return false;
+        if (data.kind === 'reminder') {
+            // `canManageReminder` ya se aplicó al construir los eventos: si un ítem se
+            // dibuja, el usuario puede gestionarlo. Lo único que falta es que un
+            // recordatorio puntual (sin fin) no tiene borde inferior que arrastrar.
+            return mode === 'move' || !!(data as CalendarReminder).end_datetime;
+        }
+        return !event.locked;
+    }, []);
+
+    /**
+     * Único camino de guardado para el drop y para el resize.
+     *
+     * Va por `reassignAppointmentField` (upsert en sitio) y no por el hook de
+     * reprogramación: `/appointments/reschedule` cancela la cita original y crea otra
+     * con id nuevo, lo que rompe el pintado optimista y deja rastro de cancelación.
+     * Arrastrar es corregir la hora, no reprogramar con el paciente; el menú
+     * contextual "Reprogramar" sigue haciendo lo otro.
+     */
+    const applyEventTimeChange = React.useCallback(async (result: CalendarDragResult) => {
+        const { data, start, end, originalStart, originalEnd, mode } = result;
+        if (start.getTime() === originalStart.getTime() && end.getTime() === originalEnd.getTime()) return;
+
+        const targetCalendarId = result.context?.groupBy === 'calendar'
+            ? String(result.context.value)
+            : (personalizedCalendarId ?? undefined);
+
+        // La vista ya lo marcó en rojo mientras se arrastraba; acá se vuelve a
+        // preguntar contra los horarios directamente, que es la fuente autoritativa
+        // y cubre días fuera de la ventana renderizada.
+        if (result.blocked || isDateTimeBlocked(start, targetCalendarId, end)) {
+            toast({ variant: 'destructive', title: tToasts('slotBlockedTitle'), description: tToasts('slotBlockedDescription') });
+            return;
+        }
+
+        // Siempre toLocalISOString: toISOString() corre la cita 3 h en GMT-3.
+        const nextStart = toLocalISOString(start);
+        const nextEnd = toLocalISOString(end);
+
+        if ((data as { kind?: string }).kind === 'reminder') {
+            const reminder = data as CalendarReminder;
+            // Un recordatorio puntual que solo se mueve sigue siendo puntual.
+            const nextEndValue = (!reminder.end_datetime && mode === 'move') ? null : nextEnd;
+            const optimistic: CalendarReminder = { ...reminder, start_datetime: nextStart, end_datetime: nextEndValue };
+            setReminders((prev) => prev.map((item) => (item.id === reminder.id ? optimistic : item)));
+            try {
+                const response = await api.post(API_ROUTES.REMINDERS_UPSERT, {
+                    ...reminder,
+                    start_datetime: nextStart,
+                    end_datetime: nextEndValue,
+                    raise_alert: reminder.raise_alert ?? true,
+                });
+                const res = Array.isArray(response) ? response[0] : response;
+                if (res?.error || (res?.code && res.code >= 400)) throw new Error(res?.message || tReminders('errorDesc'));
+                const saved = normalizeReminder(res?.reminder || res);
+                if (saved) setReminders((prev) => prev.map((item) => (item.id === reminder.id ? saved : item)));
+                toast({ title: mode === 'move' ? tToasts('appointmentMoved') : tToasts('appointmentResized') });
+            } catch (error) {
+                // Rollback local en vez de refetch: una card que se queda mal puesta
+                // hasta que vuelve la red se lee como un bug.
+                setReminders((prev) => prev.map((item) => (item.id === reminder.id ? reminder : item)));
+                toast({
+                    variant: 'destructive',
+                    title: tReminders('error'),
+                    description: error instanceof Error ? error.message : tReminders('errorDesc'),
+                });
+            }
+            return;
+        }
+
+        const appointment = data as Appointment;
+        setAppointments((prev) => prev.map((a) => (a.id === appointment.id
+            ? { ...a, start: { ...a.start, dateTime: nextStart }, end: { ...a.end, dateTime: nextEnd }, date: nextStart.slice(0, 10), time: nextStart.slice(11, 16) }
+            : a)));
+        try {
+            // Se le pasa la cita PRE-mutación: de ahí sale el payload del upsert.
+            const updated = await reassignAppointmentField(appointment, { start: nextStart, end: nextEnd });
+            setAppointments((prev) => prev.map((a) => (a.id === updated.id ? { ...a, ...updated } : a)));
+            setSelectedAppointment((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev));
+            toast({
+                title: mode === 'move' ? tToasts('appointmentMoved') : tToasts('appointmentResized'),
+                description: mode === 'move'
+                    ? tToasts('appointmentMovedDesc', { date: format(start, 'dd/MM/yyyy'), time: format(start, 'HH:mm') })
+                    : tToasts('appointmentResizedDesc', {
+                        start: format(start, 'HH:mm'),
+                        end: format(end, 'HH:mm'),
+                        minutes: Math.round((end.getTime() - start.getTime()) / 60000),
+                    }),
+            });
+        } catch (error) {
+            setAppointments((prev) => prev.map((a) => (a.id === appointment.id ? appointment : a)));
+            toast({
+                variant: 'destructive',
+                title: tToasts('error'),
+                description: error instanceof Error ? error.message : tToasts('unexpectedError'),
+            });
+        }
+    }, [personalizedCalendarId, isDateTimeBlocked, toast, tToasts, tReminders]);
+
     // ── Context-menu financial / session quick actions ───────────────────────
     // Lazily-loaded data keyed by patient/appointment, populated the first time an
     // appointment's context menu is opened (see requestAppointmentMenuData).
@@ -2879,6 +2987,10 @@ export default function AppointmentsPage() {
                         doctorGroupId: appt.doctorId || undefined,
                         calendarGroupId: matchedCalendar?.id || appt.calendar_source_id || undefined,
                         data: { ...appt, kind: 'appointment' as const },
+                        // Una cita completada, cancelada o ausente no se arrastra: puede
+                        // tener sesión clínica y factura colgando. Mismo criterio que
+                        // usa el hook de reprogramación.
+                        locked: !canUpdateAppointments || !canReschedule(status),
                         color: statusColored ? STATUS_ACCENT_COLOR[status] : appt.color,
                         statusColored,
                         statusStripeColor: showsStatus && keepsOwnColor ? STATUS_ACCENT_COLOR[status] : undefined,
@@ -2916,7 +3028,7 @@ export default function AppointmentsPage() {
             .filter((event): event is NonNullable<typeof event> => event !== null);
 
         return [...events, ...reminderEvents];
-    }, [appointments, calendars, reminders, selectedCalendarIds, selectedDoctorIds, eventLabelFormat, colorByStatus, isBulkMode, user?.id, t]);
+    }, [appointments, calendars, reminders, selectedCalendarIds, selectedDoctorIds, eventLabelFormat, colorByStatus, isBulkMode, user?.id, t, canUpdateAppointments]);
 
     const visibleCalendarItems = React.useMemo(
         () => reminders.filter((reminder) => {
@@ -4045,6 +4157,13 @@ export default function AppointmentsPage() {
                             onGapClick={handleSelectGap}
                             blockedRanges={blockedRanges}
                             blockedFullDays={blockedFullDays}
+                            // Solo en modo custom, que es donde la rejilla muestra una única
+                            // agenda. Apagado en bulk (ahí se ven citas de agendas ocultas) y
+                            // con la tarjeta inline abierta (su backdrop ya tapa la grilla).
+                            enableEventDrag={isCustomMode && !isBulkMode && !inlineDraft}
+                            canDragEvent={canDragCalendarEvent}
+                            onEventDrop={applyEventTimeChange}
+                            onEventResize={applyEventTimeChange}
                             filterSheet={
                                 <div className="space-y-6">
                                     {/* Quick actions (compact layouts): Buscar huecos / Operaciones en Lotes
