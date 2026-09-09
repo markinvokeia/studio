@@ -9,13 +9,14 @@ import {
   startOfMonth,
   startOfWeek,
 } from 'date-fns';
-import { Download, Loader2 } from 'lucide-react';
+import { CalendarRange, Download, FileSpreadsheet, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { DatePickerInput } from '@/components/ui/date-picker';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -40,7 +41,7 @@ interface PrintScheduleDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   calendars: { id: string; name: string }[];
-  /** Calendario preseleccionado (normalmente el primero visible en la agenda). */
+  /** Calendario preseleccionado: el que la agenda está mostrando al abrir el diálogo. */
   defaultCalendarId?: string | null;
 }
 
@@ -75,11 +76,15 @@ export function PrintScheduleDialog({
   const [customTo, setCustomTo] = React.useState<string>(todayIso);
   const [isExporting, setIsExporting] = React.useState(false);
 
-  // Al abrir: reset al calendario por defecto y al día de hoy.
+  // Al abrir: siempre arrancar en el calendario que la agenda está mostrando y
+  // en el día de hoy, sin arrastrar la selección de una apertura anterior.
   React.useEffect(() => {
     if (!open) return;
-    const fallback = defaultCalendarId || calendars[0]?.id || '';
-    setCalendarId((prev) => (prev && calendars.some((c) => c.id === prev) ? prev : fallback));
+    const preferred =
+      defaultCalendarId && calendars.some((c) => c.id === defaultCalendarId)
+        ? defaultCalendarId
+        : calendars[0]?.id ?? '';
+    setCalendarId(preferred);
     setPreset('day');
     setAnchor(todayIso);
     setCustomFrom(todayIso);
@@ -138,18 +143,21 @@ export function PrintScheduleDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent maxWidth="md">
         <DialogHeader>
-          <DialogTitle>{t('title')}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <FileSpreadsheet className="h-5 w-5 shrink-0" />
+            {t('title')}
+          </DialogTitle>
           <DialogDescription>{t('description')}</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <DialogBody className="space-y-5 px-6 py-5">
           {/* Calendario */}
           <div className="space-y-1.5">
-            <Label>{t('field_calendar')}</Label>
-            <Select value={calendarId} onValueChange={setCalendarId}>
-              <SelectTrigger>
+            <Label htmlFor="print-schedule-calendar">{t('field_calendar')}</Label>
+            <Select value={calendarId} onValueChange={setCalendarId} disabled={!calendars.length}>
+              <SelectTrigger id="print-schedule-calendar">
                 <SelectValue placeholder={t('field_calendar_placeholder')} />
               </SelectTrigger>
               <SelectContent>
@@ -160,36 +168,46 @@ export function PrintScheduleDialog({
                 ))}
               </SelectContent>
             </Select>
+            {!calendars.length && (
+              <p className="text-xs text-muted-foreground">{t('no_calendars')}</p>
+            )}
           </div>
 
           {/* Rango */}
           <div className="space-y-1.5">
             <Label>{t('field_range')}</Label>
-            <div className="grid grid-cols-4 gap-1.5">
+            <div
+              role="group"
+              aria-label={t('field_range')}
+              className="grid grid-cols-4 gap-1 rounded-md border bg-muted/40 p-1"
+            >
               {presets.map((p) => (
-                <Button
+                <button
                   key={p}
                   type="button"
-                  size="sm"
-                  variant={preset === p ? 'default' : 'outline'}
+                  aria-pressed={preset === p}
                   onClick={() => setPreset(p)}
+                  className={cn(
+                    'rounded-sm px-2 py-1.5 text-xs font-medium transition-colors',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background',
+                    preset === p
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground',
+                  )}
                 >
                   {t(`range_${p}`)}
-                </Button>
+                </button>
               ))}
             </div>
           </div>
 
           {/* Fecha ancla para día/semana/mes */}
-          {preset !== 'custom' && (
+          {preset !== 'custom' ? (
             <div className="space-y-1.5">
               <Label>{t('field_anchor')}</Label>
               <DatePickerInput value={anchor} onChange={setAnchor} />
             </div>
-          )}
-
-          {/* Rango personalizado */}
-          {preset === 'custom' && (
+          ) : (
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>{t('field_from')}</Label>
@@ -203,18 +221,21 @@ export function PrintScheduleDialog({
           )}
 
           {resolved && (
-            <p className={cn('text-xs text-muted-foreground')}>
-              {format(resolved.from, 'dd/MM/yyyy') === format(resolved.to, 'dd/MM/yyyy')
-                ? t('summary_single', { date: format(resolved.from, 'dd/MM/yyyy') })
-                : t('summary_range', {
-                    from: format(resolved.from, 'dd/MM/yyyy'),
-                    to: format(resolved.to, 'dd/MM/yyyy'),
-                  })}
-            </p>
+            <div className="flex items-start gap-2 rounded-md border border-dashed bg-muted/30 px-3 py-2.5 text-xs text-muted-foreground">
+              <CalendarRange className="mt-px h-3.5 w-3.5 shrink-0" />
+              <span>
+                {format(resolved.from, 'dd/MM/yyyy') === format(resolved.to, 'dd/MM/yyyy')
+                  ? t('summary_single', { date: format(resolved.from, 'dd/MM/yyyy') })
+                  : t('summary_range', {
+                      from: format(resolved.from, 'dd/MM/yyyy'),
+                      to: format(resolved.to, 'dd/MM/yyyy'),
+                    })}
+              </span>
+            </div>
           )}
-        </div>
+        </DialogBody>
 
-        <DialogFooter className="gap-2">
+        <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isExporting}>
             {t('cancel')}
           </Button>

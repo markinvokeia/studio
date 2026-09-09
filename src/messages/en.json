@@ -1270,6 +1270,7 @@
     "title": "Export schedule to Excel",
     "description": "Builds a sheet of a calendar's appointments. Cancelled appointments and no-shows are excluded.",
     "field_calendar": "Calendar",
+    "no_calendars": "No calendars available",
     "field_calendar_placeholder": "Pick a calendar",
     "field_range": "Period",
     "range_day": "Day",

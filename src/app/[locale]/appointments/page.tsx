@@ -799,6 +799,17 @@ export default function AppointmentsPage() {
         () => calendars.find((calendar) => selectedCalendarIds.includes(calendar.id))?.id ?? null,
         [calendars, selectedCalendarIds],
     );
+    // Agenda que el usuario está viendo: en modo personalizado es la única
+    // visible, en el resto la primera de las seleccionadas. Es la que el
+    // diálogo de exportación preselecciona.
+    const activeCalendarId = React.useMemo(
+        () => (isCustomMode ? personalizedCalendarId : null) ?? firstVisibleCalendarId,
+        [isCustomMode, personalizedCalendarId, firstVisibleCalendarId],
+    );
+    const exportableCalendars = React.useMemo(
+        () => calendars.filter((c) => c.is_active !== false).map((c) => ({ id: c.id, name: c.name })),
+        [calendars],
+    );
     // Zoom is controlled here in custom mode (a dropdown replaces the floating slider).
     // Persisted in the same localStorage key the Calendar uses internally.
     const [calendarZoom, setCalendarZoom] = React.useState<number>(0.9);
@@ -4576,10 +4587,8 @@ export default function AppointmentsPage() {
             <PrintScheduleDialog
                 open={isPrintScheduleOpen}
                 onOpenChange={setIsPrintScheduleOpen}
-                calendars={calendars
-                    .filter((c) => c.is_active !== false)
-                    .map((c) => ({ id: c.id, name: c.name }))}
-                defaultCalendarId={selectedCalendarIds[0] ?? null}
+                calendars={exportableCalendars}
+                defaultCalendarId={activeCalendarId}
             />
             <PatientCreateDialog
                 open={inlineCreatePatient.open}

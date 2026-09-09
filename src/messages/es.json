@@ -1270,6 +1270,7 @@
     "title": "Exportar agenda a Excel",
     "description": "Genera una planilla de las citas de un calendario. Se excluyen las citas canceladas y las ausencias.",
     "field_calendar": "Calendario",
+    "no_calendars": "No hay calendarios disponibles",
     "field_calendar_placeholder": "Elegí un calendario",
     "field_range": "Período",
     "range_day": "Día",
