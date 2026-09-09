@@ -12,7 +12,7 @@ import { PatientQuickActions } from '@/components/patients/patient-quick-actions
 
 import { InlineAppointmentDraftHost } from '@/components/appointments/inline-appointment-draft-host';
 import { usePermissions } from '@/hooks/usePermissions';
-import { CLINICAL_HISTORY_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
+import { CLINICAL_HISTORY_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
 import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/components/users/clinic-history-viewer';
 import { PatientIndicationsTab } from '@/components/medical-instructions/patient-indications-tab';
 import { UserTreatmentPlans } from '@/components/users/user-treatment-plans';
@@ -105,12 +105,7 @@ export function PatientDetailSheet({
   // same thing here as in the Patients module. `mode="doctor"` keeps forcing the
   // clinical-only layout regardless.
   const canViewInfoTab = hasPermission(PATIENTS_PERMISSIONS.VIEW_DETAIL_INFO);
-  const canViewFinancialTab = hasAnyPermission([
-    PATIENTS_PERMISSIONS.VIEW_DETAIL_QUOTES,
-    PATIENTS_PERMISSIONS.VIEW_DETAIL_ORDERS,
-    PATIENTS_PERMISSIONS.VIEW_DETAIL_INVOICES,
-    PATIENTS_PERMISSIONS.VIEW_DETAIL_PAYMENTS,
-  ]);
+  const canViewFinancialTab = hasAnyPermission([...PATIENT_FINANCIAL_VIEW_PERMISSIONS]);
   const canWriteClinical = hasAnyPermission([
     TIMELINE_PERMISSIONS.CREATE,
     TIMELINE_PERMISSIONS.UPDATE,

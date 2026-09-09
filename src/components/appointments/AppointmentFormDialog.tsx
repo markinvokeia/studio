@@ -44,6 +44,8 @@ import { AlertTriangle, CalendarDays, Check, ChevronsUpDown, ClipboardList, Cloc
 
 import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
 import { usePatientView } from '@/stores/patient-view-store';
+import { usePermissions } from '@/hooks/usePermissions';
+import { PATIENT_FINANCIAL_VIEW_PERMISSIONS } from '@/constants/permissions';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -129,6 +131,9 @@ export function AppointmentFormDialog({
     const { reschedule } = useAppointmentReschedule();
     const { open: openAccountStatement } = usePatientLedgerSheet();
     const { open: openPatientView } = usePatientView();
+    const { hasAnyPermission } = usePermissions();
+    // "Ver estado de cuenta" abre el ledger financiero consolidado del paciente.
+    const canViewStatement = hasAnyPermission([...PATIENT_FINANCIAL_VIEW_PERMISSIONS]);
     const tAccount = useTranslations('AccountStatement');
     const tPanelAccount = useTranslations('AppointmentPanel');
     const isReschedule = mode === 'reschedule';
@@ -1282,16 +1287,18 @@ export function AppointmentFormDialog({
                                                     <UserRound className="h-3.5 w-3.5" />
                                                     {tPanelAccount('openPatient')}
                                                 </Button>
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="flex-1 gap-1.5"
-                                                    onClick={() => appointment.user && openAccountStatement(appointment.user.id, appointment.user.name)}
-                                                >
-                                                    <FileText className="h-3.5 w-3.5" />
-                                                    {tAccount('viewStatement')}
-                                                </Button>
+                                                {canViewStatement && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="flex-1 gap-1.5"
+                                                        onClick={() => appointment.user && openAccountStatement(appointment.user.id, appointment.user.name)}
+                                                    >
+                                                        <FileText className="h-3.5 w-3.5" />
+                                                        {tAccount('viewStatement')}
+                                                    </Button>
+                                                )}
                                             </div>
                                         </div>
                                     )}

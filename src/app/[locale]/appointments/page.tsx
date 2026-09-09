@@ -59,7 +59,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
 import { API_ROUTES } from '@/constants/routes';
-import { BUSINESS_CONFIG_PERMISSIONS, PATIENTS_PERMISSIONS } from '@/constants/permissions';
+import { BUSINESS_CONFIG_PERMISSIONS, PATIENTS_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS } from '@/constants/permissions';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
@@ -708,9 +708,11 @@ export default function AppointmentsPage() {
     const { open: openPatientHistory } = usePatientHistorySheet();
     const { open: openPatientAppointments } = usePatientAppointmentsSheet();
     const { open: openPatientDocuments } = usePatientDocumentsSheet();
-    const { hasPermission } = usePermissions();
+    const { hasPermission, hasAnyPermission } = usePermissions();
     const canCreateInlinePatient = hasPermission(PATIENTS_PERMISSIONS.CREATE);
     const canEditInlinePatient = hasPermission(PATIENTS_PERMISSIONS.UPDATE);
+    // "Ver estado de cuenta" abre el ledger financiero consolidado del paciente.
+    const canViewPatientStatement = hasAnyPermission([...PATIENT_FINANCIAL_VIEW_PERMISSIONS]);
     // Hasta ahora la rejilla no escribía nada, así que la página no gateaba este
     // permiso (el único call-site de la app estaba en AppointmentPanel). Mover o
     // redimensionar una cita sí es escritura.
@@ -1572,7 +1574,7 @@ export default function AppointmentsPage() {
                 overlapWarning={overlap}
                 patientDebt={inlineDebt}
                 cancelledCount={inlineCancelledCount}
-                onViewStatement={inlineDraft.patient ? () => openAccountStatement(inlineDraft.patient!.id, inlineDraft.patient!.name) : undefined}
+                onViewStatement={inlineDraft.patient && canViewPatientStatement ? () => openAccountStatement(inlineDraft.patient!.id, inlineDraft.patient!.name) : undefined}
                 isSaving={isSavingInline}
                 onSave={handleSaveInlineDraft}
                 onCancel={requestInlineDraftClose}
@@ -3769,14 +3771,16 @@ export default function AppointmentsPage() {
                             <span className="min-w-0 flex-1 truncate">{appointment.patientName}</span>
                         </ContextMenuSubTrigger>
                         <ContextMenuSubContent className="w-56">
-                            <ContextMenuItem
-                                key="patient-accounts"
-                                onSelect={() => openAccountStatement(appointment.patientId, appointment.patientName)}
-                                className="flex items-center gap-2 cursor-pointer"
-                            >
-                                <FileText className="h-4 w-4 shrink-0" />
-                                {t('contextMenu.accounts')}
-                            </ContextMenuItem>
+                            {canViewPatientStatement && (
+                                <ContextMenuItem
+                                    key="patient-accounts"
+                                    onSelect={() => openAccountStatement(appointment.patientId, appointment.patientName)}
+                                    className="flex items-center gap-2 cursor-pointer"
+                                >
+                                    <FileText className="h-4 w-4 shrink-0" />
+                                    {t('contextMenu.accounts')}
+                                </ContextMenuItem>
+                            )}
                             <ContextMenuItem
                                 key="patient-history"
                                 onSelect={() => openPatientHistory(appointment.patientId, appointment.patientName)}

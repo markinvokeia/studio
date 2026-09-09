@@ -95,6 +95,30 @@ function sanitizeFilePart(name: string): string {
   return name.replace(/[\\/:*?"<>|]/g, ' ').trim() || 'agenda';
 }
 
+/**
+ * Pone bordes finos en toda la tabla y la fila de encabezados en negrita. Sin
+ * rellenos ni cambios de color: solo fuente y líneas. `xlsx-js-style` lee el
+ * estilo desde la propiedad `.s` de cada celda; hay que recorrer el rango
+ * completo porque las celdas vacías no se crean solas y sin celda no hay borde.
+ */
+function applyScheduleSheetStyles(
+  ws: Record<string, any>,
+  utils: { encode_cell: (cell: { r: number; c: number }) => string },
+  rowCount: number,
+  colCount: number,
+): void {
+  const line = { style: 'thin' };
+  const border = { top: line, bottom: line, left: line, right: line };
+
+  for (let r = 0; r < rowCount; r++) {
+    for (let c = 0; c < colCount; c++) {
+      const addr = utils.encode_cell({ r, c });
+      if (!ws[addr]) ws[addr] = { t: 's', v: '' };
+      ws[addr].s = r === 0 ? { border, font: { bold: true } } : { border };
+    }
+  }
+}
+
 interface ExportScheduleParams {
   calendar: { id: string; name: string };
   from: Date;
@@ -116,7 +140,9 @@ export async function exportScheduleToExcel({
   const rows = await fetchScheduleRows(calendar.id, from, to);
   if (!rows.length) return { count: 0 };
 
-  const { utils, writeFile } = await import('xlsx');
+  // `xlsx-js-style` es el fork de SheetJS que sí serializa estilos por celda al
+  // escribir (la edición community de `xlsx` los ignora). Misma API.
+  const { utils, writeFile } = await import('xlsx-js-style');
 
   const headerRow = [
     columns.time,
@@ -132,6 +158,7 @@ export async function exportScheduleToExcel({
 
   const ws = utils.aoa_to_sheet(aoa);
   ws['!cols'] = autoColWidths(aoa, headerRow.length);
+  applyScheduleSheetStyles(ws, utils, aoa.length, headerRow.length);
 
   const wb = utils.book_new();
   utils.book_append_sheet(wb, ws, sanitizeSheetName(calendar.name, new Set()));

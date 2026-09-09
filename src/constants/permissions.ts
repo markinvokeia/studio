@@ -107,6 +107,20 @@ export const PATIENTS_PERMISSIONS = {
 
 export type PatientsPermission = (typeof PATIENTS_PERMISSIONS)[keyof typeof PATIENTS_PERMISSIONS];
 
+/**
+ * Permisos que habilitan ver la información financiera del paciente: la pestaña
+ * "Finanzas" del detalle y el atajo "Ver estado de cuenta" (menú contextual del
+ * calendario, panel de cita, formulario de cita, borrador inline). Basta con
+ * tener uno — el estado de cuenta consolida presupuestos, órdenes, facturas y
+ * pagos, así que cualquiera de esas lecturas justifica el acceso.
+ */
+export const PATIENT_FINANCIAL_VIEW_PERMISSIONS = [
+  PATIENTS_PERMISSIONS.VIEW_DETAIL_QUOTES,
+  PATIENTS_PERMISSIONS.VIEW_DETAIL_ORDERS,
+  PATIENTS_PERMISSIONS.VIEW_DETAIL_INVOICES,
+  PATIENTS_PERMISSIONS.VIEW_DETAIL_PAYMENTS,
+] as const;
+
 export const MEDICAL_HISTORY_PERMISSIONS = {
   VIEW_MENU: 'MEDICAL_HISTORY_VIEW_MENU',
   VIEW: 'MEDICAL_HISTORY_VIEW',
