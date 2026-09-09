@@ -1303,6 +1303,7 @@
     "cancel": "Cancel",
     "calendar": "Calendar",
     "patient": "Patient",
+    "phone": "Phone",
     "quoteDocNo": "Budget"
   },
   "AppointmentStatus": {

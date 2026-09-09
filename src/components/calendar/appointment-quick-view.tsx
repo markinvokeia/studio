@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { CalendarDays, MapPin, Pencil, Stethoscope, StickyNote, UserRound, X } from 'lucide-react';
+import { CalendarDays, MapPin, Pencil, Phone, Stethoscope, StickyNote, UserRound, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
@@ -90,6 +90,9 @@ export function AppointmentQuickView({
     : '';
   // Las citas importadas de Google no traen paciente: su título es el summary del evento.
   const title = (isImported ? appointment.summary : patientName || appointment.summary) || t('createDialog.none');
+  // El mapeo deja 'N/A' cuando la cita no trae teléfono; no se muestra la fila.
+  const patientPhone = (appointment.patientPhone || '').trim();
+  const phone = patientPhone === 'N/A' ? '' : patientPhone;
 
   const treatment = (appointment.services ?? [])
     .map((service) => (service?.name || '').trim())
@@ -187,6 +190,7 @@ export function AppointmentQuickView({
             <Row icon={Stethoscope} label={tColumns('service')} value={treatment} />
             {/* Con paciente en el título, el nombre no se repite acá. */}
             {isImported && <Row icon={UserRound} label={tColumns('patient')} value={patientName} />}
+            <Row icon={Phone} label={tColumns('phone')} value={phone} />
             <Row icon={UserRound} label={tColumns('doctor')} value={appointment.doctorName} />
             <Row icon={MapPin} label={tColumns('calendar')} value={appointment.calendar_name} />
             <Row icon={StickyNote} label={t('createDialog.notes')} value={appointment.notes} />
