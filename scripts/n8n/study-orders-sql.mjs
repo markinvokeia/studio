@@ -657,7 +657,20 @@ SELECT so.id::text        AS id,
   LEFT JOIN public.users d ON d.id = so.doctor_id
   LEFT JOIN public.v_study_orders_board b ON b.id = so.id
  WHERE a.id = $2::int
-   AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms));`;
+   -- Tres sujetos legítimos: el derivador, quien puede ver toda la bandeja, y
+   -- EL TÉCNICO ASIGNADO A ESTA CITA.
+   --
+   -- El tercero faltaba, y por eso al operador no se le registraba la actividad:
+   -- al guardar la sesión, el front pregunta acá a qué orden pertenece la cita,
+   -- esto devolvía cero filas, y el recálculo —con su evento y su aviso— ni
+   -- siquiera llegaba a llamarse. La sesión se guardaba y la cita se completaba,
+   -- así que desde afuera parecía que sólo faltaba el renglón del historial.
+   --
+   -- Se resuelve por pertenencia y no dándole STUDY_ORDERS_VIEW_ALL al rol:
+   -- para cerrar SU cita no hace falta poder leer la bandeja entera.
+   AND (so.doctor_id = $1::uuid
+        OR a.technician_id = $1::uuid
+        OR (SELECT can_view_all FROM perms));`;
 
 export const RECOMPUTE_SQL = `
 -- $1 userId (token)  $2 payload { id, change }
@@ -696,7 +709,12 @@ tgt AS (
        AND so.status IN ('submitted', 'completed')
        AND ( (SELECT can_schedule FROM perms)
              OR (SELECT can_view_all FROM perms)
-             OR so.doctor_id = $1::uuid )
+             OR so.doctor_id = $1::uuid
+             -- El técnico de alguna cita de la orden. Mismo criterio que
+             -- /by-appointment: quien ejecuta el estudio puede cerrar su orden.
+             OR EXISTS (SELECT 1 FROM public.appointments a
+                         WHERE a.study_order_id = so.id
+                           AND a.technician_id = $1::uuid) )
 ),
 target AS (
     SELECT tgt.id,
