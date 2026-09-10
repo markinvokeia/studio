@@ -1179,7 +1179,7 @@ export default function StaffPage() {
                           value="preferences"
                           className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col"
                         >
-                          <UserPreferencesTab user={selectedUser} />
+                          <UserPreferencesTab user={selectedUser} showAlertStyle />
                         </TabsContent>
                       )}
                     </div>

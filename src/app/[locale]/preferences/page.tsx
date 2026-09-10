@@ -4,9 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { SignatureUploader } from '@/components/users/signature-uploader';
 import { UserCommunicationPreferences } from '@/components/users/user-communication-preferences';
 import { useAuth } from '@/context/AuthContext';
-import { usePermissions } from '@/hooks/usePermissions';
-import { GLOBAL_PERMISSIONS } from '@/constants/permissions';
-import { hasDoctorWorkspaceAccess } from '@/lib/permissions';
 import { useNotifications } from '@/context/notifications-context';
 import { useFinanceViewPreference } from '@/hooks/use-finance-view-preference';
 import { TOAST_POSITIONS, useToastPosition } from '@/hooks/use-toast-position';
@@ -28,9 +25,6 @@ const TOAST_POSITION_MARKS: Record<ToastPosition, string> = {
 export default function UserPreferencesPage() {
     const t = useTranslations('PreferencesPage');
     const { user } = useAuth();
-    const { permissions, hasPermission } = usePermissions();
-    const isDoctor = React.useMemo(() => hasDoctorWorkspaceAccess(permissions), [permissions]);
-    const canUploadSignature = hasPermission(GLOBAL_PERMISSIONS.PROFILE_UPLOAD_SIGNATURE);
     const { alertStyle, setAlertStyle, refreshAlertStyle } = useNotifications();
     const [financeView, setFinanceView] = useFinanceViewPreference(user?.id);
     const [toastPosition, setToastPosition, refreshToastPosition] = useToastPosition(user?.id);
@@ -165,65 +159,61 @@ export default function UserPreferencesPage() {
             </Card>
 
             {/* Signature — used on printed prescriptions */}
-            {canUploadSignature && (
-                <Card className="shadow-sm border-0">
-                    <CardHeader className="p-4">
-                        <div className="flex items-start gap-3">
-                            <div className="header-icon-circle mt-0.5">
-                                <PenLine className="h-5 w-5" />
-                            </div>
-                            <div className="flex flex-col">
-                                <CardTitle className="text-lg">{t('signatureSection')}</CardTitle>
-                            </div>
+            <Card className="shadow-sm border-0">
+                <CardHeader className="p-4">
+                    <div className="flex items-start gap-3">
+                        <div className="header-icon-circle mt-0.5">
+                            <PenLine className="h-5 w-5" />
                         </div>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                        <SignatureUploader userId={user.id} canManage />
-                    </CardContent>
-                </Card>
-            )}
+                        <div className="flex flex-col">
+                            <CardTitle className="text-lg">{t('signatureSection')}</CardTitle>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                    <SignatureUploader userId={user.id} canManage />
+                </CardContent>
+            </Card>
 
-            {/* Workspace section — doctors only */}
-            {isDoctor && (
-                <Card className="shadow-sm border-0">
-                    <CardHeader className="p-4">
-                        <div className="flex items-start gap-3">
-                            <div className="header-icon-circle mt-0.5">
-                                <LayoutGrid className="h-5 w-5" />
-                            </div>
-                            <div className="flex flex-col">
-                                <CardTitle className="text-lg">{t('workspaceSection')}</CardTitle>
-                            </div>
+            {/* Workspace section */}
+            <Card className="shadow-sm border-0">
+                <CardHeader className="p-4">
+                    <div className="flex items-start gap-3">
+                        <div className="header-icon-circle mt-0.5">
+                            <LayoutGrid className="h-5 w-5" />
                         </div>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0 space-y-3">
-                        <div>
-                            <p className="text-sm font-medium text-foreground">{t('alertStyleLabel')}</p>
-                            <p className="text-xs text-muted-foreground mt-0.5">{t('alertStyleDescription')}</p>
+                        <div className="flex flex-col">
+                            <CardTitle className="text-lg">{t('workspaceSection')}</CardTitle>
                         </div>
-                        <div className="flex gap-2">
-                            {(['modal', 'toast'] as DoctorAlertStyle[]).map((style) => (
-                                <button
-                                    key={style}
-                                    type="button"
-                                    onClick={() => setAlertStyle(style)}
-                                    className={cn(
-                                        'flex flex-1 flex-col items-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-medium transition-all',
-                                        alertStyle === style
-                                            ? 'border-primary bg-primary/8 text-primary'
-                                            : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/40 hover:text-foreground',
-                                    )}
-                                >
-                                    {style === 'modal'
-                                        ? <BellRing className="h-5 w-5" />
-                                        : <Bell className="h-5 w-5" />}
-                                    {t(`alertStyle.${style}` as any)}
-                                </button>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
+                    </div>
+                </CardHeader>
+                <CardContent className="p-4 pt-0 space-y-3">
+                    <div>
+                        <p className="text-sm font-medium text-foreground">{t('alertStyleLabel')}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{t('alertStyleDescription')}</p>
+                    </div>
+                    <div className="flex gap-2">
+                        {(['modal', 'toast'] as DoctorAlertStyle[]).map((style) => (
+                            <button
+                                key={style}
+                                type="button"
+                                onClick={() => setAlertStyle(style)}
+                                className={cn(
+                                    'flex flex-1 flex-col items-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-medium transition-all',
+                                    alertStyle === style
+                                        ? 'border-primary bg-primary/8 text-primary'
+                                        : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/40 hover:text-foreground',
+                                )}
+                            >
+                                {style === 'modal'
+                                    ? <BellRing className="h-5 w-5" />
+                                    : <Bell className="h-5 w-5" />}
+                                {t(`alertStyle.${style}` as any)}
+                            </button>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     );
 }

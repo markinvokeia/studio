@@ -55,6 +55,13 @@ export function UserPreferencesTab({ user, showFinanceView = false, showAlertSty
     if (!showFinanceView && !showAlertStyle) return;
     let isMounted = true;
 
+    // Switching to another user: fall back to defaults until this user's own
+    // preferences arrive. Otherwise a user with nothing stored keeps showing
+    // the value that belonged to the previously selected user.
+    setFinanceViewState('unified');
+    setAlertStyleState('modal');
+    setIsLoading(true);
+
     api.get(API_ROUTES.USER_PREFERENCES, { user_id: user.id })
       .then((res: unknown) => {
         if (!isMounted) return;
