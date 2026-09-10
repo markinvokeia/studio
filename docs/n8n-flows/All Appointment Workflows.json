@@ -7442,7 +7442,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT \n  p.*,\n  d.name AS doctor_name,\n  pa.name AS patient_name,\n  json_agg(sc.name) AS services\nFROM public.appointments p\nLEFT JOIN public.users d ON p.assignee_id = d.id\nLEFT JOIN public.users pa ON p.patient_id = pa.id\nLEFT JOIN public.appointment_service_catalog ascat ON ascat.appointment_id = p.id\nLEFT JOIN public.service_catalog sc ON ascat.service_id = sc.id\nWHERE p.id = $1\nGROUP BY p.id, d.name, pa.name",
+        "query": "SELECT \n  p.*,\n  d.name AS doctor_name,\n  pa.name AS patient_name,\n  COALESCE(jsonb_agg(jsonb_build_object('id', sc.id, 'name', sc.name, 'price', sc.price)) FILTER (WHERE sc.id IS NOT NULL), '[]'::jsonb) AS services\nFROM public.appointments p\nLEFT JOIN public.users d ON p.assignee_id = d.id\nLEFT JOIN public.users pa ON p.patient_id = pa.id\nLEFT JOIN public.appointment_service_catalog ascat ON ascat.appointment_id = p.id\nLEFT JOIN public.service_catalog sc ON ascat.service_id = sc.id\nWHERE p.id = $1\nGROUP BY p.id, d.name, pa.name",
         "options": {
           "queryReplacement": "={{ $('Parse Input').first().json.appointment_id }}"
         }
@@ -7465,7 +7465,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT \n  p.*,\n  d.name AS doctor_name,\n  pa.name AS patient_name,\n  json_agg(sc.name) AS services\nFROM public.appointments p\nLEFT JOIN public.users d ON p.assignee_id = d.id\nLEFT JOIN public.users pa ON p.patient_id = pa.id\nLEFT JOIN public.appointment_service_catalog ascat ON ascat.appointment_id = p.id\nLEFT JOIN public.service_catalog sc ON ascat.service_id = sc.id\nWHERE p.id = $1\nGROUP BY p.id, d.name, pa.name",
+        "query": "SELECT \n  p.*,\n  d.name AS doctor_name,\n  pa.name AS patient_name,\n  COALESCE(jsonb_agg(jsonb_build_object('id', sc.id, 'name', sc.name, 'price', sc.price)) FILTER (WHERE sc.id IS NOT NULL), '[]'::jsonb) AS services\nFROM public.appointments p\nLEFT JOIN public.users d ON p.assignee_id = d.id\nLEFT JOIN public.users pa ON p.patient_id = pa.id\nLEFT JOIN public.appointment_service_catalog ascat ON ascat.appointment_id = p.id\nLEFT JOIN public.service_catalog sc ON ascat.service_id = sc.id\nWHERE p.id = $1\nGROUP BY p.id, d.name, pa.name",
         "options": {
           "queryReplacement": "={{ $json.id }}"
         }
@@ -8370,7 +8370,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT \n  p.*,\n  d.name AS doctor_name,\n  pa.name AS patient_name,\n  json_agg(sc.name) AS services\nFROM public.appointments p\nLEFT JOIN public.users d ON p.assignee_id = d.id\nLEFT JOIN public.users pa ON p.patient_id = pa.id\nLEFT JOIN public.appointment_service_catalog ascat ON ascat.appointment_id = p.id\nLEFT JOIN public.service_catalog sc ON ascat.service_id = sc.id\nWHERE p.id = $1\nGROUP BY p.id, d.name, pa.name",
+        "query": "SELECT \n  p.*,\n  d.name AS doctor_name,\n  pa.name AS patient_name,\n  COALESCE(jsonb_agg(jsonb_build_object('id', sc.id, 'name', sc.name, 'price', sc.price)) FILTER (WHERE sc.id IS NOT NULL), '[]'::jsonb) AS services\nFROM public.appointments p\nLEFT JOIN public.users d ON p.assignee_id = d.id\nLEFT JOIN public.users pa ON p.patient_id = pa.id\nLEFT JOIN public.appointment_service_catalog ascat ON ascat.appointment_id = p.id\nLEFT JOIN public.service_catalog sc ON ascat.service_id = sc.id\nWHERE p.id = $1\nGROUP BY p.id, d.name, pa.name",
         "options": {
           "queryReplacement": "={{ $json.new_id }}"
         }
@@ -8406,7 +8406,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT \n  p.*,\n  d.name AS doctor_name,\n  pa.name AS patient_name,\n  json_agg(sc.name) AS services\nFROM public.appointments p\nLEFT JOIN public.users d ON p.assignee_id = d.id\nLEFT JOIN public.users pa ON p.patient_id = pa.id\nLEFT JOIN public.appointment_service_catalog ascat ON ascat.appointment_id = p.id\nLEFT JOIN public.service_catalog sc ON ascat.service_id = sc.id\nWHERE p.id = $1\nGROUP BY p.id, d.name, pa.name",
+        "query": "SELECT \n  p.*,\n  d.name AS doctor_name,\n  pa.name AS patient_name,\n  COALESCE(jsonb_agg(jsonb_build_object('id', sc.id, 'name', sc.name, 'price', sc.price)) FILTER (WHERE sc.id IS NOT NULL), '[]'::jsonb) AS services\nFROM public.appointments p\nLEFT JOIN public.users d ON p.assignee_id = d.id\nLEFT JOIN public.users pa ON p.patient_id = pa.id\nLEFT JOIN public.appointment_service_catalog ascat ON ascat.appointment_id = p.id\nLEFT JOIN public.service_catalog sc ON ascat.service_id = sc.id\nWHERE p.id = $1\nGROUP BY p.id, d.name, pa.name",
         "options": {
           "queryReplacement": "={{ $json.id }}"
         }
@@ -8429,7 +8429,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT\n  p.*,\n  d.name AS doctor_name,\n  pa.name AS patient_name,\n  json_agg(sc.name) AS services\nFROM public.appointments p\nLEFT JOIN public.users d ON p.assignee_id = d.id\nLEFT JOIN public.users pa ON p.patient_id = pa.id\nLEFT JOIN public.appointment_service_catalog ascat ON ascat.appointment_id = p.id\nLEFT JOIN public.service_catalog sc ON ascat.service_id = sc.id\nWHERE p.id = $1\nGROUP BY p.id, d.name, pa.name",
+        "query": "SELECT\n  p.*,\n  d.name AS doctor_name,\n  pa.name AS patient_name,\n  COALESCE(jsonb_agg(jsonb_build_object('id', sc.id, 'name', sc.name, 'price', sc.price)) FILTER (WHERE sc.id IS NOT NULL), '[]'::jsonb) AS services\nFROM public.appointments p\nLEFT JOIN public.users d ON p.assignee_id = d.id\nLEFT JOIN public.users pa ON p.patient_id = pa.id\nLEFT JOIN public.appointment_service_catalog ascat ON ascat.appointment_id = p.id\nLEFT JOIN public.service_catalog sc ON ascat.service_id = sc.id\nWHERE p.id = $1\nGROUP BY p.id, d.name, pa.name",
         "options": {
           "queryReplacement": "={{ $json.id }}"
         }
@@ -9536,7 +9536,7 @@
             "event_type": "calendar_changed",
             "user_ids": "={{ [] }}",
             "channels": "={{ $json.calendar_source_id ? [\"appointments\", \"calendar:\" + $json.calendar_source_id] : [\"appointments\"] }}",
-            "payload": "={{ ({ action: \"status_change\", event_type: \"calendar_changed\", appointment_id: $json.id, calendar_source_id: $json.calendar_source_id, assignee_id: $json.assignee_id, patient_id: $json.patient_id, status: $json.status, start_datetime: $json.start_datetime, end_datetime: $json.end_datetime, updated_at: $json.updated_at }) }}"
+            "payload": "={{ Object.assign({}, $json, { action: \"status_change\", event_type: \"calendar_changed\", appointment_id: $json.id, start: $json.start_datetime, end: $json.end_datetime }) }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -9606,7 +9606,7 @@
             "event_type": "calendar_changed",
             "user_ids": "={{ [] }}",
             "channels": "={{ $json.calendar_source_id ? [\"appointments\", \"calendar:\" + $json.calendar_source_id] : [\"appointments\"] }}",
-            "payload": "={{ ({ action: \"created\", event_type: \"calendar_changed\", appointment_id: $json.id, calendar_source_id: $json.calendar_source_id, assignee_id: $json.assignee_id, patient_id: $json.patient_id, status: $json.status, start_datetime: $json.start_datetime, end_datetime: $json.end_datetime, updated_at: $json.updated_at }) }}"
+            "payload": "={{ Object.assign({}, $json, { action: \"created\", event_type: \"calendar_changed\", appointment_id: $json.id, start: $json.start_datetime, end: $json.end_datetime }) }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -9676,7 +9676,7 @@
             "event_type": "calendar_changed",
             "user_ids": "={{ [] }}",
             "channels": "={{ $json.calendar_source_id ? [\"appointments\", \"calendar:\" + $json.calendar_source_id] : [\"appointments\"] }}",
-            "payload": "={{ ({ action: \"rescheduled\", event_type: \"calendar_changed\", appointment_id: $json.id, calendar_source_id: $json.calendar_source_id, assignee_id: $json.assignee_id, patient_id: $json.patient_id, status: $json.status, start_datetime: $json.start_datetime, end_datetime: $json.end_datetime, updated_at: $json.updated_at }) }}"
+            "payload": "={{ Object.assign({}, $json, { action: \"rescheduled\", event_type: \"calendar_changed\", appointment_id: $json.id, start: $json.start_datetime, end: $json.end_datetime, original_appointment_id: $('Apply Reschedule').first().json.old_id }) }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -9746,7 +9746,7 @@
             "event_type": "calendar_changed",
             "user_ids": "={{ [] }}",
             "channels": "={{ $json.calendar_source_id ? [\"appointments\", \"calendar:\" + $json.calendar_source_id] : [\"appointments\"] }}",
-            "payload": "={{ ({ action: \"reassigned\", event_type: \"calendar_changed\", appointment_id: $json.id, calendar_source_id: $json.calendar_source_id, assignee_id: $json.assignee_id, patient_id: $json.patient_id, status: $json.status, start_datetime: $json.start_datetime, end_datetime: $json.end_datetime, updated_at: $json.updated_at }) }}"
+            "payload": "={{ Object.assign({}, $json, { action: \"reassigned\", event_type: \"calendar_changed\", appointment_id: $json.id, start: $json.start_datetime, end: $json.end_datetime }) }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -9816,7 +9816,7 @@
             "event_type": "calendar_changed",
             "user_ids": "={{ [] }}",
             "channels": "={{ $json.calendar_source_id ? [\"appointments\", \"calendar:\" + $json.calendar_source_id] : [\"appointments\"] }}",
-            "payload": "={{ ({ action: \"updated\", event_type: \"calendar_changed\", appointment_id: $json.id, calendar_source_id: $json.calendar_source_id, assignee_id: $json.assignee_id, patient_id: $json.patient_id, status: $json.status, start_datetime: $json.start_datetime, end_datetime: $json.end_datetime, updated_at: $json.updated_at }) }}"
+            "payload": "={{ Object.assign({}, $json, { action: \"updated\", event_type: \"calendar_changed\", appointment_id: $json.id, start: $json.start_datetime, end: $json.end_datetime }) }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -9886,7 +9886,7 @@
             "event_type": "calendar_changed",
             "user_ids": "={{ [] }}",
             "channels": "={{ $json.calendar_source_id ? [\"appointments\", \"calendar:\" + $json.calendar_source_id] : [\"appointments\"] }}",
-            "payload": "={{ ({ action: \"cancelled\", event_type: \"calendar_changed\", appointment_id: $json.id, calendar_source_id: $json.calendar_source_id, assignee_id: $json.assignee_id, patient_id: $json.patient_id, status: $json.status, start_datetime: $json.start_datetime, end_datetime: $json.end_datetime, updated_at: $json.updated_at }) }}"
+            "payload": "={{ Object.assign({}, $json, { action: \"cancelled\", event_type: \"calendar_changed\", appointment_id: $json.id, start: $json.start_datetime, end: $json.end_datetime }) }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -9956,7 +9956,7 @@
             "event_type": "calendar_changed",
             "user_ids": "={{ [] }}",
             "channels": "={{ $json.calendar_source_id ? [\"appointments\", \"calendar:\" + $json.calendar_source_id] : [\"appointments\"] }}",
-            "payload": "={{ ({ action: \"color_changed\", event_type: \"calendar_changed\", appointment_id: $json.id, calendar_source_id: $json.calendar_source_id, assignee_id: $json.assignee_id, patient_id: $json.patient_id, status: $json.status, start_datetime: $json.start_datetime, end_datetime: $json.end_datetime, updated_at: $json.updated_at }) }}"
+            "payload": "={{ Object.assign({}, $json, { action: \"color_changed\", event_type: \"calendar_changed\", appointment_id: $json.id, start: $json.start_datetime, end: $json.end_datetime }) }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -10026,7 +10026,7 @@
             "event_type": "calendar_changed",
             "user_ids": "={{ [] }}",
             "channels": "={{ $json.calendar_source_id ? [\"appointments\", \"calendar:\" + $json.calendar_source_id] : [\"appointments\"] }}",
-            "payload": "={{ ({ action: \"moved\", event_type: \"calendar_changed\", appointment_id: $json.id, calendar_source_id: $json.calendar_source_id, assignee_id: $json.assignee_id, patient_id: $json.patient_id, status: $json.status, start_datetime: $json.start_datetime, end_datetime: $json.end_datetime, updated_at: $json.updated_at }) }}"
+            "payload": "={{ Object.assign({}, $json, { action: \"moved\", event_type: \"calendar_changed\", appointment_id: $json.id, start: $json.start_datetime, end: $json.end_datetime }) }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -10096,7 +10096,7 @@
             "event_type": "calendar_changed",
             "user_ids": "={{ [] }}",
             "channels": "={{ $json.calendar_source_id ? [\"appointments\", \"calendar:\" + $json.calendar_source_id] : [\"appointments\"] }}",
-            "payload": "={{ ({ action: \"moved\", event_type: \"calendar_changed\", appointment_id: $json.id, calendar_source_id: $json.calendar_source_id, assignee_id: $json.assignee_id, patient_id: $json.patient_id, status: $json.status, start_datetime: $json.start_datetime, end_datetime: $json.end_datetime, updated_at: $json.updated_at }) }}"
+            "payload": "={{ Object.assign({}, $json, { action: \"moved\", event_type: \"calendar_changed\", appointment_id: $json.id, start: $json.start_datetime, end: $json.end_datetime }) }}"
           },
           "matchingColumns": [],
           "schema": [

@@ -101,7 +101,7 @@ import { canReschedule, normalizeAppointmentStatus, normalizeCancellationReason,
 import { useAppointmentReschedule } from '@/hooks/use-appointment-reschedule';
 import { CancellationNoteDialog } from '@/components/appointments/CancellationNoteDialog';
 import { getAppointmentColumns } from './columns';
-import { useCalendarLiveRefresh } from '@/hooks/use-calendar-live-refresh';
+import { useCalendarLiveRefresh, CALENDAR_PATCH_EVENT, type CalendarChangePayload, type CalendarPatchEventDetail } from '@/hooks/use-calendar-live-refresh';
 import { useNotifications } from '@/context/notifications-context';
 import { useAuth } from '@/context/AuthContext';
 import { canManageReminder, normalizeReminder } from '@/lib/reminders';
@@ -581,6 +581,82 @@ function mapApiAppointmentRow(
             return appointment;
 }
 
+/**
+ * Lleva una fecha cruda venida del backend (Postgres vía n8n) a un string que
+ * `parseISO` / `new Date` aceptan. n8n puede mandar un `Date`, un ISO con `T`/`Z`,
+ * o el formato de Postgres con espacio y offset corto (`2026-09-15 14:00:00+00`),
+ * que `parseISO` rechaza — de ahí que el patch "no hacía nada" o dejaba la cita
+ * con 15 min de duración.
+ */
+function toParseableDateString(v: unknown): string | undefined {
+    if (v == null) return undefined;
+    if (v instanceof Date) return isValid(v) ? v.toISOString() : undefined;
+    const raw = String(v).trim();
+    if (!raw) return undefined;
+    let s = raw.replace(/^(\d{4}-\d{2}-\d{2})[ ]/, '$1T'); // espacio → 'T'
+    s = s.replace(/([+-]\d{2})$/, '$1:00');                // '+00' → '+00:00'
+    return s;
+}
+
+/**
+ * Normaliza la fila cruda de un evento `calendar_changed` (SSE) a la forma que
+ * espera `mapApiAppointmentRow`: alias y saneo de fechas (`start_datetime` →
+ * `start`) y `services` como objetos `{id,name,price}` (el backend las manda como
+ * array de nombres, o `[null]` cuando no hay).
+ */
+function normalizePatchRow(ev: Record<string, any>): any {
+    const row: any = { ...ev };
+    const start = toParseableDateString(row.start ?? row.start_datetime);
+    const end = toParseableDateString(row.end ?? row.end_datetime);
+    if (start) { row.start = start; row.start_datetime = start; }
+    if (end) { row.end = end; row.end_datetime = end; }
+    if (Array.isArray(row.services)) {
+        row.services = row.services
+            .filter((s: unknown) => s != null)
+            // Un item string es sólo el nombre (feeder viejo `json_agg(sc.name)`):
+            // se deja `id` vacío a propósito. Si se le pusiera el nombre como id,
+            // al re-editar la cita el form mandaría ese nombre en `service_ids` y
+            // el backend responde 400. Con id vacío el form lo descarta al guardar.
+            .map((s: any) => (typeof s === 'string'
+                ? { id: '', name: s, price: 0 }
+                : { id: s.id != null ? String(s.id) : '', name: s.name ?? '', price: Number(s.price ?? 0) }));
+    }
+    return row;
+}
+
+/**
+ * Combina la cita que ya está en la grilla con la mapeada del evento,
+ * conservando los campos "ricos" (nombres, contacto, servicios, notas) cuando el
+ * evento no los trajo. Las ramas de color / cancelación / movida entre agendas
+ * publican sólo columnas crudas de `appointments`, así que sin esto se perderían
+ * el nombre del paciente, los servicios, etc. hasta la próxima recarga completa.
+ */
+function mergePatchedAppointment(existing: Appointment, mapped: Appointment, ev: Record<string, any>): Appointment {
+    // `sent` = el evento incluyó la columna (aunque sea vacía); `filled` = además
+    // trae un valor útil. summary/description/notes/status/fechas/color siempre
+    // van del evento (para poder vaciarlos); nombres/contacto/servicios sólo si
+    // el evento los trajo (las ramas color/cancel/move mandan la fila cruda).
+    const filled = (k: string) => ev[k] !== undefined && ev[k] !== null && ev[k] !== '';
+    const hasDoctor = filled('doctor_name') || filled('assignee_id');
+    return {
+        ...existing,
+        ...mapped,
+        patientName: filled('patient_name') ? mapped.patientName : existing.patientName,
+        patientEmail: filled('patient_email') ? mapped.patientEmail : existing.patientEmail,
+        patientPhone: filled('patient_phone') ? mapped.patientPhone : existing.patientPhone,
+        doctorName: hasDoctor ? mapped.doctorName : existing.doctorName,
+        doctorEmail: hasDoctor ? mapped.doctorEmail : existing.doctorEmail,
+        // Sólo se acepta la lista de servicios del evento si trae ids reales
+        // (feeder nuevo con `jsonb_build_object`). Si son sólo nombres se conserva
+        // la de la cita ya cargada (que sí tiene ids del REST) para no romper la
+        // próxima edición.
+        services: (Array.isArray(ev.services) && (mapped.services ?? []).every((s) => s.id))
+            ? mapped.services
+            : existing.services,
+        quote_doc_no: (filled('quote_doc_no') || filled('doc_no')) ? mapped.quote_doc_no : existing.quote_doc_no,
+    };
+}
+
 async function getReminders(startDate: Date, endDate: Date, userId?: string | null): Promise<CalendarReminder[]> {
     if (!isValid(startDate) || !isValid(endDate)) return [];
     if (!userId) return [];
@@ -912,10 +988,11 @@ export default function AppointmentsPage() {
         () => (isCustomMode && activeCalendarId ? [activeCalendarId] : selectedCalendarIds),
         [isCustomMode, activeCalendarId, selectedCalendarIds],
     );
-    // Refresco en vivo: cuando otro usuario crea/edita/reprograma/reasigna/cancela
-    // una cita, el backend publica `calendar_changed` en el canal del calendario y
-    // esto dispara el `clinic:calendar:refresh` que ya escucha el efecto de abajo.
-    // Se suscribe sólo a las agendas que se están trayendo.
+    // Refresco en vivo: cuando otro usuario crea/edita/reprograma/reasigna/cambia
+    // color/cancela una cita, el backend publica `calendar_changed` con la fila de
+    // la cita y este hook lo reemite como `clinic:calendar:patch` (lote de filas).
+    // El efecto de más abajo lo aplica como patch quirúrgico sobre `appointments`
+    // en vez de recargar todo el rango visible.
     useCalendarLiveRefresh(fetchCalendarIds);
     const exportableCalendars = React.useMemo(
         () => calendars.filter((c) => c.is_active !== false).map((c) => ({ id: c.id, name: c.name })),
@@ -2809,6 +2886,105 @@ export default function AppointmentsPage() {
 
     React.useEffect(() => { refreshCalendarDataRef.current = forceRefresh; }, [forceRefresh]);
 
+    // ── Patch en vivo del calendario (evento `clinic:calendar:patch`) ─────────
+    // Espejo de `appointments` en un ref para que el handler (invocado desde un
+    // evento DOM, no en render) lea el estado actual sin re-suscribirse.
+    const appointmentsRef = React.useRef<Appointment[]>([]);
+    React.useEffect(() => { appointmentsRef.current = appointments; }, [appointments]);
+    // id de cita → epoch de su último `updated_at` aplicado. Descarta eventos
+    // viejos, reordenados o el eco de una mutación local ya reflejada.
+    const patchSeenRef = React.useRef<Map<string, number>>(new Map());
+
+    const applyCalendarPatch = React.useCallback((events: CalendarChangePayload[]) => {
+        const debug = (() => {
+            try { return typeof window !== 'undefined' && !!window.localStorage.getItem('debug:calendar-patch'); }
+            catch { return false; }
+        })();
+        if (debug) console.debug('[calendar-patch] recibidos', events);
+
+        // Datos base aún cargando o rango inválido: recarga completa (más barato
+        // que intentar mapear sin `calendars`/`services`/`doctors`).
+        if (isDataLoading || calendars.length === 0 || !fetchRange) {
+            forceRefresh();
+            return;
+        }
+        const visibleIds = fetchCalendarIds.filter(Boolean);
+        let list = appointmentsRef.current;
+        let changed = false;
+        let needFullRefresh = false;
+
+        for (const ev of events) {
+            const id = String(ev.appointment_id ?? ev.id ?? '');
+            if (!id) continue;
+
+            // Guardia anti-desorden: sólo se descarta un evento si es
+            // ESTRICTAMENTE más viejo que el último aplicado para esa cita. Si el
+            // `updated_at` viene igual (o no viene, o no cambia entre ediciones)
+            // el evento se aplica igual — el merge es idempotente. Antes usaba
+            // `>=` y eso dejaba la cita "congelada" tras la primera edición.
+            const uaNum = Date.parse(String(ev.updated_at ?? ''));
+            if (!Number.isNaN(uaNum)) {
+                const seen = patchSeenRef.current.get(id);
+                if (seen != null && seen > uaNum) {
+                    if (debug) console.debug('[calendar-patch] descartado (más viejo)', id, ev.updated_at);
+                    continue;
+                }
+                if (patchSeenRef.current.size > 500) patchSeenRef.current.clear();
+                patchSeenRef.current.set(id, Math.max(seen ?? 0, uaNum));
+            }
+
+            // Reagendamiento: la fila vieja quedó `cancelled` sin evento propio.
+            const originalId = ev.original_appointment_id != null ? String(ev.original_appointment_id) : '';
+            if (originalId && originalId !== id && list.some((a) => a.id === originalId)) {
+                list = list.filter((a) => a.id !== originalId);
+                changed = true;
+            }
+
+            // Baja definitiva (borrado, o lado viejo de una movida entre agendas
+            // que deja la fila en `deleted`).
+            if (ev.action === 'deleted' || ev.status === 'deleted') {
+                if (list.some((a) => a.id === id)) { list = list.filter((a) => a.id !== id); changed = true; }
+                continue;
+            }
+
+            const mapped = mapApiAppointmentRow(normalizePatchRow(ev), calendars, services, doctors, t);
+            if (!mapped) {
+                if (debug) console.debug('[calendar-patch] mapApiAppointmentRow devolvió null → recarga', ev);
+                needFullRefresh = true;
+                continue;
+            }
+
+            // ¿La cita (ya con su estado nuevo) sigue entrando en el rango y en
+            // alguna de las agendas visibles? Si no, se saca de la grilla.
+            const start = parseISO(String(mapped.start?.dateTime ?? '').replace(/Z$/, ''));
+            const inRange = isValid(start) && start >= fetchRange.start && start <= fetchRange.end;
+            const inView = visibleIds.length === 0 || visibleIds.includes(mapped.calendar_source_id ?? '');
+            if (!inRange || !inView) {
+                if (debug) console.debug('[calendar-patch] fuera de rango/agenda', { id, inRange, inView, start: mapped.start?.dateTime });
+                if (list.some((a) => a.id === id)) { list = list.filter((a) => a.id !== id); changed = true; }
+                continue;
+            }
+
+            const existing = list.find((a) => a.id === id);
+            if (!existing) {
+                list = [...list, mapped];
+            } else {
+                list = list.map((a) => (a.id === id ? mergePatchedAppointment(a, mapped, ev) : a));
+            }
+            changed = true;
+        }
+
+        if (changed) {
+            appointmentsRef.current = list;
+            setAppointments(list);
+        }
+        if (debug) console.debug('[calendar-patch] resultado', { changed, needFullRefresh, total: list.length });
+        if (needFullRefresh) forceRefresh();
+    }, [isDataLoading, calendars, services, doctors, t, fetchRange, fetchCalendarIds, forceRefresh]);
+
+    const applyCalendarPatchRef = React.useRef(applyCalendarPatch);
+    React.useEffect(() => { applyCalendarPatchRef.current = applyCalendarPatch; }, [applyCalendarPatch]);
+
     const [isQuickQuoteOpen, setIsQuickQuoteOpen] = React.useState(false);
     const [quickQuotePatient, setQuickQuotePatient] = React.useState<UserType | null>(null);
     const [quickQuoteInitialItems, setQuickQuoteInitialItems] = React.useState<SessionPreloadedService[] | undefined>();
@@ -3068,6 +3244,18 @@ export default function AppointmentsPage() {
         window.addEventListener('clinic:calendar:refresh', handler);
         return () => window.removeEventListener('clinic:calendar:refresh', handler);
     }, [forceRefresh, isDataLoading]);
+
+    // Patch en vivo: lote de filas `calendar_changed` reemitido por
+    // `useCalendarLiveRefresh`. Se aplica sobre `appointments` sin recargar.
+    React.useEffect(() => {
+        const handler = (e: Event) => {
+            const detail = (e as CustomEvent<CalendarPatchEventDetail>).detail;
+            if (!detail?.events?.length) return;
+            applyCalendarPatchRef.current(detail.events);
+        };
+        window.addEventListener(CALENDAR_PATCH_EVENT, handler);
+        return () => window.removeEventListener(CALENDAR_PATCH_EVENT, handler);
+    }, []);
 
     // Moved searches to AppointmentFormDialog
 
