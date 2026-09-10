@@ -380,6 +380,9 @@ function buildEventLabel(appt: Appointment, start: Date, fmt: string, noneLabel:
 /** Clave de localStorage del panel de agendas fijo (preferencia por navegador). */
 const AGENDAS_PANEL_PINNED_KEY = 'calendar-agendas-panel-pinned';
 
+/** Clave de localStorage de la agenda que el modo personalizado está mostrando. */
+const PERSONALIZED_CALENDAR_KEY = 'calendar-personalized-agenda';
+
 const SETTINGS_VIEW_MAP: Record<string, CalendarView> = {
     day: 'day',
     '2_days': '2-day',
@@ -858,6 +861,15 @@ export default function AppointmentsPage() {
     // "Agendas" side panel.
     const [calendarMode, setCalendarMode] = React.useState<string>(DEFAULT_CALENDAR_MODE);
     const [personalizedCalendarId, setPersonalizedCalendarId] = React.useState<string | null>(null);
+    // Última agenda mirada, recordada por navegador igual que el zoom y el panel fijo.
+    // Se lee una sola vez en el arranque y entra como preferencia, no como valor
+    // final: si esa agenda ya no está entre las visibles se cae a la primera, como
+    // hacía antes. El estado sigue arrancando en null para que el render del
+    // servidor y el primero del cliente coincidan.
+    const [restoredPersonalizedId] = React.useState<string | null>(() => {
+        if (typeof window === 'undefined') return null;
+        try { return window.localStorage.getItem(PERSONALIZED_CALENDAR_KEY); } catch { return null; }
+    });
     const [agendasPanelOpen, setAgendasPanelOpen] = React.useState(false);
     // Panel de agendas fijo: elegir una agenda no lo cierra. Se recuerda por navegador,
     // igual que el zoom y la columna de horas del calendario.
@@ -3656,10 +3668,28 @@ export default function AppointmentsPage() {
     // back to it if the current selection gets hidden.
     React.useEffect(() => {
         if (!isCustomMode) return;
-        setPersonalizedCalendarId((prev) =>
-            prev && selectedCalendarIds.includes(prev) ? prev : firstVisibleCalendarId,
-        );
-    }, [isCustomMode, selectedCalendarIds, firstVisibleCalendarId]);
+        setPersonalizedCalendarId((prev) => {
+            if (prev && selectedCalendarIds.includes(prev)) return prev;
+            // Sin `prev` todavía estamos en el arranque (o recién se entró al modo):
+            // es el único momento en que se recupera la agenda recordada. Después no,
+            // porque llegar acá con `prev` puesto significa que esa agenda se ocultó y
+            // corresponde caer a la primera visible, no volver a la de la sesión previa.
+            if (!prev && restoredPersonalizedId && selectedCalendarIds.includes(restoredPersonalizedId)) {
+                return restoredPersonalizedId;
+            }
+            return firstVisibleCalendarId;
+        });
+    }, [isCustomMode, selectedCalendarIds, firstVisibleCalendarId, restoredPersonalizedId]);
+
+    // Se guarda la agenda efectiva y no solo el clic en el panel: saltar a una cita
+    // desde el buscador también cambia cuál se está mirando, y refrescar tiene que
+    // devolver a esa.
+    React.useEffect(() => {
+        if (!isCustomMode || !personalizedCalendarId) return;
+        try {
+            window.localStorage.setItem(PERSONALIZED_CALENDAR_KEY, personalizedCalendarId);
+        } catch { /* localStorage bloqueado: se pierde la preferencia, nada más */ }
+    }, [isCustomMode, personalizedCalendarId]);
     // On entering custom mode, open the Agendas panel first so the user picks an
     // agenda before seeing its appointments; closing it on leaving the mode.
     React.useEffect(() => {
