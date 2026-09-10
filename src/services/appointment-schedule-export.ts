@@ -7,27 +7,23 @@ import { api } from '@/services/api';
 
 /**
  * Exporta la agenda de citas de un único calendario a un `.xlsx` con el formato
- * de "planilla del día" (Horario · Estudio · Nombre y Apellido · Cédula ·
- * Teléfono). Reutiliza el endpoint `/users_appointments` que ya alimenta el
- * calendario, filtrado por `calendar_source_ids` y rango de fechas. Se excluyen
- * las citas canceladas y las ausencias (no-show), igual que el portal del
- * paciente.
+ * de "planilla del día" (Horario · Nombre y Apellido · Teléfono). Reutiliza el
+ * endpoint `/users_appointments` que ya alimenta el calendario, filtrado por
+ * `calendar_source_ids` y rango de fechas. Se excluyen las citas canceladas y
+ * las ausencias (no-show), igual que el portal del paciente. Cuando la cita no
+ * tiene nombre de paciente se usa el texto del estudio (`summary`) como nombre.
  */
 
 export interface ScheduleExportRow {
   time: string; // HH:mm
-  study: string;
   patientName: string;
-  identityDocument: string;
   phone: string;
   start: Date;
 }
 
 export interface ScheduleColumnHeaders {
   time: string;
-  study: string;
   name: string;
-  identityDocument: string;
   phone: string;
 }
 
@@ -68,19 +64,15 @@ export async function fetchScheduleRows(
       const status = normalizeAppointmentStatus(r.status);
       if (status === 'cancelled' || status === 'no_show') return null;
 
+      const study = String(r.summary || r.service_name || r.serviceName || '').trim();
+      const name = String(
+        r.patient_name || r.patientName || r.patientname || r.user_name || '',
+      ).trim();
+
       return {
         time: format(start, 'HH:mm'),
-        study: String(r.summary || r.service_name || r.serviceName || '').trim(),
-        patientName: String(
-          r.patient_name || r.patientName || r.patientname || r.user_name || '',
-        ).trim(),
-        identityDocument: String(
-          r.patient_identity_document ||
-            r.patientIdentityDocument ||
-            r.identity_document ||
-            r.patient_ci ||
-            '',
-        ).trim(),
+        // Si la cita no trae nombre de paciente, se usa el estudio como nombre.
+        patientName: name || study,
         phone: String(
           r.patient_phone || r.patientPhone || r.patientphone || r.phone_number || '',
         ).trim(),
@@ -144,16 +136,10 @@ export async function exportScheduleToExcel({
   // escribir (la edición community de `xlsx` los ignora). Misma API.
   const { utils, writeFile } = await import('xlsx-js-style');
 
-  const headerRow = [
-    columns.time,
-    columns.study,
-    columns.name,
-    columns.identityDocument,
-    columns.phone,
-  ];
+  const headerRow = [columns.time, columns.name, columns.phone];
   const aoa: unknown[][] = [
     headerRow,
-    ...rows.map((r) => [r.time, r.study, r.patientName, r.identityDocument, r.phone]),
+    ...rows.map((r) => [r.time, r.patientName, r.phone]),
   ];
 
   const ws = utils.aoa_to_sheet(aoa);

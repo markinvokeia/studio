@@ -116,9 +116,7 @@ export function PrintScheduleDialog({
         to: resolved.to,
         columns: {
           time: t('col_time'),
-          study: t('col_study'),
           name: t('col_name'),
-          identityDocument: t('col_identity'),
           phone: t('col_phone'),
         },
       });
