@@ -424,8 +424,11 @@ async function getAppointments(
             startingDateAndTime: formatDateForAPI(startDate),
             endingDateAndTime: formatDateForAPI(endDate),
         };
-        if (calendarSourceIds.length > 0) {
-            query.calendar_source_ids = calendarSourceIds.join(',');
+        // Filtra ids vacíos: un '' colado en la lista haría que el backend reciba
+        // `calendar_source_ids=` (o `12,`) y la query revienta al castear a bigint.
+        const cleanCalendarIds = calendarSourceIds.filter(Boolean);
+        if (cleanCalendarIds.length > 0) {
+            query.calendar_source_ids = cleanCalendarIds.join(',');
         }
         const data = await api.get(API_ROUTES.USERS_APPOINTMENTS, query);
         let appointmentsData: any[] = [];
@@ -609,15 +612,22 @@ async function getCalendars(): Promise<CalendarType[]> {
     try {
         const data = await api.get(API_ROUTES.CALENDARS);
         const calendarsData = Array.isArray(data) ? data : (data.calendars || data.data || data.result || []);
-        return calendarsData.map((apiCalendar: any, index: number) => ({
-            id: String(apiCalendar.id),
-            name: apiCalendar.name,
-            google_calendar_id: apiCalendar.google_calendar_id,
-            is_active: apiCalendar.is_active,
-            color: apiCalendar.color || CALENDAR_COLORS[index % CALENDAR_COLORS.length],
-            sede_id: apiCalendar.sede_id ? String(apiCalendar.sede_id) : undefined,
-            sede_name: apiCalendar.sede_name || undefined,
-        }));
+        return calendarsData
+            // El backend (`users_appointments`) excluye en duro las agendas
+            // inactivas (`WHERE c.is_active IS TRUE`). Si se mostraran acá, se
+            // podrían seleccionar/crear citas en una agenda cuyas citas nunca
+            // vuelven — grilla vacía sin explicación. Se filtran para que la
+            // vista de citas sea consistente con lo que el backend devuelve.
+            .filter((apiCalendar: any) => apiCalendar.is_active !== false)
+            .map((apiCalendar: any, index: number) => ({
+                id: String(apiCalendar.id),
+                name: apiCalendar.name,
+                google_calendar_id: apiCalendar.google_calendar_id,
+                is_active: apiCalendar.is_active,
+                color: apiCalendar.color || CALENDAR_COLORS[index % CALENDAR_COLORS.length],
+                sede_id: apiCalendar.sede_id ? String(apiCalendar.sede_id) : undefined,
+                sede_name: apiCalendar.sede_name || undefined,
+            }));
     } catch (error) {
         console.error("Failed to fetch calendars:", error);
         return [];
@@ -756,10 +766,6 @@ export default function AppointmentsPage() {
     const [doctorServiceMap, setDoctorServiceMap] = React.useState<Map<string, Service[]>>(new Map());
     const [doctorCalendarMap, setDoctorCalendarMap] = React.useState<Map<string, CalendarType[]>>(new Map());
     const [selectedCalendarIds, setSelectedCalendarIds] = React.useState<string[]>([]);
-    // Refresco en vivo: cuando otro usuario crea/edita/reprograma/reasigna/cancela
-    // una cita, el backend publica `calendar_changed` en el canal del calendario y
-    // esto dispara el `clinic:calendar:refresh` que ya escucha el efecto de abajo.
-    useCalendarLiveRefresh(selectedCalendarIds);
     const [isDataLoading, setIsDataLoading] = React.useState(true);
     const [isCreateOpen, setCreateOpen] = React.useState(false);
     const [isPrintScheduleOpen, setIsPrintScheduleOpen] = React.useState(false);
@@ -898,6 +904,19 @@ export default function AppointmentsPage() {
         () => (isCustomMode ? personalizedCalendarId : null) ?? firstVisibleCalendarId,
         [isCustomMode, personalizedCalendarId, firstVisibleCalendarId],
     );
+    // Agendas cuyas citas se piden al backend. En modo personalizado sólo se ve
+    // una agenda a la vez, así que se trae únicamente esa (menos payload en cada
+    // reload / refresco silencioso); en el resto de modos la grilla pinta varias
+    // columnas, así que se piden todas las seleccionadas.
+    const fetchCalendarIds = React.useMemo(
+        () => (isCustomMode && activeCalendarId ? [activeCalendarId] : selectedCalendarIds),
+        [isCustomMode, activeCalendarId, selectedCalendarIds],
+    );
+    // Refresco en vivo: cuando otro usuario crea/edita/reprograma/reasigna/cancela
+    // una cita, el backend publica `calendar_changed` en el canal del calendario y
+    // esto dispara el `clinic:calendar:refresh` que ya escucha el efecto de abajo.
+    // Se suscribe sólo a las agendas que se están trayendo.
+    useCalendarLiveRefresh(fetchCalendarIds);
     const exportableCalendars = React.useMemo(
         () => calendars.filter((c) => c.is_active !== false).map((c) => ({ id: c.id, name: c.name })),
         [calendars],
@@ -2772,7 +2791,7 @@ export default function AppointmentsPage() {
         setIsRefreshing(true);
         try {
             const [fetchedAppointments, fetchedReminders] = await Promise.all([
-                getAppointments(selectedCalendarIds, fetchRange.start, fetchRange.end, calendars, services, doctors, t),
+                getAppointments(fetchCalendarIds, fetchRange.start, fetchRange.end, calendars, services, doctors, t),
                 getReminders(fetchRange.start, fetchRange.end, user?.id),
             ]);
             if (requestId !== loadAppointmentsRequestIdRef.current) return;
@@ -2782,7 +2801,7 @@ export default function AppointmentsPage() {
         } finally {
             if (requestId === loadAppointmentsRequestIdRef.current) setIsRefreshing(false);
         }
-    }, [selectedCalendarIds, fetchRange, calendars, services, doctors, t, user?.id]);
+    }, [fetchCalendarIds, fetchRange, calendars, services, doctors, t, user?.id]);
 
     const forceRefresh = React.useCallback(() => {
         loadAppointments();
@@ -3039,7 +3058,7 @@ export default function AppointmentsPage() {
         if (!isDataLoading && fetchRange) {
             loadAppointments();
         }
-    }, [loadAppointments, selectedCalendarIds, fetchRange, isDataLoading]);
+    }, [loadAppointments, fetchCalendarIds, fetchRange, isDataLoading]);
 
     // Silent calendar refresh when the notification system detects new events
     // (new appointments, status changes, completed sessions) or after a
@@ -4249,9 +4268,12 @@ export default function AppointmentsPage() {
     // Unused form logic removed
 
 
+    // Al cambiar el conjunto de agendas que se piden (incluye cambiar de agenda
+    // en modo personalizado) se vacía la grilla para no mostrar las citas de la
+    // agenda anterior mientras llega la nueva carga.
     React.useEffect(() => {
         setAppointments([]);
-    }, [selectedCalendarIds]);
+    }, [fetchCalendarIds]);
 
     // Stabilize prefillTreatments with useMemo to prevent unnecessary recalculations
     // Include all quote items as treatments: items with tooth_number get it prefilled, others get null
