@@ -4210,7 +4210,9 @@
       "defaultCalendar": "Consultorio por defecto",
       "selectCalendar": "Seleccionar consultorio...",
       "searchCalendarPlaceholder": "Buscar consultorio...",
-      "noCalendar": "Sin consultorio por defecto"
+      "noCalendar": "Sin consultorio por defecto",
+      "defaultSede": "Sede por defecto",
+      "defaultSedePlaceholder": "Seleccionar sede..."
     },
     "filters": {
       "showOnlyActive": "Mostrar solo activos"
@@ -4509,6 +4511,8 @@
       "phonePlaceholder": "ej. 123-456-7890",
       "identity_document": "Documento de Identidad",
       "identity_document_placeholder": "ej. 1234567890",
+      "defaultSede": "Sede por defecto",
+      "defaultSedePlaceholder": "Seleccionar sede...",
       "isActive": "¿Está Activo?",
       "save": "Guardar",
       "cancel": "Cancelar",

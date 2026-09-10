@@ -22,6 +22,7 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { PhoneInput } from '@/components/ui/phone-input';
+import { SedeSelector } from '@/components/ui/sede-selector';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UserLogs } from '@/components/users/user-logs';
 import { UserRoles } from '@/components/users/user-roles';
@@ -68,6 +69,7 @@ const userFormSchema = (t: (key: string) => string) => z.object({
     .optional()
     .or(z.literal('')),
   is_active: z.boolean().default(false),
+  active_sede_id: z.string().optional(),
 }).refine((data) => {
   const hasEmail = data.email && data.email.trim() !== '';
   const hasPhone = data.phone && data.phone.trim() !== '';
@@ -118,6 +120,7 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyAc
       phone_number: apiUser.phone_number || '',
       is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
       identity_document: apiUser.identity_document,
+      active_sede_id: apiUser.active_sede_id != null ? String(apiUser.active_sede_id) : null,
       avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
     }));
 
@@ -130,7 +133,15 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyAc
 }
 
 async function upsertUser(userData: UserFormValues) {
-  const responseData = await api.post(API_ROUTES.USERS_UPSERT, { ...userData, is_sales: true });
+  const { active_sede_id, ...rest } = userData;
+  const responseData = await api.post(API_ROUTES.USERS_UPSERT, {
+    ...rest,
+    is_sales: true,
+    // Va en el propio upsert y no por `/users/active-sede`: ese endpoint es self-only
+    // (responde/actualiza la sede del usuario del JWT), así que mandarle un user_id ajeno
+    // terminaba cambiándole la sede activa al admin que estaba editando.
+    active_sede_id: active_sede_id ? Number(active_sede_id) : null,
+  });
 
   if (responseData.error && (responseData.error.error || responseData.code > 200)) {
     const error = new Error('API Error') as any;
@@ -286,6 +297,7 @@ export default function SystemUsersPage() {
       phone: '',
       identity_document: '',
       is_active: true,
+      active_sede_id: '',
     },
   });
 
@@ -297,6 +309,7 @@ export default function SystemUsersPage() {
       phone: '',
       identity_document: '',
       is_active: true,
+      active_sede_id: '',
     },
   });
 
@@ -400,6 +413,7 @@ export default function SystemUsersPage() {
       phone: '',
       identity_document: '',
       is_active: true,
+      active_sede_id: '',
     });
     setSubmissionError(null);
     setIsDialogOpen(true);
@@ -418,6 +432,7 @@ export default function SystemUsersPage() {
         phone: user.phone_number || '',
         identity_document: user.identity_document || '',
         is_active: user.is_active,
+        active_sede_id: user.active_sede_id || '',
       });
       setDetailError(null);
     }
@@ -453,6 +468,7 @@ export default function SystemUsersPage() {
         phone_number: data.phone || '',
         identity_document: data.identity_document || '',
         is_active: data.is_active,
+        active_sede_id: data.active_sede_id || null,
       };
       setSelectedUser(updated);
       setUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
@@ -703,6 +719,20 @@ export default function SystemUsersPage() {
                             <FormField control={detailForm.control} name="identity_document" render={({ field }) => (
                               <FormItem><FormLabel>{t('SystemUsersPage.createDialog.identity_document')}</FormLabel><FormControl><Input placeholder={t('SystemUsersPage.createDialog.identity_document_placeholder')} {...field} /></FormControl><FormMessage /></FormItem>
                             )} />
+                            <FormField control={detailForm.control} name="active_sede_id" render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{t('SystemUsersPage.createDialog.defaultSede')}</FormLabel>
+                                <FormControl>
+                                  <SedeSelector
+                                    value={field.value}
+                                    onValueChange={field.onChange}
+                                    placeholder={t('SystemUsersPage.createDialog.defaultSedePlaceholder')}
+                                    triggerText={t('SystemUsersPage.createDialog.defaultSedePlaceholder')}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )} />
                             <FormField control={detailForm.control} name="is_active" render={({ field }) => (
                               <FormItem className="flex flex-row items-center space-x-3 space-y-0">
                                 <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
@@ -824,6 +854,24 @@ export default function SystemUsersPage() {
                       <FormLabel>{t('SystemUsersPage.createDialog.identity_document')}</FormLabel>
                       <FormControl>
                         <Input placeholder={t('SystemUsersPage.createDialog.identity_document_placeholder')} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="active_sede_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('SystemUsersPage.createDialog.defaultSede')}</FormLabel>
+                      <FormControl>
+                        <SedeSelector
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          placeholder={t('SystemUsersPage.createDialog.defaultSedePlaceholder')}
+                          triggerText={t('SystemUsersPage.createDialog.defaultSedePlaceholder')}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

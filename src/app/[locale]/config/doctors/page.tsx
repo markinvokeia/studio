@@ -23,6 +23,7 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { PhoneInput } from '@/components/ui/phone-input';
+import { SedeSelector } from '@/components/ui/sede-selector';
 import { VerticalTabStrip, VerticalTab } from '@/components/ui/vertical-tab-strip';
 import { DoctorAvailability } from '@/components/users/doctor-availability';
 import { DoctorAvailabilityExceptions } from '@/components/users/doctor-availability-exceptions';
@@ -74,6 +75,7 @@ const doctorFormSchema = (t: (key: string) => string) => z.object({
   is_active: z.boolean().default(false),
   color: z.string().optional(),
   calendar_source_id: z.string().optional(),
+  active_sede_id: z.string().optional(),
 }).refine((data) => {
   const hasEmail = data.email && data.email.trim() !== '';
   const hasPhone = data.phone && data.phone.trim() !== '';
@@ -129,6 +131,7 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyAc
       color: apiUser.color,
       is_sales: apiUser.is_sales,
       calendar_source_id: apiUser.calendar_source_id ? String(apiUser.calendar_source_id) : undefined,
+      active_sede_id: apiUser.active_sede_id != null ? String(apiUser.active_sede_id) : null,
     }));
 
     return { users: mappedUsers, total: total };
@@ -140,7 +143,16 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyAc
 }
 
 async function upsertUser(userData: DoctorFormValues) {
-  const responseData = await api.post(API_ROUTES.USERS_UPSERT, { ...userData, filter_type: 'DOCTOR', is_sales: true });
+  const { active_sede_id, ...rest } = userData;
+  const responseData = await api.post(API_ROUTES.USERS_UPSERT, {
+    ...rest,
+    filter_type: 'DOCTOR',
+    is_sales: true,
+    // Va en el propio upsert y no por `/users/active-sede`: ese endpoint es self-only
+    // (responde/actualiza la sede del usuario del JWT), así que mandarle un user_id ajeno
+    // terminaba cambiándole la sede activa al admin que estaba editando.
+    active_sede_id: active_sede_id ? Number(active_sede_id) : null,
+  });
 
   if (responseData.error && (responseData.error.error || responseData.code > 200)) {
     const error = new Error('API Error') as any;
@@ -310,6 +322,7 @@ export default function DoctorsPage() {
       is_active: true,
       color: '',
       calendar_source_id: '',
+      active_sede_id: '',
     },
   });
 
@@ -323,6 +336,7 @@ export default function DoctorsPage() {
       is_active: true,
       color: '',
       calendar_source_id: '',
+      active_sede_id: '',
     },
   });
 
@@ -384,6 +398,7 @@ export default function DoctorsPage() {
       is_active: true,
       color: '',
       calendar_source_id: '',
+      active_sede_id: '',
     });
     setSubmissionError(null);
     setIsDialogOpen(true);
@@ -407,6 +422,7 @@ export default function DoctorsPage() {
         is_active: user.is_active,
         color: user.color || '',
         calendar_source_id: user.calendar_source_id || '',
+        active_sede_id: user.active_sede_id || '',
       });
       setDetailError(null);
     }
@@ -462,6 +478,7 @@ export default function DoctorsPage() {
         is_active: data.is_active,
         color: data.color || '',
         calendar_source_id: data.calendar_source_id || undefined,
+        active_sede_id: data.active_sede_id || null,
       };
       setSelectedUser(updated);
       setUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
@@ -708,6 +725,20 @@ export default function DoctorsPage() {
                             <FormMessage />
                           </FormItem>
                         )} />
+                        <FormField control={detailForm.control} name="active_sede_id" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t('DoctorsPage.createDialog.defaultSede')}</FormLabel>
+                            <FormControl>
+                              <SedeSelector
+                                value={field.value}
+                                onValueChange={field.onChange}
+                                placeholder={t('DoctorsPage.createDialog.defaultSedePlaceholder')}
+                                triggerText={t('DoctorsPage.createDialog.defaultSedePlaceholder')}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
                         <FormField control={detailForm.control} name="is_active" render={({ field }) => (
                           <FormItem className="flex flex-row items-center space-x-3 space-y-0">
                             <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
@@ -876,6 +907,24 @@ export default function DoctorsPage() {
                           </Command>
                         </PopoverContent>
                       </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="active_sede_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('DoctorsPage.createDialog.defaultSede')}</FormLabel>
+                      <FormControl>
+                        <SedeSelector
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          placeholder={t('DoctorsPage.createDialog.defaultSedePlaceholder')}
+                          triggerText={t('DoctorsPage.createDialog.defaultSedePlaceholder')}
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

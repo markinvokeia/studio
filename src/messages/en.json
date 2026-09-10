@@ -4233,7 +4233,9 @@
       "defaultCalendar": "Default Consultorio",
       "selectCalendar": "Select consultorio...",
       "searchCalendarPlaceholder": "Search consultorio...",
-      "noCalendar": "No default consultorio"
+      "noCalendar": "No default consultorio",
+      "defaultSede": "Default sede",
+      "defaultSedePlaceholder": "Select sede..."
     },
     "filters": {
       "showOnlyActive": "Show only active"
@@ -4532,6 +4534,8 @@
       "phonePlaceholder": "e.g. 123-456-7890",
       "identity_document": "Identity Document",
       "identity_document_placeholder": "e.g. 1234567890",
+      "defaultSede": "Default sede",
+      "defaultSedePlaceholder": "Select sede...",
       "isActive": "Is Active?",
       "save": "Save",
       "cancel": "Cancel",
