@@ -5,6 +5,9 @@ import * as React from 'react';
 import {
   DRAG_AUTO_SCROLL_EDGE_PX,
   DRAG_AUTO_SCROLL_MAX_SPEED_PX,
+  DRAG_EDGE_NAV_DELAY_MS,
+  DRAG_EDGE_NAV_PX,
+  DRAG_EDGE_NAV_REPEAT_MS,
   DRAG_LONG_PRESS_MS,
   DRAG_THRESHOLD_PX,
   DRAG_TOUCH_SLOP_PX,
@@ -53,6 +56,11 @@ export interface UseCalendarDragDropOptions {
   onDragEnd?: () => void;
   /** Contexto de columna del destino, para que la página resuelva la agenda. */
   buildContext?: (target: { groupValue?: string }) => CalendarSlotClickContext | undefined;
+  /** Cambiar de período sin soltar: se llama cuando el puntero se sostiene contra
+   *  el borde izquierdo (-1) o derecho (+1) del contenedor y ya no queda scroll
+   *  horizontal que consumir. Sin esto, mover una cita a otra semana obliga a
+   *  soltarla, navegar y volver a arrastrarla. */
+  onEdgeNavigate?: (direction: -1 | 1) => void;
   threshold?: number;
   /** `null` deshabilita el arrastre táctil (solo mouse). */
   longPressMs?: number | null;
@@ -110,6 +118,7 @@ export function useCalendarDragDrop({
   onDragStart,
   onDragEnd,
   buildContext,
+  onEdgeNavigate,
   threshold = DRAG_THRESHOLD_PX,
   longPressMs = DRAG_LONG_PRESS_MS,
   lockToSourceColumn = false,
@@ -124,6 +133,15 @@ export function useCalendarDragDrop({
   const rafRef = React.useRef<number | null>(null);
   const longPressTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const didDragResetRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Quién tiene la captura del puntero. Empieza en la card y se muda al contenedor
+   *  en cuanto el gesto cambia de período, porque ahí la card se desmonta. */
+  const captureTargetRef = React.useRef<HTMLElement | null>(null);
+  /** Permanencia contra un borde: hacia qué lado, desde cuándo y cuándo saltó por
+   *  última vez. `dir: 0` es "el puntero no está en ninguna banda". */
+  const edgeNavRef = React.useRef<{ dir: -1 | 0 | 1; enteredAt: number; firedAt: number }>({ dir: 0, enteredAt: 0, firedAt: 0 });
+  /** `scrollLeft` del frame anterior: si no se movió, el auto-scroll ya no tiene
+   *  hacia dónde seguir y el borde pasa a significar "cambiar de período". */
+  const edgeScrollRef = React.useRef(0);
   /** Última resolución válida, que es la que se commitea al soltar. */
   const lastResolvedRef = React.useRef<{
     target: { dayKey: string; groupValue?: string };
@@ -138,9 +156,9 @@ export function useCalendarDragDrop({
   // no en el cuerpo del render: escribir un ref durante el render es justamente lo
   // que la regla `react-hooks/refs` señala. Todos sus lectores (event handlers y
   // rAF) corren después de que los efectos se aplicaron.
-  const optsRef = React.useRef({ resolve, canDrag, onCommit, onDragStart, onDragEnd, buildContext, lockToSourceColumn, horizontalAutoScroll, enabled });
+  const optsRef = React.useRef({ resolve, canDrag, onCommit, onDragStart, onDragEnd, buildContext, onEdgeNavigate, lockToSourceColumn, horizontalAutoScroll, enabled });
   React.useEffect(() => {
-    optsRef.current = { resolve, canDrag, onCommit, onDragStart, onDragEnd, buildContext, lockToSourceColumn, horizontalAutoScroll, enabled };
+    optsRef.current = { resolve, canDrag, onCommit, onDragStart, onDragEnd, buildContext, onEdgeNavigate, lockToSourceColumn, horizontalAutoScroll, enabled };
   });
 
   // ── Store del preview ────────────────────────────────────────────────────
@@ -208,6 +226,126 @@ export function useCalendarDragDrop({
     }
   }, []);
 
+  // ── Pista visual del borde ───────────────────────────────────────────────
+  /**
+   * El resplandor que avisa "sostené acá y cambio de período" vive en `body`, no en
+   * el contenedor del calendario.
+   *
+   * Sobre el contenedor no se puede: un `box-shadow: inset` lo tapan los fondos
+   * opacos de las columnas (`.day-block`), y cualquier hijo absoluto se iría con el
+   * scroll. Desde `body` es un `position: fixed` que se pinta sobre todo; la
+   * geometría del contenedor viaja en variables CSS, que se escriben solo al armar
+   * el borde —dos o tres veces por arrastre—, no por frame.
+   */
+  const showEdgeHint = React.useCallback((dir: -1 | 1, r: DOMRect) => {
+    const { style } = document.body;
+    style.setProperty('--calendar-edge-nav-top', `${r.top}px`);
+    style.setProperty('--calendar-edge-nav-height', `${r.height}px`);
+    style.setProperty('--calendar-edge-nav-x', `${dir === -1 ? r.left : r.right}px`);
+    document.body.dataset.calendarDragEdge = dir === -1 ? 'left' : 'right';
+  }, []);
+
+  const hideEdgeHint = React.useCallback(() => {
+    delete document.body.dataset.calendarDragEdge;
+    const { style } = document.body;
+    style.removeProperty('--calendar-edge-nav-top');
+    style.removeProperty('--calendar-edge-nav-height');
+    style.removeProperty('--calendar-edge-nav-x');
+  }, []);
+
+  // ── Cambio de período por borde ──────────────────────────────────────────
+  /**
+   * Sostener el arrastre contra el borde izquierdo o derecho pasa al período
+   * anterior/siguiente sin soltar la cita.
+   *
+   * El borde solo navega una vez agotado el scroll horizontal de la vista: en una
+   * semana más ancha que la pantalla, empujar a la derecha primero termina de
+   * mostrarla —eso lo hace `autoScrollStep`— y recién cuando no queda nada que
+   * correr el mismo gesto pasa a la semana siguiente. Así el borde nunca le roba
+   * el destino a una columna que todavía no se había llegado a ver.
+   */
+  const edgeNavigationStep = React.useCallback((
+    el: HTMLElement,
+    p: { x: number; y: number },
+    gesture: CalendarDragGesture,
+  ) => {
+    const navigate = optsRef.current.onEdgeNavigate;
+    // Un resize mueve un borde dentro de su propio día; cambiarle el período
+    // debajo dejaría el gesto sin la columna a la que se aplica.
+    if (!navigate || gesture.mode !== 'move') return;
+
+    const r = el.getBoundingClientRect();
+    // Se admite que el puntero se pase de largo del contenedor (arrastrando se
+    // sobrepasa siempre), pero no que se vaya por arriba o por abajo: ahí ya está
+    // en la cabecera o fuera del calendario y no está pidiendo cambiar de semana.
+    const withinBand =
+      p.y >= r.top && p.y <= r.bottom &&
+      p.x > r.left - DRAG_EDGE_NAV_PX * 2 && p.x < r.right + DRAG_EDGE_NAV_PX * 2;
+
+    // "Ya no queda scroll" se mide por el hecho, no por la cuenta: `scrollWidth -
+    // clientWidth` sobra hasta el ancho de la barra vertical (medido: 951 contra un
+    // tope real de 936), así que comparar contra ese número dejaba el borde armado
+    // para siempre en "todavía queda semana". Como esta banda (28 px) está dentro de
+    // la del auto-scroll (48 px), si el contenedor no se corrió en el frame anterior
+    // es porque no tiene hacia dónde.
+    const scrollLeft = el.scrollLeft;
+    const stalled = Math.abs(scrollLeft - edgeScrollRef.current) < 0.5;
+    edgeScrollRef.current = scrollLeft;
+
+    let dir: -1 | 0 | 1 = 0;
+    if (withinBand && stalled) {
+      if (p.x < r.left + DRAG_EDGE_NAV_PX) dir = -1;
+      else if (p.x > r.right - DRAG_EDGE_NAV_PX) dir = 1;
+    }
+
+    const state = edgeNavRef.current;
+    if (dir === 0) {
+      if (state.dir !== 0) {
+        edgeNavRef.current = { dir: 0, enteredAt: 0, firedAt: 0 };
+        hideEdgeHint();
+      }
+      return;
+    }
+
+    const now = performance.now();
+    if (dir !== state.dir) {
+      // Recién entra en la banda: arranca la espera y se prende la pista visual.
+      edgeNavRef.current = { dir, enteredAt: now, firedAt: 0 };
+      showEdgeHint(dir, r);
+      return;
+    }
+
+    const since = state.firedAt || state.enteredAt;
+    const wait = state.firedAt ? DRAG_EDGE_NAV_REPEAT_MS : DRAG_EDGE_NAV_DELAY_MS;
+    if (now - since < wait) return;
+    state.firedAt = now;
+
+    // Al cambiar el período, el día de origen sale de la vista y React desmonta la
+    // card: con la captura del puntero en un nodo desmontado el gesto se corta a la
+    // mitad. Se muda al `body`, que es el único nodo que sobrevive con seguridad a
+    // cualquier vista — en el mes, un refetch llega a remontar la grilla entera.
+    const persistentCapture = document.body;
+    if (captureTargetRef.current !== persistentCapture) {
+      try { captureTargetRef.current?.releasePointerCapture(gesture.pointerId); } catch { /* ya liberado */ }
+      try { persistentCapture.setPointerCapture(gesture.pointerId); captureTargetRef.current = persistentCapture; } catch { /* sin captura, seguimos */ }
+    }
+    // El destino que había quedado apuntaba a un día que ya no está en pantalla.
+    // Se descarta: si el usuario suelta justo acá —fuera de toda columna, que es de
+    // donde no se resuelve nada— el arrastre no hace nada, en vez de mandar la cita
+    // a un día del período que se acaba de dejar atrás. En cuanto el puntero vuelva
+    // a caer sobre una columna, el propio loop lo repuebla en el frame siguiente.
+    lastResolvedRef.current = null;
+    publishPreview(null);
+    navigate(dir);
+    // Se entra al período nuevo por el lado contrario al que se salió: cruzando
+    // por la derecha se aterriza en sus primeros días, no otra vez en los últimos.
+    // En vistas más anchas que la pantalla el auto-scroll horizontal retoma desde
+    // ahí, así que sostener el puntero contra el borde recorre la línea de tiempo
+    // de corrido —pasa el resto de la semana y recién después salta a la siguiente—
+    // en lugar de saltar de período en período cada 900 ms.
+    el.scrollLeft = dir === 1 ? 0 : Math.max(0, el.scrollWidth - el.clientWidth);
+  }, [hideEdgeHint, publishPreview, showEdgeHint]);
+
   // ── Limpieza ─────────────────────────────────────────────────────────────
   const cleanup = React.useCallback((didDrag: boolean) => {
     if (rafRef.current !== null) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
@@ -215,15 +353,22 @@ export function useCalendarDragDrop({
 
     const gesture = gestureRef.current;
     if (gesture) {
-      try { gesture.element.releasePointerCapture(gesture.pointerId); } catch { /* ya liberado */ }
+      // La captura pudo haberse mudado al contenedor al cambiar de período, así que
+      // se libera desde donde esté y no desde la card (que para entonces puede estar
+      // desmontada). Lo demás sobre un nodo suelto es inofensivo.
+      try { (captureTargetRef.current ?? gesture.element).releasePointerCapture(gesture.pointerId); } catch { /* ya liberado */ }
       delete gesture.element.dataset.dragging;
       gesture.element.style.touchAction = '';
     }
+    captureTargetRef.current = null;
+    edgeNavRef.current = { dir: 0, enteredAt: 0, firedAt: 0 };
+    edgeScrollRef.current = 0;
     const scroller = scrollRef.current;
     if (scroller) {
       scroller.classList.remove('calendar-dragging');
       scroller.removeAttribute('data-drag-invalid');
     }
+    hideEdgeHint();
     document.body.style.userSelect = '';
 
     gestureRef.current = null;
@@ -242,7 +387,7 @@ export function useCalendarDragDrop({
         didDragResetRef.current = null;
       }, 0);
     }
-  }, [publishPreview, scrollRef]);
+  }, [hideEdgeHint, publishPreview, scrollRef]);
 
   // ── Confirmación del arrastre ────────────────────────────────────────────
   const beginDrag = React.useCallback(() => {
@@ -250,7 +395,7 @@ export function useCalendarDragDrop({
     if (!gesture || dragStateRef.current.phase !== 'pending') return;
     dragStateRef.current = { phase: 'dragging', didDrag: true };
 
-    try { gesture.element.setPointerCapture(gesture.pointerId); } catch { /* sin captura, seguimos */ }
+    try { gesture.element.setPointerCapture(gesture.pointerId); captureTargetRef.current = gesture.element; } catch { /* sin captura, seguimos */ }
     gesture.element.dataset.dragging = 'true';
     // Recién acá: puesto en el pointerdown mataría el scroll táctil que empieza
     // sobre una card, que en un día ocupado es casi toda la columna.
@@ -263,7 +408,10 @@ export function useCalendarDragDrop({
     const tick = () => {
       if (dragStateRef.current.phase !== 'dragging') return;
       const scroller = scrollRef.current;
-      if (scroller) autoScrollStep(scroller, pointerRef.current);
+      if (scroller) {
+        autoScrollStep(scroller, pointerRef.current);
+        edgeNavigationStep(scroller, pointerRef.current, gesture);
+      }
 
       // Se re-resuelve en cada frame y no solo en pointermove: con el puntero
       // quieto en el borde, el auto-scroll mueve el contenido debajo y el slot
@@ -299,7 +447,7 @@ export function useCalendarDragDrop({
       rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
-  }, [autoScrollStep, publishPreview, scrollRef]);
+  }, [autoScrollStep, edgeNavigationStep, publishPreview, scrollRef]);
 
   // ── Listeners globales del gesto ─────────────────────────────────────────
   React.useEffect(() => {

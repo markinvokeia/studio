@@ -1152,6 +1152,45 @@
   cursor: not-allowed;
 }
 
+/* Borde "armado": el puntero se está sosteniendo contra el costado y, si sigue ahí,
+   la vista pasa al período anterior/siguiente sin soltar la cita. El latido dice que
+   hay una espera en curso, no un estado final.
+
+   Cuelga de `body` y va `fixed` porque las dos alternativas fallan: un
+   `box-shadow: inset` en el contenedor lo tapan los fondos opacos de las columnas
+   (`.day-block`), y un hijo absoluto se iría con el scroll. El hook escribe la
+   geometría del contenedor en estas variables al armar el borde. */
+body[data-calendar-drag-edge]::after {
+  content: '';
+  position: fixed;
+  top: var(--calendar-edge-nav-top, 0);
+  height: var(--calendar-edge-nav-height, 0);
+  left: var(--calendar-edge-nav-x, 0);
+  width: 64px;
+  box-sizing: border-box;
+  pointer-events: none;
+  z-index: 60;
+  animation: calendar-edge-nav-pulse 750ms ease-in-out infinite;
+}
+
+body[data-calendar-drag-edge='left']::after {
+  border-left: 3px solid hsl(var(--primary));
+  background: linear-gradient(to right, hsl(var(--primary) / 0.7), hsl(var(--primary) / 0.25) 45%, transparent);
+}
+
+/* El borde derecho se ancla en `right`, así que la banda se corre su propio ancho
+   hacia adentro para quedar del lado visible. */
+body[data-calendar-drag-edge='right']::after {
+  transform: translateX(-100%);
+  border-right: 3px solid hsl(var(--primary));
+  background: linear-gradient(to left, hsl(var(--primary) / 0.7), hsl(var(--primary) / 0.25) 45%, transparent);
+}
+
+@keyframes calendar-edge-nav-pulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
 /* Además de matar el hover, deja que `elementFromPoint` devuelva la columna (o la
    celda del mes) y no la card que va bajo el cursor: es lo que permite el hit-test
    de un solo paso. */
@@ -1260,6 +1299,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .event-in-day-view[data-dragging='true'] { opacity: 0.5; }
+  body[data-calendar-drag-edge]::after { animation: none; opacity: 0.8; }
 }
 
 /* ── Vista de mes ──────────────────────────────────────────────────────────

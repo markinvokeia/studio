@@ -31,6 +31,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { Appointment, Calendar as CalendarType, PatientSession, Quote, QuoteItem, Service, TreatmentSequence, TreatmentSequenceStepStatus, User as UserType } from '@/lib/types';
 import { cn, formatDisplayDate, toLocalISOString } from '@/lib/utils';
+import { getOwnAppointmentColor } from '@/lib/appointment-color';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/services/api';
 import { markLocallyCreated } from '@/hooks/use-appointment-status';
@@ -851,6 +852,9 @@ export function AppointmentFormDialog({
             payload.notes = notes || editingAppointment!.notes || '';
             payload.calendar_source_id = calendar?.id ? String(calendar.id) : originalCalendarId;
             payload.quote_id = appointment.quote?.id || editingAppointment?.quote_id || null;
+            // Este formulario no tiene selector de color, así que guardar desde acá no
+            // puede significar "sacale el color": se reenvía el que la cita ya tenía.
+            payload.color = getOwnAppointmentColor(editingAppointment);
         } else {
             payload.doctor_id = doctor?.id || '';
             payload.doctor_name = doctor?.name || '';

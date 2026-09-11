@@ -33,6 +33,9 @@ interface CalendarMonthViewProps {
   enableEventDrag?: boolean;
   canDragEvent?: (event: CalendarEvent, mode: CalendarDragMode) => boolean;
   onEventDrop?: CalendarEventDropHandler;
+  /** Pasar al mes anterior (-1) o siguiente (+1) sin cortar el arrastre, cuando el
+   *  puntero se sostiene contra el borde izquierdo o derecho de la grilla. */
+  onNavigatePeriod?: (direction: -1 | 1) => void;
 }
 
 export function CalendarMonthView({
@@ -52,6 +55,7 @@ export function CalendarMonthView({
   enableEventDrag = false,
   canDragEvent,
   onEventDrop,
+  onNavigatePeriod,
 }: CalendarMonthViewProps) {
   // ── Arrastre de fecha ───────────────────────────────────────────────────
   // En el mes no hay eje de horas: mover conserva la hora del día y la duración,
@@ -81,14 +85,30 @@ export function CalendarMonthView({
     onEventDrop?.(result);
   }, [onEventDrop]);
 
+  // Un arrastre en curso tiene que poder sobrevivir al refetch que dispara cambiar
+  // de mes, y para eso la grilla no puede desaparecer debajo del gesto (ver el
+  // esqueleto de carga más abajo). Es el único motivo por el que el arrastre asoma
+  // como estado: un re-render al empezar y otro al terminar.
+  const [isDraggingEvent, setIsDraggingEvent] = React.useState(false);
+  const handleDragStart = React.useCallback(() => setIsDraggingEvent(true), []);
+  const handleDragEnd = React.useCallback(() => setIsDraggingEvent(false), []);
+
   const { onDragPointerDown, dragStateRef, store: dragStore, isDraggable } = useCalendarDragDrop({
     enabled: enableEventDrag && !!onEventDrop,
     scrollRef: gridRef,
     resolve: resolveDrag,
     canDrag: canDragEvent,
     onCommit: handleDragCommit,
+    onDragStart: handleDragStart,
+    onDragEnd: handleDragEnd,
     cardSelector: '.event',
     containerSelector: '.calendar-day',
+    // Sostener el arrastre contra un costado pasa al mes anterior/siguiente. Acá no
+    // hay scroll horizontal que agotar primero —el mes entra entero—, así que el
+    // borde queda armado apenas se entra en la banda y manda la espera de
+    // `DRAG_EDGE_NAV_DELAY_MS`: rozar la primera o la última columna de camino a una
+    // celda no cambia de mes.
+    onEdgeNavigate: onNavigatePeriod,
   });
 
   // El destino se resalta por estado y no imperativamente: el snapshot solo cambia
@@ -212,7 +232,10 @@ export function CalendarMonthView({
     return dayElements;
   };
 
-  if (isLoading) {
+  // El esqueleto es para la carga inicial. Cambiar de mes sin soltar la cita también
+  // dispara un refetch, y ahí tapar la grilla dejaría el gesto sin celdas con
+  // `data-day`: sin destino que resolver, sin resalte y sin nada donde soltar.
+  if (isLoading && !isDraggingEvent) {
     const skeletonDays = Array.from({ length: 42 }).map((_, i) => (
       <div key={`skel-${i}`} className="calendar-day">
         <Skeleton className="h-4 w-6 mb-2" />

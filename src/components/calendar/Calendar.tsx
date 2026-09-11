@@ -296,6 +296,14 @@ const Calendar: React.FC<CalendarProps> = ({
     [enableEventDrag, canDragEvent, onEventDrop, onEventResize],
   );
 
+  // Cambio de período mientras se arrastra (borde izquierdo/derecho de la rejilla).
+  // Reusa la misma navegación que las flechas de la cabecera, así que el rango que
+  // se pide al backend y el título se actualizan igual que con un clic.
+  const handleDragEdgeNavigate = React.useCallback((direction: -1 | 1) => {
+    if (direction < 0) handlePrev();
+    else handleNext();
+  }, [handlePrev, handleNext]);
+
   const renderView = () => {
     switch (effectiveView) {
       case 'day':
@@ -355,6 +363,7 @@ const Calendar: React.FC<CalendarProps> = ({
               showTimeColumn={showTimeColumn}
               onToggleTimeColumn={handleToggleTimeColumn}
               hideTimeGutter={hideTimeGutter}
+              onNavigatePeriod={handleDragEdgeNavigate}
               {...eventHandlers}
               {...gapProps}
               {...blockProps}
@@ -440,6 +449,7 @@ const Calendar: React.FC<CalendarProps> = ({
             enableEventDrag={enableEventDrag}
             canDragEvent={canDragEvent}
             onEventDrop={onEventDrop}
+            onNavigatePeriod={handleDragEdgeNavigate}
           />
         );
     }

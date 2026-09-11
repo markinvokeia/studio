@@ -3432,14 +3432,17 @@ export default function AppointmentsPage() {
                     // en una franja lateral. Heredar el color del doctor o del consultorio no
                     // lo es, así que esas citas sí se pintan enteras. `appt.color` queda
                     // intacto en los dos casos para el selector de color y el panel de detalle.
-                    // Programada y No asistió (STATUS_FORCED_CALENDAR_COLOR) son la excepción:
-                    // pintan la card entera siempre, le ganen a la preferencia o al color que
-                    // haya elegido alguien, porque son los estados que hay que ver de un
-                    // vistazo. Desde confirmada en adelante vuelve a mandar el color de la cita.
+                    // Programada y No asistió (STATUS_FORCED_CALENDAR_COLOR) pintan la card
+                    // entera aunque la preferencia esté apagada o el color venga del servicio,
+                    // del doctor o del consultorio, porque son los estados que hay que ver de
+                    // un vistazo. La única excepción es la etiqueta de color elegida a mano
+                    // sobre la cita: eso gana siempre y se ve al instante, sin esperar a que
+                    // la cita pase al siguiente estado; el estado queda en la franja lateral.
                     const status = normalizeAppointmentStatus(appt.status);
                     const forcesStatus = STATUS_FORCED_CALENDAR_COLOR.includes(status);
                     const showsStatus = forcesStatus || colorByStatus;
-                    const keepsOwnColor = !forcesStatus && (appt.colorSource === 'appointment' || appt.colorSource === 'service');
+                    const hasOwnColorTag = appt.colorSource === 'appointment' && Boolean(appt.color);
+                    const keepsOwnColor = hasOwnColorTag || (!forcesStatus && appt.colorSource === 'service');
                     const statusColored = showsStatus && !keepsOwnColor;
                     return {
                         id: String(appt.id),

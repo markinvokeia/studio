@@ -111,6 +111,23 @@ export const DRAG_AUTO_SCROLL_EDGE_PX = 48;
 /** Velocidad máxima del auto-scroll, en px por frame. */
 export const DRAG_AUTO_SCROLL_MAX_SPEED_PX = 18;
 
+/** Banda de los bordes izquierdo/derecho del contenedor donde un arrastre deja de
+ *  scrollear y pasa a cambiar de período (día o semana anterior/siguiente).
+ *
+ *  Más angosta que la del auto-scroll a propósito: la primera y la última columna
+ *  del período son destinos legítimos, así que soltar cerca del borde tiene que
+ *  seguir siendo posible sin que la vista se escape. */
+export const DRAG_EDGE_NAV_PX = 28;
+
+/** Cuánto hay que sostener el puntero en esa banda antes del primer salto de
+ *  período. Es lo que separa "pasé raspando el borde" de "quiero ir a la semana
+ *  que viene". */
+export const DRAG_EDGE_NAV_DELAY_MS = 550;
+
+/** Cadencia de los saltos siguientes mientras el puntero se queda en la banda:
+ *  permite encadenar varias semanas sin soltar, dejando ver cada una al pasar. */
+export const DRAG_EDGE_NAV_REPEAT_MS = 900;
+
 /** z-index del fantasma. Local a `.day-column-content`, que aísla su contexto de
  *  apilamiento, así que solo compite con las cards de su propia columna. */
 export const DRAG_GHOST_Z_INDEX = EVENT_STACK_BASE_Z_INDEX + EVENT_STACK_MAX_Z_BOOST + 1;

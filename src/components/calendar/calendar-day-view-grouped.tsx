@@ -70,6 +70,9 @@ interface CalendarDayViewGroupedProps {
   canDragEvent?: (event: CalendarEvent, mode: CalendarDragMode) => boolean;
   onEventDrop?: CalendarEventDropHandler;
   onEventResize?: CalendarEventDropHandler;
+  /** Pasar al período anterior (-1) o siguiente (+1) sin cortar el arrastre, cuando
+   *  el puntero se sostiene contra el borde izquierdo o derecho de la rejilla. */
+  onNavigatePeriod?: (direction: -1 | 1) => void;
 }
 
 export function CalendarDayViewGrouped({
@@ -103,6 +106,7 @@ export function CalendarDayViewGrouped({
   canDragEvent,
   onEventDrop,
   onEventResize,
+  onNavigatePeriod,
 }: CalendarDayViewGroupedProps) {
   const t = useTranslations('Calendar');
   const startDay = view === 'week'
@@ -245,6 +249,9 @@ export function CalendarDayViewGrouped({
     onDragEnd: handleDragEnd,
     buildContext: buildDragContext,
     horizontalAutoScroll: true,
+    // Arrastrar contra el borde y sostener pasa al día/semana de al lado: mover una
+    // cita a la semana que viene no obliga a soltarla, navegar y volver a agarrarla.
+    onEdgeNavigate: onNavigatePeriod,
     // Táctil en desktop/tablet grande: el carrusel de la vista móvil no está en
     // juego acá, así que alcanza con el hold + movimiento del hook.
   });

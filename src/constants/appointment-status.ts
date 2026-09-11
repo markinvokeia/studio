@@ -65,12 +65,16 @@ export const STATUS_ACCENT_COLOR: Record<AppointmentStatus, string> = {
 };
 
 /**
- * Estados que pintan la cita entera con su STATUS_ACCENT_COLOR siempre, sin
- * importar la preferencia "colorear por estado" ni el color propio, de servicio,
- * de doctor o de consultorio: son los dos estados que hay que reconocer de un
- * vistazo. 'Programada' (sin confirmar) va en lila y 'No asistió' en gris; recién
- * al confirmarse la cita vuelve a tomar el color de la clínica con su orden
- * habitual (propio > servicio > doctor > consultorio).
+ * Estados que pintan la cita entera con su STATUS_ACCENT_COLOR sin importar la
+ * preferencia "colorear por estado" ni el color de servicio, de doctor o de
+ * consultorio: son los dos estados que hay que reconocer de un vistazo.
+ * 'Programada' (sin confirmar) va en lila y 'No asistió' en gris; al confirmarse
+ * la cita vuelve a tomar el color de la clínica con su orden habitual
+ * (propio > servicio > doctor > consultorio).
+ *
+ * Excepción: si alguien le asignó a mano una etiqueta de color a la cita, ese
+ * color manda igual y el estado pasa a la franja lateral — el cambio de color
+ * tiene que verse en el momento, no recién al avanzar de estado.
  *
  * El resto de los estados sí dependen de la preferencia: muestran su color como
  * franja lateral si la cita tiene color propio o de servicio, o pintando toda la
