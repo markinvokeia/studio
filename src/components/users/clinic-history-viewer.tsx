@@ -48,11 +48,13 @@ import { API_ROUTES } from '@/constants/routes';
 import { normalizeAppointmentStatus, normalizeCancellationReason, STATUS_BADGE_VARIANT } from '@/constants/appointment-status';
 import { getStatusIcon } from '@/components/appointments/status-icons';
 import { useAppointmentStatus } from '@/hooks/use-appointment-status';
+import { AppointmentStatusMenu } from '@/components/appointments/AppointmentStatusMenu';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { usePermissions } from '@/hooks/usePermissions';
-import { CLINICAL_HISTORY_PERMISSIONS } from '@/constants/permissions';
+import { useReadOnly } from '@/components/patient-portal/read-only-context';
+import { BUSINESS_CONFIG_PERMISSIONS, CLINICAL_HISTORY_PERMISSIONS } from '@/constants/permissions';
 import { AllergyItem, ClinicDocument, FamilyHistoryItem, MedicationCatalogItem, MedicationItem, PatientHabits as PatientHabitsType, PersonalHistoryItem, SessionAttachmentDocument, useClinicHistory } from '@/hooks/useClinicHistory';
 import { Appointment, AppointmentStatus, Calendar, CancellationReason, PatientSession, SessionPrefillData } from '@/lib/types';
 import { cn, formatDisplayDateWithWeekday } from '@/lib/utils';
@@ -1839,6 +1841,17 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
     const { printClinicHistory } = usePrintDocument();
     const { hasPermission } = usePermissions();
     const canPrintHistory = hasPermission(CLINICAL_HISTORY_PERMISSIONS.ANAMNESIS_VIEW);
+    // Mismo gate que usa AppointmentPanel para habilitar el cambio de estado.
+    const canUpdateAppointment = hasPermission(BUSINESS_CONFIG_PERMISSIONS.APPOINTMENT_UPDATE);
+    // En el portal del paciente (/my-profile) la línea de tiempo es solo de lectura.
+    const isPortalReadOnly = useReadOnly();
+    /**
+     * Quién puede cambiar el estado de una cita desde la línea de tiempo.
+     * A propósito NO se mira `readOnly`: eso significa "no puede escribir en la
+     * historia clínica", que es otra cosa — la recepcionista no tiene permisos
+     * clínicos y necesita poder mover el estado de la cita igual.
+     */
+    const canChangeApptStatus = canUpdateAppointment && !isPortalReadOnly;
     const [isPrintingHistory, setIsPrintingHistory] = React.useState(false);
 
     const handlePrintHistory = React.useCallback(async () => {
@@ -1901,10 +1914,10 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
 
     const handleApptStatusChange = React.useCallback(
         (appt: Appointment, newStatus: AppointmentStatus, extra?: { cancellation_reason?: CancellationReason; cancellation_note?: string }) => {
-            if (readOnly) return;
+            if (!canChangeApptStatus) return;
             updateStatus({ appointment: appt, newStatus, ...extra });
         },
-        [readOnly, updateStatus],
+        [canChangeApptStatus, updateStatus],
     );
 
     const openApptPanel = React.useCallback(async (appt: Appointment) => {
@@ -2447,6 +2460,16 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                         : tStatus(appt.status)}
                                                 </Badge>
                                             );
+                                            // El badge de estado abre el mismo menú de estados que la tabla de
+                                            // citas y el panel lateral; sin permiso queda el badge plano.
+                                            const apptStatusControl = canChangeApptStatus ? (
+                                                <AppointmentStatusMenu
+                                                    appointment={appt}
+                                                    onChange={(newStatus, extra) => handleApptStatusChange(appt, newStatus, extra)}
+                                                    onRequestCustomCancellation={() => setPendingCancellation(appt)}
+                                                    className="self-start shrink-0"
+                                                />
+                                            ) : apptStatusBadge;
                                             const apptTypeBadge = (
                                                 <Badge variant="secondary" className={cn('text-xs px-1.5 py-0 leading-relaxed', isFuture ? 'bg-violet-100 text-violet-700 dark:bg-violet-950/40 dark:text-violet-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400')}>
                                                     {t('sessionTypeAppointment')}
@@ -2573,7 +2596,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                             </p>
                                                         </div>
                                                         <div className="flex items-center gap-1 shrink-0">
-                                                            {apptStatusBadge}
+                                                            {apptStatusControl}
                                                             {/* Editar la cita (fecha, hora, agenda, doctor, tratamientos) en la
                                                                 tarjeta inline. El gate vive en el consumidor: sin el permiso
                                                                 correspondiente no pasa el handler y el botón no existe, así queda
