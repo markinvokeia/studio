@@ -3599,6 +3599,15 @@ export default function AppointmentsPage() {
         return exceptionsBySede.get(key) ?? filterExceptionsForSede(clinicExceptions, key || undefined);
     }, [exceptionsBySede, clinicExceptions]);
 
+    // Horarios de una sede concreta; las filas sin sede son de toda la clínica.
+    // Sin sede se cae a `effectiveSchedules` (la sede por defecto, con su resguardo
+    // de "no filtres hasta vaciar"), que es lo que corresponde a las columnas que no
+    // tienen sucursal propia: las de doctor y la línea de tiempo sin agrupar.
+    const schedulesForSede = React.useCallback((sedeId?: string): ClinicSchedule[] => {
+        if (!sedeId) return effectiveSchedules;
+        return clinicSchedules.filter((s) => !s.sede_id || String(s.sede_id) === String(sedeId));
+    }, [clinicSchedules, effectiveSchedules]);
+
     // Visible days for the blocking overlay (independent of the Huecos toggle).
     const blockVisibleDays = React.useMemo(() => {
         if (!blockUnavailable || !fetchRange?.start || !fetchRange?.end) return [];
@@ -3632,9 +3641,7 @@ export default function AppointmentsPage() {
         if (isGroupingView && effGroupBy === 'calendar') {
             const calendarRanges = calendars.flatMap((cal) => {
                 const sedeId = cal.sede_id ? String(cal.sede_id) : '';
-                const sched = sedeId
-                    ? clinicSchedules.filter((s) => !s.sede_id || String(s.sede_id) === sedeId)
-                    : effectiveSchedules;
+                const sched = schedulesForSede(sedeId);
                 const exc = sedeId ? exceptionsForSede(sedeId) : clinicWideExceptions;
                 return blockVisibleDays.flatMap((day) => tagDay(day, sched, exc, String(cal.id)));
             });
@@ -3658,7 +3665,7 @@ export default function AppointmentsPage() {
         }
         // Non-grouped: a single clinic-wide timeline.
         return blockVisibleDays.flatMap((day) => tagDay(day, effectiveSchedules, clinicWideExceptions, undefined));
-    }, [blockUnavailable, blockingConfigured, currentView, groupBy, calendarMode, blockVisibleDays, effectiveSchedules, clinicSchedules, exceptionsForSede, timelineSede, calendars, doctors, hasVisibleCalendarItems, hasVisibleUnassignedItems]);
+    }, [blockUnavailable, blockingConfigured, currentView, groupBy, calendarMode, blockVisibleDays, effectiveSchedules, schedulesForSede, exceptionsForSede, timelineSede, calendars, doctors, hasVisibleCalendarItems, hasVisibleUnassignedItems]);
 
     const blockedFullDays = React.useMemo<Set<string>>(() => {
         if (!blockUnavailable || !blockingConfigured) return new Set();
@@ -3920,15 +3927,40 @@ export default function AppointmentsPage() {
         return calendarEvents.filter((e) => (e as { calendarGroupId?: string }).calendarGroupId === personalizedCalendarId);
     }, [isCustomMode, personalizedCalendarId, calendarEvents]);
 
+    /**
+     * Lo que realmente ocupa la agenda a efectos de "Buscar huecos".
+     *
+     * Quedan afuera las notas y los recordatorios —son apuntes del equipo, no
+     * tiempo reservado con un paciente— y las citas canceladas, que liberan su
+     * horario. La grilla los sigue dibujando igual: esto solo decide contra qué se
+     * calcula el tiempo libre.
+     */
+    const gapBusyEvents = React.useMemo<CalendarEvent[]>(
+        () => calendarEvents.filter((ev) => {
+            const data = ev.data as { kind?: string; status?: unknown } | undefined;
+            if (!data || data.kind === 'reminder') return false;
+            return normalizeAppointmentStatus(data.status) !== 'cancelled';
+        }),
+        [calendarEvents],
+    );
+
     const calendarGaps = React.useMemo<Gap[]>(() => {
         if (!gapsActive) return [];
-        // When blocking is on, restrict gaps to the available intervals (split shifts
-        // + exceptions); otherwise keep the original single-window behavior.
-        const useIntervals = blockUnavailable && blockingConfigured;
+        // Los huecos SIEMPRE se recortan contra el horario de la sede y sus
+        // excepciones, esté encendida o no la preferencia de "bloquear no
+        // disponible": esa preferencia decide si se pintan las bandas grises, no si
+        // se puede ofrecer un horario en el que la sede no atiende. Sin horarios
+        // cargados no hay contra qué contrastar y se cae a la ventana por defecto.
+        const useIntervals = blockingConfigured;
         const clinicWideExceptions = exceptionsForSede(timelineSede);
-        const dayGapsFor = (evts: CalendarEvent[], day: Date, exc: ClinicException[] = clinicWideExceptions): Gap[] =>
+        const dayGapsFor = (
+            evts: CalendarEvent[],
+            day: Date,
+            exc: ClinicException[] = clinicWideExceptions,
+            sched: ClinicSchedule[] = effectiveSchedules,
+        ): Gap[] =>
             useIntervals
-                ? computeDayGapsForIntervals(evts, day, DEFAULT_MIN_GAP_MINUTES, getAvailableIntervals(day, effectiveSchedules, exc))
+                ? computeDayGapsForIntervals(evts, day, DEFAULT_MIN_GAP_MINUTES, getAvailableIntervals(day, sched, exc))
                 : computeDayGaps(evts, day, DEFAULT_MIN_GAP_MINUTES, getBusinessWindow(day, clinicSchedules));
         // Grouped (by doctor/consultorio): free slots PER column, so a consultorio's
         // continuous free time merges across hours regardless of other columns.
@@ -3938,22 +3970,25 @@ export default function AppointmentsPage() {
         // gets gaps tagged with the shown agenda's column value.
         if (isGroupingView && effectiveGroupBy !== 'none' && effectiveGroupingColumns.length > 0) {
             return effectiveGroupingColumns.flatMap((col) => {
-                // Per-consultorio columns know their branch, so a holiday of another
-                // sede must not carve fake gaps out of their day.
+                // Cada columna de consultorio conoce su sucursal, así que se le aplican
+                // SUS horarios y SUS feriados: los de otra sede no pueden ni tallarle
+                // huecos falsos ni ofrecerle un día que en su sede está cerrado.
                 const cal = effectiveGroupBy === 'calendar' ? calendars.find((c) => String(c.id) === String(col.value)) : undefined;
-                const exc = cal?.sede_id ? exceptionsForSede(String(cal.sede_id)) : clinicWideExceptions;
+                const sedeId = cal?.sede_id ? String(cal.sede_id) : '';
+                const exc = sedeId ? exceptionsForSede(sedeId) : clinicWideExceptions;
+                const sched = schedulesForSede(sedeId);
                 return gapVisibleDays.flatMap((day) =>
-                    dayGapsFor(filterEventsByDayAndGroup(calendarEvents, day, effectiveGroupBy, col.value), day, exc)
+                    dayGapsFor(filterEventsByDayAndGroup(gapBusyEvents, day, effectiveGroupBy, col.value), day, exc, sched)
                         .map((g) => ({ ...g, groupValue: col.value, groupLabel: col.label })),
                 );
             });
         }
         // Non-grouped: a single timeline (union of all visible events).
         if (useIntervals) {
-            return gapVisibleDays.flatMap((day) => dayGapsFor(calendarEvents, day));
+            return gapVisibleDays.flatMap((day) => dayGapsFor(gapBusyEvents, day));
         }
-        return computeRangeGaps(calendarEvents, gapVisibleDays, clinicSchedules);
-    }, [gapsActive, blockUnavailable, blockingConfigured, effectiveGroupBy, effectiveGroupingColumns, currentView, calendarEvents, gapVisibleDays, clinicSchedules, effectiveSchedules, exceptionsForSede, timelineSede, calendars]);
+        return computeRangeGaps(gapBusyEvents, gapVisibleDays, clinicSchedules);
+    }, [gapsActive, blockingConfigured, effectiveGroupBy, effectiveGroupingColumns, currentView, gapBusyEvents, gapVisibleDays, clinicSchedules, effectiveSchedules, schedulesForSede, exceptionsForSede, timelineSede, calendars]);
 
     // Render additional context menu items for the calendar event:
     // status submenu + clinic session shortcut.
