@@ -72,9 +72,15 @@ const DEFAULT_SERVICE_FORM_VALUES: ServiceFormValues = {
   is_active: true,
 };
 
-async function getServices(): Promise<Service[]> {
+/** Filtro de estado del catálogo: 'all' no envía `is_active` al endpoint. */
+type ServiceStatusFilter = 'all' | 'true' | 'false';
+
+async function getServices(isActive: ServiceStatusFilter): Promise<Service[]> {
   try {
-    const data = await api.get(API_ROUTES.PURCHASES.SERVICES_ALL, { is_sales: 'false' });
+    const query: Record<string, string> = { is_sales: 'false' };
+    // 'all' = sin filtro: el backend devuelve activos e inactivos
+    if (isActive !== 'all') query.is_active = isActive;
+    const data = await api.get(API_ROUTES.PURCHASES.SERVICES_ALL, query);
     const normalized = normalizeApiResponse(data);
     return normalized.items.map((apiService: any) => ({
       id: apiService.id ? String(apiService.id) : `srv_${Math.random().toString(36).substr(2, 9)}`,
@@ -181,7 +187,8 @@ function PurchaseServiceFormFields({ form, categories, onCategoryCreated, t }: {
 }
 
 function ServicesTableWithCards({
-  services, columns, selectedService, onRowSelect, onRefresh, isRefreshing, onCreate, rowSelection, setRowSelection, t,
+  services, columns, selectedService, onRowSelect, onRefresh, isRefreshing, onCreate, rowSelection, setRowSelection,
+  statusFilter, onStatusFilterChange, t,
 }: {
   services: Service[];
   columns: any[];
@@ -192,6 +199,8 @@ function ServicesTableWithCards({
   onCreate?: () => void;
   rowSelection: RowSelectionState;
   setRowSelection: React.Dispatch<React.SetStateAction<RowSelectionState>>;
+  statusFilter: ServiceStatusFilter;
+  onStatusFilterChange: (value: string) => void;
   t: (key: string) => string;
 }) {
   const { isNarrow: panelNarrow } = useNarrowMode();
@@ -212,6 +221,12 @@ function ServicesTableWithCards({
       rowSelection={rowSelection}
       setRowSelection={setRowSelection}
       isNarrow={isNarrow}
+      filterValue={statusFilter}
+      onFilterChange={onStatusFilterChange}
+      filterOptions={[
+        { label: t('statusFilter.active'), value: 'true' },
+        { label: t('statusFilter.inactive'), value: 'false' },
+      ]}
       renderCard={(service: Service, _isSelected: boolean) => (
         <DataCard isSelected={_isSelected}
           title={service.name}
@@ -253,6 +268,7 @@ export default function ServicesPage() {
   const [isSavingDetail, setIsSavingDetail] = React.useState(false);
   const [selectedService, setSelectedService] = React.useState<Service | null>(null);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+  const [statusFilter, setStatusFilter] = React.useState<ServiceStatusFilter>('all');
 
   const createForm = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceFormSchema(tValidation)),
@@ -265,8 +281,12 @@ export default function ServicesPage() {
 
   const loadServices = React.useCallback(async () => {
     setIsRefreshing(true);
-    setServices(await getServices());
+    setServices(await getServices(statusFilter));
     setIsRefreshing(false);
+  }, [statusFilter]);
+
+  const handleStatusFilterChange = React.useCallback((value: string) => {
+    setStatusFilter((value as ServiceStatusFilter) || 'all');
   }, []);
 
   React.useEffect(() => { loadServices(); }, [loadServices]);
@@ -403,6 +423,8 @@ export default function ServicesPage() {
                 onCreate={canCreateProduct ? handleCreate : undefined}
                 rowSelection={rowSelection}
                 setRowSelection={setRowSelection}
+                statusFilter={statusFilter}
+                onStatusFilterChange={handleStatusFilterChange}
                 t={t}
               />
             </CardContent>

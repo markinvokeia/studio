@@ -3617,6 +3617,10 @@
     "title": "Servicios",
     "description": "Una visión general de los servicios.",
     "filterPlaceholder": "Filtrar aquí...",
+    "statusFilter": {
+      "active": "Activos",
+      "inactive": "Inactivos"
+    },
     "createDialog": {
       "title": "Crear Servicio",
       "description": "Crear un nuevo servicio",

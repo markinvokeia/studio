@@ -3640,6 +3640,10 @@
     "title": "Services",
     "description": "An overview of services.",
     "filterPlaceholder": "Filter here...",
+    "statusFilter": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
     "createDialog": {
       "title": "Create Service",
       "description": "Create a new service",
