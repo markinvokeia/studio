@@ -937,6 +937,7 @@
   "AppointmentsPage": {
     "title": "Citas",
     "description": "Gestionar todas las citas.",
+    "responsibleContactHint": "Contacto del responsable",
     "settings": {
       "title": "Configuración del Calendario",
       "mode": "Vista (Modo)",

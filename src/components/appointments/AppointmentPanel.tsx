@@ -61,6 +61,7 @@ import { getReadableTextColor } from '@/components/calendar/calendar-utils';
 import { useToast } from '@/hooks/use-toast';
 import { STATUS_ACCENT_COLOR, canReschedule } from '@/constants/appointment-status';
 import { formatDisplayDate, cn, formatServicePrice, toLocalISOString } from '@/lib/utils';
+import { getEffectiveAppointmentContact } from '@/lib/appointment-contact';
 import type { Appointment, AppointmentStatus, Calendar as CalendarType, Invoice, Order, PatientSession, Service, User } from '@/lib/types';
 
 import { DoctorDetailSheet } from '@/components/appointments/DoctorDetailSheet';
@@ -795,11 +796,12 @@ export function AppointmentPanel({
 
   const openPatientDetail = React.useCallback(() => {
     if (!appointment?.patientId) return;
+    const { email, phone } = getEffectiveAppointmentContact(appointment);
     openPatientView({
       userId: appointment.patientId,
       userName: appointment.patientName,
-      userEmail: appointment.patientEmail,
-      userPhone: appointment.patientPhone,
+      userEmail: email,
+      userPhone: phone,
     });
   }, [appointment, openPatientView]);
 
@@ -872,7 +874,8 @@ export function AppointmentPanel({
   const StatusIcon = getStatusIcon(appointment.status, appointment.cancellation_reason);
   const statusColor = STATUS_ACCENT_COLOR[appointment.status];
   const appointmentCode = `#${appointment.id.slice(0, 8).toUpperCase()}`;
-  const patientMeta = [appointment.patientPhone].filter(Boolean).join(' · ');
+  const { phone: effectivePatientPhone, fromResponsibleContact } = getEffectiveAppointmentContact(appointment);
+  const patientMeta = [effectivePatientPhone].filter(Boolean).join(' · ');
   const invoiceCount = quoteInvoices.length;
   const isCancelled = appointment.status === 'cancelled';
   const cancellationReasonLabel = isCancelled
@@ -1054,7 +1057,14 @@ export function AppointmentPanel({
                     >
                       {appointment.patientName}
                     </button>
-                    {patientMeta && <p className="truncate text-xs text-muted-foreground">{patientMeta}</p>}
+                    {patientMeta && (
+                      <p className="truncate text-xs text-muted-foreground">
+                        {patientMeta}
+                        {fromResponsibleContact && (
+                          <span className="ml-1.5 text-[11px]">({t('responsibleContactHint')})</span>
+                        )}
+                      </p>
+                    )}
                     {!hidePatientActions && (
                       <p className={cn('truncate text-xs font-medium', patientDebt.length > 0 ? 'text-destructive' : 'text-muted-foreground')}>
                         {patientDebt.length > 0 ? tAccount('debtAlertTitle') : tAccount('noDebt')}

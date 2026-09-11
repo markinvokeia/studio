@@ -9,6 +9,7 @@ import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 
 import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
 import { formatDisplayDateWithWeekday } from '@/lib/utils';
+import { getEffectiveAppointmentContact } from '@/lib/appointment-contact';
 import type { Appointment } from '@/lib/types';
 
 import { GOOGLE_IMPORT_BADGE_COLOR } from './calendar-constants';
@@ -41,10 +42,13 @@ function Row({
   icon: Icon,
   label,
   value,
+  hint,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value?: string | null;
+  /** Texto corto opcional junto al valor (ej. "Contacto del responsable"). */
+  hint?: string;
 }) {
   if (!value) return null;
   return (
@@ -52,6 +56,7 @@ function Row({
       <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
       <span className="min-w-0 break-words text-xs text-foreground" title={label}>
         {value}
+        {hint && <span className="ml-1.5 text-[11px] text-muted-foreground">({hint})</span>}
       </span>
     </div>
   );
@@ -91,7 +96,9 @@ export function AppointmentQuickView({
   // Las citas importadas de Google no traen paciente: su título es el summary del evento.
   const title = (isImported ? appointment.summary : patientName || appointment.summary) || t('createDialog.none');
   // El mapeo deja 'N/A' cuando la cita no trae teléfono; no se muestra la fila.
-  const patientPhone = (appointment.patientPhone || '').trim();
+  // Si el paciente no tiene teléfono propio pero sí un responsable, se usa el suyo.
+  const { phone: effectivePhone, fromResponsibleContact } = getEffectiveAppointmentContact(appointment);
+  const patientPhone = (effectivePhone || '').trim();
   const phone = patientPhone === 'N/A' ? '' : patientPhone;
 
   const treatment = (appointment.services ?? [])
@@ -190,7 +197,12 @@ export function AppointmentQuickView({
             <Row icon={Stethoscope} label={tColumns('service')} value={treatment} />
             {/* Con paciente en el título, el nombre no se repite acá. */}
             {isImported && <Row icon={UserRound} label={tColumns('patient')} value={patientName} />}
-            <Row icon={Phone} label={tColumns('phone')} value={phone} />
+            <Row
+              icon={Phone}
+              label={tColumns('phone')}
+              value={phone}
+              hint={fromResponsibleContact ? t('responsibleContactHint') : undefined}
+            />
             <Row icon={UserRound} label={tColumns('doctor')} value={appointment.doctorName} />
             <Row icon={MapPin} label={tColumns('calendar')} value={appointment.calendar_name} />
             <Row icon={StickyNote} label={t('createDialog.notes')} value={appointment.notes} />

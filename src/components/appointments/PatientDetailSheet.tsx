@@ -55,6 +55,8 @@ interface PatientDetailSheetProps {
   initialTab?: PatientDetailTab | LegacyPatientDetailTab;
   /** View-only mode: hides every add/edit/delete affordance across the clinical tabs. */
   readOnly?: boolean;
+  /** Llamado cuando se guardan cambios en la pestaña "Información" (nombre, teléfono, responsable, etc.). */
+  onPatientUpdated?: (user: User) => void;
 }
 
 function mapInitialTabToMacroTab(tab?: PatientDetailTab | LegacyPatientDetailTab): PatientSheetMacroTab {
@@ -88,6 +90,7 @@ export function PatientDetailSheet({
   clinicalHistoryDefaultView,
   initialTab = 'clinical',
   readOnly = false,
+  onPatientUpdated,
 }: PatientDetailSheetProps) {
   const t = useTranslations('UsersPage');
   const { user: currentUser } = useAuth();
@@ -324,7 +327,7 @@ export function PatientDetailSheet({
           activeClinicalSubTab={activeClinicalSubTab}
           onClinicalSubTabChange={setActiveClinicalSubTab}
           showFinancial={showFinancialTab}
-          infoContent={showInfoTab ? <PatientInfoTab userId={userId} /> : undefined}
+          infoContent={showInfoTab ? <PatientInfoTab userId={userId} onSaved={onPatientUpdated} /> : undefined}
           anamnesisContent={<AnamnesisViewer userId={userId} readOnly={isReadOnly} />}
           clinicalHistoryContent={<ClinicHistoryViewer userId={userId} userName={userName} deepLinkView={clinicalHistoryDefaultView} isDoctorMode={isDoctorMode} createSessionTrigger={createSessionTrigger} createOdontogramTrigger={createOdontogramTrigger} refreshAppointmentsTrigger={apptRefreshTrigger} onEditAppointment={canManageAppointments ? setEditingAppointment : undefined} readOnly={isReadOnly} />}
           treatmentPlansContent={<UserTreatmentPlans userId={userId} userName={userName} readOnly={isReadOnly} />}

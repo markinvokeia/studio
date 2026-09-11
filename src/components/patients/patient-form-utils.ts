@@ -172,7 +172,9 @@ function mapSearchUser(apiUser: any): User {
     notes: apiUser.notes || '',
     mutual_society_id: apiUser.mutual_society_id ?? undefined,
     mutual_society_name: apiUser.mutual_society_name ?? undefined,
-    is_dependent: apiUser.is_dependent ?? false,
+    // El backend devuelve la columna como `is_dependant` (ver patients/page.tsx); se
+    // acepta también `is_dependent` por si algún endpoint la manda bien escrita.
+    is_dependent: apiUser.is_dependent ?? apiUser.is_dependant ?? false,
     responsible_contact_id: apiUser.responsible_contact_id || undefined,
     responsible_contact_name: apiUser.responsible_contact_name || undefined,
     doctor_id: apiUser.doctor_id !== undefined && apiUser.doctor_id !== null && apiUser.doctor_id !== ''

@@ -32,6 +32,7 @@ import { TIMELINE_PERMISSIONS } from '@/constants/permissions';
 import { Appointment, AppointmentStatus, DoctorAgentAction, DoctorAgentActionPayload, PatientSession, QuoteItem, TreatmentDetail } from '@/lib/types';
 import { canManageDoctorWorkspaceSessions } from '@/lib/permissions';
 import { cn, formatDate } from '@/lib/utils';
+import { normalizeResponsibleContact } from '@/lib/appointment-contact';
 import { api } from '@/services/api';
 import { updateAppointmentStatusRequest } from '@/services/appointments';
 import { getQuoteItems } from '@/services/quotes';
@@ -767,6 +768,9 @@ async function getAppointmentsForRange(source: WorkspaceAppointmentSource, from:
         patientName: apiAppointment.patient_name || apiAppointment.patientName || apiAppointment.patientname || '',
         patientEmail: apiAppointment.patient_email || apiAppointment.patientEmail || apiAppointment.patientemail || '',
         patientPhone: apiAppointment.patient_phone || apiAppointment.patientPhone || apiAppointment.patientphone || '',
+        responsibleContact: normalizeResponsibleContact(
+          apiAppointment.responsible_contact ?? apiAppointment.responsibleContact,
+        ),
         doctorId: String(doctorIdValue),
         doctorName: apiAppointment.doctor_name || apiAppointment.doctorName || apiAppointment.doctorname || '',
         doctorEmail: apiAppointment.doctor_email || apiAppointment.doctorEmail || apiAppointment.doctoremail || '',

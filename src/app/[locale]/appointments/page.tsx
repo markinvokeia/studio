@@ -64,7 +64,9 @@ import { BUSINESS_CONFIG_PERMISSIONS, PATIENTS_PERMISSIONS, PATIENT_FINANCIAL_VI
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
-import { Appointment, AppointmentBulkFilterParams, AppointmentColorSource, AppointmentDatePreset, AppointmentStatus, Calendar as CalendarType, CalendarItemType, CalendarReminder, CalendarSettings, ClinicSchedule, ClinicException, Invoice, Order, PatientSession, Quote, QuoteItem, Sede, Service, SessionPreloadedService, User as UserType } from '@/lib/types';
+import { Appointment, AppointmentBulkFilterParams, AppointmentColorSource, AppointmentDatePreset, AppointmentStatus, Calendar as CalendarType, CalendarItemType, CalendarReminder, CalendarSettings, ClinicSchedule, ClinicException, Invoice, Order, PatientSession, Quote, QuoteItem, ResponsibleContact, Sede, Service, SessionPreloadedService, User as UserType } from '@/lib/types';
+import { getEffectiveAppointmentContact, normalizeResponsibleContact, patchAppointmentsForPatient } from '@/lib/appointment-contact';
+import { getDependantContactInfo } from '@/components/patients/patient-form-utils';
 import { cn, toLocalISOString } from '@/lib/utils';
 import api from '@/services/api';
 import { getQuoteItems } from '@/services/quotes';
@@ -352,8 +354,9 @@ function buildEventLabel(appt: Appointment, start: Date, fmt: string, noneLabel:
     const patient = isImported ? summary : (cleanEventLabelPart(appt.patientName, noneLabel) || summary);
     const treatment = isImported ? '' : buildTreatmentPart(appt, patient, noneLabel);
     const notes = isImported ? '' : (appt.notes || '').trim();
-    // Solo lo usa el formato que lo pide, y solo si el paciente lo tiene cargado.
-    const phone = isImported ? '' : cleanEventLabelPart(appt.patientPhone, noneLabel);
+    // Solo lo usa el formato que lo pide, y solo si el paciente (o su responsable,
+    // cuando el paciente no tiene teléfono propio) lo tiene cargado.
+    const phone = isImported ? '' : cleanEventLabelPart(getEffectiveAppointmentContact(appt).phone, noneLabel);
     if (fmt === 'patient_treatment_time') {
         return [patient, treatment, time].filter(Boolean).join(' ');
     }
@@ -538,6 +541,9 @@ function mapApiAppointmentRow(
                 patientName: patientName,
                 patientEmail: apiAppt.patient_email || apiAppt.patientEmail || apiAppt.patientemail || apiAppt.user_email,
                 patientPhone: apiAppt.patient_phone || apiAppt.patientPhone || apiAppt.patientphone || apiAppt.user_phone || apiAppt.phone_number,
+                responsibleContact: normalizeResponsibleContact(
+                    apiAppt.responsible_contact ?? apiAppt.responsibleContact,
+                ),
                 doctorId: String(doctorId || ''),
                 doctorName: doctorName,
                 doctorEmail: doctorEmail || doctor?.email || '',
@@ -579,6 +585,25 @@ function mapApiAppointmentRow(
             };
 
             return appointment;
+}
+
+/**
+ * Resuelve el contacto del responsable de un paciente recién editado, para
+ * parchar las citas que lo tienen como paciente. `getDependantContactInfo`
+ * toma el id del paciente (no del responsable) y hace el mismo join que usa
+ * la ficha de paciente (`/user_dependant`).
+ */
+async function resolveResponsibleContact(patient: UserType): Promise<ResponsibleContact | null> {
+    if (!patient.is_dependent || !patient.responsible_contact_id) return null;
+    const info = await getDependantContactInfo(patient.id);
+    if (!info) return null;
+    return {
+        id: info.id,
+        name: info.name,
+        email: info.email ?? null,
+        phone_number: info.phone_number ?? null,
+        address: info.address ?? null,
+    };
 }
 
 /**
@@ -644,6 +669,7 @@ function mergePatchedAppointment(existing: Appointment, mapped: Appointment, ev:
         patientName: filled('patient_name') ? mapped.patientName : existing.patientName,
         patientEmail: filled('patient_email') ? mapped.patientEmail : existing.patientEmail,
         patientPhone: filled('patient_phone') ? mapped.patientPhone : existing.patientPhone,
+        responsibleContact: filled('responsible_contact') ? mapped.responsibleContact : existing.responsibleContact,
         doctorName: hasDoctor ? mapped.doctorName : existing.doctorName,
         doctorEmail: hasDoctor ? mapped.doctorEmail : existing.doctorEmail,
         // Sólo se acepta la lista de servicios del evento si trae ids reales
@@ -816,7 +842,7 @@ export default function AppointmentsPage() {
     const { user } = useAuth();
     const { open: openBillingWizard } = useBillingWizard();
     const { open: openAccountStatement } = usePatientLedgerSheet();
-    const { open: openPatientView } = usePatientView();
+    const { open: openPatientView, lastUpdatedPatient } = usePatientView();
     const { open: openPatientHistory } = usePatientHistorySheet();
     const { open: openPatientAppointments } = usePatientAppointmentsSheet();
     const { open: openPatientDocuments } = usePatientDocumentsSheet();
@@ -3257,6 +3283,28 @@ export default function AppointmentsPage() {
         return () => window.removeEventListener(CALENDAR_PATCH_EVENT, handler);
     }, []);
 
+    // Editar un paciente (desde "Datos del paciente" en el menú de una cita, o desde
+    // el sheet de detalle) no es un cambio de cita: no dispara `calendar_changed`.
+    // Sin esto, tras cambiar el teléfono o el responsable del paciente, la agenda
+    // seguía mostrando los datos viejos hasta el próximo refetch completo.
+    React.useEffect(() => {
+        if (!lastUpdatedPatient) return;
+        let cancelled = false;
+        (async () => {
+            const responsibleContact = await resolveResponsibleContact(lastUpdatedPatient);
+            if (cancelled) return;
+            setAppointments((prev) => patchAppointmentsForPatient(prev, lastUpdatedPatient, responsibleContact));
+            setSearchResults((prev) => patchAppointmentsForPatient(prev, lastUpdatedPatient, responsibleContact));
+            // El panel lateral guarda su propia copia (`selectedAppointment`), igual
+            // que hace cada acción de edición de cita — sin esto se queda con los
+            // datos viejos hasta cerrarlo y reabrirlo.
+            setSelectedAppointment((prev) => (prev
+                ? patchAppointmentsForPatient([prev], lastUpdatedPatient, responsibleContact)[0]
+                : prev));
+        })();
+        return () => { cancelled = true; };
+    }, [lastUpdatedPatient]);
+
     // Moved searches to AppointmentFormDialog
 
 
@@ -4321,8 +4369,8 @@ export default function AppointmentsPage() {
                                 onSelect={() => openPatientView({
                                     userId: appointment.patientId,
                                     userName: appointment.patientName,
-                                    userEmail: appointment.patientEmail || undefined,
-                                    userPhone: appointment.patientPhone || undefined,
+                                    userEmail: getEffectiveAppointmentContact(appointment).email,
+                                    userPhone: getEffectiveAppointmentContact(appointment).phone,
                                     initialTab: 'info',
                                     infoOnly: true,
                                     showCancelAction: true,

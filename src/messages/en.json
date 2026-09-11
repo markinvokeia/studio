@@ -937,6 +937,7 @@
   "AppointmentsPage": {
     "title": "Appointments",
     "description": "Manage all appointments.",
+    "responsibleContactHint": "Guardian's contact",
     "settings": {
       "title": "Calendar Settings",
       "mode": "View (Mode)",
