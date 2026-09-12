@@ -35,8 +35,9 @@ import * as z from 'zod';
 const availabilityFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
     user_id: z.string(),
-    recurrence: z.enum(['daily', 'weekly', 'biweekly']),
+    recurrence: z.enum(['daily', 'weekly', 'biweekly', 'monthly']),
     day_of_week: z.string().optional(),
+    day_of_month: z.string().optional(),
     start_time: z.string().min(1, t('startTimeRequired')),
     end_time: z.string().min(1, t('endTimeRequired')),
     start_date: z.string().min(1, t('startDateRequired')),
@@ -49,6 +50,17 @@ const availabilityFormSchema = (t: (key: string) => string) => z.object({
 }, {
     message: t('dayOfWeekRequired'),
     path: ["day_of_week"],
+}).refine(data => {
+    if (data.recurrence === 'monthly') {
+        const day = Number(data.day_of_month);
+        if (!data.day_of_month || Number.isNaN(day) || day < 1 || day > 31) {
+            return false;
+        }
+    }
+    return true;
+}, {
+    message: t('dayOfMonthRequired'),
+    path: ["day_of_month"],
 }).refine(data => {
     if (!data.start_time || !data.end_time) return true;
     return data.end_time > data.start_time;
@@ -78,6 +90,7 @@ async function upsertAvailabilityRule(ruleData: AvailabilityFormValues) {
     const responseData = await api.post(API_ROUTES.AVAILABILITY_RULES_UPSERT, {
         ...ruleData,
         day_of_week: ruleData.day_of_week ? Number(ruleData.day_of_week) : null,
+        day_of_month: ruleData.day_of_month ? Number(ruleData.day_of_month) : null,
     });
     if (responseData.error || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
         const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message);
@@ -117,8 +130,11 @@ export function DoctorAvailability({ userId }: { userId: string }) {
     const watchedRecurrence = form.watch('recurrence');
 
     React.useEffect(() => {
-        if (watchedRecurrence === 'daily') {
+        if (watchedRecurrence !== 'weekly' && watchedRecurrence !== 'biweekly') {
             form.setValue('day_of_week', undefined);
+        }
+        if (watchedRecurrence !== 'monthly') {
+            form.setValue('day_of_month', undefined);
         }
     }, [watchedRecurrence, form]);
 
@@ -154,6 +170,7 @@ export function DoctorAvailability({ userId }: { userId: string }) {
             user_id: rule.user_id,
             recurrence: rule.recurrence as any,
             day_of_week: rule.day_of_week?.toString(),
+            day_of_month: rule.day_of_month?.toString(),
             start_time: rule.start_time,
             end_time: rule.end_time,
             start_date: formatDate(rule.start_date),
@@ -228,6 +245,9 @@ export function DoctorAvailability({ userId }: { userId: string }) {
                                     {rule.day_of_week !== undefined && rule.day_of_week !== null && (
                                         <span className="text-xs text-muted-foreground">{t(`days.${DAY_NAMES[rule.day_of_week - 1]}`)}</span>
                                     )}
+                                    {rule.day_of_month !== undefined && rule.day_of_month !== null && (
+                                        <span className="text-xs text-muted-foreground">{t('dialog.dayOfMonth')}: {rule.day_of_month}</span>
+                                    )}
                                 </div>
                                 <div className="flex items-center gap-3 text-sm">
                                     <span>{rule.start_time} – {rule.end_time}</span>
@@ -274,6 +294,7 @@ export function DoctorAvailability({ userId }: { userId: string }) {
                                                     <SelectItem value="daily">{t('dialog.daily')}</SelectItem>
                                                     <SelectItem value="weekly">{t('dialog.weekly')}</SelectItem>
                                                     <SelectItem value="biweekly">{t('dialog.biweekly')}</SelectItem>
+                                                    <SelectItem value="monthly">{t('dialog.monthly')}</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage />
@@ -299,6 +320,21 @@ export function DoctorAvailability({ userId }: { userId: string }) {
                                                         <SelectItem value="7">{t('days.sunday')}</SelectItem>
                                                     </SelectContent>
                                                 </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                )}
+                                {watchedRecurrence === 'monthly' && (
+                                    <FormField
+                                        control={form.control}
+                                        name="day_of_month"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>{t('dialog.dayOfMonth')}</FormLabel>
+                                                <FormControl>
+                                                    <Input type="number" min={1} max={31} {...field} value={field.value ?? ''} />
+                                                </FormControl>
                                                 <FormMessage />
                                             </FormItem>
                                         )}

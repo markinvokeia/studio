@@ -37,6 +37,8 @@ import * as z from 'zod';
 /** Radix Select no admite value=""; este centinela representa "todas las sedes". */
 const ALL_SEDES_VALUE = '__all__';
 
+const DAY_NAMES = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
+
 const holidayFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
     date: z.string().min(1, t('dateRequired')),
@@ -46,6 +48,38 @@ const holidayFormSchema = (t: (key: string) => string) => z.object({
     // '' = la excepción aplica a todas las sedes.
     sede_id: z.string().optional(),
     notes: z.string().optional(),
+    recurrence: z.enum(['once', 'weekly', 'biweekly', 'monthly']).default('once'),
+    day_of_week: z.string().optional(),
+    day_of_month: z.string().optional(),
+    biweekly_reference_date: z.string().optional(),
+    end_date: z.string().optional(),
+}).refine(data => {
+    if ((data.recurrence === 'weekly' || data.recurrence === 'biweekly') && !data.day_of_week) {
+        return false;
+    }
+    return true;
+}, {
+    message: t('dayOfWeekRequired'),
+    path: ["day_of_week"],
+}).refine(data => {
+    if (data.recurrence === 'monthly') {
+        const day = Number(data.day_of_month);
+        if (!data.day_of_month || Number.isNaN(day) || day < 1 || day > 31) {
+            return false;
+        }
+    }
+    return true;
+}, {
+    message: t('dayOfMonthRequired'),
+    path: ["day_of_month"],
+}).refine(data => {
+    if (data.recurrence === 'biweekly' && !data.biweekly_reference_date) {
+        return false;
+    }
+    return true;
+}, {
+    message: t('biweeklyReferenceDateRequired'),
+    path: ["biweekly_reference_date"],
 });
 
 type HolidayFormValues = z.infer<ReturnType<typeof holidayFormSchema>>;
@@ -67,6 +101,11 @@ async function getHolidays(): Promise<ClinicException[]> {
                 : undefined,
             sede_name: apiHoliday.sede_name ? String(apiHoliday.sede_name) : undefined,
             notes: apiHoliday.notes || '',
+            recurrence: apiHoliday.recurrence || 'once',
+            day_of_week: apiHoliday.day_of_week ?? undefined,
+            day_of_month: apiHoliday.day_of_month ?? undefined,
+            biweekly_reference_date: apiHoliday.biweekly_reference_date ? formatDate(apiHoliday.biweekly_reference_date) : undefined,
+            end_date: apiHoliday.end_date ? formatDate(apiHoliday.end_date) : undefined,
         }));
     } catch (error) {
         console.error("Failed to fetch holidays:", error);
@@ -84,6 +123,11 @@ function mapHolidayToFormValues(holiday: ClinicException): HolidayFormValues {
         end_time: holiday.end_time ?? '',
         sede_id: holiday.sede_id ?? '',
         notes: holiday.notes ?? '',
+        recurrence: holiday.recurrence ?? 'once',
+        day_of_week: holiday.day_of_week?.toString(),
+        day_of_month: holiday.day_of_month?.toString(),
+        biweekly_reference_date: holiday.biweekly_reference_date ?? '',
+        end_date: holiday.end_date ?? '',
     };
 }
 
@@ -97,6 +141,10 @@ async function upsertHoliday(holidayData: HolidayFormValues) {
         // fallar el cast a `time`. Un cierre sin horas cierra el día completo.
         start_time: holidayData.start_time || null,
         end_time: holidayData.end_time || null,
+        day_of_week: holidayData.day_of_week ? Number(holidayData.day_of_week) : null,
+        day_of_month: holidayData.day_of_month ? Number(holidayData.day_of_month) : null,
+        biweekly_reference_date: holidayData.biweekly_reference_date || null,
+        end_date: holidayData.end_date || null,
     };
     const responseData = await api.post(API_ROUTES.HOLIDAYS_UPSERT, payload);
     if (responseData && typeof responseData === 'object' && responseData.error === true) {
@@ -143,8 +191,24 @@ export default function HolidaysPage() {
 
     const form = useForm<HolidayFormValues>({
         resolver: zodResolver(holidayFormSchema(tValidation)),
-        defaultValues: { date: '', is_open: false, start_time: '', end_time: '', sede_id: '', notes: '' },
+        defaultValues: { date: '', is_open: false, start_time: '', end_time: '', sede_id: '', notes: '', recurrence: 'once' },
     });
+    const watchedRecurrence = form.watch('recurrence');
+
+    React.useEffect(() => {
+        if (watchedRecurrence !== 'weekly' && watchedRecurrence !== 'biweekly') {
+            form.setValue('day_of_week', undefined);
+        }
+        if (watchedRecurrence !== 'biweekly') {
+            form.setValue('biweekly_reference_date', undefined);
+        }
+        if (watchedRecurrence !== 'monthly') {
+            form.setValue('day_of_month', undefined);
+        }
+        if (watchedRecurrence === 'once') {
+            form.setValue('end_date', undefined);
+        }
+    }, [watchedRecurrence, form]);
 
     const loadHolidays = React.useCallback(async () => {
         setIsRefreshing(true);
@@ -177,7 +241,7 @@ export default function HolidaysPage() {
         setRowSelection({});
         setIsEditing(true);
         setSubmissionError(null);
-        form.reset({ date: '', is_open: false, start_time: '', end_time: '', sede_id: '', notes: '' });
+        form.reset({ date: '', is_open: false, start_time: '', end_time: '', sede_id: '', notes: '', recurrence: 'once' });
         setIsCreateDialogOpen(true);
     };
 
@@ -238,6 +302,7 @@ export default function HolidaysPage() {
     const columnTranslations = {
         id: t('columns.id'),
         date: t('columns.date'),
+        recurrence: t('columns.recurrence'),
         is_open: t('columns.status'),
         start_time: t('columns.startTime'),
         end_time: t('columns.endTime'),
@@ -245,8 +310,22 @@ export default function HolidaysPage() {
         notes: t('columns.notes'),
     };
 
+    // Resumen legible de la recurrencia para la tabla y las tarjetas.
+    const recurrenceLabel = React.useCallback((holiday: ClinicException) => {
+        const recurrence = holiday.recurrence ?? 'once';
+        if (recurrence === 'once') return t('createDialog.once');
+        if (recurrence === 'monthly') return `${t('createDialog.monthly')} · ${holiday.day_of_month ?? '-'}`;
+        const dayLabel = holiday.day_of_week ? t(`days.${DAY_NAMES[holiday.day_of_week - 1]}`) : '-';
+        return `${t(`createDialog.${recurrence}`)} · ${dayLabel}`;
+    }, [t]);
+
     const columns: ColumnDef<ClinicException>[] = [
         { accessorKey: 'date', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.date')} />, cell: ({ row }) => formatHolidayDate(row.original.date) },
+        {
+            accessorKey: 'recurrence',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.recurrence')} />,
+            cell: ({ row }) => <span>{recurrenceLabel(row.original)}</span>,
+        },
         {
             accessorKey: 'is_open',
             header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
@@ -303,7 +382,7 @@ export default function HolidaysPage() {
                     renderCard={(row: ClinicException, _isSelected: boolean) => (
                         <DataCard isSelected={_isSelected}
                             title={formatHolidayDate(row.date)}
-                            subtitle={[row.notes || (row.is_open ? `${row.start_time} – ${row.end_time}` : ''), sedeLabel(row.sede_id, row.sede_name)].filter(Boolean).join(' · ')}
+                            subtitle={[recurrenceLabel(row), row.notes || (row.is_open ? `${row.start_time} – ${row.end_time}` : ''), sedeLabel(row.sede_id, row.sede_name)].filter(Boolean).join(' · ')}
                             badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.is_open ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{row.is_open ? 'Abierto' : 'Cerrado'}</span>}
                             showArrow
                         />
@@ -365,6 +444,70 @@ export default function HolidaysPage() {
                                 <FormMessage />
                             </FormItem>
                         )} />
+                        <FormField control={form.control} name="recurrence" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>{t('createDialog.recurrence')}</FormLabel>
+                                <Select value={field.value} onValueChange={field.onChange} disabled={!isEditing}>
+                                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="once">{t('createDialog.once')}</SelectItem>
+                                        <SelectItem value="weekly">{t('createDialog.weekly')}</SelectItem>
+                                        <SelectItem value="biweekly">{t('createDialog.biweekly')}</SelectItem>
+                                        <SelectItem value="monthly">{t('createDialog.monthly')}</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        {(watchedRecurrence === 'weekly' || watchedRecurrence === 'biweekly') && (
+                            <FormField control={form.control} name="day_of_week" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('createDialog.dayOfWeek')}</FormLabel>
+                                    <Select value={field.value} onValueChange={field.onChange} disabled={!isEditing}>
+                                        <FormControl><SelectTrigger><SelectValue placeholder={t('createDialog.selectDay')} /></SelectTrigger></FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="1">{t('days.monday')}</SelectItem>
+                                            <SelectItem value="2">{t('days.tuesday')}</SelectItem>
+                                            <SelectItem value="3">{t('days.wednesday')}</SelectItem>
+                                            <SelectItem value="4">{t('days.thursday')}</SelectItem>
+                                            <SelectItem value="5">{t('days.friday')}</SelectItem>
+                                            <SelectItem value="6">{t('days.saturday')}</SelectItem>
+                                            <SelectItem value="7">{t('days.sunday')}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                        )}
+                        {watchedRecurrence === 'biweekly' && (
+                            <FormField control={form.control} name="biweekly_reference_date" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('createDialog.biweeklyReferenceDate')}</FormLabel>
+                                    <FormControl><DatePickerInput value={field.value ?? ''} onChange={field.onChange} disabled={!isEditing} /></FormControl>
+                                    <FormDescription>{t('createDialog.biweeklyReferenceDateHelp')}</FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                        )}
+                        {watchedRecurrence === 'monthly' && (
+                            <FormField control={form.control} name="day_of_month" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('createDialog.dayOfMonth')}</FormLabel>
+                                    <FormControl><Input type="number" min={1} max={31} {...field} value={field.value ?? ''} disabled={!isEditing} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                        )}
+                        {watchedRecurrence !== 'once' && (
+                            <FormField control={form.control} name="end_date" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('createDialog.endDate')}</FormLabel>
+                                    <FormControl><DatePickerInput value={field.value ?? ''} onChange={field.onChange} disabled={!isEditing} /></FormControl>
+                                    <FormDescription>{t('createDialog.endDateHelp')}</FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                        )}
                         <FormField control={form.control} name="is_open" render={({ field }) => (
                             <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-lg border p-3">
                                 <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!isEditing} /></FormControl>
@@ -461,7 +604,7 @@ export default function HolidaysPage() {
                     if (!open) {
                         setIsEditing(false);
                         setSubmissionError(null);
-                        form.reset({ date: '', is_open: false, start_time: '', end_time: '', sede_id: '', notes: '' });
+                        form.reset({ date: '', is_open: false, start_time: '', end_time: '', sede_id: '', notes: '', recurrence: 'once' });
                     }
                 }}
             >
@@ -486,6 +629,70 @@ export default function HolidaysPage() {
                                         <FormMessage />
                                     </FormItem>
                                 )} />
+                                <FormField control={form.control} name="recurrence" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('createDialog.recurrence')}</FormLabel>
+                                        <Select value={field.value} onValueChange={field.onChange}>
+                                            <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="once">{t('createDialog.once')}</SelectItem>
+                                                <SelectItem value="weekly">{t('createDialog.weekly')}</SelectItem>
+                                                <SelectItem value="biweekly">{t('createDialog.biweekly')}</SelectItem>
+                                                <SelectItem value="monthly">{t('createDialog.monthly')}</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                {(watchedRecurrence === 'weekly' || watchedRecurrence === 'biweekly') && (
+                                    <FormField control={form.control} name="day_of_week" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('createDialog.dayOfWeek')}</FormLabel>
+                                            <Select value={field.value} onValueChange={field.onChange}>
+                                                <FormControl><SelectTrigger><SelectValue placeholder={t('createDialog.selectDay')} /></SelectTrigger></FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="1">{t('days.monday')}</SelectItem>
+                                                    <SelectItem value="2">{t('days.tuesday')}</SelectItem>
+                                                    <SelectItem value="3">{t('days.wednesday')}</SelectItem>
+                                                    <SelectItem value="4">{t('days.thursday')}</SelectItem>
+                                                    <SelectItem value="5">{t('days.friday')}</SelectItem>
+                                                    <SelectItem value="6">{t('days.saturday')}</SelectItem>
+                                                    <SelectItem value="7">{t('days.sunday')}</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                )}
+                                {watchedRecurrence === 'biweekly' && (
+                                    <FormField control={form.control} name="biweekly_reference_date" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('createDialog.biweeklyReferenceDate')}</FormLabel>
+                                            <FormControl><DatePickerInput value={field.value ?? ''} onChange={field.onChange} /></FormControl>
+                                            <FormDescription>{t('createDialog.biweeklyReferenceDateHelp')}</FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                )}
+                                {watchedRecurrence === 'monthly' && (
+                                    <FormField control={form.control} name="day_of_month" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('createDialog.dayOfMonth')}</FormLabel>
+                                            <FormControl><Input type="number" min={1} max={31} {...field} value={field.value ?? ''} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                )}
+                                {watchedRecurrence !== 'once' && (
+                                    <FormField control={form.control} name="end_date" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('createDialog.endDate')}</FormLabel>
+                                            <FormControl><DatePickerInput value={field.value ?? ''} onChange={field.onChange} /></FormControl>
+                                            <FormDescription>{t('createDialog.endDateHelp')}</FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                )}
                                 <FormField control={form.control} name="is_open" render={({ field }) => (
                                     <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-lg border p-3">
                                         <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>

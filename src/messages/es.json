@@ -345,7 +345,7 @@
     "BusinessSetup": "Configuración de Negocio",
     "ClinicDetails": "Detalles de la Clínica",
     "Schedules": "Horarios",
-    "Holidays": "Días Feriados",
+    "Holidays": "Horarios de Excepción",
     "Calendars": "Calendarios",
     "Doctors": "Doctores",
     "Staff": "Secretarias y Administración",
@@ -3887,12 +3887,13 @@
     }
   },
   "HolidaysPage": {
-    "title": "Feriados",
-    "description": "Todos los feriados para la clínica",
+    "title": "Horarios de Excepción",
+    "description": "Horarios excepcionales de la clínica: feriados, cierres puntuales o recurrentes",
     "filterPlaceholder": "Filtrar aquí...",
     "columns": {
       "id": "ID",
       "date": "Fecha",
+      "recurrence": "Recurrencia",
       "status": "Estado",
       "startTime": "Hora de Inicio",
       "endTime": "Hora de Fin",
@@ -3908,6 +3909,18 @@
       "title": "Crear feriado",
       "description": "Crear un nuevo feriado para la clínica",
       "date": "Fecha",
+      "recurrence": "Recurrencia",
+      "once": "Una vez",
+      "weekly": "Semanal",
+      "biweekly": "Quincenal",
+      "monthly": "Mensual",
+      "dayOfWeek": "Día de la Semana",
+      "dayOfMonth": "Día del Mes",
+      "selectDay": "Seleccione día",
+      "biweeklyReferenceDate": "Fecha de Referencia",
+      "biweeklyReferenceDateHelp": "Fecha ancla usada para calcular en qué semanas cae el patrón quincenal.",
+      "endDate": "Fecha de Fin",
+      "endDateHelp": "Dejá vacío para que la recurrencia aplique indefinidamente.",
       "isOpen": "¿Está Abierto?",
       "startTime": "Hora de Inicio",
       "endTime": "Hora de Fin",
@@ -3923,8 +3936,20 @@
       "editDescription": "Editar el feriado para la clínica",
       "editSave": "Guardar Cambios"
     },
+    "days": {
+      "monday": "Lunes",
+      "tuesday": "Martes",
+      "wednesday": "Miércoles",
+      "thursday": "Jueves",
+      "friday": "Viernes",
+      "saturday": "Sábado",
+      "sunday": "Domingo"
+    },
     "validation": {
-      "dateRequired": "La fecha es obligatoria."
+      "dateRequired": "La fecha es obligatoria.",
+      "dayOfWeekRequired": "El día de la semana es obligatorio para recurrencia semanal o quincenal.",
+      "dayOfMonthRequired": "El día del mes (1-31) es obligatorio para recurrencia mensual.",
+      "biweeklyReferenceDateRequired": "La fecha de referencia es obligatoria para recurrencia quincenal."
     },
     "deleteDialog": {
       "title": "Eliminar Feriado",
@@ -4145,6 +4170,7 @@
       "selectDoctor": "Seleccionar un doctor",
       "recurrence": "Recurrencia",
       "dayOfWeek": "Día de la Semana",
+      "dayOfMonth": "Día del Mes",
       "startTime": "Hora de Inicio",
       "endTime": "Hora de Fin",
       "startDate": "Fecha de Inicio",
@@ -4168,7 +4194,8 @@
       "endTimeRequired": "La hora de fin es obligatoria.",
       "endTimeAfterStartTime": "La hora de fin debe ser mayor que la hora de inicio.",
       "startDateRequired": "La fecha de inicio es obligatoria.",
-      "dayOfWeekRequired": "El día de la semana es obligatorio para recurrencia semanal o quincenal."
+      "dayOfWeekRequired": "El día de la semana es obligatorio para recurrencia semanal o quincenal.",
+      "dayOfMonthRequired": "El día del mes (1-31) es obligatorio para recurrencia mensual."
     },
     "toast": {
       "createTitle": "Disponibilidad Creada",

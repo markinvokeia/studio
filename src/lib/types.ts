@@ -491,6 +491,8 @@ export type ClinicSchedule = {
 
 export type ClinicException = {
   id: string;
+  /** Fecha exacta cuando recurrence es 'once' (o no está definido); fecha de
+   *  inicio de la recurrencia para 'weekly' | 'biweekly' | 'monthly'. */
   date: string;
   is_open: boolean;
   start_time?: string;
@@ -500,6 +502,16 @@ export type ClinicException = {
   sede_id?: string;
   /** Nombre de la sede, cuando la API lo devuelve resuelto. */
   sede_name?: string;
+  /** Patrón de repetición. 'once' (default) = una fecha exacta, igual que antes. */
+  recurrence?: 'once' | 'weekly' | 'biweekly' | 'monthly';
+  /** Requerido para 'weekly' | 'biweekly' (1=lunes..7=domingo). */
+  day_of_week?: number;
+  /** Requerido para 'monthly' (1-31). */
+  day_of_month?: number;
+  /** Requerido para 'biweekly': ancla para calcular la paridad de semana. */
+  biweekly_reference_date?: string;
+  /** Fin de la recurrencia (inclusive). Vacío/undefined = indefinida. */
+  end_date?: string;
 };
 
 export type Conversation = {
@@ -1261,8 +1273,9 @@ export type AvailabilityRule = {
   id: string;
   user_id: string;
   user_name?: string;
-  recurrence: 'daily' | 'weekly' | 'biweekly';
+  recurrence: 'daily' | 'weekly' | 'biweekly' | 'monthly';
   day_of_week?: number;
+  day_of_month?: number;
   start_time: string;
   end_time: string;
   start_date: string;

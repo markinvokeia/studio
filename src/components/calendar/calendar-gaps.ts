@@ -1,4 +1,4 @@
-import { format, parseISO } from 'date-fns';
+import { format, getISOWeek, parseISO } from 'date-fns';
 
 import type { ClinicSchedule, ClinicException } from '@/lib/types';
 import type { CalendarEvent } from './calendar-types';
@@ -290,10 +290,43 @@ function subtractIntervals(base: Interval[], holes: Interval[]): Interval[] {
   return out;
 }
 
-/** Exceptions falling on `day` (tolerates ISO/datetime `date` values). */
+/** ISO day of week for `day` (Mon=1..Sun=7), matching availability_rules/clinic_exceptions convention. */
+function isoDayOfWeek(day: Date): number {
+  const jsDow = day.getDay();
+  return jsDow === 0 ? 7 : jsDow;
+}
+
+/**
+ * Whether exception `e` applies to `day`. Mirrors the recurrence semantics of
+ * `get_available_users()` in Postgres: 'once' (default, backward compatible)
+ * matches the exact date; 'weekly'/'biweekly'/'monthly' match a pattern within
+ * `[date, end_date]` (end_date null = indefinite).
+ */
+function exceptionMatchesDay(e: ClinicException, day: Date, dayKey: string): boolean {
+  const recurrence = e.recurrence ?? 'once';
+  if (recurrence === 'once') return normalizeDateKey(e.date) === dayKey;
+
+  const startKey = normalizeDateKey(e.date);
+  if (!startKey || dayKey < startKey) return false;
+  if (e.end_date && dayKey > normalizeDateKey(e.end_date)) return false;
+
+  if (recurrence === 'monthly') {
+    return e.day_of_month != null && day.getDate() === Number(e.day_of_month);
+  }
+  if (recurrence === 'weekly' || recurrence === 'biweekly') {
+    if (e.day_of_week == null || isoDayOfWeek(day) !== Number(e.day_of_week)) return false;
+    if (recurrence === 'weekly') return true;
+    if (!e.biweekly_reference_date) return false;
+    const weekDiff = getISOWeek(day) - getISOWeek(parseISO(normalizeDateKey(e.biweekly_reference_date)));
+    return ((weekDiff % 2) + 2) % 2 === 0;
+  }
+  return false;
+}
+
+/** Exceptions applying to `day` (tolerates ISO/datetime `date` values, and recurrence patterns). */
 function dayExceptionsFor(day: Date, exceptions: ClinicException[]): ClinicException[] {
   const dayKey = format(day, 'yyyy-MM-dd');
-  return exceptions.filter((e) => normalizeDateKey(e.date) === dayKey);
+  return exceptions.filter((e) => exceptionMatchesDay(e, day, dayKey));
 }
 
 /** Weekday schedule rows as merged intervals (handles both day_of_week conventions). */

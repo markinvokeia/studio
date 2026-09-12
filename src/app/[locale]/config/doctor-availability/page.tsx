@@ -45,8 +45,9 @@ import * as z from 'zod';
 const availabilityFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
     user_id: z.string().min(1, t('doctorRequired')),
-    recurrence: z.enum(['daily', 'weekly', 'biweekly']),
+    recurrence: z.enum(['daily', 'weekly', 'biweekly', 'monthly']),
     day_of_week: z.string().optional(),
+    day_of_month: z.string().optional(),
     start_time: z.string().min(1, t('startTimeRequired')),
     end_time: z.string().min(1, t('endTimeRequired')),
     start_date: z.string().min(1, t('startDateRequired')),
@@ -59,6 +60,17 @@ const availabilityFormSchema = (t: (key: string) => string) => z.object({
 }, {
     message: t('dayOfWeekRequired'),
     path: ["day_of_week"],
+}).refine(data => {
+    if (data.recurrence === 'monthly') {
+        const day = Number(data.day_of_month);
+        if (!data.day_of_month || Number.isNaN(day) || day < 1 || day > 31) {
+            return false;
+        }
+    }
+    return true;
+}, {
+    message: t('dayOfMonthRequired'),
+    path: ["day_of_month"],
 }).refine(data => {
     if (!data.start_time || !data.end_time) return true;
     return data.end_time > data.start_time;
@@ -109,6 +121,7 @@ async function upsertAvailabilityRule(ruleData: AvailabilityFormValues) {
     const responseData = await api.post(API_ROUTES.AVAILABILITY_RULES_UPSERT, {
         ...ruleData,
         day_of_week: ruleData.day_of_week ? Number(ruleData.day_of_week) : null,
+        day_of_month: ruleData.day_of_month ? Number(ruleData.day_of_month) : null,
     });
     if (responseData.error || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
         const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message);
@@ -155,8 +168,11 @@ export default function DoctorAvailabilityPage() {
     const watchedRecurrence = form.watch("recurrence");
 
     React.useEffect(() => {
-        if (watchedRecurrence === 'daily') {
+        if (watchedRecurrence !== 'weekly' && watchedRecurrence !== 'biweekly') {
             form.setValue('day_of_week', undefined);
+        }
+        if (watchedRecurrence !== 'monthly') {
+            form.setValue('day_of_month', undefined);
         }
     }, [watchedRecurrence, form]);
 
@@ -203,6 +219,7 @@ export default function DoctorAvailabilityPage() {
             user_id: rule.user_id,
             recurrence: rule.recurrence as any,
             day_of_week: rule.day_of_week?.toString(),
+            day_of_month: rule.day_of_month?.toString(),
             start_time: rule.start_time,
             end_time: rule.end_time,
             start_date: formatDate(rule.start_date),
@@ -271,8 +288,10 @@ export default function DoctorAvailabilityPage() {
             accessorKey: 'day_of_week',
             header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('day')} />,
             cell: ({ row }) => {
-                const dow = row.original.day_of_week;
-                return <span>{dow != null ? t(`days.${DAY_NAMES[dow - 1]}`) : '-'}</span>;
+                const { day_of_week, day_of_month } = row.original;
+                if (day_of_week != null) return <span>{t(`days.${DAY_NAMES[day_of_week - 1]}`)}</span>;
+                if (day_of_month != null) return <span>{day_of_month}</span>;
+                return <span>-</span>;
             },
         },
         { accessorKey: 'start_time', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('startTime')} /> },
@@ -369,6 +388,12 @@ export default function DoctorAvailabilityPage() {
                         <div>
                             <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{tColumns('day')}</dt>
                             <dd className="text-foreground">{t(`days.${DAY_NAMES[selectedRule.day_of_week - 1]}`)}</dd>
+                        </div>
+                    )}
+                    {selectedRule.day_of_month !== undefined && selectedRule.day_of_month !== null && (
+                        <div>
+                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{tColumns('day')}</dt>
+                            <dd className="text-foreground">{selectedRule.day_of_month}</dd>
                         </div>
                     )}
                     <div className="grid grid-cols-2 gap-3">
@@ -476,6 +501,7 @@ export default function DoctorAvailabilityPage() {
                                                     <SelectItem value="daily">{t('dialog.daily')}</SelectItem>
                                                     <SelectItem value="weekly">{t('dialog.weekly')}</SelectItem>
                                                     <SelectItem value="biweekly">{t('dialog.biweekly')}</SelectItem>
+                                                    <SelectItem value="monthly">{t('dialog.monthly')}</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage />
@@ -501,6 +527,21 @@ export default function DoctorAvailabilityPage() {
                                                         <SelectItem value="7">{t('days.sunday')}</SelectItem>
                                                     </SelectContent>
                                                 </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                )}
+                                {watchedRecurrence === 'monthly' && (
+                                    <FormField
+                                        control={form.control}
+                                        name="day_of_month"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>{t('dialog.dayOfMonth')}</FormLabel>
+                                                <FormControl>
+                                                    <Input type="number" min={1} max={31} {...field} value={field.value ?? ''} />
+                                                </FormControl>
                                                 <FormMessage />
                                             </FormItem>
                                         )}

@@ -345,7 +345,7 @@
     "BusinessSetup": "Business Setup",
     "ClinicDetails": "Clinic Details",
     "Schedules": "Schedules",
-    "Holidays": "Holidays",
+    "Holidays": "Exception Schedules",
     "Calendars": "Calendars",
     "Doctors": "Doctors",
     "Staff": "Receptionists & Administration",
@@ -3910,12 +3910,13 @@
     }
   },
   "HolidaysPage": {
-    "title": "Holidays",
-    "description": "All holidays for the clinic",
+    "title": "Exception Schedules",
+    "description": "Exceptional clinic hours: holidays, one-off or recurring closures",
     "filterPlaceholder": "Filter here...",
     "columns": {
       "id": "ID",
       "date": "Date",
+      "recurrence": "Recurrence",
       "status": "Status",
       "startTime": "Start Time",
       "endTime": "End Time",
@@ -3931,6 +3932,18 @@
       "title": "Create holiday",
       "description": "Create a new holiday for the clinic",
       "date": "Date",
+      "recurrence": "Recurrence",
+      "once": "One time",
+      "weekly": "Weekly",
+      "biweekly": "Biweekly",
+      "monthly": "Monthly",
+      "dayOfWeek": "Day of Week",
+      "dayOfMonth": "Day of Month",
+      "selectDay": "Select day",
+      "biweeklyReferenceDate": "Reference Date",
+      "biweeklyReferenceDateHelp": "Anchor date used to compute which weeks the biweekly pattern falls on.",
+      "endDate": "End Date",
+      "endDateHelp": "Leave empty for the recurrence to apply indefinitely.",
       "isOpen": "Is Open?",
       "startTime": "Start Time",
       "endTime": "End Time",
@@ -3946,8 +3959,20 @@
       "editDescription": "Edit the holiday for the clinic",
       "editSave": "Save Changes"
     },
+    "days": {
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "sunday": "Sunday"
+    },
     "validation": {
-      "dateRequired": "Date is required."
+      "dateRequired": "Date is required.",
+      "dayOfWeekRequired": "Day of week is required for weekly or biweekly recurrence.",
+      "dayOfMonthRequired": "Day of month (1-31) is required for monthly recurrence.",
+      "biweeklyReferenceDateRequired": "Reference date is required for biweekly recurrence."
     },
     "deleteDialog": {
       "title": "Delete Holiday",
@@ -4168,6 +4193,7 @@
       "selectDoctor": "Select a doctor",
       "recurrence": "Recurrence",
       "dayOfWeek": "Day of Week",
+      "dayOfMonth": "Day of Month",
       "startTime": "Start Time",
       "endTime": "End Time",
       "startDate": "Start Date",
@@ -4191,7 +4217,8 @@
       "endTimeRequired": "End time is required.",
       "endTimeAfterStartTime": "End time must be later than start time.",
       "startDateRequired": "Start date is required.",
-      "dayOfWeekRequired": "Day of week is required for weekly or biweekly recurrence."
+      "dayOfWeekRequired": "Day of week is required for weekly or biweekly recurrence.",
+      "dayOfMonthRequired": "Day of month (1-31) is required for monthly recurrence."
     },
     "toast": {
       "createTitle": "Availability Created",
