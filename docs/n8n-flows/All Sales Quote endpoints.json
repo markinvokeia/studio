@@ -1824,7 +1824,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "select ii.id, ii.service_id, sc.name as service_name, ii.quantity, ii.unit_price, ii.total, ii.steps\nfrom invoice_items ii\nleft join service_catalog sc on ii.service_id = sc.id\n-- left join order_items oi on oi.id = ii.order_item_id\n-- left join quote_items qi on qi.id = oi.quote_item_id\nwhere ii.invoice_id = {{ $json.query.invoice_id }}",
+        "query": "select ii.id, ii.service_id, sc.name as service_name, ii.quantity, ii.unit_price, ii.total, ii.steps, ii.tooth_number\nfrom invoice_items ii\nleft join service_catalog sc on ii.service_id = sc.id\nwhere ii.invoice_id = {{ $json.query.invoice_id }}",
         "options": {}
       },
       "type": "n8n-nodes-base.postgres",
@@ -3629,7 +3629,8 @@
             "quantity": "={{ $json.quantity }}",
             "unit_price": "={{ $json.unit_price }}",
             "total": "={{ $json.total }}",
-            "service_id": "={{ $json.service_id }}"
+            "service_id": "={{ $json.service_id }}",
+            "tooth_number": "={{ $json.tooth_number }}"
           },
           "matchingColumns": [
             "id"
@@ -3694,6 +3695,16 @@
             {
               "id": "service_id",
               "displayName": "service_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "tooth_number",
+              "displayName": "tooth_number",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -3886,7 +3897,8 @@
             "quantity": "={{ $json.quantity }}",
             "unit_price": "={{ $json.unit_price }}",
             "total": "={{ $json.quantity * $json.unit_price }}",
-            "service_id": "={{ $json.service_id }}"
+            "service_id": "={{ $json.service_id }}",
+            "tooth_number": "={{ $json.tooth_number }}"
           },
           "matchingColumns": [
             "id"
@@ -3956,6 +3968,16 @@
               "display": true,
               "type": "number",
               "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "tooth_number",
+              "displayName": "tooth_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false,
               "removed": false
             }
           ],
@@ -4235,7 +4257,8 @@
             "quantity": "={{ $('invoices/items/upsert').item.json.body.quantity }}",
             "unit_price": "={{ $('invoices/items/upsert').item.json.body.unit_price }}",
             "total": "={{ Number($('invoices/items/upsert').item.json.body.unit_price) * Number($('invoices/items/upsert').item.json.body.quantity) }}",
-            "service_id": "={{ $('invoices/items/upsert').item.json.body.service_id }}"
+            "service_id": "={{ $('invoices/items/upsert').item.json.body.service_id }}",
+            "tooth_number": "={{ $('invoices/items/upsert').item.json.body.tooth_number }}"
           },
           "matchingColumns": [
             "id"
@@ -4304,6 +4327,15 @@
               "display": true,
               "type": "number",
               "canBeUsedToMatch": true
+            },
+            {
+              "id": "tooth_number",
+              "displayName": "tooth_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
             }
           ],
           "attemptToConvertTypes": false,
@@ -4349,7 +4381,8 @@
             "unit_price": "={{ $('invoices/items/upsert').item.json.body.unit_price }}",
             "total": "={{ Number($('invoices/items/upsert').item.json.body.unit_price) * Number($('invoices/items/upsert').item.json.body.quantity) }}",
             "service_id": "={{ $('invoices/items/upsert').item.json.body.service_id }}",
-            "id": "={{ $('invoices/items/upsert').item.json.body.id }}"
+            "id": "={{ $('invoices/items/upsert').item.json.body.id }}",
+            "tooth_number": "={{ $('invoices/items/upsert').item.json.body.tooth_number }}"
           },
           "matchingColumns": [
             "id"
@@ -4413,6 +4446,15 @@
             {
               "id": "service_id",
               "displayName": "service_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tooth_number",
+              "displayName": "tooth_number",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -5525,7 +5567,8 @@
             "quantity": "={{ $json.quantity }}",
             "unit_price": "={{ $json.unit_price }}",
             "total": "={{ $json.total }}",
-            "service_id": "={{ $json.service_id }}"
+            "service_id": "={{ $json.service_id }}",
+            "tooth_number": "={{ $json.tooth_number }}"
           },
           "matchingColumns": [
             "id"
@@ -5590,6 +5633,16 @@
             {
               "id": "service_id",
               "displayName": "service_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "tooth_number",
+              "displayName": "tooth_number",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -10347,6 +10400,113 @@
       ],
       "id": "41576b63-614b-4944-951b-1cd6d97b04a5",
       "name": "Error: factura no encontrada1"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "WWS9dGF7C8RSIJzP",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/WWS9dGF7C8RSIJzP",
+          "cachedResultName": "Hooks Dispatcher"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "depth": 2,
+            "event_code": "={{\"invoice.after_upsert\"}}",
+            "payload": "={{ ({\"invoice_id\": $('Insert Invoice').item.json.id}) }}",
+            "context": "={{$('Insert Invoice').item.json}}",
+            "hook_path": "={{[]}}",
+            "correlation_id": "123",
+            "clinic_id": "={{ null }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "event_code",
+              "displayName": "event_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "payload",
+              "displayName": "payload",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            },
+            {
+              "id": "context",
+              "displayName": "context",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            },
+            {
+              "id": "depth",
+              "displayName": "depth",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "hook_path",
+              "displayName": "hook_path",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array",
+              "removed": false
+            },
+            {
+              "id": "clinic_id",
+              "displayName": "clinic_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "correlation_id",
+              "displayName": "correlation_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1120,
+        7024
+      ],
+      "id": "b788a1f2-0f4d-475f-9918-a21d3ac0e7ad",
+      "name": "Call 'Hooks Dispatcher'"
     }
   ],
   "pinData": {
@@ -10521,71 +10681,6 @@
           },
           "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/items/upsert",
           "executionMode": "production"
-        }
-      }
-    ],
-    "invoices/upsert": [
-      {
-        "json": {
-          "headers": {
-            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
-            "content-length": "289",
-            "accept": "application/json",
-            "accept-encoding": "gzip, deflate, br, zstd",
-            "accept-language": "en-US,en;q=0.5",
-            "authorization": {
-              "__redacted": true,
-              "reason": "node_defined_field",
-              "canReveal": false
-            },
-            "content-type": "application/json",
-            "origin": "http://localhost:3000",
-            "priority": "u=1, i",
-            "referer": "http://localhost:3000/",
-            "sec-ch-ua": "\"Brave\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"",
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": "\"Windows\"",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "cross-site",
-            "sec-gpc": "1",
-            "x-forwarded-for": "189.75.139.110",
-            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
-            "x-forwarded-port": "443",
-            "x-forwarded-proto": "https",
-            "x-forwarded-server": "05c9532e790b",
-            "x-real-ip": "189.75.139.110"
-          },
-          "params": {},
-          "query": {},
-          "body": {
-            "user_id": "1f859ef0-9388-4906-8c1a-bd84452f1362",
-            "total": 4321,
-            "currency": "UYU",
-            "created_at": "2026-05-07T11:16:44",
-            "due_date": "2026-06-06T11:16:44",
-            "notes": "",
-            "is_historical": false,
-            "items": [
-              {
-                "service_id": "243",
-                "quantity": 1,
-                "unit_price": 4321,
-                "total": 4321
-              }
-            ],
-            "type": "invoice",
-            "is_sales": true
-          },
-          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/upsert",
-          "executionMode": "production",
-          "jwtPayload": {
-            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
-            "email": "raidel@invokeia.com",
-            "expiresIn": "24h",
-            "iat": 1777291210
-          }
         }
       }
     ],
@@ -15090,6 +15185,87 @@
           "item": 0
         }
       }
+    ],
+    "invoices/upsert": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+            "content-length": "561",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3ODc3NjY3NjJ9.vgJfnpeKUQSqVuU0Ki6ZpAHGPPxM2ypuCeeewIjsvgA",
+            "cache-control": "no-cache",
+            "content-type": "application/json",
+            "origin": "http://localhost:3000",
+            "pragma": "no-cache",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/es",
+            "sec-ch-ua": "\"Chromium\";v=\"152\", \"Not?A_Brand\";v=\"24\", \"Google Chrome\";v=\"152\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"macOS\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "179.26.231.203",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "d4e738525fe6",
+            "x-real-ip": "179.26.231.203"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "user_id": "8e43a7e9-838d-4e08-941d-a4ffcaac2fdd",
+            "doctor_id": "be10dd4c-c892-47af-b871-6271db3d1abe",
+            "total": 1229,
+            "gross_total": 1229,
+            "discount_scope": "line",
+            "discount_amount": null,
+            "currency": "UYU",
+            "created_at": "2026-08-28T14:19:32",
+            "due_date": "2026-09-28T14:19:16",
+            "notes": "eee",
+            "is_historical": false,
+            "items": [
+              {
+                "service_id": "902",
+                "service_name": "Corona de acero estampada (A)",
+                "quantity": 1,
+                "unit_price": 1229,
+                "tooth_number": null,
+                "gross_total": 1229,
+                "discount_mode": null,
+                "discount_value": null,
+                "discount_amount": null,
+                "total": 1229
+              }
+            ],
+            "type": "invoice",
+            "is_sales": true
+          },
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/invoices/upsert",
+          "executionMode": "production",
+          "jwtPayload": {
+            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "email": "raidel@invokeia.com",
+            "expiresIn": "24h",
+            "iat": 1787766762
+          }
+        },
+        "binary": {
+          "data": {
+            "data": "eyJ1c2VyX2lkIjoiOGU0M2E3ZTktODM4ZC00ZTA4LTk0MWQtYTRmZmNhYWMyZmRkIiwiZG9jdG9yX2lkIjoiYmUxMGRkNGMtYzg5Mi00N2FmLWI4NzEtNjI3MWRiM2QxYWJlIiwidG90YWwiOjEyMjksImdyb3NzX3RvdGFsIjoxMjI5LCJkaXNjb3VudF9zY29wZSI6ImxpbmUiLCJkaXNjb3VudF9hbW91bnQiOm51bGwsImN1cnJlbmN5IjoiVVlVIiwiY3JlYXRlZF9hdCI6IjIwMjYtMDgtMjhUMTQ6MTk6MzIiLCJkdWVfZGF0ZSI6IjIwMjYtMDktMjhUMTQ6MTk6MTYiLCJub3RlcyI6ImVlZSIsImlzX2hpc3RvcmljYWwiOmZhbHNlLCJpdGVtcyI6W3sic2VydmljZV9pZCI6IjkwMiIsInNlcnZpY2VfbmFtZSI6IkNvcm9uYSBkZSBhY2VybyBlc3RhbXBhZGEgKEEpIiwicXVhbnRpdHkiOjEsInVuaXRfcHJpY2UiOjEyMjksInRvb3RoX251bWJlciI6bnVsbCwiZ3Jvc3NfdG90YWwiOjEyMjksImRpc2NvdW50X21vZGUiOm51bGwsImRpc2NvdW50X3ZhbHVlIjpudWxsLCJkaXNjb3VudF9hbW91bnQiOm51bGwsInRvdGFsIjoxMjI5fV0sInR5cGUiOiJpbnZvaWNlIiwiaXNfc2FsZXMiOnRydWV9",
+            "mimeType": "application/json"
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
     ]
   },
   "connections": {
@@ -16286,6 +16462,11 @@
             "node": "Format Invoice Upsert Output",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Call 'Hooks Dispatcher'",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -16295,6 +16476,11 @@
         [
           {
             "node": "Format Invoice Upsert Output1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Call 'Hooks Dispatcher'",
             "type": "main",
             "index": 0
           }
@@ -17673,6 +17859,11 @@
           }
         ]
       ]
+    },
+    "Call 'Hooks Dispatcher'": {
+      "main": [
+        []
+      ]
     }
   },
   "active": true,
@@ -17680,7 +17871,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "351b9722-46d1-42a9-9cc5-f5f5aed9daa6",
+  "versionId": "2565d039-5946-4aaa-a170-8dd9809096b5",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"

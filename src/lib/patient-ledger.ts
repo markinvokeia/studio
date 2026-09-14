@@ -33,6 +33,9 @@ export type LedgerRow = {
   serviceId?: string;
   quantity?: number;
   unitPrice?: number;
+  /** The tooth/piece number worked on for this item, if any — shown next to the
+   *  treatment label in the ledger and in the estado de cuenta sheet. */
+  toothNumber?: number;
   /** The parent Quote's own status (draft/pending/accepted/confirmed/rejected) — only
    *  'accepted'/'confirmed' quotes have an Order behind them and can be invoiced. */
   quoteStatus?: string;
@@ -120,6 +123,7 @@ export function buildPatientLedger(params: {
           serviceId: item.service_id,
           quantity: item.quantity,
           unitPrice: item.unit_price,
+          toothNumber: item.tooth_number ?? quoteItem.tooth_number ?? undefined,
           doctorId: invoice.doctor_id || quote.doctor_id || undefined,
           doctorName: invoice.doctor_name || quote.doctor_name || undefined,
           dueDate: invoice.due_date || undefined,
@@ -142,6 +146,7 @@ export function buildPatientLedger(params: {
           serviceId: quoteItem.service_id,
           quantity: quoteItem.quantity,
           unitPrice: quoteItem.unit_price,
+          toothNumber: quoteItem.tooth_number ?? undefined,
           quoteStatus: quote.status,
           doctorId: quote.doctor_id || undefined,
           doctorName: quote.doctor_name || undefined,
@@ -180,6 +185,7 @@ export function buildPatientLedger(params: {
           serviceId: item.service_id,
           quantity: item.quantity,
           unitPrice: item.unit_price,
+          toothNumber: item.tooth_number ?? undefined,
           doctorId: invoice.doctor_id || undefined,
           doctorName: invoice.doctor_name || undefined,
           dueDate: invoice.due_date || undefined,
@@ -227,6 +233,7 @@ export function buildPatientLedger(params: {
           serviceId: item.service_id,
           quantity: item.quantity,
           unitPrice: item.unit_price,
+          toothNumber: item.tooth_number ?? undefined,
         });
       }
     } else {

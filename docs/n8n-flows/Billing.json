@@ -121,7 +121,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const invoiceId = $(\"Crear Cabecera Factura\").first().json.id;\nconst items = $(\"Guardia de Presupuesto\").first().json.items;\n\nconst values = items\n  .map((item) => {\n    let stepsValue = \"\";\n\n    if (Array.isArray(item.step_names)) {\n      stepsValue = item.step_names.join(\", \");\n    } else if (typeof item.step_names === \"string\") {\n      stepsValue = item.step_names;\n    } else {\n      stepsValue = \"\";\n    }\n\n    const safeSteps = stepsValue.replace(/'/g, \"''\");\n\n    return `(\n    ${invoiceId}, \n    (SELECT id FROM order_items WHERE quote_item_id = ${item.quote_item_id} LIMIT 1), \n    1, \n    ${item.amount}, \n    ${item.amount}, \n    ${item.service_id}, \n    ${safeSteps ? `'${safeSteps}'` : \"NULL\"}\n  )`;\n  })\n  .join(\",\");\n\nreturn [\n  {\n    query: `INSERT INTO invoice_items (invoice_id, order_item_id, quantity, unit_price, total, service_id, steps) VALUES ${values}`,\n  },\n];\n"
+        "jsCode": "const invoiceId = $(\"Crear Cabecera Factura\").first().json.id;\nconst items = $(\"Guardia de Presupuesto\").first().json.items;\n\nconst values = items\n  .map((item) => {\n    let stepsValue = \"\";\n\n    if (Array.isArray(item.step_names)) {\n      stepsValue = item.step_names.join(\", \");\n    } else if (typeof item.step_names === \"string\") {\n      stepsValue = item.step_names;\n    } else {\n      stepsValue = \"\";\n    }\n\n    const safeSteps = stepsValue.replace(/'/g, \"''\");\n\n    return `(\n    ${invoiceId},\n    (SELECT id FROM order_items WHERE quote_item_id = ${item.quote_item_id} LIMIT 1),\n    1,\n    ${item.amount},\n    ${item.amount},\n    ${item.service_id},\n    ${safeSteps ? `'${safeSteps}'` : \"NULL\"},\n    (SELECT tooth_number FROM quote_items WHERE id = ${item.quote_item_id})\n  )`;\n  })\n  .join(\",\");\n\nreturn [\n  {\n    query: `INSERT INTO invoice_items (invoice_id, order_item_id, quantity, unit_price, total, service_id, steps, tooth_number) VALUES ${values}`,\n  },\n];"
       },
       "id": "841bcef2-1b11-44bc-8b94-94f028187819",
       "name": "Preparar SQL Items",
@@ -288,7 +288,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "2297449f-31db-46d9-aaea-b8840e0513ff",
+  "versionId": "9756fdfc-fd25-45f5-9497-b5dc76950a97",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"

@@ -2503,8 +2503,14 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
                             <RowKindIcon row={row} />
                             {row.status === 'presupuestado' && <PresupuestoBadge />}
                             <div className="flex min-w-0 flex-1 flex-col">
-                              <span className="truncate text-sm font-medium">
-                                {isBalanceRow ? t('openingBalance.label') : row.label}
+                              <span className="flex items-center gap-1.5 truncate text-sm font-medium">
+                                <span className="truncate">{isBalanceRow ? t('openingBalance.label') : row.label}</span>
+                                {!isBalanceRow && row.toothNumber != null && (
+                                  <span className="inline-flex shrink-0 items-center gap-0.5 rounded bg-muted px-1.5 py-0.5 text-[10px] font-normal text-muted-foreground">
+                                    <ToothIcon className="h-2.5 w-2.5" />
+                                    {row.toothNumber}
+                                  </span>
+                                )}
                               </span>
                               {isBalanceRow ? (
                                 <span className="truncate text-xs text-muted-foreground">{t('openingBalance.hint')}</span>
