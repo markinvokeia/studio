@@ -2925,6 +2925,15 @@ export default function AppointmentsPage() {
                         : undefined,
                     // Notes can come under a few key names depending on the flow.
                     notes: String(e.notes ?? e.note ?? e.nota ?? e.notas ?? e.description ?? e.descripcion ?? e.motivo ?? ''),
+                    // Recurrence pattern ('once' default, backward compatible) plus its
+                    // supporting fields — without these, calendar-gaps.ts treats every
+                    // exception as a single exact date and weekly/biweekly/monthly
+                    // exceptions never match beyond the day they were created on.
+                    recurrence: (e.recurrence as ClinicException['recurrence']) ?? 'once',
+                    day_of_week: e.day_of_week != null ? Number(e.day_of_week) : undefined,
+                    day_of_month: e.day_of_month != null ? Number(e.day_of_month) : undefined,
+                    biweekly_reference_date: e.biweekly_reference_date != null ? String(e.biweekly_reference_date) : undefined,
+                    end_date: e.end_date != null ? String(e.end_date) : undefined,
                 })));
             })
             .catch(() => setClinicExceptions([]));

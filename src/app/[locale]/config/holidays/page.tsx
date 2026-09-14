@@ -406,7 +406,7 @@ export default function HolidaysPage() {
                         {selectedHoliday && !isEditing && canUpdate && (
                             <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setIsEditing(true)}>
                                 <Pencil className="h-3.5 w-3.5" />
-                                <span className="hidden sm:inline">{t('createDialog.editSave')}</span>
+                                <span className="hidden sm:inline">{t('createDialog.edit')}</span>
                             </Button>
                         )}
                         {selectedHoliday && !isEditing && canDelete && (

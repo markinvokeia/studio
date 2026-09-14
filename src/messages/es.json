@@ -3906,8 +3906,8 @@
       "delete": "Eliminar"
     },
     "createDialog": {
-      "title": "Crear feriado",
-      "description": "Crear un nuevo feriado para la clínica",
+      "title": "Crear horario de excepción",
+      "description": "Crear un nuevo horario de excepción para la clínica",
       "date": "Fecha",
       "recurrence": "Recurrencia",
       "once": "Una vez",
@@ -3932,8 +3932,9 @@
       "notesPlaceholder": "Ingrese notas aquí...",
       "save": "Guardar",
       "cancel": "Cancelar",
-      "editTitle": "Editar feriado",
-      "editDescription": "Editar el feriado para la clínica",
+      "editTitle": "Editar horario de excepción",
+      "editDescription": "Editar el horario de excepción para la clínica",
+      "edit": "Editar",
       "editSave": "Guardar Cambios"
     },
     "days": {
@@ -3952,19 +3953,19 @@
       "biweeklyReferenceDateRequired": "La fecha de referencia es obligatoria para recurrencia quincenal."
     },
     "deleteDialog": {
-      "title": "Eliminar Feriado",
-      "description": "¿Está seguro de que desea eliminar este feriado? Esta acción no se puede deshacer.",
+      "title": "Eliminar Horario de Excepción",
+      "description": "¿Está seguro de que desea eliminar este horario de excepción? Esta acción no se puede deshacer.",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
     },
     "toast": {
-      "createSuccessTitle": "Feriado Creado",
-      "editSuccessTitle": "Feriado Actualizado",
-      "successDescription": "El feriado ha sido guardado exitosamente.",
-      "deleteSuccessTitle": "Feriado Eliminado",
-      "deleteSuccessDescription": "El feriado ha sido eliminado exitosamente.",
+      "createSuccessTitle": "Horario de Excepción Creado",
+      "editSuccessTitle": "Horario de Excepción Actualizado",
+      "successDescription": "El horario de excepción ha sido guardado exitosamente.",
+      "deleteSuccessTitle": "Horario de Excepción Eliminado",
+      "deleteSuccessDescription": "El horario de excepción ha sido eliminado exitosamente.",
       "errorTitle": "Error",
-      "deleteErrorDescription": "No se pudo eliminar el feriado. Por favor, inténtelo de nuevo.",
+      "deleteErrorDescription": "No se pudo eliminar el horario de excepción. Por favor, inténtelo de nuevo.",
       "genericError": "Ocurrió un error inesperado."
     }
   },
