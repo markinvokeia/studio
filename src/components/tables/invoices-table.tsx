@@ -795,7 +795,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
 
       setIsSearchingServices(true);
       try {
-        const servicesData = await api.get(API_ROUTES.SERVICES, { is_sales: isSales ? 'true' : 'false', search: serviceSearchQuery });
+        const servicesData = await api.get(API_ROUTES.SERVICES, { is_sales: isSales ? 'true' : 'false', search: serviceSearchQuery, is_active: 'true' });
         const servicesDataNormalized = Array.isArray(servicesData) ? servicesData : (servicesData.services || []);
         setServices(servicesDataNormalized.map((s: any) => ({ ...s, id: String(s.id) })));
       } catch (error) {

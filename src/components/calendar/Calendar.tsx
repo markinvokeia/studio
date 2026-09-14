@@ -40,6 +40,10 @@ function resolveViewForBreakpoint(view: CalendarView, isMobile: boolean): Calend
 const Calendar: React.FC<CalendarProps> = ({
   events = [],
   onDateChange,
+  focusDate,
+  focusedEventId,
+  focusEventNonce,
+  focusScrollRightInset,
   children,
   isLoading = false,
   onEventClick,
@@ -80,6 +84,10 @@ const Calendar: React.FC<CalendarProps> = ({
   onGapClick,
   blockedRanges,
   blockedFullDays,
+  enableEventDrag,
+  canDragEvent,
+  onEventDrop,
+  onEventResize,
 }) => {
   const t = useTranslations('Calendar');
   const breakpoint = useCalendarBreakpoint();
@@ -152,14 +160,113 @@ const Calendar: React.FC<CalendarProps> = ({
     dateLocale,
   } = useCalendarNavigation({ onDateChange, onViewChange, initialView: propsView || defaultView });
 
+  // Salto externo a una fecha (p. ej. al elegir un resultado de búsqueda). El
+  // padre pasa un `Date` nuevo por salto para que el efecto corra aunque el día
+  // no cambie respecto al render anterior.
+  const focusDateStampRef = React.useRef(0);
+  React.useEffect(() => {
+    if (focusDate) {
+      setCurrentDate(focusDate);
+      focusDateStampRef.current = Date.now();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusDate]);
+  // Si la vista cambia justo después de un salto (p. ej. el buscador pasa a
+  // "día" en mobile), `setCurrentDate` de arriba corrió con la vista vieja y
+  // colapsó la fecha al inicio de la semana. Al adoptarse la vista nueva se
+  // re-aplica el mismo `focusDate` para caer en el día exacto. La ventana de
+  // 2s evita que un cambio de vista manual posterior re-salte a la cita.
+  React.useEffect(() => {
+    if (focusDate && Date.now() - focusDateStampRef.current < 2000) {
+      setCurrentDate(focusDate);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view]);
+
+  // Resalta una cita concreta con un aro de "hormigas en marcha" (mismo efecto que
+  // el hueco máximo en "Buscar huecos"). El aro es un overlay propio, NO una clase
+  // sobre la card: así sobrevive a los re-render de la grilla (que borraban la
+  // clase y hacían parpadear el marcado). Un rAF lo mantiene pegado a la card
+  // mientras la grilla se acomoda o el usuario hace scroll; el scroll de centrado
+  // se hace UNA sola vez, sobre el contenedor scrolleable de la vista, no sobre la
+  // página (que era lo que mandaba la cita al borde inferior).
+  const calendarBodyRef = React.useRef<HTMLDivElement>(null);
+  const focusRingRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    const root = calendarBodyRef.current;
+    const ring = focusRingRef.current;
+    if (!root || !ring) return;
+    if (!focusedEventId) { ring.hidden = true; return; }
+
+    const selector = `[data-event-id="${(window.CSS && CSS.escape) ? CSS.escape(focusedEventId) : focusedEventId}"]`;
+    const startedAt = Date.now();
+    let raf = 0;
+    let didScroll = false;
+    let everSeen = false;
+
+    const frame = () => {
+      const el = root.querySelector<HTMLElement>(selector);
+      if (el) {
+        everSeen = true;
+        const er = el.getBoundingClientRect();
+        const rr = root.getBoundingClientRect();
+        ring.hidden = false;
+        ring.style.width = `${er.width + 6}px`;
+        ring.style.height = `${er.height + 6}px`;
+        ring.style.transform = `translate(${er.left - rr.left - 3}px, ${er.top - rr.top - 3}px)`;
+
+        if (!didScroll) {
+          didScroll = true;
+          const scroller = el.closest('.day-view-container, .overflow-y-auto') as HTMLElement | null;
+          if (scroller) {
+            const sr = scroller.getBoundingClientRect();
+            const maxTop = scroller.scrollHeight - scroller.clientHeight;
+            const maxLeft = scroller.scrollWidth - scroller.clientWidth;
+            const opts: ScrollToOptions = { behavior: 'smooth' };
+            // Vertical: centrar la card en el alto visible.
+            if (maxTop > 1) {
+              const top = scroller.scrollTop + (er.top - sr.top) - scroller.clientHeight / 2 + er.height / 2;
+              opts.top = Math.max(0, Math.min(top, maxTop));
+            }
+            // Horizontal: centrar en el ancho VISIBLE, descontando lo que tape un
+            // panel a la derecha (el buscador en desktop) para que la card no quede
+            // debajo. En vistas multi-día también trae la columna del día correcto.
+            if (maxLeft > 1) {
+              const visRight = sr.right - Math.max(0, focusScrollRightInset ?? 0);
+              const visCenter = (sr.left + visRight) / 2;
+              const left = scroller.scrollLeft + (er.left + er.width / 2) - visCenter;
+              opts.left = Math.max(0, Math.min(left, maxLeft));
+            }
+            if (opts.top !== undefined || opts.left !== undefined) scroller.scrollTo(opts);
+          } else {
+            el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
+          }
+        }
+      } else {
+        ring.hidden = true;
+        // Si nunca apareció (rango sin cargar, agenda oculta), no gires para siempre.
+        if (!everSeen && Date.now() - startedAt > 8000) return;
+      }
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      ring.hidden = true;
+    };
+  }, [focusedEventId, focusEventNonce, focusScrollRightInset]);
+
   const effectiveView = resolveViewForBreakpoint(view, isMobile);
   const timeZoneLabel = t('timeZone');
   const isGrouped = groupBy !== 'none' && groupingColumns.length > 0;
   const isMultiDayView = effectiveView === 'week' || effectiveView === '2-day' || effectiveView === '3-day' || effectiveView === '4-day' || effectiveView === '5-day' || effectiveView === '6-day';
   const useMobileDayLayout = (isMobile && (isGrouped || !isMultiDayView)) || (breakpoint === 'tablet' && isGrouped);
 
-  // Shared event handler props
-  const eventHandlers = {
+  // Shared event handler props. Memoizado porque se esparce sobre las vistas de
+  // rejilla, que renderizan una card memoizada por cita: un objeto nuevo por render
+  // invalidaría todas. Solo paga si los handlers que llegan son estables.
+  const eventHandlers = React.useMemo(() => ({
     onEventClick,
     onEventColorChange,
     onEventDoubleClick,
@@ -167,12 +274,35 @@ const Calendar: React.FC<CalendarProps> = ({
     onEventContextMenuOpen,
     onSlotClick,
     renderSlotContextMenu,
-  };
+  }), [
+    onEventClick,
+    onEventColorChange,
+    onEventDoubleClick,
+    onEventContextMenu,
+    onEventContextMenuOpen,
+    onSlotClick,
+    renderSlotContextMenu,
+  ]);
 
   // Free-slot ("Huecos") overlay props, threaded into the grid/month views.
   const gapProps = { gaps, selectedGapKey, onGapClick };
   // Out-of-office blocking overlay props (independent of Huecos).
   const blockProps = { blockedRanges };
+  // Mover/redimensionar. Solo lo consume la rejilla agrupada, que es la que el modo
+  // custom renderiza en desktop; el resto de las vistas no recibe estas props y por
+  // lo tanto no engancha ningún gesto.
+  const dragProps = React.useMemo(
+    () => ({ enableEventDrag, canDragEvent, onEventDrop, onEventResize }),
+    [enableEventDrag, canDragEvent, onEventDrop, onEventResize],
+  );
+
+  // Cambio de período mientras se arrastra (borde izquierdo/derecho de la rejilla).
+  // Reusa la misma navegación que las flechas de la cabecera, así que el rango que
+  // se pide al backend y el título se actualizan igual que con un clic.
+  const handleDragEdgeNavigate = React.useCallback((direction: -1 | 1) => {
+    if (direction < 0) handlePrev();
+    else handleNext();
+  }, [handlePrev, handleNext]);
 
   const renderView = () => {
     switch (effectiveView) {
@@ -209,6 +339,7 @@ const Calendar: React.FC<CalendarProps> = ({
               {...eventHandlers}
               {...gapProps}
               {...blockProps}
+              {...dragProps}
             />
           );
         }
@@ -232,9 +363,11 @@ const Calendar: React.FC<CalendarProps> = ({
               showTimeColumn={showTimeColumn}
               onToggleTimeColumn={handleToggleTimeColumn}
               hideTimeGutter={hideTimeGutter}
+              onNavigatePeriod={handleDragEdgeNavigate}
               {...eventHandlers}
               {...gapProps}
               {...blockProps}
+              {...dragProps}
             />
           );
         }
@@ -293,6 +426,8 @@ const Calendar: React.FC<CalendarProps> = ({
               dateLocale={dateLocale}
               collapsed={monthCollapsed}
               onEventClick={onEventClick}
+              onEventContextMenu={onEventContextMenu}
+              onEventContextMenuOpen={onEventContextMenuOpen}
               onSlotClick={onSlotClick}
               {...gapProps}
               blockedFullDays={blockedFullDays}
@@ -311,6 +446,10 @@ const Calendar: React.FC<CalendarProps> = ({
             onSlotClick={onSlotClick}
             {...gapProps}
             blockedFullDays={blockedFullDays}
+            enableEventDrag={enableEventDrag}
+            canDragEvent={canDragEvent}
+            onEventDrop={onEventDrop}
+            onNavigatePeriod={handleDragEdgeNavigate}
           />
         );
     }
@@ -368,10 +507,14 @@ const Calendar: React.FC<CalendarProps> = ({
       )}
 
       <div
+        ref={calendarBodyRef}
         className="calendar-body relative"
         style={{ '--cal-slots-per-hour': slotsPerHour } as React.CSSProperties}
       >
         {renderView()}
+        {/* Aro de "hormigas en marcha" para la cita enfocada desde el buscador.
+            Posicionado por rAF en el efecto de arriba; oculto por defecto. */}
+        <div ref={focusRingRef} className="calendar-focus-ring" aria-hidden hidden />
         {/* Zoom slider — only on time-grid views where slot height applies */}
         {showZoomSlider && !isMobile && (effectiveView === 'day' || isMultiDayView) && (
           <CalendarZoomControl zoom={zoom} onZoomChange={handleZoomChange} />

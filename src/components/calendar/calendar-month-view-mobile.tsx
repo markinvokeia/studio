@@ -12,6 +12,8 @@ import { STATUS_ICONS } from '@/components/appointments/status-icons';
 import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
 import type { AppointmentStatus, CalendarReminderPriority, CalendarReminderStatus } from '@/lib/types';
 
+import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from '@/components/ui/context-menu';
+
 import { GOOGLE_IMPORT_BADGE_COLOR } from './calendar-constants';
 import type { CalendarEvent, CalendarSlotClickHandler } from './calendar-types';
 import { formatEventTime, getContrastingIconColor } from './calendar-utils';
@@ -24,6 +26,10 @@ interface CalendarMonthViewMobileProps {
   dateLocale: Locale;
   collapsed?: boolean;
   onEventClick: (data: any, anchorRect?: DOMRect) => void;
+  /** Menú de la fila de agenda. En esta vista no hay rejilla sobre la cual
+   *  arrastrar, así que es por acá que se mueve una cita de día ("Mover a…"). */
+  onEventContextMenu?: (data: any) => React.ReactNode;
+  onEventContextMenuOpen?: (data: any) => void;
   onSlotClick?: CalendarSlotClickHandler;
   gaps?: Gap[];
   selectedGapKey?: string;
@@ -37,6 +43,8 @@ export function CalendarMonthViewMobile({
   dateLocale,
   collapsed = false,
   onEventClick,
+  onEventContextMenu,
+  onEventContextMenuOpen,
   onSlotClick,
   gaps,
   selectedGapKey,
@@ -236,8 +244,12 @@ export function CalendarMonthViewMobile({
               const reminderColor = getReminderPriorityColor(reminderPriority);
               const reminderCardStyle = isReminder ? getReminderCardStyle(event.color, reminderIsDone) : {};
               return (
-                <div
+                <ContextMenu
                   key={event.id}
+                  onOpenChange={(o) => { if (o) onEventContextMenuOpen?.(event.data); }}
+                >
+                  <ContextMenuTrigger asChild disabled={!onEventContextMenu}>
+                <div
                   data-testid="calendar-month-agenda-event"
                   className={cn(
                     'flex items-start gap-3 rounded-lg border p-3 cursor-pointer active:bg-muted/50 transition-colors',
@@ -304,6 +316,11 @@ export function CalendarMonthViewMobile({
                     )}
                   </div>
                 </div>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent className="max-h-[70vh] w-64 overflow-y-auto">
+                    {onEventContextMenu?.(event.data)}
+                  </ContextMenuContent>
+                </ContextMenu>
               );
             })}
           </div>

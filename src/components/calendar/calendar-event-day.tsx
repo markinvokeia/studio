@@ -18,8 +18,8 @@ import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
 import type { AppointmentStatus, CalendarReminderPriority, CalendarReminderStatus, CancellationReason } from '@/lib/types';
 import { getStatusIcon } from '@/components/appointments/status-icons';
 
-import { EVENT_DENSITY_COMPACT_PX, EVENT_DENSITY_NORMAL_PX, GOOGLE_IMPORT_BADGE_COLOR, HOUR_SLOT_HEIGHT } from './calendar-constants';
-import type { CalendarEvent } from './calendar-types';
+import { EVENT_DENSITY_COMPACT_PX, EVENT_DENSITY_NORMAL_PX, EVENT_RESIZE_MIN_PX, GOOGLE_IMPORT_BADGE_COLOR, HOUR_SLOT_HEIGHT } from './calendar-constants';
+import type { CalendarDragMode, CalendarDragPhase, CalendarEvent } from './calendar-types';
 import { formatEventTime, getContrastingIconColor, getReadableTextColor } from './calendar-utils';
 import { getReminderCardStyle, getReminderPriorityColor, isPersonalReminder, isReminderDone } from './reminder-visuals';
 
@@ -36,6 +36,21 @@ interface CalendarEventDayProps {
   /** Alto efectivo de una hora en px (altura configurada x zoom). Con él la card
    *  sabe cuántos píxeles mide de verdad y compacta su contenido en consecuencia. */
   hourSlotHeight?: number;
+  /** Arranca un arrastre o un resize. Una única función compartida por todas las
+   *  cards de la vista, para no recrear la prop en cada render y anular el memo. */
+  onDragPointerDown?: (event: CalendarEvent, mode: CalendarDragMode, e: React.PointerEvent<HTMLElement>) => void;
+  /** Estado del gesto, leído por ref: los handlers de clic lo consultan sin que la
+   *  card tenga que re-renderizarse mientras se arrastra. */
+  dragStateRef?: React.MutableRefObject<{ phase: CalendarDragPhase; didDrag: boolean }>;
+  /** Si la card admite arrastre. La vista lo resuelve con el veto de la página. */
+  draggable?: boolean;
+  /** Apaga el menú contextual de la card mientras hay un arrastre en curso.
+   *  En táctil, Radix arma un long-press de 700 ms en su propio pointerdown; lo
+   *  cancela cualquier pointermove, así que en el caso normal ya está limpio para
+   *  cuando el arrastre se confirma (300 ms + movimiento). Pero si el dedo se queda
+   *  quieto justo después de confirmar, el menú saltaría a mitad del gesto. Radix
+   *  limpia su timer pendiente al recibir `disabled`, así que esto lo cierra. */
+  contextMenuDisabled?: boolean;
 }
 
 export const CalendarEventDay = React.memo(function CalendarEventDay({
@@ -47,6 +62,10 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
   onEventContextMenu,
   onEventContextMenuOpen,
   hourSlotHeight = HOUR_SLOT_HEIGHT,
+  onDragPointerDown,
+  dragStateRef,
+  draggable = false,
+  contextMenuDisabled = false,
 }: CalendarEventDayProps) {
   // Distinguish single vs double click: delay the single-click action briefly so a
   // double-click (inline edit) can cancel it. Only delays when a dbl handler exists.
@@ -64,6 +83,16 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
   const density =
     pxHeight >= EVENT_DENSITY_NORMAL_PX ? 'normal' : pxHeight >= EVENT_DENSITY_COMPACT_PX ? 'compact' : 'tiny';
   const stackLevel = event.stackLevel ?? 0;
+  const isDraggable = draggable && !event.locked && !!onDragPointerDown;
+  // El tirador de abajo se ofrece desde EVENT_RESIZE_MIN_PX y no desde el tramo
+  // `compact`: una cita de 10 min mide 13 px con la altura de hora por defecto, así
+  // que atarlo a la densidad la dejaba sin forma de alargarse salvo con la hora en
+  // 108 px o más. Por debajo del piso no queda card de la que agarrar para mover, y
+  // ahí la duración se sigue cambiando por doble clic (edición inline).
+  const showResizeGrips = isDraggable && pxHeight >= EVENT_RESIZE_MIN_PX;
+  // El de arriba solo cuando sobra alto: dos tiradores en una card de 13 px no
+  // dejarían dónde empezar un arrastre.
+  const showTopGrip = isDraggable && density === 'normal';
   const rawStatus = event.data?.status as string | undefined;
   const isReminder = event.data?.kind === 'reminder';
   const isNote = isReminder && event.data?.type === 'note';
@@ -85,9 +114,11 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
 
   return (
     <ContextMenu onOpenChange={(o) => { if (o) onEventContextMenuOpen?.(event.data); }}>
-      <ContextMenuTrigger asChild>
+      <ContextMenuTrigger asChild disabled={contextMenuDisabled}>
         <div
           data-testid="calendar-day-event"
+          data-event-id={event.id}
+          data-draggable={isDraggable ? 'true' : undefined}
           data-density={density}
           data-stack-level={stackLevel}
           data-stacked={stackLevel > 0 ? 'true' : undefined}
@@ -116,10 +147,19 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
               ? ({ ['--status-stripe' as string]: event.statusStripeColor } as React.CSSProperties)
               : {}),
           }}
-          onPointerDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            if (!isDraggable) return;
+            // Un arrastre que arranca dentro de los 220 ms del timer dejaría salir
+            // el quick-view a mitad del gesto.
+            if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null; }
+            onDragPointerDown?.(event, 'move', e);
+          }}
           onContextMenu={(e) => e.stopPropagation()}
           onClick={(e) => {
             if (e.button !== 0) return;
+            // Este click cierra un arrastre, no es un clic sobre la cita.
+            if (dragStateRef?.current.didDrag) return;
             e.stopPropagation();
             // El rect se toma acá y no dentro del timeout: para cuando este corre,
             // React ya anuló `currentTarget` del evento.
@@ -127,15 +167,44 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
             if (!onEventDoubleClick) { onEventClick(event.data, anchorRect); return; }
             if (e.detail > 1) return; // part of a double-click; ignore
             if (clickTimer.current) clearTimeout(clickTimer.current);
-            clickTimer.current = setTimeout(() => onEventClick(event.data, anchorRect), 220);
+            clickTimer.current = setTimeout(() => {
+              // Segunda guarda: el arrastre pudo empezar después de este click.
+              if (dragStateRef?.current.didDrag) return;
+              onEventClick(event.data, anchorRect);
+            }, 220);
           }}
           onDoubleClick={(e) => {
             if (!onEventDoubleClick) return;
+            if (dragStateRef?.current.didDrag) return;
             e.stopPropagation();
             if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null; }
             onEventDoubleClick(event.data);
           }}
         >
+          {showTopGrip && (
+            <div
+              data-testid="calendar-resize-grip-top"
+              className="event-resize-grip event-resize-grip--top"
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null; }
+                onDragPointerDown?.(event, 'resize-start', e);
+              }}
+              aria-hidden
+            />
+          )}
+          {showResizeGrips && (
+            <div
+              data-testid="calendar-resize-grip-bottom"
+              className="event-resize-grip event-resize-grip--bottom"
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null; }
+                onDragPointerDown?.(event, 'resize-end', e);
+              }}
+              aria-hidden
+            />
+          )}
           {event.label ? (
             <span className="event-day-title">{event.label}</span>
           ) : (

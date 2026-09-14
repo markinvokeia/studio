@@ -31,6 +31,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { Appointment, Calendar as CalendarType, PatientSession, Quote, QuoteItem, Service, TreatmentSequence, TreatmentSequenceStepStatus, User as UserType } from '@/lib/types';
 import { cn, formatDisplayDate, toLocalISOString } from '@/lib/utils';
+import { getOwnAppointmentColor } from '@/lib/appointment-color';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/services/api';
 import { markLocallyCreated } from '@/hooks/use-appointment-status';
@@ -44,6 +45,8 @@ import { AlertTriangle, CalendarDays, Check, ChevronsUpDown, ClipboardList, Cloc
 
 import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
 import { usePatientView } from '@/stores/patient-view-store';
+import { usePermissions } from '@/hooks/usePermissions';
+import { PATIENT_FINANCIAL_VIEW_PERMISSIONS } from '@/constants/permissions';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -129,6 +132,9 @@ export function AppointmentFormDialog({
     const { reschedule } = useAppointmentReschedule();
     const { open: openAccountStatement } = usePatientLedgerSheet();
     const { open: openPatientView } = usePatientView();
+    const { hasAnyPermission } = usePermissions();
+    // "Ver estado de cuenta" abre el ledger financiero consolidado del paciente.
+    const canViewStatement = hasAnyPermission([...PATIENT_FINANCIAL_VIEW_PERMISSIONS]);
     const tAccount = useTranslations('AccountStatement');
     const tPanelAccount = useTranslations('AppointmentPanel');
     const isReschedule = mode === 'reschedule';
@@ -846,6 +852,9 @@ export function AppointmentFormDialog({
             payload.notes = notes || editingAppointment!.notes || '';
             payload.calendar_source_id = calendar?.id ? String(calendar.id) : originalCalendarId;
             payload.quote_id = appointment.quote?.id || editingAppointment?.quote_id || null;
+            // Este formulario no tiene selector de color, así que guardar desde acá no
+            // puede significar "sacale el color": se reenvía el que la cita ya tenía.
+            payload.color = getOwnAppointmentColor(editingAppointment);
         } else {
             payload.doctor_id = doctor?.id || '';
             payload.doctor_name = doctor?.name || '';
@@ -1282,16 +1291,18 @@ export function AppointmentFormDialog({
                                                     <UserRound className="h-3.5 w-3.5" />
                                                     {tPanelAccount('openPatient')}
                                                 </Button>
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="flex-1 gap-1.5"
-                                                    onClick={() => appointment.user && openAccountStatement(appointment.user.id, appointment.user.name)}
-                                                >
-                                                    <FileText className="h-3.5 w-3.5" />
-                                                    {tAccount('viewStatement')}
-                                                </Button>
+                                                {canViewStatement && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="flex-1 gap-1.5"
+                                                        onClick={() => appointment.user && openAccountStatement(appointment.user.id, appointment.user.name)}
+                                                    >
+                                                        <FileText className="h-3.5 w-3.5" />
+                                                        {tAccount('viewStatement')}
+                                                    </Button>
+                                                )}
                                             </div>
                                         </div>
                                     )}

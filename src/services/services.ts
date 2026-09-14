@@ -41,6 +41,11 @@ export async function getServices(params: GetServicesParams = {}): Promise<Servi
             queryParams.limit = String(params.limit);
         }
 
+        // Fuera de los catálogos de Ventas/Compras el resto de la app solo debe ver
+        // servicios activos, así que el filtro se fuerza aquí y no es configurable.
+        // Esas dos pantallas consultan el endpoint directamente con su propio filtro.
+        queryParams.is_active = 'true';
+
         const data = await api.get(API_ROUTES.SERVICES, queryParams);
 
         // El endpoint retorna un array con la estructura [response]

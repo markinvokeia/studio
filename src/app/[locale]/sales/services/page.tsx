@@ -88,10 +88,15 @@ const DEFAULT_SERVICE_FORM_VALUES: ServiceFormValues = {
 
 const PAGE_SIZE = 10;
 
-async function getServices(params: { page: number; limit: number; search: string }): Promise<{ items: Service[]; total: number }> {
+/** Filtro de estado del catálogo: 'all' no envía `is_active` al endpoint. */
+type ServiceStatusFilter = 'all' | 'true' | 'false';
+
+async function getServices(params: { page: number; limit: number; search: string; isActive: ServiceStatusFilter }): Promise<{ items: Service[]; total: number }> {
   try {
     const query: Record<string, string> = { is_sales: 'true', page: String(params.page), limit: String(params.limit) };
     if (params.search) query.search = params.search;
+    // 'all' = sin filtro: el backend devuelve activos e inactivos
+    if (params.isActive !== 'all') query.is_active = params.isActive;
     const data = await api.get(API_ROUTES.SERVICES, query);
     // Response: [{ items: [...], total: N, total_pages: N }]
     const normalized = normalizeApiResponse<any>(data);
@@ -636,7 +641,7 @@ function TreatmentStepsFields({ form, t }: { form: any; t: (key: string, values?
 // Inner component — reads NarrowModeContext
 function ServicesTableWithCards({
   services, columns, selectedService, onRowSelect, onRefresh, isRefreshing, onCreate, rowSelection, setRowSelection,
-  pagination, onPaginationChange, pageCount, rowCount, columnFilters, onColumnFiltersChange, t,
+  pagination, onPaginationChange, pageCount, rowCount, columnFilters, onColumnFiltersChange, statusFilter, onStatusFilterChange, t,
 }: {
   services: Service[];
   columns: any[];
@@ -653,6 +658,8 @@ function ServicesTableWithCards({
   rowCount: number;
   columnFilters: ColumnFiltersState;
   onColumnFiltersChange: React.Dispatch<React.SetStateAction<ColumnFiltersState>>;
+  statusFilter: ServiceStatusFilter;
+  onStatusFilterChange: (value: string) => void;
   t: (key: string) => string;
 }) {
   const { isNarrow: panelNarrow } = useNarrowMode();
@@ -680,6 +687,12 @@ function ServicesTableWithCards({
       rowCount={rowCount}
       columnFilters={columnFilters}
       onColumnFiltersChange={onColumnFiltersChange}
+      filterValue={statusFilter}
+      onFilterChange={onStatusFilterChange}
+      filterOptions={[
+        { label: t('statusFilter.active'), value: 'true' },
+        { label: t('statusFilter.inactive'), value: 'false' },
+      ]}
       renderCard={(service: Service, _isSelected: boolean) => (
         <DataCard isSelected={_isSelected}
           title={service.name}
@@ -734,6 +747,7 @@ export default function ServicesPage() {
   });
 
   const [searchTerm, setSearchTerm] = React.useState('');
+  const [statusFilter, setStatusFilter] = React.useState<ServiceStatusFilter>('all');
   const debouncedSearch = useDebounce(searchTerm, 300);
   const pageCount = totalCount > 0 ? Math.ceil(totalCount / pagination.pageSize) : 1;
 
@@ -748,17 +762,24 @@ export default function ServicesPage() {
       page: pagination.pageIndex + 1,
       limit: pagination.pageSize,
       search: debouncedSearch,
+      isActive: statusFilter,
     });
     setServices(result.items);
     setTotalCount(result.total);
     setIsRefreshing(false);
-  }, [pagination.pageIndex, pagination.pageSize, debouncedSearch]);
+  }, [pagination.pageIndex, pagination.pageSize, debouncedSearch, statusFilter]);
 
   React.useEffect(() => { loadServices(); }, [loadServices]);
 
   // Reset to page 0 when search filter changes
   const handleColumnFiltersChange: React.Dispatch<React.SetStateAction<ColumnFiltersState>> = React.useCallback((updater) => {
     setColumnFilters(updater);
+    setPagination(p => ({ ...p, pageIndex: 0 }));
+  }, []);
+
+  // El listado es paginado en el servidor: al cambiar el estado hay que volver a la primera página
+  const handleStatusFilterChange = React.useCallback((value: string) => {
+    setStatusFilter((value as ServiceStatusFilter) || 'all');
     setPagination(p => ({ ...p, pageIndex: 0 }));
   }, []);
 
@@ -940,6 +961,8 @@ export default function ServicesPage() {
                 rowCount={totalCount}
                 columnFilters={columnFilters}
                 onColumnFiltersChange={handleColumnFiltersChange}
+                statusFilter={statusFilter}
+                onStatusFilterChange={handleStatusFilterChange}
                 t={t}
               />
             </CardContent>

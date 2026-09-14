@@ -19,7 +19,7 @@ import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
  * quick centered dialog with just the patient info form instead of the sheet.
  */
 export function PatientQuickViewHost() {
-  const { isOpen, userId, userName, userEmail, userPhone, initialTab, infoOnly, showCancelAction, close } = usePatientView();
+  const { isOpen, userId, userName, userEmail, userPhone, initialTab, infoOnly, showCancelAction, close, notifyPatientUpdated } = usePatientView();
   const t = useTranslations('AppointmentsPage');
   const { hasPermission } = usePermissions();
   const [isPatientFormDirty, setIsPatientFormDirty] = React.useState(false);
@@ -52,6 +52,7 @@ export function PatientQuickViewHost() {
               userId={userId}
               showCancelAction={showCancelAction}
               onDirtyChange={setIsPatientFormDirty}
+              onSaved={notifyPatientUpdated}
             />
           </DialogBody>
         </DialogContent>
@@ -68,6 +69,7 @@ export function PatientQuickViewHost() {
       userEmail={userEmail}
       userPhone={userPhone}
       initialTab={initialTab ?? 'info'}
+      onPatientUpdated={notifyPatientUpdated}
     />
   );
 }

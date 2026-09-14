@@ -14,6 +14,8 @@ import { PatientLedger, type PatientLedgerHandle } from '@/components/users/pati
 import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
+import { PATIENT_FINANCIAL_VIEW_PERMISSIONS } from '@/constants/permissions';
 
 /**
  * Global host for the "view account statement" shortcut used throughout the app
@@ -27,6 +29,8 @@ import { useToast } from '@/hooks/use-toast';
  */
 export function PatientLedgerSheet() {
   const { isOpen, userId, userName, close } = usePatientLedgerSheet();
+  const { hasAnyPermission, isLoading: permissionsLoading } = usePermissions();
+  const canViewStatement = hasAnyPermission([...PATIENT_FINANCIAL_VIEW_PERMISSIONS]);
   const t = useTranslations('AccountStatement');
   const { printLedger } = usePrintDocument();
   const { toast } = useToast();
@@ -59,6 +63,11 @@ export function PatientLedgerSheet() {
       setIsPrinting(false);
     }
   }, [userId, userName, isPrinting, printLedger, toast, t]);
+
+  // Defensa de fondo: este host está montado global (PrivateRoute) y cualquier
+  // llamador puede invocar open(). Si el usuario no tiene permiso financiero no
+  // montamos el ledger, que carga presupuestos/facturas/pagos del paciente.
+  if (isOpen && !permissionsLoading && !canViewStatement) return null;
 
   return (
     <ResizableSheet

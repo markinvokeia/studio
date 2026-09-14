@@ -3,6 +3,7 @@ import { format, parseISO } from 'date-fns';
 import type { ClinicSchedule, ClinicException } from '@/lib/types';
 import type { CalendarEvent } from './calendar-types';
 import { filterEventsByDay } from './calendar-utils';
+import { MINUTES_IN_DAY } from './calendar-constants';
 
 /** A free time slot (gap) between appointments within business hours. */
 export interface Gap {
@@ -449,6 +450,39 @@ export function computeDayGapsForIntervals(
 export const blockedKey = (dayKey: string, b: Interval & { groupValue?: string }): string =>
   `${b.groupValue ?? ''}_${dayKey}_${b.startMin}_${b.endMin}`;
 
+/** `yyyy-MM-dd` local de una fecha, en la misma forma que arma `blockedKey`. */
+const dayKeyOf = (date: Date): string =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+/**
+ * Whether a time RANGE overlaps a non-working/blocked band.
+ *
+ * `isSlotBlocked` evalúa un instante, que alcanza para el clic en un slot vacío
+ * pero no para mover o redimensionar una cita: un resize de 17:45 a 19:00 que
+ * cruza el cierre de la clínica empieza en horario válido y pasaría el chequeo.
+ * Acá el criterio es solape de intervalos semiabiertos [start, end).
+ */
+export function isRangeBlocked(
+  blockedRanges: BlockedRange[] | undefined,
+  start: Date,
+  end: Date,
+  groupValue?: string,
+): boolean {
+  if (!blockedRanges || blockedRanges.length === 0) return false;
+  const dayKey = dayKeyOf(start);
+  const startMin = start.getHours() * 60 + start.getMinutes();
+  // Un rango de duración cero (recordatorio puntual) igual tiene que poder caer
+  // dentro de una banda, así que se le da un minuto de ancho mínimo.
+  const rawEndMin = end.getHours() * 60 + end.getMinutes();
+  const endMin = Math.max(startMin + 1, dayKeyOf(end) === dayKey ? rawEndMin : MINUTES_IN_DAY);
+  return blockedRanges.some((b) =>
+    b.dayKey === dayKey &&
+    (b.groupValue ?? '') === (groupValue ?? '') &&
+    startMin < b.endMin &&
+    endMin > b.startMin,
+  );
+}
+
 /**
  * Whether a clicked slot (a Date, optionally within a grouping column) falls
  * inside a non-working/blocked band — used to disable create on blocked slots.
@@ -459,7 +493,7 @@ export function isSlotBlocked(
   groupValue?: string,
 ): boolean {
   if (!blockedRanges || blockedRanges.length === 0) return false;
-  const dayKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  const dayKey = dayKeyOf(date);
   const minuteOfDay = date.getHours() * 60 + date.getMinutes();
   return blockedRanges.some((b) =>
     b.dayKey === dayKey &&

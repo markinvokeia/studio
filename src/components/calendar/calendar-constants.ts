@@ -33,6 +33,10 @@ export const GROUPED_COLUMN_MIN_WIDTH = 280;
 /** Gap between grouped day blocks in rem */
 export const GROUPED_DAY_GAP = 1.6;
 
+/** Horas y minutos de un día. Cotas de la conversión px <-> tiempo de la rejilla. */
+export const HOURS_IN_DAY = 24;
+export const MINUTES_IN_DAY = HOURS_IN_DAY * 60;
+
 /** Default height of one hour time slot in px (subdivided into 15-min quarters) */
 export const HOUR_SLOT_HEIGHT = 80;
 
@@ -59,6 +63,17 @@ export const MIN_VISIBLE_SLOT_PX = 5;
 export const EVENT_DENSITY_NORMAL_PX = 34;
 export const EVENT_DENSITY_COMPACT_PX = 18;
 
+/** Alto mínimo de card, en px reales, para ofrecer el tirador de duración.
+ *
+ *  No coincide con ningún tramo de densidad a propósito: una cita de 10 min mide
+ *  `alturaHora / 6`, o sea 13 px con la altura de hora por defecto (80) y menos
+ *  con el zoom bajo, así que atarlo a `compact` (18 px) dejaba sin tirador a todas
+ *  las citas cortas salvo con la hora en 108 px o más. El tirador entra igual: son
+ *  4 px dentro de la card más los que gana por fuera con el `overflow-clip-margin`
+ *  de Calendar.css. Por debajo de este piso sí desaparece — no quedaría card de la
+ *  que agarrar para mover, que es la acción más frecuente. */
+export const EVENT_RESIZE_MIN_PX = 10;
+
 /** Cuánto se estira una card apilada por debajo de la que tiene a su derecha, como
  *  fracción del ancho de una columna del grupo.
  *
@@ -76,11 +91,53 @@ export const EVENT_STACK_BASE_Z_INDEX = 10;
  *  compiten con la columna de horas ni con la línea de la hora actual. */
 export const EVENT_STACK_MAX_Z_BOOST = 40;
 
+/** Umbral de movimiento, en px, para que un pointerdown con mouse pase a ser un
+ *  arrastre. En px fijos y no en minutos a propósito: a zoom mínimo (20 px/hora)
+ *  5 px ya son 15 minutos, así que el snap se calcula desde la posición absoluta
+ *  del puntero, nunca desde el delta. */
+export const DRAG_THRESHOLD_PX = 4;
+
+/** Táctil: cuánto hay que mantener apretado antes de que el gesto pueda pasar a
+ *  arrastre. Por debajo del long-press de 700 ms del menú contextual de Radix, que
+ *  se conserva: si el dedo NO se mueve, gana el menú. */
+export const DRAG_LONG_PRESS_MS = 300;
+
+/** Táctil: cuánto se puede mover el dedo antes de que gane el scroll de la grilla. */
+export const DRAG_TOUCH_SLOP_PX = 8;
+
+/** Banda del borde del contenedor donde el arrastre empieza a auto-scrollear. */
+export const DRAG_AUTO_SCROLL_EDGE_PX = 48;
+
+/** Velocidad máxima del auto-scroll, en px por frame. */
+export const DRAG_AUTO_SCROLL_MAX_SPEED_PX = 18;
+
+/** Banda de los bordes izquierdo/derecho del contenedor donde un arrastre deja de
+ *  scrollear y pasa a cambiar de período (día o semana anterior/siguiente).
+ *
+ *  Más angosta que la del auto-scroll a propósito: la primera y la última columna
+ *  del período son destinos legítimos, así que soltar cerca del borde tiene que
+ *  seguir siendo posible sin que la vista se escape. */
+export const DRAG_EDGE_NAV_PX = 28;
+
+/** Cuánto hay que sostener el puntero en esa banda antes del primer salto de
+ *  período. Es lo que separa "pasé raspando el borde" de "quiero ir a la semana
+ *  que viene". */
+export const DRAG_EDGE_NAV_DELAY_MS = 550;
+
+/** Cadencia de los saltos siguientes mientras el puntero se queda en la banda:
+ *  permite encadenar varias semanas sin soltar, dejando ver cada una al pasar. */
+export const DRAG_EDGE_NAV_REPEAT_MS = 900;
+
+/** z-index del fantasma. Local a `.day-column-content`, que aísla su contexto de
+ *  apilamiento, así que solo compite con las cards de su propia columna. */
+export const DRAG_GHOST_Z_INDEX = EVENT_STACK_BASE_Z_INDEX + EVENT_STACK_MAX_Z_BOOST + 1;
+
 /** How the label shown on each appointment is composed.
  *  - time_patient_notes:           "HH:mm - Patient - (Notes)"
  *  - patient_treatment_time:       "Patient - Treatment - HH:mm"
- *  - time_patient_notes_treatment: "HH:mm - Patient phone - (Notes, Treatment)"   (default) */
-export const EVENT_LABEL_FORMATS = ['time_patient_notes', 'patient_treatment_time', 'time_patient_notes_treatment'] as const;
+ *  - time_patient_notes_treatment: "HH:mm - Patient phone - (Notes, Treatment)"   (default)
+ *  - time_treatment_patient_notes: "HH:mm - Treatment - Patient - Phone - (Notes)" */
+export const EVENT_LABEL_FORMATS = ['time_patient_notes', 'patient_treatment_time', 'time_patient_notes_treatment', 'time_treatment_patient_notes'] as const;
 export type EventLabelFormat = (typeof EVENT_LABEL_FORMATS)[number];
 export const DEFAULT_EVENT_LABEL_FORMAT: EventLabelFormat = 'time_patient_notes_treatment';
 

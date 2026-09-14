@@ -13,6 +13,7 @@ import {
   getMinutes,
   isSameDay,
   parseISO,
+  set,
   startOfDay,
   startOfMonth,
   startOfWeek,
@@ -25,6 +26,9 @@ import {
   EVENT_STACK_LAP_RATIO,
   EVENT_STACK_MAX_Z_BOOST,
   HOUR_SLOT_HEIGHT,
+  HOURS_IN_DAY,
+  DEFAULT_SLOT_DURATION,
+  MINUTES_IN_DAY,
 } from './calendar-constants';
 
 // ---------------------------------------------------------------------------
@@ -513,6 +517,11 @@ export function generateTimeSlots(count = 24): string[] {
  * the slot it falls in, based on the configured slot duration. With 10-min slots
  * (6 per hour) clicking the 13:00 hour yields 13:00/13:10/.../13:50; with 20-min
  * slots (3 per hour) it yields 13:00/13:20/13:40.
+ *
+ * `y` se acota al día antes de convertir. Con un clic nunca se sale de la caja,
+ * pero al arrastrar el puntero sí: sin la cota, una `y` negativa da `hour = -1` y
+ * `set(day, { hours: -1 })` cae callado en el día anterior a las 23:00, y una `y`
+ * mayor al alto de la columna hace roll-over al día siguiente.
  */
 export function slotTimeFromOffset(
   y: number,
@@ -521,10 +530,100 @@ export function slotTimeFromOffset(
 ): { hour: number; minute: number } {
   const safeSlot = slotMinutes > 0 ? slotMinutes : 15;
   const slotsPerHour = Math.max(1, Math.round(60 / safeSlot));
-  const hour = Math.floor(y / hourSlotHeight);
+  const safeY = Math.max(0, Math.min(y, HOURS_IN_DAY * hourSlotHeight - 1));
+  const hour = Math.min(HOURS_IN_DAY - 1, Math.floor(safeY / hourSlotHeight));
   const slotPx = hourSlotHeight / slotsPerHour;
-  const idx = Math.max(0, Math.min(slotsPerHour - 1, Math.floor((y % hourSlotHeight) / slotPx)));
+  const idx = Math.max(0, Math.min(slotsPerHour - 1, Math.floor((safeY % hourSlotHeight) / slotPx)));
   return { hour, minute: idx * safeSlot };
+}
+
+// ---------------------------------------------------------------------------
+// Geometría inversa para el arrastre (px <-> tiempo)
+// ---------------------------------------------------------------------------
+
+/** Inversa del `top` de `getEventStyle`: px desde medianoche para una hora de pared. */
+export function offsetFromTime(date: Date, hourSlotHeight: number): number {
+  return (getHours(date) + getMinutes(date) / 60) * hourSlotHeight;
+}
+
+/**
+ * px desde el tope de la columna -> minutos desde medianoche, snappeado al slot y
+ * acotado al día.
+ *
+ * Se separa de `slotTimeFromOffset` porque el arrastre necesita redondear al slot
+ * MÁS CERCANO (que es como se comporta Google Calendar y evita que la card se
+ * quede sistemáticamente un slot arriba del cursor), mientras que el clic en un
+ * slot vacío necesita el inicio del slot en el que se hizo clic.
+ */
+export function snapMinutesFromOffset(
+  y: number,
+  hourSlotHeight: number,
+  slotMinutes: number = DEFAULT_SLOT_DURATION,
+  round: 'floor' | 'nearest' = 'nearest',
+): number {
+  const safeSlot = slotMinutes > 0 ? slotMinutes : DEFAULT_SLOT_DURATION;
+  const raw = (y / hourSlotHeight) * 60;
+  const snapped = round === 'nearest'
+    ? Math.round(raw / safeSlot) * safeSlot
+    : Math.floor(raw / safeSlot) * safeSlot;
+  return Math.max(0, Math.min(MINUTES_IN_DAY, snapped));
+}
+
+/** `yyyy-MM-dd` -> medianoche local. */
+export function dayFromKey(key: string): Date {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+}
+
+/**
+ * Minutos desde medianoche -> Date sobre el día dado.
+ *
+ * El tope del día se representa como 23:59 y no como 24:00: ningún evento puede
+ * cruzar medianoche (`filterEventsByDay` los agrupa por el día del inicio y
+ * `.day-block` recorta lo que sobresale), así que el minuto 1440 tiene que caer
+ * dentro del mismo día. Sin esto, `1440 % 60 === 0` con la hora acotada a 23 daría
+ * las 23:00, o sea un fin ANTERIOR al inicio en una cita arrastrada al fondo.
+ */
+export function dateFromDayMinutes(day: Date, minutes: number): Date {
+  const clamped = Math.max(0, Math.min(MINUTES_IN_DAY, minutes));
+  if (clamped >= MINUTES_IN_DAY) {
+    return set(day, { hours: HOURS_IN_DAY - 1, minutes: 59, seconds: 0, milliseconds: 0 });
+  }
+  return set(day, {
+    hours: Math.floor(clamped / 60),
+    minutes: clamped % 60,
+    seconds: 0,
+    milliseconds: 0,
+  });
+}
+
+/**
+ * Hit-test de la rejilla: qué `.day-column-content` hay bajo el puntero.
+ *
+ * Va por `elementFromPoint` + `closest` y no por los rects de las columnas porque
+ * los overlays de bloqueo (`.calendar-blocked`, z-index 3 y sin `pointer-events:
+ * none`) y las propias cards se interponen; `closest` los resuelve en un paso.
+ * Durante el arrastre las cards llevan `pointer-events: none` por CSS, así que lo
+ * que devuelve es la columna o uno de sus overlays.
+ */
+export function resolveTimeGridTarget(
+  x: number,
+  y: number,
+  root?: HTMLElement | null,
+): { dayKey: string; day: Date; groupValue?: string; element: HTMLElement; rect: DOMRect } | null {
+  const hit = document.elementFromPoint(x, y) as HTMLElement | null;
+  const el = hit?.closest<HTMLElement>('.day-column-content');
+  if (!el) return null;
+  if (root && !root.contains(el)) return null;
+  const dayKey = el.dataset.day;
+  if (!dayKey) return null;
+  return {
+    dayKey,
+    day: dayFromKey(dayKey),
+    groupValue: el.dataset.groupCol || undefined,
+    element: el,
+    rect: el.getBoundingClientRect(),
+  };
 }
 
 // ---------------------------------------------------------------------------

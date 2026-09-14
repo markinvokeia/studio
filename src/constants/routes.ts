@@ -44,6 +44,7 @@ export const API_ROUTES = {
     APPOINTMENTS_DELETE: '/appointments/delete',
     APPOINTMENTS_LINK_INVOICE: '/appointments/link_invoice',
     APPOINTMENTS_FILTER_IDS: '/appointments/filter-ids',
+    APPOINTMENTS_SEARCH: '/appointments/search',
     APPOINTMENTS_BULK_REASSIGN_DOCTOR: '/appointments/bulk-reassign-doctor',
     CLINIC_SESSIONS_LINK_INVOICE: '/sesiones_clinicas/link_invoice',
     SESSIONS_LINK_INVOICE: '/sesiones/link_invoice',

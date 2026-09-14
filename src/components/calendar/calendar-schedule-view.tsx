@@ -158,6 +158,7 @@ export function CalendarScheduleView({
               <div
                 title={event.label ?? event.title}
                 data-testid="calendar-schedule-event"
+                data-event-id={event.id}
                 className={cn(
                   'relative group/card overflow-hidden p-2 rounded-md cursor-pointer transition-all duration-150',
                   isReminder && !isBulkMode && 'border border-dashed border-[var(--reminder-border)] bg-[var(--reminder-bg)]',

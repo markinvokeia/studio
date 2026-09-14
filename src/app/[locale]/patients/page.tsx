@@ -74,7 +74,7 @@ import type { VisibleLedger } from '@/components/users/patient-ledger';
 import { UserTreatmentPlans, type TreatmentContactContext } from '@/components/users/user-treatment-plans';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import { UserOrders } from '@/components/users/user-orders';
-import { BUSINESS_CONFIG_PERMISSIONS, CLINICAL_HISTORY_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, SALES_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
+import { BUSINESS_CONFIG_PERMISSIONS, CLINICAL_HISTORY_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS, SALES_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -492,12 +492,7 @@ export default function UsersPage() {
     PATIENTS_PERMISSIONS.VIEW_DETAIL_HISTORY,
     MEDICAL_HISTORY_PERMISSIONS.VIEW,
   ]);
-  const canViewFinancialTab = hasAnyPermission([
-    PATIENTS_PERMISSIONS.VIEW_DETAIL_QUOTES,
-    PATIENTS_PERMISSIONS.VIEW_DETAIL_ORDERS,
-    PATIENTS_PERMISSIONS.VIEW_DETAIL_INVOICES,
-    PATIENTS_PERMISSIONS.VIEW_DETAIL_PAYMENTS,
-  ]);
+  const canViewFinancialTab = hasAnyPermission([...PATIENT_FINANCIAL_VIEW_PERMISSIONS]);
 
   // Clinical content is read-only unless the role can actually write it. The
   // clinical viewers don't check permissions themselves — they take `readOnly`.

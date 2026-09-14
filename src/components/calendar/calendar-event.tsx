@@ -18,7 +18,7 @@ import type { AppointmentStatus, CalendarReminderPriority, CalendarReminderStatu
 import { getStatusIcon } from '@/components/appointments/status-icons';
 
 import { GOOGLE_IMPORT_BADGE_COLOR } from './calendar-constants';
-import type { CalendarEvent } from './calendar-types';
+import type { CalendarDragMode, CalendarDragPhase, CalendarEvent } from './calendar-types';
 import { formatEventTime, getContrastingIconColor, getReadableTextColor } from './calendar-utils';
 import { getReminderCardStyle, getReminderPriorityColor, isPersonalReminder, isReminderDone } from './reminder-visuals';
 
@@ -30,6 +30,11 @@ interface CalendarEventChipProps {
   onEventColorChange?: (data: any, colorId: string) => void;
   onEventContextMenu?: (data: any) => React.ReactNode;
   onEventContextMenuOpen?: (data: any) => void;
+  /** Arranca el arrastre. En el mes solo hay modo `move`: sin eje de horas no hay
+   *  borde que estirar, así que la duración se conserva y solo cambia la fecha. */
+  onDragPointerDown?: (event: CalendarEvent, mode: CalendarDragMode, e: React.PointerEvent<HTMLElement>) => void;
+  dragStateRef?: React.MutableRefObject<{ phase: CalendarDragPhase; didDrag: boolean }>;
+  draggable?: boolean;
 }
 
 export const CalendarEventChip = React.memo(function CalendarEventChip({
@@ -38,6 +43,9 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
   onEventClick,
   onEventContextMenu,
   onEventContextMenuOpen,
+  onDragPointerDown,
+  dragStateRef,
+  draggable = false,
 }: CalendarEventChipProps) {
   const tAppointments = useTranslations('AppointmentsPage');
   const rawStatus = event.data?.status as string | undefined;
@@ -57,6 +65,7 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
   const showCancelledStripes = isCancelled && !statusColored;
   const accentColor = isReminder ? getReminderPriorityColor(reminderPriority) : status ? STATUS_ACCENT_COLOR[status] : undefined;
 
+  const isChipDraggable = draggable && !event.locked && !!onDragPointerDown;
   const bg = event.color || 'hsl(var(--primary))';
   const textColor = isReminder ? undefined : showCancelledStripes ? undefined : getReadableTextColor(event.color);
   // La franja del estado se dibuja en un ::before que lee esta variable (Calendar.css).
@@ -75,6 +84,8 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
       <ContextMenuTrigger asChild>
         <div
           data-testid="calendar-event"
+          data-event-id={event.id}
+          data-draggable={isChipDraggable ? 'true' : undefined}
           title={event.label ?? event.title}
           className={cn(
             'event',
@@ -85,8 +96,17 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
           )}
           style={eventStyle}
           onContextMenu={(e) => e.stopPropagation()}
+          onPointerDown={(e) => {
+            // El chip no frenaba la propagación hasta ahora; hace falta para que el
+            // pointerdown no llegue a la celda mientras se arrastra.
+            if (!isChipDraggable) return;
+            e.stopPropagation();
+            onDragPointerDown?.(event, 'move', e);
+          }}
           onClick={(e) => {
             if (e.button !== 0) return;
+            // Este click cierra un arrastre, no es un clic sobre la cita.
+            if (dragStateRef?.current.didDrag) return;
             e.stopPropagation();
             onEventClick(event.data, e.currentTarget.getBoundingClientRect());
           }}

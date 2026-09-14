@@ -61,6 +61,7 @@ import { getReadableTextColor } from '@/components/calendar/calendar-utils';
 import { useToast } from '@/hooks/use-toast';
 import { STATUS_ACCENT_COLOR, canReschedule } from '@/constants/appointment-status';
 import { formatDisplayDate, cn, formatServicePrice, toLocalISOString } from '@/lib/utils';
+import { getEffectiveAppointmentContact } from '@/lib/appointment-contact';
 import type { Appointment, AppointmentStatus, Calendar as CalendarType, Invoice, Order, PatientSession, Service, User } from '@/lib/types';
 
 import { DoctorDetailSheet } from '@/components/appointments/DoctorDetailSheet';
@@ -80,7 +81,7 @@ import {
 import { usePermissions } from '@/hooks/usePermissions';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
-import { BUSINESS_CONFIG_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
+import { BUSINESS_CONFIG_PERMISSIONS, SALES_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS } from '@/constants/permissions';
 
 /**
  * Color de respaldo del punto de un servicio que no tiene color propio. Estaba
@@ -518,7 +519,7 @@ export function AppointmentPanel({
   const [localColor, setLocalColor] = React.useState<string | undefined>(undefined);
   React.useEffect(() => { setLocalColor(undefined); }, [appointment?.id]);
   const canOpenDetailDeepLinks = useCanOpenDetailDeepLinks();
-  const { hasPermission } = usePermissions();
+  const { hasPermission, hasAnyPermission } = usePermissions();
   // Without APPOINTMENTS_UPDATE the whole panel is read-only: no status
   // transitions, no quick-edits, no services, no quote linking, no
   // reschedule/delete. Clinical-only roles (médico) land here.
@@ -526,6 +527,8 @@ export function AppointmentPanel({
   // The Budget section is financial data (quote doc no. + billing status) and its
   // row deep-links into the quote, so it needs the quote-read permission.
   const canViewQuotes = hasPermission(SALES_PERMISSIONS.QUOTES_VIEW_DETAIL);
+  // "Ver estado de cuenta" abre el ledger financiero consolidado del paciente.
+  const canViewStatement = hasAnyPermission([...PATIENT_FINANCIAL_VIEW_PERMISSIONS]);
   const { open: openPatientView } = usePatientView();
   const { open: openAccountStatement } = usePatientLedgerSheet();
 
@@ -793,11 +796,12 @@ export function AppointmentPanel({
 
   const openPatientDetail = React.useCallback(() => {
     if (!appointment?.patientId) return;
+    const { email, phone } = getEffectiveAppointmentContact(appointment);
     openPatientView({
       userId: appointment.patientId,
       userName: appointment.patientName,
-      userEmail: appointment.patientEmail,
-      userPhone: appointment.patientPhone,
+      userEmail: email,
+      userPhone: phone,
     });
   }, [appointment, openPatientView]);
 
@@ -870,7 +874,8 @@ export function AppointmentPanel({
   const StatusIcon = getStatusIcon(appointment.status, appointment.cancellation_reason);
   const statusColor = STATUS_ACCENT_COLOR[appointment.status];
   const appointmentCode = `#${appointment.id.slice(0, 8).toUpperCase()}`;
-  const patientMeta = [appointment.patientPhone].filter(Boolean).join(' · ');
+  const { phone: effectivePatientPhone, fromResponsibleContact } = getEffectiveAppointmentContact(appointment);
+  const patientMeta = [effectivePatientPhone].filter(Boolean).join(' · ');
   const invoiceCount = quoteInvoices.length;
   const isCancelled = appointment.status === 'cancelled';
   const cancellationReasonLabel = isCancelled
@@ -1052,7 +1057,14 @@ export function AppointmentPanel({
                     >
                       {appointment.patientName}
                     </button>
-                    {patientMeta && <p className="truncate text-xs text-muted-foreground">{patientMeta}</p>}
+                    {patientMeta && (
+                      <p className="truncate text-xs text-muted-foreground">
+                        {patientMeta}
+                        {fromResponsibleContact && (
+                          <span className="ml-1.5 text-[11px]">({t('responsibleContactHint')})</span>
+                        )}
+                      </p>
+                    )}
                     {!hidePatientActions && (
                       <p className={cn('truncate text-xs font-medium', patientDebt.length > 0 ? 'text-destructive' : 'text-muted-foreground')}>
                         {patientDebt.length > 0 ? tAccount('debtAlertTitle') : tAccount('noDebt')}
@@ -1066,10 +1078,12 @@ export function AppointmentPanel({
                   </div>
                   {appointment.patientId && !hidePatientActions && (
                     <div className="flex shrink-0 items-center gap-2">
-                      <Button type="button" variant="outline" size="sm" className="h-7 gap-1.5 px-2.5 text-xs" onClick={openAccountStatementForPatient}>
-                        <FileText className="h-3.5 w-3.5" />
-                        {tAccount('viewStatement')}
-                      </Button>
+                      {canViewStatement && (
+                        <Button type="button" variant="outline" size="sm" className="h-7 gap-1.5 px-2.5 text-xs" onClick={openAccountStatementForPatient}>
+                          <FileText className="h-3.5 w-3.5" />
+                          {tAccount('viewStatement')}
+                        </Button>
+                      )}
                       <Button type="button" variant="outline" size="sm" className="h-7 gap-1.5 px-2.5 text-xs" onClick={openPatientDetail}>
                         <UserRound className="h-3.5 w-3.5" />
                         {tPanel('openPatient')}
@@ -1087,16 +1101,18 @@ export function AppointmentPanel({
                         {patientDebt.map((d) => `${d.currency} ${d.amount.toLocaleString('es-UY', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`).join(' · ')}
                       </span>
                     </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-7 gap-1.5 border-destructive/40 px-2.5 text-xs text-destructive hover:bg-destructive/10"
-                      onClick={openAccountStatementForPatient}
-                    >
-                      <FileText className="h-3.5 w-3.5" />
-                      {tAccount('viewStatement')}
-                    </Button>
+                    {canViewStatement && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-7 gap-1.5 border-destructive/40 px-2.5 text-xs text-destructive hover:bg-destructive/10"
+                        onClick={openAccountStatementForPatient}
+                      >
+                        <FileText className="h-3.5 w-3.5" />
+                        {tAccount('viewStatement')}
+                      </Button>
+                    )}
                   </div>
                 )}
 

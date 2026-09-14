@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import type { User } from '@/lib/types';
+
 type PatientDetailTab = 'info' | 'clinical' | 'financial';
 
 /**
@@ -17,6 +19,15 @@ type PatientViewStore = {
   infoOnly?: boolean;
   /** Show the guarded Cancel action used by patient forms opened from custom calendar mode. */
   showCancelAction?: boolean;
+  /**
+   * Último paciente guardado desde el sheet/diálogo de "Datos del paciente"
+   * (cualquier host: `PatientDetailSheet` o el diálogo `infoOnly`). Las vistas
+   * que muestran datos de un paciente (agenda, panel de citas) lo escuchan para
+   * refrescar nombre/teléfono/responsable sin depender de que las citas manden
+   * su propio evento — editar un paciente no es editar una cita, así que el
+   * `calendar_changed` (SSE) no lo cubre.
+   */
+  lastUpdatedPatient: User | null;
   open: (patient: {
     userId: string;
     userName: string;
@@ -27,6 +38,7 @@ type PatientViewStore = {
     showCancelAction?: boolean;
   }) => void;
   close: () => void;
+  notifyPatientUpdated: (user: User) => void;
 };
 
 export const usePatientView = create<PatientViewStore>((set) => ({
@@ -38,6 +50,7 @@ export const usePatientView = create<PatientViewStore>((set) => ({
   initialTab: undefined,
   infoOnly: false,
   showCancelAction: false,
+  lastUpdatedPatient: null,
   // Deferred: `open` is often called from a ContextMenuItem's onSelect. Radix's
   // menu and this sheet both lock document.body's pointer-events while
   // open/closing; opening the sheet in the same tick the menu starts its
@@ -62,4 +75,5 @@ export const usePatientView = create<PatientViewStore>((set) => ({
     infoOnly: false,
     showCancelAction: false,
   }),
+  notifyPatientUpdated: (user) => set({ lastUpdatedPatient: user }),
 }));

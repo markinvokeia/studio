@@ -636,12 +636,26 @@ export type CancellationReason =
  */
 export type AppointmentColorSource = 'appointment' | 'service' | 'doctor' | 'calendar' | 'none';
 
+/**
+ * Contacto del responsable/tutor del paciente (`users.responsible_contact_id`).
+ * Lo trae el backend como sub-json sólo cuando el paciente tiene responsable.
+ */
+export type ResponsibleContact = {
+  id: string;
+  name: string;
+  email?: string | null;
+  phone_number?: string | null;
+  address?: string | null;
+};
+
 export type Appointment = {
   id: string; // appointmentId in backend
   patientId: string;
   patientName: string;
   patientEmail?: string;
   patientPhone?: string;
+  /** Presente cuando el paciente de la cita tiene un responsable/tutor asociado. */
+  responsibleContact?: ResponsibleContact | null;
   doctorId: string;
   doctorName?: string;
   doctorEmail?: string;

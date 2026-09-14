@@ -12,7 +12,7 @@ import { PatientQuickActions } from '@/components/patients/patient-quick-actions
 
 import { InlineAppointmentDraftHost } from '@/components/appointments/inline-appointment-draft-host';
 import { usePermissions } from '@/hooks/usePermissions';
-import { CLINICAL_HISTORY_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
+import { CLINICAL_HISTORY_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
 import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/components/users/clinic-history-viewer';
 import { PatientIndicationsTab } from '@/components/medical-instructions/patient-indications-tab';
 import { UserTreatmentPlans } from '@/components/users/user-treatment-plans';
@@ -55,6 +55,8 @@ interface PatientDetailSheetProps {
   initialTab?: PatientDetailTab | LegacyPatientDetailTab;
   /** View-only mode: hides every add/edit/delete affordance across the clinical tabs. */
   readOnly?: boolean;
+  /** Llamado cuando se guardan cambios en la pestaña "Información" (nombre, teléfono, responsable, etc.). */
+  onPatientUpdated?: (user: User) => void;
 }
 
 function mapInitialTabToMacroTab(tab?: PatientDetailTab | LegacyPatientDetailTab): PatientSheetMacroTab {
@@ -88,6 +90,7 @@ export function PatientDetailSheet({
   clinicalHistoryDefaultView,
   initialTab = 'clinical',
   readOnly = false,
+  onPatientUpdated,
 }: PatientDetailSheetProps) {
   const t = useTranslations('UsersPage');
   const { user: currentUser } = useAuth();
@@ -105,12 +108,7 @@ export function PatientDetailSheet({
   // same thing here as in the Patients module. `mode="doctor"` keeps forcing the
   // clinical-only layout regardless.
   const canViewInfoTab = hasPermission(PATIENTS_PERMISSIONS.VIEW_DETAIL_INFO);
-  const canViewFinancialTab = hasAnyPermission([
-    PATIENTS_PERMISSIONS.VIEW_DETAIL_QUOTES,
-    PATIENTS_PERMISSIONS.VIEW_DETAIL_ORDERS,
-    PATIENTS_PERMISSIONS.VIEW_DETAIL_INVOICES,
-    PATIENTS_PERMISSIONS.VIEW_DETAIL_PAYMENTS,
-  ]);
+  const canViewFinancialTab = hasAnyPermission([...PATIENT_FINANCIAL_VIEW_PERMISSIONS]);
   const canWriteClinical = hasAnyPermission([
     TIMELINE_PERMISSIONS.CREATE,
     TIMELINE_PERMISSIONS.UPDATE,
@@ -329,7 +327,7 @@ export function PatientDetailSheet({
           activeClinicalSubTab={activeClinicalSubTab}
           onClinicalSubTabChange={setActiveClinicalSubTab}
           showFinancial={showFinancialTab}
-          infoContent={showInfoTab ? <PatientInfoTab userId={userId} /> : undefined}
+          infoContent={showInfoTab ? <PatientInfoTab userId={userId} onSaved={onPatientUpdated} /> : undefined}
           anamnesisContent={<AnamnesisViewer userId={userId} readOnly={isReadOnly} />}
           clinicalHistoryContent={<ClinicHistoryViewer userId={userId} userName={userName} deepLinkView={clinicalHistoryDefaultView} isDoctorMode={isDoctorMode} createSessionTrigger={createSessionTrigger} createOdontogramTrigger={createOdontogramTrigger} refreshAppointmentsTrigger={apptRefreshTrigger} onEditAppointment={canManageAppointments ? setEditingAppointment : undefined} readOnly={isReadOnly} />}
           treatmentPlansContent={<UserTreatmentPlans userId={userId} userName={userName} readOnly={isReadOnly} />}

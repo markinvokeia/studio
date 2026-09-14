@@ -937,6 +937,7 @@
   "AppointmentsPage": {
     "title": "Appointments",
     "description": "Manage all appointments.",
+    "responsibleContactHint": "Guardian's contact",
     "settings": {
       "title": "Calendar Settings",
       "mode": "View (Mode)",
@@ -956,7 +957,8 @@
       "eventLabelOptions": {
         "time_patient_notes": "Time - Patient - (Notes)",
         "patient_treatment_time": "Patient - Treatment - Time",
-        "time_patient_notes_treatment": "Time - Patient phone - (Notes, Treatment)"
+        "time_patient_notes_treatment": "Time - Patient phone - (Notes, Treatment)",
+        "time_treatment_patient_notes": "Time - Treatment - Patient - Phone - (Notes)"
       },
       "groupBy": "Group by",
       "checkAvailability": "Check availability",
@@ -988,13 +990,14 @@
         "blockUnavailable": "Greys out and blocks out-of-office hours on the calendar (per schedules and exceptions), preventing appointments there.",
         "filterDoctorsByService": "When creating an appointment, filters the doctor list to only those who provide the selected service.",
         "inlineAppointmentCreation": "Clicking a slot creates the appointment inline on the calendar with a card, without opening the modal. The Create button always opens the modal.",
-        "colorByStatus": "Appointments that are no longer 'Scheduled' show their status with color. If the appointment has its own color tag or its service has a color, it keeps that color and the status appears as a stripe on the left edge. If it only inherits the doctor's or the consulting room's color, the whole appointment is painted with the status color."
+        "colorByStatus": "Appointments show their status with color. If the appointment has its own color tag or its service has a color, it keeps that color and the status appears as a stripe on the left edge. If it only inherits the doctor's or the consulting room's color, the whole appointment is painted with the status color. 'Scheduled' (lilac) and 'No show' (gray) are the exception: they are always painted, even with this preference off and over any chosen color."
       }
     },
     "newAppointment": "New Appointment",
     "calendarView": "Calendar View",
     "listView": "List View",
     "refresh": "Refresh",
+    "printSchedule": "Export schedule to Excel",
     "calendars": "Calendars",
     "toggleCalendars": "Show/Hide Calendars",
     "toggleDoctors": "Show/Hide Doctors",
@@ -1168,7 +1171,11 @@
       "calendarReassigned": "Room updated",
       "quoteLinked": "Quote linked",
       "quoteUnlinked": "Quote unlinked",
-      "invoiceLinked": "Invoice linked"
+      "invoiceLinked": "Invoice linked",
+      "appointmentMoved": "Appointment moved",
+      "appointmentMovedDesc": "New time: {date} · {time}",
+      "appointmentResized": "Duration updated",
+      "appointmentResizedDesc": "{start} – {end} ({minutes} min)"
     },
     "inlineCreate": {
       "title": "New appointment",
@@ -1265,6 +1272,31 @@
     },
     "importedFromGoogle": "Imported from Google Calendar"
   },
+  "PrintScheduleDialog": {
+    "title": "Export schedule to Excel",
+    "description": "Builds a sheet of a calendar's appointments. Cancelled appointments and no-shows are excluded.",
+    "field_calendar": "Calendar",
+    "no_calendars": "No calendars available",
+    "field_calendar_placeholder": "Pick a calendar",
+    "field_range": "Period",
+    "range_day": "Day",
+    "range_week": "Week",
+    "range_month": "Month",
+    "range_custom": "Range",
+    "field_anchor": "Date",
+    "field_from": "From",
+    "field_to": "To",
+    "summary_single": "Appointments for {date}",
+    "summary_range": "Appointments from {from} to {to}",
+    "cancel": "Cancel",
+    "export": "Download Excel",
+    "col_time": "Time",
+    "col_name": "Full name",
+    "col_phone": "Phone",
+    "toast_success": "{count, plural, one {# appointment exported} other {# appointments exported}}",
+    "toast_empty": "No appointments in the selected period",
+    "toast_error": "Could not generate the Excel file"
+  },
   "AppointmentsColumns": {
     "service": "Service",
     "date": "Date",
@@ -1275,6 +1307,7 @@
     "cancel": "Cancel",
     "calendar": "Calendar",
     "patient": "Patient",
+    "phone": "Phone",
     "quoteDocNo": "Budget"
   },
   "AppointmentStatus": {
@@ -1876,6 +1909,10 @@
       "responsibleContactPlaceholder": "Not assigned",
       "searchGuardianPlaceholder": "Search by name...",
       "noGuardianResults": "No patients found",
+      "searchGuardianHint": "Type to search for the guardian.",
+      "createGuardian": "Create guardian {name}",
+      "createGuardianTitle": "Create Guardian",
+      "createGuardianDescription": "Fill in the guardian's details. Once saved they are assigned as the responsible contact.",
       "clearResponsibleContact": "Clear",
       "doctor": "Default doctor",
       "searchDoctor": "Search doctor...",
@@ -3604,6 +3641,10 @@
     "title": "Services",
     "description": "An overview of services.",
     "filterPlaceholder": "Filter here...",
+    "statusFilter": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
     "createDialog": {
       "title": "Create Service",
       "description": "Create a new service",
@@ -4195,7 +4236,9 @@
       "defaultCalendar": "Default Consultorio",
       "selectCalendar": "Select consultorio...",
       "searchCalendarPlaceholder": "Search consultorio...",
-      "noCalendar": "No default consultorio"
+      "noCalendar": "No default consultorio",
+      "defaultSede": "Default sede",
+      "defaultSedePlaceholder": "Select sede..."
     },
     "filters": {
       "showOnlyActive": "Show only active"
@@ -4494,6 +4537,8 @@
       "phonePlaceholder": "e.g. 123-456-7890",
       "identity_document": "Identity Document",
       "identity_document_placeholder": "e.g. 1234567890",
+      "defaultSede": "Default sede",
+      "defaultSedePlaceholder": "Select sede...",
       "isActive": "Is Active?",
       "save": "Save",
       "cancel": "Cancel",
@@ -5555,8 +5600,27 @@
       "maxBadge": "Largest",
       "close": "Close"
     },
+    "search": {
+      "button": "Search appointment",
+      "panelTitle": "Search appointments",
+      "placeholder": "Patient or appointment title…",
+      "hint": "Search by appointment title or by patient name, phone, email or ID. Covers every date.",
+      "minChars": "Type at least {count} characters.",
+      "empty": "No appointments match your search.",
+      "untitled": "Untitled appointment",
+      "clear": "Clear",
+      "close": "Close",
+      "allCalendars": "All calendars",
+      "nCalendars": "{count} calendars",
+      "calendarFilter": "Filter by calendar"
+    },
     "blocked": {
       "label": "Unavailable"
+    },
+    "drag": {
+      "moveTo": "Move to…",
+      "duration": "Duration",
+      "minutes": "{minutes} min"
     }
   },
   "Reminders": {

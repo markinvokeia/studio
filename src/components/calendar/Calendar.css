@@ -661,6 +661,11 @@
   overflow: hidden;
   cursor: pointer;
   z-index: 10;
+  /* Sin esto, arrastrar el mouse sobre las cards selecciona el texto de media
+     columna. La card no tiene texto seleccionable útil: su contenido completo
+     está en el `title`. */
+  user-select: none;
+  -webkit-user-select: none;
   border: 1px solid rgba(255, 255, 255, 0.2);
   /* Add subtle border for visibility */
   /* Dos sombras componibles: la interior es la de los recordatorios y la de apilado
@@ -1032,6 +1037,35 @@
 }
 
 /* ───────────────────────────────────────────────────────────────────────────
+   Cita enfocada (resultado de búsqueda elegido): aro de "hormigas en marcha",
+   el mismo efecto que el hueco máximo en "Buscar huecos". Es un overlay que
+   Calendar.tsx posiciona por rAF sobre la card (no una clase en la card, que
+   los re-render de la grilla borraban). Persiste hasta elegir otro resultado
+   o cerrar el buscador.
+   ─────────────────────────────────────────────────────────────────────────── */
+.calendar-focus-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 45;
+  pointer-events: none;
+  border-radius: 8px;
+  will-change: transform;
+  background:
+    linear-gradient(90deg, hsl(var(--primary)) 50%, transparent 0) repeat-x,
+    linear-gradient(90deg, hsl(var(--primary)) 50%, transparent 0) repeat-x,
+    linear-gradient(0deg, hsl(var(--primary)) 50%, transparent 0) repeat-y,
+    linear-gradient(0deg, hsl(var(--primary)) 50%, transparent 0) repeat-y;
+  background-size: 12px 2px, 12px 2px, 2px 12px, 2px 12px;
+  background-position: 0 0, 0 100%, 0 0, 100% 0;
+  background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
+  animation: calendar-gap-march 0.6s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .calendar-focus-ring { animation: none; }
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
    Out-of-office blocking ("No disponible") — schedules + exceptions
    ─────────────────────────────────────────────────────────────────────────── */
 .calendar-blocked {
@@ -1098,4 +1132,215 @@
     transparent 6px,
     transparent 12px
   );
+}
+
+/* ==========================================================================
+   Arrastre y redimensionado de citas (modo custom)
+
+   Todo lo de acá se togglea imperativamente desde use-calendar-drag-drop: durante
+   el gesto no hay un solo re-render de React, así que el estado visual vive en
+   clases y atributos sobre nodos que ya estaban montados.
+   ========================================================================== */
+
+/* Estado global mientras se arrastra. La clase va sobre el contenedor con scroll. */
+.calendar-dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.calendar-dragging[data-drag-invalid='true'] {
+  cursor: not-allowed;
+}
+
+/* Borde "armado": el puntero se está sosteniendo contra el costado y, si sigue ahí,
+   la vista pasa al período anterior/siguiente sin soltar la cita. El latido dice que
+   hay una espera en curso, no un estado final.
+
+   Cuelga de `body` y va `fixed` porque las dos alternativas fallan: un
+   `box-shadow: inset` en el contenedor lo tapan los fondos opacos de las columnas
+   (`.day-block`), y un hijo absoluto se iría con el scroll. El hook escribe la
+   geometría del contenedor en estas variables al armar el borde. */
+body[data-calendar-drag-edge]::after {
+  content: '';
+  position: fixed;
+  top: var(--calendar-edge-nav-top, 0);
+  height: var(--calendar-edge-nav-height, 0);
+  left: var(--calendar-edge-nav-x, 0);
+  width: 64px;
+  box-sizing: border-box;
+  pointer-events: none;
+  z-index: 60;
+  animation: calendar-edge-nav-pulse 750ms ease-in-out infinite;
+}
+
+body[data-calendar-drag-edge='left']::after {
+  border-left: 3px solid hsl(var(--primary));
+  background: linear-gradient(to right, hsl(var(--primary) / 0.7), hsl(var(--primary) / 0.25) 45%, transparent);
+}
+
+/* El borde derecho se ancla en `right`, así que la banda se corre su propio ancho
+   hacia adentro para quedar del lado visible. */
+body[data-calendar-drag-edge='right']::after {
+  transform: translateX(-100%);
+  border-right: 3px solid hsl(var(--primary));
+  background: linear-gradient(to left, hsl(var(--primary) / 0.7), hsl(var(--primary) / 0.25) 45%, transparent);
+}
+
+@keyframes calendar-edge-nav-pulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
+/* Además de matar el hover, deja que `elementFromPoint` devuelva la columna (o la
+   celda del mes) y no la card que va bajo el cursor: es lo que permite el hit-test
+   de un solo paso. */
+.calendar-dragging .event-in-day-view,
+.calendar-dragging .event {
+  pointer-events: none;
+}
+
+/* La card origen se queda en su lugar, atenuada, como referencia de dónde estaba. */
+.event-in-day-view[data-dragging='true'] {
+  opacity: 0.35;
+}
+
+.event-in-day-view[data-draggable='true'] {
+  cursor: grab;
+}
+
+/* Tiradores de resize. El `::after` agranda el área de agarre sin tocar el alto de
+   la card: el `height` en línea es exactamente proporcional a la duración, y
+   inflarlo taparía el hueco siguiente. */
+.event-resize-grip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 7px;
+  cursor: ns-resize;
+  touch-action: none;
+  z-index: 1;
+}
+
+.event-resize-grip::after {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
+}
+
+.event-resize-grip--top { top: -1px; }
+.event-resize-grip--bottom { bottom: -1px; }
+
+/* Con la card compacta solo queda el tirador de abajo, y más finito. */
+.event-in-day-view[data-density='compact'] .event-resize-grip {
+  height: 5px;
+}
+
+/* Y más finito todavía cuando la card baja de 18px: una cita de 10 min mide 13px
+   con la altura de hora por defecto, así que 4px es lo máximo que puede ocupar sin
+   comerse el lugar por donde se la agarra para moverla. */
+.event-in-day-view[data-density='tiny'] .event-resize-grip {
+  height: 4px;
+}
+
+/* Lo que la card no puede dar por dentro se compensa por fuera: en estos tramos el
+   área de agarre se estira hacia abajo. */
+.event-in-day-view[data-density='compact'] .event-resize-grip--bottom::after,
+.event-in-day-view[data-density='tiny'] .event-resize-grip--bottom::after {
+  inset: -4px 0 -6px;
+}
+
+/* El `overflow: hidden` de la card recortaba el `::after` del tirador, así que su
+   área de agarre real era solo lo que medía el tirador por dentro —4 o 5px—. Con
+   `clip` + margen ese `::after` puede asomar por debajo del borde y sumar unos px
+   agarrables sin que la card crezca ni un píxel: su alto sigue siendo exactamente
+   proporcional a la duración. El contenido no se derrama porque lo que podría
+   hacerlo, el título, recorta por su cuenta (overflow + line-clamp propios), y el
+   resto —hora, círculo de estado, punto de origen— ya está oculto en estos tramos. */
+.event-in-day-view[data-density='compact'],
+.event-in-day-view[data-density='tiny'] {
+  overflow: clip;
+  /* Holgado a propósito: el margen solo levanta el recorte, quien fija cuánto
+     asoma es el `::after` del tirador. Con 8 aquí y -6px abajo, el área agarrable
+     termina ~5px por debajo de la card. */
+  overflow-clip-margin: 8px;
+}
+
+/* Fantasma del destino. `absolute` dentro de la columna, nunca `fixed`: ver la
+   invariante de `.day-column-content`. */
+.calendar-drag-ghost {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: 4px;
+  border: 2px solid hsl(var(--primary));
+  background: hsl(var(--primary) / 0.18);
+  padding: 2px 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.1;
+  color: hsl(var(--foreground));
+}
+
+.calendar-drag-ghost--invalid {
+  border-color: hsl(var(--destructive));
+  background-color: hsl(var(--destructive) / 0.16);
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent 0 6px,
+    hsl(var(--destructive) / 0.18) 6px 12px
+  );
+}
+
+.calendar-drag-ghost__time {
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .event-in-day-view[data-dragging='true'] { opacity: 0.5; }
+  body[data-calendar-drag-edge]::after { animation: none; opacity: 0.8; }
+}
+
+/* ── Vista de mes ──────────────────────────────────────────────────────────
+   Sin eje de horas no hay resize: arrastrar solo cambia la fecha, conservando la
+   hora del día y la duración. */
+
+.event[data-draggable='true'] { cursor: grab; }
+
+.calendar-day--drop-target {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: -2px;
+  background-color: hsl(var(--primary) / 0.08);
+}
+
+.calendar-day--drop-invalid {
+  outline-color: hsl(var(--destructive));
+  background-color: hsl(var(--destructive) / 0.08);
+}
+
+/* Portalado a body: las celdas tienen overflow-y auto y lo recortarían. */
+.calendar-drag-chip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 60;
+  pointer-events: none;
+  max-width: 220px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  border-radius: 4px;
+  border: 1px solid hsl(var(--primary));
+  background: hsl(var(--background));
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.18);
+  padding: 3px 7px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+}
+
+.calendar-drag-chip--invalid {
+  border-color: hsl(var(--destructive));
+  color: hsl(var(--destructive));
 }

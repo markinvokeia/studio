@@ -39,6 +39,47 @@ export async function fetchAppointmentDoctors(): Promise<User[]> {
   } catch { return []; }
 }
 
+export interface SearchAppointmentsParams {
+  /** Texto libre. El endpoint exige >= 2 caracteres; con menos devolvemos [] sin pegar. */
+  q: string;
+  /** Ids de agenda para acotar la búsqueda (normalmente las agendas visibles). */
+  calendarSourceIds?: string[];
+  /** Tope de resultados (el backend lo capa a 100). */
+  limit?: number;
+}
+
+/**
+ * Búsqueda global de citas por texto — pega al webhook n8n `GET /appointments/search`
+ * (ver n8n-workflows/appointments-search.json). Matchea, sin acentos ni mayúsculas,
+ * contra campos de la cita (summary/notes/description), del paciente (nombre, email,
+ * documento, teléfono), servicios y nº de presupuesto. No está acotada por fecha:
+ * ordena por cercanía a hoy y devuelve como mucho `limit` filas.
+ *
+ * Devuelve las filas crudas del backend, con la MISMA forma que `/users_appointments`,
+ * para que la página las mapee con su propio `mapApiAppointmentRow`.
+ */
+export async function searchAppointments({
+  q,
+  calendarSourceIds,
+  limit,
+}: SearchAppointmentsParams): Promise<any[]> {
+  const term = q.trim();
+  if (term.length < 2) return [];
+
+  const query: Record<string, string> = { q: term };
+  if (calendarSourceIds && calendarSourceIds.length > 0) {
+    query.calendar_source_ids = calendarSourceIds.join(',');
+  }
+  if (limit) query.limit = String(limit);
+
+  const data = await api.get(API_ROUTES.APPOINTMENTS_SEARCH, query);
+
+  if (Array.isArray(data) && data.length > 0 && 'json' in data[0]) {
+    return data.map((item: any) => item.json);
+  }
+  return Array.isArray(data) ? data : [];
+}
+
 interface UpdateAppointmentStatusParams {
   appointment: Pick<Appointment, 'id' | 'googleEventId' | 'calendar_source_id'>;
   newStatus: AppointmentStatus;
