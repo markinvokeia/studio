@@ -110,6 +110,7 @@ function buildInvoicesSection(invoices: QuotePrintData['invoices'], currency: st
       ? `<table class="print-template-table" style="width:100%;margin-bottom:0.5rem;">
           <thead><tr>
             <th style="text-align:left;">Servicio</th>
+            <th style="text-align:center;width:4rem;">Diente</th>
             <th style="text-align:center;width:4rem;">Cant.</th>
             <th style="text-align:right;width:7rem;">P. Unit.</th>
             <th style="text-align:right;width:7rem;">Total</th>
@@ -117,13 +118,14 @@ function buildInvoicesSection(invoices: QuotePrintData['invoices'], currency: st
           <tbody>
             ${inv.items.map((item) => `<tr>
               <td>${item.service_name}</td>
+              <td style="text-align:center;">${item.tooth_number ?? '—'}</td>
               <td style="text-align:center;">${item.quantity}</td>
               <td style="text-align:right;">${invCurrency} ${fmt(item.unit_price, invCurrency)}</td>
               <td style="text-align:right;">${invCurrency} ${fmt(item.total, invCurrency)}</td>
             </tr>`).join('')}
           </tbody>
           <tfoot><tr style="border-top:1px solid #e5e7eb;font-size:0.75rem;color:#6b7280;">
-            <td colspan="3" style="text-align:right;">Total</td>
+            <td colspan="4" style="text-align:right;">Total</td>
             <td style="text-align:right;font-weight:600;">${invCurrency} ${fmt(invTotal, invCurrency)}</td>
           </tr></tfoot>
         </table>`
@@ -373,7 +375,7 @@ function substituteVariables(html: string, data: PrintData, type: PrintDocumentT
       paid: fmt(paid, currency),
       pending: fmt(pending, currency),
       notes: invoice.notes ? `<p style="color:#6b7280;font-weight:500;margin-bottom:0.25rem;">Notas</p><p>${invoice.notes}</p>` : '',
-      items_table: buildItemsTable(items, currency, false, invoiceDiscountView),
+      items_table: buildItemsTable(items, currency, true, invoiceDiscountView),
       payments_table: buildPaymentsTable(payments, currency),
     });
   } else if (type === 'quote') {
@@ -441,7 +443,7 @@ function substituteVariables(html: string, data: PrintData, type: PrintDocumentT
       subtotal: fmt(creditNoteDiscountView.hasDiscount ? creditNoteDiscountView.grossTotal : total, currency),
       discount: fmt(creditNoteDiscountView.discountAmount, currency),
       notes: creditNote.notes ? `<p style="color:#6b7280;font-weight:500;margin-bottom:0.25rem;">Notas</p><p>${creditNote.notes}</p>` : '',
-      items_table: buildItemsTable(items, currency, false, creditNoteDiscountView),
+      items_table: buildItemsTable(items, currency, true, creditNoteDiscountView),
     });
   } else if (type === 'prepayment') {
     const d = data as PrepaymentPrintData;

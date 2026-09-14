@@ -43,6 +43,7 @@ function mapInvoiceItems(raw: any[]): InvoiceItem[] {
     unit_price: parseFloat(i.unit_price) || 0,
     quantity: parseInt(i.quantity) || 1,
     total: parseFloat(i.total) || 0,
+    tooth_number: i.tooth_number ?? undefined,
     step_id: i.step_id != null ? String(i.step_id) : undefined,
     steps: i.steps != null ? String(i.steps) : undefined,
     // Metadatos de descuento: `total` ya viene neto, `gross_total` es el bruto.

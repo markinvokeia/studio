@@ -1824,7 +1824,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "select ii.id, ii.service_id, sc.name as service_name, ii.quantity, ii.unit_price, ii.total, ii.gross_total, ii.discount_mode, ii.discount_value, ii.discount_amount, ii.steps\nfrom invoice_items ii\nleft join service_catalog sc on ii.service_id = sc.id\n-- left join order_items oi on oi.id = ii.order_item_id\n-- left join quote_items qi on qi.id = oi.quote_item_id\nwhere ii.invoice_id = {{ $json.query.invoice_id }}",
+        "query": "select ii.id, ii.service_id, sc.name as service_name, ii.quantity, ii.unit_price, ii.total, ii.gross_total, ii.discount_mode, ii.discount_value, ii.discount_amount, ii.steps, ii.tooth_number\nfrom invoice_items ii\nleft join service_catalog sc on ii.service_id = sc.id\n-- left join order_items oi on oi.id = ii.order_item_id\n-- left join quote_items qi on qi.id = oi.quote_item_id\nwhere ii.invoice_id = {{ $json.query.invoice_id }}",
         "options": {}
       },
       "type": "n8n-nodes-base.postgres",
@@ -3731,7 +3731,8 @@
             "gross_total": "={{ $json.gross_total ?? null }}",
             "discount_mode": "={{ $json.discount_mode ?? null }}",
             "discount_value": "={{ $json.discount_value ?? null }}",
-            "discount_amount": "={{ $json.discount_amount ?? null }}"
+            "discount_amount": "={{ $json.discount_amount ?? null }}",
+            "tooth_number": "={{ $json.tooth_number }}"
           },
           "matchingColumns": [
             "id"
@@ -3841,6 +3842,16 @@
               "display": true,
               "type": "number",
               "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "tooth_number",
+              "displayName": "tooth_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false,
               "removed": false
             }
           ],
@@ -4032,7 +4043,8 @@
             "gross_total": "={{ $json.gross_total ?? null }}",
             "discount_mode": "={{ $json.discount_mode ?? null }}",
             "discount_value": "={{ $json.discount_value ?? null }}",
-            "discount_amount": "={{ $json.discount_amount ?? null }}"
+            "discount_amount": "={{ $json.discount_amount ?? null }}",
+            "tooth_number": "={{ $json.tooth_number }}"
           },
           "matchingColumns": [
             "id"
@@ -4137,6 +4149,16 @@
             {
               "id": "discount_amount",
               "displayName": "discount_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "tooth_number",
+              "displayName": "tooth_number",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -4425,7 +4447,8 @@
             "gross_total": "={{ $('invoices/items/upsert').item.json.body.gross_total ?? null }}",
             "discount_mode": "={{ $('invoices/items/upsert').item.json.body.discount_mode ?? null }}",
             "discount_value": "={{ $('invoices/items/upsert').item.json.body.discount_value ?? null }}",
-            "discount_amount": "={{ $('invoices/items/upsert').item.json.body.discount_amount ?? null }}"
+            "discount_amount": "={{ $('invoices/items/upsert').item.json.body.discount_amount ?? null }}",
+            "tooth_number": "={{ $('invoices/items/upsert').item.json.body.tooth_number }}"
           },
           "matchingColumns": [
             "id"
@@ -4534,6 +4557,16 @@
               "type": "number",
               "canBeUsedToMatch": true,
               "removed": false
+            },
+            {
+              "id": "tooth_number",
+              "displayName": "tooth_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -4583,7 +4616,8 @@
             "gross_total": "={{ $('invoices/items/upsert').item.json.body.gross_total ?? null }}",
             "discount_mode": "={{ $('invoices/items/upsert').item.json.body.discount_mode ?? null }}",
             "discount_value": "={{ $('invoices/items/upsert').item.json.body.discount_value ?? null }}",
-            "discount_amount": "={{ $('invoices/items/upsert').item.json.body.discount_amount ?? null }}"
+            "discount_amount": "={{ $('invoices/items/upsert').item.json.body.discount_amount ?? null }}",
+            "tooth_number": "={{ $('invoices/items/upsert').item.json.body.tooth_number }}"
           },
           "matchingColumns": [
             "id"
@@ -4686,6 +4720,16 @@
             {
               "id": "discount_amount",
               "displayName": "discount_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "tooth_number",
+              "displayName": "tooth_number",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -5808,7 +5852,8 @@
             "gross_total": "={{ $json.gross_total ?? null }}",
             "discount_mode": "={{ $json.discount_mode ?? null }}",
             "discount_value": "={{ $json.discount_value ?? null }}",
-            "discount_amount": "={{ $json.discount_amount ?? null }}"
+            "discount_amount": "={{ $json.discount_amount ?? null }}",
+            "tooth_number": "={{ $json.tooth_number }}"
           },
           "matchingColumns": [
             "id"
@@ -5913,6 +5958,16 @@
             {
               "id": "discount_amount",
               "displayName": "discount_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "tooth_number",
+              "displayName": "tooth_number",
               "required": false,
               "defaultMatch": false,
               "display": true,

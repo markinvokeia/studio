@@ -587,7 +587,12 @@
             "date": "={{ $json.body.date }}",
             "notes": "={{ $json.body.notes }}",
             "is_open": "={{ $json.body.is_open }}",
-            "sede_id": "={{ $json.body.sede_id || NULL }}"
+            "sede_id": "={{ $json.body.sede_id || NULL }}",
+            "recurrence": "={{ $json.body.recurrence || 'once' }}",
+            "day_of_week": "={{ $json.body.day_of_week }}",
+            "day_of_month": "={{ $json.body.day_of_month }}",
+            "biweekly_reference_date": "={{ $json.body.biweekly_reference_date }}",
+            "end_date": "={{ $json.body.end_date }}"
           },
           "matchingColumns": [
             "id"
@@ -660,6 +665,74 @@
               "defaultMatch": false,
               "display": true,
               "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "recurrence",
+              "displayName": "recurrence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "options",
+              "canBeUsedToMatch": true,
+              "options": [
+                {
+                  "name": "once",
+                  "value": "once"
+                },
+                {
+                  "name": "weekly",
+                  "value": "weekly"
+                },
+                {
+                  "name": "biweekly",
+                  "value": "biweekly"
+                },
+                {
+                  "name": "monthly",
+                  "value": "monthly"
+                }
+              ],
+              "removed": false
+            },
+            {
+              "id": "day_of_week",
+              "displayName": "day_of_week",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "day_of_month",
+              "displayName": "day_of_month",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "biweekly_reference_date",
+              "displayName": "biweekly_reference_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "end_date",
+              "displayName": "end_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
               "canBeUsedToMatch": true,
               "removed": false
             }
@@ -847,7 +920,12 @@
             "date": "={{ $json.body.date }}",
             "notes": "={{ $json.body.notes || '' }}",
             "is_open": "={{ $json.body.is_open }}",
-            "sede_id": "={{ $json.body.sede_id || NULL }}"
+            "sede_id": "={{ $json.body.sede_id || NULL }}",
+            "recurrence": "={{ $json.body.recurrence || 'once' }}",
+            "day_of_week": "={{ $json.body.day_of_week }}",
+            "day_of_month": "={{ $json.body.day_of_month }}",
+            "biweekly_reference_date": "={{ $json.body.biweekly_reference_date }}",
+            "end_date": "={{ $json.body.end_date }}"
           },
           "matchingColumns": [
             "id"
@@ -920,6 +998,74 @@
               "defaultMatch": false,
               "display": true,
               "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "recurrence",
+              "displayName": "recurrence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "options",
+              "canBeUsedToMatch": true,
+              "options": [
+                {
+                  "name": "once",
+                  "value": "once"
+                },
+                {
+                  "name": "weekly",
+                  "value": "weekly"
+                },
+                {
+                  "name": "biweekly",
+                  "value": "biweekly"
+                },
+                {
+                  "name": "monthly",
+                  "value": "monthly"
+                }
+              ],
+              "removed": false
+            },
+            {
+              "id": "day_of_week",
+              "displayName": "day_of_week",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "day_of_month",
+              "displayName": "day_of_month",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "biweekly_reference_date",
+              "displayName": "biweekly_reference_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "end_date",
+              "displayName": "end_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
               "canBeUsedToMatch": true,
               "removed": false
             }
@@ -1269,7 +1415,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT\n  a.id,\n  a.user_id,\n  u.name AS user_name,\n  a.recurrence,\n  a.day_of_week,\n  a.start_time,\n  a.end_time,\n  a.start_date::text,\n  a.end_date::text,\n  a.biweekly_reference_date::text,\n  COUNT(*) OVER() AS total\nFROM\n  availability_rules a\nINNER JOIN users u ON a.user_id = u.id\nWHERE\n  -- 1. Tu filtro de búsqueda global existente (agrupado entre paréntesis)\n  (\n    COALESCE($1, '') = '' OR\n    (\n      u.name ILIKE '%' || $1 || '%' OR\n      -- a.recurrence ILIKE '%' || $1 || '%' OR\n      a.day_of_week::text ILIKE '%' || $1 || '%' OR\n      a.start_time::text ILIKE '%' || $1 || '%' OR\n      a.end_time::text ILIKE '%' || $1 || '%' OR\n      a.end_date::text ILIKE '%' || $1 || '%'\n    )\n  )\n  -- 2. NUEVO: Filtro opcional por user_id ($4)\n  AND ($4 IS NULL OR $4::text = '' OR a.user_id = $4)\nORDER BY\n  a.start_date DESC\nLIMIT\n  {{ $2 || 100 }}\nOFFSET\n  {{ (($3 || 1) - 1) * ($2 || 100) }};",
+        "query": "SELECT\n  a.id,\n  a.user_id,\n  u.name AS user_name,\n  a.recurrence,\n  a.day_of_week,\n  a.day_of_month,\n  a.start_time,\n  a.end_time,\n  a.start_date::text,\n  a.end_date::text,\n  a.biweekly_reference_date::text,\n  COUNT(*) OVER() AS total\nFROM\n  availability_rules a\nINNER JOIN users u ON a.user_id = u.id\nWHERE\n  -- 1. Tu filtro de búsqueda global existente (agrupado entre paréntesis)\n  (\n    COALESCE($1, '') = '' OR\n    (\n      u.name ILIKE '%' || $1 || '%' OR\n      -- a.recurrence ILIKE '%' || $1 || '%' OR\n      a.day_of_week::text ILIKE '%' || $1 || '%' OR\n      a.start_time::text ILIKE '%' || $1 || '%' OR\n      a.end_time::text ILIKE '%' || $1 || '%' OR\n      a.end_date::text ILIKE '%' || $1 || '%'\n    )\n  )\n  -- 2. NUEVO: Filtro opcional por user_id ($4)\n  AND ($4 IS NULL OR $4::text = '' OR a.user_id = $4)\nORDER BY\n  a.start_date DESC\nLIMIT\n  {{ $2 || 100 }}\nOFFSET\n  {{ (($3 || 1) - 1) * ($2 || 100) }};",
         "options": {
           "queryReplacement": "={{ [ $json.query.search || null, $json.query.limit, $json.query.page, $json.query.user_id || null ] }}"
         }
@@ -1505,6 +1651,7 @@
           "value": {
             "id": "={{ $json.body.id }}",
             "day_of_week": "={{ $json.body.day_of_week }}",
+            "day_of_month": "={{ $json.body.day_of_month }}",
             "user_id": "={{ $json.body.user_id }}",
             "recurrence": "={{ $json.body.recurrence }}",
             "start_time": "={{ $json.body.start_time }}",
@@ -1556,6 +1703,10 @@
                 {
                   "name": "daily",
                   "value": "daily"
+                },
+                {
+                  "name": "monthly",
+                  "value": "monthly"
                 }
               ],
               "removed": false
@@ -1563,6 +1714,16 @@
             {
               "id": "day_of_week",
               "displayName": "day_of_week",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "day_of_month",
+              "displayName": "day_of_month",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1660,6 +1821,7 @@
           "mappingMode": "defineBelow",
           "value": {
             "day_of_week": "={{ $json.body.day_of_week }}",
+            "day_of_month": "={{ $json.body.day_of_month }}",
             "user_id": "={{ $json.body.user_id }}",
             "recurrence": "={{ $json.body.recurrence }}",
             "start_time": "={{ $json.body.start_time }}",
@@ -1711,6 +1873,10 @@
                 {
                   "name": "daily",
                   "value": "daily"
+                },
+                {
+                  "name": "monthly",
+                  "value": "monthly"
                 }
               ],
               "removed": false
@@ -1718,6 +1884,16 @@
             {
               "id": "day_of_week",
               "displayName": "day_of_week",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "day_of_month",
+              "displayName": "day_of_month",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -7120,7 +7296,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "DELETE FROM reminders\nWHERE id = $1::uuid AND created_by = $2::uuid\nRETURNING id::text AS id;",
+        "query": "DELETE FROM reminders\nWHERE id = $1::uuid AND (\n  visibility <> 'personal'\n   OR created_by IS NULL\n   OR created_by = $2::uuid\n)\nRETURNING id::text AS id;",
         "options": {
           "queryReplacement": "={{ [$json.id, $json.actor_id] }}"
         }
@@ -8064,7 +8240,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO public.reminders AS existing (\n  id,\n  type,\n  calendar_id,\n  title,\n  description,\n  start_datetime,\n  end_datetime,\n  color,\n  priority,\n  status,\n  visibility,\n  raise_alert,\n  created_by,\n  completed_at,\n  completed_by,\n  created_at,\n  updated_at\n) VALUES (\n  COALESCE($1::uuid, gen_random_uuid()),\n  $2::character varying,\n  $3::bigint,\n  $4::text,\n  $5::text,\n  $6::timestamp,\n  $7::timestamp,\n  $8::character varying,\n  $9::character varying,\n  $10::character varying,\n  $13::character varying,\n  CASE WHEN $2::text = 'note' THEN FALSE ELSE $11::boolean END,\n  $12::uuid,\n  CASE WHEN $10::text = 'done' THEN NOW() ELSE NULL END,\n  CASE WHEN $10::text = 'done' THEN $12::uuid ELSE NULL END,\n  NOW(),\n  NOW()\n)\nON CONFLICT (id) DO UPDATE\nSET type           = EXCLUDED.type,\n    calendar_id    = EXCLUDED.calendar_id,\n    title          = EXCLUDED.title,\n    description    = EXCLUDED.description,\n    start_datetime = EXCLUDED.start_datetime,\n    end_datetime   = EXCLUDED.end_datetime,\n    color          = EXCLUDED.color,\n    priority       = EXCLUDED.priority,\n    status         = EXCLUDED.status,\n    visibility     = EXCLUDED.visibility,\n    raise_alert    = CASE WHEN EXCLUDED.type = 'note' THEN FALSE ELSE EXCLUDED.raise_alert END,\n    completed_at   = CASE\n                       WHEN EXCLUDED.status = 'done' THEN COALESCE(existing.completed_at, NOW())\n                       ELSE NULL\n                     END,\n    completed_by   = CASE\n                       WHEN EXCLUDED.status = 'done' THEN COALESCE(existing.completed_by, EXCLUDED.completed_by)\n                       ELSE NULL\n                     END,\n    updated_at     = NOW()\nWHERE existing.created_by = EXCLUDED.created_by\nRETURNING\n  id::text AS id,\n  type,\n  calendar_id::text AS calendar_id,\n  title,\n  description,\n  start_datetime::text AS start_datetime,\n  end_datetime::text AS end_datetime,\n  color,\n  priority,\n  status,\n  visibility,\n  raise_alert,\n  alert_instance_id,\n  created_by::text AS created_by,\n  created_at::text AS created_at,\n  updated_at::text AS updated_at,\n  completed_at::text AS completed_at,\n  completed_by::text AS completed_by;",
+        "query": "INSERT INTO public.reminders AS existing (\n  id,\n  type,\n  calendar_id,\n  title,\n  description,\n  start_datetime,\n  end_datetime,\n  color,\n  priority,\n  status,\n  visibility,\n  raise_alert,\n  created_by,\n  completed_at,\n  completed_by,\n  created_at,\n  updated_at\n) VALUES (\n  COALESCE($1::uuid, gen_random_uuid()),\n  $2::character varying,\n  $3::bigint,\n  $4::text,\n  $5::text,\n  $6::timestamp,\n  $7::timestamp,\n  $8::character varying,\n  $9::character varying,\n  $10::character varying,\n  $13::character varying,\n  CASE WHEN $2::text = 'note' THEN FALSE ELSE $11::boolean END,\n  $12::uuid,\n  CASE WHEN $10::text = 'done' THEN NOW() ELSE NULL END,\n  CASE WHEN $10::text = 'done' THEN $12::uuid ELSE NULL END,\n  NOW(),\n  NOW()\n)\nON CONFLICT (id) DO UPDATE\nSET type           = EXCLUDED.type,\n    calendar_id    = EXCLUDED.calendar_id,\n    title          = EXCLUDED.title,\n    description    = EXCLUDED.description,\n    start_datetime = EXCLUDED.start_datetime,\n    end_datetime   = EXCLUDED.end_datetime,\n    color          = EXCLUDED.color,\n    priority       = EXCLUDED.priority,\n    status         = EXCLUDED.status,\n    visibility     = CASE\n                       -- El alcance solo lo cambia el autor. Si B marcara \"solo para mí\"\n                       -- un ítem de A, created_by seguiría siendo A: el ítem pasaría a ser\n                       -- personal DE A y desaparecería del calendario de B, sin forma de\n                       -- revertirlo desde la UI. Misma razón que isScopeLocked en el form.\n                       WHEN existing.created_by IS NULL OR existing.created_by = EXCLUDED.created_by\n                         THEN EXCLUDED.visibility\n                       ELSE existing.visibility\n                     END,\n    raise_alert    = CASE WHEN EXCLUDED.type = 'note' THEN FALSE ELSE EXCLUDED.raise_alert END,\n    completed_at   = CASE\n                       WHEN EXCLUDED.status = 'done' THEN COALESCE(existing.completed_at, NOW())\n                       ELSE NULL\n                     END,\n    completed_by   = CASE\n                       WHEN EXCLUDED.status = 'done' THEN COALESCE(existing.completed_by, EXCLUDED.completed_by)\n                       ELSE NULL\n                     END,\n    updated_at     = NOW()\n-- Lo compartido lo edita cualquiera; lo personal, solo su autor. EXCLUDED.created_by es\n-- el actor del JWT, así que esto compara \"lo guardado\" contra \"quien edita\".\n--\n-- El IS NULL no es defensivo de más: `NULL = 'uuid'` da NULL, no false, así que sin él\n-- las filas sin autor (viejas, o con el autor dado de baja — la FK es ON DELETE SET NULL)\n-- no las podría editar nadie, nunca.\nWHERE existing.visibility <> 'personal'\n   OR existing.created_by IS NULL\n   OR existing.created_by = EXCLUDED.created_by\nRETURNING\n  id::text AS id,\n  type,\n  calendar_id::text AS calendar_id,\n  title,\n  description,\n  start_datetime::text AS start_datetime,\n  end_datetime::text AS end_datetime,\n  color,\n  priority,\n  status,\n  visibility,\n  raise_alert,\n  alert_instance_id,\n  created_by::text AS created_by,\n  created_at::text AS created_at,\n  updated_at::text AS updated_at,\n  completed_at::text AS completed_at,\n  completed_by::text AS completed_by;",
         "options": {
           "queryReplacement": "={{ [ $json.id, $json.type, $json.calendar_id, $json.title, $json.description, $json.start_datetime, $json.end_datetime, $json.color, $json.priority, $json.status, $json.raise_alert, $json.actor_id, $json.visibility ] }}"
         }
@@ -8077,6 +8253,7 @@
       ],
       "id": "ef47eb01-5ba1-4b4f-b12e-d417a4897402",
       "name": "Upsert Reminder",
+      "alwaysOutputData": true,
       "credentials": {
         "postgres": {
           "id": "6b7Sjdnppbfve8ka",
@@ -8086,7 +8263,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const rows = $input.all();\nif (rows.length === 0) {\n  return [{ json: { __error: true, code: 403, message: 'No autorizado para modificar este recordatorio' } }];\n}\nreturn [{ json: { ...rows[0].json } }];"
+        "jsCode": "const rows = $input.all().filter((item) => item.json && item.json.id);\n\n// Sin fila: el `ON CONFLICT ... WHERE` cortó el UPDATE porque el ítem guardado es\n// personal de otro usuario. Requiere alwaysOutputData en \"Upsert Reminder\": sin eso el\n// nodo Postgres no emite ítems, este nodo no corre y el webhook queda sin responder.\nif (rows.length === 0) {\n  return [{ json: { __error: true, code: 403, message: 'Solo su autor puede editar un ítem personal' } }];\n}\n\nreturn [{ json: { ...rows[0].json } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -8150,7 +8327,7 @@
     },
     {
       "parameters": {
-        "content": "## Reminders – Upsert\n\n**POST** `/webhook/reminders/upsert`\n\nCreates or updates a note or reminder. PostgreSQL receives every dynamic value through prepared-statement parameters; no request value is interpolated into SQL.\n\n**Request body:**\n```json\n{\n  \"id\": \"optional-uuid\",\n  \"type\": \"note | reminder\",\n  \"calendar_id\": \"42 | null\",\n  \"title\": \"Llamar a laboratorio\",\n  \"description\": \"Detalles opcionales\",\n  \"start_datetime\": \"2026-05-13T13:45:00\",\n  \"end_datetime\": \"2026-05-13T14:00:00\",\n  \"color\": \"#5484ed\",\n  \"priority\": \"MEDIUM\",\n  \"status\": \"pending\",\n  \"raise_alert\": true,\n  \"visibility\": \"personal | clinic\"\n}\n```\n\n`calendar_id` is nullable. `created_by` and completion ownership come from the authenticated JWT, never from the request body. Notes always persist with `raise_alert = false`. `visibility` defaults to `personal` (only the creator sees/gets notified); `clinic` is visible to and notifies all active staff. Editing/deleting an existing reminder is only allowed for its creator — a mismatched owner returns 403. Alert scheduling remains the responsibility of the alert workflows; this endpoint does not create `alert_instances`.\n\nThe INSERT/UPDATE uses `RETURNING`, so a second SELECT is unnecessary.",
+        "content": "## Reminders – Upsert\n\n**POST** `/webhook/reminders/upsert`\n\nCreates or updates a note or reminder. PostgreSQL receives every dynamic value through prepared-statement parameters; no request value is interpolated into SQL.\n\n**Request body:**\n```json\n{\n  \"id\": \"optional-uuid\",\n  \"type\": \"note | reminder\",\n  \"calendar_id\": \"42 | null\",\n  \"title\": \"Llamar a laboratorio\",\n  \"description\": \"Detalles opcionales\",\n  \"start_datetime\": \"2026-05-13T13:45:00\",\n  \"end_datetime\": \"2026-05-13T14:00:00\",\n  \"color\": \"#5484ed\",\n  \"priority\": \"MEDIUM\",\n  \"status\": \"pending\",\n  \"visibility\": \"clinic | personal\",\n  \"raise_alert\": true\n}\n```\n\n**Alcance (`visibility`)**\n- `clinic` (compartido, el default): lo edita cualquier usuario del staff.\n- `personal`: solo lo edita su autor (`created_by`). Un ítem sin autor — filas viejas o\n  cuyo autor fue dado de baja, la FK es `ON DELETE SET NULL` — se trata como compartido.\n\nLa autorización vive en el `ON CONFLICT ... WHERE`, y `visibility` solo la cambia el\nautor. Misma regla que `canManageReminder` en el frontend y que el filtro del GET.\n\n`calendar_id` is nullable. `created_by` and completion ownership come from the authenticated JWT, never from the request body. Notes always persist with `raise_alert = false`. Alert scheduling remains the responsibility of the alert workflows; this endpoint does not create `alert_instances`.\n\n**Response 200:** `{ \"success\": true, \"code\": 200, \"reminder\": { ... } }`\n**Response 403:** el ítem guardado es personal de otro usuario.",
         "height": 650,
         "width": 620,
         "color": 4
