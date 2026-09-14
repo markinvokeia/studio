@@ -1,6 +1,8 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ResizableSheet, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
 import {
   PatientDetailSheetMainContent,
@@ -29,7 +31,7 @@ import { useToast } from '@/hooks/use-toast';
 import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
 import type { Appointment, User } from '@/lib/types';
 import {
-  AlertTriangle, Lock, Mail, Phone, Users,
+  AlertTriangle, Heart, Lock, Mail, Phone, Users,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -38,6 +40,11 @@ interface AllergySummaryItem {
   id?: number;
   alergeno: string;
   reaccion_descrita: string;
+}
+
+interface ConditionSummaryItem {
+  id?: number;
+  nombre: string;
 }
 
 type PatientDetailTab = 'info' | 'clinical' | 'financial';
@@ -148,6 +155,7 @@ export function PatientDetailSheet({
   const [createMedicalInstructionTrigger, setCreateMedicalInstructionTrigger] = React.useState(0);
   const [createPrescriptionTrigger, setCreatePrescriptionTrigger] = React.useState(0);
   const [allergies, setAllergies] = React.useState<AllergySummaryItem[]>([]);
+  const [conditions, setConditions] = React.useState<ConditionSummaryItem[]>([]);
 
   // Finance quick actions — same lightweight dialogs the "Personalizado" ledger uses on the
   // patients list page; this sheet is the other place that view is reused from (e.g.
@@ -187,7 +195,7 @@ export function PatientDetailSheet({
   }, [userId, userName, isPrintingFinancialSummary, printLedger, toast, t]);
 
   React.useEffect(() => {
-    if (!isDoctorMode || !open || !userId) return;
+    if (!open || !userId) return;
 
     let active = true;
 
@@ -205,10 +213,23 @@ export function PatientDetailSheet({
         if (active) setAllergies([]);
       });
 
+    api.get(API_ROUTES.CLINIC_HISTORY.PERSONAL_HISTORY, { user_id: userId })
+      .then((data: any) => {
+        if (!active) return;
+        const raw = Array.isArray(data) ? data : (data.antecedentes_personales || data.data || []);
+        setConditions(raw.map((item: any) => ({
+          id: Number(item.id ?? item.antecedente_id ?? item.antecedente_personal_id) || undefined,
+          nombre: item.padecimiento_nombre || item.nombre || 'N/A',
+        })));
+      })
+      .catch(() => {
+        if (active) setConditions([]);
+      });
+
     return () => {
       active = false;
     };
-  }, [isDoctorMode, open, userId]);
+  }, [open, userId]);
 
   React.useEffect(() => {
     if (open) {
@@ -239,27 +260,104 @@ export function PatientDetailSheet({
         {/* Header */}
         <div className="flex-none border-b border-border bg-card px-6 py-4 pr-14">
           <div className="flex items-center gap-3">
-            <div className="relative flex-none">
-              {isDoctorMode && allergies.length > 0 && (
-                <span
-                  className="absolute inset-0 rounded-full animate-ping"
-                  style={{ backgroundColor: 'rgb(220 38 38)', opacity: 0.35 }}
-                />
-              )}
-              <div
-                className="flex h-9 w-9 items-center justify-center rounded-full relative shrink-0"
-                style={
-                  isDoctorMode && allergies.length > 0
-                    ? { backgroundColor: 'rgb(254 226 226)', color: 'rgb(220 38 38)' }
-                    : { backgroundColor: 'rgb(var(--primary) / 0.08)', color: 'rgb(var(--primary))' }
-                }
-              >
-                {isDoctorMode && allergies.length > 0
-                  ? <AlertTriangle className="h-4 w-4" />
-                  : <Users className="h-4 w-4" />
-                }
-              </div>
-            </div>
+            {(() => {
+              const hasAlerts = allergies.length > 0 || conditions.length > 0;
+              const alertIcon = (
+                <div className="relative flex-none">
+                  {hasAlerts && (
+                    <span
+                      className="absolute inset-0 rounded-full animate-ping"
+                      style={
+                        allergies.length > 0
+                          ? { backgroundColor: 'rgb(220 38 38)', opacity: 0.35 }
+                          : { backgroundColor: 'rgb(217 119 6)', opacity: 0.35 }
+                      }
+                    />
+                  )}
+                  <div
+                    className="flex h-9 w-9 items-center justify-center rounded-full relative shrink-0"
+                    style={
+                      allergies.length > 0
+                        ? { backgroundColor: 'rgb(254 226 226)', color: 'rgb(220 38 38)' }
+                        : conditions.length > 0
+                          ? { backgroundColor: 'rgb(254 243 199)', color: 'rgb(217 119 6)' }
+                          : { backgroundColor: 'rgb(var(--primary) / 0.08)', color: 'rgb(var(--primary))' }
+                    }
+                  >
+                    {hasAlerts ? <AlertTriangle className="h-4 w-4" /> : <Users className="h-4 w-4" />}
+                  </div>
+                </div>
+              );
+
+              return (
+                <TooltipProvider>
+                  {hasAlerts ? (
+                    <Popover>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <PopoverTrigger asChild>
+                            <button type="button" className="flex-none cursor-pointer">
+                              {alertIcon}
+                            </button>
+                          </PopoverTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {[
+                            allergies.length > 0 ? `${allergies.length} alergia(s)` : '',
+                            conditions.length > 0 ? `${conditions.length} padecimiento(s)` : '',
+                          ].filter(Boolean).join(' · ')}
+                        </TooltipContent>
+                      </Tooltip>
+                      <PopoverContent align="start" className="w-64 p-3 space-y-3">
+                        {allergies.length > 0 && (
+                          <div className="space-y-1.5">
+                            <p className="text-xs font-semibold text-destructive uppercase tracking-wide flex items-center gap-1">
+                              <AlertTriangle className="h-3 w-3" />
+                              Alergias
+                            </p>
+                            <div className="flex flex-wrap gap-1">
+                              {allergies.map((a, i) => (
+                                <Badge key={a.id ?? i} variant="destructive" className="gap-1 text-xs font-normal">
+                                  {a.alergeno}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {conditions.length > 0 && (
+                          <div className="space-y-1.5">
+                            <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide flex items-center gap-1">
+                              <Heart className="h-3 w-3" />
+                              Padecimientos
+                            </p>
+                            <div className="flex flex-wrap gap-1">
+                              {conditions.map((c, i) => (
+                                <Badge key={c.id ?? i} variant="secondary" className="gap-1 text-xs font-normal bg-amber-100 text-amber-800 hover:bg-amber-100">
+                                  {c.nombre}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        <button
+                          className="text-xs text-primary hover:underline w-full text-left pt-1 border-t border-border"
+                          onClick={() => { setActiveTab('clinical'); setActiveClinicalSubTab('anamnesis'); }}
+                        >
+                          Ver Anamnesis completa →
+                        </button>
+                      </PopoverContent>
+                    </Popover>
+                  ) : (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex-none cursor-default">{alertIcon}</div>
+                      </TooltipTrigger>
+                      <TooltipContent>Sin alertas</TooltipContent>
+                    </Tooltip>
+                  )}
+                </TooltipProvider>
+              );
+            })()}
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 min-w-0">
                 <SheetTitle className="text-base font-semibold truncate leading-tight">{userName}</SheetTitle>
@@ -282,21 +380,6 @@ export function PatientDetailSheet({
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Phone className="h-3 w-3" />
                       {userPhone}
-                    </span>
-                  )}
-                </div>
-              )}
-              {isDoctorMode && allergies.length > 0 && (
-                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                  {allergies.slice(0, 3).map((allergy, index) => (
-                    <Badge key={allergy.id ?? `${allergy.alergeno}-${index}`} variant="destructive" className="gap-1 text-xs font-normal">
-                      <AlertTriangle className="h-3 w-3" />
-                      {allergy.alergeno}
-                    </Badge>
-                  ))}
-                  {allergies.length > 3 && (
-                    <span className="text-xs text-primary">
-                      +{allergies.length - 3} más
                     </span>
                   )}
                 </div>
