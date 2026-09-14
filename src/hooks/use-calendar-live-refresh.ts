@@ -25,8 +25,12 @@ export const CALENDAR_PATCH_EVENT = 'clinic:calendar:patch';
  */
 export interface CalendarChangePayload {
   event_type?: string;
+  /** Discriminador de contenido: ausente/`'appointment'` = cita; `'reminder'` = nota o recordatorio (tabla `reminders`). */
+  item_type?: 'appointment' | 'reminder';
   action?: string;
   appointment_id?: string | number;
+  /** Sólo en eventos de nota/recordatorio (`item_type: 'reminder'`). */
+  reminder_id?: string | number;
   id?: string | number;
   calendar_source_id?: string | number;
   /** En reagendamientos: id de la fila vieja que quedó `cancelled` sin evento propio. */
@@ -45,8 +49,9 @@ export interface CalendarPatchEventDetail {
 /**
  * Escucha los eventos `calendar_changed` que publica el backend cuando otro
  * usuario crea, edita, reprograma, reasigna, cambia de estado, de color o cancela
- * una cita, y los reemite como un `CustomEvent('clinic:calendar:patch')` con el
- * lote de filas crudas. `appointments/page.tsx` aplica cada una como un patch
+ * una cita —o crea, edita, mueve, completa o elimina una nota/recordatorio
+ * (`item_type: 'reminder'`)—, y los reemite como un `CustomEvent('clinic:calendar:patch')`
+ * con el lote de filas crudas. `appointments/page.tsx` aplica cada una como un patch
  * quirúrgico sobre su estado (upsert / merge / remove por id) en vez de recargar
  * todo el rango visible.
  *
