@@ -978,6 +978,16 @@
       },
       "blockUnavailable": "Block out-of-office hours",
       "colorByStatus": "Show appointment status with color",
+      "hiddenWeekdays": "Hide days in day/week view",
+      "weekdayAbbr": {
+        "0": "Sun",
+        "1": "Mon",
+        "2": "Tue",
+        "3": "Wed",
+        "4": "Thu",
+        "5": "Fri",
+        "6": "Sat"
+      },
       "help": {
         "mode": "Invoke shows the calendar as usual. Custom shows one agenda at a time full-screen; use the 'Agendas' button (top-left) to pick which one to view.",
         "defaultView": "Sets which view opens by default (day, week, month, agenda…). Changing it applies the view immediately.",
@@ -990,7 +1000,8 @@
         "blockUnavailable": "Greys out and blocks out-of-office hours on the calendar (per schedules and exceptions), preventing appointments there.",
         "filterDoctorsByService": "When creating an appointment, filters the doctor list to only those who provide the selected service.",
         "inlineAppointmentCreation": "Clicking a slot creates the appointment inline on the calendar with a card, without opening the modal. The Create button always opens the modal.",
-        "colorByStatus": "Appointments show their status with color. If the appointment has its own color tag or its service has a color, it keeps that color and the status appears as a stripe on the left edge. If it only inherits the doctor's or the consulting room's color, the whole appointment is painted with the status color. 'Scheduled' (lilac) and 'No show' (gray) are the exception: they are always painted, even with this preference off and over any chosen color."
+        "colorByStatus": "Appointments show their status with color. If the appointment has its own color tag or its service has a color, it keeps that color and the status appears as a stripe on the left edge. If it only inherits the doctor's or the consulting room's color, the whole appointment is painted with the status color. 'Scheduled' (lilac) and 'No show' (gray) are the exception: they are always painted, even with this preference off and over any chosen color.",
+        "hiddenWeekdays": "Hides the selected days as columns in the day/week views. Purely visual to save space — it doesn't affect availability or which days appointments can be booked on."
       }
     },
     "newAppointment": "New Appointment",

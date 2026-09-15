@@ -52,6 +52,7 @@ const Calendar: React.FC<CalendarProps> = ({
   defaultView,
   hourSlotHeight,
   slotMinutes,
+  hiddenWeekdays,
   onViewChange,
   groupBy = 'none',
   groupingColumns = [],
@@ -348,6 +349,7 @@ const Calendar: React.FC<CalendarProps> = ({
               dateLocale={dateLocale}
               hourSlotHeight={effectiveSlotHeight}
               slotMinutes={slotMinutes}
+              hiddenWeekdays={hiddenWeekdays}
               {...eventHandlers}
               {...gapProps}
               {...blockProps}
@@ -377,6 +379,7 @@ const Calendar: React.FC<CalendarProps> = ({
               onToggleTimeColumn={handleToggleTimeColumn}
               hideTimeGutter={hideTimeGutter}
               onNavigatePeriod={handleDragEdgeNavigate}
+              hiddenWeekdays={hiddenWeekdays}
               {...eventHandlers}
               {...gapProps}
               {...blockProps}
@@ -399,6 +402,7 @@ const Calendar: React.FC<CalendarProps> = ({
             slotMinutes={slotMinutes}
             showTimeColumn={showTimeColumn}
             onToggleTimeColumn={handleToggleTimeColumn}
+            hiddenWeekdays={hiddenWeekdays}
             {...eventHandlers}
             {...gapProps}
             {...blockProps}

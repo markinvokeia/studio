@@ -4908,6 +4908,7 @@ export default function AppointmentsPage() {
                             headerActionsClusterRef={setHeaderActionsEl}
                             hourSlotHeight={hourSlotHeight}
                             slotMinutes={slotDuration}
+                            hiddenWeekdays={calendarSettings?.hidden_weekdays}
                             events={gridEvents}
                             allDayEvents={allDayEvents}
                             focusDate={searchFocusDate}

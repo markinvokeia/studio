@@ -978,6 +978,16 @@
       },
       "blockUnavailable": "Bloquear horarios fuera de atención",
       "colorByStatus": "Mostrar el estado de la cita con color",
+      "hiddenWeekdays": "Ocultar días en vista de día/semana",
+      "weekdayAbbr": {
+        "0": "Dom",
+        "1": "Lun",
+        "2": "Mar",
+        "3": "Mié",
+        "4": "Jue",
+        "5": "Vie",
+        "6": "Sáb"
+      },
       "help": {
         "mode": "Invoke muestra el calendario como siempre. Personalizado muestra una sola agenda a la vez a pantalla completa; usa el botón 'Agendas' (arriba a la izquierda) para elegir cuál ver.",
         "defaultView": "Define qué vista se muestra al abrir el calendario (día, semana, mes, agenda…). Cambiarla aplica la vista al instante.",
@@ -990,7 +1000,8 @@
         "blockUnavailable": "Atenúa y bloquea en el calendario los horarios fuera de atención (según horarios y excepciones), impidiendo crear citas ahí.",
         "filterDoctorsByService": "Al crear una cita, filtra la lista de doctores para mostrar solo los que prestan el servicio seleccionado.",
         "inlineAppointmentCreation": "Al hacer clic en un slot crea la cita directamente en el calendario con un card, sin abrir el modal. El botón Crear siempre abre el modal.",
-        "colorByStatus": "Las citas muestran su estado con color. Si la cita tiene una etiqueta de color propia o el color de su servicio, lo conserva y el estado aparece como una franja en el borde izquierdo. Si solo hereda el color del doctor o del consultorio, toda la cita se pinta con el color del estado. 'Programada' (lila) y 'No asistió' (gris) son la excepción: se pintan siempre, aun con esta preferencia apagada y por encima de cualquier color elegido."
+        "colorByStatus": "Las citas muestran su estado con color. Si la cita tiene una etiqueta de color propia o el color de su servicio, lo conserva y el estado aparece como una franja en el borde izquierdo. Si solo hereda el color del doctor o del consultorio, toda la cita se pinta con el color del estado. 'Programada' (lila) y 'No asistió' (gris) son la excepción: se pintan siempre, aun con esta preferencia apagada y por encima de cualquier color elegido.",
+        "hiddenWeekdays": "Oculta los días elegidos como columnas en las vistas de día y semana. Es solo visual, para ganar espacio: no afecta la disponibilidad ni los días en que se pueden agendar citas."
       }
     },
     "newAppointment": "Nueva Cita",

@@ -1116,6 +1116,11 @@ export type CalendarSettings = {
    *  agenda shown at a time, chosen from the "Agendas" side panel. Default
    *  'custom'. See CALENDAR_MODES. */
   mode?: string;
+  /** Days of week hidden from the day/week grid (0=Sunday…6=Saturday, same
+   *  convention as `ClinicSchedule.day_of_week`). Purely visual: it doesn't
+   *  change the date range fetched, only which day columns are rendered.
+   *  Default []. */
+  hidden_weekdays?: number[];
 };
 
 export type Sede = {

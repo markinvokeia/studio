@@ -76,6 +76,8 @@ interface CalendarDayViewGroupedProps {
   /** Pasar al período anterior (-1) o siguiente (+1) sin cortar el arrastre, cuando
    *  el puntero se sostiene contra el borde izquierdo o derecho de la rejilla. */
   onNavigatePeriod?: (direction: -1 | 1) => void;
+  /** Days of week (0=Sunday…6=Saturday) to hide as day-blocks. Default []. */
+  hiddenWeekdays?: number[];
 }
 
 export function CalendarDayViewGrouped({
@@ -111,6 +113,7 @@ export function CalendarDayViewGrouped({
   onEventDrop,
   onEventResize,
   onNavigatePeriod,
+  hiddenWeekdays,
 }: CalendarDayViewGroupedProps) {
   const t = useTranslations('Calendar');
   const startDay = view === 'week'
@@ -122,10 +125,16 @@ export function CalendarDayViewGrouped({
   // se reconstruye adentro para que la dependencia sea el string. Normalizar a
   // medianoche no afecta a nadie: los consumidores usan `format`, `isSameDay` o
   // `set`, que pisa la hora.
-  const days = React.useMemo(
-    () => Array.from({ length: numDays }, (_, i) => addDays(parseISO(startDayKey), i)),
-    [startDayKey, numDays],
-  );
+  const hiddenWeekdaysKey = hiddenWeekdays?.join(',') ?? '';
+  const days = React.useMemo(() => {
+    const allDays = Array.from({ length: numDays }, (_, i) => addDays(parseISO(startDayKey), i));
+    if (!hiddenWeekdaysKey) return allDays;
+    const hidden = hiddenWeekdaysKey.split(',').map(Number);
+    // Si el filtro se come todos los días del rango (p.ej. vista "Día" parada en
+    // el día oculto), se muestran igual en vez de una grilla vacía.
+    const filtered = allDays.filter((day) => !hidden.includes(day.getDay()));
+    return filtered.length > 0 ? filtered : allDays;
+  }, [startDayKey, numDays, hiddenWeekdaysKey]);
   // Custom mode hides the 60px gutter; the leading grid track collapses to 0.
   const gutterTrack = hideTimeGutter ? '' : '60px ';
 

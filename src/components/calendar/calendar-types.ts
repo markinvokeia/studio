@@ -203,6 +203,10 @@ export interface CalendarProps {
   /** Default slot duration in minutes. Sets how many slots fit per hour and floors
    *  the row height so each slot's appointment title stays readable. Default 15. */
   slotMinutes?: number;
+  /** Days of week (0=Sunday…6=Saturday) hidden as columns in the plain day/week
+   *  grid (desktop and mobile). Purely visual — doesn't change the fetched date
+   *  range or availability. Default []. */
+  hiddenWeekdays?: number[];
   onViewChange?: (view: CalendarView) => void;
   groupBy?: CalendarGroupBy;
   groupingColumns?: CalendarGroupingColumn[];
