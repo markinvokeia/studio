@@ -13,6 +13,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { AuditLog } from '@/lib/types';
+import { formatDateTime } from '@/lib/utils';
 import api from '@/services/api';
 import { ColumnDef, PaginationState, RowSelectionState, VisibilityState } from '@tanstack/react-table';
 import { BarChart } from 'lucide-react';
@@ -36,7 +37,7 @@ async function getAuditLogs(pagination: PaginationState): Promise<GetAuditLogsRe
         const mappedLogs = logsData.map((apiLog: any) => ({
             id: apiLog.id ? String(apiLog.id) : `aud_${Math.random().toString(36).substr(2, 9)}`,
             changed_at: apiLog.changed_at,
-            changed_by: apiLog.changed_by_id,
+            changed_by: apiLog.changed_by,
             table_name: apiLog.table_name,
             record_id: String(apiLog.record_id),
             operation: apiLog.operation,
@@ -72,7 +73,11 @@ export default function AuditLogPage() {
 
     const columns: ColumnDef<AuditLog>[] = React.useMemo(() => [
         { accessorKey: 'id', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />, enableHiding: true },
-        { accessorKey: 'changed_at', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.changedAt')} /> },
+        {
+            accessorKey: 'changed_at',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.changedAt')} />,
+            cell: ({ row }) => formatDateTime(row.original.changed_at),
+        },
         { accessorKey: 'table_name', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.table')} /> },
         { accessorKey: 'record_id', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.recordId')} /> },
         { accessorKey: 'operation', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.operation')} /> },
@@ -122,7 +127,7 @@ export default function AuditLogPage() {
                         renderCard={(row: AuditLog, _isSelected: boolean) => (
                             <DataCard isSelected={_isSelected}
                                 title={row.table_name}
-                                subtitle={`${row.operation} · ${row.changed_at}`}
+                                subtitle={`${row.operation} · ${formatDateTime(row.changed_at)}`}
                                 showArrow
                             />
                         )}
@@ -163,7 +168,7 @@ export default function AuditLogPage() {
                 <dl className="space-y-3 text-sm">
                     <div>
                         <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.changedAt')}</dt>
-                        <dd className="text-foreground">{selectedLog.changed_at || '-'}</dd>
+                        <dd className="text-foreground">{formatDateTime(selectedLog.changed_at)}</dd>
                     </div>
                     <div>
                         <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.changedBy')}</dt>
