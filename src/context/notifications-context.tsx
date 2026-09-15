@@ -418,6 +418,16 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   // ── SSE event stream ──────────────────────────────────────────────────────
 
   const handleSSEEvent = React.useCallback((_eventType: string, data: unknown) => {
+    // `calendar_changed` (citas y notas/recordatorios, ver `useCalendarLiveRefresh`)
+    // ya tiene su propio consumidor dedicado (el patch en vivo del calendario) y no
+    // es un `BackendNotification`. Sin este corte, un evento de nota/recordatorio
+    // colaba acá porque la fila de `reminders` trae su propia columna `type`
+    // ('note'|'reminder'), que coincide por accidente con el discriminador
+    // `BackendNotification.type === 'reminder'` — `normalizeBackendNotification` lo
+    // tomaba como una notificación real y armaba una `ReminderPanelNotification` sin
+    // los campos que esa forma necesita (p. ej. `created_at`), rompiendo `RelativeTime`.
+    const eventType = _eventType || (data as { event_type?: string } | null)?.event_type;
+    if (eventType === 'calendar_changed') return;
     try {
       const normalized = normalizeBackendNotification(data as BackendNotification);
       if (!normalized) return;

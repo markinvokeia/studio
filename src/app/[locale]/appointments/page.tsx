@@ -3047,6 +3047,50 @@ export default function AppointmentsPage() {
     const applyCalendarPatchRef = React.useRef(applyCalendarPatch);
     React.useEffect(() => { applyCalendarPatchRef.current = applyCalendarPatch; }, [applyCalendarPatch]);
 
+    // id de nota/recordatorio → epoch de su último `updated_at` aplicado. Mismo
+    // criterio anti-desorden que `patchSeenRef`, pero separado porque comparte
+    // el mismo lote de eventos con las citas (discriminado por `item_type`).
+    const reminderPatchSeenRef = React.useRef<Map<string, number>>(new Map());
+
+    const applyReminderPatch = React.useCallback((events: CalendarChangePayload[]) => {
+        setReminders((prev) => {
+            let list = prev;
+            let changed = false;
+            for (const ev of events) {
+                const id = String(ev.reminder_id ?? ev.id ?? '');
+                if (!id) continue;
+
+                const uaNum = Date.parse(String(ev.updated_at ?? ''));
+                if (!Number.isNaN(uaNum)) {
+                    const seen = reminderPatchSeenRef.current.get(id);
+                    if (seen != null && seen > uaNum) continue;
+                    if (reminderPatchSeenRef.current.size > 500) reminderPatchSeenRef.current.clear();
+                    reminderPatchSeenRef.current.set(id, Math.max(seen ?? 0, uaNum));
+                }
+
+                if (ev.action === 'deleted') {
+                    if (list.some((r) => r.id === id)) { list = list.filter((r) => r.id !== id); changed = true; }
+                    continue;
+                }
+
+                const mapped = normalizeReminder(ev as Record<string, unknown>);
+                if (!mapped) continue;
+                // Defensa extra: un ítem `personal` sólo debería llegar dirigido a su
+                // autor (el backend lo apunta por `user_ids`, no por canal), pero se
+                // filtra igual por si el visor cambia de usuario sin recargar.
+                if (!canManageReminder(mapped, user?.id)) continue;
+
+                const exists = list.some((r) => r.id === id);
+                list = exists ? list.map((r) => (r.id === id ? mapped : r)) : [...list, mapped];
+                changed = true;
+            }
+            return changed ? list : prev;
+        });
+    }, [user?.id]);
+
+    const applyReminderPatchRef = React.useRef(applyReminderPatch);
+    React.useEffect(() => { applyReminderPatchRef.current = applyReminderPatch; }, [applyReminderPatch]);
+
     const [isQuickQuoteOpen, setIsQuickQuoteOpen] = React.useState(false);
     const [quickQuotePatient, setQuickQuotePatient] = React.useState<UserType | null>(null);
     const [quickQuoteInitialItems, setQuickQuoteInitialItems] = React.useState<SessionPreloadedService[] | undefined>();
@@ -3308,12 +3352,16 @@ export default function AppointmentsPage() {
     }, [forceRefresh, isDataLoading]);
 
     // Patch en vivo: lote de filas `calendar_changed` reemitido por
-    // `useCalendarLiveRefresh`. Se aplica sobre `appointments` sin recargar.
+    // `useCalendarLiveRefresh`. Se aplica sobre `appointments` (o `reminders`,
+    // según `item_type`) sin recargar.
     React.useEffect(() => {
         const handler = (e: Event) => {
             const detail = (e as CustomEvent<CalendarPatchEventDetail>).detail;
             if (!detail?.events?.length) return;
-            applyCalendarPatchRef.current(detail.events);
+            const reminderEvents = detail.events.filter((ev) => ev.item_type === 'reminder');
+            const appointmentEvents = detail.events.filter((ev) => ev.item_type !== 'reminder');
+            if (appointmentEvents.length) applyCalendarPatchRef.current(appointmentEvents);
+            if (reminderEvents.length) applyReminderPatchRef.current(reminderEvents);
         };
         window.addEventListener(CALENDAR_PATCH_EVENT, handler);
         return () => window.removeEventListener(CALENDAR_PATCH_EVENT, handler);
