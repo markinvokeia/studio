@@ -24,7 +24,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT *\nFROM public.reminders\nWHERE status ILIKE 'pending'\n  AND start_datetime <= $1\n  AND end_datetime > $1;",
+        "query": "SELECT *\nFROM public.reminders\nWHERE status ILIKE 'pending'\n  -- Las notas son silenciosas por contrato: la UI las ofrece como \"nota interna sin\n  -- notificaciones\" y el upsert les fuerza raise_alert = false. Sin estos dos predicados\n  -- el cron las levantaba igual y le mandaba una notificación a todo el staff.\n  --\n  -- Van los dos, no uno: hoy raise_alert ya alcanza, pero type <> 'note' es el que aguanta\n  -- si alguna vía de escritura futura se saltea el CASE del upsert.\n  AND type <> 'note'\n  AND raise_alert = true\n  AND start_datetime <= $1\n  AND end_datetime > $1;",
         "options": {
           "queryReplacement": "={{ [$now] }}"
         }

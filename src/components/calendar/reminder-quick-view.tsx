@@ -1,12 +1,13 @@
 'use client';
 
 import * as React from 'react';
-import { CalendarDays, FileText, Flag, Lock, MapPin, Pencil, X } from 'lucide-react';
+import { CalendarDays, FileText, Flag, Lock, MapPin, Pencil, Repeat, Sun, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover';
 
+import { formatRecurrenceSummary } from '@/lib/reminders';
 import { formatDisplayDateWithWeekday } from '@/lib/utils';
 import type { CalendarReminder } from '@/lib/types';
 
@@ -83,12 +84,15 @@ export function ReminderQuickView({
 
   const isNote = reminder.type === 'note';
   const isPersonal = reminder.visibility === 'personal';
+  const isAllDay = reminder.is_all_day;
+  const recurrenceSummary = reminder.recurrence ? formatRecurrenceSummary(reminder.recurrence, t) : null;
 
   const startTime = timeOf(reminder.start_datetime);
   const endTime = timeOf(reminder.end_datetime);
   const dateLine = [
     formatDisplayDateWithWeekday(reminder.start_datetime, locale),
-    startTime && endTime ? `${startTime} – ${endTime}` : startTime,
+    // Un ítem de todo el día guarda 00:00–23:59: mostrarlo sería ruido.
+    isAllDay ? t('allDayBandLabel') : (startTime && endTime ? `${startTime} – ${endTime}` : startTime),
   ]
     .filter(Boolean)
     .join('  ·  ');
@@ -171,6 +175,21 @@ export function ReminderQuickView({
             <span className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
               {t(`status.${reminder.status}`)}
             </span>
+            {recurrenceSummary && (
+              <span
+                className="inline-flex items-center gap-1 rounded-md bg-teal-600 px-1.5 py-0.5 text-[11px] font-medium text-white"
+                title={recurrenceSummary}
+              >
+                <Repeat className="h-3 w-3 shrink-0" aria-hidden />
+                {t('recurringBadge')}
+              </span>
+            )}
+            {isAllDay && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-indigo-500 px-1.5 py-0.5 text-[11px] font-medium text-white">
+                <Sun className="h-3 w-3 shrink-0" aria-hidden />
+                {t('allDayBadge')}
+              </span>
+            )}
             {/* Solo se rotula la excepción: lo compartido es el default del modelo. */}
             {isPersonal && (
               <span className="inline-flex items-center gap-1 rounded-md bg-slate-500 px-1.5 py-0.5 text-[11px] font-medium text-white">

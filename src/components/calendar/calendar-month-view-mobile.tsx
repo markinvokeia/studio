@@ -237,6 +237,7 @@ export function CalendarMonthViewMobile({
               const reminderPriority = event.data?.priority as CalendarReminderPriority | undefined;
               const reminderIsDone = isReminderDone(reminderStatus);
               const reminderIsPersonal = isReminder && isPersonalReminder(event.data);
+              const reminderIsRecurring = isReminder && Boolean(event.data?.series_id);
               const ReminderIcon = isNote ? FileText : reminderIsDone ? CheckCircle2 : reminderIsPersonal ? Lock : BellRing;
               const status = (rawStatus?.toLowerCase() as AppointmentStatus | undefined) ?? undefined;
               const StatusIcon = status ? STATUS_ICONS[status] : null;
@@ -267,7 +268,9 @@ export function CalendarMonthViewMobile({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <span className={cn('font-semibold text-sm truncate', reminderIsDone && 'text-muted-foreground line-through')}>
-                        {event.title}
+                        {/* El glifo se toma del dato y no de `label`: acá el horario se
+                            renderiza en su propio span, y `label` ya lo incluye. */}
+                        {reminderIsRecurring ? `↻ ${event.title}` : event.title}
                       </span>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <span className="text-xs text-muted-foreground whitespace-nowrap">{startTime}</span>

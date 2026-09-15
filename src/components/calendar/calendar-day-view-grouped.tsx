@@ -22,6 +22,7 @@ import {
   slotTimeFromOffset,
   snapMinutesFromOffset,
 } from './calendar-utils';
+import { CalendarAllDayBand } from './calendar-all-day-band';
 import { CalendarDragGhost } from './calendar-drag-ghost';
 import { useCalendarDragDrop } from '@/hooks/use-calendar-drag-drop';
 import { DEFAULT_SLOT_DURATION, MINUTES_IN_DAY } from './calendar-constants';
@@ -42,6 +43,8 @@ interface CalendarDayViewGroupedProps {
   view: CalendarView;
   numDays: number;
   events: CalendarEvent[];
+  /** Ítems de todo el día, para la banda fija bajo el nombre del día. */
+  allDayEvents?: CalendarEvent[];
   groupBy: CalendarGroupBy;
   groupingColumns: CalendarGroupingColumn[];
   currentTime: Date;
@@ -80,6 +83,7 @@ export function CalendarDayViewGrouped({
   view,
   numDays,
   events,
+  allDayEvents = [],
   groupBy,
   groupingColumns,
   currentTime,
@@ -354,6 +358,19 @@ export function CalendarDayViewGrouped({
               </div>
             ))}
           </div>
+
+          {/* Una fila más, con la misma estructura de columnas que la rejilla: cada ítem
+              queda bajo su consultorio, no estirado sobre el día entero. */}
+          <CalendarAllDayBand
+            days={days}
+            events={allDayEvents}
+            gridTemplateColumns={`${gutterTrack}repeat(${days.length}, minmax(${groupedDayMinWidth}px, 1fr))`}
+            showGutter={!hideTimeGutter}
+            columns={columns}
+            columnsTemplate={`repeat(${columns.length}, minmax(${groupedColumnMinWidth}px, 1fr))`}
+            groupBy={groupBy}
+            onEventClick={onEventClick}
+          />
         </div>
 
         {/* Body: time grid with grouped columns */}

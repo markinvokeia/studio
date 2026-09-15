@@ -10,6 +10,7 @@ import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from '@/component
 import type { Locale } from 'date-fns';
 import { addDays, format, isSameDay, set } from 'date-fns';
 
+import { CalendarAllDayBand } from './calendar-all-day-band';
 import { DEFAULT_SCROLL_HOUR, HOUR_SLOT_HEIGHT } from './calendar-constants';
 import type { CalendarEvent, CalendarSlotClickHandler, CalendarSlotContextMenuContext, CalendarSlotContextMenuRenderer, CalendarView } from './calendar-types';
 import {
@@ -34,6 +35,8 @@ interface CalendarDayViewProps {
   view: CalendarView;
   numDays: number;
   events: CalendarEvent[];
+  /** Ítems de todo el día, para la banda fija bajo el nombre del día. */
+  allDayEvents?: CalendarEvent[];
   currentTime: Date;
   dateLocale: Locale;
   timeZoneLabel: string;
@@ -60,6 +63,7 @@ export function CalendarDayView({
   view,
   numDays,
   events,
+  allDayEvents = [],
   currentTime,
   dateLocale,
   timeZoneLabel,
@@ -163,6 +167,12 @@ export function CalendarDayView({
               </div>
             ))}
           </div>
+          <CalendarAllDayBand
+            days={days}
+            events={allDayEvents}
+            gridTemplateColumns={`60px repeat(${days.length}, 1fr)`}
+            onEventClick={onEventClick}
+          />
         </div>
         <div className="day-view-body" style={{ '--num-days': days.length, '--hour-slot-height': `${hourSlotHeight}px` } as any}>
           <CalendarTimeColumn visible={showTimeColumn} />

@@ -5614,11 +5614,75 @@
     "descriptionLabel": "Descripción",
     "descriptionPlaceholder": "Detalles opcionales del recordatorio",
     "dateLabel": "Fecha",
-    "timeLabel": "Hora",
-    "durationLabel": "Duración (min)",
+    "timeLabel": "Hora de inicio",
+    "endTimeLabel": "Hora de fin",
     "priorityLabel": "Prioridad",
     "onlyForMeLabel": "Solo para mí",
     "onlyForMeHint": "Si lo dejás sin marcar, todo el equipo puede verlo, editarlo y eliminarlo.",
+    "allDayLabel": "Todo el día",
+    "allDayHint": "Ocupa el día entero y se muestra fijo arriba, debajo del nombre del día. No genera notificaciones.",
+    "allDayBadge": "Todo el día",
+    "allDayBandLabel": "Todo el día",
+    "repeatLabel": "Repetir",
+    "repeatHint": "Se crea una serie: el ítem aparece en todas las fechas que correspondan.",
+    "recurringBadge": "Se repite",
+    "recurrence": {
+      "freqLabel": "Frecuencia",
+      "intervalLabel": "Cada",
+      "endLabel": "Termina",
+      "untilDateLabel": "Hasta el",
+      "countLabel": "Cantidad de veces",
+      "weekdaysLabel": "Días de la semana",
+      "monthDayLabel": "Día del mes",
+      "weekdaysRequired": "Elegí al menos un día de la semana.",
+      "intervalInvalid": "El intervalo tiene que estar entre 1 y 52.",
+      "countInvalid": "La cantidad de veces tiene que ser 1 o más.",
+      "untilInvalid": "La fecha de fin tiene que ser posterior a la del ítem.",
+      "monthlyClampHint": "Si el mes no tiene ese día, se usa el último (el 31 cae 28 en febrero).",
+      "freq": {
+        "daily": "Diaria",
+        "weekly": "Semanal",
+        "monthly": "Mensual"
+      },
+      "end": {
+        "never": "Nunca",
+        "until": "En una fecha",
+        "count": "Después de N veces"
+      },
+      "every": {
+        "daily": "Todos los días",
+        "weekly": "Todas las semanas",
+        "monthly": "Todos los meses"
+      },
+      "everyN": {
+        "daily": "Cada {count} días",
+        "weekly": "Cada {count} semanas",
+        "monthly": "Cada {count} meses"
+      },
+      "weekdayShort": {
+        "1": "lun",
+        "2": "mar",
+        "3": "mié",
+        "4": "jue",
+        "5": "vie",
+        "6": "sáb",
+        "7": "dom"
+      },
+      "onDay": "el día {day}",
+      "until": "hasta el {date}",
+      "afterCount": "{count} veces"
+    },
+    "scope": {
+      "editTitle": "Editar ítem repetido",
+      "deleteTitle": "Eliminar ítem repetido",
+      "editDescription": "¿Qué querés editar?",
+      "deleteDescription": "¿Qué querés eliminar?",
+      "occurrence": "Solo esta ocurrencia",
+      "occurrenceHint": "El resto de la serie queda como está.",
+      "series": "Toda la serie",
+      "seriesHint": "Alcanza a las ocurrencias futuras pendientes. Las pasadas no se tocan.",
+      "confirm": "Continuar"
+    },
     "onlyForMeLockedHint": "Solo quien lo creó puede cambiar el alcance.",
     "personalBadge": "Personal",
     "generalBadge": "General",
@@ -5647,7 +5711,7 @@
     "errorDesc": "No se pudo completar la acción del recordatorio.",
     "titleRequired": "El título es obligatorio.",
     "dateTimeRequired": "La fecha y la hora son obligatorias.",
-    "durationInvalid": "La duración debe ser de al menos 5 minutos.",
+    "endTimeInvalid": "La hora de fin tiene que ser posterior a la de inicio.",
     "priority": {
       "low": "Baja",
       "medium": "Media",

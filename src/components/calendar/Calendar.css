@@ -431,6 +431,100 @@
   background-color: hsl(var(--card));
 }
 
+/* ── Banda de todo el día ──────────────────────────────────────────────────
+   Fila dentro de `.day-view-header-wrapper`, así que hereda su `position: sticky`
+   y su z-index: queda fija al scrollear la rejilla sin lógica propia. Solo se
+   monta cuando hay ítems; vacía le robaría alto a la rejilla todos los días. */
+
+.all-day-band {
+  display: grid;
+  border-bottom: 1px solid hsl(var(--border));
+  background-color: hsl(var(--card));
+  /* Crece con los ítems del día más cargado, pero con techo: la banda no se puede
+     comer la rejilla. Pasado el techo, scrollea ella. */
+  max-height: 5.25rem;
+  overflow-y: auto;
+}
+
+.all-day-band-gutter {
+  position: sticky;
+  left: 0;
+  z-index: 16;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0.25rem 0.375rem;
+  background-color: hsl(var(--card));
+  border-right: 1px solid hsl(var(--border));
+}
+
+.all-day-band-label {
+  font-size: 0.625rem;
+  line-height: 1;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  text-align: right;
+}
+
+/* Bloque de un día cuando la vista está agrupada: adentro, una celda por
+   consultorio, con el mismo template que `.day-view-group-block`. */
+.all-day-band-block {
+  display: grid;
+  min-width: 0;
+  border-right: 1px solid hsl(var(--border));
+  box-sizing: border-box;
+}
+
+.all-day-band-block:last-child {
+  border-right: none;
+}
+
+.all-day-band-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 0.25rem;
+  border-right: 1px solid hsl(var(--border));
+}
+
+.all-day-band-cell:last-child,
+.all-day-band-block > .all-day-band-cell:last-child {
+  border-right: none;
+}
+
+.all-day-band-chip {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  /* El color de fondo lo pone el ítem, inline. El texto va en blanco porque los
+     colores disponibles son los de Google Calendar, todos de contraste suficiente
+     (el mismo criterio que usan las cards de la rejilla). */
+  color: #fff;
+  font-size: 0.6875rem;
+  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+  transition: filter 0.12s ease;
+}
+
+.all-day-band-chip:hover {
+  filter: brightness(1.08);
+}
+
+.all-day-band-chip--locked {
+  cursor: default;
+}
+
+.all-day-band-chip-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .day-view-group-block {
   display: grid;
   background-color: hsl(var(--muted) / 0.25);

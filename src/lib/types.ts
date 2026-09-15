@@ -730,6 +730,29 @@ export type CalendarItemType = 'note' | 'reminder';
 
 export type CalendarReminderVisibility = 'personal' | 'clinic';
 
+export type ReminderRecurrenceFreq = 'DAILY' | 'WEEKLY' | 'MONTHLY';
+
+export type ReminderRecurrenceEndMode = 'never' | 'until' | 'count';
+
+/** La regla de repetición, descompuesta en columnas (no RRULE). Espeja `reminder_series`. */
+export type ReminderRecurrence = {
+  freq: ReminderRecurrenceFreq;
+  interval: number;
+  /** ISODOW 1..7 (1 = lunes). Solo en `WEEKLY`. */
+  byweekday?: number[] | null;
+  /** 1..31, recortado al último día del mes cuando no existe. Solo en `MONTHLY`. */
+  by_month_day?: number | null;
+  end_mode: ReminderRecurrenceEndMode;
+  until_date?: string | null;
+  occurrence_count?: number | null;
+};
+
+/**
+ * Sobre qué actúa una edición o un borrado de algo que pertenece a una serie: solo esta
+ * ocurrencia, o toda la serie. Lo pregunta `ReminderScopeDialog`.
+ */
+export type CalendarItemScope = 'occurrence' | 'series';
+
 export type CalendarReminder = {
   id: string;
   type: CalendarItemType;
@@ -742,6 +765,19 @@ export type CalendarReminder = {
   priority: CalendarReminderPriority;
   status: CalendarReminderStatus;
   visibility: CalendarReminderVisibility;
+  /**
+   * Ítem de todo el día. La convención, atada por `reminders_all_day_range_check`, es
+   * `start_datetime` = día 00:00:00 y `end_datetime` = mismo día 23:59:59. El calendario
+   * lo dibuja en la banda fija de arriba, nunca dentro de la rejilla de horas.
+   */
+  is_all_day: boolean;
+  /** Serie a la que pertenece esta ocurrencia, si la hay. */
+  series_id?: string | null;
+  /** La ocurrencia se editó o se canceló a mano: la regeneración de la serie no la pisa. */
+  is_series_exception?: boolean;
+  /** La regla de la serie. La trae el GET con el JOIN a `reminder_series`; es la misma
+   *  para todas las ocurrencias y solo se usa para mostrarla y para sembrar el editor. */
+  recurrence?: ReminderRecurrence | null;
   raise_alert?: boolean;
   alert_instance_id?: number | null;
   created_by?: string | null;

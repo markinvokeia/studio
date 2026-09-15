@@ -39,6 +39,7 @@ function resolveViewForBreakpoint(view: CalendarView, isMobile: boolean): Calend
 
 const Calendar: React.FC<CalendarProps> = ({
   events = [],
+  allDayEvents = [],
   onDateChange,
   focusDate,
   focusedEventId,
@@ -304,6 +305,16 @@ const Calendar: React.FC<CalendarProps> = ({
     else handleNext();
   }, [handlePrev, handleNext]);
 
+  /**
+   * Vistas sin rejilla de horas (mes, año, agenda): ahí un ítem de todo el día es una
+   * fila más y no hay `top/height` que romper, así que viaja junto al resto. La banda
+   * solo existe en las vistas de rejilla, que son las que sí se romperían.
+   */
+  const eventsWithAllDay = React.useMemo(
+    () => (allDayEvents.length === 0 ? events : [...allDayEvents, ...events]),
+    [events, allDayEvents],
+  );
+
   const renderView = () => {
     switch (effectiveView) {
       case 'day':
@@ -330,6 +341,7 @@ const Calendar: React.FC<CalendarProps> = ({
               view={effectiveView}
               numDays={numDays}
               events={events}
+              allDayEvents={allDayEvents}
               groupBy={groupBy}
               groupingColumns={groupingColumns}
               currentTime={currentTime}
@@ -352,6 +364,7 @@ const Calendar: React.FC<CalendarProps> = ({
               view={effectiveView}
               numDays={numDays}
               events={events}
+              allDayEvents={allDayEvents}
               groupBy={groupBy}
               groupingColumns={groupingColumns}
               currentTime={currentTime}
@@ -378,6 +391,7 @@ const Calendar: React.FC<CalendarProps> = ({
             view={effectiveView}
             numDays={numDays}
             events={events}
+            allDayEvents={allDayEvents}
             currentTime={currentTime}
             dateLocale={dateLocale}
             timeZoneLabel={timeZoneLabel}
@@ -396,7 +410,7 @@ const Calendar: React.FC<CalendarProps> = ({
         return (
           <CalendarYearView
             currentDate={currentDate}
-            events={events}
+            events={eventsWithAllDay}
             dateLocale={dateLocale}
           />
         );
@@ -404,7 +418,7 @@ const Calendar: React.FC<CalendarProps> = ({
       case 'schedule':
         return (
           <CalendarScheduleView
-            events={events}
+            events={eventsWithAllDay}
             dateLocale={dateLocale}
             breakpoint={breakpoint}
             onEventClick={onEventClick}
@@ -422,7 +436,7 @@ const Calendar: React.FC<CalendarProps> = ({
           return (
             <CalendarMonthViewMobile
               currentDate={currentDate}
-              events={events}
+              events={eventsWithAllDay}
               dateLocale={dateLocale}
               collapsed={monthCollapsed}
               onEventClick={onEventClick}
@@ -437,7 +451,7 @@ const Calendar: React.FC<CalendarProps> = ({
         return (
           <CalendarMonthView
             currentDate={currentDate}
-            events={events}
+            events={eventsWithAllDay}
             dateLocale={dateLocale}
             isLoading={isLoading}
             onEventClick={onEventClick}

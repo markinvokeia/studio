@@ -256,6 +256,7 @@ function normalizeBackendNotification(n: BackendNotification): UnifiedNotificati
           priority: m.priority ?? 'MEDIUM',
           status: m.status ?? 'pending',
           visibility: m.visibility === 'personal' ? 'personal' : 'clinic',
+          is_all_day: Boolean(m.is_all_day),
           raise_alert: m.raise_alert ?? true,
           alert_instance_id: m.alert_instance_id ?? null,
           created_by: m.created_by ?? null,

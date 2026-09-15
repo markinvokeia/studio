@@ -41,6 +41,11 @@ export interface CalendarEvent {
    *  recordatorio ajeno). Lo resuelve la página al construir los eventos, para no
    *  meter reglas de permisos ni de negocio en los componentes del calendario. */
   locked?: boolean;
+  /** Ítem de todo el día. Va a la banda fija de arriba, no a la rejilla de horas.
+   *  La página los separa en su propio array antes de llegar acá: dejarlos en el
+   *  array de la rejilla haría que `getEventsWithLayout` los encadenara con todas
+   *  las citas del día y, al ser los más largos, empujaran la columna entera. */
+  allDay?: boolean;
   data?: any;
 }
 
@@ -168,6 +173,10 @@ export interface InlineDraft {
 
 export interface CalendarProps {
   events?: CalendarEvent[];
+  /** Ítems de todo el día, en su propio array. Van a la banda fija bajo el nombre del
+   *  día; nunca a la rejilla de horas, donde su duración de 24 h arrastraría el layout
+   *  de toda la columna. Los separa la página, que es la que conoce el dato. */
+  allDayEvents?: CalendarEvent[];
   onDateChange?: (range: { start: Date; end: Date }) => void;
   /** Cuando cambia (por referencia), el calendario navega a esa fecha. Se usa para
    *  saltar al resultado de una búsqueda. Pasar un `new Date` nuevo en cada salto

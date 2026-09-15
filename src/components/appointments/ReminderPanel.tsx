@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { format, parseISO } from 'date-fns';
-import { BellRing, Calendar, CalendarDays, CheckCircle2, Clock, Edit, FileText, Flag, Info, Lock, Receipt, ShoppingCart, Sparkles, Trash2 } from 'lucide-react';
+import { BellRing, Calendar, CalendarDays, CheckCircle2, Clock, Edit, FileText, Flag, Info, Lock, Receipt, ShoppingCart, Repeat, Sparkles, Sun, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 
@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { ResizableSheet, SheetDescription, SheetTitle } from '@/components/ui/resizable-sheet';
 import { useLocalAI } from '@/hooks/use-local-ai';
 import type { NoteActionKey } from '@/hooks/use-local-ai';
-import { canManageReminder } from '@/lib/reminders';
+import { canManageReminder, formatRecurrenceSummary } from '@/lib/reminders';
 import { cn, formatDisplayDate } from '@/lib/utils';
 import type { CalendarReminder } from '@/lib/types';
 
@@ -164,6 +164,8 @@ export function ReminderPanel({
   const isDone = reminder.status === 'done';
   const isNote = reminder.type === 'note';
   const isPersonal = reminder.visibility === 'personal';
+  const isAllDay = reminder.is_all_day;
+  const recurrenceSummary = reminder.recurrence ? formatRecurrenceSummary(reminder.recurrence, t) : null;
   // Lo compartido lo gestiona cualquiera; lo personal, solo su autor.
   const canManage = canManageReminder(reminder, currentUserId);
   const ItemIcon = isNote ? FileText : BellRing;
@@ -219,6 +221,21 @@ export function ReminderPanel({
                     {t('personalBadge')}
                   </span>
                 )}
+                {isAllDay && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-transparent bg-indigo-500 px-2.5 py-0.5 text-xs font-semibold text-white">
+                    <Sun className="h-3 w-3" />
+                    {t('allDayBadge')}
+                  </span>
+                )}
+                {recurrenceSummary && (
+                  <span
+                    className="inline-flex items-center gap-1 rounded-full border border-transparent bg-teal-600 px-2.5 py-0.5 text-xs font-semibold text-white"
+                    title={recurrenceSummary}
+                  >
+                    <Repeat className="h-3 w-3" />
+                    {t('recurringBadge')}
+                  </span>
+                )}
               </SheetDescription>
             </div>
           </div>
@@ -240,8 +257,15 @@ export function ReminderPanel({
               <DetailRow
                 icon={Clock}
                 label={t('timeLabel')}
-                value={endTime ? `${startTime} -> ${endTime}` : startTime}
+                value={isAllDay ? t('allDayBandLabel') : (endTime ? `${startTime} -> ${endTime}` : startTime)}
               />
+              {recurrenceSummary && (
+                <DetailRow
+                  icon={Repeat}
+                  label={t('repeatLabel')}
+                  value={recurrenceSummary}
+                />
+              )}
               {!isNote && (
                 <DetailRow
                   icon={Flag}

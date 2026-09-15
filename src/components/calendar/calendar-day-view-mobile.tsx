@@ -43,6 +43,7 @@ import { CalendarDragGhost } from './calendar-drag-ghost';
 import { useCalendarDragDrop } from '@/hooks/use-calendar-drag-drop';
 import { CalendarEventDay } from './calendar-event-day';
 import { TimeSlotDividers } from './calendar-time-column';
+import { CalendarAllDayBand } from './calendar-all-day-band';
 import { CalendarHourRail } from './calendar-hour-rail';
 import { CalendarGapOverlays } from './calendar-gap-overlay';
 import { CalendarBlockedOverlays } from './calendar-blocked-overlay';
@@ -53,6 +54,8 @@ interface CalendarDayViewMobileProps {
   view: CalendarView;
   numDays: number;
   events: CalendarEvent[];
+  /** Ítems de todo el día, para la banda fija bajo las pestañas de día. */
+  allDayEvents?: CalendarEvent[];
   groupBy: CalendarGroupBy;
   groupingColumns: CalendarGroupingColumn[];
   currentTime: Date;
@@ -81,6 +84,7 @@ export function CalendarDayViewMobile({
   view,
   numDays,
   events,
+  allDayEvents = [],
   groupBy,
   groupingColumns,
   currentTime,
@@ -442,6 +446,19 @@ export function CalendarDayViewMobile({
             );
           })}
         </div>
+      )}
+
+      {/* Banda de todo el día: va FUERA del scroller, no dentro de cada CarouselItem, para
+          que quede realmente fija bajo las pestañas de día. Muestra el día del slide
+          activo, que es el único visible. */}
+      {activeSlide && (
+        <CalendarAllDayBand
+          days={[activeSlide.day]}
+          events={allDayEvents}
+          gridTemplateColumns="1fr"
+          showGutter={false}
+          onEventClick={onEventClick}
+        />
       )}
 
       {/* Scrollable time grid with carousel */}

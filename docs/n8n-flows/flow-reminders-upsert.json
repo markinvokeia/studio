@@ -3,9 +3,9 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## Reminders – Upsert\n\n**POST** `/webhook/reminders/upsert`\n\nCreates or updates a note or reminder. PostgreSQL receives every dynamic value through prepared-statement parameters; no request value is interpolated into SQL.\n\n**Request body:**\n```json\n{\n  \"id\": \"optional-uuid\",\n  \"type\": \"note | reminder\",\n  \"calendar_id\": \"42 | null\",\n  \"title\": \"Llamar a laboratorio\",\n  \"description\": \"Detalles opcionales\",\n  \"start_datetime\": \"2026-05-13T13:45:00\",\n  \"end_datetime\": \"2026-05-13T14:00:00\",\n  \"color\": \"#5484ed\",\n  \"priority\": \"MEDIUM\",\n  \"status\": \"pending\",\n  \"visibility\": \"clinic | personal\",\n  \"raise_alert\": true\n}\n```\n\n**Alcance (`visibility`)**\n- `clinic` (compartido, el default): lo edita cualquier usuario del staff.\n- `personal`: solo lo edita su autor (`created_by`). Un ítem sin autor — filas viejas o\n  cuyo autor fue dado de baja, la FK es `ON DELETE SET NULL` — se trata como compartido.\n\nLa autorización vive en el `ON CONFLICT ... WHERE`, y `visibility` solo la cambia el\nautor. Misma regla que `canManageReminder` en el frontend y que el filtro del GET.\n\n`calendar_id` is nullable. `created_by` and completion ownership come from the authenticated JWT, never from the request body. Notes always persist with `raise_alert = false`. Alert scheduling remains the responsibility of the alert workflows; this endpoint does not create `alert_instances`.\n\n**Response 200:** `{ \"success\": true, \"code\": 200, \"reminder\": { ... } }`\n**Response 403:** el ítem guardado es personal de otro usuario.",
-        "height": 900,
-        "width": 620,
+        "content": "## Reminders – Upsert\n\n**POST** `/webhook/reminders/upsert`\n\nCrea o actualiza una nota o un recordatorio. PostgreSQL recibe todos los valores dinámicos\ncomo parámetros de prepared statement; ningún valor del request se interpola en el SQL.\n\n**Alcance (`visibility`)**\n- `clinic` (compartido, el default): lo maneja cualquier usuario del staff.\n- `personal`: solo lo maneja su autor (`created_by`). Un ítem sin autor — filas viejas o\n  cuyo autor fue dado de baja, la FK es `ON DELETE SET NULL` — se trata como compartido\n  para que no quede inaccesible para siempre.\n\nEs la misma regla que aplica `canManageReminder` en el frontend.\n\nEl `ON CONFLICT ... WHERE` corta el UPDATE si el ítem guardado es personal de otro usuario,\ny `visibility` solo la cambia el autor: si B pudiera marcar \"solo para mí\" un ítem de A,\n`created_by` seguiría siendo A y el ítem desaparecería del calendario de B sin forma de\nrevertirlo.\n\n`Upsert Reminder` necesita **alwaysOutputData**: sin eso, cuando el guard corta, el nodo no\nemite ítems, `Check Ownership` no corre y el webhook queda sin responder.\n\n`created_by` y la autoría de completado salen del JWT, nunca del body. Las notas se guardan\nsiempre con `raise_alert = false`.\n\n**Response 200:** `{ \"success\": true, \"code\": 200, \"reminder\": { ... } }`\n**Response 403:** el ítem guardado es personal de otro usuario.",
+        "height": 820,
+        "width": 640,
         "color": 4
       },
       "type": "n8n-nodes-base.stickyNote",
@@ -33,6 +33,7 @@
       ],
       "id": "09f342d5-eb79-415b-a8c5-ecaafa17feb5",
       "name": "Webhook",
+      "webhookId": "reminders-upsert",
       "credentials": {
         "jwtAuth": {
           "id": "C6sB1r7ab5H5EmJj",
@@ -42,7 +43,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = $input.first().json;\nconst body = input.body ?? input;\n\nconst UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\nconst LOCAL_DATETIME_PATTERN = /^\\d{4}-\\d{2}-\\d{2}[T ]\\d{2}:\\d{2}(?::\\d{2}(?:\\.\\d{1,6})?)?$/;\nconst HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;\n\nconst requireUuid = (value, field) => {\n  const text = String(value ?? '').trim();\n  if (!UUID_PATTERN.test(text)) throw new Error(`${field} must be a valid UUID`);\n  return text;\n};\n\nconst optionalUuid = (value, field) => {\n  if (value == null || value === '') return null;\n  return requireUuid(value, field);\n};\n\nconst localDateTime = (value, field, required = true) => {\n  if (value == null || value === '') {\n    if (required) throw new Error(`${field} is required`);\n    return null;\n  }\n  const text = String(value).trim();\n  if (!LOCAL_DATETIME_PATTERN.test(text)) {\n    throw new Error(`${field} must be a local datetime without Z or timezone offset`);\n  }\n  return text.replace(' ', 'T');\n};\n\nconst actorId = requireUuid(input.jwtPayload?.userId ?? input.jwtPayload?.sub, 'jwt userId');\nconst id = optionalUuid(body.id, 'id');\nconst type = String(body.type ?? 'reminder').trim().toLowerCase();\nconst priority = String(body.priority ?? 'MEDIUM').trim().toUpperCase();\nconst status = String(body.status ?? 'pending').trim().toLowerCase();\n\nif (!['note', 'reminder'].includes(type)) throw new Error(`Invalid type: ${body.type}`);\nif (!['LOW', 'MEDIUM', 'HIGH'].includes(priority)) throw new Error(`Invalid priority: ${body.priority}`);\nif (!['pending', 'done', 'dismissed', 'cancelled'].includes(status)) throw new Error(`Invalid status: ${body.status}`);\n\nconst visibility = String(body.visibility ?? 'clinic').trim().toLowerCase();\nif (!['personal', 'clinic'].includes(visibility)) throw new Error(`Invalid visibility: ${body.visibility}`);\n\nconst title = String(body.title ?? '').trim();\nif (!title) throw new Error('title is required');\n\nlet calendarId = null;\nif (body.calendar_id != null && body.calendar_id !== '') {\n  calendarId = String(body.calendar_id).trim();\n  if (!/^[1-9]\\d*$/.test(calendarId)) throw new Error(`Invalid calendar_id: ${body.calendar_id}`);\n}\n\nconst defaultColors = { LOW: '#3b82f6', MEDIUM: '#f59e0b', HIGH: '#ef4444' };\nconst requestedColor = String(body.color ?? '').trim();\nif (requestedColor && !HEX_COLOR_PATTERN.test(requestedColor)) {\n  throw new Error(`Invalid color: ${body.color}`);\n}\n\nreturn [{\n  json: {\n    id,\n    type,\n    calendar_id: calendarId,\n    title,\n    description: body.description == null || body.description === '' ? null : String(body.description),\n    start_datetime: localDateTime(body.start_datetime, 'start_datetime'),\n    end_datetime: localDateTime(body.end_datetime, 'end_datetime', false),\n    color: (requestedColor || defaultColors[priority]).toLowerCase(),\n    priority,\n    status,\n    visibility,\n    raise_alert: type === 'reminder' && body.raise_alert === true,\n    actor_id: actorId\n  }\n}];"
+        "jsCode": "const input = $input.first().json;\nconst body = input.body ?? input;\n\nconst UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\nconst LOCAL_DATETIME_PATTERN = /^\\d{4}-\\d{2}-\\d{2}[T ]\\d{2}:\\d{2}(?::\\d{2}(?:\\.\\d{1,6})?)?$/;\nconst HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;\n\nconst requireUuid = (value, field) => {\n  const text = String(value ?? '').trim();\n  if (!UUID_PATTERN.test(text)) throw new Error(`${field} must be a valid UUID`);\n  return text;\n};\n\nconst optionalUuid = (value, field) => {\n  if (value == null || value === '') return null;\n  return requireUuid(value, field);\n};\n\nconst localDateTime = (value, field, required = true) => {\n  if (value == null || value === '') {\n    if (required) throw new Error(`${field} is required`);\n    return null;\n  }\n  const text = String(value).trim();\n  if (!LOCAL_DATETIME_PATTERN.test(text)) {\n    throw new Error(`${field} must be a local datetime without Z or timezone offset`);\n  }\n  return text.replace(' ', 'T');\n};\n\nconst actorId = requireUuid(input.jwtPayload?.userId ?? input.jwtPayload?.sub, 'jwt userId');\nconst id = optionalUuid(body.id, 'id');\nconst type = String(body.type ?? 'reminder').trim().toLowerCase();\nconst priority = String(body.priority ?? 'MEDIUM').trim().toUpperCase();\nconst status = String(body.status ?? 'pending').trim().toLowerCase();\n\nif (!['note', 'reminder'].includes(type)) throw new Error(`Invalid type: ${body.type}`);\nif (!['LOW', 'MEDIUM', 'HIGH'].includes(priority)) throw new Error(`Invalid priority: ${body.priority}`);\nif (!['pending', 'done', 'dismissed', 'cancelled'].includes(status)) throw new Error(`Invalid status: ${body.status}`);\n\nconst visibility = String(body.visibility ?? 'clinic').trim().toLowerCase();\nif (!['personal', 'clinic'].includes(visibility)) throw new Error(`Invalid visibility: ${body.visibility}`);\n\nconst isAllDay = body.is_all_day === true;\n\n// Las horas de un ítem de todo el día las decide el servidor, no el cliente: el CHECK\n// reminders_all_day_range_check exige 00:00:00–23:59:59 del mismo día, y un body que\n// mandara cualquier otra cosa haría fallar el INSERT con un error de constraint en vez\n// de guardar lo que corresponde.\nconst allDayRange = (value) => {\n  const day = String(value).slice(0, 10);\n  return { start: `${day}T00:00:00`, end: `${day}T23:59:59` };\n};\n\nconst title = String(body.title ?? '').trim();\nif (!title) throw new Error('title is required');\n\nlet calendarId = null;\nif (body.calendar_id != null && body.calendar_id !== '') {\n  calendarId = String(body.calendar_id).trim();\n  if (!/^[1-9]\\d*$/.test(calendarId)) throw new Error(`Invalid calendar_id: ${body.calendar_id}`);\n}\n\nconst defaultColors = { LOW: '#3b82f6', MEDIUM: '#f59e0b', HIGH: '#ef4444' };\nconst requestedColor = String(body.color ?? '').trim();\nif (requestedColor && !HEX_COLOR_PATTERN.test(requestedColor)) {\n  throw new Error(`Invalid color: ${body.color}`);\n}\n\nconst VALID_FREQ = ['DAILY', 'WEEKLY', 'MONTHLY'];\nconst VALID_END = ['never', 'until', 'count'];\n\n// La regla de repetición. Se valida acá y no en la función SQL para poder devolver un\n// mensaje entendible; los CHECK de reminder_series son la garantía, no la validación.\nlet recurrence = null;\nif (body.recurrence != null && typeof body.recurrence === 'object') {\n  const freq = String(body.recurrence.freq ?? '').toUpperCase();\n  const endMode = String(body.recurrence.end_mode ?? 'never').toLowerCase();\n  const interval = Number(body.recurrence.interval ?? 1);\n\n  if (!VALID_FREQ.includes(freq)) throw new Error(`Invalid recurrence.freq: ${body.recurrence.freq}`);\n  if (!VALID_END.includes(endMode)) throw new Error(`Invalid recurrence.end_mode: ${body.recurrence.end_mode}`);\n  if (!Number.isInteger(interval) || interval < 1 || interval > 52) {\n    throw new Error(`Invalid recurrence.interval: ${body.recurrence.interval}`);\n  }\n\n  const byweekday = Array.isArray(body.recurrence.byweekday)\n    ? body.recurrence.byweekday.map(Number).filter((d) => Number.isInteger(d) && d >= 1 && d <= 7)\n    : null;\n  if (freq === 'WEEKLY' && (!byweekday || byweekday.length === 0)) {\n    throw new Error('recurrence.byweekday is required for WEEKLY');\n  }\n\n  const byMonthDay = body.recurrence.by_month_day == null ? null : Number(body.recurrence.by_month_day);\n  if (freq === 'MONTHLY' && (!Number.isInteger(byMonthDay) || byMonthDay < 1 || byMonthDay > 31)) {\n    throw new Error(`Invalid recurrence.by_month_day: ${body.recurrence.by_month_day}`);\n  }\n\n  const count = body.recurrence.occurrence_count == null ? null : Number(body.recurrence.occurrence_count);\n  if (endMode === 'count' && (!Number.isInteger(count) || count < 1)) {\n    throw new Error(`Invalid recurrence.occurrence_count: ${body.recurrence.occurrence_count}`);\n  }\n\n  const until = body.recurrence.until_date == null || body.recurrence.until_date === ''\n    ? null\n    : String(body.recurrence.until_date).slice(0, 10);\n  if (endMode === 'until' && !/^\\d{4}-\\d{2}-\\d{2}$/.test(until ?? '')) {\n    throw new Error(`Invalid recurrence.until_date: ${body.recurrence.until_date}`);\n  }\n\n  recurrence = {\n    freq,\n    interval,\n    byweekday: freq === 'WEEKLY' ? byweekday : null,\n    by_month_day: freq === 'MONTHLY' ? byMonthDay : null,\n    end_mode: endMode,\n    until_date: endMode === 'until' ? until : null,\n    occurrence_count: endMode === 'count' ? count : null,\n  };\n}\n\nconst scope = String(body.scope ?? 'occurrence').trim().toLowerCase();\nif (!['occurrence', 'series'].includes(scope)) throw new Error(`Invalid scope: ${body.scope}`);\n\nconst payload = {\n  id,\n  scope,\n  type,\n  calendar_id: calendarId,\n  title,\n  description: body.description == null || body.description === '' ? null : String(body.description),\n  start_datetime: isAllDay\n    ? allDayRange(localDateTime(body.start_datetime, 'start_datetime')).start\n    : localDateTime(body.start_datetime, 'start_datetime'),\n  end_datetime: isAllDay\n    ? allDayRange(localDateTime(body.start_datetime, 'start_datetime')).end\n    : localDateTime(body.end_datetime, 'end_datetime', false),\n  color: (requestedColor || defaultColors[priority]).toLowerCase(),\n  priority,\n  status,\n  visibility,\n  is_all_day: isAllDay,\n  // Un ítem de todo el día dispararía la alerta a las 00:00, que no le sirve a nadie,\n  // así que se trata como las notas: silencioso.\n  raise_alert: type === 'reminder' && body.raise_alert === true && !isAllDay,\n  recurrence,\n};\n\nreturn [{ json: { payload_json: JSON.stringify(payload), actor_id: actorId } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -56,9 +57,9 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO public.reminders AS existing (\n  id,\n  type,\n  calendar_id,\n  title,\n  description,\n  start_datetime,\n  end_datetime,\n  color,\n  priority,\n  status,\n  visibility,\n  raise_alert,\n  created_by,\n  completed_at,\n  completed_by,\n  created_at,\n  updated_at\n) VALUES (\n  COALESCE($1::uuid, gen_random_uuid()),\n  $2::character varying,\n  $3::bigint,\n  $4::text,\n  $5::text,\n  $6::timestamp,\n  $7::timestamp,\n  $8::character varying,\n  $9::character varying,\n  $10::character varying,\n  $13::character varying,\n  CASE WHEN $2::text = 'note' THEN FALSE ELSE $11::boolean END,\n  $12::uuid,\n  CASE WHEN $10::text = 'done' THEN NOW() ELSE NULL END,\n  CASE WHEN $10::text = 'done' THEN $12::uuid ELSE NULL END,\n  NOW(),\n  NOW()\n)\nON CONFLICT (id) DO UPDATE\nSET type           = EXCLUDED.type,\n    calendar_id    = EXCLUDED.calendar_id,\n    title          = EXCLUDED.title,\n    description    = EXCLUDED.description,\n    start_datetime = EXCLUDED.start_datetime,\n    end_datetime   = EXCLUDED.end_datetime,\n    color          = EXCLUDED.color,\n    priority       = EXCLUDED.priority,\n    status         = EXCLUDED.status,\n    visibility     = CASE\n                       -- El alcance solo lo cambia el autor. Si B marcara \"solo para mí\"\n                       -- un ítem de A, created_by seguiría siendo A: el ítem pasaría a ser\n                       -- personal DE A y desaparecería del calendario de B, sin forma de\n                       -- revertirlo desde la UI. Misma razón que isScopeLocked en el form.\n                       WHEN existing.created_by IS NULL OR existing.created_by = EXCLUDED.created_by\n                         THEN EXCLUDED.visibility\n                       ELSE existing.visibility\n                     END,\n    raise_alert    = CASE WHEN EXCLUDED.type = 'note' THEN FALSE ELSE EXCLUDED.raise_alert END,\n    completed_at   = CASE\n                       WHEN EXCLUDED.status = 'done' THEN COALESCE(existing.completed_at, NOW())\n                       ELSE NULL\n                     END,\n    completed_by   = CASE\n                       WHEN EXCLUDED.status = 'done' THEN COALESCE(existing.completed_by, EXCLUDED.completed_by)\n                       ELSE NULL\n                     END,\n    updated_at     = NOW()\n-- Lo compartido lo edita cualquiera; lo personal, solo su autor. EXCLUDED.created_by es\n-- el actor del JWT, así que esto compara \"lo guardado\" contra \"quien edita\".\n--\n-- El IS NULL no es defensivo de más: `NULL = 'uuid'` da NULL, no false, así que sin él\n-- las filas sin autor (viejas, o con el autor dado de baja — la FK es ON DELETE SET NULL)\n-- no las podría editar nadie, nunca.\nWHERE existing.visibility <> 'personal'\n   OR existing.created_by IS NULL\n   OR existing.created_by = EXCLUDED.created_by\nRETURNING\n  id::text AS id,\n  type,\n  calendar_id::text AS calendar_id,\n  title,\n  description,\n  start_datetime::text AS start_datetime,\n  end_datetime::text AS end_datetime,\n  color,\n  priority,\n  status,\n  visibility,\n  raise_alert,\n  alert_instance_id,\n  created_by::text AS created_by,\n  created_at::text AS created_at,\n  updated_at::text AS updated_at,\n  completed_at::text AS completed_at,\n  completed_by::text AS completed_by;",
+        "query": "-- Toda la lógica (alta, edición, alcance de serie y guard de permisos) vive en\n-- reminders_save, en SQL versionado. Devolver cero filas significa \"no autorizado\", que\n-- Check Ownership traduce a 403.\nSELECT\n  id::text AS id, type, calendar_id::text AS calendar_id, title, description,\n  start_datetime::text AS start_datetime, end_datetime::text AS end_datetime,\n  color, priority, status, visibility, is_all_day, raise_alert, alert_instance_id,\n  series_id::text AS series_id, is_series_exception,\n  created_by::text AS created_by, created_at::text AS created_at,\n  updated_at::text AS updated_at, completed_at::text AS completed_at,\n  completed_by::text AS completed_by\nFROM public.reminders_save($1::jsonb, $2::uuid);",
         "options": {
-          "queryReplacement": "={{ [ $json.id, $json.type, $json.calendar_id, $json.title, $json.description, $json.start_datetime, $json.end_datetime, $json.color, $json.priority, $json.status, $json.raise_alert, $json.actor_id, $json.visibility ] }}"
+          "queryReplacement": "={{ [ $json.payload_json, $json.actor_id ] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
@@ -79,7 +80,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const rows = $input.all().filter((item) => item.json && item.json.id);\n\n// Sin fila: el `ON CONFLICT ... WHERE` cortó el UPDATE porque el ítem guardado es\n// personal de otro usuario. Requiere alwaysOutputData en \"Upsert Reminder\": sin eso el\n// nodo Postgres no emite ítems, este nodo no corre y el webhook queda sin responder.\nif (rows.length === 0) {\n  return [{ json: { __error: true, code: 403, message: 'Solo su autor puede editar un ítem personal' } }];\n}\n\nreturn [{ json: { ...rows[0].json } }];"
+        "jsCode": "// Con alwaysOutputData el nodo Postgres emite un ítem vacío cuando el\n// `ON CONFLICT ... WHERE` corta el UPDATE, así que no alcanza con mirar la cantidad:\n// hay que exigir que la fila traiga id. Sin alwaysOutputData el nodo no emitiría nada,\n// este código no correría y el webhook quedaría sin responder.\nconst rows = $input.all().map((item) => item.json).filter((row) => row && row.id);\n\nif (rows.length === 0) {\n  return [{ json: { __error: true, code: 403, message: 'Solo su autor puede editar un ítem personal' } }];\n}\n\nreturn [{ json: { ...rows[0] } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -156,7 +157,77 @@
         3760
       ],
       "id": "12d89c53-7c96-48d5-afc7-9539fadb395f",
-      "name": "Respond 200"
+      "name": "Respond 202"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "W5SZnwkaTigFrHO6",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/W5SZnwkaTigFrHO6",
+          "cachedResultName": "Events"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_type": "calendar_changed",
+            "user_ids": "={{ $json.visibility === 'personal' ? [$json.created_by] : [] }}",
+            "channels": "={{ $json.visibility === 'personal' ? [] : ($json.calendar_id ? [\"appointments\", \"calendar:\" + $json.calendar_id] : [\"appointments\"]) }}",
+            "payload": "={{ Object.assign({}, $json, { item_type: \"reminder\", action: \"upserted\", event_type: \"calendar_changed\", reminder_id: $json.id }) }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "event_type",
+              "displayName": "event_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "user_ids",
+              "displayName": "user_ids",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "channels",
+              "displayName": "channels",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "payload",
+              "displayName": "payload",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1888,
+        -2784
+      ],
+      "id": "198a6e0b-3363-4dcb-a125-c32d72aa678d",
+      "name": "Push calendar_changed (reminder upsert)"
     }
   ],
   "connections": {
@@ -215,7 +286,12 @@
         ],
         [
           {
-            "node": "Respond 200",
+            "node": "Respond 202",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Push calendar_changed (reminder upsert)",
             "type": "main",
             "index": 0
           }
