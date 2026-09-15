@@ -60,7 +60,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
 import { API_ROUTES } from '@/constants/routes';
-import { BUSINESS_CONFIG_PERMISSIONS, PATIENTS_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS } from '@/constants/permissions';
+import { BUSINESS_CONFIG_PERMISSIONS, PATIENTS_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS, SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
@@ -82,6 +82,7 @@ import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
 import { AppointmentPanel } from '@/components/appointments/AppointmentPanel';
+import { AppointmentHistorySheet } from '@/components/appointments/AppointmentHistorySheet';
 import { AppointmentQuickView } from '@/components/calendar/appointment-quick-view';
 import { ReminderQuickView } from '@/components/calendar/reminder-quick-view';
 import { ReminderScopeDialog } from '@/components/appointments/ReminderScopeDialog';
@@ -856,6 +857,9 @@ export default function AppointmentsPage() {
     // permiso (el único call-site de la app estaba en AppointmentPanel). Mover o
     // redimensionar una cita sí es escritura.
     const canUpdateAppointments = hasPermission(BUSINESS_CONFIG_PERMISSIONS.APPOINTMENT_UPDATE);
+    // Habilita el botón de historial en la ventana flotante del modo custom — mismo
+    // permiso que gatea la sección de historial dentro del panel lateral completo.
+    const canViewAppointmentHistory = hasPermission(SYSTEM_PERMISSIONS.AUDIT_LOG_VIEW_LIST);
 
     const { toast } = useToast();
     const { reschedule: rescheduleAppointment } = useAppointmentReschedule();
@@ -889,6 +893,9 @@ export default function AppointmentsPage() {
     // Ventana flotante de detalle (modo custom): la cita y el rect de su card, para
     // anclarla. En el modo normal el clic simple sigue abriendo el panel lateral.
     const [quickView, setQuickView] = React.useState<{ appointment: Appointment; anchorRect: DOMRect } | null>(null);
+    // Cita cuyo historial de auditoría se está viendo en el sheet dedicado — se abre
+    // desde el botón de historial de la ventana flotante (modo custom).
+    const [historyAppointment, setHistoryAppointment] = React.useState<Appointment | null>(null);
     const [reminderQuickView, setReminderQuickView] = React.useState<{ reminder: CalendarReminder; anchorRect: DOMRect } | null>(null);
     const [selectedReminder, setSelectedReminder] = React.useState<CalendarReminder | null>(null);
     const [isReminderPanelOpen, setIsReminderPanelOpen] = React.useState(false);
@@ -5744,10 +5751,22 @@ export default function AppointmentsPage() {
                     locale={locale}
                     onClose={() => setQuickView(null)}
                     onEdit={(appointment) => { setQuickView(null); handleEditAppointment(appointment); }}
+                    onViewDetails={canViewAppointmentHistory ? (appointment) => {
+                        setQuickView(null);
+                        setHistoryAppointment(appointment);
+                    } : undefined}
+                />
+            )}
+            {historyAppointment && (
+                <AppointmentHistorySheet
+                    open={!!historyAppointment}
+                    onOpenChange={(open) => { if (!open) setHistoryAppointment(null); }}
+                    appointmentId={historyAppointment.id}
+                    appointmentLabel={historyAppointment.patientName}
                 />
             )}
             <AppointmentPanel
-                open={calendarMode !== 'custom' && isDetailViewOpen}
+                open={isDetailViewOpen}
                 onOpenChange={setIsDetailViewOpen}
                 appointment={selectedAppointment}
                 linkedSession={linkedSession}

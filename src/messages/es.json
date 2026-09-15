@@ -1405,7 +1405,26 @@
     "deleteTitle": "Eliminar cita",
     "deleteDescription": "Esta acción eliminará la cita por completo del sistema y no se podrá volver a ver. ¿Deseas continuar?",
     "deleteConfirm": "Sí, eliminar",
-    "deleteCancel": "Cancelar"
+    "deleteCancel": "Cancelar",
+    "history": {
+      "title": "Historial de cambios",
+      "empty": "Aún no hay cambios registrados.",
+      "fields": {
+        "status": "Estado",
+        "notes": "Notas",
+        "description": "Descripción",
+        "summary": "Resumen",
+        "color": "Color",
+        "doctor_id": "Doctor",
+        "calendar_id": "Consultorio",
+        "quote_id": "Presupuesto",
+        "invoice_id": "Factura",
+        "start_datetime": "Inicio",
+        "end_datetime": "Fin",
+        "cancellation_reason": "Motivo de cancelación",
+        "cancellation_note": "Detalle de cancelación"
+      }
+    }
   },
   "AppointmentReschedule": {
     "action": "Reagendar",
@@ -4864,6 +4883,20 @@
       "viewDetails": "Ver detalles",
       "id": "ID",
       "openMenu": "Abrir Menú"
+    },
+    "filters": {
+      "entity": "Entidad",
+      "allEntities": "Todas las entidades",
+      "operation": "Operación",
+      "allOperations": "Todas las operaciones",
+      "user": "Usuario",
+      "userPlaceholder": "Buscar usuario...",
+      "clear": "Limpiar filtros"
+    },
+    "operations": {
+      "INSERT": "Creación",
+      "UPDATE": "Actualización",
+      "DELETE": "Eliminación"
     }
   },
   "AccessLogPage": {

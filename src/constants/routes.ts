@@ -376,6 +376,8 @@ export const API_ROUTES = {
         ALERTS_CONFIG: '/system/alerts-config',
         AUDIT: '/system/audit',
         AUDIT_LOGS: '/audit_logs',
+        AUDIT_LOG_ENTITIES: '/audit_logs/entities',
+        AUDIT_LOG_ENTITY_HISTORY: '/audit_logs/entity_history',
         COMMUNICATION_HISTORY: '/system/communication-history',
         COMMUNICATION_TEMPLATES: '/system/communication-templates',
         COMMUNICATION_TEMPLATE: '/system/communication-template',

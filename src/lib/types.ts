@@ -562,9 +562,10 @@ export type AuditLog = {
   id: string;
   changed_at: string;
   changed_by: string;
+  changed_by_name?: string;
   table_name: string;
   record_id: string;
-  operation: 'create' | 'update' | 'delete';
+  operation: 'INSERT' | 'UPDATE' | 'DELETE';
   old_value: any;
   new_value: any;
 };

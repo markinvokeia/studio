@@ -1405,7 +1405,26 @@
     "deleteTitle": "Delete appointment",
     "deleteDescription": "This will completely remove the appointment from the system and it can no longer be viewed. Do you want to continue?",
     "deleteConfirm": "Yes, delete",
-    "deleteCancel": "Cancel"
+    "deleteCancel": "Cancel",
+    "history": {
+      "title": "Change history",
+      "empty": "No changes recorded yet.",
+      "fields": {
+        "status": "Status",
+        "notes": "Notes",
+        "description": "Description",
+        "summary": "Summary",
+        "color": "Color",
+        "doctor_id": "Doctor",
+        "calendar_id": "Room",
+        "quote_id": "Quote",
+        "invoice_id": "Invoice",
+        "start_datetime": "Start",
+        "end_datetime": "End",
+        "cancellation_reason": "Cancellation reason",
+        "cancellation_note": "Cancellation note"
+      }
+    }
   },
   "AppointmentReschedule": {
     "action": "Reschedule",
@@ -4887,6 +4906,20 @@
       "viewDetails": "View details",
       "id": "ID",
       "openMenu": "Open Menu"
+    },
+    "filters": {
+      "entity": "Entity",
+      "allEntities": "All entities",
+      "operation": "Operation",
+      "allOperations": "All operations",
+      "user": "User",
+      "userPlaceholder": "Search user...",
+      "clear": "Clear filters"
+    },
+    "operations": {
+      "INSERT": "Create",
+      "UPDATE": "Update",
+      "DELETE": "Delete"
     }
   },
   "AccessLogPage": {
