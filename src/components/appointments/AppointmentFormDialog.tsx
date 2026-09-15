@@ -46,7 +46,7 @@ import { AlertTriangle, CalendarDays, Check, ChevronsUpDown, ClipboardList, Cloc
 import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
 import { usePatientView } from '@/stores/patient-view-store';
 import { usePermissions } from '@/hooks/usePermissions';
-import { PATIENT_FINANCIAL_VIEW_PERMISSIONS } from '@/constants/permissions';
+import { PATIENT_FINANCIAL_VIEW_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -132,9 +132,13 @@ export function AppointmentFormDialog({
     const { reschedule } = useAppointmentReschedule();
     const { open: openAccountStatement } = usePatientLedgerSheet();
     const { open: openPatientView } = usePatientView();
-    const { hasAnyPermission } = usePermissions();
+    const { hasAnyPermission, hasPermission } = usePermissions();
     // "Ver estado de cuenta" abre el ledger financiero consolidado del paciente.
     const canViewStatement = hasAnyPermission([...PATIENT_FINANCIAL_VIEW_PERMISSIONS]);
+    // La creación al vuelo es un alta de servicio con otra puerta de entrada, así que pide
+    // el mismo permiso que el alta desde el catálogo. Ocultar el botón es UX: quien manda
+    // es el backend, que tiene que rechazar el upsert sin SALES_SERVICES_CREATE.
+    const canCreateService = hasPermission(SALES_PERMISSIONS.SERVICES_CREATE);
     const tAccount = useTranslations('AccountStatement');
     const tPanelAccount = useTranslations('AppointmentPanel');
     const isReschedule = mode === 'reschedule';
@@ -504,7 +508,7 @@ export function AppointmentFormDialog({
 
     const handleCreateServiceInline = React.useCallback(async () => {
         const name = serviceSearchQuery.trim();
-        if (!name) return;
+        if (!name || !canCreateService) return;
         setIsSavingService(true);
         try {
             await api.post(API_ROUTES.PURCHASES.SERVICES_UPSERT, {
@@ -543,7 +547,7 @@ export function AppointmentFormDialog({
         } finally {
             setIsSavingService(false);
         }
-    }, [serviceSearchQuery]);
+    }, [serviceSearchQuery, canCreateService]);
 
     const checkAvailability = React.useCallback(async (formData: typeof appointment) => {
         console.log(`Evaluating calendar availability check. calendar_settings.check_availability is: ${checkCalendarAvailability}`);
@@ -1450,7 +1454,7 @@ export function AppointmentFormDialog({
                                                             </CommandItem>
                                                         ))}
                                                     </CommandGroup>
-                                                    {serviceSearchQuery.trim() && (
+                                                    {canCreateService && serviceSearchQuery.trim() && (
                                                         <div className={cn('border-t', serviceSearchResults.length === 0 && 'border-t-0')}>
                                                             {isCreatingService ? (
                                                                 <div className="p-2 space-y-1.5">

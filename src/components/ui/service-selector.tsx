@@ -3,7 +3,9 @@
 import { Button } from '@/components/ui/button';
 import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -54,6 +56,8 @@ export function ServiceSelector({
     disabled = false,
 }: ServiceSelectorProps) {
     const t = useTranslations('General');
+    const { hasPermission } = usePermissions();
+    const canCreateService = hasPermission(SALES_PERMISSIONS.SERVICES_CREATE);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
     const [side, setSide] = React.useState<'top' | 'bottom'>('bottom');
     const [open, setOpen] = React.useState(false);
@@ -151,7 +155,7 @@ export function ServiceSelector({
 
     const handleCreateService = async () => {
         const name = searchQuery.trim();
-        if (!name) return;
+        if (!name || !canCreateService) return;
         setIsSaving(true);
         try {
             await api.post(API_ROUTES.PURCHASES.SERVICES_UPSERT, {
@@ -252,8 +256,10 @@ export function ServiceSelector({
                                     </p>
                                 )}
 
-                                {/* Create option — always at bottom when there's a search query */}
-                                {searchQuery.trim() && (
+                                {/* Create option — always at bottom when there's a search query.
+                                    Solo para quien puede dar de alta servicios: crear acá es
+                                    el mismo alta que desde el catálogo, con otra puerta. */}
+                                {canCreateService && searchQuery.trim() && (
                                     <div className={cn("border-t", services.length === 0 && "border-t-0")}>
                                         {isCreating ? (
                                             <div className="p-2 space-y-1.5">
