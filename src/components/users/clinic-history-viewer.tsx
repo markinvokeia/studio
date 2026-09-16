@@ -45,7 +45,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
-import { normalizeAppointmentStatus, normalizeCancellationReason, STATUS_BADGE_VARIANT } from '@/constants/appointment-status';
+import { normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
+import { statusBadgeClassNames, statusBadgeInlineStyle } from '@/lib/appointment-status-display';
 import { getStatusIcon } from '@/components/appointments/status-icons';
 import { useAppointmentStatus } from '@/hooks/use-appointment-status';
 import { AppointmentStatusMenu } from '@/components/appointments/AppointmentStatusMenu';
@@ -1840,6 +1842,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
     const tPrint = useTranslations('ClinicHistoryPrint');
     const { printClinicHistory } = usePrintDocument();
     const { hasPermission } = usePermissions();
+    const { displayOf } = useAppointmentStatusDisplay();
     const canPrintHistory = hasPermission(CLINICAL_HISTORY_PERMISSIONS.ANAMNESIS_VIEW);
     // Mismo gate que usa AppointmentPanel para habilitar el cambio de estado.
     const canUpdateAppointment = hasPermission(BUSINESS_CONFIG_PERMISSIONS.APPOINTMENT_UPDATE);
@@ -2450,10 +2453,13 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                             const treatmentNames = (appt.services ?? []).map((s) => s.name).filter(Boolean);
                                             const apptNotes = (appt.notes ?? '').trim();
                                             const ApptStatusIcon = getStatusIcon(appt.status, appt.cancellation_reason);
-                                            const apptStatusVariant = (STATUS_BADGE_VARIANT[appt.status] ?? 'default') as
-                                                'default' | 'success' | 'destructive' | 'info' | 'warning' | 'secondary' | 'outline';
+                                            const apptStatusDisplay = displayOf(appt.status);
                                             const apptStatusBadge = (
-                                                <Badge variant={apptStatusVariant} className="capitalize gap-1 text-xs px-2 py-0.5 self-start shrink-0">
+                                                <Badge
+                                                    variant="custom"
+                                                    className={cn('capitalize gap-1 text-xs px-2 py-0.5 self-start shrink-0', statusBadgeClassNames(apptStatusDisplay))}
+                                                    style={statusBadgeInlineStyle(apptStatusDisplay)}
+                                                >
                                                     <ApptStatusIcon className="h-3 w-3" />
                                                     {appt.status === 'cancelled' && appt.cancellation_reason
                                                         ? tReason(appt.cancellation_reason)

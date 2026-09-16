@@ -455,6 +455,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'USER_SIGNATURE_MANAGE',
     'CLINIC_PREFS_VIEW',
     'CLINIC_PREFS_UPDATE',
+    'CALENDAR_DISPLAY_VIEW',
+    'CALENDAR_DISPLAY_UPDATE',
     'SCHEDULES_VIEW_MENU',
     'SCHEDULES_VIEW_LIST',
     'SCHEDULES_CREATE',
@@ -696,6 +698,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'USER_SIGNATURE_MANAGE',
     'CLINIC_PREFS_VIEW',
     'CLINIC_PREFS_UPDATE',
+    'CALENDAR_DISPLAY_VIEW',
+    'CALENDAR_DISPLAY_UPDATE',
     // System - solo lectura de usuarios/roles/logs
     'SYSTEM_VIEW_MENU',
     'USERS_VIEW_MENU',

@@ -349,6 +349,7 @@
     "Schedules": "Horarios",
     "Holidays": "Días Feriados",
     "Calendars": "Calendarios",
+    "CalendarColors": "Colores de Calendario",
     "Doctors": "Doctores",
     "Staff": "Secretarias y Administración",
     "DoctorAvailability": "Disponibilidad Médica",
@@ -1000,7 +1001,7 @@
         "blockUnavailable": "Atenúa y bloquea en el calendario los horarios fuera de atención (según horarios y excepciones), impidiendo crear citas ahí.",
         "filterDoctorsByService": "Al crear una cita, filtra la lista de doctores para mostrar solo los que prestan el servicio seleccionado.",
         "inlineAppointmentCreation": "Al hacer clic en un slot crea la cita directamente en el calendario con un card, sin abrir el modal. El botón Crear siempre abre el modal.",
-        "colorByStatus": "Las citas muestran su estado con color. Si la cita tiene una etiqueta de color propia o el color de su servicio, lo conserva y el estado aparece como una franja en el borde izquierdo. Si solo hereda el color del doctor o del consultorio, toda la cita se pinta con el color del estado. 'Programada' (lila) y 'No asistió' (gris) son la excepción: se pintan siempre, aun con esta preferencia apagada y por encima de cualquier color elegido.",
+        "colorByStatus": "Las citas muestran su estado con color. Si la cita tiene una etiqueta de color propia o el color de su servicio, lo conserva y el estado aparece como una franja en el borde izquierdo. Si solo hereda el color del doctor o del consultorio, toda la cita se pinta con el color del estado. Algunos estados están configurados para pintar siempre la cita sin importar esta preferencia — ver Configuración → Colores de Calendario.",
         "hiddenWeekdays": "Oculta los días elegidos como columnas en las vistas de día y semana. Es solo visual, para ganar espacio: no afecta la disponibilidad ni los días en que se pueden agendar citas."
       }
     },
@@ -8930,6 +8931,60 @@
         "label": "Exigir documento de identidad",
         "help": "Con esto encendido, el formulario de pacientes no deja guardar sin un documento de identidad. Apagado (por defecto), el documento puede quedar vacío."
       }
+    }
+  },
+  "CalendarColorsPage": {
+    "title": "Colores de Calendario",
+    "description": "Color, comportamiento en el calendario y estilo de badge para cada estado de cita.",
+    "save": "Guardar",
+    "saved": "Matriz de colores guardada",
+    "saveError": "No se pudo guardar la matriz de colores",
+    "loadError": "No se pudo cargar la matriz de colores",
+    "readOnlyNotice": "Solo lectura: no tenés permiso para modificar los colores de calendario.",
+    "restoreDefaults": "Restaurar por defecto",
+    "table": {
+      "status": "Estado",
+      "color": "Color",
+      "calendarMode": "En el calendario",
+      "badgeStyle": "Badge",
+      "preview": "Vista previa"
+    },
+    "calendarMode": {
+      "always": {
+        "label": "Siempre",
+        "help": "Pinta la card entera con este color sin importar la preferencia \"colorear por estado\" ni el color de servicio/doctor/consultorio. Una etiqueta de color puesta a mano sobre la cita sigue ganando."
+      },
+      "preference": {
+        "label": "Según preferencia",
+        "help": "Respeta el interruptor \"colorear por estado\" de cada usuario: con color propio o de servicio se ve como franja lateral; heredando solo el del doctor o el consultorio se pinta la card entera."
+      },
+      "never": {
+        "label": "Nunca",
+        "help": "Este estado nunca aporta color al calendario; la cita se ve igual que con la preferencia apagada."
+      }
+    },
+    "badgeStyle": {
+      "solid": "Sólido",
+      "soft": "Suave",
+      "outline": "Contorno"
+    },
+    "replicateDialog": {
+      "trigger": "Replicar a calendarios…",
+      "title": "Replicar a calendarios",
+      "description": "Copia la matriz general de arriba como configuración de este estado para los calendarios seleccionados.",
+      "selectAll": "Seleccionar todos",
+      "decoupleNotice": "A partir de este momento, cada calendario seleccionado queda con su propia copia: los cambios a la matriz general ya no le van a llegar.",
+      "cancel": "Cancelar",
+      "confirm": "Replicar",
+      "success": "Matriz replicada",
+      "error": "No se pudo replicar la matriz"
+    },
+    "overrides": {
+      "sectionTitle": "Calendarios con configuración propia",
+      "sectionDescription": "Estos calendarios ya no siguen la matriz general. En esta versión solo se les puede replicar la matriz o volver a la general — no editarlos individualmente.",
+      "useGeneral": "Usar matriz general",
+      "removed": "Vuelve a usar la matriz general",
+      "removeError": "No se pudo restablecer la configuración de ese calendario"
     }
   },
   "PatientPortalConfigPage": {

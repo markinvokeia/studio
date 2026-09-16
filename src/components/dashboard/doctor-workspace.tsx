@@ -22,7 +22,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { normalizeAppointmentStatus, STATUS_ACCENT_COLOR, STATUS_BADGE_VARIANT } from '@/constants/appointment-status';
+import { normalizeAppointmentStatus } from '@/constants/appointment-status';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
+import { statusBadgeClassNames, statusBadgeInlineStyle } from '@/lib/appointment-status-display';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
@@ -80,17 +82,6 @@ const LOCALLY_UPDATED_TTL_MS = 120_000;
 const TIMELINE_MIN_BLOCK_HEIGHT = 74;
 const TIMELINE_BASE_GAP = 14;
 const TIMELINE_MAX_GAP = 34;
-
-function getAppointmentStatusVariant(status: AppointmentStatus) {
-  return (STATUS_BADGE_VARIANT[status] ?? 'default') as
-    | 'default'
-    | 'success'
-    | 'destructive'
-    | 'info'
-    | 'warning'
-    | 'secondary'
-    | 'outline';
-}
 
 function getTimeRangeLabel(appointment: Appointment): string {
   const startTime = appointment.time || '00:00';
@@ -153,8 +144,8 @@ function findCurrentAppointment(dayAppointments: Appointment[], now: Date): Appo
   return sorted[sorted.length - 1];
 }
 
-function getAppointmentAccentColor(appointment: Appointment, status: AppointmentStatus): string {
-  return appointment.color || STATUS_ACCENT_COLOR[status] || '#64748b';
+function getAppointmentAccentColor(appointment: Appointment, statusColor: string): string {
+  return appointment.color || statusColor || '#64748b';
 }
 
 function estimateAgendaCardMinHeight(appointment: Appointment): number {
@@ -201,6 +192,7 @@ function DoctorAgendaTimeline({
 }: DoctorAgendaTimelineProps) {
   const t = useTranslations('DoctorWorkspace');
   const tStatus = useTranslations('AppointmentStatus');
+  const { colorOf, displayOf } = useAppointmentStatusDisplay();
 
   const timeline = React.useMemo(() => {
     const sortedAppointments = [...appointments].sort((left, right) => left.time.localeCompare(right.time));
@@ -246,7 +238,7 @@ function DoctorAgendaTimeline({
         height,
         gapAfter,
         key: `${appointment.id}-${startMinutes}-${index}`,
-        accentColor: getAppointmentAccentColor(appointment, normalizeAppointmentStatus(appointment.status)),
+        accentColor: getAppointmentAccentColor(appointment, colorOf(normalizeAppointmentStatus(appointment.status))),
       }];
     }, []);
 
@@ -308,7 +300,7 @@ function DoctorAgendaTimeline({
       layouts,
       showCurrentTime,
     };
-  }, [appointments, isToday]);
+  }, [appointments, isToday, colorOf]);
 
   const focusCardRef = React.useRef<HTMLDivElement | null>(null);
   const autoScrolledDayRef = React.useRef<string | null>(null);
@@ -423,7 +415,11 @@ function DoctorAgendaTimeline({
                             {serviceLabel}
                           </p>
                         </div>
-                        <Badge variant={getAppointmentStatusVariant(normalizedStatus)} className="shrink-0 capitalize text-[10px] h-5 px-1.5">
+                        <Badge
+                          variant="custom"
+                          className={cn('shrink-0 capitalize text-[10px] h-5 px-1.5', statusBadgeClassNames(displayOf(normalizedStatus)))}
+                          style={statusBadgeInlineStyle(displayOf(normalizedStatus))}
+                        >
                           {tStatus(normalizedStatus)}
                         </Badge>
                       </div>

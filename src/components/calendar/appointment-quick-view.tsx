@@ -7,7 +7,8 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover';
 
-import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
+import { normalizeAppointmentStatus } from '@/constants/appointment-status';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
 import { formatDisplayDateWithWeekday } from '@/lib/utils';
 import { getEffectiveAppointmentContact } from '@/lib/appointment-contact';
 import type { Appointment } from '@/lib/types';
@@ -86,6 +87,7 @@ export function AppointmentQuickView({
   const tColumns = useTranslations('AppointmentsColumns');
   const tStatus = useTranslations('AppointmentStatus');
   const tPanel = useTranslations('AppointmentPanel');
+  const { colorOf } = useAppointmentStatusDisplay();
 
   // El ancla queda fija en las coordenadas donde estaba la card: si el usuario
   // scrollea la grilla, la card se mueve y el popover quedaría flotando en el aire.
@@ -121,7 +123,7 @@ export function AppointmentQuickView({
     .filter(Boolean)
     .join('  ·  ');
 
-  const accentColor = STATUS_ACCENT_COLOR[appointment.status] ?? appointment.color;
+  const accentColor = colorOf(normalizeAppointmentStatus(appointment.status));
 
   // En la vista de agenda (y en móvil) la card ocupa casi todo el ancho, así que
   // anclar el popover "a la derecha" lo deja sin espacio: Radix lo aplasta contra

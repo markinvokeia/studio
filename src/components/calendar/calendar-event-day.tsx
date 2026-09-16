@@ -14,9 +14,9 @@ import { cn } from '@/lib/utils';
 import type { Locale } from 'date-fns';
 import { parseISO } from 'date-fns';
 
-import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
 import type { AppointmentStatus, CalendarReminderPriority, CalendarReminderStatus, CancellationReason } from '@/lib/types';
 import { getStatusIcon } from '@/components/appointments/status-icons';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
 
 import { EVENT_DENSITY_COMPACT_PX, EVENT_DENSITY_NORMAL_PX, EVENT_RESIZE_MIN_PX, GOOGLE_IMPORT_BADGE_COLOR, HOUR_SLOT_HEIGHT } from './calendar-constants';
 import type { CalendarDragMode, CalendarDragPhase, CalendarEvent } from './calendar-types';
@@ -70,6 +70,7 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
   // Distinguish single vs double click: delay the single-click action briefly so a
   // double-click (inline edit) can cancel it. Only delays when a dbl handler exists.
   const tAppointments = useTranslations('AppointmentsPage');
+  const { colorOf } = useAppointmentStatusDisplay();
   const clickTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   React.useEffect(() => () => { if (clickTimer.current) clearTimeout(clickTimer.current); }, []);
   const start = typeof event.start === 'string' ? parseISO(event.start) : event.start;
@@ -108,7 +109,7 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
   // Con la card ya pintada del gris de "cancelada" el rayado sobra: se muestra
   // solo cuando el color viene del calendario/servicio y no del estado.
   const showCancelledStripes = isCancelled && !statusColored;
-  const accentColor = isReminder ? getReminderPriorityColor(reminderPriority) : status ? STATUS_ACCENT_COLOR[status] : undefined;
+  const accentColor = isReminder ? getReminderPriorityColor(reminderPriority) : status ? colorOf(status) : undefined;
   const textColor = isReminder ? undefined : showCancelledStripes ? undefined : getReadableTextColor(event.color);
   const reminderCardStyle = isReminder ? getReminderCardStyle(event.color, reminderIsDone) : {};
 

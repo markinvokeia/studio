@@ -9,7 +9,7 @@ import type { Locale } from 'date-fns';
 import { addDays, format, getDaysInMonth, isSameDay, parseISO, startOfWeek } from 'date-fns';
 
 import { STATUS_ICONS } from '@/components/appointments/status-icons';
-import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
 import type { AppointmentStatus, CalendarReminderPriority, CalendarReminderStatus } from '@/lib/types';
 
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from '@/components/ui/context-menu';
@@ -53,6 +53,7 @@ export function CalendarMonthViewMobile({
 }: CalendarMonthViewMobileProps) {
   const t = useTranslations('Calendar');
   const tAppointments = useTranslations('AppointmentsPage');
+  const { colorOf } = useAppointmentStatusDisplay();
   // Initialize stable for SSR; set real "today" after mount.
   const [selectedDay, setSelectedDay] = React.useState<Date>(() => new Date(2000, 0, 1));
   React.useEffect(() => { setSelectedDay(new Date()); }, []);
@@ -241,7 +242,7 @@ export function CalendarMonthViewMobile({
               const ReminderIcon = isNote ? FileText : reminderIsDone ? CheckCircle2 : reminderIsPersonal ? Lock : BellRing;
               const status = (rawStatus?.toLowerCase() as AppointmentStatus | undefined) ?? undefined;
               const StatusIcon = status ? STATUS_ICONS[status] : null;
-              const statusColor = status ? STATUS_ACCENT_COLOR[status] : undefined;
+              const statusColor = status ? colorOf(status) : undefined;
               const reminderColor = getReminderPriorityColor(reminderPriority);
               const reminderCardStyle = isReminder ? getReminderCardStyle(event.color, reminderIsDone) : {};
               return (

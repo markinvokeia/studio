@@ -26,7 +26,9 @@ import { useRouter } from 'next/navigation';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { normalizeAppointmentStatus, STATUS_BADGE_VARIANT } from '@/constants/appointment-status';
+import { normalizeAppointmentStatus } from '@/constants/appointment-status';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
+import { statusBadgeClassNames, statusBadgeInlineStyle } from '@/lib/appointment-status-display';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/notifications-context';
@@ -94,16 +96,10 @@ function CardWrapper({
 
 function StatusBadge({ status }: { status: AppointmentStatus }) {
   const tStatus = useTranslations('AppointmentStatus');
-  const variant = (STATUS_BADGE_VARIANT[status] ?? 'default') as
-    | 'default'
-    | 'secondary'
-    | 'destructive'
-    | 'outline'
-    | 'success'
-    | 'warning'
-    | 'info';
+  const { displayOf } = useAppointmentStatusDisplay();
+  const display = displayOf(normalizeAppointmentStatus(status));
   return (
-    <Badge variant={variant} className="capitalize text-[10px]">
+    <Badge variant="custom" className={cn('capitalize text-[10px]', statusBadgeClassNames(display))} style={statusBadgeInlineStyle(display)}>
       {tStatus(normalizeAppointmentStatus(status))}
     </Badge>
   );

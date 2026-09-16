@@ -8,7 +8,10 @@ import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
-import { normalizeAppointmentStatus, STATUS_BADGE_VARIANT } from '@/constants/appointment-status';
+import { normalizeAppointmentStatus } from '@/constants/appointment-status';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
+import { statusBadgeClassNames, statusBadgeInlineStyle } from '@/lib/appointment-status-display';
+import { cn } from '@/lib/utils';
 import type {
   AppointmentReassignedNotification,
   AppointmentRescheduledNotification,
@@ -30,17 +33,6 @@ interface GlobalNotificationAlertsProps {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function statusVariant(status: AppointmentStatus) {
-  return (STATUS_BADGE_VARIANT[status] ?? 'default') as
-    | 'default'
-    | 'success'
-    | 'destructive'
-    | 'info'
-    | 'warning'
-    | 'secondary'
-    | 'outline';
-}
 
 function formatLocalTime(value?: string | null): string {
   if (!value) return '';
@@ -87,6 +79,9 @@ function StatusChangeBody({ item }: { item: AppointmentStatusChangeNotification 
   const t = useTranslations('DoctorWorkspace');
   const tStatus = useTranslations('AppointmentStatus');
   const tN = useTranslations('Notifications');
+  const { displayOf } = useAppointmentStatusDisplay();
+  const previousDisplay = displayOf(normalizeAppointmentStatus(item.previousStatus));
+  const currentDisplay = displayOf(normalizeAppointmentStatus(item.appointment.status));
 
   return (
     <div className="flex flex-col items-center gap-5 px-2 py-4">
@@ -104,11 +99,11 @@ function StatusChangeBody({ item }: { item: AppointmentStatusChangeNotification 
           {item.appointment.patientName || tN('unknownPatient')}
         </p>
         <div className="flex items-center justify-center gap-2">
-          <Badge variant={statusVariant(normalizeAppointmentStatus(item.previousStatus))} className="capitalize">
+          <Badge variant="custom" className={cn('capitalize', statusBadgeClassNames(previousDisplay))} style={statusBadgeInlineStyle(previousDisplay)}>
             {tStatus(normalizeAppointmentStatus(item.previousStatus))}
           </Badge>
           <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          <Badge variant={statusVariant(normalizeAppointmentStatus(item.appointment.status))} className="capitalize">
+          <Badge variant="custom" className={cn('capitalize', statusBadgeClassNames(currentDisplay))} style={statusBadgeInlineStyle(currentDisplay)}>
             {tStatus(normalizeAppointmentStatus(item.appointment.status))}
           </Badge>
         </div>

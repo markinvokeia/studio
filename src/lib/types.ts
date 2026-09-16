@@ -641,6 +641,27 @@ export type CancellationReason =
 export type AppointmentColorSource = 'appointment' | 'service' | 'doctor' | 'calendar' | 'none';
 
 /**
+ * Matriz de colores de estado configurable por cliente (Configuración → Colores
+ * de calendario). `calendarMode` gobierna cuándo el estado pinta la card del
+ * calendario; `badgeStyle` gobierna el resto de la app (badges, chips, notifs).
+ */
+export type StatusCalendarMode = 'always' | 'preference' | 'never';
+export type StatusBadgeStyle = 'solid' | 'soft' | 'outline';
+
+export type AppointmentStatusDisplay = {
+  color: string;
+  calendarMode: StatusCalendarMode;
+  badgeStyle: StatusBadgeStyle;
+};
+
+export type AppointmentStatusDisplayMatrix = Record<AppointmentStatus, AppointmentStatusDisplay>;
+
+export type CalendarStatusDisplayRow = AppointmentStatusDisplay & {
+  calendar_id: string | null;
+  status: AppointmentStatus;
+};
+
+/**
  * Contacto del responsable/tutor del paciente (`users.responsible_contact_id`).
  * Lo trae el backend como sub-json sólo cuando el paciente tiene responsable.
  */

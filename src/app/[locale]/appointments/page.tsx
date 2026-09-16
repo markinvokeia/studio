@@ -101,7 +101,9 @@ import { usePatientAppointmentsSheet } from '@/stores/patient-appointments-sheet
 import { usePatientDocumentsSheet } from '@/stores/patient-documents-sheet-store';
 import { AppointmentStatusContextItems } from '@/components/appointments/AppointmentStatusMenu';
 import { useAppointmentStatus } from '@/hooks/use-appointment-status';
-import { canReschedule, normalizeAppointmentStatus, normalizeCancellationReason, STATUS_ACCENT_COLOR, STATUS_FORCED_CALENDAR_COLOR } from '@/constants/appointment-status';
+import { canReschedule, normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
+import { resolveEventStatusColors } from '@/lib/appointment-status-display';
 import { useAppointmentReschedule } from '@/hooks/use-appointment-reschedule';
 import { CancellationNoteDialog } from '@/components/appointments/CancellationNoteDialog';
 import { getAppointmentColumns } from './columns';
@@ -975,6 +977,7 @@ export default function AppointmentsPage() {
     const [eventLabelFormat, setEventLabelFormat] = React.useState<string>(DEFAULT_EVENT_LABEL_FORMAT);
     const [colorByStatus, setColorByStatus] = React.useState<boolean>(DEFAULT_COLOR_BY_STATUS);
     const [defaultSede, setDefaultSede] = React.useState<string>('');
+    const { matrix: statusDisplayMatrix, displayOf: getStatusDisplay } = useAppointmentStatusDisplay();
 
     // ── Calendar display mode (invoke | custom) ──────────────────────────────
     // In 'custom' mode a single agenda is shown at a time, chosen from the
@@ -3571,18 +3574,22 @@ export default function AppointmentsPage() {
                     // en una franja lateral. Heredar el color del doctor o del consultorio no
                     // lo es, así que esas citas sí se pintan enteras. `appt.color` queda
                     // intacto en los dos casos para el selector de color y el panel de detalle.
-                    // Programada y No asistió (STATUS_FORCED_CALENDAR_COLOR) pintan la card
-                    // entera aunque la preferencia esté apagada o el color venga del servicio,
-                    // del doctor o del consultorio, porque son los estados que hay que ver de
-                    // un vistazo. La única excepción es la etiqueta de color elegida a mano
-                    // sobre la cita: eso gana siempre y se ve al instante, sin esperar a que
-                    // la cita pase al siguiente estado; el estado queda en la franja lateral.
+                    // Los estados en modo 'always' (calendar_mode de la matriz) pintan la
+                    // card entera aunque la preferencia esté apagada o el color venga del
+                    // servicio, del doctor o del consultorio, porque son los estados que hay
+                    // que ver de un vistazo. La única excepción es la etiqueta de color
+                    // elegida a mano sobre la cita: eso gana siempre y se ve al instante, sin
+                    // esperar a que la cita pase al siguiente estado; el estado queda en la
+                    // franja lateral.
                     const status = normalizeAppointmentStatus(appt.status);
-                    const forcesStatus = STATUS_FORCED_CALENDAR_COLOR.includes(status);
-                    const showsStatus = forcesStatus || colorByStatus;
-                    const hasOwnColorTag = appt.colorSource === 'appointment' && Boolean(appt.color);
-                    const keepsOwnColor = hasOwnColorTag || (!forcesStatus && appt.colorSource === 'service');
-                    const statusColored = showsStatus && !keepsOwnColor;
+                    const display = getStatusDisplay(status);
+                    const { color: resolvedColor, statusColored, statusStripeColor } = resolveEventStatusColors({
+                        status,
+                        display,
+                        colorSource: appt.colorSource,
+                        color: appt.color,
+                        colorByStatus,
+                    });
                     return {
                         id: String(appt.id),
                         title: appt.summary || appt.service_name || 'Cita',
@@ -3596,9 +3603,9 @@ export default function AppointmentsPage() {
                         // tener sesión clínica y factura colgando. Mismo criterio que
                         // usa el hook de reprogramación.
                         locked: !canUpdateAppointments || !canReschedule(status),
-                        color: statusColored ? STATUS_ACCENT_COLOR[status] : appt.color,
+                        color: resolvedColor,
                         statusColored,
-                        statusStripeColor: showsStatus && keepsOwnColor ? STATUS_ACCENT_COLOR[status] : undefined,
+                        statusStripeColor,
                         colorId: appt.colorId,
                     };
                 } catch (e) {
@@ -3644,7 +3651,7 @@ export default function AppointmentsPage() {
             .filter((event): event is NonNullable<typeof event> => event !== null);
 
         return [...events, ...reminderEvents];
-    }, [appointments, calendars, reminders, selectedCalendarIds, selectedDoctorIds, eventLabelFormat, colorByStatus, isBulkMode, user?.id, t, canUpdateAppointments]);
+    }, [appointments, calendars, reminders, selectedCalendarIds, selectedDoctorIds, eventLabelFormat, colorByStatus, statusDisplayMatrix, getStatusDisplay, isBulkMode, user?.id, t, canUpdateAppointments]);
 
     const visibleCalendarItems = React.useMemo(
         () => reminders.filter((reminder) => {

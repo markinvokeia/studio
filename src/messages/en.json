@@ -349,6 +349,7 @@
     "Schedules": "Schedules",
     "Holidays": "Holidays",
     "Calendars": "Calendars",
+    "CalendarColors": "Calendar Colors",
     "Doctors": "Doctors",
     "Staff": "Receptionists & Administration",
     "DoctorAvailability": "Doctor Availability",
@@ -1000,7 +1001,7 @@
         "blockUnavailable": "Greys out and blocks out-of-office hours on the calendar (per schedules and exceptions), preventing appointments there.",
         "filterDoctorsByService": "When creating an appointment, filters the doctor list to only those who provide the selected service.",
         "inlineAppointmentCreation": "Clicking a slot creates the appointment inline on the calendar with a card, without opening the modal. The Create button always opens the modal.",
-        "colorByStatus": "Appointments show their status with color. If the appointment has its own color tag or its service has a color, it keeps that color and the status appears as a stripe on the left edge. If it only inherits the doctor's or the consulting room's color, the whole appointment is painted with the status color. 'Scheduled' (lilac) and 'No show' (gray) are the exception: they are always painted, even with this preference off and over any chosen color.",
+        "colorByStatus": "Appointments show their status with color. If the appointment has its own color tag or its service has a color, it keeps that color and the status appears as a stripe on the left edge. If it only inherits the doctor's or the consulting room's color, the whole appointment is painted with the status color. Some statuses are configured to always paint the appointment regardless of this switch — see Settings → Calendar Colors.",
         "hiddenWeekdays": "Hides the selected days as columns in the day/week views. Purely visual to save space — it doesn't affect availability or which days appointments can be booked on."
       }
     },
@@ -8952,6 +8953,60 @@
         "label": "Require identity document",
         "help": "When on, the patient form won't save without an identity document. Off by default, the document can be left empty."
       }
+    }
+  },
+  "CalendarColorsPage": {
+    "title": "Calendar Colors",
+    "description": "Color, calendar behavior and badge style for each appointment status.",
+    "save": "Save",
+    "saved": "Color matrix saved",
+    "saveError": "We couldn't save the color matrix",
+    "loadError": "We couldn't load the color matrix",
+    "readOnlyNotice": "Read-only: you don't have permission to change the calendar colors.",
+    "restoreDefaults": "Restore defaults",
+    "table": {
+      "status": "Status",
+      "color": "Color",
+      "calendarMode": "On the calendar",
+      "badgeStyle": "Badge",
+      "preview": "Preview"
+    },
+    "calendarMode": {
+      "always": {
+        "label": "Always",
+        "help": "Paints the whole appointment card with this color, regardless of the \"color by status\" preference or the service/doctor/room color. A manually chosen color tag on the appointment still wins."
+      },
+      "preference": {
+        "label": "By preference",
+        "help": "Respects each user's \"color by status\" switch: with an appointment or service color it shows as a side stripe; inheriting only the doctor's or room's color paints the whole card."
+      },
+      "never": {
+        "label": "Never",
+        "help": "This status never adds color to the calendar; the appointment looks the same as with the preference off."
+      }
+    },
+    "badgeStyle": {
+      "solid": "Solid",
+      "soft": "Soft",
+      "outline": "Outline"
+    },
+    "replicateDialog": {
+      "trigger": "Replicate to calendars…",
+      "title": "Replicate to calendars",
+      "description": "Copies the general matrix above as this status's configuration for the selected calendars.",
+      "selectAll": "Select all",
+      "decoupleNotice": "From this point on, each selected calendar keeps its own copy: changes to the general matrix won't reach it anymore.",
+      "cancel": "Cancel",
+      "confirm": "Replicate",
+      "success": "Matrix replicated",
+      "error": "We couldn't replicate the matrix"
+    },
+    "overrides": {
+      "sectionTitle": "Calendars with their own configuration",
+      "sectionDescription": "These calendars no longer follow the general matrix. In this version they can only be replicated to or reset to the general matrix — not edited individually.",
+      "useGeneral": "Use general matrix",
+      "removed": "Back to the general matrix",
+      "removeError": "We couldn't reset that calendar's configuration"
     }
   },
   "PatientPortalConfigPage": {

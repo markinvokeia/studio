@@ -60,7 +60,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { GOOGLE_CALENDAR_COLORS } from '@/components/calendar/calendar-constants';
 import { getReadableTextColor } from '@/components/calendar/calendar-utils';
 import { useToast } from '@/hooks/use-toast';
-import { STATUS_ACCENT_COLOR, canReschedule } from '@/constants/appointment-status';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
+import { canReschedule } from '@/constants/appointment-status';
 import { formatDisplayDate, cn, formatServicePrice, toLocalISOString } from '@/lib/utils';
 import { getEffectiveAppointmentContact } from '@/lib/appointment-contact';
 import type { Appointment, AppointmentStatus, Calendar as CalendarType, Invoice, Order, PatientSession, Service, User } from '@/lib/types';
@@ -500,6 +501,7 @@ export function AppointmentPanel({
   const locale = useLocale();
   const dateLocale = locale === 'es' ? es : enUS;
   const { toast } = useToast();
+  const { colorOf } = useAppointmentStatusDisplay();
   const t = useTranslations('AppointmentsPage');
   const tColumns = useTranslations('AppointmentsColumns');
   const tStatus = useTranslations('AppointmentStatus');
@@ -878,7 +880,7 @@ export function AppointmentPanel({
   const calendarValue = resolvedCalendarName
     ?? (isResolvingCalendarName ? '…' : tPanel('noCalendar'));
   const StatusIcon = getStatusIcon(appointment.status, appointment.cancellation_reason);
-  const statusColor = STATUS_ACCENT_COLOR[appointment.status];
+  const statusColor = colorOf(appointment.status);
   const appointmentCode = `#${appointment.id.slice(0, 8).toUpperCase()}`;
   const { phone: effectivePatientPhone, fromResponsibleContact } = getEffectiveAppointmentContact(appointment);
   const patientMeta = [effectivePatientPhone].filter(Boolean).join(' · ');

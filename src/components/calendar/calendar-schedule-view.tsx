@@ -10,7 +10,7 @@ import { BellRing, CheckCircle2, Clock, Lock, Stethoscope, FileText } from 'luci
 import { Checkbox } from '@/components/ui/checkbox';
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from '@/components/ui/context-menu';
 import { getStatusIcon } from '@/components/appointments/status-icons';
-import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
 import { cn } from '@/lib/utils';
 import type { AppointmentStatus, CalendarReminderPriority, CalendarReminderStatus, CancellationReason } from '@/lib/types';
 
@@ -38,8 +38,9 @@ function StatusBadge({
   status: AppointmentStatus;
   cancellationReason?: CancellationReason | null;
 }) {
+  const { colorOf } = useAppointmentStatusDisplay();
   const Icon = getStatusIcon(status, cancellationReason);
-  const color = STATUS_ACCENT_COLOR[status];
+  const color = colorOf(status);
   if (!Icon || !color) return null;
   const label = status === 'cancelled' && cancellationReason ? `${status} – ${cancellationReason}` : status;
   return (
