@@ -349,6 +349,7 @@
     "Schedules": "Schedules",
     "Holidays": "Exception Schedules",
     "Calendars": "Calendars",
+    "CalendarColors": "Calendar Colors",
     "Doctors": "Doctors",
     "Staff": "Receptionists & Administration",
     "DoctorAvailability": "Doctor Availability",
@@ -978,6 +979,16 @@
       },
       "blockUnavailable": "Block out-of-office hours",
       "colorByStatus": "Show appointment status with color",
+      "hiddenWeekdays": "Hide days in day/week view",
+      "weekdayAbbr": {
+        "0": "Sun",
+        "1": "Mon",
+        "2": "Tue",
+        "3": "Wed",
+        "4": "Thu",
+        "5": "Fri",
+        "6": "Sat"
+      },
       "help": {
         "mode": "Invoke shows the calendar as usual. Custom shows one agenda at a time full-screen; use the 'Agendas' button (top-left) to pick which one to view.",
         "defaultView": "Sets which view opens by default (day, week, month, agenda…). Changing it applies the view immediately.",
@@ -990,7 +1001,8 @@
         "blockUnavailable": "Greys out and blocks out-of-office hours on the calendar (per schedules and exceptions), preventing appointments there.",
         "filterDoctorsByService": "When creating an appointment, filters the doctor list to only those who provide the selected service.",
         "inlineAppointmentCreation": "Clicking a slot creates the appointment inline on the calendar with a card, without opening the modal. The Create button always opens the modal.",
-        "colorByStatus": "Appointments show their status with color. If the appointment has its own color tag or its service has a color, it keeps that color and the status appears as a stripe on the left edge. If it only inherits the doctor's or the consulting room's color, the whole appointment is painted with the status color. 'Scheduled' (lilac) and 'No show' (gray) are the exception: they are always painted, even with this preference off and over any chosen color."
+        "colorByStatus": "Appointments show their status with color. If the appointment has its own color tag or its service has a color, it keeps that color and the status appears as a stripe on the left edge. If it only inherits the doctor's or the consulting room's color, the whole appointment is painted with the status color. Some statuses are configured to always paint the appointment regardless of this switch — see Settings → Calendar Colors.",
+        "hiddenWeekdays": "Hides the selected days as columns in the day/week views. Purely visual to save space — it doesn't affect availability or which days appointments can be booked on."
       }
     },
     "newAppointment": "New Appointment",
@@ -1394,7 +1406,26 @@
     "deleteTitle": "Delete appointment",
     "deleteDescription": "This will completely remove the appointment from the system and it can no longer be viewed. Do you want to continue?",
     "deleteConfirm": "Yes, delete",
-    "deleteCancel": "Cancel"
+    "deleteCancel": "Cancel",
+    "history": {
+      "title": "Change history",
+      "empty": "No changes recorded yet.",
+      "fields": {
+        "status": "Status",
+        "notes": "Notes",
+        "description": "Description",
+        "summary": "Summary",
+        "color": "Color",
+        "doctor_id": "Doctor",
+        "calendar_id": "Room",
+        "quote_id": "Quote",
+        "invoice_id": "Invoice",
+        "start_datetime": "Start",
+        "end_datetime": "End",
+        "cancellation_reason": "Cancellation reason",
+        "cancellation_note": "Cancellation note"
+      }
+    }
   },
   "AppointmentReschedule": {
     "action": "Reschedule",
@@ -1924,6 +1955,13 @@
       "sexFemale": "Female",
       "identity_document": "Identity Document",
       "identity_document_placeholder": "e.g., 12345678",
+      "identity_document_type": "Document Type",
+      "identityDocumentTypes": {
+        "cedula_uy": "Uruguayan National ID",
+        "cedula_ext": "Foreign National ID",
+        "pasaporte_uy": "Uruguayan Passport",
+        "pasaporte_ext": "Foreign Passport"
+      },
       "isActive": "Is Active",
       "cancel": "Cancel",
       "save": "Create Patient",
@@ -1935,7 +1973,7 @@
         "phoneInvalid": "Invalid phone number",
         "phoneRequired": "Phone is required",
         "identityRequired": "Identity document is required",
-        "identityInvalid": "Identity document must be a number.",
+        "identityInvalid": "Identity document format is not valid for the selected type.",
         "identityMaxLength": "Identity document must be 10 characters or less.",
         "emailOrPhoneRequired": "You must provide at least an email address or a phone number.",
         "genericError": "An unexpected error occurred. Please try again.",
@@ -4904,6 +4942,20 @@
       "viewDetails": "View details",
       "id": "ID",
       "openMenu": "Open Menu"
+    },
+    "filters": {
+      "entity": "Entity",
+      "allEntities": "All entities",
+      "operation": "Operation",
+      "allOperations": "All operations",
+      "user": "User",
+      "userPlaceholder": "Search user...",
+      "clear": "Clear filters"
+    },
+    "operations": {
+      "INSERT": "Create",
+      "UPDATE": "Update",
+      "DELETE": "Delete"
     }
   },
   "AccessLogPage": {
@@ -5665,11 +5717,75 @@
     "descriptionLabel": "Description",
     "descriptionPlaceholder": "Optional reminder details",
     "dateLabel": "Date",
-    "timeLabel": "Time",
-    "durationLabel": "Duration (min)",
+    "timeLabel": "Start time",
+    "endTimeLabel": "End time",
     "priorityLabel": "Priority",
     "onlyForMeLabel": "Only for me",
     "onlyForMeHint": "If left unchecked, the whole team can see, edit and delete it.",
+    "allDayLabel": "All day",
+    "allDayHint": "Takes the whole day and shows pinned at the top, below the day name. It raises no notifications.",
+    "allDayBadge": "All day",
+    "allDayBandLabel": "All day",
+    "repeatLabel": "Repeat",
+    "repeatHint": "Creates a series: the item shows on every matching date.",
+    "recurringBadge": "Repeats",
+    "recurrence": {
+      "freqLabel": "Frequency",
+      "intervalLabel": "Every",
+      "endLabel": "Ends",
+      "untilDateLabel": "Until",
+      "countLabel": "Number of times",
+      "weekdaysLabel": "Days of the week",
+      "monthDayLabel": "Day of the month",
+      "weekdaysRequired": "Pick at least one day of the week.",
+      "intervalInvalid": "The interval must be between 1 and 52.",
+      "countInvalid": "The number of times must be 1 or more.",
+      "untilInvalid": "The end date must be after the item date.",
+      "monthlyClampHint": "If the month has no such day, the last one is used (the 31st falls on the 28th in February).",
+      "freq": {
+        "daily": "Daily",
+        "weekly": "Weekly",
+        "monthly": "Monthly"
+      },
+      "end": {
+        "never": "Never",
+        "until": "On a date",
+        "count": "After N times"
+      },
+      "every": {
+        "daily": "Every day",
+        "weekly": "Every week",
+        "monthly": "Every month"
+      },
+      "everyN": {
+        "daily": "Every {count} days",
+        "weekly": "Every {count} weeks",
+        "monthly": "Every {count} months"
+      },
+      "weekdayShort": {
+        "1": "Mon",
+        "2": "Tue",
+        "3": "Wed",
+        "4": "Thu",
+        "5": "Fri",
+        "6": "Sat",
+        "7": "Sun"
+      },
+      "onDay": "on day {day}",
+      "until": "until {date}",
+      "afterCount": "{count} times"
+    },
+    "scope": {
+      "editTitle": "Edit repeating item",
+      "deleteTitle": "Delete repeating item",
+      "editDescription": "What do you want to edit?",
+      "deleteDescription": "What do you want to delete?",
+      "occurrence": "This occurrence only",
+      "occurrenceHint": "The rest of the series stays as it is.",
+      "series": "The whole series",
+      "seriesHint": "Applies to future pending occurrences. Past ones are left alone.",
+      "confirm": "Continue"
+    },
     "onlyForMeLockedHint": "Only the author can change the scope.",
     "personalBadge": "Personal",
     "generalBadge": "General",
@@ -5680,6 +5796,7 @@
     "saveCreate": "Save",
     "saveEdit": "Save",
     "edit": "Edit",
+    "dismiss": "Close",
     "delete": "Delete",
     "markDone": "Mark as done",
     "detailsTitle": "Information",
@@ -5697,7 +5814,7 @@
     "errorDesc": "The reminder action could not be completed.",
     "titleRequired": "Title is required.",
     "dateTimeRequired": "Date and time are required.",
-    "durationInvalid": "Duration must be at least 5 minutes.",
+    "endTimeInvalid": "The end time must be after the start time.",
     "priority": {
       "low": "Low",
       "medium": "Medium",
@@ -8857,6 +8974,67 @@
       },
       "defaultOverMax": "The default discount can't be higher than the maximum allowed.",
       "permissionNotice": "Only users with the \"Apply Discounts\" permission can change the discount when selling. Everyone else sees the field read-only."
+    },
+    "identityDocument": {
+      "sectionTitle": "Identity document",
+      "required": {
+        "label": "Require identity document",
+        "help": "When on, the patient form won't save without an identity document. Off by default, the document can be left empty."
+      }
+    }
+  },
+  "CalendarColorsPage": {
+    "title": "Calendar Colors",
+    "description": "Color, calendar behavior and badge style for each appointment status.",
+    "save": "Save",
+    "saved": "Color matrix saved",
+    "saveError": "We couldn't save the color matrix",
+    "loadError": "We couldn't load the color matrix",
+    "readOnlyNotice": "Read-only: you don't have permission to change the calendar colors.",
+    "restoreDefaults": "Restore defaults",
+    "table": {
+      "status": "Status",
+      "color": "Color",
+      "calendarMode": "On the calendar",
+      "badgeStyle": "Badge",
+      "preview": "Preview"
+    },
+    "calendarMode": {
+      "always": {
+        "label": "Always",
+        "help": "Paints the whole appointment card with this color, regardless of the \"color by status\" preference or the service/doctor/room color. A manually chosen color tag on the appointment still wins."
+      },
+      "preference": {
+        "label": "By preference",
+        "help": "Respects each user's \"color by status\" switch: with an appointment or service color it shows as a side stripe; inheriting only the doctor's or room's color paints the whole card."
+      },
+      "never": {
+        "label": "Never",
+        "help": "This status never adds color to the calendar; the appointment looks the same as with the preference off."
+      }
+    },
+    "badgeStyle": {
+      "solid": "Solid",
+      "soft": "Soft",
+      "outline": "Outline"
+    },
+    "replicateDialog": {
+      "trigger": "Replicate to calendars…",
+      "title": "Replicate to calendars",
+      "description": "Copies the general matrix above as this status's configuration for the selected calendars.",
+      "selectAll": "Select all",
+      "decoupleNotice": "From this point on, each selected calendar keeps its own copy: changes to the general matrix won't reach it anymore.",
+      "cancel": "Cancel",
+      "confirm": "Replicate",
+      "success": "Matrix replicated",
+      "error": "We couldn't replicate the matrix"
+    },
+    "overrides": {
+      "sectionTitle": "Calendars with their own configuration",
+      "sectionDescription": "These calendars no longer follow the general matrix. In this version they can only be replicated to or reset to the general matrix — not edited individually.",
+      "useGeneral": "Use general matrix",
+      "removed": "Back to the general matrix",
+      "removeError": "We couldn't reset that calendar's configuration"
     }
   },
   "PatientPortalConfigPage": {

@@ -15,6 +15,7 @@ export const DEFAULT_CALENDAR_SETTINGS: CalendarSettings = {
   default_sede: '',
   color_by_status: DEFAULT_COLOR_BY_STATUS,
   mode: DEFAULT_CALENDAR_MODE,
+  hidden_weekdays: [],
 };
 
 const normalizeBoolean = (value: unknown, defaultValue: boolean): boolean => {
@@ -23,6 +24,37 @@ const normalizeBoolean = (value: unknown, defaultValue: boolean): boolean => {
   }
 
   return value === true || value === 'true' || value === 1;
+};
+
+/** Normaliza `hidden_weekdays`: puede llegar como array, como string JSON
+ *  ("[0,6]") o como string separado por comas ("0,6") según cómo lo devuelva
+ *  la API. Se descartan valores fuera de 0-6 y duplicados, y si terminan
+ *  cubriendo los 7 días se ignora por completo (ocultaría toda la grilla). */
+const normalizeHiddenWeekdays = (value: unknown): number[] => {
+  let list: unknown[];
+
+  if (Array.isArray(value)) {
+    list = value;
+  } else if (typeof value === 'string' && value.trim()) {
+    try {
+      const parsed = JSON.parse(value);
+      list = Array.isArray(parsed) ? parsed : value.split(',');
+    } catch {
+      list = value.split(',');
+    }
+  } else {
+    return [];
+  }
+
+  const days = Array.from(
+    new Set(
+      list
+        .map((v) => Number(v))
+        .filter((n) => Number.isInteger(n) && n >= 0 && n <= 6)
+    )
+  ).sort((a, b) => a - b);
+
+  return days.length >= 7 ? [] : days;
 };
 
 /** Claves que identifican una fila de calendar_settings. Sirven para distinguir la
@@ -43,6 +75,7 @@ const CALENDAR_SETTINGS_ROW_KEYS = [
   'inline_appointment_creation',
   'color_by_status',
   'mode',
+  'hidden_weekdays',
   'user_id',
 ] as const;
 
@@ -119,6 +152,7 @@ export const normalizeCalendarSettings = (data: unknown): CalendarSettings | nul
       typeof rawSettings.mode === 'string' && (CALENDAR_MODES as readonly string[]).includes(rawSettings.mode)
         ? rawSettings.mode
         : DEFAULT_CALENDAR_SETTINGS.mode,
+    hidden_weekdays: normalizeHiddenWeekdays((rawSettings as { hidden_weekdays?: unknown }).hidden_weekdays),
   };
 };
 

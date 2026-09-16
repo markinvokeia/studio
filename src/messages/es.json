@@ -349,6 +349,7 @@
     "Schedules": "Horarios",
     "Holidays": "Horarios de Excepción",
     "Calendars": "Calendarios",
+    "CalendarColors": "Colores de Calendario",
     "Doctors": "Doctores",
     "Staff": "Secretarias y Administración",
     "DoctorAvailability": "Disponibilidad Médica",
@@ -978,6 +979,16 @@
       },
       "blockUnavailable": "Bloquear horarios fuera de atención",
       "colorByStatus": "Mostrar el estado de la cita con color",
+      "hiddenWeekdays": "Ocultar días en vista de día/semana",
+      "weekdayAbbr": {
+        "0": "Dom",
+        "1": "Lun",
+        "2": "Mar",
+        "3": "Mié",
+        "4": "Jue",
+        "5": "Vie",
+        "6": "Sáb"
+      },
       "help": {
         "mode": "Invoke muestra el calendario como siempre. Personalizado muestra una sola agenda a la vez a pantalla completa; usa el botón 'Agendas' (arriba a la izquierda) para elegir cuál ver.",
         "defaultView": "Define qué vista se muestra al abrir el calendario (día, semana, mes, agenda…). Cambiarla aplica la vista al instante.",
@@ -990,7 +1001,8 @@
         "blockUnavailable": "Atenúa y bloquea en el calendario los horarios fuera de atención (según horarios y excepciones), impidiendo crear citas ahí.",
         "filterDoctorsByService": "Al crear una cita, filtra la lista de doctores para mostrar solo los que prestan el servicio seleccionado.",
         "inlineAppointmentCreation": "Al hacer clic en un slot crea la cita directamente en el calendario con un card, sin abrir el modal. El botón Crear siempre abre el modal.",
-        "colorByStatus": "Las citas muestran su estado con color. Si la cita tiene una etiqueta de color propia o el color de su servicio, lo conserva y el estado aparece como una franja en el borde izquierdo. Si solo hereda el color del doctor o del consultorio, toda la cita se pinta con el color del estado. 'Programada' (lila) y 'No asistió' (gris) son la excepción: se pintan siempre, aun con esta preferencia apagada y por encima de cualquier color elegido."
+        "colorByStatus": "Las citas muestran su estado con color. Si la cita tiene una etiqueta de color propia o el color de su servicio, lo conserva y el estado aparece como una franja en el borde izquierdo. Si solo hereda el color del doctor o del consultorio, toda la cita se pinta con el color del estado. Algunos estados están configurados para pintar siempre la cita sin importar esta preferencia — ver Configuración → Colores de Calendario.",
+        "hiddenWeekdays": "Oculta los días elegidos como columnas en las vistas de día y semana. Es solo visual, para ganar espacio: no afecta la disponibilidad ni los días en que se pueden agendar citas."
       }
     },
     "newAppointment": "Nueva Cita",
@@ -1394,7 +1406,26 @@
     "deleteTitle": "Eliminar cita",
     "deleteDescription": "Esta acción eliminará la cita por completo del sistema y no se podrá volver a ver. ¿Deseas continuar?",
     "deleteConfirm": "Sí, eliminar",
-    "deleteCancel": "Cancelar"
+    "deleteCancel": "Cancelar",
+    "history": {
+      "title": "Historial de cambios",
+      "empty": "Aún no hay cambios registrados.",
+      "fields": {
+        "status": "Estado",
+        "notes": "Notas",
+        "description": "Descripción",
+        "summary": "Resumen",
+        "color": "Color",
+        "doctor_id": "Doctor",
+        "calendar_id": "Consultorio",
+        "quote_id": "Presupuesto",
+        "invoice_id": "Factura",
+        "start_datetime": "Inicio",
+        "end_datetime": "Fin",
+        "cancellation_reason": "Motivo de cancelación",
+        "cancellation_note": "Detalle de cancelación"
+      }
+    }
   },
   "AppointmentReschedule": {
     "action": "Reagendar",
@@ -1924,6 +1955,13 @@
       "sexFemale": "Femenino",
       "identity_document": "Documento de Identidad",
       "identity_document_placeholder": "ej., 12345678",
+      "identity_document_type": "Tipo de Documento",
+      "identityDocumentTypes": {
+        "cedula_uy": "Cédula Uruguaya",
+        "cedula_ext": "Cédula Extranjera",
+        "pasaporte_uy": "Pasaporte Uruguayo",
+        "pasaporte_ext": "Pasaporte Extranjero"
+      },
       "isActive": "Está Activo",
       "cancel": "Cancelar",
       "save": "Crear Paciente",
@@ -1935,7 +1973,7 @@
         "phoneInvalid": "Número de teléfono inválido",
         "phoneRequired": "El teléfono es obligatorio",
         "identityRequired": "El documento de identidad es obligatorio",
-        "identityInvalid": "El documento de identidad debe ser un número.",
+        "identityInvalid": "El documento de identidad no tiene un formato válido para el tipo seleccionado.",
         "identityMaxLength": "El documento de identidad debe tener 10 caracteres o menos.",
         "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono.",
         "genericError": "Ocurrió un error inesperado. Por favor, inténtelo de nuevo.",
@@ -4881,6 +4919,20 @@
       "viewDetails": "Ver detalles",
       "id": "ID",
       "openMenu": "Abrir Menú"
+    },
+    "filters": {
+      "entity": "Entidad",
+      "allEntities": "Todas las entidades",
+      "operation": "Operación",
+      "allOperations": "Todas las operaciones",
+      "user": "Usuario",
+      "userPlaceholder": "Buscar usuario...",
+      "clear": "Limpiar filtros"
+    },
+    "operations": {
+      "INSERT": "Creación",
+      "UPDATE": "Actualización",
+      "DELETE": "Eliminación"
     }
   },
   "AccessLogPage": {
@@ -5642,11 +5694,75 @@
     "descriptionLabel": "Descripción",
     "descriptionPlaceholder": "Detalles opcionales del recordatorio",
     "dateLabel": "Fecha",
-    "timeLabel": "Hora",
-    "durationLabel": "Duración (min)",
+    "timeLabel": "Hora de inicio",
+    "endTimeLabel": "Hora de fin",
     "priorityLabel": "Prioridad",
     "onlyForMeLabel": "Solo para mí",
     "onlyForMeHint": "Si lo dejás sin marcar, todo el equipo puede verlo, editarlo y eliminarlo.",
+    "allDayLabel": "Todo el día",
+    "allDayHint": "Ocupa el día entero y se muestra fijo arriba, debajo del nombre del día. No genera notificaciones.",
+    "allDayBadge": "Todo el día",
+    "allDayBandLabel": "Todo el día",
+    "repeatLabel": "Repetir",
+    "repeatHint": "Se crea una serie: el ítem aparece en todas las fechas que correspondan.",
+    "recurringBadge": "Se repite",
+    "recurrence": {
+      "freqLabel": "Frecuencia",
+      "intervalLabel": "Cada",
+      "endLabel": "Termina",
+      "untilDateLabel": "Hasta el",
+      "countLabel": "Cantidad de veces",
+      "weekdaysLabel": "Días de la semana",
+      "monthDayLabel": "Día del mes",
+      "weekdaysRequired": "Elegí al menos un día de la semana.",
+      "intervalInvalid": "El intervalo tiene que estar entre 1 y 52.",
+      "countInvalid": "La cantidad de veces tiene que ser 1 o más.",
+      "untilInvalid": "La fecha de fin tiene que ser posterior a la del ítem.",
+      "monthlyClampHint": "Si el mes no tiene ese día, se usa el último (el 31 cae 28 en febrero).",
+      "freq": {
+        "daily": "Diaria",
+        "weekly": "Semanal",
+        "monthly": "Mensual"
+      },
+      "end": {
+        "never": "Nunca",
+        "until": "En una fecha",
+        "count": "Después de N veces"
+      },
+      "every": {
+        "daily": "Todos los días",
+        "weekly": "Todas las semanas",
+        "monthly": "Todos los meses"
+      },
+      "everyN": {
+        "daily": "Cada {count} días",
+        "weekly": "Cada {count} semanas",
+        "monthly": "Cada {count} meses"
+      },
+      "weekdayShort": {
+        "1": "lun",
+        "2": "mar",
+        "3": "mié",
+        "4": "jue",
+        "5": "vie",
+        "6": "sáb",
+        "7": "dom"
+      },
+      "onDay": "el día {day}",
+      "until": "hasta el {date}",
+      "afterCount": "{count} veces"
+    },
+    "scope": {
+      "editTitle": "Editar ítem repetido",
+      "deleteTitle": "Eliminar ítem repetido",
+      "editDescription": "¿Qué querés editar?",
+      "deleteDescription": "¿Qué querés eliminar?",
+      "occurrence": "Solo esta ocurrencia",
+      "occurrenceHint": "El resto de la serie queda como está.",
+      "series": "Toda la serie",
+      "seriesHint": "Alcanza a las ocurrencias futuras pendientes. Las pasadas no se tocan.",
+      "confirm": "Continuar"
+    },
     "onlyForMeLockedHint": "Solo quien lo creó puede cambiar el alcance.",
     "personalBadge": "Personal",
     "generalBadge": "General",
@@ -5675,7 +5791,7 @@
     "errorDesc": "No se pudo completar la acción del recordatorio.",
     "titleRequired": "El título es obligatorio.",
     "dateTimeRequired": "La fecha y la hora son obligatorias.",
-    "durationInvalid": "La duración debe ser de al menos 5 minutos.",
+    "endTimeInvalid": "La hora de fin tiene que ser posterior a la de inicio.",
     "priority": {
       "low": "Baja",
       "medium": "Media",
@@ -8836,6 +8952,67 @@
       },
       "defaultOverMax": "El descuento por defecto no puede ser mayor que el máximo permitido.",
       "permissionNotice": "Solo quien tenga el permiso «Aplicar Descuentos» puede modificar el descuento al vender. Al resto se le muestra el campo en solo lectura."
+    },
+    "identityDocument": {
+      "sectionTitle": "Documento de identidad",
+      "required": {
+        "label": "Exigir documento de identidad",
+        "help": "Con esto encendido, el formulario de pacientes no deja guardar sin un documento de identidad. Apagado (por defecto), el documento puede quedar vacío."
+      }
+    }
+  },
+  "CalendarColorsPage": {
+    "title": "Colores de Calendario",
+    "description": "Color, comportamiento en el calendario y estilo de badge para cada estado de cita.",
+    "save": "Guardar",
+    "saved": "Matriz de colores guardada",
+    "saveError": "No se pudo guardar la matriz de colores",
+    "loadError": "No se pudo cargar la matriz de colores",
+    "readOnlyNotice": "Solo lectura: no tenés permiso para modificar los colores de calendario.",
+    "restoreDefaults": "Restaurar por defecto",
+    "table": {
+      "status": "Estado",
+      "color": "Color",
+      "calendarMode": "En el calendario",
+      "badgeStyle": "Badge",
+      "preview": "Vista previa"
+    },
+    "calendarMode": {
+      "always": {
+        "label": "Siempre",
+        "help": "Pinta la card entera con este color sin importar la preferencia \"colorear por estado\" ni el color de servicio/doctor/consultorio. Una etiqueta de color puesta a mano sobre la cita sigue ganando."
+      },
+      "preference": {
+        "label": "Según preferencia",
+        "help": "Respeta el interruptor \"colorear por estado\" de cada usuario: con color propio o de servicio se ve como franja lateral; heredando solo el del doctor o el consultorio se pinta la card entera."
+      },
+      "never": {
+        "label": "Nunca",
+        "help": "Este estado nunca aporta color al calendario; la cita se ve igual que con la preferencia apagada."
+      }
+    },
+    "badgeStyle": {
+      "solid": "Sólido",
+      "soft": "Suave",
+      "outline": "Contorno"
+    },
+    "replicateDialog": {
+      "trigger": "Replicar a calendarios…",
+      "title": "Replicar a calendarios",
+      "description": "Copia la matriz general de arriba como configuración de este estado para los calendarios seleccionados.",
+      "selectAll": "Seleccionar todos",
+      "decoupleNotice": "A partir de este momento, cada calendario seleccionado queda con su propia copia: los cambios a la matriz general ya no le van a llegar.",
+      "cancel": "Cancelar",
+      "confirm": "Replicar",
+      "success": "Matriz replicada",
+      "error": "No se pudo replicar la matriz"
+    },
+    "overrides": {
+      "sectionTitle": "Calendarios con configuración propia",
+      "sectionDescription": "Estos calendarios ya no siguen la matriz general. En esta versión solo se les puede replicar la matriz o volver a la general — no editarlos individualmente.",
+      "useGeneral": "Usar matriz general",
+      "removed": "Vuelve a usar la matriz general",
+      "removeError": "No se pudo restablecer la configuración de ese calendario"
     }
   },
   "PatientPortalConfigPage": {

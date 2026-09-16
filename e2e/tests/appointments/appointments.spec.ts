@@ -32,7 +32,8 @@ const T = {
     reminderTitle: 'Crear recordatorio',
     noCalendar: 'Sin calendario',
     title: 'Título',
-    duration: 'Duración (min)',
+    endTime: 'Hora de fin',
+    allDay: 'Todo el día',
     priority: 'Prioridad',
     color: 'Color',
     save: 'Guardar',
@@ -1210,12 +1211,13 @@ test.describe('Citas', () => {
 
       const dialog = page.getByRole('dialog', { name: T.calendarItems.noteTitle });
       await expect(dialog).toBeVisible({ timeout: 5_000 });
-      await expect(dialog.getByText(T.calendarItems.duration, { exact: true })).toBeVisible();
+      await expect(dialog.getByText(T.calendarItems.endTime, { exact: true })).toBeVisible();
       await expect(dialog.getByText(T.calendarItems.priority, { exact: true })).toHaveCount(0);
       await expect(dialog.getByText(T.calendarItems.color, { exact: true })).toBeVisible();
       await expect(dialog.getByRole('radio')).toHaveCount(11);
       await expect(dialog.locator('input[placeholder="dd/mm/aaaa"]')).toBeVisible();
-      await expect(dialog.locator('input[type="time"]')).toBeVisible();
+      await expect(dialog.getByTestId('reminder-start-time')).toBeVisible();
+      await expect(dialog.getByTestId('reminder-end-time')).toBeVisible();
       await dialog.locator('#reminder-title').fill('Nota persistida e2e');
       await dialog.getByTestId('reminder-color-9').click();
       await dialog.getByRole('button', { name: T.calendarItems.save }).click();
@@ -1225,11 +1227,12 @@ test.describe('Citas', () => {
         type: 'note',
         calendar_id: null,
         color: '#5484ed',
+        is_all_day: false,
       });
 
       const savedNote = page.locator('.event-reminder').filter({ hasText: 'Nota persistida e2e' }).first();
       await expect(savedNote).toBeVisible({ timeout: 5_000 });
-      await expect(savedNote).toContainText(/^\d{2}:\d{2}\s+Nota persistida e2e/);
+      await expect(savedNote).toContainText(/^\d{2}:\d{2}–\d{2}:\d{2}\s+Nota persistida e2e/);
       await expect.poll(() => savedNote.evaluate((element) => (
         (element as HTMLElement).style.getPropertyValue('--reminder-color')
       ))).toBe('#5484ed');
@@ -1242,6 +1245,167 @@ test.describe('Citas', () => {
 
       await savedNote.dblclick();
       await expect(page.getByRole('dialog', { name: T.calendarItems.editNoteTitle })).toBeVisible({ timeout: 5_000 });
+    });
+
+    test('una nota de todo el día va a la banda fija, no a la rejilla', async ({ page }, testInfo) => {
+      test.skip(testInfo.project.name === 'mobile-chrome', 'La banda de escritorio se valida una vez');
+
+      let submittedPayload: Record<string, unknown> | null = null;
+      await page.route(/\/reminders(?:\?.*)?$/, async (route) => {
+        if (route.request().method() !== 'GET') {
+          await route.continue();
+          return;
+        }
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            reminders: submittedPayload ? [{
+              ...submittedPayload,
+              id: 'note-all-day-001',
+              created_at: '2026-07-13T10:00:00',
+            }] : [],
+          }),
+        });
+      });
+      await page.route('**/reminders/upsert', async (route) => {
+        submittedPayload = route.request().postDataJSON() as Record<string, unknown>;
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            reminder: { ...submittedPayload, id: 'note-all-day-001', created_at: '2026-07-13T10:00:00' },
+          }),
+        });
+      });
+
+      const slot = page.locator('.day-column-content').first();
+      if (!await slot.isVisible({ timeout: 5_000 }).catch(() => false)) return;
+      const box = await slot.boundingBox();
+      const scrollBox = await page.locator('.day-view-container').boundingBox();
+      if (!box || !scrollBox) return;
+      await page.mouse.click(
+        box.x + Math.min(24, box.width / 2),
+        scrollBox.y + scrollBox.height / 2,
+        { button: 'right' },
+      );
+      await page.getByRole('menuitem', { name: T.calendarItems.createNote }).click();
+
+      const dialog = page.getByRole('dialog', { name: T.calendarItems.noteTitle });
+      await expect(dialog).toBeVisible({ timeout: 5_000 });
+      await dialog.locator('#reminder-title').fill('Feriado del equipo');
+
+      // Al marcar todo el día, los dos inputs de hora se ocultan: las fija la convención.
+      await dialog.getByTestId('reminder-all-day').click();
+      await expect(dialog.getByTestId('reminder-start-time')).toHaveCount(0);
+      await expect(dialog.getByTestId('reminder-end-time')).toHaveCount(0);
+
+      await dialog.getByRole('button', { name: T.calendarItems.save }).click();
+
+      await expect.poll(() => submittedPayload).not.toBeNull();
+      expect(submittedPayload).toMatchObject({ type: 'note', is_all_day: true });
+      expect(String(submittedPayload!.start_datetime)).toMatch(/T00:00:00$/);
+      expect(String(submittedPayload!.end_datetime)).toMatch(/T23:59:59$/);
+
+      // En la banda, y sin hora: la banda ya dice cuándo es.
+      const band = page.getByTestId('calendar-all-day-band');
+      await expect(band).toBeVisible({ timeout: 5_000 });
+      await expect(band).toContainText('Feriado del equipo');
+      await expect(band).not.toContainText(/\d{2}:\d{2}/);
+
+      // Y fuera de la rejilla: si quedara ahí, arrastraría el layout de toda la columna.
+      await expect(
+        page.locator('.event-reminder').filter({ hasText: 'Feriado del equipo' }),
+      ).toHaveCount(0);
+    });
+
+    test('una nota recurrente manda la regla y pregunta el alcance al editar', async ({ page }, testInfo) => {
+      test.skip(testInfo.project.name === 'mobile-chrome', 'El contrato de series se valida una vez');
+
+      let submittedPayload: Record<string, unknown> | null = null;
+      await page.route(/\/reminders(?:\?.*)?$/, async (route) => {
+        if (route.request().method() !== 'GET') {
+          await route.continue();
+          return;
+        }
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            reminders: submittedPayload ? [{
+              ...submittedPayload,
+              id: 'note-series-001',
+              created_at: '2026-07-13T10:00:00',
+              // Lo que devolvería el GET con el JOIN a reminder_series.
+              series_id: 'series-001',
+              recurrence: submittedPayload.recurrence,
+            }] : [],
+          }),
+        });
+      });
+      await page.route('**/reminders/upsert', async (route) => {
+        submittedPayload = route.request().postDataJSON() as Record<string, unknown>;
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            reminder: {
+              ...submittedPayload,
+              id: 'note-series-001',
+              created_at: '2026-07-13T10:00:00',
+              series_id: 'series-001',
+            },
+          }),
+        });
+      });
+
+      const slot = page.locator('.day-column-content').first();
+      if (!await slot.isVisible({ timeout: 5_000 }).catch(() => false)) return;
+      const box = await slot.boundingBox();
+      const scrollBox = await page.locator('.day-view-container').boundingBox();
+      if (!box || !scrollBox) return;
+      await page.mouse.click(
+        box.x + Math.min(24, box.width / 2),
+        scrollBox.y + scrollBox.height / 2,
+        { button: 'right' },
+      );
+      await page.getByRole('menuitem', { name: T.calendarItems.createNote }).click();
+
+      const dialog = page.getByRole('dialog', { name: T.calendarItems.noteTitle });
+      await expect(dialog).toBeVisible({ timeout: 5_000 });
+      await dialog.locator('#reminder-title').fill('Reunión de equipo');
+
+      // Los campos de la regla solo aparecen con "Repetir" marcado.
+      await expect(dialog.getByTestId('reminder-freq')).toHaveCount(0);
+      await dialog.getByTestId('reminder-repeat').click();
+      await expect(dialog.getByTestId('reminder-freq')).toBeVisible();
+
+      // Semanal: lunes y miércoles. El día de la fecha ya viene marcado, así que se
+      // agregan los dos explícitamente y se deja que el toggle haga su trabajo.
+      await dialog.getByTestId('reminder-weekday-1').click();
+      await dialog.getByTestId('reminder-weekday-3').click();
+      await dialog.getByRole('button', { name: T.calendarItems.save }).click();
+
+      await expect.poll(() => submittedPayload).not.toBeNull();
+      expect(submittedPayload).toMatchObject({ type: 'note', scope: 'occurrence' });
+      const recurrence = submittedPayload!.recurrence as Record<string, unknown>;
+      expect(recurrence).toMatchObject({ freq: 'WEEKLY', interval: 1, end_mode: 'never' });
+      expect(Array.isArray(recurrence.byweekday)).toBe(true);
+
+      // La card lleva el glifo de repetición.
+      const savedNote = page.locator('.event-reminder').filter({ hasText: 'Reunión de equipo' }).first();
+      await expect(savedNote).toBeVisible({ timeout: 5_000 });
+      await expect(savedNote).toContainText('↻');
+
+      // Editarla pregunta el alcance antes de abrir el formulario.
+      await savedNote.dblclick();
+      await expect(page.getByTestId('reminder-scope-occurrence')).toBeVisible({ timeout: 5_000 });
+      await page.getByTestId('reminder-scope-series').click();
+      await page.getByTestId('reminder-scope-confirm').click();
+
+      await expect(page.getByRole('dialog', { name: T.calendarItems.editNoteTitle })).toBeVisible({ timeout: 5_000 });
+      // El editor se siembra con la regla guardada, no con los valores por defecto.
+      await expect(page.getByTestId('reminder-repeat')).toBeChecked();
     });
 
     test('muestra el selector de color al crear un recordatorio', async ({ page }) => {

@@ -10,6 +10,7 @@ import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from '@/component
 import type { Locale } from 'date-fns';
 import { addDays, format, isSameDay, set } from 'date-fns';
 
+import { CalendarAllDayBand } from './calendar-all-day-band';
 import { DEFAULT_SCROLL_HOUR, HOUR_SLOT_HEIGHT } from './calendar-constants';
 import type { CalendarEvent, CalendarSlotClickHandler, CalendarSlotContextMenuContext, CalendarSlotContextMenuRenderer, CalendarView } from './calendar-types';
 import {
@@ -34,6 +35,8 @@ interface CalendarDayViewProps {
   view: CalendarView;
   numDays: number;
   events: CalendarEvent[];
+  /** Ítems de todo el día, para la banda fija bajo el nombre del día. */
+  allDayEvents?: CalendarEvent[];
   currentTime: Date;
   dateLocale: Locale;
   timeZoneLabel: string;
@@ -53,6 +56,8 @@ interface CalendarDayViewProps {
   /** Whether the main hour gutter shows the hour labels (toggled via GMT checkbox). */
   showTimeColumn?: boolean;
   onToggleTimeColumn?: (value: boolean) => void;
+  /** Days of week (0=Sunday…6=Saturday) to hide as columns. Default []. */
+  hiddenWeekdays?: number[];
 }
 
 export function CalendarDayView({
@@ -60,6 +65,7 @@ export function CalendarDayView({
   view,
   numDays,
   events,
+  allDayEvents = [],
   currentTime,
   dateLocale,
   timeZoneLabel,
@@ -78,12 +84,20 @@ export function CalendarDayView({
   blockedRanges,
   showTimeColumn = false,
   onToggleTimeColumn,
+  hiddenWeekdays,
 }: CalendarDayViewProps) {
   const t = useTranslations('Calendar');
   const startDay = view === 'week'
     ? getCalendarViewStartDate(currentDate, view)
     : currentDate;
-  const days = Array.from({ length: numDays }, (_, i) => addDays(startDay, i));
+  const allDays = Array.from({ length: numDays }, (_, i) => addDays(startDay, i));
+  // Si el filtro se come todos los días del rango (p.ej. vista "Día" parada
+  // justo en un día oculto), se muestran igual: no tiene sentido una grilla
+  // vacía, y el usuario llegó a esa fecha a propósito (navegación o clic).
+  const filteredDays = hiddenWeekdays?.length
+    ? allDays.filter((day) => !hiddenWeekdays.includes(day.getDay()))
+    : allDays;
+  const days = filteredDays.length > 0 ? filteredDays : allDays;
   const timeSlots = generateTimeSlots();
   const [contextSlot, setContextSlot] = React.useState<CalendarSlotContextMenuContext | null>(null);
 
@@ -163,6 +177,12 @@ export function CalendarDayView({
               </div>
             ))}
           </div>
+          <CalendarAllDayBand
+            days={days}
+            events={allDayEvents}
+            gridTemplateColumns={`60px repeat(${days.length}, 1fr)`}
+            onEventClick={onEventClick}
+          />
         </div>
         <div className="day-view-body" style={{ '--num-days': days.length, '--hour-slot-height': `${hourSlotHeight}px` } as any}>
           <CalendarTimeColumn visible={showTimeColumn} />

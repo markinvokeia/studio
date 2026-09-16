@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { addMinutes, format, isValid, parse, parseISO } from 'date-fns';
+import { addMinutes, format, getDate, getISODay, isValid, parse, parseISO } from 'date-fns';
 import { BellRing, FileText } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -36,7 +36,17 @@ import { useLocalAI } from '@/hooks/use-local-ai';
 import { getPriorityColor, isReminderAuthor } from '@/lib/reminders';
 import { cn, toLocalISOString } from '@/lib/utils';
 
-import type { Calendar, CalendarItemType, CalendarReminder, CalendarReminderPriority, CalendarReminderVisibility } from '@/lib/types';
+import type {
+  Calendar,
+  CalendarItemType,
+  CalendarReminder,
+  CalendarReminderPriority,
+  CalendarItemScope,
+  CalendarReminderVisibility,
+  ReminderRecurrence,
+  ReminderRecurrenceEndMode,
+  ReminderRecurrenceFreq,
+} from '@/lib/types';
 
 export interface ReminderFormValues {
   type: CalendarItemType;
@@ -48,6 +58,9 @@ export interface ReminderFormValues {
   color: string;
   priority: CalendarReminderPriority;
   visibility: CalendarReminderVisibility;
+  is_all_day: boolean;
+  /** `null` = ítem suelto. Con regla, el backend crea o actualiza la serie. */
+  recurrence: ReminderRecurrence | null;
 }
 
 interface ReminderFormDialogProps {
@@ -59,6 +72,10 @@ interface ReminderFormDialogProps {
   calendars: Calendar[];
   /** Usuario en sesión: define si el alcance del ítem que se edita se puede cambiar. */
   currentUserId?: string | null;
+  /** Alcance elegido en `ReminderScopeDialog`. Al editar UNA ocurrencia de una serie, el
+   *  editor de repetición no se muestra: cambiar la regla desde ahí sería una edición de
+   *  serie disfrazada, y el backend la ignora. */
+  scope?: CalendarItemScope;
   editingReminder?: CalendarReminder | null;
   onSave: (values: ReminderFormValues) => void;
 }
@@ -102,6 +119,7 @@ export function ReminderFormDialog({
   initialCalendarId = null,
   calendars,
   currentUserId,
+  scope = 'occurrence',
   editingReminder,
   onSave,
 }: ReminderFormDialogProps) {
@@ -113,7 +131,18 @@ export function ReminderFormDialog({
   const [description, setDescription] = React.useState('');
   const [date, setDate] = React.useState(format(new Date(), 'yyyy-MM-dd'));
   const [time, setTime] = React.useState(format(new Date(), 'HH:mm'));
-  const [duration, setDuration] = React.useState(String(DEFAULT_DURATION_MINUTES));
+  // Hora de fin, no duración: un ítem largo se lee mucho mejor como "09:00 → 17:00" que
+  // como "09:00 + 480 min". El payload no cambia; sigue viajando `end_datetime`.
+  const [endTime, setEndTime] = React.useState(format(addMinutes(new Date(), DEFAULT_DURATION_MINUTES), 'HH:mm'));
+  const [isAllDay, setIsAllDay] = React.useState(false);
+  const [isRecurring, setIsRecurring] = React.useState(false);
+  const [freq, setFreq] = React.useState<ReminderRecurrenceFreq>('WEEKLY');
+  const [repeatInterval, setRepeatInterval] = React.useState('1');
+  const [weekdays, setWeekdays] = React.useState<number[]>([]);
+  const [monthDay, setMonthDay] = React.useState('1');
+  const [endMode, setEndMode] = React.useState<ReminderRecurrenceEndMode>('never');
+  const [untilDate, setUntilDate] = React.useState('');
+  const [occurrenceCount, setOccurrenceCount] = React.useState('10');
   const [priority, setPriority] = React.useState<CalendarReminderPriority>('MEDIUM');
   const [visibility, setVisibility] = React.useState<CalendarReminderVisibility>('clinic');
   const [calendarId, setCalendarId] = React.useState<string | null>(null);
@@ -126,21 +155,41 @@ export function ReminderFormDialog({
   // el backend preserva created_by = A: el ítem pasaría a ser personal DE A y
   // desaparecería del calendario de B, sin forma de revertirlo desde la UI.
   const isScopeLocked = !!editingReminder && !isReminderAuthor(editingReminder, currentUserId);
+  // Editar una sola ocurrencia no puede tocar la regla: el backend ignora `recurrence`
+  // cuando el alcance es 'occurrence', así que mostrar el editor prometería algo que no pasa.
+  const isSingleOccurrenceEdit = Boolean(editingReminder?.series_id) && scope === 'occurrence';
 
   React.useEffect(() => {
     if (!open) return;
 
     const start = parseLocalDateTime(editingReminder?.start_datetime) ?? initialDate ?? new Date();
     const end = parseLocalDateTime(editingReminder?.end_datetime);
-    const durationMinutes = end ? Math.max(5, Math.round((end.getTime() - start.getTime()) / 60000)) : DEFAULT_DURATION_MINUTES;
+    const allDay = editingReminder?.is_all_day ?? false;
     const nextPriority = editingReminder?.priority ?? 'MEDIUM';
     const persistedColor = normalizeSelectableColor(editingReminder?.color);
 
     setTitle(editingReminder?.title ?? '');
     setDescription(editingReminder?.description ?? '');
     setDate(format(start, 'yyyy-MM-dd'));
-    setTime(format(start, 'HH:mm'));
-    setDuration(String(durationMinutes));
+    setIsAllDay(allDay);
+    // Un ítem de todo el día guarda 00:00–23:59, que como horas sugeridas no sirven de
+    // nada si se destilda la casilla: se siembran las de un ítem normal.
+    setTime(allDay ? format(new Date(), 'HH:mm') : format(start, 'HH:mm'));
+    setEndTime(format(
+      !allDay && end && end > start ? end : addMinutes(allDay ? new Date() : start, DEFAULT_DURATION_MINUTES),
+      'HH:mm',
+    ));
+    const recurrence = editingReminder?.recurrence ?? null;
+    setIsRecurring(recurrence !== null);
+    setFreq(recurrence?.freq ?? 'WEEKLY');
+    setRepeatInterval(String(recurrence?.interval ?? 1));
+    // Sin regla previa, se siembra con el día de la fecha elegida: es lo que el usuario
+    // acaba de decir que quiere, y evita que "Repetir" arranque sin ningún día marcado.
+    setWeekdays(recurrence?.byweekday?.length ? [...recurrence.byweekday] : [getISODay(start)]);
+    setMonthDay(String(recurrence?.by_month_day ?? getDate(start)));
+    setEndMode(recurrence?.end_mode ?? 'never');
+    setUntilDate(recurrence?.until_date ?? '');
+    setOccurrenceCount(String(recurrence?.occurrence_count ?? 10));
     setPriority(nextPriority);
     setVisibility(editingReminder?.visibility ?? 'clinic');
     setCalendarId(editingReminder?.calendar_id ?? initialCalendarId);
@@ -187,20 +236,61 @@ export function ReminderFormDialog({
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const cleanTitle = title.trim();
-    const durationMinutes = Number(duration);
-    const start = parse(`${date} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
+    // Con "todo el día" las horas las fija la convención de la tabla (00:00:00–23:59:59 del
+    // mismo día, atada por reminders_all_day_range_check), no los inputs, que están ocultos.
+    const start = isAllDay
+      ? parse(`${date} 00:00:00`, 'yyyy-MM-dd HH:mm:ss', new Date())
+      : parse(`${date} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
+    const end = isAllDay
+      ? parse(`${date} 23:59:59`, 'yyyy-MM-dd HH:mm:ss', new Date())
+      : parse(`${date} ${endTime}`, 'yyyy-MM-dd HH:mm', new Date());
 
     if (!cleanTitle) {
       setError(t('titleRequired'));
       return;
     }
-    if (!isValid(start)) {
+    if (!isValid(start) || !isValid(end)) {
       setError(t('dateTimeRequired'));
       return;
     }
-    if (!Number.isFinite(durationMinutes) || durationMinutes < 5) {
-      setError(t('durationInvalid'));
+    // Estrictamente mayor: un ítem de duración cero se dibujaría con `height: 0` en la
+    // rejilla, o sea invisible. El respaldo en la base es reminders_time_range_check.
+    if (end <= start) {
+      setError(t('endTimeInvalid'));
       return;
+    }
+
+    let recurrence: ReminderRecurrence | null = null;
+    if (isRecurring && !isSingleOccurrenceEdit) {
+      const everyN = Number(repeatInterval);
+      if (!Number.isInteger(everyN) || everyN < 1 || everyN > 52) {
+        setError(t('recurrence.intervalInvalid'));
+        return;
+      }
+      if (freq === 'WEEKLY' && weekdays.length === 0) {
+        setError(t('recurrence.weekdaysRequired'));
+        return;
+      }
+      const times = Number(occurrenceCount);
+      if (endMode === 'count' && (!Number.isInteger(times) || times < 1)) {
+        setError(t('recurrence.countInvalid'));
+        return;
+      }
+      // La fecha de corte tiene que dejar entrar al menos al ancla, o la serie nace vacía.
+      if (endMode === 'until' && (!untilDate || untilDate < date)) {
+        setError(t('recurrence.untilInvalid'));
+        return;
+      }
+
+      recurrence = {
+        freq,
+        interval: everyN,
+        byweekday: freq === 'WEEKLY' ? [...weekdays].sort((a, b) => a - b) : null,
+        by_month_day: freq === 'MONTHLY' ? Number(monthDay) : null,
+        end_mode: endMode,
+        until_date: endMode === 'until' ? untilDate : null,
+        occurrence_count: endMode === 'count' ? times : null,
+      };
     }
 
     onSave({
@@ -209,10 +299,12 @@ export function ReminderFormDialog({
       title: cleanTitle,
       description: description.trim() || null,
       start_datetime: toLocalISOString(start),
-      end_datetime: toLocalISOString(addMinutes(start, durationMinutes)),
+      end_datetime: toLocalISOString(end),
       color,
       priority,
       visibility,
+      is_all_day: isAllDay,
+      recurrence,
     });
     onOpenChange(false);
   };
@@ -262,27 +354,179 @@ export function ReminderFormDialog({
               />
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className={cn('grid gap-4', isAllDay ? 'sm:grid-cols-1' : 'sm:grid-cols-3')}>
               <div className="space-y-2">
                 <Label htmlFor="reminder-date">{t('dateLabel')}</Label>
                 <DatePickerInput value={date} onChange={setDate} />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="reminder-time">{t('timeLabel')}</Label>
-                <Input id="reminder-time" type="time" value={time} onChange={(event) => setTime(event.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="reminder-duration">{t('durationLabel')}</Label>
-                <Input
-                  id="reminder-duration"
-                  type="number"
-                  min={5}
-                  step={5}
-                  value={duration}
-                  onChange={(event) => setDuration(event.target.value)}
-                />
+              {!isAllDay && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="reminder-time">{t('timeLabel')}</Label>
+                    <Input
+                      id="reminder-time"
+                      data-testid="reminder-start-time"
+                      type="time"
+                      value={time}
+                      onChange={(event) => setTime(event.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="reminder-end-time">{t('endTimeLabel')}</Label>
+                    <Input
+                      id="reminder-end-time"
+                      data-testid="reminder-end-time"
+                      type="time"
+                      value={endTime}
+                      onChange={(event) => setEndTime(event.target.value)}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Todo el día. Al marcarlo, las horas las fija la convención de la tabla, así
+                que los dos inputs de hora se ocultan en vez de quedar inertes. */}
+            <div className="flex items-start gap-3 rounded-lg border p-3">
+              <Checkbox
+                id="reminder-all-day"
+                data-testid="reminder-all-day"
+                className="mt-0.5"
+                checked={isAllDay}
+                onCheckedChange={(checked) => setIsAllDay(checked === true)}
+              />
+              <div className="space-y-1 leading-none">
+                <Label htmlFor="reminder-all-day" className="font-normal">{t('allDayLabel')}</Label>
+                <p className="text-xs text-muted-foreground">{t('allDayHint')}</p>
               </div>
             </div>
+
+            {/* Repetición. La fecha de arriba es el ancla de la serie: la regla se aplica
+                desde ahí. Los campos auxiliares aparecen solo en su patrón, igual que en
+                el formulario de disponibilidad del doctor. */}
+            {!isSingleOccurrenceEdit && (
+            <div className="space-y-3 rounded-lg border p-3">
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  id="reminder-repeat"
+                  data-testid="reminder-repeat"
+                  className="mt-0.5"
+                  checked={isRecurring}
+                  onCheckedChange={(checked) => setIsRecurring(checked === true)}
+                />
+                <div className="space-y-1 leading-none">
+                  <Label htmlFor="reminder-repeat" className="font-normal">{t('repeatLabel')}</Label>
+                  <p className="text-xs text-muted-foreground">{t('repeatHint')}</p>
+                </div>
+              </div>
+
+              {isRecurring && (
+                <div className="space-y-3 border-t pt-3">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="reminder-freq">{t('recurrence.freqLabel')}</Label>
+                      <Select value={freq} onValueChange={(value) => setFreq(value as ReminderRecurrenceFreq)}>
+                        <SelectTrigger id="reminder-freq" data-testid="reminder-freq">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="DAILY">{t('recurrence.freq.daily')}</SelectItem>
+                          <SelectItem value="WEEKLY">{t('recurrence.freq.weekly')}</SelectItem>
+                          <SelectItem value="MONTHLY">{t('recurrence.freq.monthly')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="reminder-interval">{t('recurrence.intervalLabel')}</Label>
+                      <Input
+                        id="reminder-interval"
+                        data-testid="reminder-interval"
+                        type="number"
+                        min={1}
+                        max={52}
+                        value={repeatInterval}
+                        onChange={(event) => setRepeatInterval(event.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  {freq === 'WEEKLY' && (
+                    <div className="space-y-2">
+                      <Label>{t('recurrence.weekdaysLabel')}</Label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {[1, 2, 3, 4, 5, 6, 7].map((day) => (
+                          <Button
+                            key={day}
+                            type="button"
+                            size="sm"
+                            variant={weekdays.includes(day) ? 'default' : 'outline'}
+                            data-testid={`reminder-weekday-${day}`}
+                            className="h-8 min-w-11 px-2 text-xs capitalize"
+                            onClick={() => setWeekdays((prev) => (
+                              prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+                            ))}
+                          >
+                            {t(`recurrence.weekdayShort.${day}`)}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {freq === 'MONTHLY' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="reminder-month-day">{t('recurrence.monthDayLabel')}</Label>
+                      <Input
+                        id="reminder-month-day"
+                        data-testid="reminder-month-day"
+                        type="number"
+                        min={1}
+                        max={31}
+                        value={monthDay}
+                        onChange={(event) => setMonthDay(event.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">{t('recurrence.monthlyClampHint')}</p>
+                    </div>
+                  )}
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="reminder-end-mode">{t('recurrence.endLabel')}</Label>
+                      <Select value={endMode} onValueChange={(value) => setEndMode(value as ReminderRecurrenceEndMode)}>
+                        <SelectTrigger id="reminder-end-mode" data-testid="reminder-end-mode">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="never">{t('recurrence.end.never')}</SelectItem>
+                          <SelectItem value="until">{t('recurrence.end.until')}</SelectItem>
+                          <SelectItem value="count">{t('recurrence.end.count')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {endMode === 'until' && (
+                      <div className="space-y-2">
+                        <Label htmlFor="reminder-until-date">{t('recurrence.untilDateLabel')}</Label>
+                        <DatePickerInput value={untilDate} onChange={setUntilDate} />
+                      </div>
+                    )}
+                    {endMode === 'count' && (
+                      <div className="space-y-2">
+                        <Label htmlFor="reminder-count">{t('recurrence.countLabel')}</Label>
+                        <Input
+                          id="reminder-count"
+                          data-testid="reminder-count"
+                          type="number"
+                          min={1}
+                          value={occurrenceCount}
+                          onChange={(event) => setOccurrenceCount(event.target.value)}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            )}
 
             {!isNote && (
               <div className="space-y-2">

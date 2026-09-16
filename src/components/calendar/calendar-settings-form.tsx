@@ -7,6 +7,7 @@ import {
   Building2,
   CalendarCheck,
   CalendarDays,
+  CalendarOff,
   Clock,
   HelpCircle,
   Layers,
@@ -21,6 +22,7 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { cn } from '@/lib/utils';
 import { CalendarSettings, Sede } from '@/lib/types';
 import api from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
@@ -188,6 +190,17 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
 
   const viewOptions = ['day', '2_days', '3_days', 'week', 'month', 'agenda'];
   const groupOptions = ['none', 'doctor', 'calendar'];
+  // 0=domingo…6=sábado, igual que ClinicSchedule.day_of_week.
+  const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6];
+  const hiddenWeekdays = settings.hidden_weekdays ?? [];
+  const toggleHiddenWeekday = (day: number) => {
+    const next = hiddenWeekdays.includes(day)
+      ? hiddenWeekdays.filter((d) => d !== day)
+      : [...hiddenWeekdays, day];
+    // No tiene sentido ocultar los 7 días: se dejaría la grilla sin columnas.
+    if (next.length >= 7) return;
+    updateSettings({ hidden_weekdays: next });
+  };
   // Custom mode forces calendar grouping (one agenda at a time) and the default
   // event label, so only those selectors are hidden. Sede remains configurable.
   const isCustomMode = (settings.mode ?? DEFAULT_CALENDAR_MODE) === 'custom';
@@ -346,6 +359,29 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <SettingHeader icon={CalendarOff} label={t('hiddenWeekdays')} help={t('help.hiddenWeekdays')} />
+          <div className="flex gap-1">
+            {WEEKDAYS.map((day) => (
+              <button
+                key={day}
+                type="button"
+                aria-pressed={hiddenWeekdays.includes(day)}
+                disabled={isLoading}
+                onClick={() => toggleHiddenWeekday(day)}
+                className={cn(
+                  'h-7 w-7 shrink-0 rounded-md border text-[10px] font-semibold uppercase transition-colors',
+                  hiddenWeekdays.includes(day)
+                    ? 'border-primary/40 bg-primary/10 text-muted-foreground line-through'
+                    : 'border-border/50 bg-card text-foreground hover:bg-muted',
+                )}
+              >
+                {t(`weekdayAbbr.${day}`)}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

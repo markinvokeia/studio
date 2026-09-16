@@ -16,8 +16,8 @@ import {
   ALLOWED_STATUS_TRANSITIONS,
   APPOINTMENT_STATUSES,
   CANCELLATION_REASONS_QUICK,
-  STATUS_ACCENT_COLOR,
 } from '@/constants/appointment-status';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
 import { cn } from '@/lib/utils';
 import type { Appointment, AppointmentStatus, CancellationReason } from '@/lib/types';
 
@@ -60,13 +60,14 @@ export function AppointmentStatusRail({
   const tStatus = useTranslations('AppointmentStatus');
   const tMenu = useTranslations('AppointmentStatusMenu');
   const tReason = useTranslations('CancellationReason');
+  const { colorOf } = useAppointmentStatusDisplay();
 
   const current = appointment.status;
   const currentIndex = STATUS_FLOW.indexOf(current);
   const allowed = readOnly ? [] : (ALLOWED_STATUS_TRANSITIONS[current] ?? []);
   const canCancel = allowed.includes('cancelled');
   const CurrentIcon = getStatusIcon(current, appointment.cancellation_reason);
-  const currentColor = STATUS_ACCENT_COLOR[current];
+  const currentColor = colorOf(current);
   const activeStatusRef = React.useRef<HTMLButtonElement | null>(null);
 
   React.useLayoutEffect(() => {
@@ -94,7 +95,7 @@ export function AppointmentStatusRail({
             >
               <ReasonIcon
                 className="h-4 w-4 shrink-0"
-                style={{ color: STATUS_ACCENT_COLOR.cancelled }}
+                style={{ color: colorOf('cancelled') }}
               />
               <span>{tReason(reason)}</span>
             </DropdownMenuItem>
@@ -167,7 +168,7 @@ export function AppointmentStatusRail({
           )}
           {transitions.map((status) => {
             const Icon = STATUS_ICONS[status];
-            const statusColor = STATUS_ACCENT_COLOR[status];
+            const statusColor = colorOf(status);
 
             return (
               <DropdownMenuItem
@@ -186,7 +187,7 @@ export function AppointmentStatusRail({
               <DropdownMenuLabel className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
                 <CancelIcon
                   className="h-3.5 w-3.5"
-                  style={{ color: STATUS_ACCENT_COLOR.cancelled }}
+                  style={{ color: colorOf('cancelled') }}
                   strokeWidth={2.4}
                 />
                 {tMenu('cancelSubmenu')}
@@ -209,7 +210,7 @@ export function AppointmentStatusRail({
             const isCurrent = status === current;
             const isDone = currentIndex > -1 && status !== 'cancelled' && status !== 'no_show' && STATUS_FLOW.indexOf(status) < currentIndex;
             const isEnabled = !isCurrent && allowed.includes(status);
-            const statusColor = STATUS_ACCENT_COLOR[status];
+            const statusColor = colorOf(status);
             const StatusIcon = isCurrent ? getStatusIcon(status, appointment.cancellation_reason) : STATUS_ICONS[status];
             const item = (
               <button
@@ -287,7 +288,7 @@ export function AppointmentStatusRail({
               const Icon = status === current ? CurrentIcon : STATUS_ICONS[status];
               const isCurrent = status === current;
               const isEnabled = !isCurrent && allowed.includes(status);
-              const statusColor = STATUS_ACCENT_COLOR[status];
+              const statusColor = colorOf(status);
 
               if (status === 'cancelled' && canCancel) {
                 return (
@@ -324,7 +325,7 @@ export function AppointmentStatusRail({
           const isCurrent = status === current;
           const isDone = currentIndex > -1 && index < currentIndex && current !== 'cancelled' && current !== 'no_show';
           const isEnabled = !isCurrent && allowed.includes(status);
-          const statusColor = STATUS_ACCENT_COLOR[status];
+          const statusColor = colorOf(status);
           const StatusIcon = isCurrent ? getStatusIcon(status, appointment.cancellation_reason) : STATUS_ICONS[status];
           const item = (
             <button

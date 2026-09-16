@@ -25,10 +25,10 @@ import { cn } from '@/lib/utils';
 import {
   ALLOWED_STATUS_TRANSITIONS,
   CANCELLATION_REASONS_SUBMENU,
-  STATUS_ACCENT_COLOR,
-  STATUS_BADGE_VARIANT,
   STATUS_MENU_LAYOUT,
 } from '@/constants/appointment-status';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
+import { statusBadgeClassNames, statusBadgeInlineStyle } from '@/lib/appointment-status-display';
 import type { Appointment, AppointmentStatus, CancellationReason } from '@/lib/types';
 import { CANCELLATION_REASON_ICONS, getStatusIcon, STATUS_ICONS } from './status-icons';
 
@@ -42,10 +42,6 @@ function ColorDot({ color, className }: { color: string; className?: string }) {
     />
   );
 }
-
-// The "cancelled" accent serves as the swatch for every cancellation reason
-// (they all end the appointment in the same state).
-const CANCELLATION_REASON_COLOR = STATUS_ACCENT_COLOR.cancelled;
 
 export interface StatusChangeExtra {
   cancellation_reason?: CancellationReason;
@@ -94,10 +90,15 @@ function StatusMenuEntries({
   const tStatus = useTranslations('AppointmentStatus');
   const tMenu = useTranslations('AppointmentStatusMenu');
   const tReason = useTranslations('CancellationReason');
+  const { colorOf } = useAppointmentStatusDisplay();
   const current = appointment.status;
   const allowed = ALLOWED_STATUS_TRANSITIONS[current] ?? [];
   const canCancel = allowed.includes('cancelled');
   const CancelIcon = STATUS_ICONS.cancelled;
+  // El acento de "cancelada" sirve de swatch para todos los motivos de
+  // cancelación (todos terminan la cita en el mismo estado). Scope de
+  // componente: la matriz solo se conoce en render, no a nivel de módulo.
+  const CANCELLATION_REASON_COLOR = colorOf('cancelled');
 
   // Fire the action using the host menu's interaction API.
   const fire = (fn: () => void) =>
@@ -109,7 +110,7 @@ function StatusMenuEntries({
     const Icon = STATUS_ICONS[status];
     const isCurrent = status === current;
     const enabled = !isCurrent && allowed.includes(status);
-    const statusColor = STATUS_ACCENT_COLOR[status];
+    const statusColor = colorOf(status);
     return (
       <Item
         key={`status-${status}`}
@@ -198,10 +199,10 @@ export function AppointmentStatusMenu({
   const tStatus = useTranslations('AppointmentStatus');
   const tMenu = useTranslations('AppointmentStatusMenu');
   const tReason = useTranslations('CancellationReason');
+  const { displayOf } = useAppointmentStatusDisplay();
   const current = appointment.status;
   const allowed = ALLOWED_STATUS_TRANSITIONS[current] ?? [];
-  const variant = (STATUS_BADGE_VARIANT[current] ?? 'default') as
-    | 'default' | 'success' | 'destructive' | 'info' | 'warning' | 'secondary' | 'outline';
+  const currentDisplay = displayOf(current);
   const CurrentIcon = getStatusIcon(current, appointment.cancellation_reason) ?? ClipboardList;
 
   return (
@@ -218,8 +219,9 @@ export function AppointmentStatusMenu({
           aria-label={tMenu('label')}
         >
           <Badge
-            variant={variant}
-            className={cn('capitalize gap-1', size === 'sm' ? 'text-xs' : 'text-sm')}
+            variant="custom"
+            className={cn('capitalize gap-1', statusBadgeClassNames(currentDisplay), size === 'sm' ? 'text-xs' : 'text-sm')}
+            style={statusBadgeInlineStyle(currentDisplay)}
           >
             {isUpdating ? (
               <Loader2 className="h-3 w-3 animate-spin" />

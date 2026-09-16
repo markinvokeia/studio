@@ -25,8 +25,10 @@ import { api } from '@/services/api';
 
 import type { Appointment, AppointmentStatus, Calendar, CancellationReason, PatientSession } from '@/lib/types';
 import { API_ROUTES } from '@/constants/routes';
-import { normalizeAppointmentStatus, normalizeCancellationReason, STATUS_BADGE_VARIANT } from '@/constants/appointment-status';
-import { formatDisplayDateWithWeekday } from '@/lib/utils';
+import { normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
+import { statusBadgeClassNames, statusBadgeInlineStyle } from '@/lib/appointment-status-display';
+import { formatDisplayDateWithWeekday, cn } from '@/lib/utils';
 
 const parseApptDateTime = (value?: string): Date | null => {
   if (!value) return null;
@@ -45,6 +47,7 @@ export function PatientAppointmentsHistorySheet() {
   const tStatus = useTranslations('AppointmentStatus');
   const tReason = useTranslations('CancellationReason');
   const locale = useLocale();
+  const { displayOf } = useAppointmentStatusDisplay();
 
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -296,10 +299,13 @@ export function PatientAppointmentsHistorySheet() {
       cell: ({ row }) => {
         const appt = row.original;
         const StatusIcon = getStatusIcon(appt.status, appt.cancellation_reason);
-        const statusVariant = (STATUS_BADGE_VARIANT[appt.status] ?? 'default') as
-          'default' | 'success' | 'destructive' | 'info' | 'warning' | 'secondary' | 'outline';
+        const statusDisplay = displayOf(appt.status);
         return (
-          <Badge variant={statusVariant} className="capitalize gap-1 text-xs px-2 py-0.5">
+          <Badge
+            variant="custom"
+            className={cn('capitalize gap-1 text-xs px-2 py-0.5', statusBadgeClassNames(statusDisplay))}
+            style={statusBadgeInlineStyle(statusDisplay)}
+          >
             <StatusIcon className="h-3 w-3" />
             {appt.status === 'cancelled' && appt.cancellation_reason
               ? tReason(appt.cancellation_reason)
@@ -308,7 +314,7 @@ export function PatientAppointmentsHistorySheet() {
         );
       },
     },
-  ], [t, tStatus, tReason, locale]);
+  ], [t, tStatus, tReason, locale, displayOf]);
 
   return (
     <>

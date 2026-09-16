@@ -229,6 +229,15 @@ export const API_ROUTES = {
         GET: '/clinic/preferences',
         UPSERT: '/clinic/preferences/upsert',
     },
+    /**
+     * Configuración → Colores de calendario. Matriz de color/modo/badge por
+     * estado de cita, general (calendar_id null) u override por calendario.
+     */
+    CALENDAR_STATUS_DISPLAY: {
+        SEARCH: '/calendar_status_display/search',
+        UPSERT: '/calendar_status_display/upsert',
+        DELETE: '/calendar_status_display/delete',
+    },
     ORDERS: '/orders',
     PERMISSIONS: '/permissions',
     PERMISSION_USERS: '/permission_users',
@@ -376,6 +385,8 @@ export const API_ROUTES = {
         ALERTS_CONFIG: '/system/alerts-config',
         AUDIT: '/system/audit',
         AUDIT_LOGS: '/audit_logs',
+        AUDIT_LOG_ENTITIES: '/audit_logs/entities',
+        AUDIT_LOG_ENTITY_HISTORY: '/audit_logs/entity_history',
         COMMUNICATION_HISTORY: '/system/communication-history',
         COMMUNICATION_TEMPLATES: '/system/communication-templates',
         COMMUNICATION_TEMPLATE: '/system/communication-template',

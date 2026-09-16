@@ -14,6 +14,7 @@ import {
   Edit,
   FileText,
   HeartPulse,
+  History,
   Info,
   Layers,
   Loader2,
@@ -59,11 +60,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { GOOGLE_CALENDAR_COLORS } from '@/components/calendar/calendar-constants';
 import { getReadableTextColor } from '@/components/calendar/calendar-utils';
 import { useToast } from '@/hooks/use-toast';
-import { STATUS_ACCENT_COLOR, canReschedule } from '@/constants/appointment-status';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
+import { canReschedule } from '@/constants/appointment-status';
 import { formatDisplayDate, cn, formatServicePrice, toLocalISOString } from '@/lib/utils';
 import { getEffectiveAppointmentContact } from '@/lib/appointment-contact';
 import type { Appointment, AppointmentStatus, Calendar as CalendarType, Invoice, Order, PatientSession, Service, User } from '@/lib/types';
 
+import { AppointmentHistorySheet } from '@/components/appointments/AppointmentHistorySheet';
 import { DoctorDetailSheet } from '@/components/appointments/DoctorDetailSheet';
 import { InlineEntityPicker } from '@/components/appointments/InlineEntityPicker';
 import { InlineServicePicker } from '@/components/calendar/inline-service-picker';
@@ -81,7 +84,7 @@ import {
 import { usePermissions } from '@/hooks/usePermissions';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
-import { BUSINESS_CONFIG_PERMISSIONS, SALES_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS } from '@/constants/permissions';
+import { BUSINESS_CONFIG_PERMISSIONS, SALES_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS, SYSTEM_PERMISSIONS } from '@/constants/permissions';
 
 /**
  * Color de respaldo del punto de un servicio que no tiene color propio. Estaba
@@ -498,6 +501,7 @@ export function AppointmentPanel({
   const locale = useLocale();
   const dateLocale = locale === 'es' ? es : enUS;
   const { toast } = useToast();
+  const { colorOf } = useAppointmentStatusDisplay();
   const t = useTranslations('AppointmentsPage');
   const tColumns = useTranslations('AppointmentsColumns');
   const tStatus = useTranslations('AppointmentStatus');
@@ -512,6 +516,7 @@ export function AppointmentPanel({
 
   const [isDoctorSheetOpen, setIsDoctorSheetOpen] = React.useState(false);
   const [isQuoteSheetOpen, setIsQuoteSheetOpen] = React.useState(false);
+  const [isHistorySheetOpen, setIsHistorySheetOpen] = React.useState(false);
   const [selectedService, setSelectedService] = React.useState<NonNullable<Appointment['services']>[number] | null>(null);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = React.useState(false);
   const [isColorPickerOpen, setIsColorPickerOpen] = React.useState(false);
@@ -527,6 +532,9 @@ export function AppointmentPanel({
   // The Budget section is financial data (quote doc no. + billing status) and its
   // row deep-links into the quote, so it needs the quote-read permission.
   const canViewQuotes = hasPermission(SALES_PERMISSIONS.QUOTES_VIEW_DETAIL);
+  // The change-history section reuses the audit log's own read permission — anyone
+  // who can browse /system/audit can also see an appointment's audit trail here.
+  const canViewHistory = hasPermission(SYSTEM_PERMISSIONS.AUDIT_LOG_VIEW_LIST);
   // "Ver estado de cuenta" abre el ledger financiero consolidado del paciente.
   const canViewStatement = hasAnyPermission([...PATIENT_FINANCIAL_VIEW_PERMISSIONS]);
   const { open: openPatientView } = usePatientView();
@@ -872,7 +880,7 @@ export function AppointmentPanel({
   const calendarValue = resolvedCalendarName
     ?? (isResolvingCalendarName ? '…' : tPanel('noCalendar'));
   const StatusIcon = getStatusIcon(appointment.status, appointment.cancellation_reason);
-  const statusColor = STATUS_ACCENT_COLOR[appointment.status];
+  const statusColor = colorOf(appointment.status);
   const appointmentCode = `#${appointment.id.slice(0, 8).toUpperCase()}`;
   const { phone: effectivePatientPhone, fromResponsibleContact } = getEffectiveAppointmentContact(appointment);
   const patientMeta = [effectivePatientPhone].filter(Boolean).join(' · ');
@@ -1487,6 +1495,23 @@ export function AppointmentPanel({
                   )}
                 </section>
               )}
+
+              {/* Change history — gated by the audit log's own read permission. Opens the
+                  dedicated history sheet instead of an inline list, same entry point the
+                  custom calendar mode's quick view uses. */}
+              {canViewHistory && (
+                <section className="mt-6 border-t border-border pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => setIsHistorySheetOpen(true)}
+                  >
+                    <History className="h-4 w-4" />
+                    {tPanel('history.title')}
+                  </Button>
+                </section>
+              )}
             </div>
 
             <AppointmentStatusRail
@@ -1560,6 +1585,14 @@ export function AppointmentPanel({
         </AlertDialogContent>
       </AlertDialog>
 
+      {canViewHistory && (
+        <AppointmentHistorySheet
+          open={isHistorySheetOpen}
+          onOpenChange={setIsHistorySheetOpen}
+          appointmentId={appointment.id}
+          appointmentLabel={appointment.patientName}
+        />
+      )}
       {displayAppointment.doctorId && (
         <DoctorDetailSheet
           open={isDoctorSheetOpen}

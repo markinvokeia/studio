@@ -1,4 +1,11 @@
-import type { CalendarItemType, CalendarReminder, CalendarReminderPriority } from '@/lib/types';
+import type {
+  CalendarItemType,
+  CalendarReminder,
+  CalendarReminderPriority,
+  ReminderRecurrence,
+  ReminderRecurrenceEndMode,
+  ReminderRecurrenceFreq,
+} from '@/lib/types';
 
 export const REMINDER_PRIORITY_COLORS: Record<CalendarReminderPriority, string> = {
   HIGH:   '#ef4444', // red-500
@@ -47,6 +54,102 @@ export function canManageReminder(
   return reminder.visibility === 'clinic' || isReminderAuthor(reminder, userId);
 }
 
+/** Si el ítem pertenece a una serie, o sea si editarlo/borrarlo tiene que preguntar alcance. */
+export function isRecurringReminder(reminder?: Pick<CalendarReminder, 'series_id'> | null): boolean {
+  return normalizeId(reminder?.series_id) !== null;
+}
+
+const RECURRENCE_FREQS: ReminderRecurrenceFreq[] = ['DAILY', 'WEEKLY', 'MONTHLY'];
+const RECURRENCE_END_MODES: ReminderRecurrenceEndMode[] = ['never', 'until', 'count'];
+
+/**
+ * Normaliza la regla que llega del backend.
+ *
+ * Devuelve `null` en cuanto algo no cierra en vez de armar una regla a medias: una
+ * recurrencia mal parseada sembraría el editor con valores que no son los guardados, y el
+ * usuario terminaría reescribiendo la serie sin querer.
+ */
+export function parseRecurrence(raw: unknown): ReminderRecurrence | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const value = raw as Record<string, unknown>;
+
+  const freq = String(value.freq ?? '').toUpperCase() as ReminderRecurrenceFreq;
+  if (!RECURRENCE_FREQS.includes(freq)) return null;
+
+  const endMode = String(value.end_mode ?? 'never').toLowerCase() as ReminderRecurrenceEndMode;
+  if (!RECURRENCE_END_MODES.includes(endMode)) return null;
+
+  const interval = Number(value.interval ?? value.rec_interval ?? 1);
+  if (!Number.isFinite(interval) || interval < 1 || interval > 52) return null;
+
+  const rawWeekdays = value.byweekday;
+  const byweekday = Array.isArray(rawWeekdays)
+    ? rawWeekdays.map(Number).filter((day) => Number.isInteger(day) && day >= 1 && day <= 7)
+    : null;
+  if (freq === 'WEEKLY' && (!byweekday || byweekday.length === 0)) return null;
+
+  const monthDay = value.by_month_day == null ? null : Number(value.by_month_day);
+  if (freq === 'MONTHLY' && (monthDay === null || !Number.isInteger(monthDay) || monthDay < 1 || monthDay > 31)) {
+    return null;
+  }
+
+  const count = value.occurrence_count == null ? null : Number(value.occurrence_count);
+  if (endMode === 'count' && (count === null || !Number.isInteger(count) || count < 1)) return null;
+
+  const until = value.until_date == null || value.until_date === '' ? null : String(value.until_date).slice(0, 10);
+  if (endMode === 'until' && !until) return null;
+
+  return {
+    freq,
+    interval,
+    byweekday: freq === 'WEEKLY' ? byweekday : null,
+    by_month_day: freq === 'MONTHLY' ? monthDay : null,
+    end_mode: endMode,
+    until_date: endMode === 'until' ? until : null,
+    occurrence_count: endMode === 'count' ? count : null,
+  };
+}
+
+/**
+ * Resumen legible de la regla ("Cada 2 semanas, lun y mié, hasta el 31/12/2026").
+ *
+ * Recibe el traductor en vez de importarlo: este módulo es la regla de negocio compartida
+ * entre la página, el panel y el formulario, y no debería depender de next-intl.
+ */
+export function formatRecurrenceSummary(
+  recurrence: ReminderRecurrence,
+  t: (key: string, values?: Record<string, string | number>) => string,
+): string {
+  const every = recurrence.interval === 1
+    ? t(`recurrence.every.${recurrence.freq.toLowerCase()}`)
+    : t(`recurrence.everyN.${recurrence.freq.toLowerCase()}`, { count: recurrence.interval });
+
+  const parts: string[] = [every];
+
+  if (recurrence.freq === 'WEEKLY' && recurrence.byweekday?.length) {
+    const days = [...recurrence.byweekday]
+      .sort((a, b) => a - b)
+      .map((day) => t(`recurrence.weekdayShort.${day}`))
+      .join(', ');
+    parts.push(days);
+  }
+
+  if (recurrence.freq === 'MONTHLY' && recurrence.by_month_day) {
+    parts.push(t('recurrence.onDay', { day: recurrence.by_month_day }));
+  }
+
+  if (recurrence.end_mode === 'until' && recurrence.until_date) {
+    const [year, month, day] = recurrence.until_date.split('-');
+    parts.push(t('recurrence.until', { date: `${day}/${month}/${year}` }));
+  }
+
+  if (recurrence.end_mode === 'count' && recurrence.occurrence_count) {
+    parts.push(t('recurrence.afterCount', { count: recurrence.occurrence_count }));
+  }
+
+  return parts.join(', ');
+}
+
 function getReminderColor(value: unknown, priority: CalendarReminderPriority): string {
   if (typeof value !== 'string') return getPriorityColor(priority);
 
@@ -84,6 +187,10 @@ export function normalizeReminder(rawReminder: Record<string, unknown>): Calenda
                           ? (rawReminder.status as CalendarReminder['status'])
                           : 'pending',
     visibility:         rawReminder.visibility === 'personal' ? 'personal' : 'clinic',
+    is_all_day:         Boolean(rawReminder.is_all_day ?? rawReminder.isAllDay),
+    series_id:          normalizeId(rawReminder.series_id ?? rawReminder.seriesId),
+    is_series_exception: Boolean(rawReminder.is_series_exception ?? rawReminder.isSeriesException),
+    recurrence:         parseRecurrence(rawReminder.recurrence),
     raise_alert:        Boolean(rawReminder.raise_alert),
     alert_instance_id:  (rawReminder.alert_instance_id ?? rawReminder.alertInstanceId ?? null) as number | null,
     created_by:         normalizeId(rawReminder.created_by ?? rawReminder.createdBy),

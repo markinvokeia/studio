@@ -745,6 +745,18 @@ export const CLINIC_PREFS_PERMISSIONS = {
 export type ClinicPrefsPermission =
   (typeof CLINIC_PREFS_PERMISSIONS)[keyof typeof CLINIC_PREFS_PERMISSIONS];
 
+/**
+ * Configuración → Colores de Calendario. Matriz de color/modo/badge por
+ * estado de cita (tabla `calendar_status_display`).
+ */
+export const CALENDAR_DISPLAY_PERMISSIONS = {
+  VIEW:   'CALENDAR_DISPLAY_VIEW',
+  UPDATE: 'CALENDAR_DISPLAY_UPDATE',
+} as const;
+
+export type CalendarDisplayPermission =
+  (typeof CALENDAR_DISPLAY_PERMISSIONS)[keyof typeof CALENDAR_DISPLAY_PERMISSIONS];
+
 export const PATIENT_PORTAL_PERMISSIONS = {
   ACCESS:              'PATIENT_PORTAL_ACCESS',
   VIEW_INFO:           'PATIENT_PORTAL_VIEW_INFO',

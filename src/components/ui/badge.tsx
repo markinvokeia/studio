@@ -20,6 +20,9 @@ const badgeVariants = cva(
         info: "border-transparent bg-blue-500 text-white hover:bg-blue-500/80",
         warning:
           "border-transparent bg-amber-500 text-white hover:bg-amber-500/80",
+        // Sin colores propios: el llamador pasa background/color/borde inline
+        // (ver `statusBadgeInlineStyle`), para la matriz de colores de estado.
+        custom: "",
       },
     },
     defaultVariants: {

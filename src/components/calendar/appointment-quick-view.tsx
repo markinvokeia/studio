@@ -1,13 +1,14 @@
 'use client';
 
 import * as React from 'react';
-import { CalendarDays, MapPin, Pencil, Phone, Stethoscope, StickyNote, UserRound, X } from 'lucide-react';
+import { CalendarDays, History, MapPin, Pencil, Phone, Stethoscope, StickyNote, UserRound, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover';
 
-import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
+import { normalizeAppointmentStatus } from '@/constants/appointment-status';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
 import { formatDisplayDateWithWeekday } from '@/lib/utils';
 import { getEffectiveAppointmentContact } from '@/lib/appointment-contact';
 import type { Appointment } from '@/lib/types';
@@ -20,6 +21,10 @@ interface AppointmentQuickViewProps {
   anchorRect: DOMRect;
   onClose: () => void;
   onEdit: (appointment: Appointment) => void;
+  /** Abre el panel lateral completo (con el historial de auditoría) sobre esta cita.
+   *  Omitido cuando quien lo abre no tiene permiso de ver el log de auditoría —
+   *  en ese caso el botón ni se renderiza. */
+  onViewDetails?: (appointment: Appointment) => void;
   /** 'es' | 'en', para el nombre del día de la semana. */
   locale?: string;
 }
@@ -75,11 +80,14 @@ export function AppointmentQuickView({
   anchorRect,
   onClose,
   onEdit,
+  onViewDetails,
   locale = 'es',
 }: AppointmentQuickViewProps) {
   const t = useTranslations('AppointmentsPage');
   const tColumns = useTranslations('AppointmentsColumns');
   const tStatus = useTranslations('AppointmentStatus');
+  const tPanel = useTranslations('AppointmentPanel');
+  const { colorOf } = useAppointmentStatusDisplay();
 
   // El ancla queda fija en las coordenadas donde estaba la card: si el usuario
   // scrollea la grilla, la card se mueve y el popover quedaría flotando en el aire.
@@ -115,7 +123,7 @@ export function AppointmentQuickView({
     .filter(Boolean)
     .join('  ·  ');
 
-  const accentColor = STATUS_ACCENT_COLOR[appointment.status] ?? appointment.color;
+  const accentColor = colorOf(normalizeAppointmentStatus(appointment.status));
 
   // En la vista de agenda (y en móvil) la card ocupa casi todo el ancho, así que
   // anclar el popover "a la derecha" lo deja sin espacio: Radix lo aplasta contra
@@ -148,6 +156,18 @@ export function AppointmentQuickView({
         onContextMenu={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-end gap-0.5 px-2 pt-2">
+          {onViewDetails && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              title={tPanel('history.title')}
+              onClick={() => onViewDetails(appointment)}
+            >
+              <History className="h-3.5 w-3.5" />
+            </Button>
+          )}
           <Button
             type="button"
             variant="ghost"

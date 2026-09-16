@@ -26,6 +26,8 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import { cn } from '@/lib/utils';
+import { IDENTITY_DOCUMENT_TYPES } from '@/lib/identity-document';
+import { useClinicPreferencesStore } from '@/stores/clinic-preferences-store';
 import type { MutualSociety, User } from '@/lib/types';
 import {
   fetchPatientById,
@@ -286,10 +288,11 @@ export function PatientInfoTab({
   // Create mode: groups picked before the patient exists, assigned right after the upsert.
   const [pendingGroupIds, setPendingGroupIds] = React.useState<string[]>([]);
 
+  const identityDocumentRequired = useClinicPreferencesStore((s) => s.preferences.identity_document_required);
   const infoForm = useForm<UserFormValues>({
-    resolver: zodResolver(userFormSchema(t)),
+    resolver: zodResolver(userFormSchema(t, { identityDocumentRequired })),
     defaultValues: {
-      id: '', name: initialName || '', email: '', phone: '', identity_document: '', birth_date: '', address: '',
+      id: '', name: initialName || '', email: '', phone: '', identity_document: '', identity_document_type: 'cedula_uy', birth_date: '', address: '',
       notes: '', is_active: true, mutual_society_id: '', is_dependent: false, responsible_contact_id: null,
       doctor_id: null, sex: null,
     },
@@ -320,6 +323,7 @@ export function PatientInfoTab({
           email: u.email || '',
           phone: u.phone_number || '',
           identity_document: u.identity_document || '',
+          identity_document_type: u.identity_document_type || 'cedula_uy',
           birth_date: u.birth_date || '',
           address: u.address || '',
           notes: u.notes || '',
@@ -390,6 +394,7 @@ export function PatientInfoTab({
           is_active: data.is_active,
           avatar: '',
           identity_document: data.identity_document,
+          identity_document_type: data.identity_document_type as User['identity_document_type'],
           birth_date: data.birth_date,
           address: data.address,
           notes: data.notes,
@@ -407,6 +412,7 @@ export function PatientInfoTab({
         email: data.email || '',
         phone_number: data.phone || '',
         identity_document: data.identity_document,
+        identity_document_type: data.identity_document_type as User['identity_document_type'],
         birth_date: data.birth_date,
         address: data.address,
         notes: data.notes,
@@ -473,6 +479,26 @@ export function PatientInfoTab({
               <FormItem>
                 <FormLabel>{t('UsersPage.createDialog.name')}</FormLabel>
                 <FormControl><Input placeholder={t('UsersPage.createDialog.namePlaceholder')} {...field} /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+            <FormField control={infoForm.control} name="identity_document_type" render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('UsersPage.createDialog.identity_document_type')}</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {IDENTITY_DOCUMENT_TYPES.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {t(`UsersPage.createDialog.identityDocumentTypes.${type}`)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )} />

@@ -137,8 +137,8 @@ export const systemConfigurations: SystemConfiguration[] = [
 ];
 
 export const auditLogs: AuditLog[] = [
-  { id: 'aud_1', changed_at: '2023-10-26T10:00:00Z', changed_by: 'usr_1', table_name: 'users', record_id: 'usr_2', operation: 'update', old_value: {}, new_value: {} },
-  { id: 'aud_2', changed_at: '2023-10-26T10:05:00Z', changed_by: 'usr_1', table_name: 'roles', record_id: 'rol_3', operation: 'create', old_value: {}, new_value: {} },
+  { id: 'aud_1', changed_at: '2023-10-26T10:00:00Z', changed_by: 'usr_1', table_name: 'users', record_id: 'usr_2', operation: 'UPDATE', old_value: {}, new_value: {} },
+  { id: 'aud_2', changed_at: '2023-10-26T10:05:00Z', changed_by: 'usr_1', table_name: 'roles', record_id: 'rol_3', operation: 'INSERT', old_value: {}, new_value: {} },
 ];
 
 export const accessLogs: AccessLog[] = [

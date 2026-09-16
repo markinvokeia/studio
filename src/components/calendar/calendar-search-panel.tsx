@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
+import type { AppointmentStatus } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 /** Calendario/agenda para el filtro del buscador. */
@@ -145,6 +146,7 @@ export function CalendarSearchPanel({
   onClose,
 }: CalendarSearchPanelProps) {
   const t = useTranslations('Calendar.search');
+  const { colorOf } = useAppointmentStatusDisplay();
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [calMenuOpen, setCalMenuOpen] = React.useState(false);
 
@@ -297,7 +299,7 @@ export function CalendarSearchPanel({
               </p>
               <div className="space-y-1">
                 {dayResults.map((r) => {
-                  const dot = r.status ? STATUS_ACCENT_COLOR[r.status as keyof typeof STATUS_ACCENT_COLOR] : undefined;
+                  const dot = r.status ? colorOf(r.status as AppointmentStatus) : undefined;
                   return (
                     <button
                       type="button"

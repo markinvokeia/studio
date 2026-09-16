@@ -9,7 +9,9 @@ import * as React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
-import { STATUS_BADGE_VARIANT, canReschedule } from '@/constants/appointment-status';
+import { canReschedule } from '@/constants/appointment-status';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
+import { statusBadgeClassNames, statusBadgeInlineStyle } from '@/lib/appointment-status-display';
 import type { Appointment } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -59,8 +61,8 @@ export function AppointmentCard({ appointment, isNext, onReschedule, onCancel, c
     return withoutPatient.replace(/^[\s-]+|[\s-]+$/g, '');
   }, [appointment.service_name, appointment.summary, appointment.patientName]);
 
-  const statusVariant = (STATUS_BADGE_VARIANT[appointment.status] ?? 'default') as
-    React.ComponentProps<typeof Badge>['variant'];
+  const { displayOf } = useAppointmentStatusDisplay();
+  const statusDisplay = displayOf(appointment.status);
 
   return (
     <article
@@ -96,7 +98,7 @@ export function AppointmentCard({ appointment, isNext, onReschedule, onCancel, c
                 <Clock className="h-4 w-4 shrink-0 self-center text-muted-foreground" />
                 <span className="text-2xl font-bold leading-none tabular-nums">{appointment.time}</span>
               </p>
-              <Badge variant={statusVariant} className="shrink-0">
+              <Badge variant="custom" className={cn('shrink-0', statusBadgeClassNames(statusDisplay))} style={statusBadgeInlineStyle(statusDisplay)}>
                 {tStatus(appointment.status)}
               </Badge>
             </div>

@@ -12,10 +12,10 @@ import {
 
 import type { Locale } from 'date-fns';
 
-import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
 import { cn } from '@/lib/utils';
 import type { AppointmentStatus, CalendarReminderPriority, CalendarReminderStatus, CancellationReason } from '@/lib/types';
 import { getStatusIcon } from '@/components/appointments/status-icons';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
 
 import { GOOGLE_IMPORT_BADGE_COLOR } from './calendar-constants';
 import type { CalendarDragMode, CalendarDragPhase, CalendarEvent } from './calendar-types';
@@ -48,6 +48,7 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
   draggable = false,
 }: CalendarEventChipProps) {
   const tAppointments = useTranslations('AppointmentsPage');
+  const { colorOf } = useAppointmentStatusDisplay();
   const rawStatus = event.data?.status as string | undefined;
   const isReminder = event.data?.kind === 'reminder';
   const isNote = isReminder && event.data?.type === 'note';
@@ -63,7 +64,7 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
   // Con la card ya pintada del gris de "cancelada" el rayado sobra: se muestra
   // solo cuando el color viene del calendario/servicio y no del estado.
   const showCancelledStripes = isCancelled && !statusColored;
-  const accentColor = isReminder ? getReminderPriorityColor(reminderPriority) : status ? STATUS_ACCENT_COLOR[status] : undefined;
+  const accentColor = isReminder ? getReminderPriorityColor(reminderPriority) : status ? colorOf(status) : undefined;
 
   const isChipDraggable = draggable && !event.locked && !!onDragPointerDown;
   const bg = event.color || 'hsl(var(--primary))';

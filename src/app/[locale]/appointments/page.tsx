@@ -60,11 +60,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
 import { API_ROUTES } from '@/constants/routes';
-import { BUSINESS_CONFIG_PERMISSIONS, PATIENTS_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS } from '@/constants/permissions';
+import { BUSINESS_CONFIG_PERMISSIONS, PATIENTS_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS, SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
-import { Appointment, AppointmentBulkFilterParams, AppointmentColorSource, AppointmentDatePreset, AppointmentStatus, Calendar as CalendarType, CalendarItemType, CalendarReminder, CalendarSettings, ClinicSchedule, ClinicException, Invoice, Order, PatientSession, Quote, QuoteItem, ResponsibleContact, Sede, Service, SessionPreloadedService, User as UserType } from '@/lib/types';
+import { Appointment, AppointmentBulkFilterParams, AppointmentColorSource, AppointmentDatePreset, AppointmentStatus, Calendar as CalendarType, CalendarItemScope, CalendarItemType, CalendarReminder, CalendarSettings, ClinicSchedule, ClinicException, Invoice, Order, PatientSession, Quote, QuoteItem, ResponsibleContact, Sede, Service, SessionPreloadedService, User as UserType } from '@/lib/types';
 import { getEffectiveAppointmentContact, normalizeResponsibleContact, patchAppointmentsForPatient } from '@/lib/appointment-contact';
 import { getDependantContactInfo } from '@/components/patients/patient-form-utils';
 import { cn, toLocalISOString } from '@/lib/utils';
@@ -82,8 +82,10 @@ import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
 import { AppointmentPanel } from '@/components/appointments/AppointmentPanel';
+import { AppointmentHistorySheet } from '@/components/appointments/AppointmentHistorySheet';
 import { AppointmentQuickView } from '@/components/calendar/appointment-quick-view';
 import { ReminderQuickView } from '@/components/calendar/reminder-quick-view';
+import { ReminderScopeDialog } from '@/components/appointments/ReminderScopeDialog';
 import { PatientCreateDialog } from '@/components/patients/patient-create-dialog';
 import { BulkReassignDoctorDialog } from '@/components/appointments/BulkReassignDoctorDialog';
 import { PrintScheduleDialog } from '@/components/appointments/PrintScheduleDialog';
@@ -99,14 +101,16 @@ import { usePatientAppointmentsSheet } from '@/stores/patient-appointments-sheet
 import { usePatientDocumentsSheet } from '@/stores/patient-documents-sheet-store';
 import { AppointmentStatusContextItems } from '@/components/appointments/AppointmentStatusMenu';
 import { useAppointmentStatus } from '@/hooks/use-appointment-status';
-import { canReschedule, normalizeAppointmentStatus, normalizeCancellationReason, STATUS_ACCENT_COLOR, STATUS_FORCED_CALENDAR_COLOR } from '@/constants/appointment-status';
+import { canReschedule, normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
+import { resolveEventStatusColors } from '@/lib/appointment-status-display';
 import { useAppointmentReschedule } from '@/hooks/use-appointment-reschedule';
 import { CancellationNoteDialog } from '@/components/appointments/CancellationNoteDialog';
 import { getAppointmentColumns } from './columns';
 import { useCalendarLiveRefresh, CALENDAR_PATCH_EVENT, type CalendarChangePayload, type CalendarPatchEventDetail } from '@/hooks/use-calendar-live-refresh';
 import { useNotifications } from '@/context/notifications-context';
 import { useAuth } from '@/context/AuthContext';
-import { canManageReminder, normalizeReminder } from '@/lib/reminders';
+import { canManageReminder, isRecurringReminder, normalizeReminder } from '@/lib/reminders';
 import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
 import { InvoiceFormDialog } from '@/components/tables/invoices-table';
 
@@ -855,6 +859,9 @@ export default function AppointmentsPage() {
     // permiso (el único call-site de la app estaba en AppointmentPanel). Mover o
     // redimensionar una cita sí es escritura.
     const canUpdateAppointments = hasPermission(BUSINESS_CONFIG_PERMISSIONS.APPOINTMENT_UPDATE);
+    // Habilita el botón de historial en la ventana flotante del modo custom — mismo
+    // permiso que gatea la sección de historial dentro del panel lateral completo.
+    const canViewAppointmentHistory = hasPermission(SYSTEM_PERMISSIONS.AUDIT_LOG_VIEW_LIST);
 
     const { toast } = useToast();
     const { reschedule: rescheduleAppointment } = useAppointmentReschedule();
@@ -888,6 +895,9 @@ export default function AppointmentsPage() {
     // Ventana flotante de detalle (modo custom): la cita y el rect de su card, para
     // anclarla. En el modo normal el clic simple sigue abriendo el panel lateral.
     const [quickView, setQuickView] = React.useState<{ appointment: Appointment; anchorRect: DOMRect } | null>(null);
+    // Cita cuyo historial de auditoría se está viendo en el sheet dedicado — se abre
+    // desde el botón de historial de la ventana flotante (modo custom).
+    const [historyAppointment, setHistoryAppointment] = React.useState<Appointment | null>(null);
     const [reminderQuickView, setReminderQuickView] = React.useState<{ reminder: CalendarReminder; anchorRect: DOMRect } | null>(null);
     const [selectedReminder, setSelectedReminder] = React.useState<CalendarReminder | null>(null);
     const [isReminderPanelOpen, setIsReminderPanelOpen] = React.useState(false);
@@ -896,6 +906,10 @@ export default function AppointmentsPage() {
     const [reminderInitialDate, setReminderInitialDate] = React.useState<Date | null>(null);
     const [reminderInitialType, setReminderInitialType] = React.useState<CalendarItemType>('reminder');
     const [reminderInitialCalendarId, setReminderInitialCalendarId] = React.useState<string | null>(null);
+    // Editar o borrar algo de una serie pregunta primero a qué alcanza. El alcance
+    // elegido viaja con el guardado: el backend decide si toca una fila o la serie.
+    const [scopePrompt, setScopePrompt] = React.useState<{ action: 'edit' | 'delete'; reminder: CalendarReminder } | null>(null);
+    const [pendingScope, setPendingScope] = React.useState<CalendarItemScope>('occurrence');
 
     const [selectedDoctorIds, setSelectedDoctorIds] = React.useState<string[]>([]);
     const [groupBy, setGroupBy] = React.useState<CalendarGroupBy>('none');
@@ -963,6 +977,7 @@ export default function AppointmentsPage() {
     const [eventLabelFormat, setEventLabelFormat] = React.useState<string>(DEFAULT_EVENT_LABEL_FORMAT);
     const [colorByStatus, setColorByStatus] = React.useState<boolean>(DEFAULT_COLOR_BY_STATUS);
     const [defaultSede, setDefaultSede] = React.useState<string>('');
+    const { matrix: statusDisplayMatrix, displayOf: getStatusDisplay } = useAppointmentStatusDisplay();
 
     // ── Calendar display mode (invoke | custom) ──────────────────────────────
     // In 'custom' mode a single agenda is shown at a time, chosen from the
@@ -2302,6 +2317,8 @@ export default function AppointmentsPage() {
             priority: values.priority,
             status: editingReminder?.status ?? 'pending',
             visibility: values.visibility,
+            is_all_day: values.is_all_day,
+            series_id: editingReminder?.series_id ?? null,
             created_by: editingReminder?.created_by ?? user?.id ?? null,
             created_at: editingReminder?.created_at ?? now,
             updated_at: editingReminder ? now : null,
@@ -2330,6 +2347,9 @@ export default function AppointmentsPage() {
                 priority: values.priority,
                 status: editingReminder?.status ?? 'pending',
                 visibility: values.visibility,
+                is_all_day: values.is_all_day,
+                recurrence: values.recurrence,
+                scope: editingReminder ? pendingScope : 'occurrence',
                 raise_alert: editingReminder?.raise_alert ?? true,
                 created_by: editingReminder?.created_by ?? user?.id ?? undefined,
             });
@@ -2347,6 +2367,9 @@ export default function AppointmentsPage() {
                 setSelectedReminder((prev) => (prev && (prev.id === reminderId || prev.id === savedReminder.id) ? savedReminder : prev));
             }
             toast({ title: tReminders('saved') });
+            // Una serie reescribe varias filas de golpe; el parche optimista de una sola
+            // no alcanza para reflejarlo.
+            if (values.recurrence || editingReminder?.series_id) refreshCalendarDataRef.current();
             refreshReminders();
         } catch (error) {
             toast({
@@ -2356,15 +2379,24 @@ export default function AppointmentsPage() {
             });
             refreshCalendarDataRef.current();
         }
-    }, [editingReminder, tReminders, toast, refreshReminders, user]);
+    }, [editingReminder, pendingScope, tReminders, toast, refreshReminders, user]);
 
-    const handleEditReminder = React.useCallback((reminder: CalendarReminder) => {
+    const openReminderForm = React.useCallback((reminder: CalendarReminder, scope: CalendarItemScope) => {
+        setPendingScope(scope);
         setEditingReminder(reminder);
         setReminderInitialDate(null);
         setReminderInitialType(reminder.type);
         setReminderInitialCalendarId(reminder.calendar_id);
         setIsReminderFormOpen(true);
     }, []);
+
+    const handleEditReminder = React.useCallback((reminder: CalendarReminder) => {
+        if (isRecurringReminder(reminder)) {
+            setScopePrompt({ action: 'edit', reminder });
+            return;
+        }
+        openReminderForm(reminder, 'occurrence');
+    }, [openReminderForm]);
 
     const handleMarkReminderDone = React.useCallback(async (reminder: CalendarReminder) => {
         const now = toLocalISOString(new Date());
@@ -2397,12 +2429,18 @@ export default function AppointmentsPage() {
         }
     }, [tReminders, toast]);
 
-    const handleDeleteReminder = React.useCallback(async (reminder: CalendarReminder) => {
-        setReminders((prev) => prev.filter((item) => item.id !== reminder.id));
+    const deleteReminderWithScope = React.useCallback(async (reminder: CalendarReminder, scope: CalendarItemScope) => {
+        // Con alcance de serie desaparece más de una fila, así que la baja optimista
+        // saca todas las de la serie en vez de solo la clickeada.
+        setReminders((prev) => prev.filter((item) => (
+            scope === 'series' && reminder.series_id
+                ? item.series_id !== reminder.series_id
+                : item.id !== reminder.id
+        )));
         setSelectedReminder(null);
         setIsReminderPanelOpen(false);
         try {
-            const response = await api.post(API_ROUTES.REMINDERS_DELETE, { id: reminder.id });
+            const response = await api.post(API_ROUTES.REMINDERS_DELETE, { id: reminder.id, scope });
             const result = Array.isArray(response) ? response[0] : response;
             if (result?.error || (result?.code && result.code >= 400)) {
                 throw new Error(result?.message || tReminders('errorDesc'));
@@ -2417,6 +2455,14 @@ export default function AppointmentsPage() {
             refreshCalendarDataRef.current();
         }
     }, [tReminders, toast]);
+
+    const handleDeleteReminder = React.useCallback((reminder: CalendarReminder) => {
+        if (isRecurringReminder(reminder)) {
+            setScopePrompt({ action: 'delete', reminder });
+            return;
+        }
+        void deleteReminderWithScope(reminder, 'occurrence');
+    }, [deleteReminderWithScope]);
 
     const handleEdit = (appointment: Appointment) => {
         if (calendarMode === 'custom' && openInlineDraftForAppointment(appointment, false)) {
@@ -3528,18 +3574,22 @@ export default function AppointmentsPage() {
                     // en una franja lateral. Heredar el color del doctor o del consultorio no
                     // lo es, así que esas citas sí se pintan enteras. `appt.color` queda
                     // intacto en los dos casos para el selector de color y el panel de detalle.
-                    // Programada y No asistió (STATUS_FORCED_CALENDAR_COLOR) pintan la card
-                    // entera aunque la preferencia esté apagada o el color venga del servicio,
-                    // del doctor o del consultorio, porque son los estados que hay que ver de
-                    // un vistazo. La única excepción es la etiqueta de color elegida a mano
-                    // sobre la cita: eso gana siempre y se ve al instante, sin esperar a que
-                    // la cita pase al siguiente estado; el estado queda en la franja lateral.
+                    // Los estados en modo 'always' (calendar_mode de la matriz) pintan la
+                    // card entera aunque la preferencia esté apagada o el color venga del
+                    // servicio, del doctor o del consultorio, porque son los estados que hay
+                    // que ver de un vistazo. La única excepción es la etiqueta de color
+                    // elegida a mano sobre la cita: eso gana siempre y se ve al instante, sin
+                    // esperar a que la cita pase al siguiente estado; el estado queda en la
+                    // franja lateral.
                     const status = normalizeAppointmentStatus(appt.status);
-                    const forcesStatus = STATUS_FORCED_CALENDAR_COLOR.includes(status);
-                    const showsStatus = forcesStatus || colorByStatus;
-                    const hasOwnColorTag = appt.colorSource === 'appointment' && Boolean(appt.color);
-                    const keepsOwnColor = hasOwnColorTag || (!forcesStatus && appt.colorSource === 'service');
-                    const statusColored = showsStatus && !keepsOwnColor;
+                    const display = getStatusDisplay(status);
+                    const { color: resolvedColor, statusColored, statusStripeColor } = resolveEventStatusColors({
+                        status,
+                        display,
+                        colorSource: appt.colorSource,
+                        color: appt.color,
+                        colorByStatus,
+                    });
                     return {
                         id: String(appt.id),
                         title: appt.summary || appt.service_name || 'Cita',
@@ -3553,9 +3603,9 @@ export default function AppointmentsPage() {
                         // tener sesión clínica y factura colgando. Mismo criterio que
                         // usa el hook de reprogramación.
                         locked: !canUpdateAppointments || !canReschedule(status),
-                        color: statusColored ? STATUS_ACCENT_COLOR[status] : appt.color,
+                        color: resolvedColor,
                         statusColored,
-                        statusStripeColor: showsStatus && keepsOwnColor ? STATUS_ACCENT_COLOR[status] : undefined,
+                        statusStripeColor,
                         colorId: appt.colorId,
                     };
                 } catch (e) {
@@ -3575,12 +3625,23 @@ export default function AppointmentsPage() {
                 const end = reminder.end_datetime ? parseISO(reminder.end_datetime.replace(/Z$/, '')) : start;
                 if (!isValid(start) || !isValid(end)) return null;
 
+                // Se muestra el rango, no solo el inicio: un ítem largo ("09:00 17:00")
+                // no se leía, y en mes y agenda no hay alto de card que lo comunique.
+                // Los de todo el día no llevan hora: la banda ya dice cuándo son.
+                const timeLabel = reminder.is_all_day
+                    ? ''
+                    : `${format(start, 'HH:mm')}–${format(end, 'HH:mm')}`;
+                // El glifo va en el label y no en un badge propio para no tocar los cuatro
+                // consumidores de `reminder-visuals`, que dibujan la card en cada vista.
+                const repeatGlyph = reminder.series_id ? '↻' : '';
+
                 return {
                     id: `reminder-${reminder.id}`,
                     title: reminder.title,
-                    label: [format(start, 'HH:mm'), reminder.title].filter(Boolean).join(' '),
+                    label: [timeLabel, repeatGlyph, reminder.title].filter(Boolean).join(' '),
                     start,
                     end,
+                    allDay: reminder.is_all_day,
                     doctorGroupId: CALENDAR_ITEMS_DOCTOR_GROUP_ID,
                     calendarGroupId: reminder.calendar_id || UNASSIGNED_CALENDAR_GROUP_ID,
                     data: { ...reminder, kind: 'reminder' as const },
@@ -3590,7 +3651,7 @@ export default function AppointmentsPage() {
             .filter((event): event is NonNullable<typeof event> => event !== null);
 
         return [...events, ...reminderEvents];
-    }, [appointments, calendars, reminders, selectedCalendarIds, selectedDoctorIds, eventLabelFormat, colorByStatus, isBulkMode, user?.id, t, canUpdateAppointments]);
+    }, [appointments, calendars, reminders, selectedCalendarIds, selectedDoctorIds, eventLabelFormat, colorByStatus, statusDisplayMatrix, getStatusDisplay, isBulkMode, user?.id, t, canUpdateAppointments]);
 
     const visibleCalendarItems = React.useMemo(
         () => reminders.filter((reminder) => {
@@ -4031,6 +4092,24 @@ export default function AppointmentsPage() {
         // Reminders carry no calendarGroupId, so they're excluded in custom mode.
         return calendarEvents.filter((e) => (e as { calendarGroupId?: string }).calendarGroupId === personalizedCalendarId);
     }, [isCustomMode, personalizedCalendarId, calendarEvents]);
+
+    /**
+     * Los de todo el día salen del array de la rejilla y van a la banda fija de arriba.
+     *
+     * No es una preferencia estética: con `start` 00:00 y `end` 23:59, `getEventsWithLayout`
+     * los encadenaría en un cluster con TODAS las citas del día y, como ordena "a igual
+     * inicio, primero la más larga", quedarían en `stackLevel 0` empujando la columna
+     * entera hacia la derecha. Rompen el día completo, no solo su propia card.
+     */
+    const gridEvents = React.useMemo<CalendarEvent[]>(
+        () => effectiveEvents.filter((event) => !event.allDay),
+        [effectiveEvents],
+    );
+
+    const allDayEvents = React.useMemo<CalendarEvent[]>(
+        () => effectiveEvents.filter((event) => event.allDay),
+        [effectiveEvents],
+    );
 
     /**
      * Lo que realmente ocupa la agenda a efectos de "Buscar huecos".
@@ -4852,7 +4931,9 @@ export default function AppointmentsPage() {
                             headerActionsClusterRef={setHeaderActionsEl}
                             hourSlotHeight={hourSlotHeight}
                             slotMinutes={slotDuration}
-                            events={effectiveEvents}
+                            hiddenWeekdays={calendarSettings?.hidden_weekdays}
+                            events={gridEvents}
+                            allDayEvents={allDayEvents}
                             focusDate={searchFocusDate}
                             focusedEventId={focusedEvent?.id ?? null}
                             focusEventNonce={focusedEvent?.nonce ?? 0}
@@ -5588,6 +5669,7 @@ export default function AppointmentsPage() {
                 initialCalendarId={reminderInitialCalendarId}
                 calendars={calendars}
                 currentUserId={user?.id}
+                scope={pendingScope}
                 editingReminder={editingReminder}
                 onSave={handleSaveReminder}
             />
@@ -5655,6 +5737,19 @@ export default function AppointmentsPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            <ReminderScopeDialog
+                open={scopePrompt !== null}
+                onOpenChange={(open) => { if (!open) setScopePrompt(null); }}
+                action={scopePrompt?.action ?? 'edit'}
+                onConfirm={(scope) => {
+                    const target = scopePrompt?.reminder;
+                    if (!target) return;
+                    if (scopePrompt?.action === 'delete') void deleteReminderWithScope(target, scope);
+                    else openReminderForm(target, scope);
+                    setScopePrompt(null);
+                }}
+            />
+
             {reminderQuickView && (
                 <ReminderQuickView
                     reminder={reminderQuickView.reminder}
@@ -5672,10 +5767,22 @@ export default function AppointmentsPage() {
                     locale={locale}
                     onClose={() => setQuickView(null)}
                     onEdit={(appointment) => { setQuickView(null); handleEditAppointment(appointment); }}
+                    onViewDetails={canViewAppointmentHistory ? (appointment) => {
+                        setQuickView(null);
+                        setHistoryAppointment(appointment);
+                    } : undefined}
+                />
+            )}
+            {historyAppointment && (
+                <AppointmentHistorySheet
+                    open={!!historyAppointment}
+                    onOpenChange={(open) => { if (!open) setHistoryAppointment(null); }}
+                    appointmentId={historyAppointment.id}
+                    appointmentLabel={historyAppointment.patientName}
                 />
             )}
             <AppointmentPanel
-                open={calendarMode !== 'custom' && isDetailViewOpen}
+                open={isDetailViewOpen}
                 onOpenChange={setIsDetailViewOpen}
                 appointment={selectedAppointment}
                 linkedSession={linkedSession}

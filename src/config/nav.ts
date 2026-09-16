@@ -1,5 +1,5 @@
 
-import { ALERT_CENTER_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS, CLINIC_PREFS_PERMISSIONS, PATIENT_PORTAL_CONFIG_PERMISSIONS, CASHIER_PERMISSIONS, CLINIC_CATALOG_PERMISSIONS, DASHBOARD_PERMISSIONS, DICOM_PERMISSIONS, LICENSING_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PURCHASES_PERMISSIONS, REPORTS_PERMISSIONS, SALES_PERMISSIONS, SUBSCRIPTIONS_PERMISSIONS, SYSTEM_PERMISSIONS, TV_DISPLAY_PERMISSIONS } from '@/constants/permissions';
+import { ALERT_CENTER_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS, CALENDAR_DISPLAY_PERMISSIONS, CLINIC_PREFS_PERMISSIONS, PATIENT_PORTAL_CONFIG_PERMISSIONS, CASHIER_PERMISSIONS, CLINIC_CATALOG_PERMISSIONS, DASHBOARD_PERMISSIONS, DICOM_PERMISSIONS, LICENSING_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PURCHASES_PERMISSIONS, REPORTS_PERMISSIONS, SALES_PERMISSIONS, SUBSCRIPTIONS_PERMISSIONS, SYSTEM_PERMISSIONS, TV_DISPLAY_PERMISSIONS } from '@/constants/permissions';
 import type { LucideIcon } from 'lucide-react';
 import {
   Activity,
@@ -44,6 +44,7 @@ import {
   Layers,
   List,
   Mails,
+  Palette,
   PieChart,
   Pill,
   Radiation,
@@ -229,6 +230,7 @@ export const navItems: NavItem[] = [
       SYSTEM_PERMISSIONS.STAFF_VIEW_MENU,
       PATIENT_PORTAL_CONFIG_PERMISSIONS.VIEW,
       CLINIC_PREFS_PERMISSIONS.VIEW,
+      CALENDAR_DISPLAY_PERMISSIONS.VIEW,
     ],
     items: [
       { title: 'ClinicDetails', href: '/config/clinics', icon: Building, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.CLINIC_DETAILS_VIEW },
@@ -238,6 +240,7 @@ export const navItems: NavItem[] = [
       { title: 'Schedules', href: '/config/schedules', icon: CalendarClock, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.SCHEDULES_VIEW_LIST },
       { title: 'Holidays', href: '/config/holidays', icon: CalendarOff, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.HOLIDAYS_VIEW_LIST },
       { title: 'Calendars', href: '/config/calendars', icon: Calendar, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.CALENDARS_VIEW_LIST },
+      { title: 'CalendarColors', href: '/config/calendar-colors', icon: Palette, isChidren: true, requiredPermission: CALENDAR_DISPLAY_PERMISSIONS.VIEW },
       { title: 'Doctors', href: '/config/doctors', icon: UserSquare, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.DOCTORS_VIEW_LIST },
       { title: 'Staff', href: '/system/staff', icon: UserPlus, isChidren: true, requiredPermission: SYSTEM_PERMISSIONS.STAFF_VIEW_MENU },
       { title: 'DoctorAvailability', href: '/config/doctor-availability', icon: CalendarPlus, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.AVAILABILITY_RULES_VIEW },

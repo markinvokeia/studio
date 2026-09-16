@@ -43,6 +43,7 @@ import { CalendarDragGhost } from './calendar-drag-ghost';
 import { useCalendarDragDrop } from '@/hooks/use-calendar-drag-drop';
 import { CalendarEventDay } from './calendar-event-day';
 import { TimeSlotDividers } from './calendar-time-column';
+import { CalendarAllDayBand } from './calendar-all-day-band';
 import { CalendarHourRail } from './calendar-hour-rail';
 import { CalendarGapOverlays } from './calendar-gap-overlay';
 import { CalendarBlockedOverlays } from './calendar-blocked-overlay';
@@ -53,6 +54,8 @@ interface CalendarDayViewMobileProps {
   view: CalendarView;
   numDays: number;
   events: CalendarEvent[];
+  /** Ítems de todo el día, para la banda fija bajo las pestañas de día. */
+  allDayEvents?: CalendarEvent[];
   groupBy: CalendarGroupBy;
   groupingColumns: CalendarGroupingColumn[];
   currentTime: Date;
@@ -74,6 +77,8 @@ interface CalendarDayViewMobileProps {
   canDragEvent?: (event: CalendarEvent, mode: CalendarDragMode) => boolean;
   onEventDrop?: CalendarEventDropHandler;
   onEventResize?: CalendarEventDropHandler;
+  /** Days of week (0=Sunday…6=Saturday) to hide as slides. Default []. */
+  hiddenWeekdays?: number[];
 }
 
 export function CalendarDayViewMobile({
@@ -81,6 +86,7 @@ export function CalendarDayViewMobile({
   view,
   numDays,
   events,
+  allDayEvents = [],
   groupBy,
   groupingColumns,
   currentTime,
@@ -102,6 +108,7 @@ export function CalendarDayViewMobile({
   canDragEvent,
   onEventDrop,
   onEventResize,
+  hiddenWeekdays,
 }: CalendarDayViewMobileProps) {
   const t = useTranslations('Calendar');
   const [api, setApi] = React.useState<CarouselApi>();
@@ -113,7 +120,14 @@ export function CalendarDayViewMobile({
   const startDay = view === 'week'
     ? getCalendarViewStartDate(currentDate, view)
     : currentDate;
-  const days = Array.from({ length: numDays }, (_, i) => addDays(startDay, i));
+  const allDays = Array.from({ length: numDays }, (_, i) => addDays(startDay, i));
+  // Igual que en la vista de escritorio: si el filtro deja el rango sin días
+  // (p.ej. "Día" parado en el día oculto), se muestran igual en vez de un
+  // carrusel vacío.
+  const filteredDays = hiddenWeekdays?.length
+    ? allDays.filter((day) => !hiddenWeekdays.includes(day.getDay()))
+    : allDays;
+  const days = filteredDays.length > 0 ? filteredDays : allDays;
   const isGrouped = groupBy !== 'none' && groupingColumns.length > 0;
 
   // Build slides: if grouped, one slide per (day × resource); if not, one slide per day
@@ -442,6 +456,19 @@ export function CalendarDayViewMobile({
             );
           })}
         </div>
+      )}
+
+      {/* Banda de todo el día: va FUERA del scroller, no dentro de cada CarouselItem, para
+          que quede realmente fija bajo las pestañas de día. Muestra el día del slide
+          activo, que es el único visible. */}
+      {activeSlide && (
+        <CalendarAllDayBand
+          days={[activeSlide.day]}
+          events={allDayEvents}
+          gridTemplateColumns="1fr"
+          showGutter={false}
+          onEventClick={onEventClick}
+        />
       )}
 
       {/* Scrollable time grid with carousel */}

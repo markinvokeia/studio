@@ -16,6 +16,7 @@ export const DEFAULT_CLINIC_PREFERENCES: ClinicPreferences = {
   discount_scope: 'line',
   default_discount_pct: 0,
   max_discount_pct: 100,
+  identity_document_required: false,
 };
 
 /** Acota un porcentaje al rango que acepta el CHECK de la tabla. */
@@ -36,6 +37,7 @@ export async function fetchClinicPreferences(): Promise<ClinicPreferences> {
     discount_scope: raw.discount_scope === 'total' ? 'total' : 'line',
     default_discount_pct: toPct(raw.default_discount_pct, 0),
     max_discount_pct: toPct(raw.max_discount_pct, 100),
+    identity_document_required: raw.identity_document_required === true,
   };
 }
 
@@ -45,6 +47,7 @@ export async function updateClinicPreferences(prefs: ClinicPreferences): Promise
     discount_scope: prefs.discount_scope,
     default_discount_pct: prefs.default_discount_pct,
     max_discount_pct: prefs.max_discount_pct,
+    identity_document_required: prefs.identity_document_required,
   });
 
   const result = Array.isArray(response) ? response[0] : response;
