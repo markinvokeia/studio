@@ -2,6 +2,8 @@
 
 export type UserDetailMode = 'sales' | 'purchases';
 
+export type IdentityDocumentType = 'cedula_uy' | 'cedula_ext' | 'pasaporte_uy' | 'pasaporte_ext';
+
 export type User = {
   id: string;
   name: string;
@@ -11,6 +13,7 @@ export type User = {
   avatar: string;
   internal_id?: string | number | null;
   identity_document?: string;
+  identity_document_type?: IdentityDocumentType;
   birth_date?: string;
   color?: string;
   is_sales?: boolean;
@@ -3088,6 +3091,8 @@ export type ClinicPreferences = {
   default_discount_pct: number;
   /** Tope que el formulario deja guardar, en % sobre la base. 100 ⇒ sin tope. */
   max_discount_pct: number;
+  /** TRUE ⇒ el formulario de pacientes exige un documento de identidad no vacío. */
+  identity_document_required: boolean;
 };
 
 /** Ajustes de Configuración → Portal del Paciente. */

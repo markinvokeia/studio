@@ -4,41 +4,66 @@ import * as z from 'zod';
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
 import { DEFAULT_PHONE_COUNTRY } from '@/lib/countries';
+import { IDENTITY_DOCUMENT_TYPES, isValidIdentityDocument } from '@/lib/identity-document';
 import type { MutualSociety, User } from '@/lib/types';
 
 // ── Patient form schema ──────────────────────────────────────────────────────
-export const userFormSchema = (t: (key: string) => string) => z.object({
-  id: z.string().optional(),
-  name: z.string().min(1, { message: t('UsersPage.createDialog.validation.nameRequired') }),
-  email: z.string().optional().refine((val) => {
-    if (!val || val.trim() === '') return true;
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
-  }, { message: t('UsersPage.createDialog.validation.emailInvalid') }),
-  phone: z.string().optional().refine((val) => {
-    if (!val || val.trim() === '') return true;
-    return isValidPhoneNumber(val, DEFAULT_PHONE_COUNTRY);
-  }, { message: t('UsersPage.createDialog.validation.phoneInvalid') }),
-  identity_document: z.string()
-    .regex(/^\d*$/, { message: t('UsersPage.createDialog.validation.identityInvalid') })
-    .max(10, { message: t('UsersPage.createDialog.validation.identityMaxLength') }),
-  birth_date: z.string().optional(),
-  address: z.string().optional(),
-  notes: z.string().optional(),
-  is_active: z.boolean().default(false),
-  mutual_society_id: z.string().optional(),
-  is_dependent: z.boolean().default(false),
-  responsible_contact_id: z.string().nullable().optional(),
-  doctor_id: z.string().nullable().optional(),
-  sex: z.enum(['male', 'female']).nullable().optional(),
-}).refine((data) => {
-  if (data.is_dependent) return true;
-  const hasEmail = data.email && data.email.trim() !== '';
-  const hasPhone = data.phone && data.phone.trim() !== '';
-  return hasEmail || hasPhone;
-}, {
-  message: t('UsersPage.createDialog.validation.emailOrPhoneRequired'),
-  path: ['email'],
-});
+export const userFormSchema = (t: (key: string) => string, options?: { identityDocumentRequired?: boolean }) => {
+  const identityDocumentRequired = options?.identityDocumentRequired ?? false;
+
+  return z.object({
+    id: z.string().optional(),
+    name: z.string().min(1, { message: t('UsersPage.createDialog.validation.nameRequired') }),
+    email: z.string().optional().refine((val) => {
+      if (!val || val.trim() === '') return true;
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+    }, { message: t('UsersPage.createDialog.validation.emailInvalid') }),
+    phone: z.string().optional().refine((val) => {
+      if (!val || val.trim() === '') return true;
+      return isValidPhoneNumber(val, DEFAULT_PHONE_COUNTRY);
+    }, { message: t('UsersPage.createDialog.validation.phoneInvalid') }),
+    identity_document: z.string().optional().default(''),
+    identity_document_type: z.enum(
+      IDENTITY_DOCUMENT_TYPES as [string, ...string[]]
+    ).default('cedula_uy'),
+    birth_date: z.string().optional(),
+    address: z.string().optional(),
+    notes: z.string().optional(),
+    is_active: z.boolean().default(false),
+    mutual_society_id: z.string().optional(),
+    is_dependent: z.boolean().default(false),
+    responsible_contact_id: z.string().nullable().optional(),
+    doctor_id: z.string().nullable().optional(),
+    sex: z.enum(['male', 'female']).nullable().optional(),
+  }).superRefine((data, ctx) => {
+    const value = (data.identity_document || '').trim();
+    if (!value) {
+      if (identityDocumentRequired) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: t('UsersPage.createDialog.validation.identityRequired'),
+          path: ['identity_document'],
+        });
+      }
+      return;
+    }
+    if (!isValidIdentityDocument(value, data.identity_document_type as any)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: t('UsersPage.createDialog.validation.identityInvalid'),
+        path: ['identity_document'],
+      });
+    }
+  }).refine((data) => {
+    if (data.is_dependent) return true;
+    const hasEmail = data.email && data.email.trim() !== '';
+    const hasPhone = data.phone && data.phone.trim() !== '';
+    return hasEmail || hasPhone;
+  }, {
+    message: t('UsersPage.createDialog.validation.emailOrPhoneRequired'),
+    path: ['email'],
+  });
+};
 
 export type UserFormValues = z.infer<ReturnType<typeof userFormSchema>>;
 
@@ -167,6 +192,7 @@ function mapSearchUser(apiUser: any): User {
     is_active: apiUser.is_active ?? true,
     avatar: '',
     identity_document: apiUser.identity_document || '',
+    identity_document_type: apiUser.identity_document_type || 'cedula_uy',
     birth_date: normalizeBirthDate(apiUser.birth_date ?? apiUser.birthday),
     address: apiUser.address || '',
     notes: apiUser.notes || '',

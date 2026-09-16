@@ -1954,6 +1954,13 @@
       "sexFemale": "Femenino",
       "identity_document": "Documento de Identidad",
       "identity_document_placeholder": "ej., 12345678",
+      "identity_document_type": "Tipo de Documento",
+      "identityDocumentTypes": {
+        "cedula_uy": "Cédula Uruguaya",
+        "cedula_ext": "Cédula Extranjera",
+        "pasaporte_uy": "Pasaporte Uruguayo",
+        "pasaporte_ext": "Pasaporte Extranjero"
+      },
       "isActive": "Está Activo",
       "cancel": "Cancelar",
       "save": "Crear Paciente",
@@ -1965,7 +1972,7 @@
         "phoneInvalid": "Número de teléfono inválido",
         "phoneRequired": "El teléfono es obligatorio",
         "identityRequired": "El documento de identidad es obligatorio",
-        "identityInvalid": "El documento de identidad debe ser un número.",
+        "identityInvalid": "El documento de identidad no tiene un formato válido para el tipo seleccionado.",
         "identityMaxLength": "El documento de identidad debe tener 10 caracteres o menos.",
         "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono.",
         "genericError": "Ocurrió un error inesperado. Por favor, inténtelo de nuevo.",
@@ -8916,6 +8923,13 @@
       },
       "defaultOverMax": "El descuento por defecto no puede ser mayor que el máximo permitido.",
       "permissionNotice": "Solo quien tenga el permiso «Aplicar Descuentos» puede modificar el descuento al vender. Al resto se le muestra el campo en solo lectura."
+    },
+    "identityDocument": {
+      "sectionTitle": "Documento de identidad",
+      "required": {
+        "label": "Exigir documento de identidad",
+        "help": "Con esto encendido, el formulario de pacientes no deja guardar sin un documento de identidad. Apagado (por defecto), el documento puede quedar vacío."
+      }
     }
   },
   "PatientPortalConfigPage": {

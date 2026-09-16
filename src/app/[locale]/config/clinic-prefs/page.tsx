@@ -1,6 +1,6 @@
 'use client';
 
-import { HelpCircle, Loader2, Percent, Save, SlidersHorizontal } from 'lucide-react';
+import { FileText, HelpCircle, Loader2, Percent, Save, SlidersHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
@@ -223,6 +223,28 @@ export default function ClinicPrefsConfigPage() {
                   </p>
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* ── Documento de identidad ─────────────────────────────────── */}
+          <Card>
+            <CardContent className="space-y-5 p-5">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <h2 className="text-sm font-semibold">{t('identityDocument.sectionTitle')}</h2>
+              </div>
+
+              <SettingRow
+                label={t('identityDocument.required.label')}
+                help={t('identityDocument.required.help')}
+                control={
+                  <Switch
+                    checked={config.identity_document_required}
+                    disabled={!canUpdate}
+                    onCheckedChange={(v) => patch({ identity_document_required: v })}
+                  />
+                }
+              />
             </CardContent>
           </Card>
 

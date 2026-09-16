@@ -21,7 +21,7 @@
       "typeVersion": 2,
       "position": [320, 300],
       "parameters": {
-        "jsCode": "\n// Sólo se aceptan los cuatro campos de la política de descuentos. Nada de\n// nombre, RUT ni datos fiscales: eso vive en Datos de la Clínica.\nconst body = $input.first().json.body ?? $input.first().json ?? {};\n\nconst asBool = (v) => v === true || v === 'true';\nconst asPct = (v, fallback) => {\n  const n = Number(v);\n  if (!Number.isFinite(n)) return fallback;\n  // Se acota en el servidor además de en el formulario: el CHECK de la tabla\n  // rechazaría el INSERT y el usuario vería un 500 sin explicación.\n  return Math.min(100, Math.max(0, Math.round(n * 100) / 100));\n};\n\nreturn [{ json: {\n  discounts_enabled:    asBool(body.discounts_enabled),\n  discount_scope:       body.discount_scope === 'total' ? 'total' : 'line',\n  default_discount_pct: asPct(body.default_discount_pct, 0),\n  max_discount_pct:     asPct(body.max_discount_pct, 100),\n} }];\n"
+        "jsCode": "\n// Política de descuentos + obligatoriedad del documento de identidad. Nada de\n// nombre, RUT ni datos fiscales: eso vive en Datos de la Clínica.\nconst body = $input.first().json.body ?? $input.first().json ?? {};\n\nconst asBool = (v) => v === true || v === 'true';\nconst asPct = (v, fallback) => {\n  const n = Number(v);\n  if (!Number.isFinite(n)) return fallback;\n  // Se acota en el servidor además de en el formulario: el CHECK de la tabla\n  // rechazaría el INSERT y el usuario vería un 500 sin explicación.\n  return Math.min(100, Math.max(0, Math.round(n * 100) / 100));\n};\n\nreturn [{ json: {\n  discounts_enabled:    asBool(body.discounts_enabled),\n  discount_scope:       body.discount_scope === 'total' ? 'total' : 'line',\n  default_discount_pct: asPct(body.default_discount_pct, 0),\n  max_discount_pct:     asPct(body.max_discount_pct, 100),\n  identity_document_required: asBool(body.identity_document_required),\n} }];\n"
       }
     },
     {
@@ -32,9 +32,9 @@
       "position": [540, 300],
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- INSERT … ON CONFLICT: la fila puede no existir si la clínica se creó después\n-- de correr el script 068.\nINSERT INTO public.clinic_preferences (\n    clinic_id, discounts_enabled, discount_scope, default_discount_pct, max_discount_pct\n)\nSELECT (SELECT id FROM public.clinic WHERE is_active IS NOT FALSE ORDER BY id LIMIT 1),\n       $1, $2, $3, $4\nON CONFLICT (clinic_id) DO UPDATE\n    SET discounts_enabled    = EXCLUDED.discounts_enabled,\n        discount_scope       = EXCLUDED.discount_scope,\n        default_discount_pct = EXCLUDED.default_discount_pct,\n        max_discount_pct     = EXCLUDED.max_discount_pct\nRETURNING id,\n          discounts_enabled,\n          discount_scope,\n          default_discount_pct,\n          max_discount_pct",
+        "query": "-- INSERT … ON CONFLICT: la fila puede no existir si la clínica se creó después\n-- de correr el script 068.\nINSERT INTO public.clinic_preferences (\n    clinic_id, discounts_enabled, discount_scope, default_discount_pct, max_discount_pct, identity_document_required\n)\nSELECT (SELECT id FROM public.clinic WHERE is_active IS NOT FALSE ORDER BY id LIMIT 1),\n       $1, $2, $3, $4, $5\nON CONFLICT (clinic_id) DO UPDATE\n    SET discounts_enabled    = EXCLUDED.discounts_enabled,\n        discount_scope       = EXCLUDED.discount_scope,\n        default_discount_pct = EXCLUDED.default_discount_pct,\n        max_discount_pct     = EXCLUDED.max_discount_pct,\n        identity_document_required = EXCLUDED.identity_document_required\nRETURNING id,\n          discounts_enabled,\n          discount_scope,\n          default_discount_pct,\n          max_discount_pct,\n          identity_document_required",
         "additionalFields": {
-          "queryParams": "={{ [ $json.discounts_enabled, $json.discount_scope, $json.default_discount_pct, $json.max_discount_pct ] }}"
+          "queryParams": "={{ [ $json.discounts_enabled, $json.discount_scope, $json.default_discount_pct, $json.max_discount_pct, $json.identity_document_required ] }}"
         }
       },
       "credentials": {
@@ -53,7 +53,7 @@
       "typeVersion": 2,
       "position": [760, 300],
       "parameters": {
-        "jsCode": "\nconst row = $input.first()?.json;\n\nif (!row || row.error || !row.id) {\n  return [{ json: { statusCode: 500, body: { message: 'No se pudieron guardar las preferencias de la clínica.' } } }];\n}\n\nreturn [{ json: { statusCode: 200, body: {\n  success: true,\n  discounts_enabled:    row.discounts_enabled === true,\n  discount_scope:       row.discount_scope === 'total' ? 'total' : 'line',\n  default_discount_pct: Number(row.default_discount_pct ?? 0),\n  max_discount_pct:     Number(row.max_discount_pct ?? 100),\n} } }];\n"
+        "jsCode": "\nconst row = $input.first()?.json;\n\nif (!row || row.error || !row.id) {\n  return [{ json: { statusCode: 500, body: { message: 'No se pudieron guardar las preferencias de la clínica.' } } }];\n}\n\nreturn [{ json: { statusCode: 200, body: {\n  success: true,\n  discounts_enabled:    row.discounts_enabled === true,\n  discount_scope:       row.discount_scope === 'total' ? 'total' : 'line',\n  default_discount_pct: Number(row.default_discount_pct ?? 0),\n  max_discount_pct:     Number(row.max_discount_pct ?? 100),\n  identity_document_required: row.identity_document_required === true,\n} } }];\n"
       }
     },
     {
@@ -91,6 +91,6 @@
   },
   "meta": {
     "templateCredsSetupCompleted": false,
-    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Crear/seleccionar la credencial 'Postgres' en el nodo 'Guardar Preferencias' (reemplaza POSTGRES_CREDENTIAL_ID).\n2. Activar el workflow.\n\nRUTA DEL WEBHOOK:\nPOST https://<tu-n8n>/webhook/clinic/preferences/upsert\n\nCUERPO:\n{\n  \"discounts_enabled\": true,\n  \"discount_scope\": \"line\",\n  \"default_discount_pct\": 10,\n  \"max_discount_pct\": 30\n}\n\nRESPUESTA: los mismos campos ya normalizados, más \"success\": true.\n\nTABLA REQUERIDA: clinic_preferences (ver database/scripts/068_20260814_clinic-preferences-and-discounts.sql)"
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Crear/seleccionar la credencial 'Postgres' en el nodo 'Guardar Preferencias' (reemplaza POSTGRES_CREDENTIAL_ID).\n2. Activar el workflow.\n\nRUTA DEL WEBHOOK:\nPOST https://<tu-n8n>/webhook/clinic/preferences/upsert\n\nCUERPO:\n{\n  \"discounts_enabled\": true,\n  \"discount_scope\": \"line\",\n  \"default_discount_pct\": 10,\n  \"max_discount_pct\": 30,\n  \"identity_document_required\": true\n}\n\nRESPUESTA: los mismos campos ya normalizados, más \"success\": true.\n\nTABLA REQUERIDA: clinic_preferences (ver database/scripts/068_20260814_clinic-preferences-and-discounts.sql y database/scripts/086_20260916_identity-document-type.sql)"
   }
 }

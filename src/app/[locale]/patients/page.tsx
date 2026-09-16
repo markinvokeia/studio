@@ -57,6 +57,8 @@ import {
   type UserFormValues,
 } from '@/components/patients/patient-form-utils';
 import { ToothIcon } from '@/components/users/dental-record/tooth-icon';
+import { IDENTITY_DOCUMENT_TYPES } from '@/lib/identity-document';
+import { useClinicPreferencesStore } from '@/stores/clinic-preferences-store';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
 import { InlineAppointmentDraftHost } from '@/components/appointments/inline-appointment-draft-host';
@@ -427,6 +429,7 @@ export default function UsersPage() {
   const t = useTranslations();
   const { user: currentUser } = useAuth();
   const { hasPermission, hasAnyPermission } = usePermissions();
+  const identityDocumentRequired = useClinicPreferencesStore((s) => s.preferences.identity_document_required);
   const [financeView] = useFinanceViewPreference(currentUser?.id);
   const { toast } = useToast();
   const { open: openBillingWizard } = useBillingWizard();
@@ -722,12 +725,13 @@ export default function UsersPage() {
   }, []);
 
   const form = useForm<UserFormValues>({
-    resolver: zodResolver(userFormSchema(t)),
+    resolver: zodResolver(userFormSchema(t, { identityDocumentRequired })),
     defaultValues: {
       name: '',
       email: '',
       phone: '',
       identity_document: '',
+      identity_document_type: 'cedula_uy',
       birth_date: '',
       notes: '',
       is_active: true,
@@ -983,6 +987,7 @@ export default function UsersPage() {
       email: '',
       phone: '',
       identity_document: '',
+      identity_document_type: 'cedula_uy',
       birth_date: '',
       notes: '',
       is_active: true,
@@ -1007,6 +1012,7 @@ export default function UsersPage() {
       email: user.email,
       phone: user.phone_number,
       identity_document: user.identity_document || '',
+      identity_document_type: user.identity_document_type || 'cedula_uy',
       birth_date: user.birth_date || '',
       notes: user.notes || '',
       is_active: user.is_active,
@@ -1141,6 +1147,7 @@ export default function UsersPage() {
           email: data.email || '',
           phone_number: data.phone || '',
           identity_document: data.identity_document,
+          identity_document_type: data.identity_document_type as User['identity_document_type'],
           birth_date: data.birth_date,
           notes: data.notes,
           is_active: data.is_active,
@@ -1620,6 +1627,30 @@ export default function UsersPage() {
                           value={field.value}
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="identity_document_type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('UsersPage.createDialog.identity_document_type')}</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {IDENTITY_DOCUMENT_TYPES.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {t(`UsersPage.createDialog.identityDocumentTypes.${type}`)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}

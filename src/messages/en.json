@@ -1954,6 +1954,13 @@
       "sexFemale": "Female",
       "identity_document": "Identity Document",
       "identity_document_placeholder": "e.g., 12345678",
+      "identity_document_type": "Document Type",
+      "identityDocumentTypes": {
+        "cedula_uy": "Uruguayan National ID",
+        "cedula_ext": "Foreign National ID",
+        "pasaporte_uy": "Uruguayan Passport",
+        "pasaporte_ext": "Foreign Passport"
+      },
       "isActive": "Is Active",
       "cancel": "Cancel",
       "save": "Create Patient",
@@ -1965,7 +1972,7 @@
         "phoneInvalid": "Invalid phone number",
         "phoneRequired": "Phone is required",
         "identityRequired": "Identity document is required",
-        "identityInvalid": "Identity document must be a number.",
+        "identityInvalid": "Identity document format is not valid for the selected type.",
         "identityMaxLength": "Identity document must be 10 characters or less.",
         "emailOrPhoneRequired": "You must provide at least an email address or a phone number.",
         "genericError": "An unexpected error occurred. Please try again.",
@@ -8938,6 +8945,13 @@
       },
       "defaultOverMax": "The default discount can't be higher than the maximum allowed.",
       "permissionNotice": "Only users with the \"Apply Discounts\" permission can change the discount when selling. Everyone else sees the field read-only."
+    },
+    "identityDocument": {
+      "sectionTitle": "Identity document",
+      "required": {
+        "label": "Require identity document",
+        "help": "When on, the patient form won't save without an identity document. Off by default, the document can be left empty."
+      }
     }
   },
   "PatientPortalConfigPage": {
