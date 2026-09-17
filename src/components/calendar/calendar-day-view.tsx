@@ -237,7 +237,6 @@ export function CalendarDayView({
           ))}
           {showTimeIndicator && (
             <div className="current-time-indicator" style={{ top: `${currentTimePosition}px` }}>
-              <div className="current-time-dot" />
               <div className="current-time-line" />
             </div>
           )}

@@ -935,6 +935,9 @@ export default function AppointmentsPage() {
     // halo aunque se vuelva a elegir la misma cita.
     const [focusedEvent, setFocusedEvent] = React.useState<{ id: string; nonce: number } | null>(null);
     const searchReqIdRef = React.useRef(0);
+    /** Cancela la espera "aparezca la card + termine el scroll" de `openCustomQuickViewForResult`
+     *  cuando se elige otro resultado antes de que la anterior termine. */
+    const pendingQuickViewCancelRef = React.useRef<(() => void) | null>(null);
 
     /** Limpia todo el estado de la búsqueda (resultados, filtros, cita resaltada). */
     const resetSearchState = React.useCallback(() => {
@@ -2236,6 +2239,56 @@ export default function AppointmentsPage() {
         resetSearchState();
     }, [resetSearchState]);
 
+    React.useEffect(() => () => pendingQuickViewCancelRef.current?.(), []);
+
+    /** En modo personalizado el detalle de una cita es la ventana flotante anclada a
+     *  la card (`AppointmentQuickView`, ver `handleEventClick`), no el panel lateral.
+     *  Al elegir un resultado del buscador la card todavía no existe en el DOM (recién
+     *  se están cambiando filtros/fecha arriba); hay que esperar a que aparezca y a que
+     *  termine el scroll de centrado de `Calendar.tsx` — abrir el popover mientras ese
+     *  scroll sigue en curso hace que su propio listener de scroll lo cierre al instante
+     *  (ver appointment-quick-view.tsx). */
+    const openCustomQuickViewForResult = React.useCallback((appt: Appointment) => {
+        pendingQuickViewCancelRef.current?.();
+        let cancelled = false;
+        let raf = 0;
+        const startedAt = Date.now();
+        const selector = `[data-event-id="${(typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(appt.id) : appt.id}"]`;
+
+        const waitForScrollSettle = (el: HTMLElement) => {
+            const scroller = el.closest('.day-view-container, .overflow-y-auto') as HTMLElement | null;
+            let lastTop = -1;
+            let lastLeft = -1;
+            let stableFrames = 0;
+            const tick = () => {
+                if (cancelled) return;
+                const top = scroller?.scrollTop ?? 0;
+                const left = scroller?.scrollLeft ?? 0;
+                const stable = top === lastTop && left === lastLeft;
+                lastTop = top;
+                lastLeft = left;
+                stableFrames = stable ? stableFrames + 1 : 0;
+                if (stableFrames > 6 || Date.now() - startedAt > 2000) {
+                    handleEventClick({ ...appt, kind: 'appointment' }, el.getBoundingClientRect());
+                    return;
+                }
+                raf = requestAnimationFrame(tick);
+            };
+            raf = requestAnimationFrame(tick);
+        };
+
+        const waitForCard = () => {
+            if (cancelled) return;
+            const el = document.querySelector<HTMLElement>(selector);
+            if (el) { waitForScrollSettle(el); return; }
+            if (Date.now() - startedAt > 4000) return; // agenda oculta o fuera del rango cargado
+            raf = requestAnimationFrame(waitForCard);
+        };
+        raf = requestAnimationFrame(waitForCard);
+
+        pendingQuickViewCancelRef.current = () => { cancelled = true; cancelAnimationFrame(raf); };
+    }, [handleEventClick]);
+
     const handleSelectSearchResult = React.useCallback((result: CalendarSearchResult) => {
         const appt = searchResults.find((a) => a.id === result.id);
         if (!appt) return;
@@ -2281,9 +2334,15 @@ export default function AppointmentsPage() {
         // En mobile el panel tapa casi toda la pantalla: se colapsa a un chip
         // flotante para poder ver la cita marcada. En desktop se deja abierto.
         if (isMobile) setSearchCollapsed(true);
-        // Abre el detalle en el panel lateral, sea cual sea el modo del calendario.
-        handleEventClick({ ...appt, kind: 'appointment' }, undefined, { forceSidePanel: true });
-    }, [searchResults, handleEventClick, isCustomMode, isMobile, setCurrentView, setInlineDraft]);
+        if (isCustomMode) {
+            // Modo personalizado: detalle inline (ventana flotante anclada a la card),
+            // no el panel lateral — igual que un clic directo sobre la card.
+            openCustomQuickViewForResult(appt);
+        } else {
+            // Resto de vistas: el detalle siempre vive en el panel lateral.
+            handleEventClick({ ...appt, kind: 'appointment' }, undefined, { forceSidePanel: true });
+        }
+    }, [searchResults, handleEventClick, isCustomMode, isMobile, setCurrentView, setInlineDraft, openCustomQuickViewForResult]);
 
     // Keep the panel's quote/invoice section in sync when the selected appointment's
     // quote changes (inline change/associate/create a quote, or quick bill).

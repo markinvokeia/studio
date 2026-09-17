@@ -559,8 +559,7 @@ export function CalendarDayViewMobile({
                                   className="absolute left-0 right-0 z-[60] pointer-events-none flex items-center"
                                   style={{ top: `${currentTimePosition}px` }}
                                 >
-                                  <div className="w-2.5 h-2.5 bg-red-500 rounded-full -ml-1" />
-                                  <div className="flex-1 h-0.5 bg-red-500" />
+                                  <div className="w-full h-0.5 bg-red-500" />
                                 </div>
                               )}
                             </div>

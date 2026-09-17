@@ -466,8 +466,10 @@ export function CalendarDayViewGrouped({
             </div>
           ))}
           {showTimeIndicator && (
-            <div className="current-time-indicator" style={{ top: `${currentTimePosition}px` }}>
-              <div className="current-time-dot" />
+            <div
+              className="current-time-indicator"
+              style={{ top: `${currentTimePosition}px`, left: hideTimeGutter ? 0 : undefined }}
+            >
               <div className="current-time-line" />
             </div>
           )}

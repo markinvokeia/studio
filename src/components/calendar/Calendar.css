@@ -925,15 +925,6 @@
   pointer-events: none;
 }
 
-.current-time-dot {
-  width: 12px;
-  height: 12px;
-  background-color: #F44336;
-  border-radius: 9999px;
-  position: absolute;
-  left: -6px;
-}
-
 .current-time-line {
   width: 100%;
   height: 2px;
