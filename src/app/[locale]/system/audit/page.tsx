@@ -17,7 +17,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { AuditLog } from '@/lib/types';
-import { formatDateTime } from '@/lib/utils';
+import { formatUtcDateTime } from '@/lib/utils';
 import api from '@/services/api';
 import { ColumnDef, PaginationState, RowSelectionState, SortingState, VisibilityState } from '@tanstack/react-table';
 import { format } from 'date-fns';
@@ -152,7 +152,7 @@ export default function AuditLogPage() {
         {
             accessorKey: 'changed_at',
             header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.changedAt')} />,
-            cell: ({ row }) => formatDateTime(row.original.changed_at),
+            cell: ({ row }) => formatUtcDateTime(row.original.changed_at),
         },
         { accessorKey: 'table_name', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.table')} /> },
         { accessorKey: 'record_id', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.recordId')} /> },
@@ -277,7 +277,7 @@ export default function AuditLogPage() {
                             renderCard={(row: AuditLog, _isSelected: boolean) => (
                                 <DataCard isSelected={_isSelected}
                                     title={row.table_name}
-                                    subtitle={`${operationLabel(row.operation)} · ${formatDateTime(row.changed_at)}`}
+                                    subtitle={`${operationLabel(row.operation)} · ${formatUtcDateTime(row.changed_at)}`}
                                     showArrow
                                 />
                             )}
@@ -321,7 +321,7 @@ export default function AuditLogPage() {
                 <dl className="space-y-3 text-sm">
                     <div>
                         <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.changedAt')}</dt>
-                        <dd className="text-foreground">{formatDateTime(selectedLog.changed_at)}</dd>
+                        <dd className="text-foreground">{formatUtcDateTime(selectedLog.changed_at)}</dd>
                     </div>
                     <div>
                         <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.changedBy')}</dt>

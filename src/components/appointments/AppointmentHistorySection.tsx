@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 import { API_ROUTES } from '@/constants/routes';
 import { AuditLog } from '@/lib/types';
-import { cn, formatDateTime } from '@/lib/utils';
+import { cn, formatDateTime, formatUtcDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
 import { ChevronDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -18,13 +18,18 @@ const OPERATION_BADGE_VARIANT: Record<string, 'success' | 'secondary' | 'destruc
     DELETE: 'destructive',
 };
 
-// Columns of `appointments` that carry a datetime and should be formatted as such
-// when they show up in a diff (the row itself gives no type info to lean on).
-const DATETIME_FIELDS = new Set(['start_datetime', 'end_datetime', 'created_at', 'updated_at']);
+// `start_datetime`/`end_datetime` are naive-local values written by the app itself
+// (mislabeled with a `Z` suffix by the API), so they need the `Z` stripped before
+// parsing. `created_at`/`updated_at` are populated by a Postgres `now()` default in
+// a DB session pinned to `Etc/UTC`, so they hold a genuine UTC instant and need an
+// actual UTC → local conversion instead.
+const LOCAL_DATETIME_FIELDS = new Set(['start_datetime', 'end_datetime']);
+const UTC_DATETIME_FIELDS = new Set(['created_at', 'updated_at']);
 
 function formatFieldValue(field: string, value: any): string {
     if (value === null || value === undefined || value === '') return '—';
-    if (DATETIME_FIELDS.has(field)) return formatDateTime(String(value));
+    if (LOCAL_DATETIME_FIELDS.has(field)) return formatDateTime(String(value));
+    if (UTC_DATETIME_FIELDS.has(field)) return formatUtcDateTime(String(value));
     if (typeof value === 'boolean') return value ? 'Sí' : 'No';
     return String(value);
 }
@@ -94,7 +99,7 @@ function HistoryEntry({ entry, fieldLabel, operationLabel }: HistoryEntryProps) 
                     {operationLabel(entry.operation)}
                 </Badge>
                 <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-                    {formatDateTime(entry.changed_at)}
+                    {formatUtcDateTime(entry.changed_at)}
                     {entry.changed_by_name ? ` · ${entry.changed_by_name}` : ''}
                 </span>
                 {canExpand && (
@@ -106,7 +111,7 @@ function HistoryEntry({ entry, fieldLabel, operationLabel }: HistoryEntryProps) 
                     {changedFields.map((field) => (
                         <div key={field} className="grid grid-cols-[auto_1fr] gap-x-2 text-xs">
                             <span className="font-medium text-muted-foreground">{fieldLabel(field)}</span>
-                            <span className="min-w-0 truncate">
+                            <span className="min-w-0 whitespace-pre-wrap break-words">
                                 <span className="text-muted-foreground line-through">{formatFieldValue(field, oldValues?.[field])}</span>
                                 {' → '}
                                 <span className="font-medium text-foreground">{formatFieldValue(field, newValues?.[field])}</span>

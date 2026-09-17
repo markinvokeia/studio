@@ -22,6 +22,31 @@ export function formatDateTime(date: string | Date | null | undefined): string {
   }
 }
 
+/**
+ * Formats a genuinely UTC timestamp (e.g. `audit_log.changed_at`, or any other
+ * `timestamp without time zone` column whose value is written by a Postgres
+ * `now()`/`CURRENT_TIMESTAMP` default rather than by the application) into the
+ * viewer's local time.
+ *
+ * Unlike `formatDateTime`, this does NOT strip the `Z` suffix: those DB-generated
+ * columns hold a real UTC instant (the DB session timezone is `Etc/UTC`), so the
+ * conversion to local time must actually happen. Using `formatDateTime` on them
+ * displays the raw UTC clock value as if it were already local, showing times
+ * ahead by the local UTC offset (e.g. 3 hours in GMT-3).
+ */
+export function formatUtcDateTime(date: string | Date | null | undefined): string {
+  if (!date) return 'N/A';
+
+  try {
+    const d = typeof date === 'string' ? parseISO(date.endsWith('Z') ? date : `${date}Z`) : date;
+    if (isNaN(d.getTime())) return 'Invalid Date';
+    return format(d, 'dd/MM/yyyy HH:mm');
+  } catch (error) {
+    console.error('Error formatting UTC date:', error);
+    return 'Invalid Date';
+  }
+}
+
 export function formatDate(date: string | Date | null | undefined): string {
   if (!date) return 'N/A';
 
