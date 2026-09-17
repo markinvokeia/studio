@@ -204,8 +204,8 @@ export default function PatientLoginPage() {
           >
             {portalEnabled ? (
               <PatientLoginWizard
-                appointmentsOnly={clinic?.appointments_only ?? false}
                 onlineBookingEnabled={clinic?.online_booking_enabled ?? true}
+                appointmentsOnly={clinic?.appointments_only ?? false}
               />
             ) : (
               <div className="space-y-3 text-center lg:text-left">

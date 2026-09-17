@@ -61,13 +61,17 @@ export default function MyProfilePage() {
    * fetch llega antes de que el paciente llegue a tocar nada.
    */
   const [onlineBookingEnabled, setOnlineBookingEnabled] = React.useState(true);
+  /** Modo "sólo citas": el paciente reserva pero no accede a su expediente. */
+  const [appointmentsOnly, setAppointmentsOnly] = React.useState(false);
 
   React.useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const config = await fetchPatientPortalConfig();
-        if (!cancelled) setOnlineBookingEnabled(config.online_booking_enabled);
+        if (cancelled) return;
+        setOnlineBookingEnabled(config.online_booking_enabled);
+        setAppointmentsOnly(config.appointments_only);
       } catch {
         // Ante un fallo se deja habilitado: es el comportamiento histórico y el
         // backend igual rechaza la reserva si la clínica la tiene apagada.
@@ -141,10 +145,13 @@ export default function MyProfilePage() {
   // El perfil recién aparece cuando termina el flujo de reserva. Sin reserva
   // online no hay onboarding que ofrecer: el paciente sin citas va directo al
   // perfil, con el tab de Citas mostrando el aviso de "bookingDisabled".
-  if (isOnboarding && onlineBookingEnabled) {
+  // En modo "sólo citas" el portal se agota en esta pantalla: nunca se llega a
+  // las pestañas del expediente.
+  if ((isOnboarding || appointmentsOnly) && onlineBookingEnabled) {
     return (
       <PatientOnboardingBooking
         patient={patientAsUser}
+        appointmentsOnly={appointmentsOnly}
         onDone={() => {
           setIsOnboarding(false);
           setActiveTab('appointments');

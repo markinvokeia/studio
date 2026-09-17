@@ -8709,7 +8709,9 @@
       "resentTitle": "Code resent",
       "resentDescription": "Check your inbox, including the spam folder.",
       "reason": "Only you can access your inbox. That's why we ask for the code: it guarantees nobody else can see your information or act on your behalf without your consent.",
-      "pasteHint": "Check your inbox and copy the 6-digit code we sent you. You can paste it straight into the first box."
+      "pasteHint": "Check your inbox and copy the 6-digit code we sent you. You can paste it straight into the first box.",
+      "alreadySentTitle": "We already sent you a code",
+      "alreadySentDescription": "Check your inbox and enter the code you received. If it didn't arrive, you'll be able to request another in a few seconds."
     },
     "fields": {
       "email": "Email address",
@@ -8773,6 +8775,7 @@
       "rights": "All rights reserved.",
       "poweredBy": "Powered by Invoke IA"
     },
+    "startOver": "Start over",
     "booking": {
       "title": "Choose your appointment",
       "description": "Pick the day and time that suits you best.",
@@ -8785,8 +8788,7 @@
       "when": "{date} at {time}",
       "emailSent": "We emailed the appointment details to you and to the clinic. If you need to change it, get in touch with us.",
       "done": "Done"
-    },
-    "startOver": "Start over"
+    }
   },
   "PatientPortal": {
     "subtitle": "My profile",
@@ -8860,7 +8862,8 @@
       "skip": "I'll do it later",
       "bookedTitle": "Request sent!",
       "bookedDescription": "The clinic will confirm it shortly. You can now view your profile.",
-      "goToProfile": "Go to my profile"
+      "goToProfile": "Go to my profile",
+      "bookAnother": "Book another appointment"
     },
     "backToStaff": "Back to staff view",
     "booking": {
@@ -9048,16 +9051,16 @@
     "fields": {
       "enabled": {
         "label": "Allow patients to access the portal",
-        "help": "Enables the public /patient-login page. When off, patients see a notice that the portal is unavailable and cannot identify themselves or book."
+        "help": "Enables the public /patient-login page. With this on, patients can get started and create bookings. When off, they see a notice that the portal is unavailable and cannot identify themselves or book."
       },
       "onlineBooking": {
-        "label": "Allow online appointment booking",
-        "help": "Lets patients pick a day and time from the free slots in the agenda. When off, they can only view their information — the clinic keeps booking appointments."
+        "label": "Scheduling and patient profile access",
+        "help": "Lets patients book their appointment, pick a day and time from the free slots in the agenda, and reach their profile. When off, they can only view their information — the clinic keeps booking appointments."
       },
       "appointmentsOnly": {
         "label": "Portal is for booking appointments only",
-        "help": "Patients identify themselves and go straight to the agenda. They're never asked for a code and never reach their clinical history, finances or personal details. Useful to offer online booking without opening the rest of the record.",
-        "activeNotice": "With this on, no patient will see their profile — only the booking screen. Access codes are not sent either."
+        "help": "Patients only book appointments and never reach their information: they stay on the /patient-login screen. No access code is sent, so they book without confirming their identity — the appointment stays pending confirmation by the clinic.",
+        "activeNotice": "With this on, no patient will see their profile: only the booking screen. Access codes aren't sent either, so nobody verifies they own the email they type."
       },
       "video": {
         "label": "Welcome video",

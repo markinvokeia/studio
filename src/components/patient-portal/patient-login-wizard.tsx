@@ -22,6 +22,7 @@ import { PatientBookingPanel } from '@/components/patient-portal/patient-booking
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { DEFAULT_PHONE_COUNTRY } from '@/lib/countries';
+import type { PatientSendCodeResponse } from '@/lib/types';
 import {
   identifyPatient,
   registerPatient,
@@ -35,7 +36,10 @@ import {
  */
 type Step = 'identify' | 'needEmail' | 'register' | 'code' | 'booking' | 'booked';
 
-/** Paciente resuelto sin sesión, para poder reservar antes de tener token. */
+/**
+ * Paciente resuelto sin sesión. Sólo existe en el modo "sólo citas", donde la
+ * clínica acepta a propósito reservas sin verificar la identidad.
+ */
 interface GuestPatient {
   id: string;
   name: string;
@@ -83,18 +87,19 @@ const TOUCH_INPUT = 'h-14 text-base sm:h-12 sm:text-sm';
 const TOUCH_BUTTON = 'h-14 w-full text-base sm:h-12 sm:text-sm';
 
 interface PatientLoginWizardProps {
-  /**
-   * `true` ⇒ el portal es sólo para reservar: nunca se pide OTP ni se entra al
-   * perfil, ni siquiera para un paciente conocido.
-   */
-  appointmentsOnly?: boolean;
   /** `false` ⇒ la clínica no acepta reservas online; sólo consulta con OTP. */
   onlineBookingEnabled?: boolean;
+  /**
+   * `true` ⇒ el portal se agota en reservar: el paciente nunca recibe código ni
+   * entra al perfil. Es una decisión explícita de la clínica, que cambia
+   * verificación de identidad por cero fricción.
+   */
+  appointmentsOnly?: boolean;
 }
 
 export function PatientLoginWizard({
-  appointmentsOnly = false,
   onlineBookingEnabled = true,
+  appointmentsOnly = false,
 }: PatientLoginWizardProps) {
   const t = useTranslations('PatientLogin');
   const locale = useLocale();
@@ -108,7 +113,7 @@ export function PatientLoginWizard({
   const [maskedEmail, setMaskedEmail] = React.useState<string | null>(null);
   const [code, setCode] = React.useState('');
   const [isNewPatient, setIsNewPatient] = React.useState(false);
-  /** Paciente ya resuelto (registrado o encontrado) para reservar sin sesión. */
+  /** Paciente resuelto para reservar sin sesión, sólo en modo "sólo citas". */
   const [guest, setGuest] = React.useState<GuestPatient | null>(null);
   const [bookedDetails, setBookedDetails] = React.useState<{ date: string; time: string } | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -125,17 +130,28 @@ export function PatientLoginWizard({
     return () => clearTimeout(timer);
   }, [resendIn]);
 
-  // El tercer paso sólo existe para pacientes nuevos: entran directo a reservar.
   const showError = (err: unknown, fallbackKey = 'errors.unexpected') => {
     const message = err instanceof Error && err.message ? err.message : t(fallbackKey);
     toast({ variant: 'destructive', title: t('errors.title'), description: message });
   };
 
-  const goToCodeStep = (masked: string | null) => {
+  const goToCodeStep = (masked: string | null, resendSeconds = RESEND_SECONDS) => {
     setMaskedEmail(masked);
     setCode('');
-    setResendIn(RESEND_SECONDS);
+    setResendIn(resendSeconds);
     setStep('code');
+  };
+
+  /**
+   * Lleva al paso del código tanto si se acaba de enviar como si el backend
+   * avisó que ya había uno vigente (429). En ese segundo caso se le recuerda
+   * que revise el correo: el código que sirve es el que ya recibió.
+   */
+  const goToCodeFrom = (sent: PatientSendCodeResponse, fallbackMasked: string | null = null) => {
+    if (sent.already_sent) {
+      toast({ title: t('code.alreadySentTitle'), description: t('code.alreadySentDescription') });
+    }
+    goToCodeStep(sent.masked_email ?? fallbackMasked, sent.retry_after ?? RESEND_SECONDS);
   };
 
   const openRegisterStep = (prefill = '') => {
@@ -161,9 +177,9 @@ export function PatientLoginWizard({
     try {
       const result = await identifyPatient(identifier);
 
-      // No está en el sistema ⇒ se registra y pasa directo a reservar. Sin
-      // reserva online el auto-registro no tiene destino (no hay OTP para un
-      // paciente nuevo), así que ni se lo ofrece.
+      // No está en el sistema ⇒ se registra y verifica el correo como cualquier
+      // otro. Sin reserva online el auto-registro no tiene destino útil —el
+      // perfil nace vacío—, así que ni se lo ofrece.
       if (!result.found) {
         if (!onlineBookingEnabled) {
           toast({ title: t('identify.newPatientDisabled') });
@@ -173,30 +189,24 @@ export function PatientLoginWizard({
         return;
       }
 
-      // Modo "sólo citas": nunca se pide OTP, ni siquiera a un paciente conocido.
-      // Tampoco tiene sentido si la clínica no acepta reservas online.
-      if (appointmentsOnly && onlineBookingEnabled) {
+      // Modo "sólo citas": la clínica eligió no verificar identidad a cambio de
+      // cero fricción. Se reserva acá mismo y no se emite token, así que el
+      // perfil queda fuera de alcance por construcción.
+      if (appointmentsOnly) {
         setGuest({ id: result.user_id ?? '', name: result.name ?? '', email: '' });
         setStep('booking');
         return;
       }
 
-      // Sin citas futuras no hay nada que consultar: va directo a reservar,
-      // sin la fricción del código. Con citas, sí se le pide el OTP porque
-      // detrás está su historia clínica y su estado de cuenta.
-      if (!result.has_upcoming_appointments && onlineBookingEnabled) {
-        setGuest({ id: result.user_id ?? '', name: result.name ?? '', email: '' });
-        setStep('booking');
-        return;
-      }
-
+      // Fuera de ese modo NO hay atajos: escribir un email conocido no prueba
+      // ser su dueño, así que todo camino pasa por el código.
       if (result.needs_email) {
         setStep('needEmail');
         return;
       }
 
       const sent = await sendPatientCode(identifier);
-      goToCodeStep(sent.masked_email ?? result.masked_email);
+      goToCodeFrom(sent, result.masked_email);
     } catch (err) {
       showError(err);
     } finally {
@@ -210,7 +220,7 @@ export function PatientLoginWizard({
     setIsLoading(true);
     try {
       const sent = await sendPatientCode(identifier, missingEmail);
-      goToCodeStep(sent.masked_email);
+      goToCodeFrom(sent);
     } catch (err) {
       showError(err);
     } finally {
@@ -229,17 +239,22 @@ export function PatientLoginWizard({
     }
     setIsLoading(true);
     try {
-      const result = await registerPatient(values);
+      const result = await registerPatient(values, { skipCode: appointmentsOnly });
       setIdentifier(values.email);
       setIsNewPatient(true);
-      // El paciente nuevo NO recibe OTP: pasa directo a reservar su primera cita.
-      // El correo se valida a posteriori por rebote (docs/patient-portal.md §3).
-      setGuest({
-        id: result.user_id,
-        name: result.name ?? values.name,
-        email: result.email ?? values.email,
-      });
-      setStep('booking');
+
+      if (appointmentsOnly) {
+        setGuest({
+          id: result.user_id,
+          name: result.name ?? values.name,
+          email: result.email ?? values.email,
+        });
+        setStep('booking');
+        return;
+      }
+
+      // `/api/auth/patient/register` genera y envía el código: se pide acá.
+      goToCodeStep(result.masked_email);
     } catch (err) {
       const error = err as Partial<RequestError>;
       const conflicted: string[] | undefined = error.data?.error?.conflictedFields;
@@ -282,9 +297,13 @@ export function PatientLoginWizard({
     setIsLoading(true);
     try {
       const sent = await sendPatientCode(identifier, missingEmail || undefined);
-      setMaskedEmail(sent.masked_email);
-      setResendIn(RESEND_SECONDS);
-      toast({ title: t('code.resentTitle'), description: t('code.resentDescription') });
+      if (sent.masked_email) setMaskedEmail(sent.masked_email);
+      setResendIn(sent.retry_after ?? RESEND_SECONDS);
+      toast(
+        sent.already_sent
+          ? { title: t('code.alreadySentTitle'), description: t('code.alreadySentDescription') }
+          : { title: t('code.resentTitle'), description: t('code.resentDescription') },
+      );
     } catch (err) {
       showError(err);
     } finally {
@@ -530,7 +549,7 @@ export function PatientLoginWizard({
           </Form>
         )}
 
-        {/* ── Reserva sin sesión ───────────────────────────────────────── */}
+        {/* ── Reserva sin sesión (modo "sólo citas") ───────────────────── */}
         {step === 'booking' && guest && (
           /* Alto acotado: el panel reparte scroll interno y footer fijo. */
           <div className="flex h-[32rem] min-h-0 flex-col sm:h-[34rem]">

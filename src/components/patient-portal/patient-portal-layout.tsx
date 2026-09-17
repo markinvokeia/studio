@@ -13,7 +13,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
@@ -84,11 +83,11 @@ export function PatientPortalLayout({ children }: { children: React.ReactNode })
           <Button
             variant="outline"
             size="sm"
-            className="hidden h-9 shrink-0 border-[var(--nav-border)] bg-transparent text-xs text-[var(--nav-foreground)] hover:bg-[var(--nav-active-bg)] hover:text-[var(--nav-foreground)] sm:inline-flex"
+            className="h-9 shrink-0 border-[var(--nav-border)] bg-transparent px-2.5 text-xs text-[var(--nav-foreground)] hover:bg-[var(--nav-active-bg)] hover:text-[var(--nav-foreground)] sm:px-3"
             onClick={() => router.push(`/${locale}`)}
           >
-            <LayoutDashboard className="mr-1.5 h-4 w-4" />
-            {t('backToStaff')}
+            <LayoutDashboard className="h-4 w-4 sm:mr-1.5" />
+            <span className="hidden sm:inline">{t('backToStaff')}</span>
           </Button>
         )}
 
@@ -132,31 +131,23 @@ export function PatientPortalLayout({ children }: { children: React.ReactNode })
           <span className="sr-only">{t('toggleTheme')}</span>
         </Button>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-[var(--nav-active-bg)]">
-              <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-[var(--nav-active-bg)] text-xs text-[var(--nav-foreground)]">{initials || '?'}</AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {/* Quien además es staff vuelve al dashboard sin cerrar sesión. */}
-            {isDualRole && (
-              <>
-                <DropdownMenuItem onSelect={() => router.push(`/${locale}`)}>
-                  <LayoutDashboard className="mr-2 h-4 w-4" />
-                  {t('backToStaff')}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-              </>
-            )}
-            <DropdownMenuItem onSelect={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              {t('logout')}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* Decorativo: el nombre ya está a la izquierda, así que en móvil cede
+            el ancho a la acción de salir. */}
+        <Avatar className="hidden h-8 w-8 shrink-0 sm:flex" title={patientName}>
+          <AvatarFallback className="bg-[var(--nav-active-bg)] text-xs text-[var(--nav-foreground)]">
+            {initials || '?'}
+          </AvatarFallback>
+        </Avatar>
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 shrink-0 gap-1.5 border-[var(--nav-border)] bg-transparent px-2.5 text-xs text-[var(--nav-foreground)] hover:bg-[var(--nav-active-bg)] hover:text-[var(--nav-foreground)] sm:px-3"
+          onClick={handleLogout}
+        >
+          <LogOut className="h-4 w-4" />
+          {t('logout')}
+        </Button>
       </header>
 
       <main className="flex min-h-0 flex-1 flex-col overflow-hidden">

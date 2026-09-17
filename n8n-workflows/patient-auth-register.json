@@ -27,7 +27,7 @@
         300
       ],
       "parameters": {
-        "jsCode": "\n// Valida el payload mínimo de auto-registro: nombre, teléfono y email.\nconst body = $input.first().json.body || $input.first().json || {};\n\nconst name  = String(body.name || '').trim();\nconst phone = String(body.phone || '').trim();\nconst email = String(body.email || '').trim().toLowerCase();\n\n// El teléfono es opcional: sirve para que la clínica pueda contactarlo, pero\n// no bloquea el registro. El email sí es obligatorio: es la credencial del\n// paciente y a donde llega el código de acceso.\nif (!name || !email) {\n  return [{ json: { __respond: true, statusCode: 400,\n                    body: { message: 'Nombre y email son obligatorios.' } } }];\n}\n\nreturn [{ json: {\n  name, email,\n  phone: phone || null,\n  identity_document: String(body.identity_document || '').replace(/\\D/g, '') || null,\n  birth_date: String(body.birth_date || '').trim() || null,\n  address: String(body.address || '').trim() || null,\n  // '__no_match__' evita que un teléfono vacío colisione con filas sin teléfono.\n  phone_digits: phone ? phone.replace(/\\D/g, '') : '__no_match__',\n} }];\n"
+        "jsCode": "\n// Valida el payload mínimo de auto-registro: nombre, teléfono y email.\nconst body = $input.first().json.body || $input.first().json || {};\n\nconst name  = String(body.name || '').trim();\nconst phone = String(body.phone || '').trim();\nconst email = String(body.email || '').trim().toLowerCase();\n\n// El teléfono es opcional: sirve para que la clínica pueda contactarlo, pero\n// no bloquea el registro. El email sí es obligatorio: es la credencial del\n// paciente y a donde llega el código de acceso.\nif (!name || !email) {\n  return [{ json: { __respond: true, statusCode: 400,\n                    body: { message: 'Nombre y email son obligatorios.' } } }];\n}\n\nreturn [{ json: {\n  name, email,\n  phone: phone || null,\n  identity_document: String(body.identity_document || '').replace(/\\D/g, '') || null,\n  birth_date: String(body.birth_date || '').trim() || null,\n  address: String(body.address || '').trim() || null,\n  // '__no_match__' evita que un teléfono vacío colisione con filas sin teléfono.\n  phone_digits: phone ? phone.replace(/\\D/g, '') : '__no_match__',\n  // Modo \"sólo citas\": el paciente no verifica nada, mandarle un código\n  // sería un correo inútil. Lo pide el frontend con skip_code.\n  skip_code: body.skip_code === true || body.skip_code === 'true',\n} }];\n"
       }
     },
     {
@@ -252,6 +252,50 @@
           "responseCode": "={{ $json.statusCode }}"
         }
       }
+    },
+    {
+      "id": "node-if-code",
+      "name": "¿Enviar Código?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        220
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "send",
+              "operator": {
+                "type": "boolean",
+                "operation": "false"
+              },
+              "leftValue": "={{ $('Validar Datos').first().json.skip_code }}",
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "node-no-code",
+      "name": "Responder Sin Código",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1480,
+        420
+      ],
+      "parameters": {
+        "jsCode": "\n// Usuario creado, sin código: en modo \"sólo citas\" el paciente pasa directo a\n// la agenda y nunca va a verificar su correo.\nconst created = $('Crear Usuario').first().json;\nreturn [{ json: { statusCode: 200, body: {\n  created: true,\n  user_id: created.id,\n  name: created.name,\n  email: created.email,\n  sent: false,\n  masked_email: null,\n} } }];\n"
+      }
     }
   ],
   "connections": {
@@ -332,7 +376,7 @@
       "main": [
         [
           {
-            "node": "Generar Código",
+            "node": "¿Enviar Código?",
             "type": "main",
             "index": 0
           }
@@ -393,6 +437,35 @@
           }
         ]
       ]
+    },
+    "¿Enviar Código?": {
+      "main": [
+        [
+          {
+            "node": "Generar Código",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Sin Código",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Responder Sin Código": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
@@ -401,6 +474,6 @@
   },
   "meta": {
     "templateCredsSetupCompleted": false,
-    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Credencial 'Postgres' en los nodos Postgres (POSTGRES_CREDENTIAL_ID).\n2. Credencial 'SMTP' en 'Enviar Email' (SMTP_CREDENTIAL_ID) + SMTP_FROM_EMAIL.\n3. Webhook PÚBLICO (noauth).\n4. RECOMENDADO: agregar un nodo de rate-limit por IP al inicio (5 registros\n   cada 15 min). Cada registro crea una fila REAL en users que después ve el staff.\n\nRUTA: POST https://<tu-n8n>/webhook/api/auth/patient/register\n\nREQUEST:\n{ \"name\": \"Juan Pérez\", \"phone\": \"+59899123456\", \"email\": \"juan@gmail.com\",\n  \"identity_document\": \"12345678\", \"birth_date\": \"1985-03-12\", \"address\": \"...\" }\n   → sólo name y email son obligatorios; phone es opcional.\n\nRESPONSE (200): { \"created\": true, \"user_id\": \"...\", \"sent\": true,\n                  \"masked_email\": \"j***n@gmail.com\", \"expires_in\": 600 }\nRESPONSE (409): { \"error\": { \"code\": \"unique_conflict\",\n                             \"conflictedFields\": [\"email\"] } }\n   → este formato es el que ya sabe leer el frontend.\n\nNOTA: is_sales = TRUE es lo que hace que el usuario aparezca como paciente en\n/users?filter_type=PACIENTE, igual que hace upsertUser() en el frontend.\n\nCONTRATO: docs/patient-portal.md §2.4"
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Credencial 'Postgres' en los nodos Postgres (POSTGRES_CREDENTIAL_ID).\n2. Credencial 'SMTP' en 'Enviar Email' (SMTP_CREDENTIAL_ID) + SMTP_FROM_EMAIL.\n3. Webhook PÚBLICO (noauth).\n4. RECOMENDADO: agregar un nodo de rate-limit por IP al inicio (5 registros\n   cada 15 min). Cada registro crea una fila REAL en users que después ve el staff.\n\nRUTA: POST https://<tu-n8n>/webhook/api/auth/patient/register\n\nREQUEST:\n{ \"name\": \"Juan Pérez\", \"phone\": \"+59899123456\", \"email\": \"juan@gmail.com\",\n  \"identity_document\": \"12345678\", \"birth_date\": \"1985-03-12\", \"address\": \"...\" }\n   → sólo name y email son obligatorios; phone es opcional.\n\n`skip_code: true` ⇒ crea el usuario y NO genera ni envía código. Lo usa el modo\n\"sólo citas\" de la clínica, donde el paciente reserva sin verificar identidad.\n\nRESPONSE (200): { \"created\": true, \"user_id\": \"...\", \"sent\": true,\n                  \"masked_email\": \"j***n@gmail.com\", \"expires_in\": 600 }\nRESPONSE (409): { \"error\": { \"code\": \"unique_conflict\",\n                             \"conflictedFields\": [\"email\"] } }\n   → este formato es el que ya sabe leer el frontend.\n\nNOTA: is_sales = TRUE es lo que hace que el usuario aparezca como paciente en\n/users?filter_type=PACIENTE, igual que hace upsertUser() en el frontend.\n\nCONTRATO: docs/patient-portal.md §2.4"
   }
 }

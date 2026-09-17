@@ -14,6 +14,12 @@ interface PatientOnboardingBookingProps {
   patient: User;
   /** Se llama cuando el paciente termina de reservar o decide hacerlo más tarde. */
   onDone: () => void;
+  /**
+   * Modo "sólo citas" de la clínica: esta pantalla es todo lo que el paciente
+   * puede hacer. Se ocultan las salidas hacia el perfil —no debe verlo— y
+   * después de reservar se le ofrece agendar otra.
+   */
+  appointmentsOnly?: boolean;
 }
 
 /**
@@ -27,7 +33,11 @@ interface PatientOnboardingBookingProps {
  * Ocupa el alto completo del portal para que el panel de reserva pueda repartir
  * scroll y footer fijo.
  */
-export function PatientOnboardingBooking({ patient, onDone }: PatientOnboardingBookingProps) {
+export function PatientOnboardingBooking({
+  patient,
+  onDone,
+  appointmentsOnly = false,
+}: PatientOnboardingBookingProps) {
   const t = useTranslations('PatientPortal.onboarding');
   const [hasBooked, setHasBooked] = React.useState(false);
 
@@ -39,8 +49,12 @@ export function PatientOnboardingBooking({ patient, onDone }: PatientOnboardingB
         </div>
         <h1 className="mt-5 text-2xl font-bold tracking-tight">{t('bookedTitle')}</h1>
         <p className="mt-2 text-sm text-muted-foreground">{t('bookedDescription')}</p>
-        <Button size="lg" className="mt-8 h-12 w-full text-base" onClick={onDone}>
-          {t('goToProfile')}
+        <Button
+          size="lg"
+          className="mt-8 h-12 w-full text-base"
+          onClick={() => (appointmentsOnly ? setHasBooked(false) : onDone())}
+        >
+          {appointmentsOnly ? t('bookAnother') : t('goToProfile')}
         </Button>
       </div>
     );
@@ -63,9 +77,12 @@ export function PatientOnboardingBooking({ patient, onDone }: PatientOnboardingB
           patient={patient}
           onBooked={() => setHasBooked(true)}
           secondaryAction={
-            <Button variant="ghost" className="h-10 w-full text-sm" onClick={onDone}>
-              {t('skip')}
-            </Button>
+            // Sin "lo hago más tarde" en modo sólo citas: no hay a dónde ir.
+            appointmentsOnly ? undefined : (
+              <Button variant="ghost" className="h-10 w-full text-sm" onClick={onDone}>
+                {t('skip')}
+              </Button>
+            )
           }
         />
       </div>

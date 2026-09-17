@@ -1,0 +1,84 @@
+{
+  "name": "user_cancelled_appointments_count",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "user_cancelled_appointments_count",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b1f6c0a2-0001-4a10-9a01-000000000001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [260, 300],
+      "webhookId": "user-cancelled-appointments-count"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COUNT(*)::int AS cancelled_count\nFROM public.appointments\nWHERE user_id = $1\n  AND status = 'cancelled';",
+        "options": {
+          "queryReplacement": "={{ $json.query.user_id }}"
+        }
+      },
+      "id": "b1f6c0a2-0002-4a10-9a01-000000000002",
+      "name": "Count cancelled appointments",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [520, 300],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_WITH_YOUR_POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres InvokeIA"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"user_id\": $('Webhook').item.json.query.user_id, \"cancelled_count\": ($json.cancelled_count || 0) } }}",
+        "options": {}
+      },
+      "id": "b1f6c0a2-0003-4a10-9a01-000000000003",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [780, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Count cancelled appointments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Count cancelled appointments": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateId": "invokeia-user-cancelled-appointments-count"
+  },
+  "tags": []
+}

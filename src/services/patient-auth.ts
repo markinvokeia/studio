@@ -57,14 +57,32 @@ export async function sendPatientCode(identifier: string, email?: string): Promi
   const payload: Record<string, string> = { identifier: identifier.trim() };
   if (email?.trim()) payload.email = email.trim();
 
-  const data = await api.post(API_ROUTES.PATIENT_AUTH.SEND_CODE, payload);
-  const result = unwrap<Partial<PatientSendCodeResponse>>(data);
+  try {
+    const data = await api.post(API_ROUTES.PATIENT_AUTH.SEND_CODE, payload);
+    const result = unwrap<Partial<PatientSendCodeResponse>>(data);
 
-  return {
-    sent: result.sent !== false,
-    masked_email: result.masked_email ?? null,
-    expires_in: result.expires_in ?? 600,
-  };
+    return {
+      sent: result.sent !== false,
+      masked_email: result.masked_email ?? null,
+      expires_in: result.expires_in ?? 600,
+    };
+  } catch (error) {
+    // 429 no es un fallo: el rate-limit de reenvío se disparó porque YA hay un
+    // código vigente en su correo. Cortar acá dejaba al paciente trabado, sin
+    // pantalla donde escribir el código que sí recibió.
+    const httpError = error as { status?: number; data?: { retry_after?: unknown; masked_email?: unknown } };
+    if (httpError?.status === 429) {
+      const retryAfter = Number(httpError.data?.retry_after);
+      return {
+        sent: false,
+        already_sent: true,
+        retry_after: Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : undefined,
+        masked_email: typeof httpError.data?.masked_email === 'string' ? httpError.data.masked_email : null,
+        expires_in: 600,
+      };
+    }
+    throw error;
+  }
 }
 
 /** Valida el código y devuelve el JWT. Lanza si el código es inválido, venció o se agotaron los intentos. */
@@ -98,7 +116,14 @@ export async function verifyPatientCode(identifier: string, code: string): Promi
  * `{ error: { code: 'unique_conflict', conflictedFields: [...] } }` — el mismo
  * formato que ya maneja `patient-info-tab.tsx`.
  */
-export async function registerPatient(payload: PatientRegisterPayload): Promise<PatientRegisterResponse> {
+export async function registerPatient(
+  payload: PatientRegisterPayload,
+  /**
+   * `skipCode` ⇒ modo "sólo citas": el paciente no va a verificar nada, así que
+   * mandarle un código sería un correo inútil. El backend lo omite.
+   */
+  options: { skipCode?: boolean } = {},
+): Promise<PatientRegisterResponse> {
   const body: Record<string, string> = {
     name: payload.name.trim(),
     email: payload.email.trim(),
@@ -107,6 +132,8 @@ export async function registerPatient(payload: PatientRegisterPayload): Promise<
   if (payload.identity_document?.trim()) body.identity_document = payload.identity_document.trim();
   if (payload.birth_date?.trim()) body.birth_date = payload.birth_date.trim();
   if (payload.address?.trim()) body.address = payload.address.trim();
+
+  if (options.skipCode) body.skip_code = 'true';
 
   const data = await api.post(API_ROUTES.PATIENT_AUTH.REGISTER, body);
   const result = unwrap<Partial<PatientRegisterResponse>>(data);

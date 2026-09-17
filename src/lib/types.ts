@@ -3083,6 +3083,14 @@ export type PatientSendCodeResponse = {
   masked_email: string | null;
   /** Vigencia del código en segundos (600 = 10 min). */
   expires_in?: number;
+  /**
+   * `true` cuando el backend rechazó el reenvío por rate-limit: ya hay un
+   * código vigente en la casilla del paciente. No es un error — hay que dejarlo
+   * escribir el que recibió.
+   */
+  already_sent?: boolean;
+  /** Segundos que faltan para poder pedir otro código. */
+  retry_after?: number;
 };
 
 /** Respuesta de POST /api/auth/patient/verify-code. El token es el mismo JWT que emite /api/auth/login. */

@@ -114,7 +114,8 @@ Averigua si el identificador corresponde a un paciente. **Nunca devuelve datos d
 { "found": false, "needs_email": false, "masked_email": null }
 ```
 
-`has_upcoming_appointments` es lo que decide si se le pide OTP o se lo manda directo a reservar (§3). Calcularlo así:
+`has_upcoming_appointments` es **informativo**: ya no decide si se pide el OTP —eso es siempre— sino que
+permite al portal elegir dónde aterrizar. Calcularlo así:
 
 ```sql
 SELECT EXISTS (
@@ -127,7 +128,7 @@ SELECT EXISTS (
 
 > ⚠️ La columna es **`start_datetime`**, no `start_time`. El baseline de Liquibase está desactualizado; la referencia son las queries de `docs/n8n-flows/All Appointment Workflows.json`.
 
-> `user_id` y `name` sólo se devuelven cuando `found`. Son los mínimos para poder reservar sin sesión; **no** agregar email, teléfono ni ningún otro dato: este endpoint es público.
+> `user_id` y `name` sólo se devuelven cuando `found`. **No** agregar email en claro, teléfono ni cédula: este endpoint es público y responde a cualquiera que pruebe identificadores.
 
 Lookup (normalizar el teléfono quitando espacios, guiones y el prefijo `+598`):
 
@@ -362,26 +363,30 @@ El comportamiento de `/patient-login` depende de dos flags de `clinic`:
 | `patient_portal_online_booking` | `false` ⇒ el paciente sólo consulta; no puede reservar. |
 | `patient_portal_appointments_only` | `true` ⇒ el portal es **sólo para reservar**. |
 
-**Modo "sólo citas"** (`appointments_only = true`):
-identificarse → agenda → confirmación. **Nunca** se pide OTP ni se entra al perfil, ni siquiera a un paciente conocido.
-
-**Modo completo** (`appointments_only = false`):
+**El código es siempre la puerta.** Ningún camino reserva ni entra al portal sin verificar el correo:
 
 | Situación | Camino |
 |---|---|
-| No está en el sistema | Registro (nombre + email, teléfono opcional) → **se crea el usuario** → agenda → confirmación. **Sin OTP.** |
-| Existe, sin citas futuras | Agenda → confirmación. **Sin OTP** — no hay nada que consultar todavía. |
-| Existe, con citas futuras | **OTP** → portal, en Citas. Detrás hay historia clínica y estado de cuenta: eso sí se protege. |
+| No está en el sistema | Registro → se crea el usuario → **OTP** → portal |
+| Existe | **OTP** → portal |
 
-### Por qué el registro no pide OTP
+Una vez verificado, el portal decide qué mostrar:
 
-Es una decisión de producto: pedir un código antes de la primera reserva agrega fricción justo donde más se pierde gente. El costo es que **se pueden crear pacientes y citas con correos inexistentes**. Las tres barreras que lo compensan:
+| Config | Qué ve |
+|---|---|
+| `appointments_only = true` | **Sólo** la pantalla de reserva. Nunca el expediente |
+| Sin citas futuras | Reserva primero; el perfil aparece después |
+| Con citas futuras | El perfil, en la pestaña de Citas |
 
-1. La cita nace en `status = 'pending'` — recepción confirma antes de bloquear el horario.
-2. `patient-email-bounce` marca al contacto y señala sus citas si el correo rebota (§2.9).
-3. Rate-limit por IP en `/api/auth/patient/register` (pendiente de configurar en n8n).
+### Por qué el OTP no es opcional
 
-Un paciente **ya existente** nunca accede a sus datos sin OTP: sin código sólo puede reservar, que no expone información.
+Una versión anterior lo salteaba para el paciente nuevo y para el que no tenía citas futuras, apostando a verificar el correo por rebote a posteriori. Era explotable: **escribir un email conocido no prueba ser su dueño**, así que desde cualquier navegador se podían reservar citas a nombre de otro, y el propio paciente recibía un código que el sistema nunca le pedía.
+
+La verificación por rebote (§2.9) sigue siendo útil como red de seguridad para detectar correos falsos, pero **no reemplaza al OTP**: llega tarde, cuando la cita ya está creada.
+
+> Consecuencia: la reserva ocurre siempre con sesión. Los endpoints `_noauth` de disponibilidad y alta (§3.2) quedaron sin uso desde el portal.
+
+---
 
 ---
 

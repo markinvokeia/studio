@@ -8687,7 +8687,9 @@
       "resentTitle": "Código reenviado",
       "resentDescription": "Revisá tu correo, incluida la carpeta de spam.",
       "reason": "Sólo vos tenés acceso a tu correo. Por eso te pedimos el código: así garantizamos que nadie más pueda ver tu información ni hacer operaciones a tu nombre sin tu consentimiento.",
-      "pasteHint": "Revisá tu correo y copiá el código de 6 dígitos que te enviamos. Podés pegarlo directamente en la primera casilla."
+      "pasteHint": "Revisá tu correo y copiá el código de 6 dígitos que te enviamos. Podés pegarlo directamente en la primera casilla.",
+      "alreadySentTitle": "Ya te enviamos un código",
+      "alreadySentDescription": "Revisá tu correo y escribí el código que recibiste. Si no llegó, en unos segundos vas a poder pedir otro."
     },
     "fields": {
       "email": "Correo electrónico",
@@ -8751,6 +8753,7 @@
       "rights": "Todos los derechos reservados.",
       "poweredBy": "Desarrollado por Invoke IA"
     },
+    "startOver": "Empezar de nuevo",
     "booking": {
       "title": "Elegí tu cita",
       "description": "Seleccioná el día y el horario que mejor te venga.",
@@ -8763,8 +8766,7 @@
       "when": "{date} a las {time}",
       "emailSent": "Enviamos un correo con los detalles de tu cita a vos y a la clínica. Si necesitás cambiarla, comunicate con nosotros.",
       "done": "Listo"
-    },
-    "startOver": "Empezar de nuevo"
+    }
   },
   "PatientPortal": {
     "subtitle": "Mi perfil",
@@ -8838,7 +8840,8 @@
       "skip": "Lo hago más tarde",
       "bookedTitle": "¡Solicitud enviada!",
       "bookedDescription": "La clínica va a confirmarte la cita. Ya podés ver tu perfil.",
-      "goToProfile": "Ir a mi perfil"
+      "goToProfile": "Ir a mi perfil",
+      "bookAnother": "Reservar otra cita"
     },
     "backToStaff": "Volver a vista de Staff",
     "booking": {
@@ -9026,16 +9029,16 @@
     "fields": {
       "enabled": {
         "label": "Permitir el acceso de pacientes al portal",
-        "help": "Habilita la página pública /patient-login. Si está apagado, los pacientes ven un aviso de que el portal no está disponible y no pueden identificarse ni reservar."
+        "help": "Habilita la página pública /patient-login. Con esto activo el paciente puede comenzar y generar reservas. Si está apagado, ve un aviso de que el portal no está disponible y no puede identificarse ni reservar."
       },
       "onlineBooking": {
-        "label": "Permitir la reserva de citas online",
-        "help": "Deja que el paciente elija día y horario entre los huecos libres de la agenda. Si está apagado, sólo puede consultar su información: las citas las sigue agendando la clínica."
+        "label": "Agenda y acceso al perfil del paciente",
+        "help": "Deja que el paciente agende la cita, elija día y horario entre los huecos libres de la agenda, y acceda a su perfil. Si está apagado, sólo puede consultar su información: las citas las sigue agendando la clínica."
       },
       "appointmentsOnly": {
         "label": "El portal es sólo para reservar citas",
-        "help": "El paciente entra, se identifica y pasa directo a la agenda. Nunca se le pide código ni accede a su historia clínica, finanzas o datos personales. Útil si querés ofrecer reserva online sin abrir el resto del expediente.",
-        "activeNotice": "Con esta opción activa, ningún paciente va a ver su perfil: sólo la pantalla para reservar. Tampoco se envían códigos de acceso."
+        "help": "El paciente sólo reserva citas y no accede a su información: se queda en la pantalla de /patient-login. No se le envía código de acceso, así que reserva sin confirmar su identidad — la cita queda pendiente de confirmación por la clínica.",
+        "activeNotice": "Con esta opción activa, ningún paciente va a ver su perfil: sólo la pantalla para reservar. Tampoco se envían códigos de acceso, así que nadie verifica ser el dueño del correo que escribe."
       },
       "video": {
         "label": "Video de bienvenida",
