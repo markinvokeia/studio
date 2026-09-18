@@ -8987,7 +8987,7 @@
       },
       "preference": {
         "label": "Según preferencia",
-        "help": "Respeta el interruptor \"colorear por estado\" de cada usuario: si la cita ya tiene color (propio, del servicio, del doctor o del consultorio) lo conserva y el estado se ve como franja lateral; solo las citas sin color se pintan enteras con el color del estado."
+        "help": "Respeta el interruptor \"colorear por estado\" de cada usuario: con color propio o de servicio se ve como franja lateral; heredando solo el del doctor o el consultorio se pinta la card entera."
       },
       "never": {
         "label": "Nunca",

@@ -3628,13 +3628,12 @@ export default function AppointmentsPage() {
                     }
 
                     const matchedCalendar = calendars.find((calendar) => String(calendar.id) === String(appt.calendar_source_id));
-                    // Preferencia "colorear por estado". Si la cita ya tiene un color
-                    // efectivo —propio, del servicio, del doctor o del consultorio— ese color
-                    // se respeta y el estado se comunica con una franja lateral. Solo las
-                    // citas sin color en ningún nivel de la cadena se pintan enteras con el
-                    // color del estado. `appt.color` queda intacto en los dos casos para el
-                    // selector de color y el panel de detalle.
-                    // Los estados en modo 'always' (calendar_mode de la matriz) sí pintan la
+                    // Preferencia "colorear por estado". Un color propio o de servicio es una
+                    // decisión que alguien tomó sobre esa cita y no se pisa: ahí el estado va
+                    // en una franja lateral. Heredar el color del doctor o del consultorio no
+                    // lo es, así que esas citas sí se pintan enteras. `appt.color` queda
+                    // intacto en los dos casos para el selector de color y el panel de detalle.
+                    // Los estados en modo 'always' (calendar_mode de la matriz) pintan la
                     // card entera aunque la preferencia esté apagada o el color venga del
                     // servicio, del doctor o del consultorio, porque son los estados que hay
                     // que ver de un vistazo. La única excepción es la etiqueta de color
