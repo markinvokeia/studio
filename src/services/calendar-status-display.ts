@@ -1,7 +1,7 @@
 import { DEFAULT_STATUS_DISPLAY } from '@/constants/appointment-status';
 import { API_ROUTES } from '@/constants/routes';
 import { mergeStatusMatrix } from '@/lib/appointment-status-display';
-import type { CalendarStatusDisplayRow } from '@/lib/types';
+import type { AppointmentStatus, CalendarStatusDisplayRow } from '@/lib/types';
 import { api } from '@/services/api';
 
 /**
@@ -61,9 +61,15 @@ export async function upsertStatusDisplayRows(rows: CalendarStatusDisplayRow[]):
   }
 }
 
-export async function deleteCalendarOverride(calendarId: string): Promise<void> {
+/**
+ * Sin `status`: borra todo el override de ese calendario ("volver a usar la
+ * general"). Con `status`: borra solo esa fila, para que ese estado puntual
+ * vuelva a heredar de la matriz general sin tocar el resto del override.
+ */
+export async function deleteCalendarOverride(calendarId: string, status?: AppointmentStatus): Promise<void> {
   const response = await api.post(API_ROUTES.CALENDAR_STATUS_DISPLAY.DELETE, {
     calendar_id: calendarId,
+    ...(status ? { status } : {}),
   });
 
   const result = Array.isArray(response) ? response[0] : response;

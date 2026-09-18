@@ -8995,12 +8995,27 @@
     "loadError": "We couldn't load the color matrix",
     "readOnlyNotice": "Read-only: you don't have permission to change the calendar colors.",
     "restoreDefaults": "Restore defaults",
+    "unsavedChangesConfirm": "You have unsaved changes in this view. Discard them and switch calendars?",
     "table": {
       "status": "Status",
+      "scope": "Scope",
       "color": "Color",
       "calendarMode": "On the calendar",
       "badgeStyle": "Badge",
       "preview": "Preview"
+    },
+    "scope": {
+      "general": "General",
+      "generalHint": "Clinic-wide matrix: applies to every calendar that doesn't have its own configuration.",
+      "calendarHint": "Showing this calendar's configuration. Anything you don't customize still inherits from General.",
+      "customized": "Customized",
+      "inherited": "Inherits from General",
+      "revertStatus": "Revert to inherit from General",
+      "revertStatusSuccess": "That status now inherits from the general matrix again",
+      "revertStatusError": "We couldn't revert that status",
+      "revertAll": "Revert all to General",
+      "revertAllSuccess": "The calendar is back to using the general matrix",
+      "revertAllError": "We couldn't revert that calendar's configuration"
     },
     "calendarMode": {
       "always": {
@@ -9022,22 +9037,15 @@
       "outline": "Outline"
     },
     "replicateDialog": {
-      "trigger": "Replicate to calendars…",
-      "title": "Replicate to calendars",
-      "description": "Copies the general matrix above as this status's configuration for the selected calendars.",
+      "trigger": "Copy to other calendars…",
+      "title": "Copy to other calendars",
+      "description": "Copies the configuration you're currently viewing to the selected calendars.",
       "selectAll": "Select all",
-      "decoupleNotice": "From this point on, each selected calendar keeps its own copy: changes to the general matrix won't reach it anymore.",
+      "decoupleNotice": "From this point on, each selected calendar keeps its own copy: changes you make here afterwards won't reach it automatically.",
       "cancel": "Cancel",
-      "confirm": "Replicate",
-      "success": "Matrix replicated",
-      "error": "We couldn't replicate the matrix"
-    },
-    "overrides": {
-      "sectionTitle": "Calendars with their own configuration",
-      "sectionDescription": "These calendars no longer follow the general matrix. In this version they can only be replicated to or reset to the general matrix — not edited individually.",
-      "useGeneral": "Use general matrix",
-      "removed": "Back to the general matrix",
-      "removeError": "We couldn't reset that calendar's configuration"
+      "confirm": "Copy",
+      "success": "Configuration copied",
+      "error": "We couldn't copy the configuration"
     }
   },
   "PatientPortalConfigPage": {

@@ -103,7 +103,8 @@ import { AppointmentStatusContextItems } from '@/components/appointments/Appoint
 import { useAppointmentStatus } from '@/hooks/use-appointment-status';
 import { canReschedule, normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
 import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
-import { resolveEventStatusColors } from '@/lib/appointment-status-display';
+import { resolveEventStatusColors, resolveStatusDisplay } from '@/lib/appointment-status-display';
+import { useCalendarStatusDisplayStore } from '@/stores/calendar-status-display-store';
 import { useAppointmentReschedule } from '@/hooks/use-appointment-reschedule';
 import { CancellationNoteDialog } from '@/components/appointments/CancellationNoteDialog';
 import { getAppointmentColumns } from './columns';
@@ -980,7 +981,12 @@ export default function AppointmentsPage() {
     const [eventLabelFormat, setEventLabelFormat] = React.useState<string>(DEFAULT_EVENT_LABEL_FORMAT);
     const [colorByStatus, setColorByStatus] = React.useState<boolean>(DEFAULT_COLOR_BY_STATUS);
     const [defaultSede, setDefaultSede] = React.useState<string>('');
-    const { matrix: statusDisplayMatrix, displayOf: getStatusDisplay } = useAppointmentStatusDisplay();
+    // Matriz general (sin argumento) + mapa por calendario del store: cada cita
+    // resuelve su propia matriz según su consultorio (`matchedCalendar.id`) más
+    // abajo, en vez de usar siempre la general — antes ningún override de
+    // calendario se veía en el calendario de citas por este motivo.
+    const { matrix: statusDisplayMatrix } = useAppointmentStatusDisplay();
+    const statusDisplayByCalendar = useCalendarStatusDisplayStore((s) => s.byCalendar);
 
     // ── Calendar display mode (invoke | custom) ──────────────────────────────
     // In 'custom' mode a single agenda is shown at a time, chosen from the
@@ -3641,7 +3647,8 @@ export default function AppointmentsPage() {
                     // esperar a que la cita pase al siguiente estado; el estado queda en la
                     // franja lateral.
                     const status = normalizeAppointmentStatus(appt.status);
-                    const display = getStatusDisplay(status);
+                    const calendarStatusMatrix = (matchedCalendar && statusDisplayByCalendar[matchedCalendar.id]) || statusDisplayMatrix;
+                    const display = resolveStatusDisplay(calendarStatusMatrix, status);
                     const { color: resolvedColor, statusColored, statusStripeColor } = resolveEventStatusColors({
                         status,
                         display,
@@ -3710,7 +3717,7 @@ export default function AppointmentsPage() {
             .filter((event): event is NonNullable<typeof event> => event !== null);
 
         return [...events, ...reminderEvents];
-    }, [appointments, calendars, reminders, selectedCalendarIds, selectedDoctorIds, eventLabelFormat, colorByStatus, statusDisplayMatrix, getStatusDisplay, isBulkMode, user?.id, t, canUpdateAppointments]);
+    }, [appointments, calendars, reminders, selectedCalendarIds, selectedDoctorIds, eventLabelFormat, colorByStatus, statusDisplayMatrix, statusDisplayByCalendar, isBulkMode, user?.id, t, canUpdateAppointments]);
 
     const visibleCalendarItems = React.useMemo(
         () => reminders.filter((reminder) => {

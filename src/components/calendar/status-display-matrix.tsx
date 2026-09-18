@@ -1,12 +1,15 @@
 'use client';
 
 import * as React from 'react';
+import { Undo2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 import { getStatusIcon } from '@/components/appointments/status-icons';
 import { GOOGLE_CALENDAR_COLORS } from '@/components/calendar/calendar-constants';
@@ -29,6 +32,13 @@ export interface StatusDisplayMatrixProps {
   matrix: AppointmentStatusDisplayMatrix;
   onChange: (status: AppointmentStatus, patch: Partial<AppointmentStatusDisplay>) => void;
   disabled?: boolean;
+  /**
+   * Cuando se edita el scope de un calendario específico (no General): qué
+   * estados tienen una fila de override propia. Sin esta prop, la columna de
+   * estado no muestra el badge heredado/personalizado (caso General).
+   */
+  overriddenStatuses?: Set<AppointmentStatus>;
+  onRevertStatus?: (status: AppointmentStatus) => void;
 }
 
 /**
@@ -36,9 +46,17 @@ export interface StatusDisplayMatrixProps {
  * `permission-matrix.tsx` (tarjeta + filas), pero el contenido de cada fila es
  * propio: swatch de color, selects de modo/badge y una vista previa real.
  */
-export function StatusDisplayMatrix({ statuses, matrix, onChange, disabled }: StatusDisplayMatrixProps) {
+export function StatusDisplayMatrix({
+  statuses,
+  matrix,
+  onChange,
+  disabled,
+  overriddenStatuses,
+  onRevertStatus,
+}: StatusDisplayMatrixProps) {
   const t = useTranslations('CalendarColorsPage');
   const tStatus = useTranslations('AppointmentStatus');
+  const showsScopeColumn = overriddenStatuses !== undefined;
 
   return (
     <div className="overflow-x-auto rounded-xl border">
@@ -46,6 +64,7 @@ export function StatusDisplayMatrix({ statuses, matrix, onChange, disabled }: St
         <thead>
           <tr className="border-b bg-muted/40 text-left text-xs font-medium text-muted-foreground">
             <th className="px-3 py-2.5">{t('table.status')}</th>
+            {showsScopeColumn && <th className="px-3 py-2.5">{t('table.scope')}</th>}
             <th className="px-3 py-2.5">{t('table.color')}</th>
             <th className="px-3 py-2.5">{t('table.calendarMode')}</th>
             <th className="px-3 py-2.5">{t('table.badgeStyle')}</th>
@@ -56,6 +75,7 @@ export function StatusDisplayMatrix({ statuses, matrix, onChange, disabled }: St
           {statuses.map((status) => {
             const display = matrix[status];
             const Icon = getStatusIcon(status);
+            const isOverridden = overriddenStatuses?.has(status) ?? false;
             return (
               <tr key={status} className="border-b last:border-b-0">
                 <td className="px-3 py-2.5">
@@ -64,6 +84,36 @@ export function StatusDisplayMatrix({ statuses, matrix, onChange, disabled }: St
                     {tStatus(status)}
                   </div>
                 </td>
+                {showsScopeColumn && (
+                  <td className="px-3 py-2.5">
+                    {isOverridden ? (
+                      <div className="flex items-center gap-1.5">
+                        <Badge variant="outline" className="text-[10px] font-normal">
+                          {t('scope.customized')}
+                        </Badge>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                                disabled={disabled}
+                                onClick={() => onRevertStatus?.(status)}
+                              >
+                                <Undo2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{t('scope.revertStatus')}</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">{t('scope.inherited')}</span>
+                    )}
+                  </td>
+                )}
                 <td className="px-3 py-2.5">
                   <ColorPicker
                     color={display.color}

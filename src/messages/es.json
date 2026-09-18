@@ -8973,12 +8973,27 @@
     "loadError": "No se pudo cargar la matriz de colores",
     "readOnlyNotice": "Solo lectura: no tenés permiso para modificar los colores de calendario.",
     "restoreDefaults": "Restaurar por defecto",
+    "unsavedChangesConfirm": "Tenés cambios sin guardar en esta vista. ¿Descartarlos y cambiar de calendario?",
     "table": {
       "status": "Estado",
+      "scope": "Alcance",
       "color": "Color",
       "calendarMode": "En el calendario",
       "badgeStyle": "Badge",
       "preview": "Vista previa"
+    },
+    "scope": {
+      "general": "General",
+      "generalHint": "Matriz de la clínica: aplica a todos los calendarios que no tengan su propia configuración.",
+      "calendarHint": "Mostrando la configuración de este calendario. Lo que no personalices sigue heredando de General.",
+      "customized": "Personalizado",
+      "inherited": "Hereda de General",
+      "revertStatus": "Volver a heredar de General",
+      "revertStatusSuccess": "Ese estado vuelve a heredar de la matriz general",
+      "revertStatusError": "No se pudo revertir ese estado",
+      "revertAll": "Revertir todo a General",
+      "revertAllSuccess": "El calendario vuelve a usar la matriz general",
+      "revertAllError": "No se pudo revertir la configuración de ese calendario"
     },
     "calendarMode": {
       "always": {
@@ -9000,22 +9015,15 @@
       "outline": "Contorno"
     },
     "replicateDialog": {
-      "trigger": "Replicar a calendarios…",
-      "title": "Replicar a calendarios",
-      "description": "Copia la matriz general de arriba como configuración de este estado para los calendarios seleccionados.",
+      "trigger": "Copiar a otros calendarios…",
+      "title": "Copiar a otros calendarios",
+      "description": "Copia la configuración que estás viendo ahora mismo a los calendarios seleccionados.",
       "selectAll": "Seleccionar todos",
-      "decoupleNotice": "A partir de este momento, cada calendario seleccionado queda con su propia copia: los cambios a la matriz general ya no le van a llegar.",
+      "decoupleNotice": "A partir de este momento, cada calendario seleccionado queda con su propia copia: los cambios que hagas después acá ya no les van a llegar automáticamente.",
       "cancel": "Cancelar",
-      "confirm": "Replicar",
-      "success": "Matriz replicada",
-      "error": "No se pudo replicar la matriz"
-    },
-    "overrides": {
-      "sectionTitle": "Calendarios con configuración propia",
-      "sectionDescription": "Estos calendarios ya no siguen la matriz general. En esta versión solo se les puede replicar la matriz o volver a la general — no editarlos individualmente.",
-      "useGeneral": "Usar matriz general",
-      "removed": "Vuelve a usar la matriz general",
-      "removeError": "No se pudo restablecer la configuración de ese calendario"
+      "confirm": "Copiar",
+      "success": "Configuración copiada",
+      "error": "No se pudo copiar la configuración"
     }
   },
   "PatientPortalConfigPage": {
