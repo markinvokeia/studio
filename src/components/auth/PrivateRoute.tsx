@@ -30,12 +30,24 @@ function getFirstAccessibleHref(
   hasAnyPermission: (codes: string[]) => boolean,
 ): string | null {
   for (const item of items) {
-    if (!item.href || item.isSeparator) continue;
+    if (item.isSeparator) continue;
     const ok =
       (!item.requiredPermission || hasPermission(item.requiredPermission)) &&
       (!item.requiredPermissions || item.requiredPermissions.every(p => hasPermission(p))) &&
       (!item.requiredAnyPermission || hasAnyPermission(item.requiredAnyPermission));
-    if (ok) return item.href;
+    if (!ok) continue;
+
+    // A group item's own permission check (e.g. "any Sales permission") is
+    // looser than each child's specific one, so its `href` (a fixed default
+    // child) isn't necessarily reachable. Drill into the already-narrower
+    // children instead of trusting the parent's href.
+    if (item.items && item.items.length > 0) {
+      const childHref = getFirstAccessibleHref(item.items, hasPermission, hasAnyPermission);
+      if (childHref) return childHref;
+      continue;
+    }
+
+    if (item.href) return item.href;
   }
   return null;
 }

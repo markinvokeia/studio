@@ -34,7 +34,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { navItems } from '@/config/nav';
+import { navItems, type NavItem } from '@/config/nav';
 import { GLOBAL_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAlertNotifications } from '@/context/alert-notifications-context';
@@ -84,6 +84,21 @@ const passwordFormSchema = (t: (key: string) => string) => z.object({
 });
 
 type PasswordFormValues = z.infer<ReturnType<typeof passwordFormSchema>>;
+
+/**
+ * A parent nav item's `href` is just a default landing page (e.g. Sales →
+ * quotes), not necessarily one the current user can see. `item.items` is
+ * already permission-filtered by `filterNavByPermissions`, so its first
+ * entry is always accessible — unlike `item.href`, which would send someone
+ * with e.g. only Payments access into an "Acceso Denegado" wall on Quotes.
+ */
+function getPrimaryHref(item: NavItem): string {
+    if (item.items && item.items.length > 0) {
+        const firstChild = item.items.find(sub => sub.href && !sub.isSeparator);
+        if (firstChild) return firstChild.href;
+    }
+    return item.href;
+}
 
 const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; activeItem: any }) => {
     const pathname = usePathname();
@@ -187,7 +202,8 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                             const isHovered = activeItem?.title === item.title;
                             const isExpanded = isHovered && item.items;
 
-                            let linkHref = `/${locale}${item.href === '/' ? '' : item.href}`;
+                            const primaryHref = getPrimaryHref(item);
+                            let linkHref = `/${locale}${primaryHref === '/' ? '' : primaryHref}`;
                             if (item.href.includes('/clinic-history')) {
                                 const parts = effectivePathname.split('/');
                                 const userIdFromUrl = (effectivePathname.startsWith('/clinic-history') && parts[2])
