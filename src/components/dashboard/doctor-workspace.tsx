@@ -887,14 +887,20 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     [appointments, selectedAppointmentId],
   );
 
-  // Clinical sessions can only be created/edited on the appointment's own day: past days
-  // are already closed out, and future appointments haven't happened yet. With a date range
-  // the agenda can mix days, so this is evaluated per selected appointment, not per filter.
+  // Clinical sessions can be created/edited on the appointment's day or any day after (the
+  // doctor may not get to it until later), but not before it happens: future appointments
+  // haven't happened yet. With a date range the agenda can mix days, so this is evaluated
+  // per selected appointment, not per filter.
   const selectedAppointmentDate = selectedAppointment?.date
     ? parseISO(`${formatDate(selectedAppointment.date)}T00:00:00`)
     : null;
   const hasValidSelectedDate = Boolean(selectedAppointmentDate && !Number.isNaN(selectedAppointmentDate.getTime()));
-  const isSessionEditingBlockedByDate = !(hasValidSelectedDate && isSameDay(selectedAppointmentDate!, new Date()));
+  const todayStart = React.useMemo(() => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    return now;
+  }, []);
+  const isSessionEditingBlockedByDate = !hasValidSelectedDate || selectedAppointmentDate! > todayStart;
   const selectedAppointmentDateLabel = hasValidSelectedDate
     ? format(selectedAppointmentDate!, 'EEEE d MMM', { locale: dateFnsLocale })
     : '';

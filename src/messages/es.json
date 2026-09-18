@@ -1552,7 +1552,7 @@
       "viewPatientFile": "Ficha del paciente",
       "moreAlertTags": "+{count} más",
       "sessionExistsToday": "Ya existe una sesión clínica registrada para hoy. Solo se permite una sesión por paciente por día.",
-      "sessionOnlyOnAppointmentDay": "Solo puedes completar o editar la sesión clínica el día de la cita.",
+      "sessionOnlyOnAppointmentDay": "No puedes completar o editar la sesión clínica antes del día de la cita.",
       "sessionIsOdontogram": "La sesión registrada para esta cita es de tipo Odontograma. Edítala desde el panel de Odontograma.",
       "workspaceLabel": "Workspace clínico",
       "sessionStatusTitle": "Estado de la sesión",
