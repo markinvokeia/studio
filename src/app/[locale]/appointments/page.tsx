@@ -3460,6 +3460,12 @@ export default function AppointmentsPage() {
             setSelectedAppointment((prev) => (prev
                 ? patchAppointmentsForPatient([prev], lastUpdatedPatient, responsibleContact)[0]
                 : prev));
+            // La tarjeta inline (modo `custom`) guarda su propio paciente aparte —
+            // "Datos del paciente" se abre justo desde ahí (`onEditPatient`) — así que
+            // sin esto seguía mostrando el nombre viejo hasta cerrarla y reabrirla.
+            setInlineDraft((prev) => (prev?.patient && prev.patient.id === lastUpdatedPatient.id
+                ? { ...prev, patient: { ...prev.patient, ...lastUpdatedPatient } }
+                : prev));
         })();
         return () => { cancelled = true; };
     }, [lastUpdatedPatient]);
@@ -4521,13 +4527,17 @@ export default function AppointmentsPage() {
         // Patient submenu first, then the appointment statuses, then edit/delete,
         // then color and doctor/room reassignment actions.
         if (calendarMode === 'custom') {
+            // Citas importadas de Google (u otras sin paciente asociado) no tienen a
+            // quién mostrarle cuentas, historial ni datos — el submenú queda
+            // deshabilitado en vez de abrir con todo vacío.
+            const hasPatient = !!appointment.patientId;
             return (
                 <>
                     <ContextMenuSeparator />
                     <ContextMenuSub>
-                        <ContextMenuSubTrigger className="cursor-pointer gap-2 font-medium">
+                        <ContextMenuSubTrigger disabled={!hasPatient} className="cursor-pointer gap-2 font-medium">
                             <UserRound className="h-4 w-4 shrink-0" />
-                            <span className="min-w-0 flex-1 truncate">{appointment.patientName}</span>
+                            <span className="min-w-0 flex-1 truncate">{hasPatient ? appointment.patientName : t('createDialog.none')}</span>
                         </ContextMenuSubTrigger>
                         <ContextMenuSubContent className="w-56">
                             {canViewPatientStatement && (
@@ -4574,8 +4584,6 @@ export default function AppointmentsPage() {
                                     userEmail: getEffectiveAppointmentContact(appointment).email,
                                     userPhone: getEffectiveAppointmentContact(appointment).phone,
                                     initialTab: 'info',
-                                    infoOnly: true,
-                                    showCancelAction: true,
                                 })}
                                 className="flex items-center gap-2 cursor-pointer"
                             >

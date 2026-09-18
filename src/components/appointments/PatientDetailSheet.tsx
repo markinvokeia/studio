@@ -29,6 +29,8 @@ import { useFinanceViewPreference } from '@/hooks/use-finance-view-preference';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { useToast } from '@/hooks/use-toast';
 import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
+import { usePatientView } from '@/stores/patient-view-store';
+import { fetchPatientById, getDependantContactInfo, type DependantContactInfo } from '@/components/patients/patient-form-utils';
 import type { Appointment, User } from '@/lib/types';
 import {
   AlertTriangle, Heart, Lock, Mail, Phone, Users,
@@ -108,6 +110,36 @@ export function PatientDetailSheet({
   const [isPrintingFinancialSummary, setIsPrintingFinancialSummary] = React.useState(false);
   const isDoctorMode = mode === 'doctor';
   const { hasPermission, hasAnyPermission } = usePermissions();
+  const openPatientView = usePatientView((s) => s.open);
+
+  // Datos de dependencia (¿es paciente dependiente de un tutor?) y el contacto de
+  // ese tutor. Vienen aparte de `userId`/`userName`/... (que sólo traen identidad
+  // básica, la mínima que necesita cualquier llamador para abrir el sheet) para que
+  // el header muestre lo mismo que la vista de Pacientes: de quién depende y cómo
+  // contactarlo.
+  const [dependencyPatient, setDependencyPatient] = React.useState<User | null>(null);
+  const [dependantContactInfo, setDependantContactInfo] = React.useState<DependantContactInfo | null>(null);
+  const [dependencyRefreshTrigger, setDependencyRefreshTrigger] = React.useState(0);
+
+  React.useEffect(() => {
+    if (!open || !userId) return;
+    let active = true;
+    fetchPatientById(userId).then((p) => { if (active) setDependencyPatient(p); });
+    return () => { active = false; };
+  }, [open, userId, dependencyRefreshTrigger]);
+
+  React.useEffect(() => {
+    if (!dependencyPatient?.is_dependent) {
+      setDependantContactInfo(null);
+      return;
+    }
+    let cancelled = false;
+    getDependantContactInfo(dependencyPatient.id).then((info) => { if (!cancelled) setDependantContactInfo(info); });
+    return () => { cancelled = true; };
+  }, [dependencyPatient?.is_dependent, dependencyPatient?.id]);
+
+  const responsibleContactId = dependantContactInfo?.id || dependencyPatient?.responsible_contact_id;
+  const responsibleContactName = dependencyPatient?.responsible_contact_name || dependantContactInfo?.name;
 
   // This sheet is also reachable from the global quick view (header patient
   // search), which only requires PATIENTS_VIEW_LIST. Gate the non-clinical tabs
@@ -382,6 +414,47 @@ export function PatientDetailSheet({
                       {userPhone}
                     </span>
                   )}
+                  {dependencyPatient?.is_dependent && (() => {
+                    const label = responsibleContactName
+                      ? t('dependentOf', { name: responsibleContactName })
+                      : t('dependentPatient');
+                    const badge = (
+                      <Badge variant="secondary" className="gap-1 text-xs font-normal">
+                        <Users className="h-3 w-3" />
+                        {label}
+                      </Badge>
+                    );
+                    return responsibleContactId ? (
+                      <button
+                        type="button"
+                        onClick={() => openPatientView({
+                          userId: responsibleContactId,
+                          userName: responsibleContactName || '',
+                          userEmail: dependantContactInfo?.email || undefined,
+                          userPhone: dependantContactInfo?.phone_number || undefined,
+                        })}
+                        title={t('viewResponsibleProfile')}
+                        className="rounded-full transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        {badge}
+                      </button>
+                    ) : badge;
+                  })()}
+                  {/* Algunos llamadores ya mandan `userEmail`/`userPhone` con el fallback al
+                      responsable aplicado (paciente sin contacto propio → usa el suyo), así
+                      que sin esta comparación el mismo dato salía dos veces en el header. */}
+                  {dependantContactInfo?.email && dependantContactInfo.email !== userEmail && (
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Mail className="h-3 w-3" />
+                      {dependantContactInfo.email}
+                    </span>
+                  )}
+                  {dependantContactInfo?.phone_number && dependantContactInfo.phone_number !== userPhone && (
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Phone className="h-3 w-3" />
+                      {dependantContactInfo.phone_number}
+                    </span>
+                  )}
                 </div>
               )}
               <SheetDescription className="sr-only">{t('detailsFor', { name: userName })}</SheetDescription>
@@ -410,7 +483,15 @@ export function PatientDetailSheet({
           activeClinicalSubTab={activeClinicalSubTab}
           onClinicalSubTabChange={setActiveClinicalSubTab}
           showFinancial={showFinancialTab}
-          infoContent={showInfoTab ? <PatientInfoTab userId={userId} onSaved={onPatientUpdated} /> : undefined}
+          infoContent={showInfoTab ? (
+            <PatientInfoTab
+              userId={userId}
+              onSaved={(updated) => {
+                onPatientUpdated?.(updated);
+                setDependencyRefreshTrigger((n) => n + 1);
+              }}
+            />
+          ) : undefined}
           anamnesisContent={<AnamnesisViewer userId={userId} readOnly={isReadOnly} />}
           clinicalHistoryContent={<ClinicHistoryViewer userId={userId} userName={userName} deepLinkView={clinicalHistoryDefaultView} isDoctorMode={isDoctorMode} createSessionTrigger={createSessionTrigger} createOdontogramTrigger={createOdontogramTrigger} refreshAppointmentsTrigger={apptRefreshTrigger} onEditAppointment={canManageAppointments ? setEditingAppointment : undefined} readOnly={isReadOnly} />}
           treatmentPlansContent={<UserTreatmentPlans userId={userId} userName={userName} readOnly={isReadOnly} />}

@@ -5,6 +5,7 @@ import * as React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 
+import { normalizeAppointmentStatus } from '@/constants/appointment-status';
 import { API_ROUTES } from '@/constants/routes';
 import { AuditLog } from '@/lib/types';
 import { cn, formatDateTime, formatUtcDateTime } from '@/lib/utils';
@@ -26,10 +27,11 @@ const OPERATION_BADGE_VARIANT: Record<string, 'success' | 'secondary' | 'destruc
 const LOCAL_DATETIME_FIELDS = new Set(['start_datetime', 'end_datetime']);
 const UTC_DATETIME_FIELDS = new Set(['created_at', 'updated_at']);
 
-function formatFieldValue(field: string, value: any): string {
+function formatFieldValue(field: string, value: any, statusLabel: (value: string) => string): string {
     if (value === null || value === undefined || value === '') return '—';
     if (LOCAL_DATETIME_FIELDS.has(field)) return formatDateTime(String(value));
     if (UTC_DATETIME_FIELDS.has(field)) return formatUtcDateTime(String(value));
+    if (field === 'status') return statusLabel(String(value));
     if (typeof value === 'boolean') return value ? 'Sí' : 'No';
     return String(value);
 }
@@ -76,9 +78,10 @@ interface HistoryEntryProps {
     entry: AuditLog;
     fieldLabel: (field: string) => string;
     operationLabel: (operation: string) => string;
+    statusLabel: (value: string) => string;
 }
 
-function HistoryEntry({ entry, fieldLabel, operationLabel }: HistoryEntryProps) {
+function HistoryEntry({ entry, fieldLabel, operationLabel, statusLabel }: HistoryEntryProps) {
     const [expanded, setExpanded] = React.useState(false);
     const oldValues = parseJsonValue(entry.old_value);
     const newValues = parseJsonValue(entry.new_value);
@@ -112,9 +115,9 @@ function HistoryEntry({ entry, fieldLabel, operationLabel }: HistoryEntryProps) 
                         <div key={field} className="grid grid-cols-[auto_1fr] gap-x-2 text-xs">
                             <span className="font-medium text-muted-foreground">{fieldLabel(field)}</span>
                             <span className="min-w-0 whitespace-pre-wrap break-words">
-                                <span className="text-muted-foreground line-through">{formatFieldValue(field, oldValues?.[field])}</span>
+                                <span className="text-muted-foreground line-through">{formatFieldValue(field, oldValues?.[field], statusLabel)}</span>
                                 {' → '}
-                                <span className="font-medium text-foreground">{formatFieldValue(field, newValues?.[field])}</span>
+                                <span className="font-medium text-foreground">{formatFieldValue(field, newValues?.[field], statusLabel)}</span>
                             </span>
                         </div>
                     ))}
@@ -133,6 +136,7 @@ interface AppointmentHistorySectionProps {
 export function AppointmentHistorySection({ appointmentId, active }: AppointmentHistorySectionProps) {
     const t = useTranslations('AppointmentPanel.history');
     const tAudit = useTranslations('AuditLog');
+    const tStatus = useTranslations('AppointmentStatus');
     const [entries, setEntries] = React.useState<AuditLog[]>([]);
     const [isLoading, setIsLoading] = React.useState(false);
 
@@ -153,6 +157,10 @@ export function AppointmentHistorySection({ appointmentId, active }: Appointment
             ? tAudit(`operations.${operation}` as 'operations.INSERT' | 'operations.UPDATE' | 'operations.DELETE')
             : operation;
     }, [tAudit]);
+
+    const statusLabel = React.useCallback((value: string) => {
+        return tStatus(normalizeAppointmentStatus(value));
+    }, [tStatus]);
 
     const fieldLabel = React.useCallback((field: string) => {
         const key = `fields.${field}`;
@@ -176,7 +184,7 @@ export function AppointmentHistorySection({ appointmentId, active }: Appointment
             ) : (
                 <div className="space-y-2">
                     {entries.map((entry) => (
-                        <HistoryEntry key={entry.id} entry={entry} fieldLabel={fieldLabel} operationLabel={operationLabel} />
+                        <HistoryEntry key={entry.id} entry={entry} fieldLabel={fieldLabel} operationLabel={operationLabel} statusLabel={statusLabel} />
                     ))}
                 </div>
             )}

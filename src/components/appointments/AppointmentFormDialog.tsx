@@ -131,7 +131,7 @@ export function AppointmentFormDialog({
     const { toast } = useToast();
     const { reschedule } = useAppointmentReschedule();
     const { open: openAccountStatement } = usePatientLedgerSheet();
-    const { open: openPatientView } = usePatientView();
+    const { open: openPatientView, lastUpdatedPatient } = usePatientView();
     const { hasAnyPermission, hasPermission } = usePermissions();
     // "Ver estado de cuenta" abre el ledger financiero consolidado del paciente.
     const canViewStatement = hasAnyPermission([...PATIENT_FINANCIAL_VIEW_PERMISSIONS]);
@@ -280,6 +280,15 @@ export function AppointmentFormDialog({
         };
         loadQuoteItems();
     }, [appointment.quote?.id, editingAppointment?.quote_id]);
+
+    // "Ver paciente" (arriba) abre el sheet de datos del paciente apilado sobre este
+    // diálogo. `appointment.user` es una copia local tomada al seleccionar el paciente,
+    // así que sin esto el formulario seguía mostrando el nombre/email/teléfono viejo
+    // tras editar y guardar esos datos, hasta cerrar y reabrir la cita.
+    React.useEffect(() => {
+        if (!lastUpdatedPatient || !appointment.user || appointment.user.id !== lastUpdatedPatient.id) return;
+        setAppointment(prev => (prev.user ? { ...prev, user: { ...prev.user, ...lastUpdatedPatient } } : prev));
+    }, [lastUpdatedPatient]);
 
     // Compute prefillTreatments from quote items, filtered to only the services still in the appointment
     const prefillTreatments = React.useMemo(() => {
