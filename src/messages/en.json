@@ -9009,7 +9009,7 @@
       },
       "preference": {
         "label": "By preference",
-        "help": "Respects each user's \"color by status\" switch: with an appointment or service color it shows as a side stripe; inheriting only the doctor's or room's color paints the whole card."
+        "help": "Respects each user’s “color by status” switch: if the appointment already has a color (its own, or from the service, doctor or calendar) it keeps it and the status shows as a side stripe; only appointments with no color are filled with the status color."
       },
       "never": {
         "label": "Never",

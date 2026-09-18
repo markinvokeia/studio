@@ -35,7 +35,10 @@ export const ALLOWED_STATUS_TRANSITIONS: Record<AppointmentStatus, AppointmentSt
  *   - 'always': pinta la card entera con este color sin importar la preferencia
  *     "colorear por estado" ni el color de servicio/doctor/consultorio (salvo
  *     etiqueta de color puesta a mano en la cita, que siempre gana).
- *   - 'preference': respeta el switch "colorear por estado" del usuario.
+ *   - 'preference': respeta el switch "colorear por estado" del usuario. Con el
+ *     switch encendido, una cita que ya tiene color (propio, de servicio, de
+ *     doctor o de consultorio) lo conserva y muestra el estado en la franja
+ *     lateral; solo las citas sin color se pintan enteras.
  *   - 'never': nunca aporta color al calendario.
  *
  * 'scheduled' (lila) y 'no_show' (gris) van en 'always': son los dos estados

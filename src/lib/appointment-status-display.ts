@@ -78,9 +78,23 @@ export function statusBadgeInlineStyle(display: AppointmentStatusDisplay): Statu
 }
 
 /**
- * Extracción literal de la lógica de pintado del calendario (antes en
- * `appointments/page.tsx`), con `STATUS_FORCED_CALENDAR_COLOR` reemplazado
- * por `display.calendarMode`.
+ * Decide con qué color se dibuja la card de una cita y si el estado va como
+ * franja lateral. Dos decisiones independientes:
+ *
+ *   1. `showsStatus` — ¿el estado participa? Lo gobierna `display.calendarMode`:
+ *      'always' siempre, 'never' nunca, 'preference' según el switch
+ *      "colorear por estado" del usuario.
+ *   2. `keepsOwnColor` — ¿la cita ya tiene un color propio que respetar? Lo es
+ *      cualquier color efectivo de la cadena `etiqueta > servicio > doctor >
+ *      consultorio`: si la cita se ve de un color, ese color se mantiene y el
+ *      estado se comunica con la franja lateral, no pisando la card.
+ *
+ * `always` es la única excepción: pisa el color heredado de servicio, doctor o
+ * consultorio. Lo que nunca pisa es la etiqueta de color puesta a mano sobre la
+ * cita, porque es una decisión explícita que debe verse al instante.
+ *
+ * Sin color en ninguno de los cuatro niveles (`colorSource: 'none'`) no hay
+ * nada que preservar: ahí el estado pinta la card entera.
  */
 export function resolveEventStatusColors({
   status,
@@ -103,7 +117,12 @@ export function resolveEventStatusColors({
         : colorByStatus;
   const forces = display.calendarMode === 'always';
   const hasOwnColorTag = colorSource === 'appointment' && Boolean(color);
-  const keepsOwnColor = hasOwnColorTag || (!forces && colorSource === 'service');
+  // Heredado del servicio, del doctor o del consultorio: es color que la cita ya
+  // muestra, así que se preserva salvo que el estado esté en modo 'always'.
+  const inheritsColor =
+    Boolean(color) &&
+    (colorSource === 'service' || colorSource === 'doctor' || colorSource === 'calendar');
+  const keepsOwnColor = hasOwnColorTag || (!forces && inheritsColor);
   const statusColored = showsStatus && !keepsOwnColor;
 
   return {
