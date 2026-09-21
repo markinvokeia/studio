@@ -14,10 +14,10 @@ import {
 } from '@/components/dashboard/dashboard-format';
 
 import { cn } from '@/lib/utils';
+import { getDateFnsLocale } from '@/lib/locale';
 import type { DashboardCurrency, DashboardExecutiveSummary } from '@/lib/types';
 
 import { format, subMonths } from 'date-fns';
-import { es, enUS } from 'date-fns/locale';
 import { useLocale, useTranslations } from 'next-intl';
 
 interface MonthSummaryCardsProps {
@@ -47,7 +47,7 @@ const TONE_PILL: Record<MonthCard['tone'], string> = {
 export function MonthSummaryCards({ data, currency, isBranchFiltered, isLoading }: MonthSummaryCardsProps) {
   const t = useTranslations('DashboardGerencial');
   const locale = useLocale();
-  const dateLocale = locale === 'en' ? enUS : es;
+  const dateLocale = getDateFnsLocale(locale);
 
   const serverDate = parseDateOnly(data?.fecha_servidor);
   const monthName = serverDate ? format(serverDate, 'LLLL', { locale: dateLocale }) : '';

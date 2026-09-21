@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Locale } from 'date-fns';
-import { enUS, es } from 'date-fns/locale';
 import { useLocale } from 'next-intl';
 
 import type { CalendarView } from '@/components/calendar/calendar-types';
@@ -12,6 +11,7 @@ import {
   getCalendarViewStartDate,
   navigateDate,
 } from '@/components/calendar/calendar-utils';
+import { getDateFnsLocale } from '@/lib/locale';
 
 /** Views whose stored `currentDate` is collapsed to the first day of a multi-day
  *  block (week or N-day), rather than the specific day the user was on. */
@@ -47,7 +47,7 @@ export function useCalendarNavigation({
   initialView = 'month',
 }: UseCalendarNavigationOptions = {}): UseCalendarNavigationReturn {
   const locale = useLocale();
-  const dateLocale = locale === 'es' ? es : enUS;
+  const dateLocale = getDateFnsLocale(locale);
   const initialViewRef = useRef(initialView);
 
   const [currentDate, setCurrentDateState] = useState<Date>(() => (

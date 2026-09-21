@@ -5,19 +5,14 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 import { CalendarIcon } from "lucide-react"
 import { DayPicker } from "react-day-picker"
 import { useLocale, useTranslations } from "next-intl"
-import { enUS, es } from 'date-fns/locale'
 import { format, parse, setMonth } from "date-fns"
 import { Locale } from "date-fns"
 
 import { cn, formatDate, formatDisplayDate } from "@/lib/utils"
+import { getDateFnsLocale } from "@/lib/locale"
 import { buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-
-const LOCALES = {
-  en: enUS,
-  es: es,
-}
 
 type DatePickerView = "days" | "months" | "years"
 
@@ -124,7 +119,7 @@ function DatePicker({
 }: DatePickerProps) {
   const locale = useLocale()
   const t = useTranslations(translationsNamespace)
-  const dateLocale = LOCALES[locale as keyof typeof LOCALES] || enUS
+  const dateLocale = getDateFnsLocale(locale)
 
   const [view, setView] = React.useState<DatePickerView>("days")
   const [currentMonth, setCurrentMonth] = React.useState<Date>(() => {
@@ -132,7 +127,7 @@ function DatePicker({
     return new Date()
   })
 
-  const monthLocale = locale === "es" ? es : enUS
+  const monthLocale = getDateFnsLocale(locale)
 
   // Nombres de meses
   const monthNames = React.useMemo(() => {

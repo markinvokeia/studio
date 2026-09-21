@@ -8,9 +8,9 @@ import { BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
 import { Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { format, parseISO } from 'date-fns';
-import { es, enUS } from 'date-fns/locale';
 import { useLocale } from 'next-intl';
 import { createSelectColumn } from '@/components/ui/table-select-column';
+import { getDateFnsLocale } from '@/lib/locale';
 
 interface MutualSocietiesColumnsProps {
     onEdit: (mutualSociety: MutualSociety) => void;
@@ -20,7 +20,7 @@ interface MutualSocietiesColumnsProps {
 export const MutualSocietiesColumnsWrapper = ({ onEdit, onDelete }: MutualSocietiesColumnsProps) => {
     const t = useTranslations('MutualSocietiesColumns');
     const locale = useLocale();
-    const dateFnsLocale = locale === 'es' ? es : enUS;
+    const dateFnsLocale = getDateFnsLocale(locale);
     
     const formatDate = (dateString?: string) => {
         if (!dateString) return '-';

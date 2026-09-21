@@ -1,7 +1,6 @@
 'use client';
 
 import { addDays, format, isSameDay, startOfDay } from 'date-fns';
-import { enUS, es } from 'date-fns/locale';
 import {
   ArrowLeft,
   CalendarCheck,
@@ -24,6 +23,7 @@ import { WizardStepper, type WizardStep } from '@/components/patient-portal/wiza
 
 import { useToast } from '@/hooks/use-toast';
 import type { Appointment, ClinicSchedule, User } from '@/lib/types';
+import { getDateFnsLocale } from '@/lib/locale';
 import { cn } from '@/lib/utils';
 import {
   createPatientAppointment,
@@ -83,7 +83,7 @@ export function PatientBookingPanel({
 }: PatientBookingPanelProps) {
   const t = useTranslations('PatientPortal.booking');
   const locale = useLocale();
-  const dateLocale = locale === 'es' ? es : enUS;
+  const dateLocale = getDateFnsLocale(locale);
   const { toast } = useToast();
 
   const today = React.useMemo(() => startOfDay(new Date()), []);

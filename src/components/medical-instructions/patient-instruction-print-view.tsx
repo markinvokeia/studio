@@ -6,9 +6,9 @@ import { createPortal } from 'react-dom';
 import { PrintReportHeader } from '@/components/reports/print-report-header';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { PatientMedicalInstruction } from '@/lib/types';
+import { getDateFnsLocale } from '@/lib/locale';
 
 import { format } from 'date-fns';
-import { es, enUS } from 'date-fns/locale';
 import { useLocale, useTranslations } from 'next-intl';
 
 function substituteTokens(text: string, vars: Record<string, string>): string {
@@ -79,7 +79,7 @@ export function usePatientInstructionPrint() {
 function PatientInstructionPrintContent({ instruction, patientName }: PrintTarget) {
     const t = useTranslations('PatientInstructionPrint');
     const locale = useLocale();
-    const dateLocale = locale === 'es' ? es : enUS;
+    const dateLocale = getDateFnsLocale(locale);
     const clinic = useClinicInfo();
 
     const parsedDate = instruction.fecha ? new Date(instruction.fecha.split('T')[0] + 'T00:00:00') : null;

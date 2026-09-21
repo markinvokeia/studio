@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { addMinutes, differenceInMinutes, format, parseISO, set } from 'date-fns';
-import { enUS, es } from 'date-fns/locale';
+import { getDateFnsLocale } from '@/lib/locale';
 import {
   AlertTriangle,
   ArrowRight,
@@ -499,7 +499,7 @@ export function AppointmentPanel({
   hidePatientActions = false,
 }: AppointmentPanelProps) {
   const locale = useLocale();
-  const dateLocale = locale === 'es' ? es : enUS;
+  const dateLocale = getDateFnsLocale(locale);
   const { toast } = useToast();
   const { colorOf } = useAppointmentStatusDisplay();
   const t = useTranslations('AppointmentsPage');

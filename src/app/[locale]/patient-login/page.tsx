@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 
+import { EsFlagIcon } from '@/components/icons/es-flag-icon';
 import { UsFlagIcon } from '@/components/icons/us-flag-icon';
 import { UyFlagIcon } from '@/components/icons/uy-flag-icon';
 import { ClinicFooter } from '@/components/patient-portal/clinic-footer';
@@ -129,6 +130,15 @@ export default function PatientLoginPage() {
                     {tHeader('english')}
                   </span>
                   {locale === 'en' && <Check className="ml-2 h-4 w-4" />}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => onSelectLocale('es-ES')} disabled={locale === 'es-ES'}>
+                <span className="flex w-full items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <EsFlagIcon className="h-4 w-4" />
+                    {tHeader('spanishSpain')}
+                  </span>
+                  {locale === 'es-ES' && <Check className="ml-2 h-4 w-4" />}
                 </span>
               </DropdownMenuItem>
             </DropdownMenuContent>

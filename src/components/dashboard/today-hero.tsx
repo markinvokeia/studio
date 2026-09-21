@@ -13,10 +13,10 @@ import {
 } from '@/components/dashboard/dashboard-format';
 
 import { cn } from '@/lib/utils';
+import { getDateFnsLocale } from '@/lib/locale';
 import type { DashboardCurrency, DashboardExecutiveSummary } from '@/lib/types';
 
 import { format } from 'date-fns';
-import { es, enUS } from 'date-fns/locale';
 import { useLocale, useTranslations } from 'next-intl';
 
 interface TodayHeroProps {
@@ -44,7 +44,7 @@ export function TodayHero({ data, currency, isBranchFiltered, isLoading }: Today
   // miércoles. Contra "ayer" la lectura sería ruido, porque el volumen de la agenda
   // depende del día de la semana.
   const serverDate = parseDateOnly(data?.fecha_servidor);
-  const weekday = serverDate ? format(serverDate, 'EEEE', { locale: locale === 'en' ? enUS : es }) : '';
+  const weekday = serverDate ? format(serverDate, 'EEEE', { locale: getDateFnsLocale(locale) }) : '';
 
   const cells: HeroCell[] = data
     ? [

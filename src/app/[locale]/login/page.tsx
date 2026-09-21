@@ -18,6 +18,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
+import { EsFlagIcon } from '@/components/icons/es-flag-icon';
 import { UsFlagIcon } from '@/components/icons/us-flag-icon';
 import { UyFlagIcon } from '@/components/icons/uy-flag-icon';
 
@@ -196,6 +197,15 @@ export default function LoginPage() {
                   {t('english')}
                 </div>
                 {locale === 'en' && <Check className="h-4 w-4 ml-2" />}
+              </span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => onSelectLocale('es-ES')} disabled={locale === 'es-ES'}>
+              <span className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-2">
+                  <EsFlagIcon className="h-4 w-4" />
+                  {t('spanishSpain')}
+                </div>
+                {locale === 'es-ES' && <Check className="h-4 w-4 ml-2" />}
               </span>
             </DropdownMenuItem>
           </DropdownMenuContent>

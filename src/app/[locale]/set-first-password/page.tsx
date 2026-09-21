@@ -1,5 +1,6 @@
 'use client';
 
+import { EsFlagIcon } from '@/components/icons/es-flag-icon';
 import { UsFlagIcon } from '@/components/icons/us-flag-icon';
 import { UyFlagIcon } from '@/components/icons/uy-flag-icon';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -151,6 +152,15 @@ export default function SetFirstPasswordPage() {
                                     {tHeader('english')}
                                 </div>
                                 {locale === 'en' && <Check className="h-4 w-4 ml-2" />}
+                            </span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => onSelectLocale('es-ES')} disabled={locale === 'es-ES'}>
+                            <span className="flex items-center justify-between w-full">
+                                <div className="flex items-center gap-2">
+                                    <EsFlagIcon className="h-4 w-4" />
+                                    {tHeader('spanishSpain')}
+                                </div>
+                                {locale === 'es-ES' && <Check className="h-4 w-4 ml-2" />}
                             </span>
                         </DropdownMenuItem>
                     </DropdownMenuContent>

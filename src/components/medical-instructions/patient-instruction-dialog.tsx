@@ -30,10 +30,11 @@ import {
 } from '@/lib/medical-instruction-template-variables';
 import { MedicalInstructionTemplate, PatientMedicalInstruction } from '@/lib/types';
 import { cn, formatDate } from '@/lib/utils';
+import { getDateFnsLocale } from '@/lib/locale';
 import api from '@/services/api';
 
 import { format } from 'date-fns';
-import { es, enUS, type Locale } from 'date-fns/locale';
+import type { Locale } from 'date-fns';
 import { Calendar as CalendarIcon, Loader2, Printer, RefreshCw } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -81,7 +82,7 @@ export function PatientInstructionDialog({
 }: PatientInstructionDialogProps) {
     const t = useTranslations('PatientInstructionDialog');
     const locale = useLocale();
-    const dateLocale = locale === 'es' ? es : enUS;
+    const dateLocale = getDateFnsLocale(locale);
     const { toast } = useToast();
     const clinic = useClinicInfo();
     const { printInstruction, PrintContainer } = usePatientInstructionPrint();

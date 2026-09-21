@@ -40,7 +40,7 @@ import { updateAppointmentStatusRequest } from '@/services/appointments';
 import { getQuoteItems } from '@/services/quotes';
 import { format, isSameDay, parseISO } from 'date-fns';
 import type { Locale } from 'date-fns';
-import { enUS, es } from 'date-fns/locale';
+import { getDateFnsLocale } from '@/lib/locale';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -837,7 +837,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     () => isSingleDayRange && isSameDay(dateRange.from, new Date()),
     [dateRange, isSingleDayRange],
   );
-  const dateFnsLocale = locale === 'es' ? es : enUS;
+  const dateFnsLocale = getDateFnsLocale(locale);
 
   const handleDateRangeChange = React.useCallback((range: WorkspaceDateRange, preset: WorkspaceDatePreset) => {
     setDateRange(range);

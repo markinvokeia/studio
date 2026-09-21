@@ -62,7 +62,7 @@ import { Appointment, AppointmentStatus, Calendar, CancellationReason, PatientSe
 import { cn, formatDisplayDateWithWeekday } from '@/lib/utils';
 import { api } from '@/services/api';
 import { addYears, format, isBefore, isValid, parseISO } from 'date-fns';
-import { es, enUS } from 'date-fns/locale';
+import { getDateFnsLocale } from '@/lib/locale';
 import {
     Activity,
     AlertTriangle,
@@ -554,7 +554,7 @@ function AnamnesisSection({
     const formatDate = (dateString: string | null | undefined) => {
         if (!dateString) return '';
         try {
-            const dateLocale = locale === 'es' ? es : enUS;
+            const dateLocale = getDateFnsLocale(locale);
             const cleanDate = dateString.split('T')[0];
             const [y, m, d] = cleanDate.split('-');
             return format(new Date(Number(y), Number(m) - 1, Number(d)), 'd MMMM yyyy', { locale: dateLocale });

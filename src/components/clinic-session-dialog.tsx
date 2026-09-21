@@ -24,11 +24,11 @@ import { useToast } from '@/hooks/use-toast';
 import { api } from '@/services/api';
 import { AttachedFile, PatientSession, Quote, Service, TreatmentDetail } from '@/lib/types';
 import { addMonths, format } from 'date-fns';
-import { es, enUS } from 'date-fns/locale';
 import { Calendar as CalendarIcon, Check, ChevronsUpDown, File, FilePlus, Link2, Loader2, Palette, Plus, Sparkles, Trash2, Upload, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import * as React from 'react';
 import { API_ROUTES } from '@/constants/routes';
+import { getDateFnsLocale } from '@/lib/locale';
 import { cn, formatDate, formatDisplayDate } from '@/lib/utils';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { getSalesServices } from '@/services/services';
@@ -776,7 +776,7 @@ export function ClinicSessionDialog({
         setExistingAttachments(existingAttachments.filter((a) => a.id !== attachmentId));
     };
 
-    const dateLocale = locale === 'es' ? es : enUS;
+    const dateLocale = getDateFnsLocale(locale);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>

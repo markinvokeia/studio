@@ -4,7 +4,6 @@ import * as React from 'react';
 import { CakeIcon, CalendarClock, Loader2, Receipt, Send, X } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { format } from 'date-fns';
-import { enUS, es } from 'date-fns/locale';
 
 import {
   Dialog,
@@ -19,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
+import { getDateFnsLocale } from '@/lib/locale';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
@@ -57,7 +57,7 @@ export function WhatsAppTemplateSendDialog({
 }: WhatsAppTemplateSendDialogProps) {
   const t = useTranslations('WhatsAppTemplateSendDialog');
   const locale = useLocale();
-  const dateLocale = locale === 'es' ? es : enUS;
+  const dateLocale = getDateFnsLocale(locale);
   const { toast } = useToast();
 
   const [templateCode, setTemplateCode] = React.useState<WhatsAppTemplateCode | ''>('');

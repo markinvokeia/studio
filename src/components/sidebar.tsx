@@ -333,6 +333,7 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                                             {([
                                                 { code: 'es', label: '🇺🇾 Español' },
                                                 { code: 'en', label: '🇺🇸 English' },
+                                                { code: 'es-ES', label: '🇪🇸 Castellano' },
                                             ] as const).map(({ code, label }) => {
                                                 const isActive = locale === code;
                                                 return (
@@ -765,7 +766,7 @@ function MobileNav() {
                             {mobileFooterPanel === 'language' && (
                                 <div className="px-4 py-3 border-b border-[var(--nav-border)] animate-in fade-in slide-in-from-bottom-2 duration-150">
                                     <div className="flex items-center gap-2">
-                                        {([{ code: 'es', label: '🇺🇾 Español' }, { code: 'en', label: '🇺🇸 English' }] as const).map(({ code, label }) => (
+                                        {([{ code: 'es', label: '🇺🇾 Español' }, { code: 'en', label: '🇺🇸 English' }, { code: 'es-ES', label: '🇪🇸 Castellano' }] as const).map(({ code, label }) => (
                                             <button
                                                 key={code}
                                                 type="button"

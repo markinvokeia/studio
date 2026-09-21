@@ -1,7 +1,6 @@
 'use client';
 
 import { format, parseISO } from 'date-fns';
-import { enUS, es } from 'date-fns/locale';
 import { CalendarX2, Clock, MapPin, Stethoscope } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -13,6 +12,7 @@ import { canReschedule } from '@/constants/appointment-status';
 import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
 import { statusBadgeClassNames, statusBadgeInlineStyle } from '@/lib/appointment-status-display';
 import type { Appointment } from '@/lib/types';
+import { getDateFnsLocale } from '@/lib/locale';
 import { cn } from '@/lib/utils';
 
 interface AppointmentCardProps {
@@ -39,7 +39,7 @@ export function AppointmentCard({ appointment, isNext, onReschedule, onCancel, c
   const t = useTranslations('PatientPortal.appointments');
   const tStatus = useTranslations('AppointmentStatus');
   const locale = useLocale();
-  const dateLocale = locale === 'es' ? es : enUS;
+  const dateLocale = getDateFnsLocale(locale);
 
   const start = React.useMemo(
     () => parseISO(`${appointment.date}T${appointment.time || '00:00'}`),

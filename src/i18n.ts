@@ -1,6 +1,6 @@
 import { getRequestConfig } from 'next-intl/server';
 
-export const locales = ['en', 'es'];
+export const locales = ['en', 'es', 'es-ES'];
 
 /**
  * Recursively merge a partial `override` object onto `base`. Only the keys

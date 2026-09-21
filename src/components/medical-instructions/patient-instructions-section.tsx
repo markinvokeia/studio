@@ -16,10 +16,10 @@ import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PatientMedicalInstruction } from '@/lib/types';
+import { getDateFnsLocale } from '@/lib/locale';
 import api from '@/services/api';
 
 import { format } from 'date-fns';
-import { es, enUS } from 'date-fns/locale';
 import { ClipboardList, MoreHorizontal, Plus, Printer } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -33,7 +33,7 @@ interface PatientInstructionsSectionProps {
 export function PatientInstructionsSection({ userId, userName, createTrigger = 0, readOnly = false }: PatientInstructionsSectionProps) {
     const t = useTranslations('PatientInstructionsSection');
     const locale = useLocale();
-    const dateLocale = locale === 'es' ? es : enUS;
+    const dateLocale = getDateFnsLocale(locale);
     const { toast } = useToast();
     const { hasPermission } = usePermissions();
 

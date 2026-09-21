@@ -7,9 +7,9 @@ import { Timeline, TimelineConnector, TimelineContent, TimelineHeader, TimelineI
 import { API_ROUTES } from '@/constants/routes';
 import { PatientSession, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { getDateFnsLocale } from '@/lib/locale';
 import api from '@/services/api';
 import { format, parseISO } from 'date-fns';
-import { enUS, es } from 'date-fns/locale';
 import { ArrowRight, ChevronDown, FileText, Microscope, Pill, Stethoscope, UserPlus } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -51,7 +51,7 @@ export function MedicalHistory({ user }: MedicalHistoryProps) {
     const [sessions, setSessions] = React.useState<PatientSession[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
     const locale = useLocale();
-    const dateFnsLocale = locale === 'es' ? es : enUS;
+    const dateFnsLocale = getDateFnsLocale(locale);
 
     React.useEffect(() => {
         const fetchSessions = async () => {

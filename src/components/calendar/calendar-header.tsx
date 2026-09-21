@@ -11,7 +11,7 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
-import { enUS, es } from 'date-fns/locale';
+import { getDateFnsLocale } from '@/lib/locale';
 
 import type { CalendarBreakpoint, CalendarView } from './calendar-types';
 
@@ -63,7 +63,7 @@ export function HeaderDatePicker({
   const [open, setOpen] = React.useState(false);
   const t = useTranslations('Calendar');
   const locale = useLocale();
-  const dateLocale = locale === 'es' ? es : enUS;
+  const dateLocale = getDateFnsLocale(locale);
   const viewKey = view.includes('-') ? view.replace('-', '') : view;
   const viewLabel = t('showingView', { view: t(`views.${viewKey}`) });
 

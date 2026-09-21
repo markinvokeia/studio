@@ -1,8 +1,8 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { format, parseISO } from "date-fns"
-import { enUS, es } from "date-fns/locale"
 import type { QuoteItem, TreatmentDetail } from '@/lib/types'
+import { getDateFnsLocale } from '@/lib/locale'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -157,7 +157,7 @@ export function formatDisplayDateWithWeekday(date: string | Date | null | undefi
   const datePart = formatDate(date);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return displayDate;
   const [year, month, day] = datePart.split('-').map(Number);
-  const weekday = format(new Date(year, month - 1, day), 'EEEE', { locale: locale === 'en' ? enUS : es });
+  const weekday = format(new Date(year, month - 1, day), 'EEEE', { locale: getDateFnsLocale(locale) });
   return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${displayDate}`;
 }
 

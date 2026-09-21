@@ -14,6 +14,7 @@ import {
 } from '@/components/dashboard/dashboard-format';
 
 import { cn } from '@/lib/utils';
+import { getDateFnsLocale } from '@/lib/locale';
 import type {
   DashboardCurrency,
   EvolucionMensualMetrica,
@@ -22,7 +23,7 @@ import type {
 import { formatDisplayDate } from '@/lib/utils';
 
 import { format } from 'date-fns';
-import { es, enUS } from 'date-fns/locale';
+import type { Locale } from 'date-fns';
 import { useLocale, useTranslations } from 'next-intl';
 
 const TONE_PILL: Record<'positive' | 'negative' | 'neutral', string> = {
@@ -58,7 +59,7 @@ interface MonthlyEvolutionProps {
 export function MonthlyEvolution({ data, currency, isLoading, className }: MonthlyEvolutionProps) {
   const t = useTranslations('DashboardGerencial');
   const locale = useLocale();
-  const dateLocale = locale === 'en' ? enUS : es;
+  const dateLocale = getDateFnsLocale(locale);
 
   const meses = data?.meses ?? [];
   const partial = meses.find((m) => m.es_parcial);
@@ -183,4 +184,3 @@ function monthLabel(iso: string | undefined, dateLocale: Locale): string | null 
   return date ? format(date, 'LLL', { locale: dateLocale }) : null;
 }
 
-type Locale = typeof es;

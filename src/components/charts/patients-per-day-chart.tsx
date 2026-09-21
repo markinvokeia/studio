@@ -10,10 +10,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { parseDateOnly } from '@/components/dashboard/dashboard-format';
 
 import type { DashboardGranularity, PacientesPorDiaResponse } from '@/lib/types';
+import { getDateFnsLocale } from '@/lib/locale';
 import { formatDisplayDate } from '@/lib/utils';
 
 import { differenceInCalendarDays, format, isSameMonth, isSameYear } from 'date-fns';
-import { es, enUS } from 'date-fns/locale';
 import { useLocale, useTranslations } from 'next-intl';
 
 const COLOR_NEW = 'hsl(var(--chart-2))';
@@ -55,7 +55,7 @@ interface PatientsPerDayChartProps {
 export function PatientsPerDayChart({ data, isLoading, className }: PatientsPerDayChartProps) {
   const t = useTranslations('DashboardGerencial');
   const locale = useLocale();
-  const dateLocale = locale === 'en' ? enUS : es;
+  const dateLocale = getDateFnsLocale(locale);
 
   const granularity: DashboardGranularity = data?.granularity ?? 'day';
 

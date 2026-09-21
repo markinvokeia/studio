@@ -34,18 +34,20 @@ Si `NEXT_PUBLIC_CLIENT_ID` no está definido, o el cliente no tiene carpeta de o
 
 ```
 src/messages/
-  es.json                      ← base (todas las claves)
+  es.json                      ← base (todas las claves) — Español (LatAm/Uruguay)
   en.json
+  es-ES.json                   ← Castellano (España)
   overrides/
     <clientId>/
       es.json                  ← SOLO las claves que ese cliente pisa
       en.json
+      es-ES.json                (opcional)
 ```
 
 ## Cómo agregar un override para un cliente
 
 1. Crear la carpeta `src/messages/overrides/<clientId>/` (el `<clientId>` debe coincidir con el valor de `NEXT_PUBLIC_CLIENT_ID` del deployment de ese cliente).
-2. Crear `es.json` y/o `en.json` con **solo las claves a sobreescribir**, respetando la jerarquía de namespaces del base.
+2. Crear `es.json`, `en.json` y/o `es-ES.json` con **solo las claves a sobreescribir**, respetando la jerarquía de namespaces del base.
 3. Setear `NEXT_PUBLIC_CLIENT_ID=<clientId>` en el entorno del deployment.
 
 No hace falta tocar código: `src/i18n.ts` ya resuelve cualquier carpeta bajo `overrides/`.

@@ -18,10 +18,10 @@ import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import type { PrescriptionPatientInfo } from '@/lib/prescription-render';
 import { PatientPrescription, PrescriptionItem } from '@/lib/types';
+import { getDateFnsLocale } from '@/lib/locale';
 import api from '@/services/api';
 
 import { format } from 'date-fns';
-import { es, enUS } from 'date-fns/locale';
 import { MoreHorizontal, Pill, Plus, Printer } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -51,7 +51,7 @@ interface PatientPrescriptionsSectionProps {
 export function PatientPrescriptionsSection({ userId, userName, createTrigger = 0, readOnly = false, lockDoctor = false }: PatientPrescriptionsSectionProps) {
     const t = useTranslations('PatientPrescriptionsSection');
     const locale = useLocale();
-    const dateLocale = locale === 'es' ? es : enUS;
+    const dateLocale = getDateFnsLocale(locale);
     const { toast } = useToast();
     const { hasPermission } = usePermissions();
 
