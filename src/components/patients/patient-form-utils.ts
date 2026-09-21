@@ -62,6 +62,14 @@ export const userFormSchema = (t: (key: string) => string, options?: { identityD
   }, {
     message: t('UsersPage.createDialog.validation.emailOrPhoneRequired'),
     path: ['email'],
+  }).refine((data) => {
+    // Espejo del constraint `check_dependent_has_responsible` de la tabla `users`:
+    // un dependiente sin tutor hace fallar el INSERT del backend con un 500 opaco.
+    if (!data.is_dependent) return true;
+    return !!data.responsible_contact_id;
+  }, {
+    message: t('UsersPage.createDialog.validation.responsibleContactRequired'),
+    path: ['responsible_contact_id'],
   });
 };
 
@@ -98,6 +106,42 @@ export async function upsertUser(userData: UserFormValues) {
   }
 
   return responseData;
+}
+
+/**
+ * Traduce el error de `/users/upsert` a un mensaje mostrable.
+ *
+ * El backend contesta con formatos distintos: el envelope de validación
+ * (`{ error: { code, ... } }`) y el de un nodo de n8n caído
+ * (`[{ message, error: { description, ... } }]`), que es el que dispara el
+ * constraint `check_dependent_has_responsible`. Devuelve `null` cuando no hay
+ * nada útil, para que el llamador caiga a su mensaje genérico.
+ */
+export function resolveUserUpsertError(
+  error: any,
+  t: (key: string, values?: any) => string,
+): string | null {
+  const data = error?.data;
+  const payload = Array.isArray(data) ? data[0] : data;
+  const backendError = payload && typeof payload === 'object' ? payload.error : undefined;
+
+  const rawMessage =
+    typeof data === 'string' ? data
+    : typeof payload?.message === 'string' ? payload.message
+    : typeof backendError === 'string' ? backendError
+    : typeof backendError?.message === 'string' ? backendError.message
+    : typeof backendError?.description === 'string' ? backendError.description
+    : undefined;
+
+  // El texto crudo de Postgres no le dice nada al usuario: lo que importa es que
+  // falta elegir el tutor.
+  if (rawMessage?.includes('dependent_has_responsible')) {
+    return t('UsersPage.createDialog.validation.responsibleContactRequired');
+  }
+  if (error?.status >= 500) {
+    return t('UsersPage.createDialog.validation.serverError');
+  }
+  return rawMessage ?? null;
 }
 
 export async function getDependantContactInfo(userId: string): Promise<DependantContactInfo | null> {

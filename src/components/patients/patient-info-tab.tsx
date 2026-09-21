@@ -34,6 +34,7 @@ import {
   findPatientByName,
   getDependantContactInfo,
   getMutualSocietiesList,
+  resolveUserUpsertError,
   searchGuardianPatients,
   upsertUser,
   userFormSchema,
@@ -433,10 +434,11 @@ export function PatientInfoTab({
       if (errorData?.code === 'unique_conflict' && errorData?.conflictedFields) {
         const fields = errorData.conflictedFields.map((f: string) => t(`UsersPage.createDialog.validation.fields.${f}`)).join(', ');
         setSaveError(t('UsersPage.createDialog.validation.uniqueConflict', { fields }));
-      } else if (e?.status >= 500) {
-        setSaveError(t('UsersPage.createDialog.validation.serverError'));
       } else {
-        setSaveError(errorData?.message || (e instanceof Error ? e.message : t('UsersPage.createDialog.validation.genericError')));
+        setSaveError(
+          resolveUserUpsertError(e, t)
+            || (e instanceof Error ? e.message : t('UsersPage.createDialog.validation.genericError')),
+        );
       }
     } finally {
       setIsSaving(false);

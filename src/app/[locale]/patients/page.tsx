@@ -51,6 +51,7 @@ import { PatientActionsMenu } from '@/components/patients/patient-actions-menu';
 import {
   getDependantContactInfo,
   getMutualSocietiesList,
+  resolveUserUpsertError,
   upsertUser,
   userFormSchema,
   type DependantContactInfo,
@@ -1041,8 +1042,8 @@ export default function UsersPage() {
             value={isSelected ? row.original.id : ''}
             onValueChange={() => {
               if (handleRowSelectionChange) {
-                table.toggleAllPageRowsSelected(false);
-                row.toggleSelected(true);
+                // Single selection: set exactly this row (see columns.tsx).
+                table.setRowSelection({ [row.id]: true });
                 handleRowSelectionChange([row.original]);
               }
             }}
@@ -1187,11 +1188,11 @@ export default function UsersPage() {
         } else {
           setSubmissionError(errorData?.message || t('SystemUsersPage.createDialog.validation.genericError'));
         }
-      } else if (error.status >= 500) {
-        setSubmissionError(t('UsersPage.createDialog.validation.serverError'));
       } else {
-        const errorMessage = typeof error.data === 'string' ? error.data : errorData?.message || (error instanceof Error ? error.message : t('UsersPage.createDialog.validation.genericError'));
-        setSubmissionError(errorMessage);
+        setSubmissionError(
+          resolveUserUpsertError(error, t)
+            || (error instanceof Error ? error.message : t('UsersPage.createDialog.validation.genericError')),
+        );
       }
     }
   };

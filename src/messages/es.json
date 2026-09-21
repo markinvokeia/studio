@@ -1976,6 +1976,7 @@
         "identityInvalid": "El documento de identidad no tiene un formato válido para el tipo seleccionado.",
         "identityMaxLength": "El documento de identidad debe tener 10 caracteres o menos.",
         "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono.",
+        "responsibleContactRequired": "El paciente es dependiente: debe seleccionar el contacto responsable.",
         "genericError": "Ocurrió un error inesperado. Por favor, inténtelo de nuevo.",
         "serverError": "Error del servidor, por favor inténtelo más tarde.",
         "uniqueConflict": "Los siguientes campos ya están registrados: {fields}",

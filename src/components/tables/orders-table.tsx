@@ -171,8 +171,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
           <RadioGroup
             value={isSelected ? row.id : ''}
             onValueChange={() => {
-              table.toggleAllPageRowsSelected(false);
-              row.toggleSelected(true);
+              table.setRowSelection({ [row.id]: true });
             }}
           >
             <RadioGroupItem value={row.id} id={row.id} aria-label="Select row" />

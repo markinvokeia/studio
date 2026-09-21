@@ -79,6 +79,14 @@ interface DataTableProps<TData, TValue> {
   onRowClick?: (row: TData) => void;
   /** Total row count for server-side pagination — enables an accurate "1–25 of N" range */
   rowCount?: number;
+  /**
+   * Maps a row to its stable id. Defaults to the row's own `id` when present,
+   * falling back to TanStack's index-based id for row shapes without one.
+   * Stable ids keep `rowSelection` bound to the entity instead of its position,
+   * so filtering, pagination and refreshes can't move the selection to a
+   * different row.
+   */
+  getRowId?: (row: TData) => string;
   /** When true, shows skeleton rows/cards instead of data or the "no results" message */
   isLoading?: boolean;
   /** Extra classes for the narrow-mode card list container (e.g. to remove the gap for a connected list) */
@@ -132,6 +140,7 @@ export function DataTable<TData, TValue>({
   renderCard,
   onRowClick,
   rowCount,
+  getRowId,
   isLoading = false,
   cardListClassName,
   primaryActions,
@@ -157,6 +166,19 @@ export function DataTable<TData, TValue>({
   const setColumnFilters = setControlledColumnFilters ?? setInternalColumnFilters;
   const finalRowSelection = rowSelection ?? internalRowSelection;
   const finalSetRowSelection = setRowSelection ?? setInternalRowSelection;
+
+  // Entity-stable row ids. An explicit `getRowId` wins; otherwise use the
+  // row's own `id` (all entity tables here have one) and fall back to the
+  // index-based id for row shapes that don't — same as TanStack's default.
+  const resolveRowId = React.useCallback(
+    (row: TData, index: number, parent?: Row<TData>): string => {
+      if (getRowId) return getRowId(row);
+      const id = (row as { id?: unknown } | null | undefined)?.id;
+      if (id !== undefined && id !== null && id !== '') return String(id);
+      return parent ? `${parent.id}.${index}` : `${index}`;
+    },
+    [getRowId],
+  );
 
   // Distinguishes a selection change the user made by clicking a row (which should notify
   // onRowSelectionChange) from one the parent made programmatically — e.g. clearing the
@@ -186,6 +208,7 @@ export function DataTable<TData, TValue>({
       columnFilters,
       ...(isControlledPagination && { pagination }),
     },
+    getRowId: resolveRowId,
     enableRowSelection: true,
     enableMultiRowSelection: !enableSingleRowSelection,
     onRowSelectionChange: handleTableRowSelectionChange,
@@ -306,8 +329,14 @@ export function DataTable<TData, TValue>({
             table.getRowModel().rows.map((row) => (
               <div key={row.id} data-testid="list-item" onClick={() => {
                 if (enableSingleRowSelection) {
-                  table.toggleAllPageRowsSelected(false);
-                  row.toggleSelected(true);
+                  // Single selection: clicking the selected item deselects it,
+                  // clicking another one replaces the selection. Row ids are
+                  // entity ids, so this stays correct across filtering and
+                  // pagination. (Do not chain toggleAll + toggleSelected: the
+                  // latter reads the pre-update state and bails out when the
+                  // row is already selected, clearing the selection instead of
+                  // toggling it.)
+                  table.setRowSelection(row.getIsSelected() ? {} : { [row.id]: true });
                 }
                 onRowClick?.(row.original);
               }}>
@@ -367,8 +396,8 @@ export function DataTable<TData, TValue>({
                   data-state={row.getIsSelected() && 'selected'}
                   onClick={() => {
                     if (enableSingleRowSelection) {
-                      table.toggleAllPageRowsSelected(false);
-                      row.toggleSelected(true);
+                      // Single selection: toggle this row (see note above).
+                      table.setRowSelection(row.getIsSelected() ? {} : { [row.id]: true });
                     }
                     onRowClick?.(row.original);
                   }}

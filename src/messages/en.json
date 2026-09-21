@@ -1976,6 +1976,7 @@
         "identityInvalid": "Identity document format is not valid for the selected type.",
         "identityMaxLength": "Identity document must be 10 characters or less.",
         "emailOrPhoneRequired": "You must provide at least an email address or a phone number.",
+        "responsibleContactRequired": "The patient is a dependent: a responsible contact must be selected.",
         "genericError": "An unexpected error occurred. Please try again.",
         "serverError": "Server error, please try again later.",
         "uniqueConflict": "The following fields are already registered: {fields}",

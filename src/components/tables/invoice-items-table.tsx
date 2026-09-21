@@ -54,8 +54,7 @@ export function InvoiceItemsTable({ items, isLoading = false, onRefresh, isRefre
             value={isSelected ? row.id : ''}
             onValueChange={() => {
               if (onRowSelectionChange) {
-                table.toggleAllPageRowsSelected(false);
-                row.toggleSelected(true);
+                table.setRowSelection({ [row.id]: true });
               }
             }}
           >

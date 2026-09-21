@@ -144,8 +144,7 @@ const getColumns = (
           <RadioGroup
             value={isSelected ? row.id : ''}
             onValueChange={() => {
-              table.toggleAllPageRowsSelected(false);
-              row.toggleSelected(true);
+              table.setRowSelection({ [row.id]: true });
             }}
           >
             <RadioGroupItem value={row.id} id={row.id} aria-label="Select row" />
@@ -732,9 +731,9 @@ export function RecentQuotesTable({
                   {table.getRowModel().rows.length > 0
                     ? table.getRowModel().rows.map((row) => {
                       const onRowActivate = () => {
-                        table.toggleAllPageRowsSelected(false);
-                        row.toggleSelected(true);
-                        onRowSelectionChange?.([row.original]);
+                        const isSelected = row.getIsSelected();
+                        table.setRowSelection(isSelected ? {} : { [row.id]: true });
+                        onRowSelectionChange?.(isSelected ? [] : [row.original]);
                         onRowClick?.(row.original);
                       };
                       const quoteActions = !isCompact && !viewportNarrow ? (
@@ -822,8 +821,7 @@ export function RecentQuotesTable({
                             data-state={row.getIsSelected() && 'selected'}
                             onClick={() => {
                               if (onRowSelectionChange) {
-                                table.toggleAllPageRowsSelected(false);
-                                row.toggleSelected(true);
+                                table.setRowSelection(row.getIsSelected() ? {} : { [row.id]: true });
                               }
                               onRowClick?.(row.original);
                             }}

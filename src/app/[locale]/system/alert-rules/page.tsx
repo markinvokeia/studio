@@ -322,8 +322,8 @@ export default function AlertRulesPage() {
 
     const handleEdit = (rule: AlertRule) => {
         setSelectedRule(rule);
-        const idx = rules.findIndex(r => String(r.id) === String(rule.id));
-        if (idx >= 0) setRowSelection({ [idx]: true });
+        // Row ids are entity ids (DataTable default), so select by rule.id.
+        setRowSelection({ [String(rule.id)]: true });
         setEditingRule(rule);
         setSelectedTable(rule.source_table || '');
         const conds = (rule as any).condition_config?.conditions || [];

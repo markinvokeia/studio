@@ -61,8 +61,7 @@ const getColumns = (
             value={isSelected ? row.id : ''}
             onValueChange={() => {
               if (onRowSelectionChange) {
-                table.toggleAllPageRowsSelected(false);
-                row.toggleSelected(true);
+                table.setRowSelection({ [row.id]: true });
               }
             }}
           >

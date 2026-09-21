@@ -202,12 +202,16 @@ export function useDeepLink<T>({
         cbRef.current.onAutoSelect?.(first);
 
         // 2. Sync TanStack's rowSelection so the row/card shows as selected.
-        //    Find the item's index in the full data array (allItems) or the
-        //    filtered items array. Object reference equality works because
-        //    Array.filter() preserves references.
+        //    Row ids are entity ids (DataTable keys rows by `row.id`), so use
+        //    the item's own id when available and fall back to its index —
+        //    which is what DataTable does for row shapes without an id.
         const source = cbRef.current.allItems ?? itemsRef.current;
         const idx = source.indexOf(first);
-        cbRef.current.setRowSelection?.({ [String(idx >= 0 ? idx : 0)]: true });
+        const entityId = (first as { id?: unknown } | null | undefined)?.id;
+        const rowId = entityId !== undefined && entityId !== null && entityId !== ''
+          ? String(entityId)
+          : String(idx >= 0 ? idx : 0);
+        cbRef.current.setRowSelection?.({ [rowId]: true });
       }
       setStep(p.t ? 'tabbing' : p.act ? 'acting' : 'done');
     }, stepDelay);

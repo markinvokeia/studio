@@ -399,8 +399,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
             name="order-item-selection"
             checked={isSelected}
             onChange={() => {
-              table.toggleAllPageRowsSelected(false);
-              row.toggleSelected(true);
+              table.setRowSelection({ [row.id]: true });
             }}
             className="h-4 w-4 cursor-pointer"
           />

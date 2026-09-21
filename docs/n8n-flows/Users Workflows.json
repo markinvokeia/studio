@@ -8,10 +8,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1552,
-        3744
+        816,
+        4400
       ],
-      "id": "f5cd29e4-8e34-4eb7-9a8f-64d8604f516f",
+      "id": "e9549360-dbe4-4558-a690-9bef91f26345",
       "name": "Code"
     },
     {
@@ -25,10 +25,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1360,
-        3744
+        624,
+        4400
       ],
-      "id": "e59d2218-5288-4467-ad98-ecb1f3aa1054",
+      "id": "7e10f5ff-6ce1-4745-aa39-e7c066d9085b",
       "name": "Select USERS",
       "alwaysOutputData": false,
       "credentials": {
@@ -47,10 +47,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1360,
-        3920
+        624,
+        4576
       ],
-      "id": "85afc6eb-c942-4d8d-aa15-6bb2c20d9dd2",
+      "id": "9bde5d95-ca48-4a4b-b644-b33e57917d27",
       "name": "Select Roles of User",
       "credentials": {
         "postgres": {
@@ -70,10 +70,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1360,
-        4096
+        624,
+        4752
       ],
-      "id": "eaec0cda-87f4-4681-a08f-4a7068f33a09",
+      "id": "88017067-f9bc-47f5-91d4-ecafb30752f4",
       "name": "Select Services of User",
       "credentials": {
         "postgres": {
@@ -90,11 +90,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        1072,
-        3664
+        336,
+        4320
       ],
       "typeVersion": 1,
-      "id": "cc39b8c2-c379-4b0e-976f-1ca1a2f4c550",
+      "id": "057e9739-9a88-4d53-a06f-6105e86cf0ab",
       "name": "Sticky Note"
     },
     {
@@ -108,10 +108,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1360,
-        4416
+        624,
+        5072
       ],
-      "id": "519b0deb-8df7-4cdd-a189-0516e902efaa",
+      "id": "723f0e23-8dba-4931-827e-da93fa89501d",
       "name": "Select Quotes of User",
       "credentials": {
         "postgres": {
@@ -129,10 +129,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1360,
-        4576
+        624,
+        5232
       ],
-      "id": "15049727-ee4a-4036-a750-1a24ef5c9b14",
+      "id": "50d9bd9f-397e-4f5c-bf4a-1d26f35a01e3",
       "name": "Select Access logs of User",
       "credentials": {
         "postgres": {
@@ -684,10 +684,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1552,
-        2704
+        816,
+        3360
       ],
-      "id": "c594623a-078b-4a40-bd67-b5d6ca37f81a",
+      "id": "f7557690-c23d-41b3-8b23-42f34101a07c",
       "name": "Update rows in a table",
       "alwaysOutputData": true,
       "credentials": {
@@ -711,10 +711,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        1136,
-        2704
+        400,
+        3360
       ],
-      "id": "31d6dc37-40bf-4a53-acc7-6bd37ff4889a",
+      "id": "d6bdeef2-f3dc-4d17-914c-30164ae928ad",
       "name": "/users/activate",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -741,10 +741,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1760,
-        2800
+        1024,
+        3456
       ],
-      "id": "562e9bca-50fe-4270-9c99-f6fe728a46a5",
+      "id": "ede4f70d-fd98-4a52-8783-86c79ca8cd79",
       "name": "Error"
     },
     {
@@ -770,10 +770,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1760,
-        2640
+        1024,
+        3296
       ],
-      "id": "18a93405-8e50-46f9-8101-5541b5da7fde",
+      "id": "0b6901f2-acb3-430a-bf5e-9e46654fe7cc",
       "name": "Success"
     },
     {
@@ -793,10 +793,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2288,
-        3008
+        1552,
+        3664
       ],
-      "id": "c8e37567-e061-4053-875f-02446b6b334a",
+      "id": "301a920b-088b-4bcf-8bd2-0083dad592da",
       "name": "Error2"
     },
     {
@@ -822,10 +822,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2288,
-        2848
+        1552,
+        3504
       ],
-      "id": "731f56f5-600b-4d3c-aed7-644b389300f6",
+      "id": "acffbbba-9fc3-4f4b-b8f0-4ba5649a0c6d",
       "name": "Success2"
     },
     {
@@ -841,10 +841,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        1120,
-        3184
+        384,
+        3840
       ],
-      "id": "4a2ff437-7684-4ad6-b8e9-38653b0ec09b",
+      "id": "daba1304-85a8-4b13-ad70-0714658a0730",
       "name": "/users/upsert",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -871,10 +871,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2208,
-        3456
+        1472,
+        4112
       ],
-      "id": "20ae1ec7-a2ce-45e6-92f9-068282faea4d",
+      "id": "4400ec7f-6040-4507-a3d0-2e2513e8279a",
       "name": "Error3"
     },
     {
@@ -906,10 +906,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2864,
-        3152
+        2128,
+        3808
       ],
-      "id": "927ab43a-a8bc-414e-8da7-17da4d71e446",
+      "id": "915b87f6-ab94-46ea-8987-ca04112ef8ef",
       "name": "Success3"
     },
     {
@@ -929,10 +929,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        4176,
-        3088
+        3440,
+        3744
       ],
-      "id": "9f209dc8-2dac-4f7c-ac15-0d021b89b9c7",
+      "id": "dd85821d-7e70-4766-be2f-f86b04d9a6e9",
       "name": "Error4"
     },
     {
@@ -958,10 +958,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        4176,
-        2896
+        3440,
+        3552
       ],
-      "id": "a90f7bae-dc3e-4b8a-a14e-f5cb4969e561",
+      "id": "9ebd9fd5-5b32-43d7-a400-cddd21638254",
       "name": "Success4"
     },
     {
@@ -976,10 +976,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        3248,
-        2656
+        2512,
+        3312
       ],
-      "id": "f10f4423-21d3-4042-8c4d-70a240596b54",
+      "id": "5dc20aea-d8d0-4434-9db8-11e674f40630",
       "name": "roles/assign",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -996,10 +996,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3632,
-        2656
+        2896,
+        3312
       ],
-      "id": "10a6e5fc-0734-414c-a9a1-c41e868dbeb4",
+      "id": "9c036988-7c16-4c5a-a566-27858477d397",
       "name": "Code in JavaScript"
     },
     {
@@ -1013,10 +1013,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3456,
-        2864
+        2720,
+        3520
       ],
-      "id": "2196f68f-3f3e-416c-9556-0f0bd4098643",
+      "id": "19d4d8e2-5b56-4b17-949c-51d0bd15d609",
       "name": "Execute a SQL query",
       "alwaysOutputData": true,
       "credentials": {
@@ -1040,10 +1040,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        3248,
-        2864
+        2512,
+        3520
       ],
-      "id": "10f7c0f4-df79-439e-8c13-cb9151b6d5d9",
+      "id": "da064593-7ef8-4565-a543-1f09203fae3a",
       "name": "roles/user_roles",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -1131,10 +1131,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3808,
-        2656
+        3072,
+        3312
       ],
-      "id": "c91716a8-fbe6-423e-8115-6a1f7b5e76c1",
+      "id": "ffab92c7-8d3e-4c39-9f6a-1f6baa602874",
       "name": "Insert rows in a table1",
       "alwaysOutputData": true,
       "credentials": {
@@ -1173,10 +1173,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3456,
-        2656
+        2720,
+        3312
       ],
-      "id": "8dff7547-61d1-4d70-8da5-834ddf5cb8b4",
+      "id": "b7cee486-1be5-441d-af5b-3a65941b71c8",
       "name": "Delete table or rows1",
       "credentials": {
         "postgres": {
@@ -1202,10 +1202,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        4176,
-        4080
+        3440,
+        4736
       ],
-      "id": "595eed41-6d90-4b9e-82e0-ca8e8a917538",
+      "id": "8fc2761a-b43b-4721-be64-66312a5e6d4d",
       "name": "Error5"
     },
     {
@@ -1231,10 +1231,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        4176,
-        3904
+        3440,
+        4560
       ],
-      "id": "3f9936aa-cae5-405b-baae-7decd96f2a18",
+      "id": "fb02a049-4940-408e-846a-65fb4ff6205c",
       "name": "Success5"
     },
     {
@@ -1244,10 +1244,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3552,
-        3792
+        2816,
+        4448
       ],
-      "id": "b3cc76bf-4349-479f-9fc7-8345a6e57a0a",
+      "id": "48e9e4ca-422a-42ea-9f03-22db0b156678",
       "name": "Code in JavaScript1",
       "alwaysOutputData": true
     },
@@ -1332,10 +1332,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3936,
-        3744
+        3200,
+        4400
       ],
-      "id": "d60f44b6-c694-480a-a61a-679053e4952d",
+      "id": "e2a01e17-3ef1-43b7-8a11-c47e06be6853",
       "name": "Insert rows in a table2",
       "alwaysOutputData": true,
       "credentials": {
@@ -1374,10 +1374,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3360,
-        3792
+        2624,
+        4448
       ],
-      "id": "ef9a4828-905a-490d-aadc-20d7245c278e",
+      "id": "1794114a-d623-43b7-aff3-7870fc22242c",
       "name": "Delete table or rows",
       "credentials": {
         "postgres": {
@@ -1399,10 +1399,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        3184,
-        3792
+        2448,
+        4448
       ],
-      "id": "3cc6377c-95bf-4bdc-91dd-650507c6d437",
+      "id": "6e1f25d2-d3f2-4515-a6ae-f9a30eaad0b2",
       "name": "services/assign",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -1423,10 +1423,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1488,
-        3056
+        752,
+        3712
       ],
-      "id": "7628feca-aa75-4f27-8c34-016498294d58",
+      "id": "f3bddb62-cdd2-42c9-9bb5-5c1d96453916",
       "name": "Execute a SQL query2",
       "credentials": {
         "postgres": {
@@ -1442,10 +1442,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1664,
-        3056
+        928,
+        3712
       ],
-      "id": "a90cc5b8-916d-43dc-a306-849b63fd9ea1",
+      "id": "cfee7038-8fce-4108-8973-b5263004acef",
       "name": "Code in JavaScript2"
     },
     {
@@ -1471,10 +1471,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2000,
-        3088
+        1264,
+        3744
       ],
-      "id": "740a414d-11c2-4046-bade-f9d771e942bf",
+      "id": "91ba91c4-08ea-4e1b-9e95-9b52d498f598",
       "name": "Error8"
     },
     {
@@ -1516,10 +1516,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1312,
-        3184
+        576,
+        3840
       ],
-      "id": "d32e7da4-31d0-474d-94b9-9da4b3454496",
+      "id": "83c9e737-1688-4b52-9b11-81dc179eda2e",
       "name": "If2"
     },
     {
@@ -1533,10 +1533,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1488,
-        3296
+        752,
+        3952
       ],
-      "id": "dfd0f930-e679-4de3-b20e-f698550482da",
+      "id": "9fac5806-2c0f-4b49-a615-49540db0cb08",
       "name": "Execute a SQL query3",
       "credentials": {
         "postgres": {
@@ -1552,10 +1552,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1648,
-        3296
+        912,
+        3952
       ],
-      "id": "08223b2c-fd9e-4ef8-ac44-e9db230c89e4",
+      "id": "6ec4d7ec-29f2-474a-9618-590a79385bf4",
       "name": "Code in JavaScript3"
     },
     {
@@ -1586,10 +1586,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1808,
-        3296
+        1072,
+        3952
       ],
-      "id": "aa629628-eda7-4f8c-8856-2ec05ea0bed2",
+      "id": "60e46b22-220e-474d-862e-9120c679d542",
       "name": "If"
     },
     {
@@ -1609,10 +1609,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2000,
-        3456
+        1264,
+        4112
       ],
-      "id": "eb6403f7-5717-4711-b94e-781029171c2c",
+      "id": "8088bdf7-b3ff-4ba3-b9e1-f8d0d07936a0",
       "name": "Error9"
     },
     {
@@ -1626,10 +1626,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3392,
-        4064
+        2656,
+        4720
       ],
-      "id": "e01f72c0-3443-4f75-b2ba-56e3daa7ebc6",
+      "id": "0a61e644-a004-480c-bf41-c16a5fc014a9",
       "name": "Execute a SQL query1",
       "alwaysOutputData": true,
       "credentials": {
@@ -1653,10 +1653,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        3184,
-        4064
+        2448,
+        4720
       ],
-      "id": "f02c49f2-9d42-4679-9c47-4927540554c0",
+      "id": "4b9e5846-4133-4364-9313-28fe0394c980",
       "name": "services/user_services",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -1675,10 +1675,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        1072,
-        2544
+        336,
+        3200
       ],
-      "id": "52fe0831-369c-436f-a0f7-578cf89776eb",
+      "id": "a0200dd5-3120-4554-af39-9a1bb9035fe9",
       "name": "Sticky Note14"
     },
     {
@@ -1690,10 +1690,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        3120,
-        2544
+        2384,
+        3200
       ],
-      "id": "73ffeaef-c02c-4e02-a483-613e1701ec38",
+      "id": "8986f107-d8d9-41b6-9b2c-c342ee4475b4",
       "name": "Sticky Note15"
     },
     {
@@ -1724,10 +1724,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1840,
-        3056
+        1104,
+        3712
       ],
-      "id": "6168b33c-7f8c-40f1-8f3c-609b7987f0ff",
+      "id": "f73f4d39-7ac4-485d-9299-cd2a08fa03b7",
       "name": "If3"
     },
     {
@@ -1739,10 +1739,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        3120,
-        3664
+        2384,
+        4320
       ],
-      "id": "f4907a63-9ce3-4829-8a4a-04f737a51266",
+      "id": "63c4e5f6-9e83-4004-81c0-c90b1ee5fb94",
       "name": "Sticky Note16"
     },
     {
@@ -1758,10 +1758,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        3248,
-        3056
+        2512,
+        3712
       ],
-      "id": "4a0fc96e-abd2-47a7-9837-0726f60539c6",
+      "id": "67329f4c-3bfa-4c97-bf67-1780ecc398a3",
       "name": "users/doctors",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -1782,10 +1782,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3456,
-        3056
+        2720,
+        3712
       ],
-      "id": "3e58863b-e3d9-4651-b29e-99f3de29dfbd",
+      "id": "08192377-4665-429b-a474-2e7928844f0f",
       "name": "Get Doctors",
       "alwaysOutputData": true,
       "credentials": {
@@ -1809,10 +1809,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        3248,
-        3360
+        2512,
+        4016
       ],
-      "id": "ed86bfeb-b79b-4304-a72d-9ed91cfa9435",
+      "id": "5998e22a-21fe-4878-a9dd-3a2c46519f8b",
       "name": "users/patients",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -1831,10 +1831,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3456,
-        3248
+        2720,
+        3904
       ],
-      "id": "a2b2f5c2-2aa1-4e29-a0fc-546d369144a9",
+      "id": "238db944-9a41-467d-aa2c-df9f1c9c4ab2",
       "name": "Get Patients",
       "alwaysOutputData": true,
       "credentials": {
@@ -1949,10 +1949,10 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.3,
       "position": [
-        2208,
-        3232
+        1472,
+        3888
       ],
-      "id": "ccd54ec8-4a04-45de-bd49-8fb6e61b1a71",
+      "id": "44e6d364-cc7f-42b3-a379-1c624524fffa",
       "name": "Switch"
     },
     {
@@ -2036,10 +2036,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2624,
-        3248
+        1888,
+        3904
       ],
-      "id": "c6b6fa25-b10b-452e-aada-be0dabc84092",
+      "id": "61c2541a-b51a-479d-9a17-bb304f04a944",
       "name": "Insert rows in users_role",
       "alwaysOutputData": true,
       "credentials": {
@@ -2067,10 +2067,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2864,
-        3344
+        2128,
+        4000
       ],
-      "id": "7d96298f-d11c-4bad-8d0f-19049df21bf2",
+      "id": "4b6a7e40-7f1e-434e-9d9d-f56b541c1bbf",
       "name": "Error6"
     },
     {
@@ -2090,10 +2090,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2432,
-        3104
+        1696,
+        3760
       ],
-      "id": "849763db-078d-4a29-99db-7e0ac27c6609",
+      "id": "a0ed27a0-6e46-465c-b1a9-9c817a0c14be",
       "name": "Asignar role paciente"
     },
     {
@@ -2113,10 +2113,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2432,
-        3248
+        1696,
+        3904
       ],
-      "id": "92e55bf1-e316-43d9-8c3f-4cb4acf9a726",
+      "id": "0abf353d-e7ba-471b-adea-e961f6d1224e",
       "name": "Asignar role medico"
     },
     {
@@ -2133,10 +2133,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        1152,
-        4752
+        416,
+        5408
       ],
-      "id": "d6a01781-9350-4439-b687-d001d4c124b9",
+      "id": "5e368ce0-7638-476b-b8b9-38176faf1f0c",
       "name": "user_invoices",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2157,10 +2157,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1360,
-        4752
+        624,
+        5408
       ],
-      "id": "b0098ea1-14f3-4e9b-a8d6-4ebdc60e90bc",
+      "id": "c824ab05-573e-48ff-928a-fcb321f7a96f",
       "name": "Select Invoices of User",
       "credentials": {
         "postgres": {
@@ -2183,10 +2183,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        1152,
-        4912
+        416,
+        5568
       ],
-      "id": "be719290-74ba-408e-a79d-46945c19ed08",
+      "id": "4fce8216-48c2-4e31-a853-a4772e2eb5aa",
       "name": "user_payments",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2207,10 +2207,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1360,
-        4912
+        624,
+        5568
       ],
-      "id": "68d0b027-95e1-4c47-b27e-4ff9363d6803",
+      "id": "63acc61b-8eac-4bf9-aab6-6d255cf42082",
       "name": "Select Payments of User",
       "credentials": {
         "postgres": {
@@ -2232,10 +2232,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        1152,
-        3744
+        416,
+        4400
       ],
-      "id": "ded5d138-37bf-4e9c-b199-bf282c00ea96",
+      "id": "771c8d5a-3621-4539-abd8-770b9fb66568",
       "name": "users",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2259,10 +2259,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        1152,
-        3920
+        416,
+        4576
       ],
-      "id": "4fb4db54-4745-4a9d-b2aa-086bcf95fb6f",
+      "id": "66e9a2ba-cd9f-4a8d-988a-4c3946cf2ad6",
       "name": "user_roles",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2286,10 +2286,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        1152,
-        4096
+        416,
+        4752
       ],
-      "id": "661fa763-c153-419f-8abb-b7d1a5cead42",
+      "id": "67002de0-f7dc-4ed9-a731-55df91b24026",
       "name": "user_services",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2313,10 +2313,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        1152,
-        4416
+        416,
+        5072
       ],
-      "id": "45cbfb08-bf74-4f9d-8d9e-e315dbde52c8",
+      "id": "da6dadf7-0579-4446-b527-b4b0eca3c4b9",
       "name": "user_quotes",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2340,10 +2340,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        1152,
-        4576
+        416,
+        5232
       ],
-      "id": "bdf0c702-dd29-4327-90e9-0c457212e800",
+      "id": "3bb3657c-9330-482b-b89b-701cfe0025c1",
       "name": "user_logs",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2367,10 +2367,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        1152,
-        5072
+        416,
+        5728
       ],
-      "id": "2391402f-109d-498c-ae88-23e51029f423",
+      "id": "17a4e501-c4bc-40c0-9f91-83b4ed95a3d8",
       "name": "user_orders",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2391,10 +2391,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1360,
-        5072
+        624,
+        5728
       ],
-      "id": "bd5c715d-199e-4eb2-837b-588557181dd5",
+      "id": "21628f66-1e7b-40ba-9e92-4ad937bc7de3",
       "name": "Select Orders of User",
       "credentials": {
         "postgres": {
@@ -2416,10 +2416,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        1152,
-        5264
+        416,
+        5920
       ],
-      "id": "3c532527-25d6-475d-80c6-4eaf889cd043",
+      "id": "da2d6c7e-2d44-44de-b484-fafa639fb33a",
       "name": "debtors",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2438,10 +2438,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1360,
-        5264
+        624,
+        5920
       ],
-      "id": "c16550a7-7adb-4517-a67c-c609f733e711",
+      "id": "523c1b68-2429-4fac-b440-33c524f649f8",
       "name": "Select Debtors",
       "alwaysOutputData": true,
       "credentials": {
@@ -2469,10 +2469,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        1568,
-        5264
+        832,
+        5920
       ],
-      "id": "b4707db3-f457-442b-9b6f-93090114b919",
+      "id": "a997fa6d-df45-4855-936c-2cfe8be9ea72",
       "name": "OK: List of debtors"
     },
     {
@@ -2532,10 +2532,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        1344,
-        2704
+        608,
+        3360
       ],
-      "id": "5e286720-691a-496a-8230-36c205ce11b7",
+      "id": "649c1e8e-f372-439e-bc8e-5cb4f62f49c8",
       "name": "Call 'Check security'"
     },
     {
@@ -2566,10 +2566,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        3744,
-        3792
+        3008,
+        4448
       ],
-      "id": "9b56ed6a-162d-44ef-aece-ffbc1e792a8a",
+      "id": "2cc7da00-7ed1-4a15-9d74-a4355e585278",
       "name": "If1"
     },
     {
@@ -2580,11 +2580,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        3120,
-        4272
+        2384,
+        4928
       ],
       "typeVersion": 1,
-      "id": "3c6c8c1b-bf7c-4093-9cdc-81192851f38d",
+      "id": "b3c0acd7-076e-4a83-80c6-24b2aeef0251",
       "name": "Sticky Note1"
     },
     {
@@ -2601,10 +2601,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        3200,
-        4384
+        2464,
+        5040
       ],
-      "id": "892ef65c-91b9-490b-b70b-456679420db1",
+      "id": "ba35f30f-ca1d-4005-bad2-798da029aeba",
       "name": "POST /patient/discharge",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2901,10 +2901,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3408,
-        4384
+        2672,
+        5040
       ],
-      "id": "ca3688ce-2c39-403d-9201-fb8f8cd2e630",
+      "id": "931d274b-4281-4c9e-896a-acd0aed1420f",
       "name": "Update appointment field",
       "credentials": {
         "postgres": {
@@ -2931,10 +2931,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        3632,
-        4480
+        2896,
+        5136
       ],
-      "id": "59ec6813-c7f5-410b-9a71-9bc400d018d4",
+      "id": "51322eaa-fb77-40d6-a83d-d8cc2de35b7a",
       "name": "OK"
     },
     {
@@ -2954,10 +2954,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        3632,
-        4656
+        2896,
+        5312
       ],
-      "id": "4a03a6e9-d392-4220-8cb7-ff48c95ab8af",
+      "id": "6c9e90ee-3e42-4571-81b4-61b981ad41a5",
       "name": "Error1"
     },
     {
@@ -3242,10 +3242,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3408,
-        4576
+        2672,
+        5232
       ],
-      "id": "72bcde7b-3e45-4870-9176-44440ba54071",
+      "id": "cd7428bb-c000-4c3f-8678-d85aefa5fb28",
       "name": "Update appointment field1",
       "credentials": {
         "postgres": {
@@ -3269,10 +3269,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        3200,
-        4576
+        2464,
+        5232
       ],
-      "id": "72c4c08a-ed74-4052-b1d3-c986aba98dd3",
+      "id": "023d86dc-e20d-4f1f-a95a-4b321b5728ff",
       "name": "POST /patient/discharge/cancel",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -3295,10 +3295,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        3200,
-        4768
+        2464,
+        5424
       ],
-      "id": "d51f4db0-04e2-422c-add3-53c926a82e5c",
+      "id": "50c736e3-bbe0-45cb-bb28-2f4b04767a80",
       "name": "GET /patient/discharge",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -3319,10 +3319,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3408,
-        4768
+        2672,
+        5424
       ],
-      "id": "e672b2b1-a0a6-4735-a7a5-744b4a51a2f1",
+      "id": "2e2eb265-a560-4bd0-b396-7b28fe4b273b",
       "name": "Get appointment field",
       "credentials": {
         "postgres": {
@@ -3340,11 +3340,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        1808,
-        4496
+        1072,
+        5152
       ],
       "typeVersion": 1,
-      "id": "334c4aec-62a8-4f73-87e2-092e22c02f4a",
+      "id": "943e24f2-6dd9-4018-bbdb-81e3357a5914",
       "name": "Sticky Note2"
     },
     {
@@ -3360,10 +3360,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        1872,
-        4864
+        1136,
+        5520
       ],
-      "id": "548e4787-143d-4d63-98b5-309e470aad16",
+      "id": "7d0f9664-9278-4b80-b898-feb4ccd39581",
       "name": "GET /user/financial-summary/print",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -3385,10 +3385,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2080,
-        4864
+        1344,
+        5520
       ],
-      "id": "e71e0057-8f59-4b2a-9215-f40dc4d78ec4",
+      "id": "28975035-0b50-4bdb-aff0-ad2b6183341b",
       "name": "Get user financial summary",
       "credentials": {
         "postgres": {
@@ -3444,10 +3444,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        2288,
-        4864
+        1552,
+        5520
       ],
-      "id": "d9801efe-71ac-442e-a809-f2c81939f44c",
+      "id": "d543c499-2f07-4f59-8ee0-bb4ee419a046",
       "name": "Call 'Build PDF'",
       "disabled": true
     },
@@ -3479,10 +3479,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        2496,
-        4864
+        1760,
+        5520
       ],
-      "id": "b5254537-562d-4d8a-9569-01b327e575a2",
+      "id": "efe3d4ac-e545-4d8b-9984-0518a4aee4aa",
       "name": "If4",
       "disabled": true
     },
@@ -3496,10 +3496,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        2704,
-        4768
+        1968,
+        5424
       ],
-      "id": "af154750-9174-40f2-9605-3f6efefca8c0",
+      "id": "1ea59262-4649-420d-aa65-17186ef31aab",
       "name": "OK: File",
       "disabled": true
     },
@@ -3512,10 +3512,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        2704,
-        4960
+        1968,
+        5616
       ],
-      "id": "e7310e68-fe47-4bca-913e-74cb909619b3",
+      "id": "94296d25-3c4d-4973-8aac-a988da069242",
       "name": "Error7",
       "disabled": true
     },
@@ -3530,10 +3530,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2080,
-        4640
+        1344,
+        5296
       ],
-      "id": "d4d04c68-5884-4098-976f-ed9edce3ab67",
+      "id": "fdd789b0-8587-4105-a10e-5e8865dfbe4a",
       "name": "Get user financial summary1",
       "credentials": {
         "postgres": {
@@ -3556,10 +3556,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        1872,
-        4640
+        1136,
+        5296
       ],
-      "id": "58a91f50-27a6-4a16-90a1-a0ed6572f9bb",
+      "id": "a8ad56b7-8229-4be0-849f-2c72d4a89606",
       "name": "user_financial",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -3587,10 +3587,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        2288,
-        4544
+        1552,
+        5200
       ],
-      "id": "b0e3c17a-1592-4166-acb7-a50d7415e416",
+      "id": "6875d158-d853-4198-a682-56f055491e72",
       "name": "OK1"
     },
     {
@@ -3610,10 +3610,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        2288,
-        4736
+        1552,
+        5392
       ],
-      "id": "e5b907a2-cd36-43a5-a5c7-8bc9ea11c5f9",
+      "id": "2c019313-b83b-4dd4-8aea-fe0f92727106",
       "name": "Error10"
     },
     {
@@ -3630,10 +3630,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        1152,
-        4256
+        416,
+        4912
       ],
-      "id": "c54382cd-9d6d-4570-92b2-4d967ca200b6",
+      "id": "24def765-77e2-4000-9588-7cca27ebfd64",
       "name": "users_services",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -3654,10 +3654,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1360,
-        4256
+        624,
+        4912
       ],
-      "id": "5a3687b2-8921-41da-9764-544b466064d8",
+      "id": "5decfee7-3942-4791-b36b-c8c0b556e5fa",
       "name": "Select Services of users",
       "credentials": {
         "postgres": {
@@ -3678,10 +3678,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        3232,
-        3216
+        2496,
+        3872
       ],
-      "id": "9283879b-01bd-46d1-bd35-cae9e80dafb8",
+      "id": "482b96cc-c805-4163-ae35-4ccb753c8091",
       "name": "users/doctors_noauth",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7"
     },
@@ -3697,10 +3697,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        3344,
-        3488
+        2608,
+        4144
       ],
-      "id": "ef02e059-fa29-4faa-a453-d3994b89d1b9",
+      "id": "86bd2932-66b6-4752-96ec-44e5bf3f4d27",
       "name": "users/patients_noauth",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7"
     },
@@ -3712,11 +3712,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        1808,
-        4160
+        1072,
+        4816
       ],
       "typeVersion": 1,
-      "id": "a71c012e-172f-43d5-998b-e5a2d8e6075d",
+      "id": "1c548fe0-941b-47db-ae4d-c498b868c0b9",
       "name": "Sticky Note4"
     },
     {
@@ -3733,10 +3733,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        1872,
-        4272
+        1136,
+        4928
       ],
-      "id": "b985e4c1-fe5a-4410-9158-d9f5fb573fe8",
+      "id": "0b1cfdf5-6f8e-40bf-a9cf-1e2a04dc235f",
       "name": "user_dependant",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -3757,10 +3757,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2080,
-        4272
+        1344,
+        4928
       ],
-      "id": "9e664457-e78e-42cb-add8-13c555b40e2f",
+      "id": "992866ab-da77-4c04-b236-9edf045b504a",
       "name": "Select dependant contact",
       "credentials": {
         "postgres": {
@@ -3777,11 +3777,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        1552,
-        5456
+        816,
+        6112
       ],
       "typeVersion": 1,
-      "id": "dd95dd7f-568c-4014-a31f-0267d923c629",
+      "id": "f2a78afb-483f-4c41-a278-b1ee658154c5",
       "name": "Doctors"
     },
     {
@@ -3798,10 +3798,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        1600,
-        5600
+        864,
+        6256
       ],
-      "id": "2ea0ee0c-8443-41af-b085-5ba9c6e4495b",
+      "id": "9c7080e2-9d51-46fc-9020-6184031608fe",
       "name": "ai/doctor/query",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -3823,10 +3823,10 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
       "position": [
-        2224,
-        5600
+        1488,
+        6256
       ],
-      "id": "535816b3-4395-48be-8dc6-40bee24512f0",
+      "id": "1464b036-d5e5-4881-8268-b925c949dcfd",
       "name": "Manager",
       "retryOnFail": true,
       "maxTries": 2,
@@ -3850,10 +3850,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        2880,
-        5536
+        2144,
+        6192
       ],
-      "id": "2a39bf45-7970-4a3a-b0e9-174f1f8bf311",
+      "id": "5326303e-21c4-4a30-a04b-73dc494956ed",
       "name": "OK2"
     },
     {
@@ -3873,10 +3873,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        2880,
-        5680
+        2144,
+        6336
       ],
-      "id": "a1375587-b427-4e37-9705-cdc0b5bb658e",
+      "id": "463b9b06-8f69-4fc2-b3d7-cc9777c43638",
       "name": "Error11"
     },
     {
@@ -3923,10 +3923,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        1808,
-        5600
+        1072,
+        6256
       ],
-      "id": "ab608f7b-8186-493b-a6eb-d075c413e136",
+      "id": "6e90c870-d8c3-4a4c-b60b-d5926c1cdfe4",
       "name": "Get User Data"
     },
     {
@@ -3937,10 +3937,10 @@
       "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
       "typeVersion": 1.3,
       "position": [
-        2096,
-        5888
+        1360,
+        6544
       ],
-      "id": "56dda172-b90d-4096-99c5-81518bafc046",
+      "id": "e9678397-0c4a-4fe5-949d-43ceba1b9f93",
       "name": "Postgres Chat Memory",
       "credentials": {
         "postgres": {
@@ -3960,10 +3960,10 @@
       "type": "n8n-nodes-base.postgresTool",
       "typeVersion": 2.6,
       "position": [
-        2192,
-        6048
+        1456,
+        6704
       ],
-      "id": "c7d1be02-0772-434e-b331-013ceeea4790",
+      "id": "8a3100ec-2ce2-4a05-b0c8-83756e1b66bd",
       "name": "Patient anamnesis",
       "credentials": {
         "postgres": {
@@ -3983,10 +3983,10 @@
       "type": "n8n-nodes-base.postgresTool",
       "typeVersion": 2.6,
       "position": [
-        2288,
-        5888
+        1552,
+        6544
       ],
-      "id": "2dfd07c6-7558-460f-9982-3ad3ca9b1310",
+      "id": "7bbc372b-f0b7-4b8a-a5a6-1ad6f3723ea8",
       "name": "Patient clinic sessions",
       "credentials": {
         "postgres": {
@@ -4006,10 +4006,10 @@
       "type": "n8n-nodes-base.postgresTool",
       "typeVersion": 2.6,
       "position": [
-        2384,
-        6048
+        1648,
+        6704
       ],
-      "id": "bb45a341-b69d-47d5-9dfd-5357243516d2",
+      "id": "1aa8f213-9614-442e-8655-8650adcb98aa",
       "name": "Patient personal information",
       "credentials": {
         "postgres": {
@@ -4029,10 +4029,10 @@
       "type": "n8n-nodes-base.postgresTool",
       "typeVersion": 2.6,
       "position": [
-        2480,
-        5888
+        1744,
+        6544
       ],
-      "id": "856e57f7-1579-4be7-a0e4-9e92c71afb99",
+      "id": "dff00494-6025-4425-bcc6-41345fb9e345",
       "name": "Patient appointment",
       "credentials": {
         "postgres": {
@@ -4052,10 +4052,10 @@
       "type": "n8n-nodes-base.postgresTool",
       "typeVersion": 2.6,
       "position": [
-        2576,
-        6048
+        1840,
+        6704
       ],
-      "id": "27080297-c0e8-4887-9de0-c15cf1b6cacd",
+      "id": "da5ce0d1-3777-4b1e-a8f8-71af55930ca4",
       "name": "Patient treatment plans",
       "credentials": {
         "postgres": {
@@ -4071,10 +4071,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2016,
-        5600
+        1280,
+        6256
       ],
-      "id": "4e548226-4376-4c7b-ad54-931ec7b3c488",
+      "id": "45a2bc01-3cf2-4ff0-8523-da41407be8fe",
       "name": "Format data"
     },
     {
@@ -4084,10 +4084,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2656,
-        5536
+        1920,
+        6192
       ],
-      "id": "a17474aa-f0a8-4545-a618-8818e5107b50",
+      "id": "7b522fe3-1a09-44e9-a153-cf1d450848ff",
       "name": "Format output"
     },
     {
@@ -4098,11 +4098,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        3120,
-        4960
+        2384,
+        5616
       ],
       "typeVersion": 1,
-      "id": "8c4e7e3f-72bf-4ea3-af20-ce29311ecf13",
+      "id": "9b607129-0be1-4d2f-95c1-822fc913d47f",
       "name": "Sticky Note5"
     },
     {
@@ -4119,10 +4119,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        3200,
-        5072
+        2464,
+        5728
       ],
-      "id": "bbc502e7-db28-40cd-958e-402b0c91517c",
+      "id": "89d6a82f-489b-47af-9b67-ffdd57116769",
       "name": "POST /users/preferences",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -4143,10 +4143,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3408,
-        5072
+        2672,
+        5728
       ],
-      "id": "3a7917dd-1e8d-4ee9-acb6-601b459685c9",
+      "id": "14bd1b8e-2fdb-4973-a709-9398cd0beb9c",
       "name": "Update user preferences",
       "credentials": {
         "postgres": {
@@ -4173,10 +4173,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        3616,
-        5056
+        2880,
+        5712
       ],
-      "id": "3b89f64f-3d4c-4957-bc2d-7014cb1d73ea",
+      "id": "d54258e6-50d1-4871-b277-976b67da2405",
       "name": "OK3"
     },
     {
@@ -4196,10 +4196,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        3616,
-        5264
+        2880,
+        5920
       ],
-      "id": "fa5bf2bf-d6d3-43ea-b4b5-aaeb5d45f83f",
+      "id": "2ecc2599-0fd4-4c4d-8226-88b4e3f11736",
       "name": "Error12"
     },
     {
@@ -4215,10 +4215,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        3200,
-        5248
+        2464,
+        5904
       ],
-      "id": "403f18ab-4017-4b25-bab8-41a11d26c403",
+      "id": "db3ca9a0-49e4-45c5-acf9-0671b716eb97",
       "name": "GET /users/preferences",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -4239,10 +4239,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3408,
-        5248
+        2672,
+        5904
       ],
-      "id": "25b4445d-5a85-4d6b-aefb-f13035013275",
+      "id": "8dd82c2e-a6e3-463e-af3a-dba17410305f",
       "name": "Get user preferences",
       "alwaysOutputData": true,
       "credentials": {
@@ -4821,10 +4821,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2000,
-        3280
+        1264,
+        3936
       ],
-      "id": "07f39251-b46f-43ca-95d2-0271fe44d910",
+      "id": "53551ef9-d3da-4faf-899d-ecbbce40d18f",
       "name": "Insert user",
       "credentials": {
         "postgres": {
@@ -5402,10 +5402,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2000,
-        2928
+        1264,
+        3584
       ],
-      "id": "8ce880e5-63b6-4716-8ec2-165eb2354fe1",
+      "id": "908b6fc9-247f-4729-854a-81c2a41b23a6",
       "name": "Update user",
       "alwaysOutputData": true,
       "credentials": {
@@ -5424,11 +5424,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        1552,
-        6256
+        816,
+        6912
       ],
       "typeVersion": 1,
-      "id": "d9753e17-cf08-44cb-bb6b-a975b3709bbe",
+      "id": "a1e44e09-9c90-4e7e-8803-d574da12f77c",
       "name": "Doctors1"
     },
     {
@@ -5442,10 +5442,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1792,
-        6400
+        1056,
+        7056
       ],
-      "id": "52124c70-76bb-464d-b9ea-e1cd16358efa",
+      "id": "33bc2db1-20af-4af0-acfa-c737b4790852",
       "name": "Get user by ID",
       "credentials": {
         "postgres": {
@@ -5467,10 +5467,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        1584,
-        6400
+        848,
+        7056
       ],
-      "id": "da217296-dd17-40ae-a597-096ca29d7032",
+      "id": "06b71518-16e2-45bd-bf29-7c6e00e0f58a",
       "name": "GET user",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -5493,10 +5493,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        1856,
-        5184
+        1120,
+        5840
       ],
-      "id": "3304eec8-5bca-49fd-9158-7f603a081b87",
+      "id": "782fee4a-1580-42ec-8833-12546c056b69",
       "name": "GET /user/financial-summary/print1",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -5517,10 +5517,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2064,
-        5184
+        1328,
+        5840
       ],
-      "id": "171a3285-879d-46c7-b4b3-5624e81fb64c",
+      "id": "c68ebe94-3a38-43d6-af7e-8f9830c9774a",
       "name": "Get user financial summary2",
       "credentials": {
         "postgres": {
@@ -5539,10 +5539,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        2288,
-        5280
+        1552,
+        5936
       ],
-      "id": "76daa114-2744-44e1-9adc-8316b14b4ea4",
+      "id": "535e889a-e8e6-4fe4-aafa-81b4026de3bb",
       "name": "Error13"
     },
     {
@@ -5554,10 +5554,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        2288,
-        5104
+        1552,
+        5760
       ],
-      "id": "5fb8b680-f756-4f7b-827c-8ae998bfa61d",
+      "id": "9256ba1e-d914-4877-b266-8ae6809efb74",
       "name": "OK4"
     },
     {
@@ -5568,11 +5568,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        3120,
-        5616
+        2384,
+        6272
       ],
       "typeVersion": 1,
-      "id": "9c5d725e-10e6-4f4b-a10e-adb7c0b6aa35",
+      "id": "2ac23f86-e59d-4910-829a-4e3e9139214a",
       "name": "Sticky Note6"
     },
     {
@@ -5586,10 +5586,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3376,
-        5904
+        2640,
+        6560
       ],
-      "id": "786e6636-0d7b-4eb6-ba99-4a05aa8a1ce2",
+      "id": "9ee51b15-06ea-4c6d-8105-8c124ed9f67d",
       "name": "Get user email",
       "alwaysOutputData": true,
       "credentials": {
@@ -5610,10 +5610,10 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        3808,
-        5712
+        3072,
+        6368
       ],
-      "id": "f13ba729-41e9-4a68-b1aa-ddab2d072c8d",
+      "id": "f1635054-2296-4531-bdac-5af4cbd05989",
       "name": "Send Email",
       "webhookId": "55042c48-fb23-4de2-b8d5-71a4ec30cbfc",
       "credentials": {
@@ -5640,10 +5640,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        4016,
-        5712
+        3280,
+        6368
       ],
-      "id": "9ae1ab21-2b4a-4de1-bc2e-9f90589e1971",
+      "id": "0cf33167-390a-4be0-8d97-1aaf9228f14b",
       "name": "OK5"
     },
     {
@@ -5674,10 +5674,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        3584,
-        5808
+        2848,
+        6464
       ],
-      "id": "56582200-e2d6-4827-aa70-699e3249132d",
+      "id": "41617361-12c3-4be8-be28-88d0975bad49",
       "name": "Has email?"
     },
     {
@@ -5697,10 +5697,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        3808,
-        5904
+        3072,
+        6560
       ],
-      "id": "aa691d92-b1e0-4c2c-a56b-f362821030d8",
+      "id": "a2f4b3f8-492b-4b16-9064-e642b3b20543",
       "name": "Error14"
     },
     {
@@ -5717,10 +5717,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        3168,
-        5904
+        2432,
+        6560
       ],
-      "id": "b66d2745-7a39-4ebf-a029-ff8d57e0b4d5",
+      "id": "8dfed193-7efe-47d9-84ad-1f3029685150",
       "name": "POST /users/send_email",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -5738,11 +5738,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        1808,
-        3664
+        1072,
+        4320
       ],
       "typeVersion": 1,
-      "id": "260c5393-e519-47c9-b041-708b4adc4836",
+      "id": "511a6c44-bd60-4f38-b9f5-c73362b026f5",
       "name": "User Quotes/Invoices"
     },
     {
@@ -5756,10 +5756,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2080,
-        3760
+        1344,
+        4416
       ],
-      "id": "15cc90a4-b121-4688-94a7-c5b8a0c40135",
+      "id": "fd92650f-0cf0-4841-849a-4f374645f4f2",
       "name": "Select Quotes of User1",
       "alwaysOutputData": true,
       "credentials": {
@@ -5782,10 +5782,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        1856,
-        3856
+        1120,
+        4512
       ],
-      "id": "7d5a223b-bbe2-4bad-a5c0-51aa94adfc43",
+      "id": "193080c9-7191-4073-83d0-f5ae5b69441a",
       "name": "GET user_quotes_invoices",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -5806,10 +5806,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2080,
-        3952
+        1344,
+        4608
       ],
-      "id": "cbe69379-d343-47c8-bc90-08e039a7af0c",
+      "id": "960bf6f6-a702-4458-904b-6a15c9423dd7",
       "name": "Select Invoices of User1",
       "alwaysOutputData": true,
       "credentials": {
@@ -5828,10 +5828,10 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        2544,
-        3856
+        1808,
+        4512
       ],
-      "id": "998d5634-f05c-41bb-b8f6-99f7da458b65",
+      "id": "798247c1-b995-49ef-88e9-289039d870fc",
       "name": "Merge"
     },
     {
@@ -5841,10 +5841,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2304,
-        3760
+        1568,
+        4416
       ],
-      "id": "e3883e09-507d-433a-8eab-006aefa509bc",
+      "id": "179535c5-fae8-4d9c-bcd2-f89e434f36fe",
       "name": "Code in JavaScript4"
     },
     {
@@ -5854,10 +5854,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2304,
-        3952
+        1568,
+        4608
       ],
-      "id": "efb6984c-29a5-41a1-aa60-75612bf32107",
+      "id": "f4197bbd-8231-4d2f-814e-d0746aad072e",
       "name": "Code in JavaScript5"
     },
     {
@@ -5877,10 +5877,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        2768,
-        3856
+        2032,
+        4512
       ],
-      "id": "7d9791c4-4b0a-4668-b348-403961aa2014",
+      "id": "fb269c62-3f5b-40ab-86d9-40ba9bd2574b",
       "name": "Respond to Webhook"
     },
     {
@@ -5894,10 +5894,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1344,
-        5504
+        608,
+        6160
       ],
-      "id": "94fbbded-9ef5-4f14-9b6f-c0e7237b9daf",
+      "id": "7a33d34e-580e-4257-9c2b-be58aab9b5a2",
       "name": "Select contact info of users",
       "alwaysOutputData": true,
       "credentials": {
@@ -5922,10 +5922,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        1136,
-        5504
+        400,
+        6160
       ],
-      "id": "fae1496b-2bb5-48d5-8a28-ff224f8b5ee0",
+      "id": "e923db6b-3e8d-4d29-9b75-ea03533c63f4",
       "name": "POST /user_contact",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -5950,10 +5950,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        1136,
-        5696
+        400,
+        6352
       ],
-      "id": "ddec7a53-2803-47b4-a9f3-a6c828b96d69",
+      "id": "5a53c1ab-b42b-4393-835a-b8283a1c929a",
       "name": "POST /user/notes",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -5974,10 +5974,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1344,
-        5696
+        608,
+        6352
       ],
-      "id": "09e8f18e-91d9-4de1-ad15-7b0036612950",
+      "id": "d41d8c4b-5509-4039-8463-c1a80cf95012",
       "name": "Update user notes",
       "alwaysOutputData": true,
       "credentials": {
@@ -6001,10 +6001,10 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.3,
       "position": [
-        2224,
-        5776
+        1488,
+        6432
       ],
-      "id": "3a623a8c-df06-4c93-92ff-202538a7c098",
+      "id": "ba8ce69d-4a72-4c40-a8f4-9e9d0ea518b3",
       "name": "OpenAI Chat Model",
       "credentials": {
         "openAiApi": {
@@ -6030,10 +6030,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2432,
-        3424
+        1696,
+        4080
       ],
-      "id": "202807ec-1d80-41ec-99e3-667db1601476",
+      "id": "579950b2-30c7-428a-9330-1ca0cf3e2330",
       "name": "Asignar role operador"
     },
     {
@@ -6047,10 +6047,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2176,
-        3168
+        1440,
+        3824
       ],
-      "id": "30374023-e190-4ad8-8d78-459698c70c37",
+      "id": "e5708ed3-926a-4808-a0fe-cb144eae2953",
       "name": "Insert default preferences",
       "credentials": {
         "postgres": {
@@ -11341,7 +11341,7 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "e2760af7-7e8f-47dd-a161-d15de71fa959",
+  "versionId": "bfb4ada8-5ad7-45a2-826c-25ef11bc5c68",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
