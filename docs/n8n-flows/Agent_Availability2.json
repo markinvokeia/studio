@@ -9,10 +9,10 @@
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
       "position": [
-        -320,
-        -80
+        2272,
+        -224
       ],
-      "id": "13b475f4-dc1f-4f9f-98f6-b1bf621f862f",
+      "id": "28e20cd6-3db1-4374-9bff-ff3fd1686577",
       "name": "When Executed by Another Workflow"
     },
     {
@@ -23,13 +23,13 @@
           "queryReplacement": "={{ [$('When Executed by Another Workflow').first().json.calendarSourceIds || ''] }}"
         }
       },
-      "id": "b7e1c433-f2db-438e-b3df-32bd687aceeb",
+      "id": "6bcbcc27-32ec-4ea5-b71b-583c24cf9ad1",
       "name": "Get Active Calendars",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -32,
-        -80
+        2496,
+        -320
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -47,13 +47,13 @@
           "queryReplacement": "={{ [$('When Executed by Another Workflow').first().json.endingDateAndTime, $('When Executed by Another Workflow').first().json.startingDateAndTime, $('When Executed by Another Workflow').first().json.appointmentId || null] }}"
         }
       },
-      "id": "26bb6451-5e14-4847-9ef2-284aaa23ff77",
+      "id": "a3becf80-e029-4ea1-97a5-a387b1f21a91",
       "name": "Get Appointments In Range",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        192,
-        -80
+        2496,
+        -128
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -91,36 +91,36 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        416,
-        -80
+        3136,
+        -224
       ],
-      "id": "ca849a47-7b1c-45ec-9d04-a1e258f42571",
+      "id": "d69c597e-c673-45b2-a921-f25879b29a07",
       "name": "Check Mode1"
     },
     {
       "parameters": {
-        "jsCode": "// Availability Check Mode - Initialize variables (DB-backed, no Google Calendar)\nconst startDateTime = new Date($('When Executed by Another Workflow').first().json.startingDateAndTime).toISOString();\nconst endDateTime = new Date($('When Executed by Another Workflow').first().json.endingDateAndTime).toISOString();\nconst durationMinutes = parseInt($('When Executed by Another Workflow').first().json.durationInMinutes) || 60;\nconst existingAppointmentId = $('When Executed by Another Workflow').first().json.appointmentId\n  ? Number($('When Executed by Another Workflow').first().json.appointmentId)\n  : null;\n\nconst calendars = ($('Get Active Calendars').all() || [])\n  .map(c => c.json)\n  .filter(c => c && c.id != null);\n\nconst allAppointments = ($('Get Appointments In Range').all() || [])\n  .map(a => a.json)\n  .filter(a => a && a.id != null);\n\n// Each calendar (consultorio) is available if there are no appointments\n// overlapping the requested window for its calendar_source_id.\nconst calendarData = calendars.map(cal => {\n  const calAppointments = allAppointments.filter(a =>\n    a.calendar_source_id != null &&\n    Number(a.calendar_source_id) === Number(cal.id)\n  );\n  return {\n    calendarSourceId: Number(cal.id),\n    googleCalendarId: cal.google_calendar_id,\n    name: cal.name,\n    calAppointments,\n    isAvailable: calAppointments.length === 0\n  };\n});\n\nreturn {\n  json: {\n    mode: 'checkAvailability',\n    startDateTime,\n    endDateTime,\n    durationMinutes,\n    existingAppointmentId,\n    calendars: calendarData,\n    allAppointments\n  }\n};\n"
+        "jsCode": "// Availability Check Mode - Initialize variables (DB-backed, no Google Calendar)\nconst startDateTime = new Date($('When Executed by Another Workflow').first().json.startingDateAndTime).toISOString();\nconst endDateTime = new Date($('When Executed by Another Workflow').first().json.endingDateAndTime).toISOString();\nconst durationMinutes = parseInt($('When Executed by Another Workflow').first().json.durationInMinutes) || 60;\nconst existingAppointmentId = $('When Executed by Another Workflow').first().json.appointmentId\n  ? Number($('When Executed by Another Workflow').first().json.appointmentId)\n  : null;\n\nconst calendars = ($input.first().json.calendars || [])\n  .filter(c => c && c.id != null);\n\nconst allAppointments = ($input.first().json.appointments || [])\n  .filter(a => a && a.id != null);\n\n// Each calendar (consultorio) is available if there are no appointments\n// overlapping the requested window for its calendar_source_id.\nconst calendarData = calendars.map(cal => {\n  const calAppointments = allAppointments.filter(a =>\n    a.calendar_source_id != null &&\n    Number(a.calendar_source_id) === Number(cal.id)\n  );\n  return {\n    calendarSourceId: Number(cal.id),\n    googleCalendarId: cal.google_calendar_id,\n    name: cal.name,\n    calAppointments,\n    isAvailable: calAppointments.length === 0\n  };\n});\n\nreturn {\n  json: {\n    mode: 'checkAvailability',\n    startDateTime,\n    endDateTime,\n    durationMinutes,\n    existingAppointmentId,\n    calendars: calendarData,\n    allAppointments\n  }\n};\n"
       },
-      "id": "28248a10-7bfc-4aed-9854-7feedae6e820",
+      "id": "d101835b-6d30-4162-86ee-77f08fc19530",
       "name": "Initialize Availability Check1",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        640,
-        -80
+        3376,
+        -240
       ]
     },
     {
       "parameters": {
         "jsCode": "const availableCalendars = $input.first().json.calendars.filter(cal => cal.isAvailable === true);\nconst unAvailableCalendars = $input.first().json.calendars.filter(cal => cal.isAvailable === false);\nconst allAppointments = $input.first().json.allAppointments;\n\nreturn {\n  json: {\n    mode: 'checkAvailability',\n    availableCalendars,\n    unAvailableCalendars,\n    allAppointments\n  }\n};\n"
       },
-      "id": "452aa772-293e-41a2-9d7f-bc234b0aefcf",
+      "id": "6b6b7b58-0b5c-438e-85db-f0f76463c8c6",
       "name": "Filter Available Calendars",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        864,
-        -80
+        3600,
+        -240
       ]
     },
     {
@@ -151,10 +151,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1088,
-        -80
+        3824,
+        -240
       ],
-      "id": "d8670e8b-61aa-49d8-98f9-2313ea18944e",
+      "id": "09181ec9-d002-40b1-a32d-27469aeb1917",
       "name": "If Slots Avail"
     },
     {
@@ -168,10 +168,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1328,
-        -160
+        4064,
+        -320
       ],
-      "id": "ef182ad6-37f3-43c2-8513-bd2242ccf973",
+      "id": "62b96de2-b072-4f07-96eb-b55536ae42cc",
       "name": "Get_Request_Doctor",
       "alwaysOutputData": true,
       "credentials": {
@@ -184,18 +184,18 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- WITH available_users AS (\n--   SELECT user_id\n--   FROM public.get_available_users($1, 'America/Montevideo')\n-- )\n-- SELECT u.id, u.name, u.email\n-- FROM public.users u\n-- WHERE u.id IN (SELECT user_id FROM available_users);\n\nWITH params AS (\n  -- Forzamos el casteo explícito a TIMESTAMPTZ para anular cualquier magia del driver de n8n\n  SELECT $1::timestamptz AS check_time,\n         'America/Montevideo'::text AS clinic_tz\n),\navailable_users AS (\n  SELECT user_id\n  FROM params p, LATERAL public.get_available_users(p.check_time, p.clinic_tz)\n)\nSELECT u.id, u.name, u.email\nFROM public.users u\nWHERE u.id IN (SELECT user_id FROM available_users);",
+        "query": "-- WITH available_users AS (\n--   SELECT user_id\n--   FROM public.get_available_users($1, 'America/Montevideo')\n-- )\n-- SELECT u.id, u.name, u.email\n-- FROM public.users u\n-- WHERE u.id IN (SELECT user_id FROM available_users);\n\nWITH params AS (\n    SELECT\n        CASE\n            -- Si el string ya tiene offset/Z, confiamos en él y convertimos directo\n            WHEN $1 ~ '(Z|[+-]\\d{2}:?\\d{2})$'\n                THEN $1::timestamptz\n            -- Si es un wall-clock naive, lo interpretamos como hora local de la clínica\n            ELSE ($1::timestamp AT TIME ZONE 'America/Montevideo')\n        END AS check_time,\n        'America/Montevideo'::text AS clinic_tz\n),\navailable_users AS (\n  SELECT user_id\n  FROM params p, LATERAL public.get_available_users(p.check_time, p.clinic_tz)\n)\nSELECT u.id, u.name, u.email\nFROM public.users u\nWHERE u.id IN (SELECT user_id FROM available_users);",
         "options": {
-          "queryReplacement": "={{ new Date($('When Executed by Another Workflow').first().json.startingDateAndTime).toISOString() }}"
+          "queryReplacement": "={{ [$('When Executed by Another Workflow').item.json.startingDateAndTime] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1552,
-        -160
+        4288,
+        -320
       ],
-      "id": "be8e51af-a79d-47ce-b95f-94183d9f2925",
+      "id": "31478183-7f7f-41df-8754-38b702096284",
       "name": "Search Doctors",
       "alwaysOutputData": true,
       "credentials": {
@@ -209,13 +209,13 @@
       "parameters": {
         "jsCode": "const availableCalendars = $('Filter Available Calendars').first().json.availableCalendars || [];\nconst unAvailableCalendars = $('Filter Available Calendars').first().json.unAvailableCalendars || [];\nconst allAppointments = $('Filter Available Calendars').first().json.allAppointments || [];\n\nconst doctors = ($('Search Doctors').all() || [])\n  .map(d => d.json)\n  .filter(d => d && d.id);\n\nconst requestedDoctors = ($('Get_Request_Doctor').all() || [])\n  .map(d => d.json)\n  .filter(d => d && d.id);\n\n// Doctors who are assignee of any appointment overlapping the requested window\nconst busyDoctorIds = new Set();\nallAppointments.forEach(a => {\n  if (a.assignee_id) busyDoctorIds.add(a.assignee_id);\n});\n\nconst availableDoctors = doctors.filter(d => !busyDoctorIds.has(d.id));\n\nconst doctorWasSpecified = requestedDoctors.length > 0;\nconst requestedDoctor = doctorWasSpecified ? requestedDoctors[0] : null;\n\nlet isAvailableSpecifiedDoctor = false;\nlet finalAssignedDoctor = null;\nlet reason = null;\n\nif (doctorWasSpecified) {\n  isAvailableSpecifiedDoctor = availableDoctors.some(a => a.id === requestedDoctor.id);\n  if (isAvailableSpecifiedDoctor) {\n    finalAssignedDoctor = requestedDoctor;\n  }\n} else if (availableDoctors.length > 0) {\n  finalAssignedDoctor = availableDoctors[0];\n  reason = 'no_doctor_specified';\n}\n\nconst assignedCalendar = availableCalendars[0] || null;\n\nreturn {\n  json: {\n    mode: 'checkAvailability',\n    doctors,\n    availableCalendars,\n    unAvailableCalendars,\n    availableDoctors,\n    busyDoctorIds: Array.from(busyDoctorIds),\n    requestedDoctor,\n    doctorWasSpecified,\n    isAvailableSpecifiedDoctor,\n    finalAssignedDoctor,\n    reason,\n    assignedCalendarSourceId: assignedCalendar ? assignedCalendar.calendarSourceId : null,\n    assignedCalendarName: assignedCalendar ? assignedCalendar.name : null,\n    assignedGoogleCalendarId: assignedCalendar ? assignedCalendar.googleCalendarId : null\n  }\n};\n"
       },
-      "id": "463e8e40-82da-4d6a-8da7-ff5d7eec350b",
+      "id": "6e11235b-bef3-4cd6-a711-02aff6cf9aea",
       "name": "Find Available Doctors",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1776,
-        -160
+        4512,
+        -320
       ]
     },
     {
@@ -246,10 +246,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        2000,
-        -160
+        4736,
+        -320
       ],
-      "id": "d540cf7d-9e45-468b-a78d-336e3ec0ef36",
+      "id": "fcd64e7c-9497-4c24-97a6-ad9d0012ac81",
       "name": "Available Doctors"
     },
     {
@@ -280,10 +280,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        2224,
-        -160
+        4976,
+        -304
       ],
-      "id": "7ae57362-1ef4-4249-930d-15f438177c20",
+      "id": "812e61da-ca56-4d92-91ce-df3ceb3cd05e",
       "name": "Doctor Was Specified"
     },
     {
@@ -314,10 +314,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        2448,
-        -240
+        5200,
+        -400
       ],
-      "id": "eed1cfc5-0e66-44d5-91fa-920e1ee2d6f5",
+      "id": "f372ca6e-ec37-4f8e-a2cf-a6e949cf8918",
       "name": "Is Available"
     },
     {
@@ -373,10 +373,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2720,
-        -256
+        5472,
+        -416
       ],
-      "id": "9c6e1cdd-cb55-456b-b524-38ba56201fa8",
+      "id": "11128b54-3ece-4ef1-8727-f01911541b0d",
       "name": "Calendar and Specified Doctor Available"
     },
     {
@@ -432,10 +432,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2448,
-        0
+        5200,
+        -208
       ],
-      "id": "84222959-8dee-4f48-ab43-b0ec857a2a5b",
+      "id": "0c2fd924-d36b-45ec-8645-1011b3a00f50",
       "name": "Calendar and Assigned Available Doctor"
     },
     {
@@ -461,10 +461,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2736,
-        0
+        5488,
+        -208
       ],
-      "id": "41427dd3-61a7-47da-9133-bfbe2e9e264c",
+      "id": "4d29da4a-0c21-43cd-a956-cde1e2083a20",
       "name": "Specified Doctor Unavailable"
     },
     {
@@ -476,10 +476,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1568,
-        384
+        4288,
+        352
       ],
-      "id": "448bd854-c989-49fe-afb8-8f90f599006e",
+      "id": "17997b7b-4ca4-4a59-9d7c-c0ae975fe393",
       "name": "Set_StartingDateAndTime"
     },
     {
@@ -489,10 +489,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1792,
-        384
+        4544,
+        192
       ],
-      "id": "8606cdb3-3d84-4ee4-8c50-726323be24de",
+      "id": "9c6572e9-5516-44a5-b177-ea0091a0e93b",
       "name": "Get All Active Calendars"
     },
     {
@@ -503,13 +503,13 @@
           "queryReplacement": "={{ [$('Set_StartingDateAndTime').first().json.scheduleEndingTime, $('Set_StartingDateAndTime').first().json.scheduleStartingTime, $('When Executed by Another Workflow').first().json.appointmentId || null] }}"
         }
       },
-      "id": "f48ec3c7-0604-43b1-8e74-95477ee543e7",
+      "id": "dfa9f984-54b9-409c-8b45-cbe082019c83",
       "name": "Get Appointments In Range1",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2016,
-        384
+        4544,
+        352
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -530,10 +530,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2240,
-        384
+        4544,
+        544
       ],
-      "id": "f2ac32a2-914e-45ad-be65-f886bb8fd5b5",
+      "id": "11d5d9f2-9665-4f87-8815-cb22e0659cfd",
       "name": "Select Available Doctors",
       "alwaysOutputData": true,
       "credentials": {
@@ -545,15 +545,15 @@
     },
     {
       "parameters": {
-        "jsCode": "// Build suggested time slots using durationInMinutes from input.\nconst calendars = ($('Get All Active Calendars').all() || [])\n  .map(c => c.json || c)\n  .filter(c => c && c.id != null);\n\nconst doctorSlots = ($('Select Available Doctors').all() || []).map(s => s.json);\n\nconst allAppointments = ($('Get Appointments In Range1').all() || [])\n  .map(a => a.json)\n  .filter(a => a && a.id != null);\n\nconst startTimeString = $('Set_StartingDateAndTime').first().json.scheduleStartingTime;\nconst endTimeString = $('Set_StartingDateAndTime').first().json.scheduleEndingTime;\nconst durationMinutes = parseInt($('When Executed by Another Workflow').first().json.durationInMinutes) || 60;\n\nconst localTimezone = 'America/Montevideo';\nconst startTime = DateTime.fromISO(startTimeString, { zone: localTimezone }).toJSDate();\nconst endTime = DateTime.fromISO(endTimeString, { zone: localTimezone }).toJSDate();\nconst intervalMinutes = durationMinutes;\n\nconst possibleAppointments = [];\nlet currentTime = new Date(startTime);\n\nwhile (currentTime < endTime) {\n  const slotEndTime = new Date(currentTime.getTime() + intervalMinutes * 60000);\n  const currentLuxonTime = DateTime.fromJSDate(currentTime);\n\n  // Step 1: doctors flagged as available in DB at this slot\n  const doctorSlot = doctorSlots.find(slot => {\n    const slotLuxonTime = DateTime.fromISO(slot.local_hour_tz);\n    return slotLuxonTime.equals(currentLuxonTime);\n  });\n\n  let dbAvailableDoctors = [];\n  if (doctorSlot && doctorSlot.ids_disponibles && doctorSlot.ids_disponibles.length > 0) {\n    dbAvailableDoctors = doctorSlot.ids_disponibles;\n  } else {\n    currentTime.setMinutes(currentTime.getMinutes() + intervalMinutes);\n    continue;\n  }\n\n  // Step 2: drop doctors with overlapping appointments (matched by assignee_id)\n  const trulyAvailableDoctors = dbAvailableDoctors.filter(doctor => {\n    const isBusy = allAppointments.some(appt => {\n      const apptStart = new Date(appt.start_datetime);\n      const apptEnd = new Date(appt.end_datetime);\n      const overlaps = apptStart < slotEndTime && apptEnd > currentTime;\n      if (!overlaps) return false;\n      return appt.assignee_id === doctor.user_id;\n    });\n    return !isBusy;\n  });\n\n  if (trulyAvailableDoctors.length === 0) {\n    currentTime.setMinutes(currentTime.getMinutes() + intervalMinutes);\n    continue;\n  }\n\n  // Step 3: per consultorio (calendar_source), check if free at this slot\n  for (const calendar of calendars) {\n    const calendarSourceId = Number(calendar.id);\n    const calendarName = calendar.name;\n    const googleCalendarId = calendar.google_calendar_id;\n\n    const isCalendarBusy = allAppointments.some(appt => {\n      if (Number(appt.calendar_source_id) !== calendarSourceId) return false;\n      const apptStart = new Date(appt.start_datetime);\n      const apptEnd = new Date(appt.end_datetime);\n      return apptStart < slotEndTime && apptEnd > currentTime;\n    });\n\n    if (!isCalendarBusy) {\n      for (const doctor of trulyAvailableDoctors) {\n        possibleAppointments.push({\n          calendar_source_id: calendarSourceId,\n          calendar_name: calendarName,\n          google_calendar_id: googleCalendarId,\n          fecha_cita: currentTime.toLocaleDateString('sv-SE'),\n          hora_cita: currentTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: localTimezone }),\n          start_datetime: currentTime.toISOString(),\n          end_datetime: slotEndTime.toISOString(),\n          user_id: doctor.user_id,\n          user_name: doctor.user_name\n        });\n      }\n    }\n  }\n\n  currentTime.setMinutes(currentTime.getMinutes() + intervalMinutes);\n}\n\nreturn possibleAppointments.map(appt => ({ json: appt }));\n"
+        "jsCode": "// Build suggested time slots using durationInMinutes from input.\nconst calendars = ($input.first().json.calendars || [])\n  .filter(c => c && c.id != null);\n\nconst doctorSlots = ($input.first().json.available_doctors || []);\n\nconst allAppointments = ($input.first().json.appointments || [])\n  .filter(a => a && a.id != null);\n\nconst startTimeString = $('Set_StartingDateAndTime').first().json.scheduleStartingTime;\nconst endTimeString = $('Set_StartingDateAndTime').first().json.scheduleEndingTime;\nconst durationMinutes = parseInt($('When Executed by Another Workflow').first().json.durationInMinutes) || 60;\n\nconst localTimezone = 'America/Montevideo';\nconst startTime = DateTime.fromISO(startTimeString, { zone: localTimezone }).toJSDate();\nconst endTime = DateTime.fromISO(endTimeString, { zone: localTimezone }).toJSDate();\nconst intervalMinutes = durationMinutes;\n\nconst possibleAppointments = [];\nlet currentTime = new Date(startTime);\n\nwhile (currentTime < endTime) {\n  const slotEndTime = new Date(currentTime.getTime() + intervalMinutes * 60000);\n  const currentLuxonTime = DateTime.fromJSDate(currentTime);\n\n  // Step 1: doctors flagged as available in DB at this slot\n  const doctorSlot = doctorSlots.find(slot => {\n    const slotLuxonTime = DateTime.fromISO(slot.local_hour_tz);\n    return slotLuxonTime.equals(currentLuxonTime);\n  });\n\n  let dbAvailableDoctors = [];\n  if (doctorSlot && doctorSlot.ids_disponibles && doctorSlot.ids_disponibles.length > 0) {\n    dbAvailableDoctors = doctorSlot.ids_disponibles;\n  } else {\n    currentTime.setMinutes(currentTime.getMinutes() + intervalMinutes);\n    continue;\n  }\n\n  // Step 2: drop doctors with overlapping appointments (matched by assignee_id)\n  const trulyAvailableDoctors = dbAvailableDoctors.filter(doctor => {\n    const isBusy = allAppointments.some(appt => {\n      const apptStart = new Date(appt.start_datetime);\n      const apptEnd = new Date(appt.end_datetime);\n      const overlaps = apptStart < slotEndTime && apptEnd > currentTime;\n      if (!overlaps) return false;\n      return appt.assignee_id === doctor.user_id;\n    });\n    return !isBusy;\n  });\n\n  if (trulyAvailableDoctors.length === 0) {\n    currentTime.setMinutes(currentTime.getMinutes() + intervalMinutes);\n    continue;\n  }\n\n  // Step 3: per consultorio (calendar_source), check if free at this slot\n  for (const calendar of calendars) {\n    const calendarSourceId = Number(calendar.id);\n    const calendarName = calendar.name;\n    const googleCalendarId = calendar.google_calendar_id;\n\n    const isCalendarBusy = allAppointments.some(appt => {\n      if (Number(appt.calendar_source_id) !== calendarSourceId) return false;\n      const apptStart = new Date(appt.start_datetime);\n      const apptEnd = new Date(appt.end_datetime);\n      return apptStart < slotEndTime && apptEnd > currentTime;\n    });\n\n    if (!isCalendarBusy) {\n      for (const doctor of trulyAvailableDoctors) {\n        possibleAppointments.push({\n          calendar_source_id: calendarSourceId,\n          calendar_name: calendarName,\n          google_calendar_id: googleCalendarId,\n          fecha_cita: currentTime.toLocaleDateString('sv-SE'),\n          hora_cita: currentTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: localTimezone }),\n          start_datetime: currentTime.toISOString(),\n          end_datetime: slotEndTime.toISOString(),\n          user_id: doctor.user_id,\n          user_name: doctor.user_name\n        });\n      }\n    }\n  }\n\n  currentTime.setMinutes(currentTime.getMinutes() + intervalMinutes);\n}\n\nreturn possibleAppointments.map(appt => ({ json: appt }));\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2464,
-        384
+        5200,
+        352
       ],
-      "id": "8f5025d0-e568-4924-8dfb-c368f5f9b0f7",
+      "id": "3f0f03bd-11e1-4b9e-a79e-e8eb171655ee",
       "name": "Get_possible_schedules"
     },
     {
@@ -563,83 +563,199 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2688,
-        384
+        5408,
+        352
       ],
-      "id": "b26af551-3bda-43e5-9d52-c9edccc1d69c",
+      "id": "f6185071-d321-4937-a0b3-a9e29b6093a9",
       "name": "Send_possible_schedules"
     },
     {
       "parameters": {
-        "content": "# Disponibilidad basada en tabla `appointments` (DB) — sin Google Calendar.\nID = `calendar_source_id` (bigint).\nDoctor = `assignee_id` (uuid).",
-        "height": 448,
-        "width": 1616,
+        "content": "# Disponibilidad basada en tabla `appointments` (DB) — sin Google Calendar.\nID = `calendar_source_id` (bigint).\nDoctor = `assignee_id` (uuid).\n\n`mode: 'checkAvailability'` — prueba UN horario puntual (`startingDateAndTime`/`endingDateAndTime`).\nCualquier otro valor de `mode` (usar `'listAvailability'` por convención) — `Check Mode1` salta directo a `Set_StartingDateAndTime` e ignora `endingDateAndTime`; ver nota abajo.",
+        "height": 560,
+        "width": 1808,
         "color": 6
       },
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -352,
-        -336
+        2192,
+        -496
       ],
-      "id": "d8bc2653-3e41-4bf1-8bd5-71ea70c5cce1",
+      "id": "e276139e-cee6-449b-a94e-ab5ca095742c",
       "name": "Sticky Note1"
     },
     {
       "parameters": {
         "content": "## Hay disponibilidad en algún consultorio: ahora resolvemos el doctor",
-        "height": 448,
+        "height": 512,
         "width": 896
       },
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        1296,
-        -336
+        4032,
+        -496
       ],
-      "id": "33da76ef-b3a7-4e93-97e1-d43df24938b0",
+      "id": "dcb8b0c0-68c3-48d3-8c1c-5559d61e6ffd",
       "name": "Sticky Note"
     },
     {
       "parameters": {
         "content": "## Disponibilidad confirmada (consultorio + doctor)",
-        "height": 448,
+        "height": 512,
         "width": 688,
         "color": 4
       },
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        2208,
-        -336
+        4960,
+        -496
       ],
-      "id": "ba1e0f2b-06a2-4704-a343-6a7e23f1e180",
+      "id": "e95721b6-b132-49d0-a13b-e6318d6f4ee6",
       "name": "Sticky Note2"
     },
     {
       "parameters": {
-        "content": "## Sin disponibilidad — sugerir slots dentro de las próximas 24h\nUsa `durationInMinutes` como tamaño del slot.",
-        "height": 368,
+        "content": "## Sin disponibilidad puntual, o `mode: 'listAvailability'` — listar huecos dentro de las 24h siguientes a `startingDateAndTime`\nUsa `durationInMinutes` como tamaño del slot. NO filtra por `doctorId` (el preferido solo se aplica en el chequeo puntual de arriba) — devuelve huecos de cualquier doctor disponible.\nPara \"todo el día X\", el llamador debe mandar `startingDateAndTime` = `${fecha}T00:00:00` como ancla (el bloque redondea hacia arriba a la hora en punto y arma la ventana de 24h desde ahí).",
+        "height": 672,
         "width": 1456,
         "color": 6
       },
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        1440,
-        272
+        4192,
+        48
       ],
-      "id": "be6bb881-3bfb-4782-aade-82a595a01721",
+      "id": "ded1ddd5-d49d-4f2a-8c13-7cab6c887ed7",
       "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 3,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        4976,
+        336
+      ],
+      "id": "4b47b472-ef7c-4740-b85c-b0302bb8340c",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "return { calendars: $input.all().map(item => item.json) };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4752,
+        192
+      ],
+      "id": "2328ebfb-c8fa-4ed4-99b9-c20e372ef876",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "jsCode": "return { appointments: $input.all().map(item => item.json) };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4752,
+        352
+      ],
+      "id": "75507267-8be2-466b-b9b0-d422bf74afd4",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "jsCode": "return { available_doctors: $input.all().map(item => item.json) };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4752,
+        544
+      ],
+      "id": "d144cb1e-76d9-4e33-8927-e471659edd99",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "jsCode": "return { calendars: $input.all().map(item => item.json) };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2704,
+        -320
+      ],
+      "id": "bab3ea71-e055-4c55-beb8-95fa20ccaadc",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "jsCode": "return { appointments: $input.all().map(item => item.json) };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2704,
+        -128
+      ],
+      "id": "6b257403-d0d5-417f-8e3f-4be9a59ec0a5",
+      "name": "Code in JavaScript4"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2912,
+        -224
+      ],
+      "id": "31be3e2e-b617-4b4f-9761-2c2e3fac4d9d",
+      "name": "Merge1"
     }
   ],
-  "pinData": {},
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "startingDateAndTime": "2026-07-27T10:00:00.000",
+          "endingDateAndTime": "2026-07-27T10:20:00.000",
+          "durationInMinutes": 20,
+          "mode": "checkAvailability",
+          "calendarSourceIds": "3",
+          "appointmentId": "",
+          "doctorId": "e4780813-afd4-43ce-a8ff-ed9f3fc8e269",
+          "patientId": "8dbf8ab8-8036-4ec6-a0a5-238346591917"
+        }
+      }
+    ]
+  },
   "connections": {
     "When Executed by Another Workflow": {
       "main": [
         [
           {
             "node": "Get Active Calendars",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Appointments In Range",
             "type": "main",
             "index": 0
           }
@@ -650,7 +766,7 @@
       "main": [
         [
           {
-            "node": "Get Appointments In Range",
+            "node": "Code in JavaScript3",
             "type": "main",
             "index": 0
           }
@@ -661,7 +777,7 @@
       "main": [
         [
           {
-            "node": "Check Mode1",
+            "node": "Code in JavaScript4",
             "type": "main",
             "index": 0
           }
@@ -673,6 +789,13 @@
         [
           {
             "node": "Initialize Availability Check1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set_StartingDateAndTime",
             "type": "main",
             "index": 0
           }
@@ -824,6 +947,16 @@
             "node": "Get All Active Calendars",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Get Appointments In Range1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Select Available Doctors",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -832,7 +965,7 @@
       "main": [
         [
           {
-            "node": "Get Appointments In Range1",
+            "node": "Code in JavaScript",
             "type": "main",
             "index": 0
           }
@@ -843,7 +976,7 @@
       "main": [
         [
           {
-            "node": "Select Available Doctors",
+            "node": "Code in JavaScript1",
             "type": "main",
             "index": 0
           }
@@ -854,7 +987,7 @@
       "main": [
         [
           {
-            "node": "Get_possible_schedules",
+            "node": "Code in JavaScript2",
             "type": "main",
             "index": 0
           }
@@ -871,6 +1004,83 @@
           }
         ]
       ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Get_possible_schedules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript4": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Check Mode1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
@@ -882,7 +1092,7 @@
     "callerPolicy": "workflowsFromSameOwner",
     "availableInMCP": false
   },
-  "versionId": "3bb2d821-e5c5-441f-b6c3-4b19ce82c335",
+  "versionId": "f5e26964-0d65-4745-87e7-c167008bc3b2",
   "meta": {
     "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
   },

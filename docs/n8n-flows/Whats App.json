@@ -8,10 +8,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3328,
-        32912
+        8896,
+        42384
       ],
-      "id": "6026e5a0-c9c7-4c4d-ae40-c8e6a6ad1163",
+      "id": "c70d2937-df01-4ffb-96f1-6576d2410bb0",
       "name": "Validate Template & Params"
     },
     {
@@ -42,10 +42,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        3552,
-        32912
+        9120,
+        42384
       ],
-      "id": "aff7d1fa-02d3-4a39-b56a-826628d66a23",
+      "id": "8a706c94-05d1-4f1a-b62d-3fac95fdcaac",
       "name": "Has Error? (Template)"
     },
     {
@@ -59,10 +59,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        4432,
-        32896
+        10000,
+        42368
       ],
-      "id": "5d4bb092-8019-4838-a0d2-6c50dfc42c5e",
+      "id": "ef10a0de-273b-413e-ba16-fe4b2b576c5f",
       "name": "Respond Error"
     },
     {
@@ -72,10 +72,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4000,
-        33008
+        9568,
+        42480
       ],
-      "id": "ca28042a-785f-461d-9568-1463011e9cc3",
+      "id": "5c887a0a-7d21-4979-906b-54fd0c8a6bc0",
       "name": "Check YCloud Response"
     },
     {
@@ -105,10 +105,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        4208,
-        33008
+        9776,
+        42480
       ],
-      "id": "c5ee48dc-a63f-4292-9cef-044ff74e3502",
+      "id": "9ab35ad1-e430-4bc2-bf8a-76452124feb0",
       "name": "Has Error? (YCloud)"
     },
     {
@@ -122,23 +122,23 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        4896,
-        33104
+        10464,
+        42576
       ],
-      "id": "4ffb330c-400f-42fc-a8b6-166c43e76162",
+      "id": "29559a95-14d6-4f1f-9332-3c9e11b85a7a",
       "name": "Respond 200"
     },
     {
       "parameters": {
         "jsCode": "const input = $('POST /patients/send_whatsapp_template').first().json;\nconst body = input.body ?? input;\n\nconst UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\n\nconst patientId = String(body.id ?? '').trim();\nif (!UUID_PATTERN.test(patientId)) throw new Error('id must be a valid patient UUID');\n\n// template_code is now a free code — validated against communication_templates\n// (see \"Get Communication Template\" / \"Template Found?\") instead of a hardcoded enum.\nconst templateCode = String(body.template_code ?? '').trim();\nif (!templateCode) throw new Error('template_code is required');\n\n// Backwards compatibility: the patient-profile dialog still sends \"appointment_id\"\n// directly. Newer callers (e.g. alerts) send the generic reference_table/reference_id pair.\nlet referenceTable = String(body.reference_table ?? '').trim();\nlet referenceId = String(body.reference_id ?? '').trim();\nif (!referenceTable && !referenceId && body.appointment_id) {\n  referenceTable = 'appointments';\n  referenceId = String(body.appointment_id).trim();\n}\n\nconst alertInstanceId = body.alert_instance_id != null && body.alert_instance_id !== ''\n  ? String(body.alert_instance_id).trim()\n  : '';\nconst performedBy = body.performed_by != null && body.performed_by !== ''\n  ? String(body.performed_by).trim()\n  : '';\nif (alertInstanceId && !performedBy) throw new Error('performed_by is required when alert_instance_id is provided');\n\nreturn [{\n  json: {\n    patient_id: patientId,\n    template_code: templateCode,\n    reference_table: referenceTable,\n    reference_id: referenceId,\n    alert_instance_id: alertInstanceId,\n    performed_by: performedBy\n  }\n}];"
       },
-      "id": "9c464224-3f5a-4ba9-a968-8c4246917567",
+      "id": "a51af114-61b6-4aa8-8ab4-8d20b615dba6",
       "name": "Validate Input (Patient)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        352,
-        33104
+        5920,
+        42576
       ]
     },
     {
@@ -149,13 +149,13 @@
           "queryReplacement": "={{ [ $json.patient_id ] }}"
         }
       },
-      "id": "4e63cd91-f919-4302-b0c2-77e1468550de",
+      "id": "0e649d5f-6e41-4a62-a280-a04772c02f33",
       "name": "Get Patient",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        592,
-        33104
+        6160,
+        42576
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -190,13 +190,13 @@
         },
         "options": {}
       },
-      "id": "cb74962a-2712-411f-b7db-c83e9ec71b7d",
+      "id": "e62f6c51-ea6a-4808-a499-031ed2a76e7f",
       "name": "Patient Found?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        832,
-        33104
+        6400,
+        42576
       ]
     },
     {
@@ -207,13 +207,13 @@
           "responseCode": 404
         }
       },
-      "id": "f18a049e-4ea0-415b-841c-cba1cdfb6611",
+      "id": "218cc884-6da2-41e2-9657-92ce36560070",
       "name": "Respond 404 Patient",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1072,
-        33008
+        6640,
+        42480
       ]
     },
     {
@@ -222,13 +222,13 @@
         "query": "SELECT *\nFROM public.clinic\nLIMIT 1;",
         "options": {}
       },
-      "id": "32630d6b-ffda-41f8-9830-d72bb27d9e79",
+      "id": "367280ae-77ba-4bfe-b2dd-8cb146389c6a",
       "name": "Get Clinic Info",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1504,
-        33088
+        7072,
+        42560
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -318,26 +318,26 @@
         },
         "options": {}
       },
-      "id": "85de39ab-2a6a-480c-94d7-06a77a1efa88",
+      "id": "b9339004-96a4-4c6d-81cc-3d234b73965b",
       "name": "Route By Entity Type",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
       "position": [
-        1744,
-        33072
+        7312,
+        42544
       ]
     },
     {
       "parameters": {
         "jsCode": "const patient = $('Get Patient').first().json;\nconst clinic = $('Get Clinic Info').first().json;\nconst input = $('Validate Input (Patient)').first().json;\nconst clinicName = clinic.name || clinic.clinic_name || clinic.nombre || '';\nconst ownPhone = String(patient.phone_number || '').replace(/\\D/g, '');\nconst responsiblePhone = String(patient.responsible_phone_number || '').replace(/\\D/g, '');\n// Dependent patients with no phone of their own fall back to their responsible contact's phone.\nconst phone = '+' + (ownPhone || (patient.is_dependant ? responsiblePhone : ''));\n\nreturn [{\n  json: {\n    phone,\n    alert_instance_id: input.alert_instance_id || null,\n    performed_by: input.performed_by || null,\n    fields: {\n      'patient.name': patient.name || '',\n      'clinic.name': clinicName\n    }\n  }\n}];"
       },
-      "id": "5f108fb2-6ef4-41f8-af85-a790484f35b9",
+      "id": "b26cce23-2f01-40c1-8baf-7ce1dc6ca9a8",
       "name": "Resolve Fields - Patient",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1968,
-        32912
+        7536,
+        42384
       ]
     },
     {
@@ -348,13 +348,13 @@
           "queryReplacement": "={{ [ $('Validate Input (Patient)').item.json.reference_id, $('Validate Input (Patient)').item.json.patient_id ] }}"
         }
       },
-      "id": "a4a4da2b-b586-4dfe-a3d3-7171a87d3ecf",
+      "id": "a62b511a-faf4-454b-8b73-bacf39b6f168",
       "name": "Get Appointment",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1968,
-        33088
+        7536,
+        42560
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -389,13 +389,13 @@
         },
         "options": {}
       },
-      "id": "6ad62d9d-8515-422a-9034-bc42cad2b1e4",
+      "id": "0d5ce568-45af-4206-a621-4824bc0ffba9",
       "name": "Appointment Found?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        2192,
-        33088
+        7760,
+        42560
       ]
     },
     {
@@ -406,26 +406,26 @@
           "responseCode": 404
         }
       },
-      "id": "14958ebd-ae64-4cdd-87e7-6ae04b8cbf6d",
+      "id": "7fd87e8e-7857-4441-9b22-29c0cb6d949d",
       "name": "Respond 404 Appointment",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        2416,
-        33184
+        7984,
+        42656
       ]
     },
     {
       "parameters": {
         "jsCode": "const patient = $('Get Patient').first().json;\nconst clinic = $('Get Clinic Info').first().json;\nconst appt = $('Get Appointment').first().json;\nconst input = $('Validate Input (Patient)').first().json;\nconst clinicName = clinic.name || clinic.clinic_name || clinic.nombre || '';\nconst ownPhone = String(patient.phone_number || '').replace(/\\D/g, '');\nconst responsiblePhone = String(patient.responsible_phone_number || '').replace(/\\D/g, '');\n// Dependent patients with no phone of their own fall back to their responsible contact's phone.\nconst phone = '+' + (ownPhone || (patient.is_dependant ? responsiblePhone : ''));\n\nconst start = new Date(appt.start_datetime);\nconst date = start.toLocaleDateString('es-UY', { day: 'numeric', month: 'long', year: 'numeric' });\nconst hour = start.toLocaleTimeString('es-UY', { hour: '2-digit', minute: '2-digit', hour12: false });\n\nreturn [{\n  json: {\n    phone,\n    alert_instance_id: input.alert_instance_id || null,\n    performed_by: input.performed_by || null,\n    fields: {\n      'patient.name': patient.name || 'Desconocido',\n      'clinic.name': clinicName,\n      'appointment.date': date,\n      'appointment.hour': hour,\n      'appointment.professional_name': appt.professional_name || 'Sin doctor asignado'\n    }\n  }\n}];"
       },
-      "id": "1da21262-f927-4605-a82f-3e71adcc0c04",
+      "id": "bc7e28a1-484c-4835-a0ef-07e444eb12a7",
       "name": "Resolve Fields - Appointment",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2416,
-        32992
+        7984,
+        42464
       ]
     },
     {
@@ -436,13 +436,13 @@
           "queryReplacement": "={{ [ $('Validate Input (Patient)').item.json.reference_id, $('Validate Input (Patient)').item.json.patient_id ] }}"
         }
       },
-      "id": "2191944a-96d8-4735-8bd0-9686df5d5a0f",
+      "id": "48ed5a05-806f-44e6-a400-07f3f685c0b2",
       "name": "Get Invoice",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1968,
-        33472
+        7536,
+        42944
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -477,13 +477,13 @@
         },
         "options": {}
       },
-      "id": "f3b21fdc-9e69-4ce1-8dc2-b90181fbef1c",
+      "id": "b4738348-3f4d-46eb-adfd-e18fca1cc6e6",
       "name": "Invoice Found?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        2192,
-        33472
+        7760,
+        42944
       ]
     },
     {
@@ -494,39 +494,39 @@
           "responseCode": 404
         }
       },
-      "id": "7bf08e0c-7f6c-4991-90e0-1ea560e05e68",
+      "id": "fd7ed98d-0114-4afa-b916-6245fcf92955",
       "name": "Respond 404 Invoice",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        2416,
-        33568
+        7984,
+        43040
       ]
     },
     {
       "parameters": {
         "jsCode": "const patient = $('Get Patient').first().json;\nconst clinic = $('Get Clinic Info').first().json;\nconst inv = $('Get Invoice').first().json;\nconst input = $('Validate Input (Patient)').first().json;\nconst clinicName = clinic.name || clinic.clinic_name || clinic.nombre || '';\nconst ownPhone = String(patient.phone_number || '').replace(/\\D/g, '');\nconst responsiblePhone = String(patient.responsible_phone_number || '').replace(/\\D/g, '');\n// Dependent patients with no phone of their own fall back to their responsible contact's phone.\nconst phone = '+' + (ownPhone || (patient.is_dependant ? responsiblePhone : ''));\n\nconst pending = (Number(inv.total) - Number(inv.paid_amount || 0)).toFixed(2);\nconst amountFormatted = `${inv.currency || ''} ${pending}`.trim();\nconst dueDateFormatted = new Date(inv.due_date).toLocaleDateString('es-UY', { day: 'numeric', month: 'long', year: 'numeric' });\n\nreturn [{\n  json: {\n    phone,\n    alert_instance_id: input.alert_instance_id || null,\n    performed_by: input.performed_by || null,\n    fields: {\n      'patient.name': patient.name || '',\n      'clinic.name': clinicName,\n      'invoice.doc_no': inv.doc_no || '',\n      'invoice.amount_formatted': amountFormatted,\n      'invoice.due_date_formatted': dueDateFormatted\n    }\n  }\n}];"
       },
-      "id": "780c7466-954c-403d-a5a2-c85afdfb26c4",
+      "id": "ab22815d-0981-4898-ab0d-3d74efa6d8ca",
       "name": "Resolve Fields - Invoice",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2416,
-        33376
+        7984,
+        42848
       ]
     },
     {
       "parameters": {
         "jsCode": "// Shared merge point: both entry webhooks land here with the same shape\n// { phone, meta_template_name, meta_language, meta_template_name_sql, meta_language_sql, parameters, alert_instance_id, performed_by }.\nreturn $input.all();"
       },
-      "id": "689e2bf4-fbee-4e64-9eb0-08e0037772ec",
+      "id": "9b66b173-2ac4-477e-849f-3c2fa2b7d817",
       "name": "Prepare Send Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2880,
-        32912
+        8448,
+        42384
       ]
     },
     {
@@ -537,13 +537,13 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "8eab3477-0f06-49cb-a006-8f9a70edf49c",
+      "id": "8d8ce816-5d10-4ffa-b4ff-e325c7bf7d64",
       "name": "POST /patients/send_whatsapp_template",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -336,
-        33200
+        5232,
+        42672
       ],
       "webhookId": "patients-send-whatsapp-template",
       "credentials": {
@@ -561,10 +561,10 @@
       "type": "@ycloud-ai/n8n-nodes-ycloud.ycloud",
       "typeVersion": 1,
       "position": [
-        3104,
-        32912
+        8672,
+        42384
       ],
-      "id": "d1e0ef39-1ce9-4c4d-b2b7-c5b64d4f78f3",
+      "id": "adbfef36-0c2d-4c72-b3a9-f65d651c314a",
       "name": "Get Templates (YCloud)",
       "alwaysOutputData": true,
       "credentials": {
@@ -604,10 +604,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        3776,
-        33008
+        9344,
+        42480
       ],
-      "id": "9c30fe5c-f830-4e50-b59e-26df54cd3d16",
+      "id": "599134ff-c504-4e1a-9db6-3cc503924475",
       "name": "Send via YCloud1",
       "credentials": {
         "httpHeaderAuth": {
@@ -623,13 +623,13 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "fe427783-c118-4686-a03a-46a415da2317",
+      "id": "3bae825b-4e21-46a7-8298-67e2f1a07ff0",
       "name": "POST agent-tools/cancel-appointment1",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -352,
-        36912
+        5216,
+        46384
       ],
       "webhookId": "d1e2f3a4-5b6c-4708-9d1e-2f3a4b5c6d7e"
     },
@@ -637,13 +637,13 @@
       "parameters": {
         "jsCode": "const input = $input.first().json;\nconst body = input.body || {};\nconst patientId = String(body.patient_id || '').trim();\nconst appointmentId = String(body.appointment_id || '').trim();\nconst reason = String(body.reason || '').trim();\n\nif (!patientId) {\n  return [{ json: { __error: true, code: 403, message: 'patient_id is required' } }];\n}\n\nif (!appointmentId) {\n  return [{ json: { __error: true, code: 400, message: 'appointment_id is required' } }];\n}\n\nreturn [{\n  json: {\n    patient_id: patientId,\n    appointment_id: appointmentId,\n    reason: reason\n  }\n}];"
       },
-      "id": "b63e67c5-6f8a-45f9-bc82-523ac3fbfa3c",
+      "id": "86643325-3776-4bfe-870e-c4ecd2f33c38",
       "name": "Parse Cancel Appointment Input1",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -112,
-        36912
+        5456,
+        46384
       ]
     },
     {
@@ -670,13 +670,13 @@
         },
         "options": {}
       },
-      "id": "09104667-604c-4724-ac5c-070644e57869",
+      "id": "7e16e4a7-3d27-4b82-9ea9-03f10e093f8e",
       "name": "Has Error? (Cancel Appointment Input)1",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        128,
-        36912
+        5696,
+        46384
       ]
     },
     {
@@ -687,13 +687,13 @@
           "responseCode": "={{ $json.code }}"
         }
       },
-      "id": "a992ee4f-3249-42cf-a290-2425513fc5a1",
+      "id": "27c9eaa5-27d0-4430-84a3-b1cff987f8e0",
       "name": "Respond Cancel Appointment Error1",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        368,
-        36800
+        5936,
+        46272
       ]
     },
     {
@@ -704,13 +704,13 @@
           "queryReplacement": "={{ [ $('Parse Cancel Appointment Input1').item.json.appointment_id ] }}"
         }
       },
-      "id": "f99deaba-593a-4417-b2a0-7c7ab5986339",
+      "id": "1b58763d-28a5-443a-9f4b-27081bc2f8d4",
       "name": "Load Appointment To Cancel1",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        352,
-        37008
+        5920,
+        46480
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -724,13 +724,13 @@
       "parameters": {
         "jsCode": "const loaded = $input.all().filter(r => r.json.id);\nconst input = $('Parse Cancel Appointment Input1').first().json;\n\nif (loaded.length === 0) {\n  return [{ json: { __error: true, code: 404, message: 'Cita no encontrada' } }];\n}\n\nconst appt = loaded[0].json;\n\nif (appt.patient_id !== input.patient_id) {\n  return [{ json: { __error: true, code: 403, message: 'Esa cita no pertenece a este paciente' } }];\n}\n\nconst status = String(appt.status || '').toLowerCase();\nconst TERMINAL = ['completed', 'cancelled', 'no_show', 'deleted'];\nif (TERMINAL.includes(status)) {\n  return [{ json: { __error: true, code: 409, message: `La cita ya está en estado '${status}' y no se puede cancelar` } }];\n}\n\nreturn [{ json: { ...input, from_status: status } }];"
       },
-      "id": "7853742a-3710-4080-bce6-df28ff78f07f",
+      "id": "ff67586b-34dd-48ef-a5b8-67ff4c07560a",
       "name": "Validate Cancel Eligibility1",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        592,
-        37008
+        6160,
+        46480
       ]
     },
     {
@@ -757,13 +757,13 @@
         },
         "options": {}
       },
-      "id": "099d688c-9292-4f26-8457-7de975f32d2c",
+      "id": "d7e26621-d838-4522-8c18-afef2e2ea191",
       "name": "Has Error? (Cancel Eligibility)1",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        832,
-        37008
+        6400,
+        46480
       ]
     },
     {
@@ -774,13 +774,13 @@
           "responseCode": "={{ $json.code }}"
         }
       },
-      "id": "086a082f-5bc4-40a9-a44d-b8b5decc23ba",
+      "id": "37992e2a-fd9c-4022-bf22-3ae8f77210d1",
       "name": "Respond Cancel Eligibility Error1",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1072,
-        36912
+        6640,
+        46384
       ]
     },
     {
@@ -791,13 +791,13 @@
           "queryReplacement": "={{ [ $json.appointment_id, $json.reason, $json.from_status, $json.patient_id ] }}"
         }
       },
-      "id": "f059fb58-c021-407a-9c98-fa9740dc01e6",
+      "id": "f8a740b5-7e81-4c51-a99a-91aa35991a22",
       "name": "Cancel Appointment + Log1",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1072,
-        37104
+        6640,
+        46576
       ],
       "credentials": {
         "postgres": {
@@ -814,13 +814,13 @@
           "responseCode": 200
         }
       },
-      "id": "ddeff81b-9053-4028-b4b9-a660a04c4812",
+      "id": "036b2407-2e65-4ef3-95a6-3070e7aa3253",
       "name": "Respond Appointment Cancelled1",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1312,
-        37104
+        6880,
+        46576
       ]
     },
     {
@@ -830,13 +830,13 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "69d48fc8-58f1-4525-9d58-2ad344fc12a7",
+      "id": "6fe0f3de-3915-4033-ad84-35b00fa8433b",
       "name": "POST agent-tools/update-appointment1",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -352,
-        37472
+        5216,
+        46944
       ],
       "webhookId": "e2f3a4b5-6c7d-4708-9e2f-3a4b5c6d7e8f"
     },
@@ -844,13 +844,13 @@
       "parameters": {
         "jsCode": "const input = $input.first().json;\nconst body = input.body || {};\nconst patientId = String(body.patient_id || '').trim();\nconst appointmentId = String(body.appointment_id || '').trim();\nconst desiredDate = String(body.desired_date || '').trim();\nconst desiredTime = String(body.desired_time || '').trim();\n\nif (!patientId) {\n  return [{ json: { __error: true, code: 403, message: 'patient_id is required' } }];\n}\n\nif (!appointmentId || !desiredDate || !desiredTime) {\n  return [{ json: { __error: true, code: 400, message: 'appointment_id, desired_date and desired_time are required' } }];\n}\n\nreturn [{\n  json: {\n    patient_id: patientId,\n    appointment_id: appointmentId,\n    desired_date: desiredDate,\n    desired_time: desiredTime\n  }\n}];"
       },
-      "id": "d0c41797-aa07-46cb-a00a-147022edbed6",
+      "id": "306a9ca7-ab24-4cfe-8f64-ad1f0a5f008f",
       "name": "Parse Update Appointment Input1",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -112,
-        37472
+        5456,
+        46944
       ]
     },
     {
@@ -877,13 +877,13 @@
         },
         "options": {}
       },
-      "id": "ec1b65d7-daea-4771-82d6-71ac7a2e039f",
+      "id": "35efdd31-5f81-4e28-8f4f-1801387a4982",
       "name": "Has Error? (Update Appointment Input)1",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        128,
-        37472
+        5696,
+        46944
       ]
     },
     {
@@ -894,13 +894,13 @@
           "responseCode": "={{ $json.code }}"
         }
       },
-      "id": "d7acf083-5416-4484-9e16-0a135578f893",
+      "id": "7d42d59b-9258-4b5e-867c-ae2e574e557e",
       "name": "Respond Update Appointment Error1",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        368,
-        37376
+        5936,
+        46848
       ]
     },
     {
@@ -911,13 +911,13 @@
           "queryReplacement": "={{ [ $('Parse Update Appointment Input1').item.json.appointment_id ] }}"
         }
       },
-      "id": "2d98b17a-c19e-41be-88c9-a0c375c8c254",
+      "id": "0b374179-5deb-42a0-828e-e152943738da",
       "name": "Load Original Appointment1",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        368,
-        37568
+        5936,
+        47040
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -931,13 +931,13 @@
       "parameters": {
         "jsCode": "const loaded = $input.all().filter(r => r.json.id);\nconst input = $('Parse Update Appointment Input1').first().json;\n\nif (loaded.length === 0) {\n  return [{ json: { __error: true, code: 404, message: 'Cita no encontrada' } }];\n}\n\nconst appt = loaded[0].json;\n\nif (appt.patient_id !== input.patient_id) {\n  return [{ json: { __error: true, code: 403, message: 'Esa cita no pertenece a este paciente' } }];\n}\n\nconst status = String(appt.status || '').toLowerCase();\nconst TERMINAL = ['completed', 'cancelled', 'no_show', 'deleted'];\nif (TERMINAL.includes(status)) {\n  return [{ json: { __error: true, code: 409, message: `La cita ya está en estado '${status}' y no se puede reagendar` } }];\n}\n\nconst durationMinutes = Math.round((new Date(appt.end_datetime).getTime() - new Date(appt.start_datetime).getTime()) / 60000) || 30;\n\nreturn [{\n  json: {\n    ...input,\n    from_status: status,\n    original_assignee_id: appt.assignee_id,\n    original_calendar_source_id: appt.calendar_source_id,\n    duration_minutes: durationMinutes,\n    summary: appt.summary,\n    notes: appt.notes\n  }\n}];"
       },
-      "id": "f68a412c-5173-4de0-bd39-4c9f5122e638",
+      "id": "d9299257-d176-4d60-8316-141d3aae586f",
       "name": "Validate Reschedule Eligibility1",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        608,
-        37568
+        6176,
+        47040
       ]
     },
     {
@@ -964,13 +964,13 @@
         },
         "options": {}
       },
-      "id": "3c469ddb-6315-49ad-9512-1c9642f22346",
+      "id": "72b42800-f1ae-44b7-9d7e-3ae0110e3a86",
       "name": "Has Error? (Reschedule Eligibility)1",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        848,
-        37568
+        6416,
+        47040
       ]
     },
     {
@@ -981,13 +981,13 @@
           "responseCode": "={{ $json.code }}"
         }
       },
-      "id": "98f9e08e-aeb1-466b-893a-b0cdfe5336cf",
+      "id": "5831e5d4-3912-4d17-a5fc-c90314268860",
       "name": "Respond Reschedule Eligibility Error1",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1088,
-        37472
+        6656,
+        46944
       ]
     },
     {
@@ -998,13 +998,13 @@
           "queryReplacement": "={{ [ $json.original_calendar_source_id ] }}"
         }
       },
-      "id": "c9fa17a7-937d-41bc-807d-d9664071f889",
+      "id": "6a1c99cb-6d9c-4fd4-81f7-9687635d1103",
       "name": "Get Sede Calendars (Reschedule)1",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1088,
-        37664
+        6656,
+        47136
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -1039,13 +1039,13 @@
         },
         "options": {}
       },
-      "id": "7ce0d769-c6c2-45e7-9ac7-6a03304afe1e",
+      "id": "ae1c9d62-c1dd-4805-a2b2-94372e2cc573",
       "name": "Sede Has Calendars? (Reschedule)1",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1328,
-        37664
+        6896,
+        47136
       ]
     },
     {
@@ -1056,26 +1056,26 @@
           "responseCode": 404
         }
       },
-      "id": "cd9c64e2-dbed-46cf-bf14-8b3a670aa8ab",
+      "id": "f009313f-aac5-466b-8536-210c2f73ba6a",
       "name": "Respond No Calendars For Sede (Reschedule)1",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1552,
-        37760
+        7120,
+        47232
       ]
     },
     {
       "parameters": {
         "jsCode": "const ctx = $('Validate Reschedule Eligibility1').first().json;\nconst sedeCalendars = $('Get Sede Calendars (Reschedule)1').first().json;\nconst testConfig = $input.first().json;\nconst isTestMode = !!testConfig.whatsapp_test_mode_enabled;\nconst calendarSourceIds = isTestMode\n  ? String(testConfig.whatsapp_test_calendar_source_id || '')\n  : (sedeCalendars.calendar_source_ids || '');\n\nconst start = new Date(`${ctx.desired_date}T${ctx.desired_time}:00`);\nconst end = new Date(start.getTime() + ctx.duration_minutes * 60000);\n\nreturn [{\n  json: {\n    startingDateAndTime: start.toISOString().replace('Z', ''),\n    endingDateAndTime: end.toISOString().replace('Z', ''),\n    durationInMinutes: ctx.duration_minutes,\n    mode: 'checkAvailability',\n    calendarSourceIds,\n    appointmentId: ctx.appointment_id,\n    doctorId: ctx.original_assignee_id || '',\n    patientId: ctx.patient_id\n  }\n}];"
       },
-      "id": "e02d806a-a81b-49de-bf62-cad3d20229e6",
+      "id": "5afdd7bd-e4bb-4fd5-a874-01eff35ae5ce",
       "name": "Build Availability Request (Reschedule)1",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1792,
-        37568
+        7360,
+        47040
       ]
     },
     {
@@ -1179,26 +1179,26 @@
         },
         "options": {}
       },
-      "id": "87f6380f-7118-436e-912c-8d1f3cb69aea",
+      "id": "071a9abf-f7e9-495e-b949-5251a880b1ab",
       "name": "Execute Agent_Availability2 (Reschedule)1",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        2032,
-        37568
+        7600,
+        47040
       ]
     },
     {
       "parameters": {
         "jsCode": "const ctx = $('Build Availability Request (Reschedule)1').first().json;\nconst result = $input.first().json;\n\nconst isAvailable = result?.isAvailable === true;\n\nlet chosen = null;\nif (isAvailable) {\n  const startIso = result.availableStartingTime;\n  chosen = {\n    assignee_id: result.availableDoctorId,\n    assignee_name: result.availableDoctorName,\n    calendar_source_id: result.availableCalendarSourceId,\n    calendar_name: result.availableCalendarName,\n    date: startIso ? startIso.slice(0, 10) : ctx.startingDateAndTime.slice(0, 10),\n    time: startIso ? startIso.slice(11, 16) : ctx.startingDateAndTime.slice(11, 16)\n  };\n}\n\n// Agent_Availability2 devuelve una fila por cada doctor disponible en ese horario (misma\n// sede/consultorio ya fijados para el reagendamiento) -- el paciente no elige doctor acá,\n// así que solo importa fecha+hora. Deduplicamos por esa clave y espaciamos los horarios\n// (no ofrecer 09:00 y 09:20 como opciones \"distintas\") para no devolver decenas de filas\n// casi idénticas.\nconst seen = new Set();\nconst slots = [];\nfor (const s of (result?.suggestedTimes || [])) {\n  const key = `${s.fecha_cita}|${s.hora_cita}`;\n  if (seen.has(key)) continue;\n  seen.add(key);\n  slots.push({ date: s.fecha_cita, time: s.hora_cita });\n}\n\nconst toMinutes = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };\nslots.sort((a, b) => (a.date === b.date ? toMinutes(a.time) - toMinutes(b.time) : a.date.localeCompare(b.date)));\n\nconst grainMinutes = 60;\nconst MAX_SUGGESTIONS = 8;\nconst suggestions = [];\nlet lastKept = null;\nfor (const slot of slots) {\n  if (suggestions.length >= MAX_SUGGESTIONS) break;\n  const sameDayAsLast = lastKept && lastKept.date === slot.date;\n  const gapOk = !sameDayAsLast || (toMinutes(slot.time) - toMinutes(lastKept.time)) >= grainMinutes;\n  if (!gapOk) continue;\n  suggestions.push(slot);\n  lastKept = slot;\n}\n\nreturn [{ json: { isAvailable, chosen, suggestions } }];"
       },
-      "id": "78d36012-5d55-4e48-855a-7abd7c5670ff",
+      "id": "9c79715f-c7e3-4a33-90ea-dd76e464364f",
       "name": "Check Reschedule Availability1",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2272,
-        37568
+        7840,
+        47040
       ]
     },
     {
@@ -1226,13 +1226,13 @@
         },
         "options": {}
       },
-      "id": "5f51a42e-df88-4b1f-95d1-677045dd8158",
+      "id": "a0e4e8ea-becc-4c99-943c-336ecd64e007",
       "name": "Is Reschedule Available?1",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        2512,
-        37568
+        8080,
+        47040
       ]
     },
     {
@@ -1243,13 +1243,13 @@
           "responseCode": 409
         }
       },
-      "id": "48d29e75-df76-4a83-8d63-4afec5e97c7b",
+      "id": "bb1768be-5be3-4b14-b447-deb60f5fb8b9",
       "name": "Respond Reschedule Not Available1",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        2752,
-        37664
+        8320,
+        47136
       ]
     },
     {
@@ -1260,13 +1260,13 @@
           "queryReplacement": "={{ [ $('Validate Reschedule Eligibility1').item.json.patient_id, $json.chosen.assignee_id, $json.chosen.calendar_source_id, $('Build Availability Request (Reschedule)1').item.json.startingDateAndTime, $('Build Availability Request (Reschedule)1').item.json.endingDateAndTime, $('Validate Reschedule Eligibility1').item.json.summary, $('Validate Reschedule Eligibility1').item.json.notes, $('Validate Reschedule Eligibility1').item.json.appointment_id, $('Validate Reschedule Eligibility1').item.json.from_status ] }}"
         }
       },
-      "id": "5a178d7c-4870-488b-9c0a-90c682a96275",
+      "id": "2483e87d-94c5-49fb-8836-ccc4c06b1d5c",
       "name": "Apply Reschedule1",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2752,
-        37472
+        8320,
+        46944
       ],
       "credentials": {
         "postgres": {
@@ -1283,13 +1283,13 @@
           "responseCode": 200
         }
       },
-      "id": "6ceed63d-b177-4fac-b05a-539e5d783338",
+      "id": "82774a14-c42f-4641-bfaa-0335aeda35df",
       "name": "Respond Appointment Rescheduled1",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        2992,
-        37472
+        8560,
+        46944
       ]
     },
     {
@@ -1305,10 +1305,10 @@
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.4,
       "position": [
-        3904,
-        34656
+        10352,
+        43856
       ],
-      "id": "3ec654cd-53c0-4a3b-9a57-07231175bf3d",
+      "id": "161e59c8-c7de-42f5-b607-913507765f5b",
       "name": "cancel_appointment"
     },
     {
@@ -1324,10 +1324,10 @@
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.4,
       "position": [
-        4080,
-        34656
+        10528,
+        43856
       ],
-      "id": "0ca1d027-5619-4633-8218-998c8a7e966a",
+      "id": "bf9c1dee-c4a4-486f-9fba-706f2051ca49",
       "name": "update_appointment"
     },
     {
@@ -1337,13 +1337,13 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "5591fbd2-b1cb-4260-8c5c-bd9f77b3fd9e",
+      "id": "10f9ab5a-6438-442b-b51e-d642437b95b8",
       "name": "POST agent-tools/get-upcoming-appointments1",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -352,
-        34768
+        5216,
+        44240
       ],
       "webhookId": "a299269f-2d60-4a72-a321-fea659d60523"
     },
@@ -1351,13 +1351,13 @@
       "parameters": {
         "jsCode": "const body = $input.first().json.body;\nconst patientId = String(body.patient_id || '').trim();\nconst dateFrom = String(body.date_from || '').trim();\nconst dateTo = String(body.date_to || '').trim();\nreturn [{ json: { has_patient: !!patientId, patient_id: patientId, date_from: dateFrom || null, date_to: dateTo || null } }];"
       },
-      "id": "c559f13d-dc8b-4468-94b1-733d07d5d6ec",
+      "id": "76e2e127-6811-4895-a63d-e13a3e216bb8",
       "name": "Require Patient ID (Upcoming)1",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -112,
-        34768
+        5456,
+        44240
       ]
     },
     {
@@ -1385,13 +1385,13 @@
         },
         "options": {}
       },
-      "id": "d3496611-a10e-4d53-8d0a-756b915b00a1",
+      "id": "8f68665a-d0a2-4293-af7a-dc645e44729c",
       "name": "Has Patient ID? (Upcoming)1",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        128,
-        34768
+        5696,
+        44240
       ]
     },
     {
@@ -1402,13 +1402,13 @@
           "responseCode": 403
         }
       },
-      "id": "4b1c947d-6d98-4d30-9572-d3bae6f299ec",
+      "id": "f45501b0-96e0-4436-a7b0-bfb4abf68cd2",
       "name": "Respond Forbidden (Upcoming)1",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        352,
-        34864
+        5920,
+        44336
       ]
     },
     {
@@ -1419,13 +1419,13 @@
           "queryReplacement": "={{ [ $json.patient_id, $json.date_from, $json.date_to, ($json.date_from || $json.date_to) ? 30 : 5 ] }}"
         }
       },
-      "id": "6753c700-ece9-40d0-8ae0-30930903a200",
+      "id": "b3fa0274-67eb-4ca3-adb0-d8163243adc5",
       "name": "Get Upcoming Appointments1",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        352,
-        34672
+        5920,
+        44144
       ],
       "credentials": {
         "postgres": {
@@ -1442,13 +1442,13 @@
           "responseCode": 200
         }
       },
-      "id": "a0a22766-44c0-41b8-8e1a-91e283d0856d",
+      "id": "03045c72-094d-4120-a4da-2de888c0683b",
       "name": "Respond Upcoming Appointments1",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        592,
-        34672
+        6160,
+        44144
       ]
     },
     {
@@ -1458,13 +1458,13 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "d8cf6c8e-c755-4b74-a0e5-f12569d204f0",
+      "id": "538cfcb4-1de2-4706-821f-987f13f97111",
       "name": "POST agent-tools/get-account-status1",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -352,
-        35264
+        5216,
+        44736
       ],
       "webhookId": "6ff84c66-6511-4578-b576-bcba16968859"
     },
@@ -1472,13 +1472,13 @@
       "parameters": {
         "jsCode": "const patientId = String($input.first().json.body.patient_id || '').trim();\nreturn [{ json: { patient_id: patientId } }];"
       },
-      "id": "01de1008-20b7-4bab-aa68-8493c4a29d4a",
+      "id": "1ba85ae8-42fa-4f17-aa61-344cde7778e3",
       "name": "Require Patient ID (Account)1",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -128,
-        35264
+        5440,
+        44736
       ]
     },
     {
@@ -1506,13 +1506,13 @@
         },
         "options": {}
       },
-      "id": "332ffbd1-d909-4a06-ad3f-bcd3bf5daa46",
+      "id": "712903f1-caa1-479f-8a9d-20b55a5d2fe1",
       "name": "Has Patient ID? (Account)1",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        96,
-        35264
+        5664,
+        44736
       ]
     },
     {
@@ -1523,13 +1523,13 @@
           "responseCode": 403
         }
       },
-      "id": "50fdaebb-b4fe-4d97-a62d-4bf457cb6f72",
+      "id": "20c403c9-b408-4395-9d40-9573fb6a5fec",
       "name": "Respond Forbidden (Account)1",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        336,
-        35360
+        5904,
+        44832
       ]
     },
     {
@@ -1540,13 +1540,13 @@
           "queryReplacement": "={{ [ $json.patient_id ] }}"
         }
       },
-      "id": "b35dbb88-6ada-4d46-8ccd-9225bb4ba56f",
+      "id": "ec6a056f-248e-4bf5-9617-714248c57b68",
       "name": "Get Account Summary1",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        336,
-        35168
+        5904,
+        44640
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -1564,13 +1564,13 @@
           "queryReplacement": "={{ [ $('POST agent-tools/get-account-status1').item.json.query.patient_id ] }}"
         }
       },
-      "id": "a0d89d4f-3924-4600-842c-d1d613be9f2e",
+      "id": "8573f8a9-b0ff-47f8-842c-98104afa84dd",
       "name": "Get Account Detail1",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        576,
-        35168
+        6144,
+        44640
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -1588,13 +1588,13 @@
           "queryReplacement": "={{ [ $('Require Patient ID (Account)1').item.json.patient_id ] }}"
         }
       },
-      "id": "8af1e6e9-cc87-4f8c-9d22-79f2a5181efc",
+      "id": "b0893cdd-09d3-41f9-ae3c-fed7cd8f65bc",
       "name": "Get Account Quotes1",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        816,
-        35168
+        6384,
+        44640
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -1608,13 +1608,13 @@
       "parameters": {
         "jsCode": "const summary = $('Get Account Summary1').all().map(i => i.json);\nconst quotes = $('Get Account Quotes1').all().map(i => i.json);\nconst detail = $('Get Account Detail1').all().map(i => i.json);\n\nreturn [{\n  json: {\n    by_currency: summary,\n    quotes,\n    pending_invoices: detail\n  }\n}];"
       },
-      "id": "08dc434c-bd7e-403e-a4c4-f461d3bd5066",
+      "id": "99a090fe-55ad-4888-9cab-9f518ba754c4",
       "name": "Format Account Status1",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1056,
-        35168
+        6624,
+        44640
       ]
     },
     {
@@ -1625,13 +1625,13 @@
           "responseCode": 200
         }
       },
-      "id": "7637429d-94e8-49e7-8848-495a5c2c76d9",
+      "id": "db91bbea-8da1-4531-a9f0-c7100144da4f",
       "name": "Respond Account Status1",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1296,
-        35168
+        6864,
+        44640
       ]
     },
     {
@@ -1644,13 +1644,13 @@
           "rawBody": true
         }
       },
-      "id": "4dea866c-04d7-4ce5-9803-6ea1946b5d3f",
+      "id": "f3622498-b989-4a7c-83b4-6a87084e0fb1",
       "name": "POST wa-message-received",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -352,
-        34304
+        5216,
+        43776
       ],
       "webhookId": "wa-message-received-agent"
     },
@@ -1658,13 +1658,13 @@
       "parameters": {
         "jsCode": "const body = $('POST wa-message-received').first().json.body || {};\nconst isInboundText = body.type === 'whatsapp.inbound_message.received';\n\nconst msg = body.whatsappInboundMessage || body.whatsappMessage || {};\nconst textBody = msg.text?.body;\nconst wamid = msg.wamid || msg.id || '';\nconst fromPhone = msg.from || '';\n\nconst isTextMessage = isInboundText && typeof textBody === 'string' && textBody.trim() !== '' && !!wamid && !!fromPhone;\nconst normalizedPhone = '+' + String(fromPhone || '').replace(/\\D/g, '');\n\nreturn [{\n  json: {\n    is_text_message: isTextMessage,\n    wamid,\n    from_phone: normalizedPhone,\n    message_text: textBody || ''\n  }\n}];"
       },
-      "id": "9ec2c56b-0548-4d73-bfc0-a336414e1faf",
+      "id": "79107ffc-547a-4945-8046-1735116de982",
       "name": "Filter & Extract Inbound Message",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        368,
-        34192
+        5936,
+        43664
       ]
     },
     {
@@ -1692,13 +1692,13 @@
         },
         "options": {}
       },
-      "id": "408c0e4a-6f0c-4f18-9d2e-39919855c0e5",
+      "id": "e180982f-a5f8-4501-a944-3172ed22c59f",
       "name": "Is New Text Message?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        608,
-        34192
+        6176,
+        43664
       ]
     },
     {
@@ -1709,30 +1709,30 @@
           "responseCode": 200
         }
       },
-      "id": "4a1225d7-be74-44bf-a719-f925329f03ec",
+      "id": "96c013fe-d03c-475b-8cd0-c1a978f12221",
       "name": "Respond Ack (non-text/other event)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        848,
-        34288
+        6416,
+        43760
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO whatsapp_inbound_dedupe (wamid)\nVALUES ($1)\nON CONFLICT (wamid) DO NOTHING\nRETURNING wamid;",
+        "query": "-- Dedupe por wamid (reintentos de entrega del webhook) y, de paso, log del\n-- mensaje entrante: es la misma fila (ver migracion 091, indice unico\n-- uq_wa_conv_messages_wamid). Si ya existe el wamid, no inserta nada y\n-- 'Not A Duplicate?' corta el flujo.\n-- El WHERE del ON CONFLICT es obligatorio: uq_wa_conv_messages_wamid es un\n-- indice parcial (WHERE wamid IS NOT NULL), y Postgres solo lo usa para\n-- inferir el conflict target si el predicado se repite acá tal cual.\nINSERT INTO whatsapp_conversation_messages (phone, sender, message_text, wamid)\nVALUES ($1, 'patient', $2, $3)\nON CONFLICT (wamid) WHERE wamid IS NOT NULL DO NOTHING\nRETURNING wamid;",
         "options": {
-          "queryReplacement": "={{ [ $('Filter & Extract Inbound Message').first().json.wamid ] }}"
+          "queryReplacement": "={{ [ $('Filter & Extract Inbound Message').first().json.from_phone, $('Filter & Extract Inbound Message').first().json.message_text, $('Filter & Extract Inbound Message').first().json.wamid ] }}"
         }
       },
-      "id": "589c287a-9f23-472e-9bce-1d50322b79ae",
+      "id": "ace4e417-6ed7-48dd-a00a-947054565aba",
       "name": "Dedupe Check",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1552,
-        34000
+        7120,
+        43472
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -1767,13 +1767,13 @@
         },
         "options": {}
       },
-      "id": "b16339d7-b164-47c8-9eb7-a20f7af5b934",
+      "id": "e35c6db5-fb17-4d30-88f0-28d1a1921f93",
       "name": "Not A Duplicate?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1792,
-        34000
+        7360,
+        43472
       ]
     },
     {
@@ -1784,13 +1784,13 @@
           "responseCode": 200
         }
       },
-      "id": "73440872-cbef-4fb0-83b6-e00a96846278",
+      "id": "993dcef6-882b-4b0c-bfb6-3f94d10304d7",
       "name": "Respond Ack (duplicate)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        2032,
-        34096
+        7600,
+        43568
       ]
     },
     {
@@ -1801,13 +1801,13 @@
           "queryReplacement": "={{ [ $('Filter & Extract Inbound Message').item.json.from_phone ] }}"
         }
       },
-      "id": "e6dbff8b-330f-4295-aa81-06b3462199f2",
+      "id": "b77002af-30ae-4a51-a8eb-36329ac04493",
       "name": "Resolve Patient Identity",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2032,
-        33904
+        7600,
+        43376
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -1821,30 +1821,30 @@
       "parameters": {
         "jsCode": "const patient = $input.first().json || {};\nconst extract = $('Combine Buffered Messages').first().json;\n\nconst isKnownPatient = !!patient.id;\n\nreturn [{\n  json: {\n    patient_id: patient.id || null,\n    patient_name: patient.name || '',\n    is_known_patient: isKnownPatient,\n    phone: extract.from_phone,\n    message_text: extract.message_text\n  }\n}];"
       },
-      "id": "b2f483c1-569e-4b62-823c-e2e132e867db",
+      "id": "85739841-7ab8-4641-be68-02ab531e3664",
       "name": "Build Agent Context",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2256,
-        33904
+        7824,
+        43376
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO whatsapp_conversation_activity (phone, last_message_at, last_sender, transcript)\nVALUES ($1, NOW(), 'patient', ('Paciente: ' || $2))\nON CONFLICT (phone) DO UPDATE\nSET last_message_at = NOW(),\n    last_sender = 'patient',\n    transcript = array_to_string(\n      (string_to_array(coalesce(whatsapp_conversation_activity.transcript, ''), E'\\n') || ARRAY[('Paciente: ' || $2)])\n        [greatest(1, cardinality(string_to_array(coalesce(whatsapp_conversation_activity.transcript, ''), E'\\n')) + 1 - 20):],\n      E'\\n'\n    ),\n    updated_at = NOW();",
+        "query": "INSERT INTO whatsapp_conversation_activity (phone, last_message_at, last_sender)\nVALUES ($1, NOW(), 'patient')\nON CONFLICT (phone) DO UPDATE\nSET last_message_at = NOW(),\n    last_sender = 'patient',\n    updated_at = NOW();",
         "options": {
-          "queryReplacement": "={{ [ $json.phone, $json.message_text ] }}"
+          "queryReplacement": "={{ [ $json.phone ] }}"
         }
       },
-      "id": "7b880ca8-deb9-4d2f-94a8-a70c5594e202",
+      "id": "05eb5493-52a9-48ae-a35f-b90828f367ab",
       "name": "Track Inbound Activity",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2480,
-        33904
+        8048,
+        43376
       ],
       "credentials": {
         "postgres": {
@@ -1857,13 +1857,13 @@
       "parameters": {
         "jsCode": "// Ventana de atención del agente de WhatsApp.\n// Lee system_configurations.whatsapp_agent_business_hours (JSON):\n//   { enabled, timezone,\n//     rules: [ { days: [\"mon\"..\"sun\"], ranges: [[\"HH:MM\",\"HH:MM\"], ...] }, ... ],\n//     holidays?: [\"YYYY-MM-DD\"], off_hours_reply? }\n// Compat: si viene \"schedule\" { mon..sun: [...] } y no \"rules\", se usa ese formato viejo.\n// Ventanas efectivas del día = unión de los ranges de toda regla que incluya ese día.\n// Cada rango = ventana en la que el agente SÍ responde (hora local, fin exclusivo; \"24:00\" = fin del día).\n// Fail-open: sin config / enabled=false / JSON inválido => el agente responde siempre.\nconst cfg = $('Get WhatsApp Agent Config').first().json;\nlet bh;\ntry { bh = JSON.parse(cfg.whatsapp_agent_business_hours || '{}'); } catch (e) { bh = {}; }\n\nif (!bh || bh.enabled === false || (!Array.isArray(bh.rules) && !bh.schedule)) {\n  return [{ json: { ...($input.first()?.json || {}), within_agent_hours: true, agent_hours_debug: { reason: 'no_config' } } }];\n}\n\nconst TZ = bh.timezone || 'America/Montevideo';\nconst P = (opts) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ, ...opts })\n  .formatToParts(new Date()).reduce((a, x) => (a[x.type] = x.value, a), {});\nconst p = P({ weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false });\nconst d = P({ year: 'numeric', month: '2-digit', day: '2-digit' });\nconst yyyymmdd = `${d.year}-${d.month}-${d.day}`;\n\nconst dayKey = p.weekday.toLowerCase().slice(0, 3);\nlet hh = parseInt(p.hour, 10);\nif (hh === 24) hh = 0;\nconst mins = hh * 60 + parseInt(p.minute, 10);\nconst toMin = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };\n\nconst isHoliday = Array.isArray(bh.holidays) && bh.holidays.includes(yyyymmdd);\nlet windows = [];\nif (!isHoliday) {\n  if (Array.isArray(bh.rules)) {\n    windows = bh.rules\n      .filter((r) => r && Array.isArray(r.days) && r.days.includes(dayKey))\n      .flatMap((r) => (Array.isArray(r.ranges) ? r.ranges : []));\n  } else if (bh.schedule) {\n    windows = bh.schedule[dayKey] || [];\n  }\n}\nconst within = windows.some(([s, e]) => {\n  const a = toMin(s), b = toMin(e);\n  return a <= b ? (mins >= a && mins < b) : (mins >= a || mins < b);\n});\n\nreturn [{\n  json: {\n    ...($input.first()?.json || {}),\n    within_agent_hours: within,\n    agent_hours_debug: { tz: TZ, day: dayKey, local_time: `${String(hh).padStart(2, '0')}:${p.minute}`, is_holiday: isHoliday },\n  },\n}];"
       },
-      "id": "30c2dac3-8845-4431-a311-1b51868feeba",
+      "id": "f02a037c-e253-4df1-b8e6-f729756eb430",
       "name": "Check Agent Hours",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3104,
-        34000
+        8672,
+        43472
       ]
     },
     {
@@ -1891,13 +1891,13 @@
         },
         "options": {}
       },
-      "id": "5f54c660-1dd9-42c2-a11c-480455d867e7",
+      "id": "7c50be64-5806-49fc-b605-98dc77358afd",
       "name": "Within Agent Hours?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        3280,
-        34000
+        8848,
+        43472
       ]
     },
     {
@@ -1908,13 +1908,13 @@
           "responseCode": 200
         }
       },
-      "id": "56bb1925-fc94-415b-8961-7d43128b7c22",
+      "id": "ade20ed3-fe6d-4d0d-9a0f-72ada634533b",
       "name": "Respond Ack (outside agent hours)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        3488,
-        33904
+        9056,
+        43376
       ]
     },
     {
@@ -1924,13 +1924,13 @@
         "tableName": "whatsapp_agent_chat_memory",
         "contextWindowLength": 10
       },
-      "id": "01a77475-7f19-451e-88c4-ba19b6ba34e8",
+      "id": "9971c271-1954-4033-8af7-71c04cbf831c",
       "name": "Chat Memory (Postgres)",
       "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
       "typeVersion": 1.3,
       "position": [
-        3584,
-        34336
+        10032,
+        43536
       ],
       "credentials": {
         "postgres": {
@@ -1947,13 +1947,13 @@
         "body": "={{ $json.output }}",
         "requestOptions": {}
       },
-      "id": "f73d9610-8080-456c-b799-b006534f6cbf",
+      "id": "b09e8c2f-665b-4330-a16e-443f23d8c04d",
       "name": "Send Reply",
       "type": "@ycloud-ai/n8n-nodes-ycloud.ycloud",
       "typeVersion": 1,
       "position": [
-        4080,
-        34096
+        10752,
+        43328
       ],
       "credentials": {
         "ycloudApi": {
@@ -1966,18 +1966,18 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO whatsapp_conversation_activity (phone, last_message_at, last_sender, pending, transcript)\nVALUES ($1, NOW(), 'bot', $3, ('Asistente: ' || $2))\nON CONFLICT (phone) DO UPDATE\nSET last_message_at = NOW(),\n    last_sender = 'bot',\n    pending = $3,\n    transcript = array_to_string(\n      (string_to_array(coalesce(whatsapp_conversation_activity.transcript, ''), E'\\n') || ARRAY[('Asistente: ' || $2)])\n        [greatest(1, cardinality(string_to_array(coalesce(whatsapp_conversation_activity.transcript, ''), E'\\n')) + 1 - 20):],\n      E'\\n'\n    ),\n    updated_at = NOW();",
+        "query": "INSERT INTO whatsapp_conversation_activity (phone, last_message_at, last_sender, pending)\nVALUES ($1, NOW(), 'bot', $2)\nON CONFLICT (phone) DO UPDATE\nSET last_message_at = NOW(),\n    last_sender = 'bot',\n    pending = $2,\n    updated_at = NOW();",
         "options": {
-          "queryReplacement": "={{ [ $('Build Agent Context').item.json.phone, $('Format output').item.json.output, $('Format output').item.json.pending ] }}"
+          "queryReplacement": "={{ [ $('Build Agent Context').item.json.phone, $('Format output').item.json.pending ] }}"
         }
       },
-      "id": "de6d49e0-5606-43ad-a11f-b7ff489bbb46",
+      "id": "e500f720-45a3-4de1-8843-c874235f1d94",
       "name": "Track Outbound Activity",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        4304,
-        33984
+        10976,
+        43216
       ],
       "credentials": {
         "postgres": {
@@ -1994,13 +1994,13 @@
           "responseCode": 200
         }
       },
-      "id": "118c82f9-3337-45f1-985a-93e6e8d14a16",
+      "id": "0cf70e97-f2c0-4a63-b0b1-7644b5766077",
       "name": "Respond 202",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        4544,
-        34112
+        11216,
+        43344
       ]
     },
     {
@@ -2010,13 +2010,13 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "84ec37b9-809e-46ca-a573-909a339f12b2",
+      "id": "f3c084d6-1cb6-4628-aa2d-93884172bdba",
       "name": "POST agent-tools/check-availability",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -352,
-        35888
+        5216,
+        45360
       ],
       "webhookId": "7ec5f5c3-6153-404d-a0db-2abfd673cc4f"
     },
@@ -2024,13 +2024,13 @@
       "parameters": {
         "jsCode": "const input = $input.first().json;\nconst body = input.body || {};\nconst patientId = String(body.patient_id || '').trim();\nconst desiredDate = String(body.desired_date || '').trim();\nconst desiredTime = String(body.desired_time || '').trim();\nconst sedeId = String(body.sede_id || '').trim();\n\nif (!patientId) {\n  return [{ json: { __error: true, code: 403, message: 'patient_id is required' } }];\n}\n\nif (!desiredDate) {\n  return [{ json: { __error: true, code: 400, message: 'desired_date is required' } }];\n}\n\nreturn [{\n  json: {\n    patient_id: patientId,\n    preferred_doctor_name: body.preferred_doctor_name || '',\n    desired_date: desiredDate,\n    desired_time: desiredTime,\n    sede_id: sedeId\n  }\n}];"
       },
-      "id": "57382abf-af66-423e-9757-27ae7a84ba42",
+      "id": "e2ae57a3-e67a-4186-8809-3aab3b668dbb",
       "name": "Resolve Service & Window",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -112,
-        35888
+        5456,
+        45360
       ]
     },
     {
@@ -2057,13 +2057,13 @@
         },
         "options": {}
       },
-      "id": "91460fa5-c7b6-4779-8407-d815e0ad81fd",
+      "id": "cb1adf4d-b4d1-40bf-afb0-352720b57964",
       "name": "Has Error? (Check Availability Input)",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        128,
-        35888
+        5696,
+        45360
       ]
     },
     {
@@ -2074,13 +2074,13 @@
           "responseCode": "={{ $json.code }}"
         }
       },
-      "id": "cae142eb-ebb4-4f43-95d0-c3faa4f749f8",
+      "id": "f653cfb9-45e4-4795-a05b-66ffe0122c82",
       "name": "Respond Check Availability Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        336,
-        35808
+        5904,
+        45280
       ]
     },
     {
@@ -2091,13 +2091,13 @@
           "queryReplacement": "={{ [ 'Consulta general' ] }}"
         }
       },
-      "id": "fe74b41c-e858-4b56-9768-22c8a0bf2052",
+      "id": "eeeade11-2e7b-4612-bcbe-62698b0f13ae",
       "name": "Find Service",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        336,
-        35984
+        5904,
+        45456
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -2132,13 +2132,13 @@
         },
         "options": {}
       },
-      "id": "c73ddb37-b9d1-469c-ad5c-c542d797d6ee",
+      "id": "6a9b6132-9328-46f8-8952-a9bda88020b2",
       "name": "Service Found?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        560,
-        35984
+        6128,
+        45456
       ]
     },
     {
@@ -2149,13 +2149,13 @@
           "responseCode": 404
         }
       },
-      "id": "4c4a1995-c371-406c-9a64-50fa93b73013",
+      "id": "d506edb3-b758-41d2-9313-b70da62b50a7",
       "name": "Respond Service Not Found",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        784,
-        36080
+        6352,
+        45552
       ]
     },
     {
@@ -2166,13 +2166,13 @@
           "queryReplacement": "={{ [ $('Resolve Service & Window').item.json.preferred_doctor_name ] }}"
         }
       },
-      "id": "b71bf420-6ec8-4cc1-af52-1ff95f969f6f",
+      "id": "54a44dea-c605-447f-bcb2-920c8557ae56",
       "name": "Find Preferred Doctor",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        784,
-        35888
+        6352,
+        45360
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -2190,13 +2190,13 @@
           "queryReplacement": "={{ [ $('Resolve Service & Window').item.json.sede_id ] }}"
         }
       },
-      "id": "72264c6d-c7ab-428a-8acd-a344216739dc",
+      "id": "21068166-0610-4414-8251-50f66050ef62",
       "name": "Get Sede Calendars",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1024,
-        35888
+        6592,
+        45360
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -2231,13 +2231,13 @@
         },
         "options": {}
       },
-      "id": "5ffc63c1-516a-4409-91b4-e5671e9817f9",
+      "id": "ee2eb45b-5ade-4725-aeb2-8d9ddc0c3b52",
       "name": "Sede Has Calendars?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1264,
-        35888
+        6832,
+        45360
       ]
     },
     {
@@ -2248,26 +2248,26 @@
           "responseCode": 404
         }
       },
-      "id": "3b9c6ccf-46cf-4095-92a6-850c165e4e15",
+      "id": "50ffb924-6809-461a-b678-a6928222675d",
       "name": "Respond No Calendars For Sede",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1472,
-        35984
+        7040,
+        45456
       ]
     },
     {
       "parameters": {
         "jsCode": "const ctx = $('Resolve Service & Window').first().json;\nconst service = $('Find Service').first().json;\nconst preferredDoctor = $('Find Preferred Doctor').first().json;\nconst sedeCalendars = $('Get Sede Calendars').first().json;\nconst testConfig = $input.first().json;\nconst isTestMode = !!testConfig.whatsapp_test_mode_enabled;\nconst calendarSourceIds = isTestMode\n  ? String(testConfig.whatsapp_test_calendar_source_id || '')\n  : (sedeCalendars.calendar_source_ids || '');\nconst rawMap = sedeCalendars.calendar_sede_map || [];\nconst mapRows = typeof rawMap === 'string' ? JSON.parse(rawMap) : rawMap;\nconst sedeByCalendar = {};\n(mapRows || []).forEach((r) => { sedeByCalendar[String(r.calendar_source_id)] = { sede_id: r.sede_id, sede_name: r.sede_name, sede_address: r.sede_address }; });\n\nconst durationMinutes = Number(service?.duration_minutes) || 30;\nconst hasDesiredTime = Boolean(ctx.desired_time);\nconst mode = hasDesiredTime ? 'checkAvailability' : 'listAvailability';\nconst start = hasDesiredTime\n  ? new Date(`${ctx.desired_date}T${ctx.desired_time}:00`)\n  : new Date(`${ctx.desired_date}T00:00:00`);\nconst end = new Date(start.getTime() + (hasDesiredTime ? durationMinutes : 24 * 60) * 60000);\n\nreturn [{\n  json: {\n    startingDateAndTime: start.toISOString().replace('Z', ''),\n    endingDateAndTime: end.toISOString().replace('Z', ''),\n    durationInMinutes: durationMinutes,\n    mode,\n    calendarSourceIds,\n    appointmentId: '',\n    doctorId: preferredDoctor.id || '',\n    patientId: ctx.patient_id,\n    service,\n    sedeByCalendar\n  }\n}];"
       },
-      "id": "e25a0cb5-3907-4b45-8c5f-7416beabbb96",
+      "id": "0d56bfe1-8eaf-451a-8086-f1a1a41fb20d",
       "name": "Build Availability Request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1696,
-        35792
+        7264,
+        45264
       ]
     },
     {
@@ -2371,13 +2371,13 @@
         },
         "options": {}
       },
-      "id": "90f5aab2-bcb3-40ec-8c40-0ad195377eb4",
+      "id": "c32bf6e4-38d0-4a2c-b96f-9d06b72f9e0f",
       "name": "Execute Agent_Availability2 (Check)",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        2176,
-        35792
+        7744,
+        45264
       ]
     },
     {
@@ -2404,13 +2404,13 @@
         },
         "options": {}
       },
-      "id": "4cb1683c-cbcf-4398-b10a-a705db87b7f7",
+      "id": "15c7e3f6-27fd-4c47-9a83-8bc2a2960fdf",
       "name": "List Mode?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1920,
-        35792
+        7488,
+        45264
       ]
     },
     {
@@ -2421,13 +2421,13 @@
           "queryReplacement": "={{ [ $('Build Availability Request').first().json.calendarSourceIds || '' ] }}"
         }
       },
-      "id": "53c881ad-c19e-42b5-a360-4bf02817d81b",
+      "id": "31c274ba-6de3-4e90-842d-b16744cace89",
       "name": "List Active Calendars",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2176,
-        35216
+        7744,
+        44688
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -2445,13 +2445,13 @@
           "queryReplacement": "={{ [ $('Build Availability Request').first().json.endingDateAndTime, $('Build Availability Request').first().json.startingDateAndTime, $('Build Availability Request').first().json.appointmentId || null ] }}"
         }
       },
-      "id": "0003557f-67b6-486a-81da-0082e88c3ac3",
+      "id": "9e4506c7-cb21-42f9-b896-1184390fc540",
       "name": "List Appointments In Range",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2176,
-        35424
+        7744,
+        44896
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -2469,13 +2469,13 @@
           "queryReplacement": "={{ [ $('Build Availability Request').first().json.startingDateAndTime, $('Build Availability Request').first().json.endingDateAndTime, $('Build Availability Request').first().json.durationInMinutes || 60 ] }}"
         }
       },
-      "id": "246c0711-e170-4259-ba37-4a985b8674d2",
+      "id": "8afd8481-ece9-42eb-87cf-09021326ad8c",
       "name": "List Available Doctors",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2176,
-        35616
+        7744,
+        45088
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -2489,39 +2489,39 @@
       "parameters": {
         "jsCode": "return { calendars: $input.all().map(item => item.json) };"
       },
-      "id": "9fa29cb4-78e5-4143-9ff1-ae5ff67d319f",
+      "id": "1aefcfce-2ba2-4ebb-9779-eef7c2eea870",
       "name": "List Wrap Calendars",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2416,
-        35216
+        7984,
+        44688
       ]
     },
     {
       "parameters": {
         "jsCode": "return { appointments: $input.all().map(item => item.json) };"
       },
-      "id": "db4f5b21-f8f9-4349-bdf6-9fcc1e321712",
+      "id": "44bed7b8-b28b-4302-8e09-febbb18012a9",
       "name": "List Wrap Appointments",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2416,
-        35424
+        7984,
+        44896
       ]
     },
     {
       "parameters": {
         "jsCode": "return { available_doctors: $input.all().map(item => item.json) };"
       },
-      "id": "6424403a-e0c1-45f8-970a-c771040b4dc4",
+      "id": "a4ad1153-602e-4280-a04a-505a8fb4452e",
       "name": "List Wrap Doctors",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2416,
-        35616
+        7984,
+        45088
       ]
     },
     {
@@ -2531,52 +2531,52 @@
         "numberInputs": 3,
         "options": {}
       },
-      "id": "d04d2a55-8f65-4fa3-b617-c46835baef05",
+      "id": "80ac0e93-e660-4926-8a63-b36cc9cef7e9",
       "name": "List Merge",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        2656,
-        35424
+        8224,
+        44896
       ]
     },
     {
       "parameters": {
         "jsCode": "// Réplica local de la lógica \"Get_possible_schedules\" de Agent_Availability2 (rama sin\n// disponibilidad puntual). No se modifica el sub-workflow compartido -- su contrato\n// público (mode='checkAvailability') es usado también por el frontend, así que este\n// escaneo de día completo se implementa acá, en el flujo del agente, antes de responder\n// la tool.\nconst calendars = ($input.first().json.calendars || [])\n  .filter(c => c && c.id != null);\n\nconst doctorSlots = ($input.first().json.available_doctors || []);\n\nconst allAppointments = ($input.first().json.appointments || [])\n  .filter(a => a && a.id != null);\n\nconst req = $('Build Availability Request').first().json;\nconst startTimeString = req.startingDateAndTime;\nconst endTimeString = req.endingDateAndTime;\nconst durationMinutes = parseInt(req.durationInMinutes) || 60;\n\nconst localTimezone = 'America/Montevideo';\nconst startTime = DateTime.fromISO(startTimeString, { zone: localTimezone }).toJSDate();\nconst endTime = DateTime.fromISO(endTimeString, { zone: localTimezone }).toJSDate();\nconst intervalMinutes = durationMinutes;\n\nconst possibleAppointments = [];\nlet currentTime = new Date(startTime);\n\nwhile (currentTime < endTime) {\n  const slotEndTime = new Date(currentTime.getTime() + intervalMinutes * 60000);\n  const currentLuxonTime = DateTime.fromJSDate(currentTime);\n\n  const doctorSlot = doctorSlots.find(slot => {\n    const slotLuxonTime = DateTime.fromISO(slot.local_hour_tz);\n    return slotLuxonTime.equals(currentLuxonTime);\n  });\n\n  let dbAvailableDoctors = [];\n  if (doctorSlot && doctorSlot.ids_disponibles && doctorSlot.ids_disponibles.length > 0) {\n    dbAvailableDoctors = doctorSlot.ids_disponibles;\n  } else {\n    currentTime.setMinutes(currentTime.getMinutes() + intervalMinutes);\n    continue;\n  }\n\n  const trulyAvailableDoctors = dbAvailableDoctors.filter(doctor => {\n    const isBusy = allAppointments.some(appt => {\n      const apptStart = new Date(appt.start_datetime);\n      const apptEnd = new Date(appt.end_datetime);\n      const overlaps = apptStart < slotEndTime && apptEnd > currentTime;\n      if (!overlaps) return false;\n      return appt.assignee_id === doctor.user_id;\n    });\n    return !isBusy;\n  });\n\n  if (trulyAvailableDoctors.length === 0) {\n    currentTime.setMinutes(currentTime.getMinutes() + intervalMinutes);\n    continue;\n  }\n\n  for (const calendar of calendars) {\n    const calendarSourceId = Number(calendar.id);\n    const calendarName = calendar.name;\n    const googleCalendarId = calendar.google_calendar_id;\n\n    const isCalendarBusy = allAppointments.some(appt => {\n      if (Number(appt.calendar_source_id) !== calendarSourceId) return false;\n      const apptStart = new Date(appt.start_datetime);\n      const apptEnd = new Date(appt.end_datetime);\n      return apptStart < slotEndTime && apptEnd > currentTime;\n    });\n\n    if (!isCalendarBusy) {\n      for (const doctor of trulyAvailableDoctors) {\n        possibleAppointments.push({\n          calendar_source_id: calendarSourceId,\n          calendar_name: calendarName,\n          google_calendar_id: googleCalendarId,\n          fecha_cita: currentTime.toLocaleDateString('sv-SE'),\n          hora_cita: currentTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: localTimezone }),\n          start_datetime: currentTime.toISOString(),\n          end_datetime: slotEndTime.toISOString(),\n          user_id: doctor.user_id,\n          user_name: doctor.user_name\n        });\n      }\n    }\n  }\n\n  currentTime.setMinutes(currentTime.getMinutes() + intervalMinutes);\n}\n\nreturn possibleAppointments.map(appt => ({ json: appt }));"
       },
-      "id": "229a5f94-e077-49ca-905b-0ce41530ac5c",
+      "id": "b26dfdbf-51a1-4acb-8bf6-21d26c7f4b13",
       "name": "List Build Schedules",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2896,
-        35440
+        8464,
+        44912
       ]
     },
     {
       "parameters": {
         "jsCode": "return [{ json: { isAvailable: false, suggestedTimes: $input.all().map(i => i.json) } }];"
       },
-      "id": "27d39bae-880a-44a1-a5b4-ad0b11ab96ed",
+      "id": "4f923884-4aa9-4fcb-8f70-5caf1cf4f78d",
       "name": "List Wrap Suggestions",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3136,
-        35440
+        8704,
+        44912
       ]
     },
     {
       "parameters": {
         "jsCode": "const request = $('Build Availability Request').first().json;\nconst service = request.service;\nconst sedeByCalendar = request.sedeByCalendar || {};\nconst result = $input.first().json;\n\nconst isAvailable = result?.isAvailable === true;\n\nlet chosen = null;\nif (isAvailable) {\n  const startIso = result.availableStartingTime;\n  const sede = sedeByCalendar[String(result.availableCalendarSourceId)] || {};\n  chosen = {\n    assignee_id: result.availableDoctorId,\n    assignee_name: result.availableDoctorName,\n    calendar_source_id: result.availableCalendarSourceId,\n    calendar_name: result.availableCalendarName,\n    sede_id: sede.sede_id,\n    sede_name: sede.sede_name,\n    sede_address: sede.sede_address,\n    date: startIso ? startIso.slice(0, 10) : request.startingDateAndTime.slice(0, 10),\n    time: startIso ? startIso.slice(11, 16) : request.startingDateAndTime.slice(11, 16)\n  };\n}\n\n// Agent_Availability2 devuelve una fila por cada combinación doctor x consultorio que\n// coincide en una sede+horario -- el paciente no elige doctor/consultorio en este paso\n// (eso lo resuelve automáticamente el próximo check_availability con desired_time puesto),\n// así que acá solo importa fecha+hora+sede. Deduplicamos por esa clave y espaciamos los\n// horarios (no ofrecer 09:00 y 09:20 como opciones \"distintas\") con un tope por sede, para\n// no devolver cientos de filas casi idénticas cuando se pide disponibilidad de todo un día.\nconst seen = new Set();\nconst bySede = new Map();\nfor (const s of (result?.suggestedTimes || [])) {\n  const sede = sedeByCalendar[String(s.calendar_source_id)] || {};\n  const sedeId = sede.sede_id || 'unknown';\n  const key = `${s.fecha_cita}|${s.hora_cita}|${sedeId}`;\n  if (seen.has(key)) continue;\n  seen.add(key);\n  if (!bySede.has(sedeId)) bySede.set(sedeId, { sede_name: sede.sede_name, sede_address: sede.sede_address, slots: [] });\n  bySede.get(sedeId).slots.push({ date: s.fecha_cita, time: s.hora_cita });\n}\n\nconst toMinutes = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };\nconst durationMinutes = Number(service?.duration_minutes) || 30;\nconst grainMinutes = Math.max(60, durationMinutes);\nconst MAX_PER_SEDE = 6;\n\nconst suggestions = [];\nfor (const [sedeId, data] of bySede) {\n  data.slots.sort((a, b) => (a.date === b.date ? toMinutes(a.time) - toMinutes(b.time) : a.date.localeCompare(b.date)));\n  let lastKept = null;\n  let keptForSede = 0;\n  for (const slot of data.slots) {\n    if (keptForSede >= MAX_PER_SEDE) break;\n    const sameDayAsLast = lastKept && lastKept.date === slot.date;\n    const gapOk = !sameDayAsLast || (toMinutes(slot.time) - toMinutes(lastKept.time)) >= grainMinutes;\n    if (!gapOk) continue;\n    suggestions.push({ sede_id: sedeId, sede_name: data.sede_name, sede_address: data.sede_address, date: slot.date, time: slot.time });\n    lastKept = slot;\n    keptForSede += 1;\n  }\n}\n\nreturn [{ json: {\n  service: { name: service?.name, duration_minutes: service?.duration_minutes, price: service?.price, currency: service?.currency },\n  isAvailable,\n  chosen,\n  suggestions\n} }];"
       },
-      "id": "d37d6c7e-7f3c-4a5e-a19d-eb2ec993acf6",
+      "id": "548f79a1-6efa-4395-af2a-b9c77622550d",
       "name": "Format Availability",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3424,
-        35792
+        8992,
+        45264
       ]
     },
     {
@@ -2587,13 +2587,13 @@
           "responseCode": 200
         }
       },
-      "id": "5885180f-2f72-4dd0-b1af-3966ca46610e",
+      "id": "c39ac063-1bf1-4e62-b121-688eed6f428f",
       "name": "Respond Availability",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        3664,
-        35792
+        9232,
+        45264
       ]
     },
     {
@@ -2603,13 +2603,13 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "ae875f0c-60ca-4728-992f-a4434b358f74",
+      "id": "db5d9fb8-9a36-4b7f-99ff-fe0df352b7bb",
       "name": "POST agent-tools/create-appointment",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -352,
-        36352
+        5216,
+        45824
       ],
       "webhookId": "a84e48f4-e3e1-48a0-b9c6-8280e2076703"
     },
@@ -2617,13 +2617,13 @@
       "parameters": {
         "jsCode": "const input = $input.first().json;\nconst body = input.body || {};\nconst patientId = String(body.patient_id || '').trim();\nconst required = ['calendar_source_id', 'date', 'time', 'services'];\nconst missing = required.filter((k) => !body[k]);\nif (!patientId) missing.unshift('patient_id');\n\nif (missing.length > 0) {\n  return [{ json: { __error: true, code: 400, message: `Missing required fields: ${missing.join(', ')}` } }];\n}\n\nreturn [{\n  json: {\n    patient_id: patientId,\n    assignee_id: body.assignee_id ? body.assignee_id : null,\n    calendar_source_id: body.calendar_source_id,\n    date: body.date,\n    time: body.time,\n    services: body.services,\n    notes: String(body.notes || '').trim()\n  }\n}];"
       },
-      "id": "bd315e32-8ca1-4846-bf13-33c1d61ecce7",
+      "id": "420b9220-c3e2-48f9-922d-6fbbb49a5418",
       "name": "Parse Create Appointment Input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -112,
-        36352
+        5456,
+        45824
       ]
     },
     {
@@ -2651,13 +2651,13 @@
         },
         "options": {}
       },
-      "id": "225dc35b-465a-4428-9dd0-a562aaf0f94e",
+      "id": "e6c7ffbe-89c9-43b7-8563-405f75e12d03",
       "name": "Has Error? (Create Appointment Input)",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        128,
-        36352
+        5696,
+        45824
       ]
     },
     {
@@ -2668,13 +2668,13 @@
           "responseCode": "={{ $json.code }}"
         }
       },
-      "id": "c6c5bdeb-b4d5-4f82-9c2e-086e7941ea93",
+      "id": "c2c3b0ae-5460-42b7-b653-389dbb251de9",
       "name": "Respond Create Appointment Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        352,
-        36256
+        5920,
+        45728
       ]
     },
     {
@@ -2685,13 +2685,13 @@
           "queryReplacement": "={{ [ $('Parse Create Appointment Input').item.json.services.split(',').map(item => item.trim()) ] }}"
         }
       },
-      "id": "d2e884d6-5d2f-48a6-ac0f-528e975916ae",
+      "id": "8b9036c9-9286-4a21-91c0-174b5d2897ad",
       "name": "Find Service (Create Appointment)",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        352,
-        36448
+        5920,
+        45920
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -2705,13 +2705,13 @@
       "parameters": {
         "jsCode": "const input = $('Parse Create Appointment Input').first().json;\nconst service = $input.first().json;\n\nconst durationMinutes = Number(service.duration_minutes) || 30;\nconst start = new Date(`${input.date}T${input.time}:00`);\nconst end = new Date(start.getTime() + durationMinutes * 60 * 1000);\n\nconst toLocalTimestamp = (d) => d.toISOString().replace('Z', '');\n\nreturn [{\n  json: {\n    ...input,\n    start_datetime: toLocalTimestamp(start),\n    end_datetime: toLocalTimestamp(end)\n  }\n}];"
       },
-      "id": "1820b413-d666-4c8a-bf08-bf5cc8f72ac0",
+      "id": "e848f009-5a4e-4304-8f2d-7245881eec70",
       "name": "Compute Datetime Range",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        576,
-        36448
+        6144,
+        45920
       ]
     },
     {
@@ -2722,13 +2722,13 @@
           "queryReplacement": "={{ [ $('Compute Datetime Range').item.json.assignee_id ] }}"
         }
       },
-      "id": "52f0ced0-3fdd-4f69-88f6-a0bba3d6ee31",
+      "id": "d790f907-e342-466b-9a5f-37e2078c8415",
       "name": "Get Assignee Info",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        800,
-        36448
+        6368,
+        45920
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -2742,13 +2742,13 @@
       "parameters": {
         "jsCode": "const ctx = $('Compute Datetime Range').first().json;\nconst doctorInfo = $('Get Assignee Info').first().json;\nconst testConfig = $input.first().json;\nconst isTestMode = !!testConfig.whatsapp_test_mode_enabled;\nconst durationMinutes = Math.round((new Date(ctx.end_datetime).getTime() - new Date(ctx.start_datetime).getTime()) / 60000);\n\nreturn [{\n  json: {\n    startingDateAndTime: ctx.start_datetime,\n    endingDateAndTime: ctx.end_datetime,\n    durationInMinutes: durationMinutes,\n    mode: 'checkAvailability',\n    calendarSourceIds: isTestMode\n      ? String(testConfig.whatsapp_test_calendar_source_id || '')\n      : String(ctx.calendar_source_id || doctorInfo.calendar_source_id || ''),\n    appointmentId: '',\n    doctorId: ctx.assignee_id || '',\n    patientId: ctx.patient_id\n  }\n}];"
       },
-      "id": "b12ff0dc-0d87-44b2-be19-9af172d85241",
+      "id": "c8440157-58e3-482d-b6c8-7b62dc8824b5",
       "name": "Build Availability Request (Confirm)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1280,
-        36448
+        6848,
+        45920
       ]
     },
     {
@@ -2852,26 +2852,26 @@
         },
         "options": {}
       },
-      "id": "defb93f5-0eaa-4a20-8408-6c5614b67f8c",
+      "id": "df332484-72ac-4b31-904a-1e86ca307e25",
       "name": "Execute Agent_Availability2 (Confirm)",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        1504,
-        36448
+        7072,
+        45920
       ]
     },
     {
       "parameters": {
         "jsCode": "const ctx = $('Compute Datetime Range').first().json;\nconst doctorInfo = $('Get Assignee Info').first().json;\nconst result = $input.first().json;\n\nconst isAvailable = result?.isAvailable === true;\nconst resolvedCalendarSourceId = ctx.calendar_source_id || doctorInfo.calendar_source_id;\n\nconst suggestions = (result?.suggestedTimes || []).map((s) => ({\n  assignee_id: s.user_id,\n  assignee_name: s.user_name,\n  calendar_source_id: s.calendar_source_id,\n  calendar_name: s.calendar_name,\n  date: s.fecha_cita,\n  time: s.hora_cita\n}));\n\nreturn [{ json: { ...ctx, calendar_source_id: resolvedCalendarSourceId, is_available: isAvailable, suggestions } }];"
       },
-      "id": "cb1aa3f1-2fab-4e07-a344-bf75b5b55626",
+      "id": "dd8f3816-7cf5-4979-a57b-3867775ad0d3",
       "name": "Check Still Available",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1728,
-        36448
+        7296,
+        45920
       ]
     },
     {
@@ -2899,13 +2899,13 @@
         },
         "options": {}
       },
-      "id": "9a61e647-2755-427d-866b-14a76270fa1e",
+      "id": "482849a2-9906-4400-b7c7-8e01e184811f",
       "name": "Still Available?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1952,
-        36448
+        7520,
+        45920
       ]
     },
     {
@@ -2916,13 +2916,13 @@
           "responseCode": 409
         }
       },
-      "id": "c2c2a2de-f7b1-4455-8842-e6fab991d5d9",
+      "id": "6b96d73f-759f-4cac-b3e0-5077c9f445cc",
       "name": "Respond No Longer Available",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        2192,
-        36544
+        7760,
+        46016
       ]
     },
     {
@@ -2933,13 +2933,13 @@
           "queryReplacement": "={{ [ $('Parse Create Appointment Input').first().json.patient_id, $json.assignee_id, $json.calendar_source_id || null, $json.start_datetime, $json.end_datetime, $json.services.split(',').join(', '), $json.notes || '',  $('Find Service (Create Appointment)').all().map(item => item.json.id), $('Get WhatsApp Test Config (Create)').first().json.whatsapp_agent_appointment_color || '', $('Get Assignee Info').first().json.name || '' ] }}"
         }
       },
-      "id": "c89bd203-86f8-48cb-9e57-7b355c32398e",
+      "id": "f05f2a1e-86ee-4ef0-8b60-2893e45e9b23",
       "name": "Insert Appointment",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2192,
-        36352
+        7760,
+        45824
       ],
       "credentials": {
         "postgres": {
@@ -2956,13 +2956,13 @@
           "responseCode": 200
         }
       },
-      "id": "ea937433-c314-43f7-aef8-84025cd81987",
+      "id": "ced05c26-5929-4caf-8d91-70021f594d21",
       "name": "Respond Appointment Confirmed",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        2432,
-        36352
+        8000,
+        45824
       ]
     },
     {
@@ -2977,10 +2977,10 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        3488,
-        34096
+        10160,
+        43328
       ],
-      "id": "b2bceb00-de1a-47be-975e-1f6aaef4911d",
+      "id": "0473de37-366f-4183-8f43-0271c529aa25",
       "name": "Whatsapp Agent1"
     },
     {
@@ -2991,13 +2991,13 @@
           "queryReplacement": "={{ [ $('Validate Input (Patient)').item.json.template_code ] }}"
         }
       },
-      "id": "ac482105-ef71-44b3-bfb8-773b951580cc",
+      "id": "a2a9a8de-adfd-440e-9fcb-b34ebf70b055",
       "name": "Get Communication Template",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1072,
-        33200
+        6640,
+        42672
       ],
       "credentials": {
         "postgres": {
@@ -3031,13 +3031,13 @@
         },
         "options": {}
       },
-      "id": "1d36bd62-fdad-480a-8fd9-0420a8ee3fe6",
+      "id": "c3017fc9-91b2-4729-b852-7e091c6f586f",
       "name": "Template Found?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1280,
-        33200
+        6848,
+        42672
       ]
     },
     {
@@ -3048,26 +3048,26 @@
           "responseCode": 404
         }
       },
-      "id": "a945f773-c1e4-4d33-9370-14a545983d62",
+      "id": "4ee622fe-00b4-488f-ac82-5dbc60f95cd3",
       "name": "Respond 404 Template",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1504,
-        33296
+        7072,
+        42768
       ]
     },
     {
       "parameters": {
         "jsCode": "const resolved = $input.first().json;\nconst tpl = $('Get Communication Template').first().json;\nconst schema = tpl.variables_schema || {};\n\nconst variables = {};\nfor (const [metaVarName, fieldKey] of Object.entries(schema)) {\n  if (!(fieldKey in resolved.fields)) {\n    return [{ json: { __error: true, code: 500, message: `variables_schema references unknown field \"${fieldKey}\" for template \"${tpl.code}\". Available fields: ${Object.keys(resolved.fields).join(', ')}` } }];\n  }\n  variables[metaVarName] = resolved.fields[fieldKey];\n}\n\nreturn [{\n  json: {\n    phone: resolved.phone,\n    meta_template_name: tpl.code,\n    meta_language: tpl.provider_language || 'es',\n    variables,\n    alert_instance_id: resolved.alert_instance_id || null,\n    performed_by: resolved.performed_by || null\n  }\n}];"
       },
-      "id": "ef7f0219-8e1d-43f5-ad70-68dfbe11c046",
+      "id": "e3ec5455-86e2-4d5e-963d-89063c0be484",
       "name": "Map Variables via Schema",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2656,
-        32912
+        8224,
+        42384
       ]
     },
     {
@@ -3105,13 +3105,13 @@
         },
         "options": {}
       },
-      "id": "36d5d2f8-b6e3-4ea8-89cc-9210ee54eba0",
+      "id": "0a0b633a-791f-4ce4-84d1-3789c7bd4af5",
       "name": "Has Alert Instance?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        4432,
-        33104
+        10000,
+        42576
       ]
     },
     {
@@ -3122,13 +3122,13 @@
           "queryReplacement": "={{ [ $json.alert_instance_id, JSON.stringify({ phone: $json.phone, template_code: $json.meta_template_name, variables: $json.variables, message_id: $json.message_id }), $json.performed_by ] }}"
         }
       },
-      "id": "1715f04c-1b6a-4a9b-87e5-70a78f995edd",
+      "id": "2eec3f90-dead-44e6-88c0-19142ba3caaa",
       "name": "Insert Alert Action",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        4672,
-        33008
+        10240,
+        42480
       ],
       "credentials": {
         "postgres": {
@@ -3144,13 +3144,13 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "72fca4cf-9135-4323-a50d-bb6de65d9483",
+      "id": "8a0dd743-1dd8-4bf6-94b6-1c1028ef365e",
       "name": "GET /whatsapp-templates",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -336,
-        32496
+        5232,
+        41968
       ],
       "webhookId": "patients-send-whatsapp-template",
       "credentials": {
@@ -3168,10 +3168,10 @@
       "type": "@ycloud-ai/n8n-nodes-ycloud.ycloud",
       "typeVersion": 1,
       "position": [
-        -112,
-        32496
+        5456,
+        41968
       ],
-      "id": "3e09514d-2bc7-44cc-b971-ec131bdb3ee7",
+      "id": "f20ce223-7c86-4b52-b767-e349d9dbb52a",
       "name": "Get Templates (YCloud)1",
       "alwaysOutputData": true,
       "credentials": {
@@ -3190,10 +3190,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        320,
-        32496
+        5888,
+        41968
       ],
-      "id": "96def811-dfc0-4c10-b449-e0af96e2a182",
+      "id": "38f9b12d-a4d9-4b59-aa78-ce682cf09112",
       "name": "Respond 2001"
     },
     {
@@ -3203,10 +3203,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        96,
-        32496
+        5664,
+        41968
       ],
-      "id": "6be012fd-59d1-4032-9dbc-d595eee1d086",
+      "id": "ac92e21d-8ab4-44be-9caa-bd9d5c674d45",
       "name": "Code in JavaScript"
     },
     {
@@ -3216,10 +3216,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3856,
-        34096
+        10528,
+        43328
       ],
-      "id": "7237caf1-d8f1-4dae-89c0-98927b4bffae",
+      "id": "25721d4e-8efd-4631-ae26-0b25a1c13849",
       "name": "Format output"
     },
     {
@@ -3233,10 +3233,10 @@
       "type": "n8n-nodes-base.postgresTool",
       "typeVersion": 2.6,
       "position": [
-        3728,
-        34336
+        10176,
+        43536
       ],
-      "id": "0e467419-326d-4003-b6ba-8837d019f6e1",
+      "id": "15403b08-1386-41a5-b26a-591b61f7eb43",
       "name": "get_clinic_info",
       "credentials": {
         "postgres": {
@@ -3256,10 +3256,10 @@
       "type": "n8n-nodes-base.postgresTool",
       "typeVersion": 2.6,
       "position": [
-        3728,
-        34496
+        10176,
+        43696
       ],
-      "id": "67f6a07a-e470-4625-ba75-b1aee922937d",
+      "id": "ebffd03e-b35a-4e05-b508-dd410ca4a01d",
       "name": "list_sedes",
       "credentials": {
         "postgres": {
@@ -3281,10 +3281,10 @@
       "type": "n8n-nodes-base.postgresTool",
       "typeVersion": 2.6,
       "position": [
-        3728,
-        34656
+        10176,
+        43856
       ],
-      "id": "cf8cf1fb-3cbc-4597-b5b7-a9d1d3b6ebcd",
+      "id": "ccc38de1-39fb-4512-9e67-b14f83944257",
       "name": "list_services",
       "credentials": {
         "postgres": {
@@ -3306,10 +3306,10 @@
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.4,
       "position": [
-        3904,
-        34496
+        10352,
+        43696
       ],
-      "id": "f9308fc1-3248-4f41-b5b2-6144735fde21",
+      "id": "4462fa01-6773-4f7e-94ae-cee2f14799d6",
       "name": "check_availability"
     },
     {
@@ -3325,10 +3325,10 @@
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.4,
       "position": [
-        4080,
-        34336
+        10528,
+        43536
       ],
-      "id": "da4a5946-3cad-41c2-93b9-ccc70219fb6f",
+      "id": "2bec3a1c-cce8-4b62-bc4a-26a551b4bf49",
       "name": "get_upcoming_appointments"
     },
     {
@@ -3344,10 +3344,10 @@
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.4,
       "position": [
-        4080,
-        34496
+        10528,
+        43696
       ],
-      "id": "ac65965d-ee23-43b7-a2e8-fcd109e6a7e8",
+      "id": "d8cb7e4d-21a8-4641-bb93-b1e8298a6e97",
       "name": "create_appointment"
     },
     {
@@ -3363,10 +3363,10 @@
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.4,
       "position": [
-        3904,
-        34336
+        10352,
+        43536
       ],
-      "id": "b3c8bf5c-c1bf-4c9b-80e8-9afc935cd883",
+      "id": "4ee2a952-bb72-42ff-8d48-078ab1911360",
       "name": "get_account_status"
     },
     {
@@ -3382,10 +3382,10 @@
       "type": "n8n-nodes-base.postgresTool",
       "typeVersion": 2.6,
       "position": [
-        3728,
-        34816
+        10176,
+        44016
       ],
-      "id": "54123f9b-26de-42f7-9ab6-cee43bbce7ff",
+      "id": "0ee8e015-0895-48dc-9680-e4b5d0844858",
       "name": "get_schedules",
       "credentials": {
         "postgres": {
@@ -3404,13 +3404,13 @@
         "jsonBody": "={{ JSON.stringify({ name: $fromAI('name', 'Nombre completo del paciente', 'string'), email: $fromAI('email', 'Email del paciente; dejar vacío si no lo proporcionó', 'string', ''), phone_number: $('Build Agent Context').item.json.phone }) }}",
         "options": {}
       },
-      "id": "760e6f6e-02f7-4a79-8cf6-21844ddb5d49",
+      "id": "7245cc43-46d0-41c8-83d5-545226a0b635",
       "name": "register_patient",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.4,
       "position": [
-        3904,
-        34832
+        10352,
+        44032
       ]
     },
     {
@@ -3420,13 +3420,13 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "91ea4b59-1c5c-4d02-91a7-3886c8316ca3",
+      "id": "6e1a2a73-3473-4d01-bb6e-798fd40a1870",
       "name": "POST agent-tools/register-patient",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -352,
-        38048
+        5216,
+        47520
       ],
       "webhookId": "f4d2abcf-aa3c-428b-8821-8ab36f1b3927"
     },
@@ -3434,13 +3434,13 @@
       "parameters": {
         "jsCode": "const input = $input.first().json;\nconst body = input.body || {};\nconst name = String(body.name || '').trim();\nconst phone = String(body.phone_number || '').trim();\nconst emailRaw = String(body.email || '').trim();\nconst emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\n\nconst missing = [];\nif (!name) missing.push('name');\nif (!phone) missing.push('phone_number');\n\nif (missing.length > 0) {\n  return [{ json: { __error: true, code: 400, message: `Missing required fields: ${missing.join(', ')}` } }];\n}\n\nif (emailRaw && !emailRegex.test(emailRaw)) {\n  return [{ json: { __error: true, code: 400, message: 'Invalid email format' } }];\n}\n\nreturn [{ json: { name, phone_number: phone, email: emailRaw } }];"
       },
-      "id": "cbb2fcc3-a184-4847-bed8-aee573af31ea",
+      "id": "ab2a473a-d4f9-46a2-a325-705fea6bb351",
       "name": "Parse Register Patient Input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -112,
-        38048
+        5456,
+        47520
       ]
     },
     {
@@ -3468,13 +3468,13 @@
         },
         "options": {}
       },
-      "id": "25687100-2115-416a-81e2-85f120e88c4e",
+      "id": "b395cfeb-3094-41b1-9c9a-7a578ec25d78",
       "name": "Has Error? (Register Patient Input)",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        112,
-        38048
+        5680,
+        47520
       ]
     },
     {
@@ -3485,13 +3485,13 @@
           "responseCode": "={{ $json.code }}"
         }
       },
-      "id": "955eb1a0-dd7b-4af4-991c-d9b59631f55a",
+      "id": "b5191d4e-0e88-4cee-ab9d-a5c2a0aecbf1",
       "name": "Respond Register Patient Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        336,
-        37936
+        5904,
+        47408
       ]
     },
     {
@@ -3502,13 +3502,13 @@
           "queryReplacement": "={{ [ $json.name, $json.phone_number, $json.email ] }}"
         }
       },
-      "id": "b311bd05-926c-4ef7-8fa0-ab6606b16032",
+      "id": "3b4a9e6b-d10f-4188-bba8-03d987fba049",
       "name": "Upsert Patient",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        336,
-        38144
+        5904,
+        47616
       ],
       "credentials": {
         "postgres": {
@@ -3542,13 +3542,13 @@
         },
         "options": {}
       },
-      "id": "ed8e0052-8a1a-470e-ab99-182e2395cd10",
+      "id": "c11cf6c0-96aa-4fa6-84c8-cca184971bc2",
       "name": "Was Created? (Register Patient)",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        576,
-        38144
+        6144,
+        47616
       ]
     },
     {
@@ -3559,13 +3559,13 @@
           "queryReplacement": "={{ [ $('Upsert Patient').item.json.id ] }}"
         }
       },
-      "id": "6d27b0a2-8620-4e23-9678-f74e63f84220",
+      "id": "9df57ee3-fe65-4e31-8a68-03668c7e81bc",
       "name": "Assign Patient Role",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        816,
-        38032
+        6384,
+        47504
       ],
       "credentials": {
         "postgres": {
@@ -3578,13 +3578,13 @@
       "parameters": {
         "jsCode": "const patient = $('Upsert Patient').first().json;\nreturn [{\n  json: {\n    patient_id: patient.id,\n    name: patient.name,\n    phone_number: patient.phone_number,\n    email: patient.email || null,\n    already_registered: patient.created !== true\n  }\n}];"
       },
-      "id": "075fdba0-bf7a-457a-803d-ba9be8ffcf9a",
+      "id": "8cee2b56-dd09-4c31-a043-6261dd0ac8ae",
       "name": "Format Register Patient Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1056,
-        38144
+        6624,
+        47616
       ]
     },
     {
@@ -3595,13 +3595,13 @@
           "responseCode": 200
         }
       },
-      "id": "22dc32e9-da44-4e44-97fc-ef197341280b",
+      "id": "7d32b0af-82de-433c-afb2-30135e46ff64",
       "name": "Respond Register Patient",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1296,
-        38144
+        6864,
+        47616
       ]
     },
     {
@@ -3615,10 +3615,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2432,
-        36160
+        8000,
+        45632
       ],
-      "id": "5fd82052-7dea-409f-9750-25caa4a7b234",
+      "id": "81b0b019-e93d-4dfb-83b3-126e19a7b7e3",
       "name": "Get appointment data1",
       "credentials": {
         "postgres": {
@@ -3684,10 +3684,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        2672,
-        36160
+        8240,
+        45632
       ],
-      "id": "c5e02307-829d-4bd2-8815-1a7c4b61d1a7",
+      "id": "77aa3ce7-db2a-4643-8b13-1c76829ec8a3",
       "name": "Call 'Create Bulk Notification'"
     },
     {
@@ -3696,13 +3696,13 @@
         "query": "SELECT\n  COALESCE((SELECT value FROM public.system_configurations WHERE key = 'whatsapp_followup_enabled')::boolean, true) AS whatsapp_followup_enabled,\n  COALESCE((SELECT value FROM public.system_configurations WHERE key = 'whatsapp_followup_delay_hours')::int, 4) AS whatsapp_followup_delay_hours;",
         "options": {}
       },
-      "id": "8d4e73aa-f304-433b-a90c-a9d497de75ff",
+      "id": "bb74f94e-b149-494b-b66d-7e9c89062a83",
       "name": "Get Followup Config",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -112,
-        38656
+        5456,
+        48128
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -3737,30 +3737,30 @@
         },
         "options": {}
       },
-      "id": "beaa821c-83e0-415e-aeb5-8209e2854055",
+      "id": "469d29ea-d395-440f-b385-69b1f7875053",
       "name": "Followup Enabled?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        128,
-        38656
+        5696,
+        48128
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT phone, transcript\nFROM public.whatsapp_conversation_activity\nWHERE last_sender = 'bot'\n  AND pending = true\n  AND COALESCE(agent_paused, false) = false\n  AND last_message_at <= NOW() - ($1::text || ' hours')::interval;",
+        "query": "SELECT\n  wca.phone,\n  COALESCE((\n    SELECT string_agg(\n      CASE m.sender\n        WHEN 'patient' THEN 'Paciente: '\n        WHEN 'bot' THEN 'Asistente: '\n        ELSE 'Agente humano: '\n      END || m.message_text,\n      E'\\n' ORDER BY m.created_at\n    )\n    FROM (\n      SELECT sender, message_text, created_at\n      FROM whatsapp_conversation_messages\n      WHERE phone = wca.phone\n      ORDER BY created_at DESC\n      LIMIT 20\n    ) m\n  ), '') AS transcript\nFROM public.whatsapp_conversation_activity wca\nWHERE wca.last_sender = 'bot'\n  AND wca.pending = true\n  AND COALESCE(wca.agent_paused, false) = false\n  AND wca.last_message_at <= NOW() - ($1::text || ' hours')::interval;",
         "options": {
           "queryReplacement": "={{ [ $('Get Followup Config').item.json.whatsapp_followup_delay_hours ] }}"
         }
       },
-      "id": "7004dd0f-bd30-4172-afbc-2d92ed3e2c3c",
+      "id": "2113c02c-20e8-4c0f-9787-d0e8f05e79a4",
       "name": "Find Due Conversations",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        352,
-        38576
+        5920,
+        48048
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -3774,13 +3774,13 @@
       "parameters": {
         "options": {}
       },
-      "id": "1eedbb58-0f62-416e-8483-e83865770373",
+      "id": "c06fe58b-5b58-476d-8103-97f52836a529",
       "name": "Loop Over Conversations",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        848,
-        38560
+        6416,
+        48032
       ]
     },
     {
@@ -3791,13 +3791,13 @@
         "body": "={{ $json.text.trim() }}",
         "requestOptions": {}
       },
-      "id": "7c846fc9-6658-4564-9bc3-2c75cc31d25d",
+      "id": "28746a65-9747-42d3-a63f-fba337776c29",
       "name": "Send Followup Message",
       "type": "@ycloud-ai/n8n-nodes-ycloud.ycloud",
       "typeVersion": 1,
       "position": [
-        1440,
-        38656
+        7008,
+        48128
       ],
       "credentials": {
         "ycloudApi": {
@@ -3815,13 +3815,13 @@
           "queryReplacement": "={{ [ $('Find Due Conversations').item.json.phone, JSON.stringify({ type: 'ai', content: $('Basic LLM Chain').item.json.text.trim(), tool_calls: [], additional_kwargs: {}, response_metadata: {}, invalid_tool_calls: [] }) ] }}"
         }
       },
-      "id": "3279efa2-75d7-4b98-91df-1e734f5b4546",
+      "id": "20a27ba6-01f7-49bc-96d2-58728cb8409b",
       "name": "Insert Followup Into Memory",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1664,
-        38560
+        7232,
+        48032
       ],
       "credentials": {
         "postgres": {
@@ -3833,18 +3833,18 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE whatsapp_conversation_activity\nSET last_message_at = NOW(),\n    last_sender = 'bot',\n    pending = false,\n    transcript = array_to_string(\n      (string_to_array(coalesce(transcript, ''), E'\\n') || ARRAY[('Asistente: ' || $2)])\n        [greatest(1, cardinality(string_to_array(coalesce(transcript, ''), E'\\n')) + 1 - 20):],\n      E'\\n'\n    ),\n    updated_at = NOW()\nWHERE phone = $1;",
+        "query": "UPDATE whatsapp_conversation_activity\nSET last_message_at = NOW(),\n    last_sender = 'bot',\n    pending = false,\n    updated_at = NOW()\nWHERE phone = $1;",
         "options": {
-          "queryReplacement": "={{ [ $('Find Due Conversations').item.json.phone, $('Basic LLM Chain').item.json.text.trim() ] }}"
+          "queryReplacement": "={{ [ $('Find Due Conversations').item.json.phone ] }}"
         }
       },
-      "id": "2e5c23fc-74e4-4554-b3cd-a5eb1d329916",
+      "id": "ce662204-1f3b-4746-b4f3-8cfb00842a12",
       "name": "Mark Followup Sent",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1904,
-        38560
+        7472,
+        48032
       ],
       "credentials": {
         "postgres": {
@@ -3862,10 +3862,10 @@
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
       "position": [
-        1072,
-        38656
+        6640,
+        48128
       ],
-      "id": "4ead6fe3-ab27-4298-8a1a-2a65de41793e",
+      "id": "50c708ea-adff-4f5d-b7d9-3c43bed718b5",
       "name": "Basic LLM Chain"
     },
     {
@@ -3882,10 +3882,10 @@
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.3,
       "position": [
-        -352,
-        38656
+        5216,
+        48128
       ],
-      "id": "6a942137-366e-4666-8332-d655584fa0ba",
+      "id": "47609b96-223b-48eb-a81c-9164eb3b0fbf",
       "name": "Schedule Trigger"
     },
     {
@@ -3902,10 +3902,10 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.3,
       "position": [
-        3472,
-        34336
+        9920,
+        43536
       ],
-      "id": "2abda357-9a86-4a94-9fee-f4829a62b349",
+      "id": "730cfb69-e221-4099-9b95-5fed6e677ba7",
       "name": "OpenAI Chat Model",
       "credentials": {
         "openAiApi": {
@@ -3928,10 +3928,10 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.3,
       "position": [
-        1072,
-        38816
+        6640,
+        48288
       ],
-      "id": "62c1d12d-8e70-40f7-9be1-75052e66724e",
+      "id": "00b0081a-bd7e-4c53-83af-8108c2dfac84",
       "name": "OpenAI Chat Model1",
       "credentials": {
         "openAiApi": {
@@ -3968,25 +3968,25 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        592,
-        38576
+        6160,
+        48048
       ],
-      "id": "7668b64d-f609-45ca-a936-ea73cf8fe580",
+      "id": "6bf004ec-2711-471b-903a-03a24c3d3bc7",
       "name": "If"
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT\n  COALESCE((SELECT value FROM public.system_configurations WHERE key = 'whatsapp_agent_enabled')::boolean, true) AS whatsapp_agent_enabled,\n  (SELECT value FROM public.system_configurations WHERE key = 'whatsapp_agent_business_hours') AS whatsapp_agent_business_hours;",
+        "query": "SELECT\n  COALESCE((SELECT value FROM public.system_configurations WHERE key = 'whatsapp_agent_enabled')::boolean, true) AS whatsapp_agent_enabled,\n  (SELECT value FROM public.system_configurations WHERE key = 'whatsapp_agent_business_hours') AS whatsapp_agent_business_hours,\n  COALESCE((SELECT value FROM public.system_configurations WHERE key = 'whatsapp_agent_debounce_seconds')::int, 30) AS whatsapp_agent_debounce_seconds;",
         "options": {}
       },
-      "id": "ec0403d2-3ff8-4415-80b9-dc4c20f15369",
+      "id": "6f186e1a-d167-4c4e-b001-3ed9005d9c71",
       "name": "Get WhatsApp Agent Config",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -112,
-        34304
+        5456,
+        43776
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -4021,13 +4021,13 @@
         },
         "options": {}
       },
-      "id": "260b1958-33e6-4ea4-b672-9ae347f53aa2",
+      "id": "f691a849-7df2-4508-9029-140938ac3377",
       "name": "Agent Enabled?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        128,
-        34304
+        5696,
+        43776
       ]
     },
     {
@@ -4038,13 +4038,13 @@
           "responseCode": 200
         }
       },
-      "id": "1bed5f1d-1261-4f39-8ab2-0a4803117b6e",
+      "id": "df7a7642-882d-4897-8bc5-0b97059e1f10",
       "name": "Respond Ack (agent disabled)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        368,
-        34400
+        5936,
+        43872
       ]
     },
     {
@@ -4053,13 +4053,13 @@
         "query": "SELECT COALESCE((SELECT value FROM public.system_configurations WHERE key = 'whatsapp_templates_enabled')::boolean, true) AS whatsapp_templates_enabled;",
         "options": {}
       },
-      "id": "74aeb9b0-0832-49ed-b35f-9058b6847869",
+      "id": "d2de035a-c60a-414b-998b-4cbf00c54998",
       "name": "Get WhatsApp Templates Config",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -96,
-        33200
+        5472,
+        42672
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -4094,13 +4094,13 @@
         },
         "options": {}
       },
-      "id": "15054395-dfb0-4aea-b180-c02fff81ddfb",
+      "id": "e783d235-a954-4d09-89ff-89ca917cde5e",
       "name": "Templates Enabled?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        144,
-        33200
+        5712,
+        42672
       ]
     },
     {
@@ -4111,13 +4111,13 @@
           "responseCode": 403
         }
       },
-      "id": "44213596-f82e-412c-9b94-547a1a2a8f9f",
+      "id": "56c10b23-5e7d-47f5-bc4c-5c605234be73",
       "name": "Respond Error (templates disabled)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        352,
-        33296
+        5920,
+        42768
       ]
     },
     {
@@ -4126,13 +4126,13 @@
         "query": "SELECT\n  COALESCE((SELECT value FROM public.system_configurations WHERE key = 'whatsapp_test_mode_enabled')::boolean, false) AS whatsapp_test_mode_enabled,\n  COALESCE((SELECT value FROM public.system_configurations WHERE key = 'whatsapp_test_phone_whitelist'), '') AS whatsapp_test_phone_whitelist;",
         "options": {}
       },
-      "id": "602aa19c-a06d-4253-9ee7-0d341b083f49",
+      "id": "649c9abb-8701-4c4b-a0a9-effa6a148d9f",
       "name": "Get WhatsApp Test Config",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        848,
-        34096
+        6416,
+        43568
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -4146,13 +4146,13 @@
       "parameters": {
         "jsCode": "const cfg = $input.first().json;\nconst phone = $('Filter & Extract Inbound Message').first().json.from_phone;\n\nconst testModeEnabled = !!cfg.whatsapp_test_mode_enabled;\nconst rawList = cfg.whatsapp_test_phone_whitelist || '';\nconst whitelist = rawList\n  .split(',')\n  .map((p) => '+' + String(p).trim().replace(/\\D/g, ''))\n  .filter((p) => p !== '+');\n\nconst isWhitelisted = whitelist.includes(phone);\nconst allowed = !testModeEnabled || isWhitelisted;\n\nreturn [{\n  json: {\n    allowed,\n    is_test_mode: testModeEnabled,\n    is_whitelisted: isWhitelisted\n  }\n}];"
       },
-      "id": "aa1df3c3-45b3-4289-a35a-81083c7702a0",
+      "id": "f5186387-29c9-4adf-ba12-66bb7c60caba",
       "name": "Check Test Whitelist",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1088,
-        34096
+        6656,
+        43568
       ]
     },
     {
@@ -4180,13 +4180,13 @@
         },
         "options": {}
       },
-      "id": "5f0181e5-3e7b-445c-8f10-8e269385688b",
+      "id": "17435379-8814-4e53-b3da-76b0589b6899",
       "name": "Allowed To Proceed? (Test Mode)",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1328,
-        34096
+        6896,
+        43568
       ]
     },
     {
@@ -4197,13 +4197,13 @@
           "responseCode": 200
         }
       },
-      "id": "ff205246-b268-4212-918b-482f48aac5a8",
+      "id": "308ad934-6653-4191-89d5-05a0ee91bfcf",
       "name": "Respond Ack (test mode - not whitelisted)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1552,
-        34192
+        7120,
+        43664
       ]
     },
     {
@@ -4212,13 +4212,13 @@
         "query": "SELECT\n  COALESCE((SELECT value FROM public.system_configurations WHERE key = 'whatsapp_test_mode_enabled')::boolean, false) AS whatsapp_test_mode_enabled,\n  (SELECT value FROM public.system_configurations WHERE key = 'whatsapp_test_calendar_source_id') AS whatsapp_test_calendar_source_id;",
         "options": {}
       },
-      "id": "625f8f6e-2831-4a15-985f-446edae50b95",
+      "id": "7ca04f3e-afc9-4029-a1c4-61fc5bb91f52",
       "name": "Get WhatsApp Test Config (Check)",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1472,
-        35792
+        7040,
+        45264
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -4234,13 +4234,13 @@
         "query": "SELECT\n  COALESCE((SELECT value FROM public.system_configurations WHERE key = 'whatsapp_test_mode_enabled')::boolean, false) AS whatsapp_test_mode_enabled,\n  (SELECT value FROM public.system_configurations WHERE key = 'whatsapp_test_calendar_source_id') AS whatsapp_test_calendar_source_id,\n  (SELECT value FROM public.system_configurations WHERE key = 'whatsapp_agent_appointment_color') AS whatsapp_agent_appointment_color;",
         "options": {}
       },
-      "id": "1a093f93-1a55-4ef0-b918-8ae55f31767e",
+      "id": "4b0c0371-fe22-4e76-924d-e5835d857e8e",
       "name": "Get WhatsApp Test Config (Create)",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1040,
-        36448
+        6608,
+        45920
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -4256,13 +4256,13 @@
         "query": "SELECT\n  COALESCE((SELECT value FROM public.system_configurations WHERE key = 'whatsapp_test_mode_enabled')::boolean, false) AS whatsapp_test_mode_enabled,\n  (SELECT value FROM public.system_configurations WHERE key = 'whatsapp_test_calendar_source_id') AS whatsapp_test_calendar_source_id;",
         "options": {}
       },
-      "id": "8b7434bd-e666-4d22-8a0d-c7442e89c0e0",
+      "id": "eaabace4-95f4-4f11-b2f4-e11c19f58a63",
       "name": "Get WhatsApp Test Config (Reschedule)",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1552,
-        37568
+        7120,
+        47040
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -4280,13 +4280,13 @@
           "queryReplacement": "={{ [ $('Build Agent Context').item.json.phone ] }}"
         }
       },
-      "id": "381e11e4-196b-401c-80f1-7667ca15106d",
+      "id": "ba56323d-1697-424d-bc9e-7462bd8767d2",
       "name": "Get Conversation Control",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2704,
-        33904
+        8272,
+        43376
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -4321,13 +4321,13 @@
         },
         "options": {}
       },
-      "id": "bfad2c64-df40-4f8a-845e-ea4778a6493e",
+      "id": "d1c43292-aeee-49c8-854e-0a611a5f02a7",
       "name": "Agent Paused?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        2896,
-        33904
+        8464,
+        43376
       ]
     },
     {
@@ -4338,13 +4338,13 @@
           "responseCode": 200
         }
       },
-      "id": "c639ea25-8ee4-4222-bf4f-595fa5e52d4d",
+      "id": "bedf7f7c-8200-476a-a076-1b93a862f615",
       "name": "Respond Ack (human handling)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        3104,
-        33808
+        8672,
+        43280
       ]
     },
     {
@@ -4354,13 +4354,13 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "f1192f2c-3675-4546-9712-6ca34be0b35a",
+      "id": "0750aaca-0d1f-4a4e-accd-9076ec99fa8c",
       "name": "POST agent-tools/handoff",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -352,
-        39536
+        5216,
+        49008
       ],
       "webhookId": "a7f4e2c1-9b3d-4e6a-8c1f-2d5b7e9a0c34"
     },
@@ -4368,13 +4368,13 @@
       "parameters": {
         "jsCode": "const body = $input.first().json.body || {};\nconst patientId = String(body.patient_id || '').trim();\nconst phone = body.phone ? '+' + String(body.phone).replace(/\\D/g, '') : '';\nconst reason = String(body.reason || '').trim().slice(0, 500);\nconst patientName = String(body.patient_name || '').trim();\nconst lastMessage = String(body.last_message || '').trim().slice(0, 1000);\n\nif (!phone) {\n  return [{ json: { __error: true, code: 400, message: 'phone is required' } }];\n}\n\nreturn [{ json: { patient_id: patientId || null, phone, reason, patient_name: patientName, last_message: lastMessage } }];"
       },
-      "id": "c6f768e8-eab8-4912-bf3f-2b39b290c754",
+      "id": "2ce2c6a6-a47f-4ada-bbf9-55786afc859d",
       "name": "Parse Handoff Input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -112,
-        39536
+        5456,
+        49008
       ]
     },
     {
@@ -4401,13 +4401,13 @@
         },
         "options": {}
       },
-      "id": "f853bec0-1dbf-4469-a62a-45b51e277586",
+      "id": "34c99fa5-3c26-45b6-8b59-8ba265867fbc",
       "name": "Has Error? (Handoff Input)",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        128,
-        39536
+        5696,
+        49008
       ]
     },
     {
@@ -4418,13 +4418,13 @@
           "responseCode": "={{ $json.code }}"
         }
       },
-      "id": "259d3ee5-6007-4bb8-a6b8-fb5e5ce800bc",
+      "id": "42116f8e-04d7-4366-ab46-9aa23aa7eb5b",
       "name": "Respond Handoff Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        368,
-        39424
+        5936,
+        48896
       ]
     },
     {
@@ -4435,13 +4435,13 @@
           "queryReplacement": "={{ [ $json.phone ] }}"
         }
       },
-      "id": "016f7e21-129e-434d-8039-96f32a782c56",
+      "id": "c4944220-3f89-458f-a16b-ae80e06d8555",
       "name": "Set Conversation Paused",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        368,
-        39616
+        5936,
+        49088
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -4476,26 +4476,26 @@
         },
         "options": {}
       },
-      "id": "a822d061-2de9-4641-b37c-80485346aa97",
+      "id": "7f368d4c-1e12-4e50-a1af-b94e4210e407",
       "name": "Newly Paused?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        592,
-        39616
+        6160,
+        49088
       ]
     },
     {
       "parameters": {
         "jsCode": "const h = $('Parse Handoff Input').first().json;\nreturn [{ json: {\n  phone: h.phone,\n  patient_id: h.patient_id,\n  patient_name: h.patient_name || '',\n  last_message: h.last_message || '',\n  reason: h.reason || '',\n  requested_at: new Date().toISOString()\n} }];"
       },
-      "id": "c4e517a5-7e62-46de-a8dd-7a555a42690d",
+      "id": "526e25c0-b0e8-4204-8f0d-a2530ef68c8f",
       "name": "Build Handoff Notification Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        816,
-        39712
+        6384,
+        49184
       ]
     },
     {
@@ -4552,13 +4552,13 @@
         },
         "options": {}
       },
-      "id": "e3452848-1e2e-4f91-8923-b9591d00e6b3",
+      "id": "ea639971-939d-4f0c-9d49-aeb88769a7de",
       "name": "Call 'Create Bulk Notification' (Handoff)",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        1040,
-        39712
+        6608,
+        49184
       ]
     },
     {
@@ -4569,13 +4569,13 @@
           "responseCode": 200
         }
       },
-      "id": "e5394b39-f43f-43aa-b555-35548b52465f",
+      "id": "68eafa12-1d42-4523-a662-b3b802513581",
       "name": "Respond Handoff OK",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1040,
-        39536
+        6608,
+        49008
       ]
     },
     {
@@ -4591,10 +4591,10 @@
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.4,
       "position": [
-        4080,
-        34832
+        10528,
+        44032
       ],
-      "id": "ff2e0b54-1ef1-4c01-8c8f-8d0155f45bb2",
+      "id": "8b10b379-1073-404e-8474-f8f6f9ec36a3",
       "name": "handoff_to_human"
     },
     {
@@ -4611,10 +4611,10 @@
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.3,
       "position": [
-        -352,
-        39216
+        5216,
+        48688
       ],
-      "id": "0f349ac0-5f53-4784-acd7-95dd15b39511",
+      "id": "8c17dde9-aa94-43f3-9bfa-1eb51adde303",
       "name": "Handoff Auto-Return Trigger"
     },
     {
@@ -4623,13 +4623,13 @@
         "query": "-- El timeout aplicado depende de quién disparó la pausa: patient_request usa\n-- whatsapp_handoff_timeout_minutes, staff_takeover usa whatsapp_staff_takeover_pause_minutes\n-- (este último se renueva en cada mensaje humano nuevo, ver Track Human Message + Pause).\nUPDATE public.whatsapp_conversation_activity\nSET agent_paused = false,\n    paused_reason = NULL,\n    paused_by = NULL,\n    paused_at = NULL,\n    updated_at = NOW()\nWHERE agent_paused = true\n  AND paused_at IS NOT NULL\n  AND paused_at <= NOW() - ((\n    CASE paused_reason\n      WHEN 'staff_takeover' THEN COALESCE((SELECT value FROM public.system_configurations WHERE key = 'whatsapp_staff_takeover_pause_minutes')::int, 60)\n      ELSE COALESCE((SELECT value FROM public.system_configurations WHERE key = 'whatsapp_handoff_timeout_minutes')::int, 60)\n    END\n  )::text || ' minutes')::interval;",
         "options": {}
       },
-      "id": "05228d9f-066c-4d9f-a6bc-48a22e71cdab",
+      "id": "536bbd7e-29be-46e0-9e8e-8f06ff242c74",
       "name": "Auto-Release Expired Handoffs",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -112,
-        39216
+        5456,
+        48688
       ],
       "credentials": {
         "postgres": {
@@ -4646,14 +4646,14 @@
           "queryReplacement": "={{ [ $('Filter & Extract Inbound Message').first().json.from_phone, $('Filter & Extract Inbound Message').first().json.wamid, $('Filter & Extract Inbound Message').first().json.message_text ] }}"
         }
       },
-      "id": "6e6c0824-c5db-4856-abc6-1fe77d4fe434",
+      "id": "be0d4bd7-9c98-4ac4-a2ed-9f76d704daf4",
       "name": "Buffer Inbound Message",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "alwaysOutputData": true,
       "position": [
-        1792,
-        34512
+        7360,
+        43984
       ],
       "credentials": {
         "postgres": {
@@ -4670,26 +4670,26 @@
           "responseCode": 200
         }
       },
-      "id": "0868d1c1-cce9-4e13-b939-0582d9722899",
+      "id": "1b8fb32b-4823-47e4-bb29-6bd6c5445850",
       "name": "Respond Ack (buffered)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1984,
-        34512
+        7552,
+        43984
       ]
     },
     {
       "parameters": {
-        "amount": 8
+        "amount": "={{ Number($('Get WhatsApp Agent Config').item.json.whatsapp_agent_debounce_seconds) || 30 }}"
       },
-      "id": "f94836ab-fde5-419c-9f11-bfcafb147375",
+      "id": "fef79542-ca7e-435f-9ca2-f4ca06ac6ea3",
       "name": "Wait (debounce)",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        2192,
-        34512
+        7760,
+        43984
       ],
       "webhookId": "wag-wait-debounce-webhook"
     },
@@ -4701,14 +4701,14 @@
           "queryReplacement": "={{ [ $('Filter & Extract Inbound Message').first().json.from_phone, $('Buffer Inbound Message').first().json.id ] }}"
         }
       },
-      "id": "3d962f5b-ec0e-4e5a-b83a-93dead8b252d",
+      "id": "70b18f77-6841-42ed-8904-fa6512323513",
       "name": "Claim Batch If Latest",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "alwaysOutputData": true,
       "position": [
-        2384,
-        34512
+        7952,
+        43984
       ],
       "credentials": {
         "postgres": {
@@ -4721,13 +4721,13 @@
       "parameters": {
         "jsCode": "// Junta los mensajes reclamados en un unico texto para el agente.\n// Si otra ejecucion ya se llevo el lote (0 filas), corta el flujo silenciosamente.\nconst parts = $input.all()\n  .map(i => (i.json.message_text || ''))\n  .filter(t => typeof t === 'string' && t.trim() !== '');\n\nif (parts.length === 0) {\n  return [];\n}\n\nconst extract = $('Filter & Extract Inbound Message').first().json;\n\nreturn [{\n  json: {\n    from_phone: extract.from_phone,\n    wamid: extract.wamid,\n    message_text: parts.join(String.fromCharCode(10)),\n    batch_size: parts.length\n  },\n  pairedItem: { item: 0 }\n}];"
       },
-      "id": "620eef16-53d1-40f4-9aee-5b996145571d",
+      "id": "a2952c01-701a-4f11-b2ac-3c1e4ffc8fee",
       "name": "Combine Buffered Messages",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2592,
-        34512
+        8160,
+        43984
       ]
     },
     {
@@ -4740,13 +4740,13 @@
           "rawBody": true
         }
       },
-      "id": "4cda037a-cc97-4a18-a25a-07ae2627642a",
+      "id": "0a0fa98b-df9e-4491-8e16-3c00ef8e698d",
       "name": "POST wa-message-sent",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -352,
-        40080
+        5216,
+        49552
       ],
       "webhookId": "wa-message-received-agent"
     },
@@ -4758,26 +4758,26 @@
           "responseCode": 200
         }
       },
-      "id": "780ae045-45e6-469f-9b31-75e65a4c5c77",
+      "id": "8330cf13-6977-4a03-a05a-9523bf524b55",
       "name": "Respond Ack (non-text/other event)1",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        368,
-        40176
+        5936,
+        49648
       ]
     },
     {
       "parameters": {
         "jsCode": "// whatsapp.smb.message.echoes es un evento de \"coexistence\" de Meta: se dispara\n// EXCLUSIVAMENTE para mensajes enviados a mano desde la app de WhatsApp Business\n// o un dispositivo vinculado, nunca para mensajes enviados por la API (ver\n// https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks/reference/smb_message_echoes/).\n// Como el bot siempre envía por API (Send Reply / Send Followup Message / Send via\n// YCloud1), todo lo que llega acá es, por definición, un mensaje escrito a mano por\n// alguien del equipo -- no hace falta distinguir \"eco propio\" de \"mensaje humano\".\nconst body = $('POST wa-message-sent').first().json.body || {};\nconst msg = body.whatsappMessage || {};\n\nconst isTextEcho = body.type === 'whatsapp.smb.message.echoes'\n  && msg.type === 'text'\n  && typeof msg.text?.body === 'string'\n  && msg.text.body.trim() !== ''\n  && !!msg.to;\n\nconst phone = '+' + String(msg.to || '').replace(/\\D/g, '');\n\nreturn [{\n  json: {\n    is_text_echo: isTextEcho,\n    phone,\n    message_text: msg.text?.body || ''\n  }\n}];"
       },
-      "id": "1e43ebb0-4d29-4d41-9b84-eab12a65f9a9",
+      "id": "509287eb-f609-40fc-b1a3-88b746141a69",
       "name": "Parse Outbound Echo",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -112,
-        40080
+        5456,
+        49552
       ]
     },
     {
@@ -4805,30 +4805,30 @@
         },
         "options": {}
       },
-      "id": "aabc9af0-4e21-4138-93c0-d0fd0921a8e0",
+      "id": "7a3e041a-53d8-4593-a19d-91089dedd3a5",
       "name": "Is Human Text Message?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        128,
-        40080
+        5696,
+        49552
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- Un humano del equipo le escribió manualmente al paciente desde la app de\n-- WhatsApp Business. Se registra en el transcript y se pausa el agente para\n-- ese teléfono; el temporizador de pausa se renueva en cada mensaje humano\n-- (mientras el humano siga escribiendo, el agente no retoma la conversación).\nINSERT INTO whatsapp_conversation_activity (phone, last_message_at, last_sender, pending, agent_paused, paused_reason, paused_at, transcript)\nVALUES ($1, NOW(), 'human', false, true, 'staff_takeover', NOW(), ('Agente humano: ' || $2))\nON CONFLICT (phone) DO UPDATE\nSET last_message_at = NOW(),\n    last_sender = 'human',\n    pending = false,\n    agent_paused = true,\n    paused_reason = 'staff_takeover',\n    paused_at = NOW(),\n    transcript = array_to_string(\n      (string_to_array(coalesce(whatsapp_conversation_activity.transcript, ''), E'\\n') || ARRAY[('Agente humano: ' || $2)])\n        [greatest(1, cardinality(string_to_array(coalesce(whatsapp_conversation_activity.transcript, ''), E'\\n')) + 1 - 20):],\n      E'\\n'\n    ),\n    updated_at = NOW()\nRETURNING *;",
+        "query": "-- Un humano del equipo le escribio manualmente al paciente desde la app de\n-- WhatsApp Business. Se pausa el agente para ese telefono; el temporizador de\n-- pausa se renueva en cada mensaje humano (mientras el humano siga\n-- escribiendo, el agente no retoma la conversacion). El mensaje en si se\n-- registra aparte en whatsapp_conversation_messages (ver 'Log Human Message').\nINSERT INTO whatsapp_conversation_activity (phone, last_message_at, last_sender, pending, agent_paused, paused_reason, paused_at)\nVALUES ($1, NOW(), 'human', false, true, 'staff_takeover', NOW())\nON CONFLICT (phone) DO UPDATE\nSET last_message_at = NOW(),\n    last_sender = 'human',\n    pending = false,\n    agent_paused = true,\n    paused_reason = 'staff_takeover',\n    paused_at = NOW(),\n    updated_at = NOW()\nRETURNING *;",
         "options": {
-          "queryReplacement": "={{ [ $json.phone, $json.message_text ] }}"
+          "queryReplacement": "={{ [ $json.phone ] }}"
         }
       },
-      "id": "69ea263a-0db7-4793-a5b5-9a7052dcd281",
+      "id": "a8123351-4d82-4b3a-8ada-fb3873df7af0",
       "name": "Track Human Message + Pause",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        368,
-        39984
+        5936,
+        49456
       ],
       "credentials": {
         "postgres": {
@@ -4845,13 +4845,13 @@
           "queryReplacement": "={{ [ $json.phone, JSON.stringify({ type: 'ai', content: $('Parse Outbound Echo').item.json.message_text, tool_calls: [], additional_kwargs: {}, response_metadata: {}, invalid_tool_calls: [] }) ] }}"
         }
       },
-      "id": "28570c95-ccb7-4bf9-9f88-0615602414cb",
+      "id": "1c70983a-2fbf-40a9-9cc4-d8731ec002f1",
       "name": "Insert Human Message Into Agent Memory",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        608,
-        39984
+        6176,
+        49456
       ],
       "credentials": {
         "postgres": {
@@ -4868,14 +4868,251 @@
           "responseCode": 200
         }
       },
-      "id": "b70e0793-8eb8-4e0a-824e-601434eb8630",
+      "id": "1eeec643-64db-479d-815a-0d775c59480a",
       "name": "Respond Ack (human message tracked)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        848,
-        39984
+        6416,
+        49456
       ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO whatsapp_conversation_messages (phone, sender, message_text)\nVALUES ($1, 'bot', $2);",
+        "options": {
+          "queryReplacement": "={{ [ $('Build Agent Context').item.json.phone, $('Format output').item.json.output ] }}"
+        }
+      },
+      "id": "b79c1719-ebfc-4425-b4c0-13076bc16dcc",
+      "name": "Log Outbound Message",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        10976,
+        43376
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO whatsapp_conversation_messages (phone, sender, message_text)\nVALUES ($1, 'human', $2);",
+        "options": {
+          "queryReplacement": "={{ [ $('Is Human Text Message?').item.json.phone, $('Is Human Text Message?').item.json.message_text ] }}"
+        }
+      },
+      "id": "eb4ce984-5cc2-4011-9924-b2d063591055",
+      "name": "Log Human Message",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        5936,
+        49616
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO whatsapp_conversation_messages (phone, sender, message_text)\nVALUES ($1, 'bot', $2);",
+        "options": {
+          "queryReplacement": "={{ [ $('Find Due Conversations').item.json.phone, $('Basic LLM Chain').item.json.text.trim() ] }}"
+        }
+      },
+      "id": "42c429a1-7146-4f7a-8cf8-609a5ba82177",
+      "name": "Log Followup Message",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        7472,
+        48176
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { ...($input.first()?.json || {}), lock_retry_count: 0 } }];"
+      },
+      "id": "7e940fb0-0792-435c-b294-fb622447d77a",
+      "name": "Init Lock Retry",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8896,
+        43744
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH lock_attempt AS (\n  UPDATE whatsapp_conversation_activity\n  SET processing_started_at = NOW()\n  WHERE phone = $1\n    AND (\n      processing_started_at IS NULL\n      OR processing_started_at < NOW() - (\n        COALESCE((SELECT value FROM system_configurations WHERE key = 'whatsapp_agent_lock_timeout_seconds'), '90') || ' seconds'\n      )::interval\n    )\n  RETURNING phone\n)\nSELECT $1::text AS phone, EXISTS (SELECT 1 FROM lock_attempt) AS lock_acquired, $2::int AS lock_retry_count;",
+        "options": {
+          "queryReplacement": "={{ [ $('Build Agent Context').item.json.phone, $json.lock_retry_count ] }}"
+        }
+      },
+      "id": "14c7d4bc-5cf3-4066-9b49-507b1ce1fb63",
+      "name": "Try Acquire Agent Lock",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        9088,
+        43744
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "wag-lock-acquired-c1",
+              "leftValue": "={{ $json.lock_acquired }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b4bd412d-5dde-4729-8e1d-83b6c48a04e9",
+      "name": "Lock Acquired?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        9296,
+        43744
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "wag-lock-retry-limit-c1",
+              "leftValue": "={{ $json.lock_retry_count }}",
+              "rightValue": 20,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "3d8619ac-de86-4729-b77a-a77529e176c5",
+      "name": "Retry Limit Reached?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        9504,
+        43840
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, busy: true }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "2fff63f5-4f89-44de-af27-90e45a6378a9",
+      "name": "Respond Ack (agent busy)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        9728,
+        43744
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $input.first()?.json || {};\nreturn [{ json: { ...j, lock_retry_count: (j.lock_retry_count || 0) + 1 } }];"
+      },
+      "id": "0c8585d6-2141-4dd8-9b08-61ed7abee02a",
+      "name": "Bump Lock Retry",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        9728,
+        43936
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "ee2dab74-c67a-457a-a52e-026b542a9d01",
+      "name": "Wait Lock Retry",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        8896,
+        43936
+      ],
+      "webhookId": "wag-wait-lock-retry-webhook"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE whatsapp_conversation_activity\nSET processing_started_at = NULL\nWHERE phone = $1;",
+        "options": {
+          "queryReplacement": "={{ [ $('Build Agent Context').item.json.phone ] }}"
+        }
+      },
+      "id": "a256e2ec-98dc-4ce5-8146-bcdcee794854",
+      "name": "Release Agent Lock",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        10976,
+        43552
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
     }
   ],
   "pinData": {
@@ -5801,7 +6038,7 @@
       "main": [
         [
           {
-            "node": "Whatsapp Agent1",
+            "node": "Init Lock Retry",
             "type": "main",
             "index": 0
           }
@@ -5837,7 +6074,7 @@
         ],
         [
           {
-            "node": "Respond 202",
+            "node": "Release Agent Lock",
             "type": "main",
             "index": 0
           }
@@ -5848,7 +6085,7 @@
       "main": [
         [
           {
-            "node": "Respond 202",
+            "node": "Log Outbound Message",
             "type": "main",
             "index": 0
           }
@@ -6667,7 +6904,7 @@
       "main": [
         [
           {
-            "node": "Loop Over Conversations",
+            "node": "Log Followup Message",
             "type": "main",
             "index": 0
           }
@@ -7095,7 +7332,7 @@
       "main": [
         [
           {
-            "node": "Insert Human Message Into Agent Memory",
+            "node": "Log Human Message",
             "type": "main",
             "index": 0
           }
@@ -7112,6 +7349,130 @@
           }
         ]
       ]
+    },
+    "Log Outbound Message": {
+      "main": [
+        [
+          {
+            "node": "Release Agent Lock",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Human Message": {
+      "main": [
+        [
+          {
+            "node": "Insert Human Message Into Agent Memory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Followup Message": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Conversations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Init Lock Retry": {
+      "main": [
+        [
+          {
+            "node": "Try Acquire Agent Lock",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Try Acquire Agent Lock": {
+      "main": [
+        [
+          {
+            "node": "Lock Acquired?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lock Acquired?": {
+      "main": [
+        [
+          {
+            "node": "Whatsapp Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Retry Limit Reached?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retry Limit Reached?": {
+      "main": [
+        [
+          {
+            "node": "Respond Ack (agent busy)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Bump Lock Retry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bump Lock Retry": {
+      "main": [
+        [
+          {
+            "node": "Wait Lock Retry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Lock Retry": {
+      "main": [
+        [
+          {
+            "node": "Try Acquire Agent Lock",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Release Agent Lock": {
+      "main": [
+        [
+          {
+            "node": "Respond 202",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
@@ -7120,7 +7481,7 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "4c70f4d4-9521-47ee-a654-ec395d25c7bb",
+  "versionId": "e647170a-4b80-4da7-b0a1-f7120977d5cf",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
