@@ -112,7 +112,12 @@ async function fetchInvoicePayments(invoiceId: string, isSales: boolean): Promis
   try {
     const route = isSales ? API_ROUTES.SALES.INVOICE_PAYMENTS : API_ROUTES.PURCHASES.INVOICE_PAYMENTS;
     const data = await api.get(route, { invoice_id: invoiceId });
-    const raw = Array.isArray(data) ? data : (data.payments || data.data || []);
+    const rawData = Array.isArray(data) ? data : (data.payments || data.data || []);
+    // Empty responses come back as `[{ success: true }]`; skip those ack objects.
+    const raw = rawData.filter((p: any) =>
+      p && typeof p === 'object' &&
+      (p.id != null || p.amount_applied != null || p.amount != null || p.doc_no || p.payment_doc_no)
+    );
     return mapInvoicePayments(raw);
   } catch {
     return [];
