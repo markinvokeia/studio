@@ -687,7 +687,9 @@ function AlertsCenterPageContent() {
 
     const translateFieldStatus = React.useCallback((sourceColumn: string, raw: string): string | undefined => {
         const column = sourceColumn.split('.').pop() || sourceColumn;
-        if (column !== 'payment_status') return undefined;
+        // `payment_status` is the frontend's field name for this enum; some alert rules are
+        // configured against the DB's `payment_state` column (e.g. invoices.payment_state) instead.
+        if (column !== 'payment_status' && column !== 'payment_state') return undefined;
         try {
             return tPaymentStatus(raw.toLowerCase() as any);
         } catch {
