@@ -18,6 +18,14 @@ playwright-report/
 test-results/
 .playwright-cli/
 
+# help_invokeia — videos demostrativos (los .ts, questions.json y overrides SÍ se versionan)
+help_invokeia/videos/
+help_invokeia/build/
+help_invokeia/.raw-video/
+help_invokeia/.auth/
+help_invokeia/.artifacts/
+help_invokeia/.report/
+
 # next.js
 /.next/
 /out/

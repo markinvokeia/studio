@@ -5292,6 +5292,7 @@ export default function AppointmentsPage() {
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <Button
+                                                    aria-label={tSearch('button')}
                                                     variant={searchActive ? 'default' : 'outline'}
                                                     size={secondaryIconOnly ? 'icon' : 'sm'}
                                                     className={secondaryIconOnly ? (isMobile ? 'h-8 w-8 shrink-0' : 'h-10 w-10 shrink-0') : 'h-10 gap-1.5 shrink-0'}
@@ -5308,6 +5309,7 @@ export default function AppointmentsPage() {
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <Button
+                                                    aria-label={tGaps('button')}
                                                     variant={gapsActive ? 'default' : 'outline'}
                                                     size={secondaryIconOnly ? 'icon' : 'sm'}
                                                     className={secondaryIconOnly ? (isMobile ? 'h-8 w-8 shrink-0' : 'h-10 w-10 shrink-0') : 'h-10 gap-1.5 shrink-0'}
@@ -5324,6 +5326,7 @@ export default function AppointmentsPage() {
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <Button
+                                                    aria-label={tBulk('toggleButton')}
                                                     variant={isBulkMode ? 'default' : 'outline'}
                                                     size={secondaryIconOnly ? 'icon' : 'sm'}
                                                     className={secondaryIconOnly ? (isMobile ? 'h-8 w-8 shrink-0' : 'h-10 w-10 shrink-0') : 'h-10 gap-1.5 shrink-0'}
@@ -5348,6 +5351,7 @@ export default function AppointmentsPage() {
                                                 <TooltipTrigger asChild>
                                                     <DropdownMenuTrigger asChild>
                                                         <Button
+                                                            aria-label={tGeneral('create')}
                                                             variant={isMobile ? "ghost" : "default"}
                                                             size={primaryIconOnly ? "icon" : "sm"}
                                                             className={primaryIconOnly ? (isMobile ? "h-8 w-8" : "h-10 w-10") : "h-10 gap-1.5"}
@@ -5503,6 +5507,7 @@ export default function AppointmentsPage() {
                                                     <TooltipTrigger asChild>
                                                         <PopoverTrigger asChild>
                                                             <Button
+                                                                aria-label={t('toggleCalendars')}
                                                                 variant="outline"
                                                                 size={secondaryIconOnly ? 'icon' : 'sm'}
                                                                 className={secondaryIconOnly ? 'h-10 w-10 shrink-0' : 'h-10 gap-1.5 shrink-0'}
@@ -5590,6 +5595,7 @@ export default function AppointmentsPage() {
                                                     <TooltipTrigger asChild>
                                                         <PopoverTrigger asChild>
                                                             <Button
+                                                                aria-label={t('toggleDoctors')}
                                                                 variant="outline"
                                                                 size={secondaryIconOnly ? 'icon' : 'sm'}
                                                                 className={secondaryIconOnly ? 'h-10 w-10 shrink-0' : 'h-10 gap-1.5 shrink-0'}

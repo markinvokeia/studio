@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx playwright *)",
+      "Bash(DEMO_SPEED=0 DEMO_DRY=1 npx playwright test --config=playwright.help.config.ts --project=demo help_invokeia/test-cases/parte-1/01-agenda-modificar.demo.ts)",
+      "Bash(pnpm typecheck *)",
+      "Bash(DEMO_SPEED=0 DEMO_DRY=1 npx playwright test --config=playwright.help.config.ts --project=demo help_invokeia/test-cases/parte-1/02-agenda-mas.demo.ts)"
+    ]
+  }
+}

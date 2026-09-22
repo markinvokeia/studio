@@ -1,0 +1,71 @@
+{
+  "_doc": "Decisiones humanas de filmabilidad. Tienen prioridad sobre la heurística de parse-manual.mjs y sobreviven a cualquier re-parseo del manual. Categorías: ui | ui-mutating | setup-heavy | out-of-band | conceptual | diagnostic.",
+  "q002": {
+    "filmability": "out-of-band",
+    "reason": "el enlace de un solo uso llega por email; se filma solo /set-first-password con un enlace de prueba"
+  },
+  "q004": {
+    "filmability": "ui",
+    "reason": "MOSTRAR EL FORMULARIO Y CANCELAR: enviarlo cambiaría la contraseña de E2E_USER y rompería las dos suites"
+  },
+  "q006": {
+    "filmability": "conceptual",
+    "reason": "la respuesta es el aterrizaje según permisos; mostrarlo exige dos sesiones con roles distintos"
+  },
+  "q008": {
+    "filmability": "ui",
+    "reason": "recorrido del panel flotante derecho: se abre y se recorre, no se escribe nada"
+  },
+  "q009": {
+    "filmability": "conceptual",
+    "reason": "el contraste del menú filtrado por permisos exige dos usuarios en pantalla"
+  },
+  "q012": {
+    "filmability": "ui",
+    "reason": "se muestra el ícono de micrófono en el campo; el dictado real del navegador no funciona sin audio"
+  },
+  "q020": {
+    "filmability": "ui-mutating",
+    "reason": "crea una nota adhesiva; el propio spec la elimina al final"
+  },
+  "q021": {
+    "filmability": "ui-mutating",
+    "reason": "no muta, pero expone nombres de pacientes reales: usar paciente Demo o demo.redact()"
+  },
+  "q093": {
+    "filmability": "blocked",
+    "reason": "el bloque «Estructurar con IA» no aparece en el diálogo de sesión de este entorno; puede depender del flag «Acceso IA» de la licencia. Verificar antes de filmar (ver DRIFT.md)"
+  },
+  "q094": {
+    "filmability": "blocked",
+    "reason": "el botón «Generar con IA» de tratamientos no aparece en el diálogo de sesión de este entorno; misma hipótesis del flag de licencia que q093"
+  },
+  "q095": {
+    "filmability": "ui",
+    "reason": "el manual habla de «tratamientos por diente» pero el diálogo agrega filas de SERVICIO; se filma lo que hace la app"
+  },
+  "q104": {
+    "filmability": "blocked",
+    "reason": "el bloque «Alertas clínicas» no está en la cabecera de la ficha como dice el manual, sino en el panel de paciente de Mi Consultorio (UsersPage.doctorWorkspace.clinicalAlerts), que necesita una cita del día asignada a la cuenta de grabación"
+  },
+  "q108": {
+    "filmability": "blocked",
+    "reason": "el conmutador «Vista boca abierta / Vista plana» existe en DentalRecordViewer, que sólo se renderiza en /clinic-history/[user_id]; no está en el diálogo de sesión de odontograma ni se encontró entrada de menú hacia esa ruta. Falta confirmar el camino de usuario (ver DRIFT.md)"
+  },
+  "q109": {
+    "filmability": "blocked",
+    "reason": "el botón «Pantalla completa» existe en DentalRecordViewer, que sólo se renderiza en /clinic-history/[user_id]; no está en el diálogo de sesión de odontograma ni se encontró entrada de menú hacia esa ruta. Falta confirmar el camino de usuario (ver DRIFT.md)"
+  },
+  "q110": {
+    "filmability": "blocked",
+    "reason": "la navegación «Sesión anterior / Sesión siguiente» existe en DentalRecordViewer, que sólo se renderiza en /clinic-history/[user_id]; no está en el diálogo de sesión de odontograma ni se encontró entrada de menú hacia esa ruta. Falta confirmar el camino de usuario (ver DRIFT.md)"
+  },
+  "q064": {
+    "filmability": "setup-heavy",
+    "reason": "la acción de enviar WhatsApp sólo se renderiza si el paciente tiene el dato cargado (patient-actions-menu.tsx:212, `hasPhone && …`). El paciente de prueba está vacío: hace falta uno con teléfono y correo para filmarlo"
+  },
+  "q065": {
+    "filmability": "setup-heavy",
+    "reason": "la acción de enviar correo sólo se renderiza si el paciente tiene el dato cargado (patient-actions-menu.tsx:212, `hasPhone && …`). El paciente de prueba está vacío: hace falta uno con teléfono y correo para filmarlo"
+  }
+}

@@ -118,7 +118,10 @@ function StickyNotesDeepLink({ onOpen }: { onOpen: () => void }) {
 
 function PanelItem({ label, children }: { label: string; children: React.ReactNode }) {
     return (
-        <div className="flex flex-col items-center gap-1 w-full px-1">
+        <div
+            data-testid={`rail-${label.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')}`}
+            className="flex flex-col items-center gap-1 w-full px-1"
+        >
             {children}
             <span className="text-[7.5px] font-medium text-muted-foreground leading-none text-center tracking-tight select-none">
                 {label}

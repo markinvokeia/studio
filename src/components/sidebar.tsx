@@ -258,7 +258,7 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                         <TooltipTrigger asChild>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full ring-2 ring-primary/20 hover:ring-primary/40 transition-all shrink-0 bg-accent text-accent-foreground font-bold text-sm">
+                                    <Button data-testid="sidebar-avatar-trigger" variant="ghost" size="icon" className="relative h-9 w-9 rounded-full ring-2 ring-primary/20 hover:ring-primary/40 transition-all shrink-0 bg-accent text-accent-foreground font-bold text-sm">
                                         <span aria-hidden="true">{userInitial}</span>
                                         <span className="sr-only">{user?.name || tHeader('myAccount')}</span>
                                     </Button>

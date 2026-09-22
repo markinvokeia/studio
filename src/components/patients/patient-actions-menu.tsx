@@ -100,7 +100,7 @@ export function PatientActionsMenu({
             <Tooltip>
               <TooltipTrigger asChild>
                 <DropdownMenuTrigger asChild>
-                  <button type="button" className="flex items-center justify-center gap-1.5 h-8 px-2 sm:px-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors text-xs font-medium">
+                  <button type="button" data-testid="patient-create-menu" className="flex items-center justify-center gap-1.5 h-8 px-2 sm:px-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors text-xs font-medium">
                     <Plus className="sm:hidden h-4 w-4 flex-none" />
                     <span className="hidden sm:inline">Crear</span>
                     <ChevronDown className="hidden sm:block h-3 w-3 flex-none" />
@@ -186,7 +186,7 @@ export function PatientActionsMenu({
             <Tooltip>
               <TooltipTrigger asChild>
                 <DropdownMenuTrigger asChild>
-                  <button type="button" className="flex items-center justify-center gap-1.5 h-8 px-2 sm:px-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors text-xs font-medium">
+                  <button type="button" data-testid="patient-more-menu" className="flex items-center justify-center gap-1.5 h-8 px-2 sm:px-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors text-xs font-medium">
                     <MoreHorizontal className="sm:hidden h-4 w-4 flex-none" />
                     <span className="hidden sm:inline">Más acciones</span>
                     <ChevronDown className="hidden sm:block h-3 w-3 flex-none" />
