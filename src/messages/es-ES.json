@@ -111,7 +111,8 @@
       "deleteQuote": "Eliminar presupuesto",
       "deletePayment": "Eliminar pago",
       "deleteCreditNote": "Eliminar nota de crédito",
-      "deleteInvoice": "Eliminar tratamiento"
+      "deleteInvoice": "Eliminar tratamiento",
+      "print": "Imprimir"
     },
     "statusControl": {
       "presupuesto": "Presupuesto",
@@ -199,7 +200,8 @@
       "releasedCredit": "{amount} pasó a estar disponible como crédito del paciente",
       "paymentUpdateError": "No se pudo actualizar el pago",
       "creditNoteUpdated": "Nota de crédito actualizada",
-      "creditNoteUpdateError": "No se pudo actualizar la nota de crédito"
+      "creditNoteUpdateError": "No se pudo actualizar la nota de crédito",
+      "printError": "No se pudo imprimir el documento"
     }
   },
   "QuickTreatmentDialog": {

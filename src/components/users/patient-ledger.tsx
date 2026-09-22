@@ -43,8 +43,9 @@ import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
+import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { buildPatientLedger, splitLedgerByRange, type LedgerRow, type LedgerRowStatus } from '@/lib/patient-ledger';
-import type { Invoice, InvoiceItem, Payment, PaymentMethod, Quote, QuoteItem } from '@/lib/types';
+import type { CreditNote, Invoice, InvoiceItem, Payment, PaymentMethod, Quote, QuoteItem } from '@/lib/types';
 import { cn, formatDisplayDate, preserveTimeIfToday, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { fetchPatientLedgerData, type PatientLedgerData } from '@/services/patient-ledger-data';
@@ -1682,6 +1683,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
   const clinicInfo = useClinicInfo();
   const { validateActiveSession, showCashSessionError } = useCashSessionValidation();
   const { hasPermission } = usePermissions();
+  const { printQuote, printInvoice, printPayment, printCreditNote } = usePrintDocument();
   const canInvoiceQuote = hasPermission(SALES_PERMISSIONS.INVOICES_CREATE) || hasPermission(SALES_PERMISSIONS.ORDERS_INVOICE_FROM_ORDER);
   const canConfirmQuote = hasPermission(SALES_PERMISSIONS.QUOTES_CONFIRM);
   const canCreatePaymentPerm = hasPermission(SALES_PERMISSIONS.PAYMENTS_CREATE);
@@ -1699,6 +1701,8 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
   const [isDeletingPayment, setIsDeletingPayment] = React.useState(false);
   const [isDeletingCreditNote, setIsDeletingCreditNote] = React.useState(false);
   const [isMarkingFinalized, setIsMarkingFinalized] = React.useState(false);
+  /** Row whose document is currently being fetched + sent to the print dialog. */
+  const [printingRowId, setPrintingRowId] = React.useState<string | null>(null);
   const [isUnmarkingFinalized, setIsUnmarkingFinalized] = React.useState(false);
 
   const [ledgerByCurrency, setLedgerByCurrency] = React.useState<Record<string, LedgerRow[]>>({});
@@ -2200,6 +2204,41 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
     return handleDeleteInvoice(row);
   }, [handleDeletePayment, handleDeleteCreditNote, handleDeleteQuote, handleDeleteInvoice]);
 
+  /**
+   * Prints the document behind a selected row, reusing the same `usePrintDocument`
+   * flows the rest of the app uses (quotes/invoices page, cobro rápido wizard): the
+   * row is resolved back to its Quote/Invoice/CreditNote/Payment from `ledgerData`
+   * and handed to the matching printer, which fetches its lines and opens the
+   * browser print dialog with the configured template.
+   */
+  const handlePrintRow = React.useCallback(async (row: LedgerRow) => {
+    if (printingRowId) return;
+    setPrintingRowId(row.id);
+    try {
+      if (row.kind === 'payment') {
+        const payment = ledgerData?.payments.find((p) => p.id === row.paymentId);
+        if (!payment) throw new Error('not_found');
+        await printPayment(payment, true);
+      } else if (row.status === 'presupuestado') {
+        const quote = ledgerData?.quotes.find((q) => q.id === row.quoteId);
+        if (!quote) throw new Error('not_found');
+        await printQuote(quote, true);
+      } else {
+        const invoice = ledgerData?.invoices.find((i) => i.id === row.invoiceId);
+        if (!invoice) throw new Error('not_found');
+        if (row.status === 'notaCredito') {
+          await printCreditNote(invoice as CreditNote, true);
+        } else {
+          await printInvoice(invoice, true);
+        }
+      }
+    } catch {
+      toast({ title: t('toasts.printError'), variant: 'destructive' });
+    } finally {
+      setPrintingRowId(null);
+    }
+  }, [printingRowId, ledgerData, printPayment, printQuote, printInvoice, printCreditNote, toast, t]);
+
   /** Centered action buttons shown attached under a selected row — the same actions the
    *  old "…" menu held (custom invoice, credit note, delete), plus a Cancelar to deselect.
    *  Returns a fragment; the row's merged card container provides border/background. */
@@ -2226,6 +2265,13 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
     // Only structured credit notes (with their own itemId/serviceId) carry enough
     // information to be resent on edit; the rare lump-sum ones stay delete-only.
     const showEditCreditNote = isCreditNote && !!row.itemId && !!row.serviceId && canCreateCreditNote;
+    // Printing reuses the app-wide document printers, so a row only offers it when it
+    // still resolves to a real document in `ledgerData`.
+    const showPrint = row.kind === 'payment'
+      ? !!row.paymentId
+      : row.status === 'presupuestado'
+        ? !!row.quoteId
+        : !!row.invoiceId;
     const canDelete =
       (isUnbilledQuoteItem && canDeleteQuote) ||
       (isPayment && canDeletePayment) ||
@@ -2258,6 +2304,20 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
             <FileMinus className="h-3.5 w-3.5" />{t('actions.creditNote')}
           </Button>
         )}
+        {showPrint && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5 text-xs"
+            disabled={printingRowId === row.id}
+            onClick={() => { void handlePrintRow(row); }}
+          >
+            {printingRowId === row.id
+              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              : <Printer className="h-3.5 w-3.5" />}
+            {t('actions.print')}
+          </Button>
+        )}
         {canDelete && (
           <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:text-destructive" onClick={() => handleDeleteRow(row)}>
             <Trash2 className="h-3.5 w-3.5" />{t('inline.delete')}
@@ -2268,7 +2328,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
         </Button>
       </>
     );
-  }, [canInvoiceQuote, canCreateCreditNote, canDeleteQuote, canDeletePayment, canDeleteCreditNote, canRevertInvoice, canEditQuote, canEditInvoice, canCreatePaymentPerm, getMaxCreditableForInvoice, handleInvoice, handleCreditNote, handleEditCreditNote, handleDeleteRow, t]);
+  }, [canInvoiceQuote, canCreateCreditNote, canDeleteQuote, canDeletePayment, canDeleteCreditNote, canRevertInvoice, canEditQuote, canEditInvoice, canCreatePaymentPerm, getMaxCreditableForInvoice, handleInvoice, handleCreditNote, handleEditCreditNote, handleDeleteRow, handlePrintRow, printingRowId, t]);
 
   // Search may be controlled by a host (the sheet renders the search box in its header);
   // otherwise the ledger keeps its own state and shows an expandable search in the toolbar.

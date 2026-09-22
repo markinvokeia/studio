@@ -111,7 +111,8 @@
       "deleteQuote": "Delete quote",
       "deletePayment": "Delete payment",
       "deleteCreditNote": "Delete credit note",
-      "deleteInvoice": "Delete treatment"
+      "deleteInvoice": "Delete treatment",
+      "print": "Print"
     },
     "statusControl": {
       "presupuesto": "Quoted",
@@ -199,7 +200,8 @@
       "releasedCredit": "{amount} became available as patient credit",
       "paymentUpdateError": "Could not update the payment",
       "creditNoteUpdated": "Credit note updated",
-      "creditNoteUpdateError": "Could not update the credit note"
+      "creditNoteUpdateError": "Could not update the credit note",
+      "printError": "Could not print the document"
     }
   },
   "QuickTreatmentDialog": {
