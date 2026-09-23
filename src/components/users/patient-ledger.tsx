@@ -1900,6 +1900,12 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
       await load(true);
     } catch (e: any) {
       toast({ title: e?.message || t('toasts.markEnCursoError'), variant: 'destructive' });
+      // If confirming the quote succeeded but billing it failed (e.g. ORDER_INVOICE
+      // errored out), the quote is now left "confirmed" with an order behind it —
+      // reload so `quoteStatus` reflects that. Otherwise the stale cached status
+      // would let a retry call QUOTE_CONFIRM again on an already-confirmed quote,
+      // inserting a second `orders` row for the same quote_id.
+      await load(true);
     } finally {
       setIsMarkingEnCurso(false);
     }

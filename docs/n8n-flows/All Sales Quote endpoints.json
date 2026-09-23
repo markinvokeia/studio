@@ -9,11 +9,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -1200,
-        4864
+        -14336,
+        6224
       ],
       "typeVersion": 1,
-      "id": "1776d9ea-eedc-4889-8f0d-4a9512e73d7e",
+      "id": "e18df661-29a4-4f9f-82bb-abcafa9dfbbd",
       "name": "Sticky Note11"
     },
     {
@@ -23,10 +23,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -720,
-        4944
+        -13856,
+        6304
       ],
-      "id": "48ac3f73-c9b7-47b4-818c-919fb3a630d1",
+      "id": "ecbed368-ad09-4a67-ba75-d4c4676b691a",
       "name": "Code24"
     },
     {
@@ -36,10 +36,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -704,
-        5520
+        -13840,
+        6880
       ],
-      "id": "4bf300ef-3685-4be2-8170-30e781cf39c2",
+      "id": "92d43447-27fb-4cd2-92aa-2ad89041581a",
       "name": "Code25"
     },
     {
@@ -49,10 +49,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -704,
-        5872
+        -13840,
+        7232
       ],
-      "id": "c3d619cb-cdad-4813-95b4-49b23bc3400c",
+      "id": "d89cf199-7d66-4972-adbb-09d7a4b7b9ad",
       "name": "Code26",
       "executeOnce": false
     },
@@ -67,10 +67,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -912,
-        4944
+        -14048,
+        6304
       ],
-      "id": "5bf8e521-10ef-4901-90c7-981cbd278d6c",
+      "id": "3fa2ff5f-05e4-4b49-a8d7-617366e9da02",
       "name": "Select ALL ORDERS1",
       "credentials": {
         "postgres": {
@@ -90,10 +90,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -896,
-        5520
+        -14032,
+        6880
       ],
-      "id": "6560014e-7e20-4970-b5f3-5980db931d60",
+      "id": "f0d76d69-1144-49e5-886f-6b6e4372146f",
       "name": "Select ALL INVOICES",
       "credentials": {
         "postgres": {
@@ -113,10 +113,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -896,
-        5872
+        -14032,
+        7232
       ],
-      "id": "fa3aa5ea-77d5-4b99-990b-030c3f18ee9c",
+      "id": "865f19d5-6ba3-4d45-8264-8417b32c264b",
       "name": "Select ALL PAYMENTS",
       "alwaysOutputData": true,
       "credentials": {
@@ -133,10 +133,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -720,
-        5120
+        -13856,
+        6480
       ],
-      "id": "3a6946c6-9eba-479f-abf5-c294a501155d",
+      "id": "44c140b7-8d6c-443a-9f40-86f5a6371893",
       "name": "Code27"
     },
     {
@@ -146,10 +146,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -720,
-        5312
+        -13856,
+        6672
       ],
-      "id": "ac304851-db67-4150-ab9d-43b261616c0a",
+      "id": "b7252d6f-2502-4dc4-8566-e9e17798e14f",
       "name": "Code28"
     },
     {
@@ -163,10 +163,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -896,
-        5120
+        -14032,
+        6480
       ],
-      "id": "1e58dbb8-b768-44a9-829d-d12a2a39b8bd",
+      "id": "25e8615a-3c71-40de-babd-ca12cf00d775",
       "name": "Select INVOICES from Order",
       "credentials": {
         "postgres": {
@@ -186,10 +186,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -896,
-        5312
+        -14032,
+        6672
       ],
-      "id": "575ba920-e335-4b51-a370-76d4b558c6f4",
+      "id": "5b255934-8343-4fdd-ad0c-ee25d1812e21",
       "name": "Select PAYMENTS from Order",
       "alwaysOutputData": true,
       "credentials": {
@@ -206,10 +206,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -688,
-        5696
+        -13824,
+        7056
       ],
-      "id": "b4433341-3920-4b2b-ade7-89a8d69d6de1",
+      "id": "9c125b24-eac9-49e5-9220-fce9c71d19da",
       "name": "Code29"
     },
     {
@@ -223,10 +223,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -896,
-        5696
+        -14032,
+        7056
       ],
-      "id": "e41b7df0-b058-4087-a0f4-f946955b5954",
+      "id": "4e30c76d-1804-40ba-8355-c11a4f016e47",
       "name": "Select PAYMENTS from Invoice",
       "alwaysOutputData": true,
       "credentials": {
@@ -245,10 +245,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -4928,
-        4864
+        -18064,
+        6224
       ],
-      "id": "a3059666-b6e6-46a1-851d-cf3ce57cb55b",
+      "id": "be1e1f38-aeba-44ca-ad8d-1c1064dbec0b",
       "name": "Sticky Note36"
     },
     {
@@ -280,10 +280,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -2624,
-        5152
+        -15760,
+        6512
       ],
-      "id": "d2e13e29-74f9-46a1-be56-e972c614f879",
+      "id": "825a1fc2-3c91-4397-9522-42d2ba9ce61f",
       "name": "Success43"
     },
     {
@@ -295,10 +295,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -2624,
-        5360
+        -15760,
+        6720
       ],
-      "id": "4102fa16-65e1-4551-b0f6-d49cb58939ec",
+      "id": "067b64b3-20e8-42e7-a70e-3d38b4d87149",
       "name": "Error50"
     },
     {
@@ -330,10 +330,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -4656,
-        5376
+        -17792,
+        6736
       ],
-      "id": "90d99cdc-7fff-4798-a468-58430f121e2d",
+      "id": "4973cb8b-648f-4e8e-ac36-05cd3df97c99",
       "name": "Delete rows in a table15",
       "alwaysOutputData": false,
       "credentials": {
@@ -373,10 +373,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -4656,
-        5152
+        -17792,
+        6512
       ],
-      "id": "aadc6871-9189-4173-817c-f0612267d326",
+      "id": "b4d36afb-8ce4-4fb6-823a-5a9dfe62b023",
       "name": "If20"
     },
     {
@@ -392,10 +392,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -4864,
-        5376
+        -18000,
+        6736
       ],
-      "id": "c5466a8e-8a56-45b7-9247-98ed825921f0",
+      "id": "60b8900b-cb7d-47f6-b401-4e3f2bff51ac",
       "name": "quote/delete",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -418,10 +418,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -4864,
-        5552
+        -18000,
+        6912
       ],
-      "id": "8fd8ae81-0279-493e-a493-82dae05641f2",
+      "id": "393fd8f7-cb91-44f6-97ab-e9806037f33e",
       "name": "quote/confirm",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -532,10 +532,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -4592,
-        5616
+        -17728,
+        6976
       ],
-      "id": "539dbbe1-ee24-44cb-ad4c-771494530d61",
+      "id": "5608346a-5cae-4c3c-b850-b76eadd249c3",
       "name": "Call 'Quote Confirmation or Rejection'",
       "onError": "continueErrorOutput"
     },
@@ -562,10 +562,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -4368,
-        5536
+        -17504,
+        6896
       ],
-      "id": "99da95ee-5e51-41af-a957-5a99a869e73b",
+      "id": "e154b57d-eb1c-4ed4-a211-d0f0ac7d120b",
       "name": "Success44"
     },
     {
@@ -577,10 +577,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -4368,
-        5680
+        -17504,
+        7040
       ],
-      "id": "bbfc7452-0946-4cc1-b4d6-f66fa3dd523e",
+      "id": "2af979ae-4f05-4308-8d08-aa5e24de9314",
       "name": "Error51"
     },
     {
@@ -596,10 +596,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -4864,
-        5696
+        -18000,
+        7056
       ],
-      "id": "9362e329-1f84-4785-8631-e66d705a9c4e",
+      "id": "c3cfc323-0bce-48ce-8e4f-cd11793149b2",
       "name": "quote/reject",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -618,10 +618,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -2368,
-        4864
+        -15504,
+        6224
       ],
-      "id": "66243397-c860-4133-a037-4f03f59f4f0f",
+      "id": "b5854531-3c68-457c-9fb6-7ef127be6ef9",
       "name": "Sticky Note37"
     },
     {
@@ -647,10 +647,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -1440,
-        4976
+        -14576,
+        6336
       ],
-      "id": "2091b987-f398-4e57-b4c6-5164b26dfff1",
+      "id": "bff9a13e-85a3-4385-9cc9-5d0c66e925f5",
       "name": "Success45"
     },
     {
@@ -662,10 +662,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -1440,
-        5280
+        -14576,
+        6640
       ],
-      "id": "480218b7-bf6d-4cca-8765-0e6bb2bf3990",
+      "id": "33226466-72d4-4b8c-9d9e-446361819983",
       "name": "Error52"
     },
     {
@@ -697,10 +697,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -2096,
-        5264
+        -15232,
+        6624
       ],
-      "id": "b1b0fd72-0b44-4e88-bfa3-04e0ad4a5e17",
+      "id": "742f67a1-3a53-4356-a789-c7c3d226595b",
       "name": "Delete rows in a table16",
       "alwaysOutputData": false,
       "credentials": {
@@ -740,10 +740,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -2128,
-        5024
+        -15264,
+        6384
       ],
-      "id": "14be5710-aa59-485a-9fb3-bae38170f251",
+      "id": "ba6ce62d-9e5b-4e22-bffd-c378ee0fa650",
       "name": "If21"
     },
     {
@@ -759,10 +759,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -2320,
-        5040
+        -15456,
+        6400
       ],
-      "id": "895aec78-448e-4cd4-8eb0-412fae0f97f1",
+      "id": "08b34421-1e21-40d1-9961-64614a6f9f5e",
       "name": "quote/lines/upsert",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -786,10 +786,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -2304,
-        5264
+        -15440,
+        6624
       ],
-      "id": "31268aa4-cb25-4236-865e-105512c482dc",
+      "id": "a753a07b-db74-4956-b1b6-552abd683766",
       "name": "quote/lines/delete",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -808,10 +808,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -1632,
-        4992
+        -14768,
+        6352
       ],
-      "id": "4763df42-9ab2-4a70-b446-84ed67362a71",
+      "id": "d0c6255c-a499-4000-b3d4-a7e9289a0916",
       "name": "Upd Quote Total",
       "alwaysOutputData": true,
       "credentials": {
@@ -839,10 +839,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -1792,
-        5184
+        -14928,
+        6544
       ],
-      "id": "07b4d46a-58a5-4cab-83aa-f0e82768ba0c",
+      "id": "90632cd1-5804-4662-885f-0f75fb1f458c",
       "name": "Edit Fields3"
     },
     {
@@ -868,10 +868,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -1712,
-        5440
+        -14848,
+        6800
       ],
-      "id": "e32adebb-d58c-4a28-9f37-e1ee24b67df7",
+      "id": "b4cdc6d8-2105-4bf8-ad05-0afa493dc1c0",
       "name": "Success46"
     },
     {
@@ -883,10 +883,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -1712,
-        5584
+        -14848,
+        6944
       ],
-      "id": "4fece56f-db35-4c98-99c5-e644232d84af",
+      "id": "0ed04a97-2b10-4bb6-b497-853a486bb780",
       "name": "Error53"
     },
     {
@@ -902,10 +902,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -2304,
-        5440
+        -15440,
+        6800
       ],
-      "id": "ce272671-51bc-4b0a-96c0-5af1bf85927a",
+      "id": "3d8dd16f-db82-473f-8ee9-a87963720053",
       "name": "quote/lines/schedule",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -1005,10 +1005,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -2032,
-        5520
+        -15168,
+        6880
       ],
-      "id": "135e3645-07ee-4594-9066-9052308cb7f4",
+      "id": "e9fa8371-723b-458d-98d2-e65f7c99a796",
       "name": "Call 'Schedule or Complete'",
       "onError": "continueErrorOutput"
     },
@@ -1025,10 +1025,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -2304,
-        5632
+        -15440,
+        6992
       ],
-      "id": "4acc6b53-98d3-4d03-a5ae-94e7eec54559",
+      "id": "65291539-b193-483a-a16b-e00f8f1e862b",
       "name": "quote/lines/complete",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -1051,10 +1051,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -2864,
-        6080
+        -16000,
+        7440
       ],
-      "id": "6c321d87-100d-4e43-9d8a-aa72a0725e87",
+      "id": "58d462e1-a6af-4997-a94c-0c402579ab5e",
       "name": "order/invoice",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -1081,7 +1081,8 @@
             "user": "={{ $json.body.user || null }}",
             "message": "={{ $json.body.message || '' }}",
             "order_id": "={{ $json.body.order_id || '' }}",
-            "notes": "={{ $json.body.notes || '' }}"
+            "notes": "={{ $json.body.notes || '' }}",
+            "userId": "={{ $('order/invoice').item.json.jwtPayload.userId }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -1144,6 +1145,16 @@
               "canBeUsedToMatch": true,
               "type": "string",
               "removed": false
+            },
+            {
+              "id": "userId",
+              "displayName": "userId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -1154,10 +1165,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -2608,
-        6080
+        -15744,
+        7440
       ],
-      "id": "06a89370-8fca-486f-a233-84db8a9844c2",
+      "id": "99ec34d1-a88a-45ac-b3e2-070bad67449c",
       "name": "Call 'Billing'",
       "onError": "continueErrorOutput"
     },
@@ -1184,10 +1195,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -1440,
-        6320
+        -14576,
+        7680
       ],
-      "id": "81970d86-f1ac-40a9-8129-5d89eb3ad72a",
+      "id": "81b6ade0-bc5f-47c7-8def-ae4089063849",
       "name": "Success48"
     },
     {
@@ -1219,10 +1230,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -1440,
-        6512
+        -14576,
+        7872
       ],
-      "id": "d961035f-0767-4c29-b786-2112528a5479",
+      "id": "15e78e15-dcbd-45d2-8d18-7ede3323ec49",
       "name": "Error55"
     },
     {
@@ -1246,7 +1257,8 @@
             "payment_method": "={{ $json.body.payment_method || 'Cash' }}",
             "payment_date": "={{ $json.body.payment_date || $now.toISO() }}",
             "cash_session_id": "={{ $json.body.cash_session_id || null }}",
-            "credit_payment": "={{ $json.body.credit_payment || [] }}"
+            "credit_payment": "={{ $json.body.credit_payment || [] }}",
+            "userId": "={{ $('invoice/payment').item.json.jwtPayload.userId }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -1348,6 +1360,16 @@
               "canBeUsedToMatch": true,
               "type": "array",
               "removed": false
+            },
+            {
+              "id": "userId",
+              "displayName": "userId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -1358,10 +1380,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -2608,
-        6416
+        -15744,
+        7776
       ],
-      "id": "e9e19d2a-d5b5-456d-85d2-756c4cfcfbca",
+      "id": "a3c74a5a-fb5f-4997-9f20-91095efc291e",
       "name": "Call 'Payment'",
       "onError": "continueErrorOutput"
     },
@@ -1378,10 +1400,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -2848,
-        6416
+        -15984,
+        7776
       ],
-      "id": "5591e87b-4ba4-4622-9be1-b08c36825c83",
+      "id": "a5f201bd-6c8e-430a-981b-de710498e943",
       "name": "invoice/payment",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -1419,10 +1441,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -2384,
-        6320
+        -15520,
+        7680
       ],
-      "id": "439f5769-08e7-4b9b-be7e-d475ba64bc72",
+      "id": "b26be7b7-ad1c-4267-8a51-fc3cf4e3095d",
       "name": "If22"
     },
     {
@@ -1448,10 +1470,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -2144,
-        5984
+        -15280,
+        7344
       ],
-      "id": "82893ee2-5b4a-465c-8658-6cba62e1044e",
+      "id": "c7761628-5c3d-4fd8-b5da-80a97a788edf",
       "name": "Success49"
     },
     {
@@ -1483,10 +1505,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -2144,
-        6144
+        -15280,
+        7504
       ],
-      "id": "05ec545a-09ab-4fb6-9cf4-d59e73eaf2a9",
+      "id": "ddfcf3a1-baf6-41af-b792-23dab5603b28",
       "name": "Error56"
     },
     {
@@ -1517,10 +1539,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -2384,
-        6000
+        -15520,
+        7360
       ],
-      "id": "9195e3e7-5fcf-433a-8052-3c8bdc10eb23",
+      "id": "2eb19be9-07f0-40b7-883d-35ec15b3ab2b",
       "name": "If23"
     },
     {
@@ -1532,10 +1554,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -2976,
-        5888
+        -16112,
+        7248
       ],
-      "id": "4679bd36-2663-45c7-b2f4-e5a0b77bb2f3",
+      "id": "6c57affe-3297-4545-b8be-76d249407f24",
       "name": "Sticky Note38"
     },
     {
@@ -1552,10 +1574,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -1136,
-        4944
+        -14272,
+        6304
       ],
-      "id": "719c78ce-93ce-40d5-9dd0-15592ccd72b9",
+      "id": "d38c580e-d67a-45b0-a3a7-ea2bf3f59798",
       "name": "all_orders",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -1578,10 +1600,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -4864,
-        5152
+        -18000,
+        6512
       ],
-      "id": "80bf85c3-4fec-405b-96d2-bd1cff7d60ff",
+      "id": "856cff0b-812e-48c9-8c4d-5823a216955f",
       "name": "quotes/upsert",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -1598,10 +1620,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        16,
-        4608
+        -13120,
+        5968
       ],
-      "id": "9feaf070-5c7b-4343-a5e3-5643792e3bdc",
+      "id": "b2c4c72f-8ff0-4f30-9d97-e17a5cf0a81b",
       "name": "Code3"
     },
     {
@@ -1615,10 +1637,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -192,
-        4608
+        -13328,
+        5968
       ],
-      "id": "ad260826-9679-4b97-a289-87b42f167fc9",
+      "id": "e0cc9c85-5ec0-464c-8eab-aac84bd0850e",
       "name": "Select QUOTES",
       "credentials": {
         "postgres": {
@@ -1634,10 +1656,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        32,
-        4800
+        -13104,
+        6160
       ],
-      "id": "dd128771-7f20-4311-aa46-7eb7f9386d79",
+      "id": "c59c1f51-9fe9-496e-a95a-f8028ffedf42",
       "name": "Code8"
     },
     {
@@ -1651,10 +1673,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -176,
-        4800
+        -13312,
+        6160
       ],
-      "id": "e495069c-fea9-4160-bb58-49bdfd5c381a",
+      "id": "0dd7e293-2e93-4815-ab56-6622f48c2039",
       "name": "Select QUOTES Items",
       "credentials": {
         "postgres": {
@@ -1670,10 +1692,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        32,
-        4992
+        -13104,
+        6352
       ],
-      "id": "d97cf5c3-30b7-46f8-92eb-07f3449c27e5",
+      "id": "1c19a4c7-460d-49af-ab41-9b461b8ba0fd",
       "name": "Code9"
     },
     {
@@ -1687,10 +1709,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -176,
-        4992
+        -13312,
+        6352
       ],
-      "id": "075c625a-2460-448c-a4fb-91ec1d5d040b",
+      "id": "c3fd5dad-f98b-4100-ac2c-f2fc79cca6fe",
       "name": "Select ORDERS from quote",
       "credentials": {
         "postgres": {
@@ -1706,10 +1728,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        720,
-        4960
+        -12416,
+        6320
       ],
-      "id": "c0312ae8-74b7-4c63-b662-74f1258a98b3",
+      "id": "81409da6-a2c5-424b-9086-06a231776090",
       "name": "Code10"
     },
     {
@@ -1723,10 +1745,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        528,
-        4960
+        -12608,
+        6320
       ],
-      "id": "ab5e80c5-6eb1-4f41-8030-2f23ae8393c4",
+      "id": "eaf357df-83a5-4b24-bffa-41eca72f00e9",
       "name": "Select INVOICES from quote",
       "credentials": {
         "postgres": {
@@ -1742,10 +1764,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        736,
-        5344
+        -12400,
+        6704
       ],
-      "id": "b26cef55-5ca5-4f1c-aee3-3acc5425aa5b",
+      "id": "847fdfbb-4f16-4e99-83e3-5eb7085462bd",
       "name": "Code11"
     },
     {
@@ -1759,10 +1781,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        544,
-        5344
+        -12592,
+        6704
       ],
-      "id": "1ae317d8-1cf8-4587-9f7e-6888e51dc8c1",
+      "id": "db9d353a-b8c4-4ea4-8052-dddcb811f553",
       "name": "Select PAYMENTS from quote",
       "alwaysOutputData": true,
       "credentials": {
@@ -1779,10 +1801,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        32,
-        5200
+        -13104,
+        6560
       ],
-      "id": "4377e486-c1f7-4fa9-a045-4ce48d706ca3",
+      "id": "171180f6-2ab3-4797-a8a7-4e97f166587d",
       "name": "Code15"
     },
     {
@@ -1796,10 +1818,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -176,
-        5200
+        -13312,
+        6560
       ],
-      "id": "4a367e7e-8fd1-4910-b150-6f1fc38e1c24",
+      "id": "10e0a4be-78b1-451d-851d-0a1a1619999f",
       "name": "Select Order Items",
       "credentials": {
         "postgres": {
@@ -1815,10 +1837,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        752,
-        5152
+        -12384,
+        6512
       ],
-      "id": "16cffc25-9133-4b18-8a7b-c366c28227a0",
+      "id": "741aa44a-f843-4dc3-8e70-71f11bf7fa62",
       "name": "Code17"
     },
     {
@@ -1830,10 +1852,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        544,
-        5152
+        -12592,
+        6512
       ],
-      "id": "89d5ea4a-daa9-4ba2-aa18-c16ce5dc39c4",
+      "id": "5dfea567-56bf-42bf-8e61-b7441854e7eb",
       "name": "Select Invoice Items",
       "credentials": {
         "postgres": {
@@ -1850,11 +1872,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -480,
-        4528
+        -13616,
+        5888
       ],
       "typeVersion": 1,
-      "id": "dc0d02db-5a2c-44fe-9402-8d9a38e91e80",
+      "id": "2c9dc1d2-ac42-4e29-869f-2a7a05f2e1e6",
       "name": "Sticky Note5"
     },
     {
@@ -1865,11 +1887,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        272,
-        4864
+        -12864,
+        6224
       ],
       "typeVersion": 1,
-      "id": "b7171665-674f-42b7-b365-946e2e805803",
+      "id": "301e6859-4996-43f1-9542-4567eb609725",
       "name": "Sticky Note6"
     },
     {
@@ -1881,10 +1903,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        144,
-        6032
+        -12992,
+        7392
       ],
-      "id": "08f53800-c2ed-4111-b056-f92492fb7c47",
+      "id": "fe149f5c-99b8-4bf4-b914-70a1f3768a3e",
       "name": "Error22"
     },
     {
@@ -1910,10 +1932,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        144,
-        5872
+        -12992,
+        7232
       ],
-      "id": "e337775f-41ce-42b3-a2ba-e5acd68c5a5d",
+      "id": "a4a7f015-18ae-4aee-874f-95b2d4f75c07",
       "name": "Success53"
     },
     {
@@ -2002,10 +2024,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -64,
-        6016
+        -13200,
+        7376
       ],
-      "id": "b9e69a31-0eb8-4ff8-9f1f-f51fee6565c9",
+      "id": "51059ee7-af0f-46e3-8862-fa0a4857596d",
       "name": "Update rows in a table21",
       "alwaysOutputData": false,
       "credentials": {
@@ -2025,10 +2047,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        352,
-        6352
+        -12784,
+        7712
       ],
-      "id": "a2db1107-24c5-41fa-b269-0e66cc5c8dd6",
+      "id": "70be9fc8-e2c4-4441-a129-8b610f15deed",
       "name": "Error25"
     },
     {
@@ -2054,10 +2076,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        352,
-        6192
+        -12784,
+        7552
       ],
-      "id": "6a7cb582-28cc-42e0-83d9-8ac4eddeed41",
+      "id": "51addd9a-09f4-4f06-ae99-dcb1c9513e89",
       "name": "Success54"
     },
     {
@@ -2089,10 +2111,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -240,
-        6112
+        -13376,
+        7472
       ],
-      "id": "80692c19-e63e-4faa-8f53-1a304d1e3d00",
+      "id": "0552f60a-fff8-4336-b340-4cef05dad09d",
       "name": "If26"
     },
     {
@@ -2104,10 +2126,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1072,
-        6112
+        -12064,
+        7472
       ],
-      "id": "f858c179-e422-4670-b953-a72e2adadf35",
+      "id": "8a9d3192-872b-4183-a80e-f530fbdbcaaf",
       "name": "Error26"
     },
     {
@@ -2133,10 +2155,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1056,
-        5936
+        -12080,
+        7296
       ],
-      "id": "14ee89c3-1deb-4368-b581-53114f4bfd38",
+      "id": "6776afc0-d4d2-41f0-9589-90e44da018f3",
       "name": "Success55"
     },
     {
@@ -2148,10 +2170,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -480,
-        5792
+        -13616,
+        7152
       ],
-      "id": "b5eca05e-af03-4387-be6e-41c6e93c6dcb",
+      "id": "0dcde459-fa8a-4346-b338-eb2df5465ed0",
       "name": "Sticky Note42"
     },
     {
@@ -2183,10 +2205,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        816,
-        6032
+        -12320,
+        7392
       ],
-      "id": "8e37d888-3109-4414-8977-04fc51307c16",
+      "id": "41c60736-a93f-4568-9f02-a9e0354749a5",
       "name": "Delete rows in a table19",
       "alwaysOutputData": false,
       "credentials": {
@@ -2210,10 +2232,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -432,
-        6128
+        -13568,
+        7488
       ],
-      "id": "f04bbe6e-3ba7-4435-b9f5-a78ce55dfab1",
+      "id": "f6120d16-594b-419e-8100-2c81883837ce",
       "name": "metodospago/upsert",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -2237,10 +2259,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        608,
-        6032
+        -12528,
+        7392
       ],
-      "id": "adafb6ca-ae93-4c46-bdb8-f715a7975c66",
+      "id": "1a24ac8c-2a6b-4111-ac69-b26bc82a8d1b",
       "name": "metodospago/delete",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -2334,10 +2356,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        144,
-        6224
+        -12992,
+        7584
       ],
-      "id": "bdd50a0b-4eee-4aa8-887e-f1b9e541c56e",
+      "id": "feda3db0-8618-4449-8d20-77a561015d96",
       "name": "Insert rows in a table22",
       "alwaysOutputData": false,
       "credentials": {
@@ -2376,10 +2398,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        816,
-        6240
+        -12320,
+        7600
       ],
-      "id": "f1486780-eeb2-4889-963d-b3db69460116",
+      "id": "5e85db58-7bef-44b8-ab5a-ee8fb0be2e8b",
       "name": "Delete rows in a table20",
       "alwaysOutputData": false,
       "credentials": {
@@ -2403,10 +2425,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        608,
-        6240
+        -12528,
+        7600
       ],
-      "id": "77348de1-0943-4033-b2d1-71f853945d3c",
+      "id": "ab1dee29-1597-4c1c-bf4c-b0429e1ac94e",
       "name": "metodospago/all",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -2423,10 +2445,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1072,
-        6272
+        -12064,
+        7632
       ],
-      "id": "0d0428be-5a5a-4c34-b437-78b13b1b5f1b",
+      "id": "d56104c6-0dae-49c8-b32b-46fa733e9ef9",
       "name": "Code33"
     },
     {
@@ -2442,10 +2464,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -400,
-        4608
+        -13536,
+        5968
       ],
-      "id": "3896fd09-11f9-4e3d-a337-8e056b58700b",
+      "id": "93a7a2bd-a156-4112-9d37-4f9fa368bb87",
       "name": "/quotes",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2469,10 +2491,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -384,
-        4800
+        -13520,
+        6160
       ],
-      "id": "f068dd8a-0867-4b95-9d73-96932f88fcc7",
+      "id": "98367ca4-b402-481e-98a6-7fd4b18b57f6",
       "name": "quote_items",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2496,10 +2518,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -384,
-        4992
+        -13520,
+        6352
       ],
-      "id": "8136468d-6a78-4cd9-9374-4f49b1343b6a",
+      "id": "9925964c-ad16-439a-b044-780168ee04f5",
       "name": "quote_orders",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2523,10 +2545,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -384,
-        5200
+        -13520,
+        6560
       ],
-      "id": "735508c0-a917-4a39-9985-4fa1d091b0fc",
+      "id": "aba9432a-d682-40b5-aaa8-769265b8d51b",
       "name": "order_items",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2550,10 +2572,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        320,
-        4960
+        -12816,
+        6320
       ],
-      "id": "8ff0d5c0-c988-4724-b0da-30953b3a972a",
+      "id": "d0868f93-fdc2-4ade-aa25-c3e4a5a082fd",
       "name": "quote_invoices",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2577,10 +2599,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        336,
-        5152
+        -12800,
+        6512
       ],
-      "id": "48410c27-da89-4312-b9b0-5b9212da0202",
+      "id": "ccf89383-641d-4f0c-b303-5487105c09f9",
       "name": "invoice_items",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2604,10 +2626,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        336,
-        5344
+        -12800,
+        6704
       ],
-      "id": "9b1202c5-9a56-4953-b7ed-0e31aa5ca001",
+      "id": "d173efeb-9ddf-49e5-8cb6-124f8cc45627",
       "name": "quote_payments",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2631,10 +2653,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -1120,
-        5120
+        -14256,
+        6480
       ],
-      "id": "218bc3bd-8850-44a8-8d63-753df84dd323",
+      "id": "751d4d90-17e0-4ba8-9088-6306295ac168",
       "name": "order_invoices",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2658,10 +2680,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -1120,
-        5312
+        -14256,
+        6672
       ],
-      "id": "f810c45a-7359-4d2c-967c-f3d57adc180e",
+      "id": "f763117d-4b00-4551-9964-458b73df1a88",
       "name": "order_payments",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2685,10 +2707,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -1104,
-        5520
+        -14240,
+        6880
       ],
-      "id": "805d622a-cb95-41cc-8ab4-1fd55cf9c6ab",
+      "id": "856bad17-0bbb-440b-baf0-2789a2bd516c",
       "name": "all_invoices",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2712,10 +2734,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -1104,
-        5696
+        -14240,
+        7056
       ],
-      "id": "e83d7c23-5b01-40ce-b8d6-bedfb85c5740",
+      "id": "8be34ab9-0e85-4498-a559-124779e2ba9d",
       "name": "invoice_payments",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2739,10 +2761,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -1104,
-        5872
+        -14240,
+        7232
       ],
-      "id": "924a5a13-f2b6-456a-8473-e6e04414cc70",
+      "id": "98e8c48a-2ce6-465d-9682-08e436fea3ef",
       "name": "all_payments",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2785,7 +2807,9 @@
             "discount_scope": "={{ $json.body.discount_scope ?? null }}",
             "discount_mode": "={{ $json.body.discount_mode ?? null }}",
             "discount_value": "={{ $json.body.discount_value ?? null }}",
-            "discount_amount": "={{ $json.body.discount_amount ?? null }}"
+            "discount_amount": "={{ $json.body.discount_amount ?? null }}",
+            "created_by": "={{ $('quotes/upsert').item.json.jwtPayload.userId }}",
+            "updated_by": "={{ $('quotes/upsert').item.json.jwtPayload.userId }}"
           },
           "matchingColumns": [
             "id"
@@ -3000,6 +3024,26 @@
               "type": "number",
               "canBeUsedToMatch": true,
               "removed": false
+            },
+            {
+              "id": "created_by",
+              "displayName": "created_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_by",
+              "displayName": "updated_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -3010,10 +3054,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -4416,
-        5056
+        -17552,
+        6416
       ],
-      "id": "bfd276eb-e909-41c9-a511-419f1e7506a9",
+      "id": "24924fbe-f26f-4ac1-bd5f-0ca26ed1e0a0",
       "name": "Insert",
       "alwaysOutputData": true,
       "credentials": {
@@ -3059,7 +3103,8 @@
             "discount_scope": "={{ $json.body.discount_scope ?? null }}",
             "discount_mode": "={{ $json.body.discount_mode ?? null }}",
             "discount_value": "={{ $json.body.discount_value ?? null }}",
-            "discount_amount": "={{ $json.body.discount_amount ?? null }}"
+            "discount_amount": "={{ $json.body.discount_amount ?? null }}",
+            "updated_by": "={{ $('quotes/upsert').item.json.jwtPayload.userId }}"
           },
           "matchingColumns": [
             "id"
@@ -3274,6 +3319,26 @@
               "type": "number",
               "canBeUsedToMatch": true,
               "removed": false
+            },
+            {
+              "id": "created_by",
+              "displayName": "created_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "updated_by",
+              "displayName": "updated_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -3284,10 +3349,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -4416,
-        5232
+        -17552,
+        6592
       ],
-      "id": "059c93ad-d20b-4fd7-a5a3-467471c58a5b",
+      "id": "eb3041d5-ac50-4877-9041-120c1ac4c83e",
       "name": "Update",
       "alwaysOutputData": true,
       "credentials": {
@@ -3323,7 +3388,9 @@
             "gross_total": "={{ $json.body.gross_total ?? null }}",
             "discount_mode": "={{ $json.body.discount_mode ?? null }}",
             "discount_value": "={{ $json.body.discount_value ?? null }}",
-            "discount_amount": "={{ $json.body.discount_amount ?? null }}"
+            "discount_amount": "={{ $json.body.discount_amount ?? null }}",
+            "created_by": "={{ $('quote/lines/upsert').item.json.jwtPayload.userId }}",
+            "updated_by": "={{ $('quote/lines/upsert').item.json.jwtPayload.userId }}"
           },
           "matchingColumns": [
             "id"
@@ -3438,6 +3505,26 @@
               "type": "number",
               "canBeUsedToMatch": true,
               "removed": false
+            },
+            {
+              "id": "created_by",
+              "displayName": "created_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_by",
+              "displayName": "updated_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -3448,10 +3535,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -1952,
-        4960
+        -15088,
+        6320
       ],
-      "id": "ee4bafe0-3f95-4741-915e-87351602d843",
+      "id": "71a40ac2-34dd-4e22-beec-29ce1fb810c1",
       "name": "Insert1",
       "alwaysOutputData": true,
       "credentials": {
@@ -3489,7 +3576,8 @@
             "gross_total": "={{ $json.body.gross_total ?? null }}",
             "discount_mode": "={{ $json.body.discount_mode ?? null }}",
             "discount_value": "={{ $json.body.discount_value ?? null }}",
-            "discount_amount": "={{ $json.body.discount_amount ?? null }}"
+            "discount_amount": "={{ $json.body.discount_amount ?? null }}",
+            "updated_by": "={{ $('quote/lines/upsert').item.json.jwtPayload.userId }}"
           },
           "matchingColumns": [
             "id"
@@ -3604,6 +3692,26 @@
               "type": "number",
               "canBeUsedToMatch": true,
               "removed": false
+            },
+            {
+              "id": "created_by",
+              "displayName": "created_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "updated_by",
+              "displayName": "updated_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -3614,10 +3722,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -1952,
-        5088
+        -15088,
+        6448
       ],
-      "id": "6a09dbbb-4085-4227-b6cf-099c67bc50b4",
+      "id": "bf4186bc-012b-40a0-ab30-f56324f3d336",
       "name": "Update1",
       "alwaysOutputData": true,
       "credentials": {
@@ -3635,10 +3743,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1184,
-        7136
+        -11952,
+        8496
       ],
-      "id": "448b4774-ce7d-4aa0-8402-dd9febc7a914",
+      "id": "804d2400-0ce1-4dfe-822f-5b1b7946aed7",
       "name": "Format Invoice Upsert Output"
     },
     {
@@ -3656,10 +3764,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -1136,
-        6848
+        -14272,
+        8208
       ],
-      "id": "f2802f0f-618f-4c7e-9731-6d8bca7cf755",
+      "id": "25565f99-2d67-47a7-817f-5241185aa4e6",
       "name": "invoices/upsert",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -3676,10 +3784,10 @@
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        352,
-        6656
+        -12784,
+        8016
       ],
-      "id": "9c8dbe0e-e362-42c6-84e6-7ad3fca76740",
+      "id": "b517ac18-755a-49c6-bcb0-363330e6ac84",
       "name": "Loop Over Invoice Items"
     },
     {
@@ -3699,10 +3807,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -112,
-        6656
+        -13248,
+        8016
       ],
-      "id": "d9e62cd0-aea2-454a-b612-4e0703eb1d7a",
+      "id": "d5b36fb9-afd3-46c8-9eca-9322c19311cd",
       "name": "Set Invoice Items"
     },
     {
@@ -3732,7 +3840,8 @@
             "discount_mode": "={{ $json.discount_mode ?? null }}",
             "discount_value": "={{ $json.discount_value ?? null }}",
             "discount_amount": "={{ $json.discount_amount ?? null }}",
-            "tooth_number": "={{ $json.tooth_number }}"
+            "tooth_number": "={{ $json.tooth_number }}",
+            "updated_by": "={{ $('invoices/upsert').item.json.jwtPayload.userId }}"
           },
           "matchingColumns": [
             "id"
@@ -3755,7 +3864,7 @@
               "defaultMatch": false,
               "display": true,
               "type": "number",
-              "canBeUsedToMatch": false
+              "canBeUsedToMatch": true
             },
             {
               "id": "order_item_id",
@@ -3764,7 +3873,7 @@
               "defaultMatch": false,
               "display": true,
               "type": "number",
-              "canBeUsedToMatch": false,
+              "canBeUsedToMatch": true,
               "removed": true
             },
             {
@@ -3774,7 +3883,7 @@
               "defaultMatch": false,
               "display": true,
               "type": "number",
-              "canBeUsedToMatch": false
+              "canBeUsedToMatch": true
             },
             {
               "id": "unit_price",
@@ -3783,7 +3892,7 @@
               "defaultMatch": false,
               "display": true,
               "type": "number",
-              "canBeUsedToMatch": false
+              "canBeUsedToMatch": true
             },
             {
               "id": "total",
@@ -3792,7 +3901,7 @@
               "defaultMatch": false,
               "display": true,
               "type": "number",
-              "canBeUsedToMatch": false
+              "canBeUsedToMatch": true
             },
             {
               "id": "service_id",
@@ -3801,8 +3910,18 @@
               "defaultMatch": false,
               "display": true,
               "type": "number",
-              "canBeUsedToMatch": false,
+              "canBeUsedToMatch": true,
               "removed": false
+            },
+            {
+              "id": "steps",
+              "displayName": "steps",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
             },
             {
               "id": "gross_total",
@@ -3851,7 +3970,27 @@
               "defaultMatch": false,
               "display": true,
               "type": "number",
-              "canBeUsedToMatch": false,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_by",
+              "displayName": "created_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "updated_by",
+              "displayName": "updated_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
               "removed": false
             }
           ],
@@ -3863,10 +4002,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        752,
-        6720
+        -12384,
+        8080
       ],
-      "id": "d8c00e8e-67e3-4210-b550-7804f045d49a",
+      "id": "97366a22-7054-411a-a77e-6bd544f8bd6f",
       "name": "Upsert Invoice Item",
       "credentials": {
         "postgres": {
@@ -3886,10 +4025,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -384,
-        6656
+        -13520,
+        8016
       ],
-      "id": "2774bab0-9053-4af2-890b-9cc2b1468351",
+      "id": "955cfe5e-f571-4ea1-b3ad-9ddcb52917d8",
       "name": "Delete Old Items",
       "credentials": {
         "postgres": {
@@ -3900,29 +4039,16 @@
     },
     {
       "parameters": {
-        "jsCode": "// Filtrar solo los items que no han sido facturados\nconst notInvoicedItems = $input.all().filter(item => !item.json.already_invoiced);\nconst its= notInvoicedItems.filter(item => item.json && item.json.id).map(item => item.json);\nif (notInvoicedItems.length === 0 || its.length === 0) {\n  return {\n    json: {\n      error: true,\n      message: \"No existen servicios por facturar. Por favor revise que existan servicios completados y que no hayan sido ya facturados\"\n    }\n  };\n}\n\n// Calcular total\nconst total = notInvoicedItems.reduce((sum, item) => sum + parseFloat(item.json.total), 0);\n\nreturn [{\n  json: {\n    items: its,\n    total: total,\n    count: notInvoicedItems.length,\n    order_id: $(\"Validar Entrada\").first().json.order_id,\n    invoiced_date: $(\"Validar Entrada\").first().json.invoiced_date,\n  }\n}];"
-      },
-      "id": "16d4cb83-f3b9-4dc2-a529-b42139ef0009",
-      "name": "Filtrar Items No Facturados",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1200,
-        6640
-      ]
-    },
-    {
-      "parameters": {
         "fieldToSplitOut": "invoice_items",
         "options": {}
       },
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
       "position": [
-        144,
-        6656
+        -12992,
+        8016
       ],
-      "id": "3711e5cd-0dbe-4734-badf-1ba78f98c626",
+      "id": "225e1bc6-5775-4d56-b6f8-38ff28635448",
       "name": "Split Out Invoice Items"
     },
     {
@@ -3963,10 +4089,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -928,
-        6848
+        -14064,
+        8208
       ],
-      "id": "d01e0a5d-909c-4960-bef5-c36ed31554c3",
+      "id": "8bcfd588-1e52-41d3-bd9b-a3ca0c13e551",
       "name": "Is update?"
     },
     {
@@ -3986,10 +4112,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -432,
-        7040
+        -13568,
+        8400
       ],
-      "id": "147a8643-1bcf-404c-a3a0-c0a4bc089e25",
+      "id": "21aa99ec-f211-489a-9b84-63227c5b4e0b",
       "name": "Set Invoice Items1"
     },
     {
@@ -3999,10 +4125,10 @@
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        112,
-        7040
+        -13024,
+        8400
       ],
-      "id": "67e560db-0660-4f63-938e-166a3126b882",
+      "id": "227f53f1-2924-4639-b0d2-8b21203a9d93",
       "name": "Loop Over Invoice Items1"
     },
     {
@@ -4013,10 +4139,10 @@
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
       "position": [
-        -160,
-        7040
+        -13296,
+        8400
       ],
-      "id": "b66f9adb-e442-4e5d-8c39-777b9160af2a",
+      "id": "3df04759-663d-4116-ad74-0d9701a4239a",
       "name": "Split Out Invoice Items1"
     },
     {
@@ -4044,7 +4170,9 @@
             "discount_mode": "={{ $json.discount_mode ?? null }}",
             "discount_value": "={{ $json.discount_value ?? null }}",
             "discount_amount": "={{ $json.discount_amount ?? null }}",
-            "tooth_number": "={{ $json.tooth_number }}"
+            "tooth_number": "={{ $json.tooth_number }}",
+            "created_by": "={{ $('invoices/upsert').item.json.jwtPayload.userId }}",
+            "updated_by": "={{ $('invoices/upsert').item.json.jwtPayload.userId }}"
           },
           "matchingColumns": [
             "id"
@@ -4117,6 +4245,16 @@
               "removed": false
             },
             {
+              "id": "steps",
+              "displayName": "steps",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
               "id": "gross_total",
               "displayName": "gross_total",
               "required": false,
@@ -4165,6 +4303,26 @@
               "type": "number",
               "canBeUsedToMatch": true,
               "removed": false
+            },
+            {
+              "id": "created_by",
+              "displayName": "created_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_by",
+              "displayName": "updated_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -4175,10 +4333,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        304,
-        7120
+        -12832,
+        8480
       ],
-      "id": "d74522b7-3a78-4155-b7fe-8c979b8bd8a0",
+      "id": "f042af4f-3e4d-4a54-a9e2-34715b83ed05",
       "name": "Insert Invoice Item",
       "credentials": {
         "postgres": {
@@ -4195,11 +4353,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -1200,
-        6560
+        -14336,
+        7920
       ],
       "typeVersion": 1,
-      "id": "c553d76f-3bc0-4df5-8b9d-b1de632fb765",
+      "id": "ab75279b-64ea-4950-be35-5da0a7490ee0",
       "name": "Sticky Note"
     },
     {
@@ -4216,10 +4374,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -1136,
-        8000
+        -14272,
+        9360
       ],
-      "id": "9feb9682-22fd-4404-88ae-b1bfaea80d7d",
+      "id": "4c9d63cf-c445-4107-a9a7-5b360067118b",
       "name": "invoices/items/delete",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -4257,10 +4415,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -64,
-        7888
+        -13200,
+        9248
       ],
-      "id": "9e3691c0-a3e6-4e38-bf5d-0038aac3b90e",
+      "id": "a1fdf3bb-e274-401d-993d-80d9cb191c2c",
       "name": "Delete invoice item",
       "alwaysOutputData": true,
       "credentials": {
@@ -4277,10 +4435,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        352,
-        7888
+        -12784,
+        9248
       ],
-      "id": "3d27bc09-d4ec-4a29-b2b0-3419e926798a",
+      "id": "b9e68d93-421f-4169-9146-e711bc80b7e6",
       "name": "Delete invoice response"
     },
     {
@@ -4290,10 +4448,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        144,
-        7552
+        -12992,
+        8912
       ],
-      "id": "2f00af77-eb6d-4d48-93d2-bef8975ddbdc",
+      "id": "ebb84b1b-a4d8-4c46-a51d-9824e2bbfe84",
       "name": "Update invoice item Response"
     },
     {
@@ -4304,11 +4462,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -1200,
-        7360
+        -14336,
+        8720
       ],
       "typeVersion": 1,
-      "id": "4189c867-c09d-45e2-a415-467058382457",
+      "id": "532a01ab-0b69-4892-8b9d-81638919fe91",
       "name": "Sticky Note1"
     },
     {
@@ -4330,10 +4488,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        352,
-        7552
+        -12784,
+        8912
       ],
-      "id": "5341350f-9ed4-4759-9d94-096801b61aef",
+      "id": "e0848a71-5426-43b7-8559-fedc8aecfec3",
       "name": "OK: Invoice item updated"
     },
     {
@@ -4355,10 +4513,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        560,
-        7888
+        -12576,
+        9248
       ],
-      "id": "02c9ad01-2224-4b4b-8b5c-2c2e5b7f0fd5",
+      "id": "00ffe077-9cf5-4d17-85fd-93411964a0ae",
       "name": "OK: Invoice item deleted"
     },
     {
@@ -4375,10 +4533,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -1136,
-        7616
+        -14272,
+        8976
       ],
-      "id": "65daa7ce-0a10-45b5-80d5-2dd1f14ccd45",
+      "id": "8608a7b3-1427-48f3-a71e-57b8eed18c57",
       "name": "invoices/items/upsert",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -4416,10 +4574,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -512,
-        7552
+        -13648,
+        8912
       ],
-      "id": "d39a6e27-1fb4-44f7-b5bb-abf35831e5c8",
+      "id": "e2b85ef6-a779-449a-a269-d621d7d3ffce",
       "name": "Id exists?"
     },
     {
@@ -4448,7 +4606,9 @@
             "discount_mode": "={{ $('invoices/items/upsert').item.json.body.discount_mode ?? null }}",
             "discount_value": "={{ $('invoices/items/upsert').item.json.body.discount_value ?? null }}",
             "discount_amount": "={{ $('invoices/items/upsert').item.json.body.discount_amount ?? null }}",
-            "tooth_number": "={{ $('invoices/items/upsert').item.json.body.tooth_number }}"
+            "tooth_number": "={{ $('invoices/items/upsert').item.json.body.tooth_number }}",
+            "created_by": "={{ $('invoices/items/upsert').item.json.jwtPayload.userId }}",
+            "updated_by": "={{ $('invoices/items/upsert').item.json.jwtPayload.userId }}"
           },
           "matchingColumns": [
             "id"
@@ -4519,6 +4679,16 @@
               "canBeUsedToMatch": true
             },
             {
+              "id": "steps",
+              "displayName": "steps",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
               "id": "gross_total",
               "displayName": "gross_total",
               "required": false,
@@ -4567,6 +4737,26 @@
               "type": "number",
               "canBeUsedToMatch": true,
               "removed": false
+            },
+            {
+              "id": "created_by",
+              "displayName": "created_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_by",
+              "displayName": "updated_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -4577,10 +4767,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -288,
-        7632
+        -13424,
+        8992
       ],
-      "id": "431bac44-b37e-46b7-b706-523757200f13",
+      "id": "83ecf1b1-e6ac-45df-a0f9-401f425b040c",
       "name": "Insert invoice item",
       "credentials": {
         "postgres": {
@@ -4617,7 +4807,8 @@
             "discount_mode": "={{ $('invoices/items/upsert').item.json.body.discount_mode ?? null }}",
             "discount_value": "={{ $('invoices/items/upsert').item.json.body.discount_value ?? null }}",
             "discount_amount": "={{ $('invoices/items/upsert').item.json.body.discount_amount ?? null }}",
-            "tooth_number": "={{ $('invoices/items/upsert').item.json.body.tooth_number }}"
+            "tooth_number": "={{ $('invoices/items/upsert').item.json.body.tooth_number }}",
+            "updated_by": "={{ $('invoices/items/upsert').item.json.jwtPayload.userId }}"
           },
           "matchingColumns": [
             "id"
@@ -4688,6 +4879,16 @@
               "canBeUsedToMatch": true
             },
             {
+              "id": "steps",
+              "displayName": "steps",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
               "id": "gross_total",
               "displayName": "gross_total",
               "required": false,
@@ -4736,6 +4937,26 @@
               "type": "number",
               "canBeUsedToMatch": true,
               "removed": false
+            },
+            {
+              "id": "created_by",
+              "displayName": "created_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "updated_by",
+              "displayName": "updated_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -4746,10 +4967,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -288,
-        7472
+        -13424,
+        8832
       ],
-      "id": "1189dd79-8df7-4376-a16f-2fbad429001c",
+      "id": "51ef703b-d6cf-43bc-8093-2cf2f098964d",
       "name": "Update invoice item",
       "credentials": {
         "postgres": {
@@ -4786,10 +5007,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -720,
-        7616
+        -13856,
+        8976
       ],
-      "id": "d64ae85e-efcf-4ff5-9d8a-931b617444fe",
+      "id": "5e2804d9-44f1-4b1f-ab7d-fb8c0b0048c9",
       "name": "Can edit invoice?"
     },
     {
@@ -4811,10 +5032,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        -512,
-        7696
+        -13648,
+        9056
       ],
-      "id": "98d21e57-3ec2-4a64-aff6-74a5ae3cbb72",
+      "id": "39f5f463-f268-4940-9ce1-e29d2044cbb4",
       "name": "Error: Cannot edit invoice"
     },
     {
@@ -4849,10 +5070,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -928,
-        7616
+        -14064,
+        8976
       ],
-      "id": "d71cd21e-60ec-40c3-8be3-9b5e4aab4c6b",
+      "id": "0123e389-435a-4757-b959-43682288e901",
       "name": "Select Invoice draft",
       "alwaysOutputData": true,
       "credentials": {
@@ -4890,10 +5111,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -512,
-        8000
+        -13648,
+        9360
       ],
-      "id": "5cf63bd2-d642-4660-9fd0-75405bf01374",
+      "id": "6599d473-2a70-49cc-8743-75d0876d6f09",
       "name": "Can edit invoice?1"
     },
     {
@@ -4928,10 +5149,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -720,
-        8000
+        -13856,
+        9360
       ],
-      "id": "1e593938-6ce4-49a1-9e6b-c9fbea75f05a",
+      "id": "6b5b911c-31ea-4900-87a8-a029276f34d4",
       "name": "Select Invoice draft1",
       "alwaysOutputData": true,
       "credentials": {
@@ -4969,10 +5190,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -928,
-        8000
+        -14064,
+        9360
       ],
-      "id": "daf7bdf9-9f09-4654-866e-e3092fcc15b1",
+      "id": "b99e89e7-4692-417c-849b-749a48619af6",
       "name": "Select invoice item",
       "credentials": {
         "postgres": {
@@ -5000,10 +5221,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        -304,
-        8080
+        -13440,
+        9440
       ],
-      "id": "9f8d5faf-93c5-4752-9dbe-37104ce2149f",
+      "id": "0b2a1c16-e933-4805-be35-5ef765863f82",
       "name": "Error: Cannot delete invoice"
     },
     {
@@ -5020,10 +5241,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -1136,
-        8368
+        -14272,
+        9728
       ],
-      "id": "8354f215-177f-4e14-9e83-1807eaca25c1",
+      "id": "f6f77db2-d67c-4b4e-92ee-c66388bd196f",
       "name": "invoices/confirm",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -5061,10 +5282,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -720,
-        8368
+        -13856,
+        9728
       ],
-      "id": "44531f4e-4c21-44c7-9493-7cde3821b6d7",
+      "id": "c8ffe101-b19c-437e-8197-6125d48a33f8",
       "name": "Can edit invoice?2"
     },
     {
@@ -5099,10 +5320,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -928,
-        8368
+        -14064,
+        9728
       ],
-      "id": "8e927319-04cc-4d3d-a9cd-cf5687b3bf3a",
+      "id": "03dbb540-8504-4176-a805-56e15882a349",
       "name": "Select Invoice draft2",
       "alwaysOutputData": true,
       "credentials": {
@@ -5274,10 +5495,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -512,
-        8288
+        -13648,
+        9648
       ],
-      "id": "11f3ff9a-7e4e-44d8-82c0-8420fe5c2f5a",
+      "id": "8cfd15f4-a096-4fa3-83fd-51d2dc508418",
       "name": "Confirm invoice",
       "credentials": {
         "postgres": {
@@ -5305,10 +5526,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        -304,
-        8288
+        -13440,
+        9648
       ],
-      "id": "b1feafb7-27a3-4a9d-bd15-aafc9a169643",
+      "id": "8836f968-1c0a-45a6-8f0d-eaa7a3f3b3e8",
       "name": "OK: Invoice confirmed"
     },
     {
@@ -5330,10 +5551,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        -512,
-        8448
+        -13648,
+        9808
       ],
-      "id": "09ab2500-9389-4834-973e-e0f5b19123a9",
+      "id": "31a7b25c-eb17-4cb7-8570-6f69db412970",
       "name": "Error: Cannot confirm invoice"
     },
     {
@@ -5347,10 +5568,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -64,
-        7552
+        -13200,
+        8912
       ],
-      "id": "e53fcb35-0b1a-4daf-b2dd-510ad3413e1c",
+      "id": "0076a336-f167-4830-b304-2e19e0ba4da0",
       "name": "Recalculate Invoice Total",
       "credentials": {
         "postgres": {
@@ -5370,10 +5591,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        144,
-        7888
+        -12992,
+        9248
       ],
-      "id": "db655bfa-d0c7-48f7-bf52-d1c997b6dfe6",
+      "id": "bd2ecfdd-782d-4fc5-bbd9-a20b8ab667de",
       "name": "Recalculate Invoice Total1",
       "credentials": {
         "postgres": {
@@ -5393,10 +5614,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        672,
-        7120
+        -12464,
+        8480
       ],
-      "id": "1e489b90-268d-4226-95ae-da0a50add959",
+      "id": "6029a9ad-4a21-46b2-a81c-b980dcb401f4",
       "name": "Recalculate Invoice Total2",
       "credentials": {
         "postgres": {
@@ -5416,10 +5637,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        992,
-        6640
+        -12144,
+        8000
       ],
-      "id": "76c03ec1-0c6e-451a-bfdb-ad358c8bc722",
+      "id": "6d4b8776-5513-4640-9050-0bd384b1e2b6",
       "name": "Recalculate Invoice Total3",
       "credentials": {
         "postgres": {
@@ -5442,10 +5663,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -2848,
-        6672
+        -15984,
+        8032
       ],
-      "id": "36f868f9-bc1e-486c-bcd8-6364074eef27",
+      "id": "10b6b2ff-261f-41c6-b048-d52754a5a255",
       "name": "user_credit",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -5466,10 +5687,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -2608,
-        6672
+        -15744,
+        8032
       ],
-      "id": "3387994a-705a-43b8-9bc0-14add7f9ba0e",
+      "id": "51a83d66-6ed4-4705-858a-94406f614e87",
       "name": "Select credit by user",
       "alwaysOutputData": true,
       "credentials": {
@@ -5513,7 +5734,8 @@
             "discount_scope": "={{ $json.body.discount_scope ?? null }}",
             "discount_mode": "={{ $json.body.discount_mode ?? null }}",
             "discount_value": "={{ $json.body.discount_value ?? null }}",
-            "discount_amount": "={{ $json.body.discount_amount ?? null }}"
+            "discount_amount": "={{ $json.body.discount_amount ?? null }}",
+            "updated_by": "={{ $('invoices/upsert').item.json.jwtPayload.userId }}"
           },
           "matchingColumns": [
             "id"
@@ -5772,6 +5994,26 @@
               "type": "number",
               "canBeUsedToMatch": true,
               "removed": false
+            },
+            {
+              "id": "created_by",
+              "displayName": "created_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "updated_by",
+              "displayName": "updated_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -5782,10 +6024,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -640,
-        6752
+        -13776,
+        8112
       ],
-      "id": "0eeb8acf-2375-4bbf-871d-3929e10a86c5",
+      "id": "df80531c-def8-49d9-96e9-f82565d4ccc4",
       "name": "Update rows in a table",
       "credentials": {
         "postgres": {
@@ -5822,10 +6064,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        544,
-        6752
+        -12592,
+        8112
       ],
-      "id": "427a4411-66cf-4962-b391-003fae14953a",
+      "id": "e03a937a-9929-459c-a298-4224d2709e42",
       "name": "Id exists?1"
     },
     {
@@ -5853,7 +6095,9 @@
             "discount_mode": "={{ $json.discount_mode ?? null }}",
             "discount_value": "={{ $json.discount_value ?? null }}",
             "discount_amount": "={{ $json.discount_amount ?? null }}",
-            "tooth_number": "={{ $json.tooth_number }}"
+            "tooth_number": "={{ $json.tooth_number }}",
+            "created_by": "={{ $('invoices/upsert').item.json.jwtPayload.userId }}",
+            "updated_by": "={{ $('invoices/upsert').item.json.jwtPayload.userId }}"
           },
           "matchingColumns": [
             "id"
@@ -5876,7 +6120,7 @@
               "defaultMatch": false,
               "display": true,
               "type": "number",
-              "canBeUsedToMatch": false
+              "canBeUsedToMatch": true
             },
             {
               "id": "order_item_id",
@@ -5885,7 +6129,7 @@
               "defaultMatch": false,
               "display": true,
               "type": "number",
-              "canBeUsedToMatch": false,
+              "canBeUsedToMatch": true,
               "removed": true
             },
             {
@@ -5895,7 +6139,7 @@
               "defaultMatch": false,
               "display": true,
               "type": "number",
-              "canBeUsedToMatch": false
+              "canBeUsedToMatch": true
             },
             {
               "id": "unit_price",
@@ -5904,7 +6148,7 @@
               "defaultMatch": false,
               "display": true,
               "type": "number",
-              "canBeUsedToMatch": false
+              "canBeUsedToMatch": true
             },
             {
               "id": "total",
@@ -5913,7 +6157,7 @@
               "defaultMatch": false,
               "display": true,
               "type": "number",
-              "canBeUsedToMatch": false
+              "canBeUsedToMatch": true
             },
             {
               "id": "service_id",
@@ -5922,8 +6166,18 @@
               "defaultMatch": false,
               "display": true,
               "type": "number",
-              "canBeUsedToMatch": false,
+              "canBeUsedToMatch": true,
               "removed": false
+            },
+            {
+              "id": "steps",
+              "displayName": "steps",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
             },
             {
               "id": "gross_total",
@@ -5974,6 +6228,26 @@
               "type": "number",
               "canBeUsedToMatch": true,
               "removed": false
+            },
+            {
+              "id": "created_by",
+              "displayName": "created_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_by",
+              "displayName": "updated_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -5984,10 +6258,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        928,
-        6880
+        -12208,
+        8240
       ],
-      "id": "f35b5338-6aff-42d8-be28-349c1e0d2ef6",
+      "id": "aff0328f-97b7-4368-b307-4a50f7867d92",
       "name": "Insert Invoice-items1",
       "credentials": {
         "postgres": {
@@ -6003,10 +6277,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -720,
-        6176
+        -13856,
+        7536
       ],
-      "id": "43562414-0226-4294-8eb7-efd4f31baa9d",
+      "id": "5536a732-8935-43ac-8366-2093abf35f33",
       "name": "Code"
     },
     {
@@ -6023,10 +6297,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -1136,
-        6176
+        -14272,
+        7536
       ],
-      "id": "c883b468-6cd4-43ce-a017-36f14ffe20f0",
+      "id": "62498ed5-8a4b-4207-8ddf-8f2f7d886c8f",
       "name": "GET invoice_allocations",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -6047,10 +6321,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -928,
-        6176
+        -14064,
+        7536
       ],
-      "id": "d1ca4e80-f07e-4acd-8cde-0625a9ea4ae9",
+      "id": "3b422d6e-3b68-49c1-bc09-ee163f2d4ee6",
       "name": "Select allocations",
       "alwaysOutputData": true,
       "credentials": {
@@ -6067,10 +6341,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -720,
-        6352
+        -13856,
+        7712
       ],
-      "id": "1c2a6587-86c7-4015-9370-4c49658a23b3",
+      "id": "664dc45a-05cd-4def-9bc3-1cb1e14be053",
       "name": "Code1"
     },
     {
@@ -6084,10 +6358,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -928,
-        6352
+        -14064,
+        7712
       ],
-      "id": "8e18fd27-106e-44ed-87f5-fa954152894e",
+      "id": "7970cf7a-5b79-48e7-9714-405ef545cbad",
       "name": "Select allocations1",
       "alwaysOutputData": true,
       "credentials": {
@@ -6105,11 +6379,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -1200,
-        6080
+        -14336,
+        7440
       ],
       "typeVersion": 1,
-      "id": "f9c80462-f988-4584-ab61-0fbeec30fa24",
+      "id": "4fc6736b-2e80-4779-a167-0f1942e59af9",
       "name": "Sticky Note2"
     },
     {
@@ -6126,10 +6400,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -1136,
-        6352
+        -14272,
+        7712
       ],
-      "id": "f8d3c008-9620-4f74-8899-478a1856c474",
+      "id": "0035b57a-2503-4e8b-b7b6-f0f58ee5bb7a",
       "name": "GET payment_allocations",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -6146,10 +6420,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -4208,
-        5008
+        -17344,
+        6368
       ],
-      "id": "7483f369-d7b1-496e-89b4-2e7fa9a7fb10",
+      "id": "174dd11a-179c-4e26-a8d0-d6006d1700e4",
       "name": "Get items"
     },
     {
@@ -6177,7 +6451,9 @@
             "gross_total": "={{ $json.gross_total ?? null }}",
             "discount_mode": "={{ $json.discount_mode ?? null }}",
             "discount_value": "={{ $json.discount_value ?? null }}",
-            "discount_amount": "={{ $json.discount_amount ?? null }}"
+            "discount_amount": "={{ $json.discount_amount ?? null }}",
+            "created_by": "={{ $('quotes/upsert').item.json.jwtPayload.userId }}",
+            "updated_by": "={{ $('quotes/upsert').item.json.jwtPayload.userId }}"
           },
           "matchingColumns": [
             "id"
@@ -6292,6 +6568,26 @@
               "type": "number",
               "canBeUsedToMatch": true,
               "removed": false
+            },
+            {
+              "id": "created_by",
+              "displayName": "created_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_by",
+              "displayName": "updated_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -6304,10 +6600,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3792,
-        5008
+        -16928,
+        6368
       ],
-      "id": "4d36a5e6-b341-424e-9700-03f2992e6729",
+      "id": "23a939a0-7958-4d51-bcbd-bce1b2238ba1",
       "name": "Insert items",
       "alwaysOutputData": true,
       "credentials": {
@@ -6326,10 +6622,10 @@
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
       "position": [
-        -4000,
-        5008
+        -17136,
+        6368
       ],
-      "id": "79750e1f-6e36-42e5-81bc-813f762f14b9",
+      "id": "54aa39bd-3f1c-42a3-9e47-2fe8aee6e1bc",
       "name": "Split Out"
     },
     {
@@ -6339,10 +6635,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -3584,
-        4912
+        -16720,
+        6272
       ],
-      "id": "6ca6ba3c-bac5-4adb-9f52-995011cf7ba0",
+      "id": "f0e25d31-29f7-4919-89d5-42cc8c919fe6",
       "name": "Code in JavaScript"
     },
     {
@@ -6356,10 +6652,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3360,
-        4912
+        -16496,
+        6272
       ],
-      "id": "26b6ec43-2885-4c12-8a8c-b58a1efd06fc",
+      "id": "203b7487-911c-436e-bfc6-1df38989e8f9",
       "name": "Upd Quote Total1",
       "alwaysOutputData": true,
       "credentials": {
@@ -6373,18 +6669,18 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO public.invoices (order_id, total, status, created_at, currency, is_sales, invoice_ref, user_id, type, parent_id, due_date, notes, is_historical, doctor_id, sede_id, gross_total, discount_scope, discount_mode, discount_value, discount_amount)\nVALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, COALESCE($15, (SELECT sede_id FROM public.invoices WHERE id = $10)), $16, $17, $18, $19, $20)\nRETURNING id, doc_no;",
+        "query": "INSERT INTO public.invoices (order_id, total, status, created_at, currency, is_sales, invoice_ref, user_id, type, parent_id, due_date, notes, is_historical, doctor_id, sede_id, gross_total, discount_scope, discount_mode, discount_value, discount_amount, created_by, updated_by)\nVALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, COALESCE($15, (SELECT sede_id FROM public.invoices WHERE id = $10)), $16, $17, $18, $19, $20, $21, $21)\nRETURNING id, doc_no;",
         "options": {
-          "queryReplacement": "={{ [$json.body.order_id || null, $json.body.total, 'booked', $json.body.created_at || $now, $json.body.currency, $json.body.is_sales, $json.body.invoice_ref, $json.body.user_id, $json.body.type, $json.body.parent_id, $json.body.due_date, $json.body.notes, $json.body.is_historical || false, $json.body.doctor_id || null, $json.body.sede_id || null, $json.body.gross_total ?? null, $json.body.discount_scope ?? null, $json.body.discount_mode ?? null, $json.body.discount_value ?? null, $json.body.discount_amount ?? null] }}"
+          "queryReplacement": "={{ [$json.body.order_id || null, $json.body.total, 'booked', $json.body.created_at || $now, $json.body.currency, $json.body.is_sales, $json.body.invoice_ref, $json.body.user_id, $json.body.type, $json.body.parent_id, $json.body.due_date, $json.body.notes, $json.body.is_historical || false, $json.body.doctor_id || null, $json.body.sede_id || null, $json.body.gross_total ?? null, $json.body.discount_scope ?? null, $json.body.discount_mode ?? null, $json.body.discount_value ?? null, $json.body.discount_amount ?? null, $('invoices/upsert').item.json.jwtPayload.userId] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -640,
-        7040
+        -13776,
+        8400
       ],
-      "id": "858dd8a1-2a61-4575-8463-b6aaf68cc7ca",
+      "id": "419da104-5d72-435f-b1ec-fff723aa1343",
       "name": "Insert Invoice",
       "credentials": {
         "postgres": {
@@ -6404,10 +6700,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -4208,
-        5216
+        -17344,
+        6576
       ],
-      "id": "153d0346-6bb7-466f-8e8e-10c91068a98e",
+      "id": "f3b94029-cf80-4ad2-9ce6-a7ec74bef315",
       "name": "Delete old items",
       "credentials": {
         "postgres": {
@@ -6423,28 +6719,28 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -4000,
-        5296
+        -17136,
+        6656
       ],
-      "id": "457dd8ce-4cb4-41c8-9b0d-59fea51172bf",
+      "id": "72d46935-8858-442d-b517-e3e7fe660d75",
       "name": "Get items1"
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "WITH upd AS (\n  UPDATE public.quote_items qi SET\n    service_id     = $3,\n    quantity       = $4,\n    unit_price     = $5,\n    total          = $6,\n    tooth_number   = $7,\n    gross_total    = $8,\n    discount_mode  = $9,\n    discount_value = $10,\n    discount_amount= $11\n  WHERE qi.id = $1 AND qi.quote_id = $2\n  RETURNING qi.id\n)\nINSERT INTO public.quote_items\n  (quote_id, service_id, quantity, unit_price, total, tooth_number, gross_total, discount_mode, discount_value, discount_amount)\nSELECT $2, $3, $4, $5, $6, $7, $8, $9, $10, $11\nWHERE NOT EXISTS (SELECT 1 FROM upd)\nRETURNING id;",
+        "query": "WITH upd AS (\n  UPDATE public.quote_items qi SET\n    service_id     = $3,\n    quantity       = $4,\n    unit_price     = $5,\n    total          = $6,\n    tooth_number   = $7,\n    gross_total    = $8,\n    discount_mode  = $9,\n    discount_value = $10,\n    discount_amount= $11,\n    updated_at     = $12\n  WHERE qi.id = $1 AND qi.quote_id = $2\n  RETURNING qi.id\n)\nINSERT INTO public.quote_items\n  (quote_id, service_id, quantity, unit_price, total, tooth_number, gross_total, discount_mode, discount_value, discount_amount, updated_at)\nSELECT $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12\nWHERE NOT EXISTS (SELECT 1 FROM upd)\nRETURNING id;",
         "options": {
-          "queryReplacement": "={{ [ ($json.id !== undefined && $json.id !== null && $json.id !== '') ? parseInt($json.id, 10) : null, $('Update').first().json.id, $json.service_id, $json.quantity, $json.unit_price, $json.total, ($json.tooth_number ?? null), ($json.gross_total ?? null), ($json.discount_mode ?? null), ($json.discount_value ?? null), ($json.discount_amount ?? null) ] }}",
-          "queryBatching": "transaction"
+          "queryBatching": "transaction",
+          "queryReplacement": "={{ [ ($json.id !== undefined && $json.id !== null && $json.id !== '') ? parseInt($json.id, 10) : null, $('Update').first().json.id, $json.service_id, $json.quantity, $json.unit_price, $json.total, ($json.tooth_number ?? null), ($json.gross_total ?? null), ($json.discount_mode ?? null), ($json.discount_value ?? null), ($json.discount_amount ?? null), $('quotes/upsert').item.json.jwtPayload.userId] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3584,
-        5296
+        -16720,
+        6656
       ],
-      "id": "1394e485-d61e-4e5f-8849-51f7ca531a0d",
+      "id": "a537619c-c768-42de-9c01-32daf6031ed9",
       "name": "Insert items1",
       "alwaysOutputData": true,
       "credentials": {
@@ -6463,10 +6759,10 @@
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
       "position": [
-        -3792,
-        5296
+        -16928,
+        6656
       ],
-      "id": "782dd206-8c77-40d8-abb5-239db2117333",
+      "id": "92f15be5-9668-4668-bc95-ef62b6d9bebc",
       "name": "Split Out1"
     },
     {
@@ -6476,10 +6772,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -3376,
-        5200
+        -16512,
+        6560
       ],
-      "id": "93c762a0-495a-4127-9604-68179f6d25e9",
+      "id": "4983ed6f-d499-426e-ad0e-9a34bbaf6c3d",
       "name": "Code in JavaScript1"
     },
     {
@@ -6493,10 +6789,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3152,
-        5200
+        -16288,
+        6560
       ],
-      "id": "b988c359-0ed0-40d5-87b8-b019177cd636",
+      "id": "19ecf6af-cae2-43f8-a79d-8b98f495abf8",
       "name": "Upd Quote Total2",
       "alwaysOutputData": true,
       "credentials": {
@@ -6514,10 +6810,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        32,
-        5376
+        -13104,
+        6736
       ],
-      "id": "8ff69ef4-a4e8-49da-bb16-cf804d116f95",
+      "id": "0c251064-b5a4-4936-b2df-222820d5a28d",
       "name": "Code12"
     },
     {
@@ -6534,10 +6830,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -384,
-        5376
+        -13520,
+        6736
       ],
-      "id": "05d34420-d887-4726-a685-95e746ff7831",
+      "id": "e58430f9-8923-45df-9909-1e75f6026894",
       "name": "quote_appointments",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -6558,10 +6854,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -176,
-        5376
+        -13312,
+        6736
       ],
-      "id": "3277e461-a283-4587-945f-e7fa3e11b6fe",
+      "id": "1553d6bf-32a3-4208-8b93-eff450d06fa5",
       "name": "Select QUOTES appointments",
       "alwaysOutputData": true,
       "credentials": {
@@ -6578,10 +6874,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        32,
-        5568
+        -13104,
+        6928
       ],
-      "id": "696e0f89-f9f3-4906-bb11-0f9ccd08bafc",
+      "id": "1e71a536-7cee-49ff-bddd-cd859b2fc695",
       "name": "Code13"
     },
     {
@@ -6598,10 +6894,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -384,
-        5568
+        -13520,
+        6928
       ],
-      "id": "472bf624-4b7a-41df-a598-1514ede13055",
+      "id": "fdded14b-1a2e-4bf3-b278-315072bfec11",
       "name": "quote_clinic_sessions",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -6622,10 +6918,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -176,
-        5568
+        -13312,
+        6928
       ],
-      "id": "5e6f0f08-00a9-457d-a08f-a4ac4aa95430",
+      "id": "a05f2d39-2dc4-41a6-9c64-b46413482b1c",
       "name": "Select QUOTES clinic sessions",
       "alwaysOutputData": true,
       "credentials": {
@@ -6647,10 +6943,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -3792,
-        5536
+        -16928,
+        6896
       ],
-      "id": "f6ba895e-978b-4e49-9002-d521f8920090",
+      "id": "b359f8b5-4c63-4b45-99fe-5905dc9f3b65",
       "name": "quotes/get",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -6671,10 +6967,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3584,
-        5536
+        -16720,
+        6896
       ],
-      "id": "e5196cfb-ebcf-4648-9f87-7a4293967255",
+      "id": "e6224ceb-3af7-48f3-9b83-2c2053a12f57",
       "name": "Select quote by id",
       "credentials": {
         "postgres": {
@@ -6691,10 +6987,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -3104,
-        4896
+        -16240,
+        6256
       ],
-      "id": "74c78246-baa2-4ff2-8d7b-612e93a1a10e",
+      "id": "521277c6-ad98-48ba-a8e3-a021fa4b1439",
       "name": "Organize data"
     },
     {
@@ -6704,10 +7000,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -2896,
-        5152
+        -16032,
+        6512
       ],
-      "id": "be737de9-7905-47e7-aa1d-456267daf721",
+      "id": "00c559a6-5af4-4ce5-83d8-fdb5390dbfe3",
       "name": "Organize data1"
     },
     {
@@ -6718,11 +7014,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -4208,
-        6896
+        -17344,
+        8256
       ],
       "typeVersion": 1,
-      "id": "9d2c3562-3df0-471d-a3d0-a222195fe28d",
+      "id": "cae93c99-20cb-46ec-9e8f-694701beee1a",
       "name": "Sticky Note3"
     },
     {
@@ -6739,10 +7035,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -4160,
-        7344
+        -17296,
+        8704
       ],
-      "id": "e20a614a-1957-4795-af4c-63a2ff7dbee6",
+      "id": "4e58a3a2-045e-42e0-9859-c17ab60b03b3",
       "name": "payments/edit",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -6763,10 +7059,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3952,
-        7344
+        -17088,
+        8704
       ],
-      "id": "b9d81f23-cd23-48e0-ba6b-1f369c76a950",
+      "id": "bf8fd022-adab-497f-84b2-7b3edbba5174",
       "name": "Get payment",
       "alwaysOutputData": true,
       "credentials": {
@@ -6804,10 +7100,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -3744,
-        7344
+        -16880,
+        8704
       ],
-      "id": "4f839bc1-55a2-4e18-bc94-975aabe82fa8",
+      "id": "9667e3ae-b15e-4bf5-8010-f8514cbe6c79",
       "name": "Payment exists?"
     },
     {
@@ -6829,10 +7125,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -3536,
-        7440
+        -16672,
+        8800
       ],
-      "id": "7b8ac359-7531-426a-8320-3eed41a9a4f0",
+      "id": "874a2f40-62ba-4b0d-aec4-0753c6bdba85",
       "name": "Error: 404"
     },
     {
@@ -6863,10 +7159,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -2704,
-        7056
+        -15840,
+        8416
       ],
-      "id": "fa564c00-e2cc-4c10-a45c-d8a36c7fa2ef",
+      "id": "57e1445a-4cb2-4988-8281-065309f3f8ad",
       "name": "Actual payment method is CASH?"
     },
     {
@@ -6880,10 +7176,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -2496,
-        6960
+        -15632,
+        8320
       ],
-      "id": "cefce97d-8911-4155-9b6a-7c08f7454568",
+      "id": "6dffa07c-6aea-4d0c-a96f-2dacc12027dc",
       "name": "Remove cash movement",
       "alwaysOutputData": true,
       "credentials": {
@@ -6938,10 +7234,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -3104,
-        7152
+        -16240,
+        8512
       ],
-      "id": "91afddfd-c195-4c2c-9a96-b94657c868d8",
+      "id": "5fa9fc54-2ecb-43cf-b0c2-21f579ee4ee5",
       "name": "Get active cash session"
     },
     {
@@ -6981,10 +7277,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -2896,
-        7152
+        -16032,
+        8512
       ],
-      "id": "dd26a65e-42ab-4728-a884-aa7662357723",
+      "id": "31ac9e03-1b1f-4b9e-8904-0a77345a095c",
       "name": "Check if cash session is equals to payment cash session"
     },
     {
@@ -7006,10 +7302,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -2704,
-        7248
+        -15840,
+        8608
       ],
-      "id": "c2c71b30-3912-4e53-9913-5f722e1790a1",
+      "id": "ee718496-cc9d-4a2a-b4c0-797c2f645d37",
       "name": "Error: 400"
     },
     {
@@ -7040,10 +7336,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -2288,
-        7056
+        -15424,
+        8416
       ],
-      "id": "54c63b45-a3cb-4a83-bd45-a1dfc76ea220",
+      "id": "3c630bb8-365b-4442-91ad-540a097ae112",
       "name": "Is new method CASH?"
     },
     {
@@ -7057,10 +7353,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -1648,
-        7056
+        -14784,
+        8416
       ],
-      "id": "f7e21153-fa10-4925-a790-708c21c81e83",
+      "id": "52760c7d-4b24-47f8-a75c-5d7f9a8da96e",
       "name": "Update payment method",
       "credentials": {
         "postgres": {
@@ -7086,10 +7382,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -1440,
-        7056
+        -14576,
+        8416
       ],
-      "id": "d57ec3b9-050f-4368-acbe-5a94b378b024",
+      "id": "828580b1-e25b-483e-9ca0-646b9f161c21",
       "name": "OK: 200"
     },
     {
@@ -7117,7 +7413,9 @@
             "user_id": "={{ $('Get payment').first().json.user_id }}",
             "type": "INFLOW",
             "currency": "={{ $('Get payment').first().json.currency }}",
-            "is_sales": "={{ $('Get payment').first().json.is_sales }}"
+            "is_sales": "={{ $('Get payment').first().json.is_sales }}",
+            "created_by": "={{ $('payments/edit').item.json.jwtPayload.userId }}",
+            "updated_by": "={{ $('payments/edit').item.json.jwtPayload.userId }}"
           },
           "matchingColumns": [
             "id"
@@ -7260,6 +7558,26 @@
               "type": "number",
               "canBeUsedToMatch": true,
               "removed": true
+            },
+            {
+              "id": "created_by",
+              "displayName": "created_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_by",
+              "displayName": "updated_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -7267,13 +7585,13 @@
         },
         "options": {}
       },
-      "id": "6280ce21-8db9-4c6b-b7c5-1a0eb796ca1a",
+      "id": "c81f1702-e412-42a2-bb6b-bcdaf8e44023",
       "name": "Registrar Movimiento Caja",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -1856,
-        6960
+        -14992,
+        8320
       ],
       "alwaysOutputData": false,
       "credentials": {
@@ -7294,10 +7612,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -2080,
-        6960
+        -15216,
+        8320
       ],
-      "id": "c3173c2e-bdbc-45ee-91f9-5eecb58e0b8e",
+      "id": "17b86257-2634-4d6a-bbaa-5ff3debcbf44",
       "name": "Get payment description",
       "credentials": {
         "postgres": {
@@ -7334,10 +7652,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -3328,
-        7248
+        -16464,
+        8608
       ],
-      "id": "4ca48a8f-43cd-4a6e-8875-2fd48dc4f470",
+      "id": "aed28ec4-bf37-4f14-b658-69417b8514d3",
       "name": "If"
     },
     {
@@ -7359,10 +7677,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -3104,
-        7344
+        -16240,
+        8704
       ],
-      "id": "967b687d-6b70-464d-b6f2-a99d9dc8d184",
+      "id": "ab083ed4-ede9-467f-9230-a0fd3ea4d529",
       "name": "Error: 4042"
     },
     {
@@ -7376,10 +7694,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3536,
-        7248
+        -16672,
+        8608
       ],
-      "id": "f5a2da9e-dab4-4c7e-a678-9987f85c1431",
+      "id": "928ba775-8cce-463c-9975-4643a5c20080",
       "name": "Get new payment method",
       "credentials": {
         "postgres": {
@@ -7395,10 +7713,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1200,
-        6864
+        -11936,
+        8224
       ],
-      "id": "40cd8181-95a5-49fc-bb1e-d2cd637053ae",
+      "id": "ed572212-0e20-402f-98ca-de0e1510f913",
       "name": "Format Invoice Upsert Output1"
     },
     {
@@ -7416,10 +7734,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        880,
-        7520
+        -12256,
+        8880
       ],
-      "id": "aebd5f9e-8244-47b3-9bf0-821155908eac",
+      "id": "089daeab-6d54-4bc5-8fb9-06a004e5290c",
       "name": "/appointments/link_invoice",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -7660,10 +7978,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1088,
-        7520
+        -12048,
+        8880
       ],
-      "id": "a4536a38-a658-4dcb-ba63-8b9e49919acb",
+      "id": "5907a4b3-f058-47d3-9e10-70edf98d0609",
       "name": "Link Invoice to Appointment",
       "credentials": {
         "postgres": {
@@ -7679,10 +7997,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1312,
-        7520
+        -11824,
+        8880
       ],
-      "id": "f96fd07e-3f4c-4cf8-98f0-7dbeef90cbd5",
+      "id": "1867f9e6-bbfa-4a23-b02d-696b21bbac05",
       "name": "Format Appointment Output"
     },
     {
@@ -7700,10 +8018,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        880,
-        7712
+        -12256,
+        9072
       ],
-      "id": "81f07aeb-bb51-4aad-8f9d-0b6258cf67c9",
+      "id": "a7271184-0998-4ce2-86f1-4dd1659e83dc",
       "name": "/sesiones_clinicas/link_invoice",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -7720,10 +8038,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1312,
-        7712
+        -11824,
+        9072
       ],
-      "id": "b553c3f8-11e9-4622-a741-5c94db543c5e",
+      "id": "4b0e05ce-cfe7-4567-a110-43a49bca7613",
       "name": "Format Sesion Clinica Output"
     },
     {
@@ -7877,10 +8195,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1088,
-        7712
+        -12048,
+        9072
       ],
-      "id": "87e2c97f-df88-47da-89f4-61136b9d2d77",
+      "id": "d4182876-f5fb-4395-9d0d-f005a86d7e48",
       "name": "Link Invoice to Sesion Clinica",
       "credentials": {
         "postgres": {
@@ -7904,10 +8222,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        880,
-        7920
+        -12256,
+        9280
       ],
-      "id": "4e2db02f-af86-419d-a90b-2e8ad361a3c4",
+      "id": "44ceffed-2da9-4800-8670-07b5556c10db",
       "name": "/sesiones/link_invoice",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -8068,10 +8386,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1088,
-        7920
+        -12048,
+        9280
       ],
-      "id": "fbd50c91-9aef-45ea-b08a-7a141a59575f",
+      "id": "4e696767-f832-46f6-b060-993b6254435a",
       "name": "Link Invoice to Sesion Odontograma",
       "credentials": {
         "postgres": {
@@ -8087,10 +8405,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1312,
-        7920
+        -11824,
+        9280
       ],
-      "id": "7115da42-5a8f-401a-9e64-4f266c3b3cb0",
+      "id": "de00fd34-1722-4f49-966c-507631366404",
       "name": "Format Sesion Odontograma Output"
     },
     {
@@ -8102,11 +8420,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        800,
-        7360
+        -12336,
+        8720
       ],
       "typeVersion": 1,
-      "id": "501ccf1d-5c2c-4bb2-acf4-64fe0c3eae20",
+      "id": "1f21d0e2-e567-45d1-8469-ab579c5c1490",
       "name": "Sticky Note4"
     },
     {
@@ -8117,11 +8435,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -4208,
-        7648
+        -17344,
+        9008
       ],
       "typeVersion": 1,
-      "id": "dd0abca5-dc19-49c1-91ca-90531fe7dbb9",
+      "id": "bd9b3893-ed63-4e3d-a018-3af6cceda541",
       "name": "Sticky Note7"
     },
     {
@@ -8138,10 +8456,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -4144,
-        7760
+        -17280,
+        9120
       ],
-      "id": "13ff8cad-9ce9-410e-a621-d5a24167dbb9",
+      "id": "f8d52d8c-80c7-43e4-846f-daefb6f89201",
       "name": "POST /invoice/undo",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -8162,10 +8480,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3936,
-        7760
+        -17072,
+        9120
       ],
-      "id": "735ca267-ac9f-46e7-9e98-1d6d9a3dd78c",
+      "id": "0a428420-85b0-4417-b354-812ad01d5e3b",
       "name": "Delete payment allocations",
       "credentials": {
         "postgres": {
@@ -8185,10 +8503,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3728,
-        7760
+        -16864,
+        9120
       ],
-      "id": "8a533975-b753-4692-b1f6-be231f275b9b",
+      "id": "af0fd338-a834-437b-a2df-0dc00d73a7cd",
       "name": "Delete invoice allocations",
       "credentials": {
         "postgres": {
@@ -8208,10 +8526,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3312,
-        7760
+        -16448,
+        9120
       ],
-      "id": "cc45e438-970e-4543-bf98-fc333d3c11fa",
+      "id": "2fa6172d-bace-4216-8e75-c9326798217f",
       "name": "Delete payments",
       "credentials": {
         "postgres": {
@@ -8231,10 +8549,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3104,
-        7760
+        -16240,
+        9120
       ],
-      "id": "21dff31c-3077-44ff-9a0d-6a646ed4adba",
+      "id": "0d3692fa-32b9-432c-93bb-ab70a8749d58",
       "name": "Delete invoice with items",
       "credentials": {
         "postgres": {
@@ -8254,10 +8572,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -2688,
-        7744
+        -15824,
+        9104
       ],
-      "id": "6b014aed-1391-4373-b226-ee71a1834c3c",
+      "id": "d3774591-b5e0-4550-887c-781b81556ba1",
       "name": "Delete order with items",
       "credentials": {
         "postgres": {
@@ -8277,10 +8595,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -2480,
-        7744
+        -15616,
+        9104
       ],
-      "id": "341ed2ae-d083-4c78-8230-1498b1023df7",
+      "id": "78de2e1c-774a-4be1-9369-bd43061ae4ff",
       "name": "Update Quote",
       "credentials": {
         "postgres": {
@@ -8306,10 +8624,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -2256,
-        8144
+        -15392,
+        9504
       ],
-      "id": "c6ab5278-842a-42bb-947e-322f51d23aee",
+      "id": "f55bd977-7b1a-459b-9b31-4923b98e05b2",
       "name": "OK"
     },
     {
@@ -8326,10 +8644,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -4144,
-        7952
+        -17280,
+        9312
       ],
-      "id": "93fe9191-5a80-4037-b5ab-ee95dbeee38d",
+      "id": "2fa4645e-eaa6-4b2e-805f-827d6c9ab36f",
       "name": "POST /quote/undo",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -8353,10 +8671,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -4128,
-        8320
+        -17264,
+        9680
       ],
-      "id": "ddd049b9-da3a-4bf8-8f7b-d914a78f0910",
+      "id": "eb2bceb9-86ef-42cd-8ad6-a048306ad2f5",
       "name": "POST /payment/undo",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -8369,7 +8687,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "WITH deleted_items AS (\n    DELETE FROM public.quote_items\n    WHERE quote_id = $1\n    RETURNING id\n)\nDELETE FROM public.quotes\nWHERE id = $1\nRETURNING id;",
+        "query": "WITH deletable_orders AS (\n    SELECT o.id\n    FROM public.orders o\n    WHERE o.quote_id = $1\n      AND NOT EXISTS (\n          SELECT 1 FROM public.invoices i WHERE i.order_id = o.id\n      )\n),\ndeleted_order_items AS (\n    DELETE FROM public.order_items\n    WHERE order_id IN (SELECT id FROM deletable_orders)\n    RETURNING id\n),\ndeleted_orders AS (\n    DELETE FROM public.orders\n    WHERE id IN (SELECT id FROM deletable_orders)\n    RETURNING id\n),\ndeleted_items AS (\n    DELETE FROM public.quote_items\n    WHERE quote_id = $1\n    RETURNING id\n)\nDELETE FROM public.quotes\nWHERE id = $1\nRETURNING id;",
         "options": {
           "queryReplacement": "={{ $json.query.quote_id }}"
         }
@@ -8377,10 +8695,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3936,
-        7952
+        -17072,
+        9312
       ],
-      "id": "f127d1ac-5038-430c-952f-a0e95bc07b12",
+      "id": "79b5b941-c377-4722-a249-6b94309c3c63",
       "name": "Delete quote with items",
       "credentials": {
         "postgres": {
@@ -8400,10 +8718,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3600,
-        8144
+        -16736,
+        9504
       ],
-      "id": "f1cc251d-1718-479a-8a48-147be2d105ab",
+      "id": "41e58cb7-3956-49ae-98d8-1c292c53012b",
       "name": "Delete payment",
       "credentials": {
         "postgres": {
@@ -8497,10 +8815,10 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
       "position": [
-        -3920,
-        8304
+        -17056,
+        9664
       ],
-      "id": "e7e06c1c-40cc-426b-97b2-512f3fc109c9",
+      "id": "7212aa52-b5a4-4b4a-94ce-0b0c26558316",
       "name": "Switch"
     },
     {
@@ -8514,10 +8832,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3600,
-        8320
+        -16736,
+        9680
       ],
-      "id": "655ceb89-2903-42e3-9b62-003c990cfd75",
+      "id": "e7eebfa3-cf8e-46e4-8d6e-baf2ee47c361",
       "name": "Delete credit note allocation",
       "credentials": {
         "postgres": {
@@ -8537,10 +8855,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3600,
-        8528
+        -16736,
+        9888
       ],
-      "id": "176d5ca8-8294-4760-aaac-3d5f56c9fc89",
+      "id": "b37d5588-7384-4bae-8c9b-40ce95902620",
       "name": "Delete payment allocation",
       "credentials": {
         "postgres": {
@@ -8563,10 +8881,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -4144,
-        8800
+        -17280,
+        10160
       ],
-      "id": "af84e248-f753-4613-916d-bb744c27f7c4",
+      "id": "7056a4fd-eca3-44f5-8f23-3d29a7467f9d",
       "name": "POST /credit_note/undo",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -8587,10 +8905,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3920,
-        8800
+        -17056,
+        10160
       ],
-      "id": "d765605f-6fde-49ec-b72d-e8901560203a",
+      "id": "02d6158a-6d4b-49a2-a8b7-f9afba6b6c7b",
       "name": "Delete credit note with allocations",
       "credentials": {
         "postgres": {
@@ -8610,10 +8928,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3520,
-        7760
+        -16656,
+        9120
       ],
-      "id": "54ed5af3-5d50-4ded-b19c-c2cedae63f3f",
+      "id": "0df63132-d62e-4dea-8b5b-537845e19a24",
       "name": "Delete credit notes",
       "credentials": {
         "postgres": {
@@ -8650,10 +8968,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -2896,
-        7760
+        -16032,
+        9120
       ],
-      "id": "8f96d705-1728-4942-9e80-a9d643ff1596",
+      "id": "44bb4865-eb86-4bfd-a878-4c7bb79756c5",
       "name": "If1"
     },
     {
@@ -8694,10 +9012,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -2160,
-        6304
+        -15296,
+        7664
       ],
-      "id": "53fe4cd4-85c1-475d-92f7-a92a2e8ac1f4",
+      "id": "e44b1247-48f6-4752-9b7f-1f52f9d7c9d9",
       "name": "Has allocations?"
     },
     {
@@ -8712,10 +9030,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -1712,
-        6240
+        -14848,
+        7600
       ],
-      "id": "b421d190-1ce7-4c02-869f-97a9ec6fd119",
+      "id": "89fe3aa2-c64e-4b80-a090-0678148a22f6",
       "name": "Create allocations",
       "credentials": {
         "postgres": {
@@ -8732,10 +9050,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1936,
-        6288
+        -15072,
+        7648
       ],
-      "id": "8b9113e3-87da-4c7f-a931-03a8441d6c98",
+      "id": "788037b9-76eb-4887-9ff7-548a2d4f2909",
       "name": "Format allocations"
     },
     {
@@ -8747,10 +9065,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -4208,
-        9040
+        -17344,
+        10400
       ],
-      "id": "5e86014e-720d-4ee0-943b-1ca67f8a83f0",
+      "id": "2c1fec2a-8c08-4e23-b98a-9bb07f7bda46",
       "name": "Sticky Note - Flujo A"
     },
     {
@@ -8766,10 +9084,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -4176,
-        9424
+        -17312,
+        10784
       ],
-      "id": "776290a6-70ca-478a-853b-f54386473b11",
+      "id": "3c55dcf6-a412-4aa9-8fff-4ff8b7d02496",
       "name": "invoice/items/edit-with-reallocation",
       "webhookId": "42d96e9d-564f-42fb-a4ce-1a3f963b6874",
       "credentials": {
@@ -8848,10 +9166,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -3936,
-        9408
+        -17072,
+        10768
       ],
-      "id": "d8eea655-e300-4a17-813e-c262e2988708",
+      "id": "c308fe0d-99d6-4eb9-be1d-0c27cdeb85d5",
       "name": "Datos requeridos?"
     },
     {
@@ -8863,10 +9181,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -3696,
-        9504
+        -16832,
+        10864
       ],
-      "id": "247af4fe-9b86-4bcd-8263-3ff8bad3baae",
+      "id": "025de7b2-107b-4963-b9c2-e1b1fc8af20a",
       "name": "Error: datos requeridos"
     },
     {
@@ -8897,10 +9215,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3696,
-        9312
+        -16832,
+        10672
       ],
-      "id": "3fe43999-d7de-4165-afbe-2293fb9cd874",
+      "id": "18d1b1a2-d18c-40c4-88e8-559c92f4a5fd",
       "name": "Get Invoice",
       "alwaysOutputData": true,
       "credentials": {
@@ -8938,10 +9256,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -3456,
-        9312
+        -16592,
+        10672
       ],
-      "id": "1889ee88-9e46-4623-8faf-e0c288371364",
+      "id": "5bf80c6f-9208-4acb-95d3-ff9867cf4582",
       "name": "Factura existe?"
     },
     {
@@ -8953,10 +9271,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -3232,
-        9408
+        -16368,
+        10768
       ],
-      "id": "1b3636a2-aec3-4f8c-a54d-389affe0350f",
+      "id": "f80d91ab-209d-44f8-af00-1e8cf40f010c",
       "name": "Error: factura no encontrada"
     },
     {
@@ -8980,7 +9298,8 @@
             "service_id": "={{ $('invoice/items/edit-with-reallocation').item.json.body.service_id }}",
             "quantity": "={{ $('invoice/items/edit-with-reallocation').item.json.body.quantity }}",
             "unit_price": "={{ $('invoice/items/edit-with-reallocation').item.json.body.unit_price }}",
-            "total": "={{ $('invoice/items/edit-with-reallocation').item.json.body.total }}"
+            "total": "={{ $('invoice/items/edit-with-reallocation').item.json.body.total }}",
+            "updated_by": "={{ $('invoice/items/edit-with-reallocation').item.json.jwtPayload.userId }}"
           },
           "matchingColumns": [
             "id"
@@ -9060,6 +9379,76 @@
               "type": "string",
               "canBeUsedToMatch": true,
               "removed": true
+            },
+            {
+              "id": "gross_total",
+              "displayName": "gross_total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "discount_mode",
+              "displayName": "discount_mode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "discount_value",
+              "displayName": "discount_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "discount_amount",
+              "displayName": "discount_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "tooth_number",
+              "displayName": "tooth_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "created_by",
+              "displayName": "created_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "updated_by",
+              "displayName": "updated_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -9070,10 +9459,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3232,
-        9216
+        -16368,
+        10576
       ],
-      "id": "f7719b9d-1dbd-49da-8a2f-5be7328cc5a3",
+      "id": "1c2993a5-a09a-4ac7-b63f-578e9d05b1e2",
       "name": "Update Invoice Item",
       "credentials": {
         "postgres": {
@@ -9093,10 +9482,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -2752,
-        9216
+        -15888,
+        10576
       ],
-      "id": "e6679390-29b6-49a6-b774-4463a6e54d95",
+      "id": "b89ef64f-ba01-437a-8989-522f8a84f421",
       "name": "Get Payment Allocations",
       "alwaysOutputData": true,
       "credentials": {
@@ -9117,10 +9506,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -2496,
-        9216
+        -15632,
+        10576
       ],
-      "id": "a98737a3-871b-4922-9fe7-60ff44394d4f",
+      "id": "4817b0ee-fb15-4762-91db-2d83afe53b2c",
       "name": "Get Invoice Allocations",
       "alwaysOutputData": true,
       "credentials": {
@@ -9141,10 +9530,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -2256,
-        9216
+        -15392,
+        10576
       ],
-      "id": "8dea2e80-60b2-4f4e-8d51-22395293ecba",
+      "id": "7384b602-6ccd-42d1-9b8a-536b43f9986b",
       "name": "Delete Payment Allocations",
       "credentials": {
         "postgres": {
@@ -9164,10 +9553,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -2016,
-        9216
+        -15152,
+        10576
       ],
-      "id": "53dc0050-1620-47f9-9fd8-f3e6c3376ac3",
+      "id": "a085ccb9-6b28-404c-86c3-e9349863700a",
       "name": "Delete Invoice Allocations",
       "credentials": {
         "postgres": {
@@ -9183,10 +9572,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1776,
-        9216
+        -14912,
+        10576
       ],
-      "id": "39b2b316-2e84-4ee5-94fb-7878c5ee3d90",
+      "id": "6c6cd322-3a43-4e31-a670-88db901eaabd",
       "name": "Merge & Reallocate FIFO"
     },
     {
@@ -9196,10 +9585,10 @@
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        -1536,
-        9216
+        -14672,
+        10576
       ],
-      "id": "4a210fc6-cefc-4c29-9a41-58cc22a5a370",
+      "id": "37cca52c-32ba-4c81-8953-c130a4d16c6f",
       "name": "Loop Over Reinsert Items"
     },
     {
@@ -9229,10 +9618,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -1296,
-        9312
+        -14432,
+        10672
       ],
-      "id": "b8897b18-1ad7-4204-a3ff-a842a3343ded",
+      "id": "3bc698bf-199a-46af-a824-063560159b5e",
       "name": "Es pago?"
     },
     {
@@ -9262,10 +9651,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -1056,
-        9424
+        -14192,
+        10784
       ],
-      "id": "cee60b92-2876-4abc-bc90-e7397ff88c66",
+      "id": "d44140c9-e0cb-4d8d-b3b9-70ab37700b3f",
       "name": "Es nota de credito?"
     },
     {
@@ -9289,7 +9678,9 @@
             "amount": "={{ $json.amount }}",
             "allocated_currency": "={{ $json.allocated_currency }}",
             "target_amount": "={{ $json.target_amount }}",
-            "exchange_rate": "={{ $json.exchange_rate }}"
+            "exchange_rate": "={{ $json.exchange_rate }}",
+            "created_by": "={{ $('invoice/items/edit-with-reallocation').item.json.jwtPayload.userId }}",
+            "updated_by": "={{ $('invoice/items/edit-with-reallocation').item.json.jwtPayload.userId }}"
           },
           "matchingColumns": [
             "id"
@@ -9368,6 +9759,26 @@
               "display": true,
               "type": "number",
               "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_by",
+              "displayName": "created_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_by",
+              "displayName": "updated_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -9378,10 +9789,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -1056,
-        9216
+        -14192,
+        10576
       ],
-      "id": "4c82faf5-fab5-40ec-a6ed-df9d210b5723",
+      "id": "87596fd7-df9d-428f-a6d6-859bb230e50d",
       "name": "Insert Payment Allocation",
       "credentials": {
         "postgres": {
@@ -9411,7 +9822,9 @@
             "amount": "={{ $json.amount }}",
             "allocated_currency": "={{ $json.allocated_currency }}",
             "target_amount": "={{ $json.target_amount }}",
-            "exchange_rate": "={{ $json.exchange_rate }}"
+            "exchange_rate": "={{ $json.exchange_rate }}",
+            "updated_by": "={{ $('invoice/items/edit-with-reallocation').item.json.jwtPayload.userId }}",
+            "created_by": "={{ $('invoice/items/edit-with-reallocation').item.json.jwtPayload.userId }}"
           },
           "matchingColumns": [
             "id"
@@ -9472,7 +9885,7 @@
               "display": true,
               "type": "string",
               "canBeUsedToMatch": true,
-              "removed": true
+              "removed": false
             },
             {
               "id": "allocated_currency",
@@ -9500,6 +9913,16 @@
               "display": true,
               "type": "number",
               "canBeUsedToMatch": true
+            },
+            {
+              "id": "updated_by",
+              "displayName": "updated_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -9510,10 +9933,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -816,
-        9328
+        -13952,
+        10688
       ],
-      "id": "21a60eab-3385-42f5-9a3c-e4aa73b8f1f2",
+      "id": "3fa02dfd-7228-4ce7-89ff-c5c916b4fea2",
       "name": "Insert Invoice Allocation",
       "credentials": {
         "postgres": {
@@ -9529,10 +9952,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1312,
-        9120
+        -14448,
+        10480
       ],
-      "id": "2ded80af-2108-45e7-b305-d2dedaf2b48d",
+      "id": "d99322d4-69f0-491c-87b7-5c6c3ac28994",
       "name": "Build Response"
     },
     {
@@ -9546,10 +9969,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -2992,
-        9216
+        -16128,
+        10576
       ],
-      "id": "e9eedabe-54ab-4db1-813f-852d37e63baf",
+      "id": "f4ae0fcb-7454-4145-adae-23843b1cb5e2",
       "name": "Recalculate Invoice Total4",
       "credentials": {
         "postgres": {
@@ -9567,10 +9990,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -4208,
-        9696
+        -17344,
+        11056
       ],
-      "id": "6b5571ef-75f3-42d5-b206-4ac87057669c",
+      "id": "a40c687f-2da4-45f0-8792-b4c278cc8b55",
       "name": "Sticky Note - Flujo B"
     },
     {
@@ -9587,10 +10010,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -4176,
-        10176
+        -17312,
+        11536
       ],
-      "id": "7c71f9df-dc9c-4fbe-a9f5-636f6d2d2087",
+      "id": "3366b769-e409-40e4-b047-177d4bce8898",
       "name": "payment/edit-with-reallocation",
       "webhookId": "24df633f-6221-480f-a5d7-24606287dff2",
       "credentials": {
@@ -9628,10 +10051,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -3696,
-        10176
+        -16832,
+        11536
       ],
-      "id": "f6091cdb-65d7-40aa-bbf2-be8fb2fe788a",
+      "id": "9e20ca1c-3c03-4856-8ba3-61cd9147cd50",
       "name": "Pago existe?"
     },
     {
@@ -9641,10 +10064,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -3456,
-        10080
+        -16592,
+        11440
       ],
-      "id": "23cfad76-35a4-4703-b73c-c437c58b0f98",
+      "id": "5684424d-0394-4718-98d3-81381ed710e3",
       "name": "Detectar cambios"
     },
     {
@@ -9675,10 +10098,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -3216,
-        10080
+        -16352,
+        11440
       ],
-      "id": "2f1cbf50-4354-4859-bf36-4a04dd946056",
+      "id": "1a933ae1-3fcd-4393-b179-2c33a95d5fa5",
       "name": "Necesita validar caja?"
     },
     {
@@ -9709,10 +10132,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -2720,
-        9920
+        -15856,
+        11280
       ],
-      "id": "f641b41d-b725-4e98-aaea-ab24e2a2ce17",
+      "id": "49162c41-4241-498e-8550-c567df33ddbb",
       "name": "Metodo nuevo existe?"
     },
     {
@@ -9722,10 +10145,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -2240,
-        9920
+        -15376,
+        11280
       ],
-      "id": "1987a950-c8dc-4366-8681-a67d8581f539",
+      "id": "70c5f267-60ab-4741-b442-e124c7aea9fb",
       "name": "Evaluar sesion de caja"
     },
     {
@@ -9756,10 +10179,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -2000,
-        9920
+        -15136,
+        11280
       ],
-      "id": "47984330-e456-42ac-9a19-b9a89ecc5f75",
+      "id": "11da05f8-dfe5-4747-8157-5983e2dd4bd9",
       "name": "Sesion de caja OK?"
     },
     {
@@ -9973,10 +10396,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -1488,
-        10096
+        -14624,
+        11456
       ],
-      "id": "bd3be441-7c36-4a48-87cc-474a5d406fa1",
+      "id": "41a3c767-e909-40d6-a95d-541d82df0824",
       "name": "Update Payment In Place",
       "credentials": {
         "postgres": {
@@ -9996,10 +10419,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -1248,
-        10096
+        -14384,
+        11456
       ],
-      "id": "576eaad6-114c-4f0b-a444-a87b04d9c433",
+      "id": "f9c61c80-9eec-4eb4-8075-6c51adee7652",
       "name": "Get Payment Allocations (Pago)",
       "credentials": {
         "postgres": {
@@ -10019,10 +10442,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -1008,
-        10096
+        -14144,
+        11456
       ],
-      "id": "b7268b28-890a-4413-bca4-e5d8f7cdc417",
+      "id": "9c515606-8f08-439b-aa30-287da0ff9083",
       "name": "Delete Payment Allocations (Pago)",
       "credentials": {
         "postgres": {
@@ -10038,10 +10461,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -768,
-        10096
+        -13904,
+        11456
       ],
-      "id": "bfe06eb5-848e-4cbc-a0be-99dd0bdd4b9f",
+      "id": "6ff137a5-4a4e-4bd4-872d-dcea9fb9e239",
       "name": "Reallocate FIFO (Pago)"
     },
     {
@@ -10051,10 +10474,10 @@
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        -528,
-        10096
+        -13664,
+        11456
       ],
-      "id": "d4077d10-f289-4986-a1e8-f18df7df5f3c",
+      "id": "68f0cc11-9ee4-4813-a693-c0a555b0b32f",
       "name": "Loop Over Reinsert Items (Pago)"
     },
     {
@@ -10085,10 +10508,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -288,
-        10192
+        -13424,
+        11552
       ],
-      "id": "79341dca-1a14-4be9-ad4b-c1eda7d8415b",
+      "id": "e6899408-7230-48e8-ad05-a4037b6af2bb",
       "name": "Tiene factura?"
     },
     {
@@ -10112,7 +10535,9 @@
             "amount": "={{ $json.amount }}",
             "allocated_currency": "={{ $json.allocated_currency }}",
             "target_amount": "={{ $json.target_amount }}",
-            "exchange_rate": "={{ $json.exchange_rate }}"
+            "exchange_rate": "={{ $json.exchange_rate }}",
+            "updated_by": "={{ $('payment/edit-with-reallocation').item.json.jwtPayload.userId }}",
+            "created_by": "={{ $('payment/edit-with-reallocation').item.json.jwtPayload.userId }}"
           },
           "matchingColumns": [
             "id"
@@ -10191,6 +10616,26 @@
               "display": true,
               "type": "number",
               "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_by",
+              "displayName": "created_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_by",
+              "displayName": "updated_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -10201,10 +10646,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -48,
-        10192
+        -13184,
+        11552
       ],
-      "id": "319700ad-8b58-4ef4-8e10-c3d6bd22d32d",
+      "id": "22a0f663-5130-4fef-b5b5-9a8e0f4bb336",
       "name": "Insert Payment Allocation (Pago)",
       "credentials": {
         "postgres": {
@@ -10220,10 +10665,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -288,
-        10000
+        -13424,
+        11360
       ],
-      "id": "99cca312-15a7-42f9-8405-7bc80332d1f0",
+      "id": "a7402b3a-c999-42a3-9fc2-1696b3f661a8",
       "name": "Build Response (Pago)"
     },
     {
@@ -10237,10 +10682,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3936,
-        10176
+        -17072,
+        11536
       ],
-      "id": "7e37cd37-8320-4279-93bd-626ac00f2c0d",
+      "id": "a9769091-b354-4703-b742-b1dcc33cc8d6",
       "name": "Get payment1",
       "alwaysOutputData": true,
       "credentials": {
@@ -10269,10 +10714,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -3456,
-        10272
+        -16592,
+        11632
       ],
-      "id": "19b07ba7-2a6a-4da4-8a8e-a21f0b463b35",
+      "id": "66b56eaf-2666-4938-a760-9104725fdf95",
       "name": "Error: "
     },
     {
@@ -10286,10 +10731,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -2976,
-        9920
+        -16112,
+        11280
       ],
-      "id": "2bfb5e8e-2627-4e4a-82ac-1e0bab912b32",
+      "id": "9af68b43-2ba4-403d-b7a9-6c67563a56e2",
       "name": "Get new payment method1",
       "credentials": {
         "postgres": {
@@ -10317,10 +10762,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -2480,
-        10192
+        -15616,
+        11552
       ],
-      "id": "db5f38b2-7014-417b-a435-a4a38eec20a0",
+      "id": "b7e29d38-f730-4e64-93e0-50e3311e8745",
       "name": "Error: 4043"
     },
     {
@@ -10368,10 +10813,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -2480,
-        9920
+        -15616,
+        11280
       ],
-      "id": "060b9df5-d392-44ca-9aee-4d7d31db9f2f",
+      "id": "c65280e5-6ed3-4466-b97e-58c7806e6217",
       "name": "Get active cash session1"
     },
     {
@@ -10393,27 +10838,27 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -1760,
-        10192
+        -14896,
+        11552
       ],
-      "id": "45ab5c3b-ecc2-422b-8511-913cec607d2a",
+      "id": "64341cee-d425-43c4-8d48-c3a515bcc49a",
       "name": "Error: 401"
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE public.cash_movements\nSET amount = $1, payment_method_id = $2\nWHERE payment_id = $3;",
+        "query": "UPDATE public.cash_movements\nSET amount = $1, payment_method_id = $2, updated_by = $4\nWHERE payment_id = $3;",
         "options": {
-          "queryReplacement": "={{ [$('Detectar cambios').first().json.new_amount, $('Detectar cambios').first().json.new_payment_method_id, $('Get payment1').first().json.id] }}"
+          "queryReplacement": "={{ [$('Detectar cambios').first().json.new_amount, $('Detectar cambios').first().json.new_payment_method_id, $('Get payment1').first().json.id, $('payment/edit-with-reallocation').item.json.jwtPayload.userId] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -1760,
-        9920
+        -14896,
+        11280
       ],
-      "id": "83cf6512-2ed3-4df9-8df3-582a470947f0",
+      "id": "444d71c6-e7df-410f-b89c-6be902aa286d",
       "name": "Update cash movement1",
       "alwaysOutputData": true,
       "credentials": {
@@ -10440,10 +10885,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -48,
-        10000
+        -13184,
+        11360
       ],
-      "id": "b26e46fa-4ac9-43ca-ae0e-b78747c0e0bf",
+      "id": "7bb955b5-b856-4329-ad57-0b6bc014460b",
       "name": "OK: "
     },
     {
@@ -10455,10 +10900,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -4192,
-        10496
+        -17328,
+        11856
       ],
-      "id": "8168cb90-a171-4227-8bfe-1c40a9134593",
+      "id": "aef73a40-45bf-4768-8302-217470557ec1",
       "name": "Sticky Note - Flujo C"
     },
     {
@@ -10474,10 +10919,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -4176,
-        10976
+        -17312,
+        12336
       ],
-      "id": "1648ce1a-0769-4856-be18-21bba16fedcb",
+      "id": "93615697-bf7c-4f9f-884e-b9ccb9ffbc4e",
       "name": "invoice/payment-state/set",
       "webhookId": "aaf3d27a-77af-4651-b210-4e762025ca35",
       "credentials": {
@@ -10525,10 +10970,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -3936,
-        10976
+        -17072,
+        12336
       ],
-      "id": "0a2271ea-7b0b-42d5-92bc-6907d5cd099f",
+      "id": "a0a6c6b8-68a0-4a2e-9e77-8939bbe7218d",
       "name": "Datos validos?"
     },
     {
@@ -10540,10 +10985,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -3696,
-        11072
+        -16832,
+        12432
       ],
-      "id": "7251f916-d023-46f2-8707-660c9d9f1ddf",
+      "id": "751b4876-ecde-4a58-abf6-347ee2e8972b",
       "name": "Error: datos invalidos"
     },
     {
@@ -10557,10 +11002,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3232,
-        10768
+        -16368,
+        12128
       ],
-      "id": "19858cd3-3127-4516-9d28-45ec21ce9c52",
+      "id": "43527440-7895-4f39-9404-0fe0ee6fcc87",
       "name": "Set Payment State",
       "credentials": {
         "postgres": {
@@ -10578,10 +11023,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -2992,
-        10768
+        -16128,
+        12128
       ],
-      "id": "671f2f12-c6c8-4ae7-a2bb-091a25ab2547",
+      "id": "ed21b02e-ee2d-4292-876a-a455e63423d4",
       "name": "Success"
     },
     {
@@ -10612,10 +11057,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3696,
-        10864
+        -16832,
+        12224
       ],
-      "id": "e87fde71-48bd-4776-ba3d-0426f4f0b325",
+      "id": "206d7615-b576-4436-8195-0b842b6090f6",
       "name": "Get Invoice1",
       "alwaysOutputData": true,
       "credentials": {
@@ -10653,10 +11098,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -3456,
-        10864
+        -16592,
+        12224
       ],
-      "id": "14365be9-978e-4a42-be52-2c1cd338fb9c",
+      "id": "318404fc-b153-474d-9435-3a8be3135825",
       "name": "Factura existe?1"
     },
     {
@@ -10668,10 +11113,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -3232,
-        10960
+        -16368,
+        12320
       ],
-      "id": "41576b63-614b-4944-951b-1cd6d97b04a5",
+      "id": "ffc482a1-703a-4c0f-8869-9c91fa1299ad",
       "name": "Error: factura no encontrada1"
     }
   ],
@@ -18006,7 +18451,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "351b9722-46d1-42a9-9cc5-f5f5aed9daa6",
+  "versionId": "949e1532-11dc-4555-9c6a-9d5649de3dc6",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
