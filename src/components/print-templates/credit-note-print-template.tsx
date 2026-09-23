@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { formatDisplayDate } from '@/lib/utils';
 import type { CreditNotePrintData } from '@/stores/print-document-store';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 interface CreditNotePrintTemplateProps {
   data: CreditNotePrintData;
@@ -13,7 +14,7 @@ export function CreditNotePrintTemplate({ data }: CreditNotePrintTemplateProps) 
   const { creditNote, items, originalInvoice } = data;
 
   const docNo = creditNote.doc_no || creditNote.invoice_doc_no || creditNote.id;
-  const currency = creditNote.currency || 'UYU';
+  const currency = creditNote.currency || getClinicCurrency();
   const total = Number(creditNote.total || 0);
 
   return (

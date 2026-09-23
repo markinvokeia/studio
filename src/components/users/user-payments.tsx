@@ -34,6 +34,7 @@ import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { ChevronDown, Eye, Loader2, Pencil, Printer, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 const STATUS_BADGE: Record<string, any> = { completed: 'success', pending: 'info', failed: 'destructive' };
@@ -100,7 +101,7 @@ const getColumns = (t: (key: string) => string): ColumnDef<Payment>[] => [
       const amount = Math.abs(parseFloat(row.getValue('amount')));
       const formatted = new Intl.NumberFormat('en-US', {
         style: 'currency',
-        currency: row.original.currency || 'USD',
+        currency: row.original.currency || getClinicCurrency(),
       }).format(amount);
       return <div className="font-medium">{formatted}</div>;
     },
@@ -193,7 +194,7 @@ export function UserPayments({ userId, mode = 'sales', refreshTrigger }: UserPay
   const [isLoadingAllocations, setIsLoadingAllocations] = React.useState(false);
 
   // Prepaid credit balance
-  const prepaidCurrency = selectedPayment?.currency || selectedPayment?.source_currency || 'USD';
+  const prepaidCurrency = selectedPayment?.currency || selectedPayment?.source_currency || getClinicCurrency();
   const prepaidTotal = Math.abs(Number(selectedPayment?.amount_applied || selectedPayment?.amount || 0));
   const prepaidUsed = React.useMemo(
     () => allocations.reduce((sum, a) => sum + Math.abs(Number(a.monto_desde_pago || 0)), 0),
@@ -677,7 +678,7 @@ export function UserPayments({ userId, mode = 'sales', refreshTrigger }: UserPay
               <div className="flex items-center justify-between">
                 <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Monto</p>
                 <p className="text-sm font-semibold tabular-nums">
-                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedPayment.currency || 'USD' }).format(Math.abs(selectedPayment.amount))}
+                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedPayment.currency || getClinicCurrency() }).format(Math.abs(selectedPayment.amount))}
                 </p>
               </div>
             </div>

@@ -33,6 +33,8 @@ import { endOfMonth, format, startOfMonth } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import { Fragment, type ReactNode, useCallback, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
+import { ReportCurrencyFilter } from '@/components/reports/currency-filter';
+import { useReportCurrency } from '@/hooks/useReportCurrency';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('es-UY', { maximumFractionDigits: 0 }).format(n);
@@ -182,7 +184,7 @@ export default function BalanceMensualPage() {
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
   });
-  const [currency, setCurrency] = useState('all');
+  const { currency, setCurrency, activeCurrency, isDual } = useReportCurrency();
   const [selectedDoctors, setSelectedDoctors] = useState<DoctorOption[]>([]);
   const doctorIds = selectedDoctors.map((d) => d.id);
   const [selectedGroups, setSelectedGroups] = useState<GroupOption[]>([]);
@@ -557,16 +559,7 @@ export default function BalanceMensualPage() {
           </Button>
         )}
       </div>
-      <Select value={currency} onValueChange={setCurrency}>
-        <SelectTrigger className="h-8 w-24 text-xs">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">{t('all_currencies')}</SelectItem>
-          <SelectItem value="UYU">UYU</SelectItem>
-          <SelectItem value="USD">USD</SelectItem>
-        </SelectContent>
-      </Select>
+      <ReportCurrencyFilter value={currency} onChange={setCurrency} allLabel={t('all_currencies')} />
       <Select value={docType} onValueChange={(v) => setDocType(v as DocType)}>
         <SelectTrigger className="h-8 w-32 text-xs">
           <SelectValue />

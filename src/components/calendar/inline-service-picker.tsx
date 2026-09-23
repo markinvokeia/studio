@@ -11,6 +11,7 @@ import { getSalesServices } from '@/services/services';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 import type { Service } from '@/lib/types';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 interface InlineServicePickerProps {
   selected: Service[];
@@ -68,7 +69,7 @@ export function InlineServicePicker({ selected, onToggle, searchPlaceholder, emp
     setIsCreating(true);
     try {
       await api.post(API_ROUTES.PURCHASES.SERVICES_UPSERT, {
-        name, price: 0, currency: 'UYU', is_sales: true, is_active: true, duration_minutes: 60, category: '', description: '',
+        name, price: 0, currency: getClinicCurrency(), is_sales: true, is_active: true, duration_minutes: 60, category: '', description: '',
       });
       const r = await getSalesServices({ search: name, limit: 50 });
       const created = r.items.map(mapApiService).find((s) => s.name.toLowerCase() === name.toLowerCase()) ?? r.items.map(mapApiService)[0];

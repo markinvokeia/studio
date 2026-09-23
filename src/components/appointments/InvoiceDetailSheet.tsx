@@ -39,6 +39,10 @@ import { AlertTriangle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { VerticalTab } from '../ui/vertical-tab-strip';
+import { CurrencySelect } from '@/components/ui/currency-select';
+import { convertAmount } from '@/lib/currency';
+import { useCurrencySettings } from '@/hooks/useCurrencySettings';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 // ── Data fetching ────────────────────────────────────────────────────────────
 
@@ -82,7 +86,7 @@ async function fetchInvoicePayments(invoiceId: string): Promise<Payment[]> {
       amount: isNew ? parseFloat(a.amount_applied) : (parseFloat(a.amount_applied) || 0),
       amount_applied: isNew ? parseFloat(a.amount_applied) : (parseFloat(a.amount_applied) || 0),
       source_amount: isNew ? parseFloat(a.source_amount) : (parseFloat(a.source_amount) || 0),
-      source_currency: (a.source_currency || 'USD') as 'UYU' | 'USD',
+      source_currency: (a.source_currency || getClinicCurrency()),
       method: a.payment_method_name || a.payment_method || '',
       payment_method: a.payment_method_name || a.payment_method || '',
       payment_method_code: a.payment_method_code,
@@ -90,7 +94,7 @@ async function fetchInvoicePayments(invoiceId: string): Promise<Payment[]> {
       createdAt: a.payment_date || a.created_at || '',
       updatedAt: a.payment_date || a.updated_at || a.created_at || '',
       payment_date: a.payment_date || a.created_at || '',
-      currency: isNew ? a.invoice_currency : (a.source_currency || 'USD'),
+      currency: isNew ? a.invoice_currency : (a.source_currency || getClinicCurrency()),
       exchange_rate: parseFloat(a.exchange_rate) || 1,
       transaction_type: (a.transaction_type || 'direct_payment') as 'direct_payment' | 'credit_note_allocation' | 'payment_allocation',
       transaction_id: a.transaction_id ? String(a.transaction_id) : null,
@@ -166,6 +170,7 @@ interface InvoiceDetailSheetProps {
 export function InvoiceDetailSheet({ open, onOpenChange, invoice, onDataChange }: InvoiceDetailSheetProps) {
   const t = useTranslations('InvoicesPage');
   const { toast } = useToast();
+  const { code: clinicCurrency } = useCurrencySettings();
   const { validateActiveSession } = useCashSessionValidation();
   const { printInvoice } = usePrintDocument();
   const [activeTab, setActiveTab] = React.useState('items');
@@ -209,14 +214,8 @@ export function InvoiceDetailSheet({ open, onOpenChange, invoice, onDataChange }
 
   const equivalentAmount = React.useMemo(() => {
     if (!showExchangeRate || !watchedAmount || !watchedExchangeRate) return null;
-    if (watchedInvoiceCurrency === 'USD' && watchedPaymentCurrency === 'UYU') {
-      return watchedAmount / watchedExchangeRate;
-    }
-    if (watchedInvoiceCurrency === 'UYU' && watchedPaymentCurrency === 'USD') {
-      return watchedAmount * watchedExchangeRate;
-    }
-    return null;
-  }, [showExchangeRate, watchedAmount, watchedExchangeRate, watchedInvoiceCurrency, watchedPaymentCurrency]);
+    return convertAmount(watchedAmount, watchedPaymentCurrency, watchedInvoiceCurrency, watchedExchangeRate, clinicCurrency);
+  }, [showExchangeRate, watchedAmount, watchedExchangeRate, watchedInvoiceCurrency, watchedPaymentCurrency, clinicCurrency]);
 
   React.useEffect(() => {
     if (!open || !invoice?.id) return;
@@ -253,8 +252,8 @@ export function InvoiceDetailSheet({ open, onOpenChange, invoice, onDataChange }
       method: '',
       status: 'completed',
       created_at: new Date(),
-      invoice_currency: invoice.currency || 'USD',
-      payment_currency: invoice.currency || 'USD',
+      invoice_currency: invoice.currency || getClinicCurrency(),
+      payment_currency: invoice.currency || getClinicCurrency(),
       exchange_rate: 1,
       is_historical: invoice.is_historical || false,
     });
@@ -363,7 +362,7 @@ export function InvoiceDetailSheet({ open, onOpenChange, invoice, onDataChange }
   const docLabel = currentInvoiceData.doc_no || currentInvoiceData.invoice_ref || currentInvoiceData.id;
   const totalFormatted = new Intl.NumberFormat('es-UY', {
     style: 'currency',
-    currency: currentInvoiceData.currency || 'USD',
+    currency: currentInvoiceData.currency || getClinicCurrency(),
     minimumFractionDigits: 2,
   }).format(currentInvoiceData.total || 0);
 
@@ -603,17 +602,7 @@ export function InvoiceDetailSheet({ open, onOpenChange, invoice, onDataChange }
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>{t('paymentDialog.currency')}</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder={t('paymentDialog.selectCurrency')} />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="USD">USD</SelectItem>
-                              <SelectItem value="UYU">UYU</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <FormControl><CurrencySelect value={field.value} onChange={field.onChange} placeholder={t('paymentDialog.selectCurrency')} /></FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -658,10 +647,10 @@ export function InvoiceDetailSheet({ open, onOpenChange, invoice, onDataChange }
                       <div className="flex justify-between text-sm">
                         <span className="font-medium">{t('paymentDialog.manualPayment')}:</span>
                         <div className="flex flex-col items-end">
-                          <span>{new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedPaymentCurrency || 'USD' }).format(watchedAmount)}</span>
+                          <span>{new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedPaymentCurrency || getClinicCurrency() }).format(watchedAmount)}</span>
                           {watchedPaymentCurrency !== invoice.currency && equivalentAmount && (
                             <span className="text-xs text-muted-foreground">
-                              ≈ {new Intl.NumberFormat('en-US', { style: 'currency', currency: invoice.currency || 'USD' }).format(equivalentAmount)}
+                              ≈ {new Intl.NumberFormat('en-US', { style: 'currency', currency: invoice.currency || getClinicCurrency() }).format(equivalentAmount)}
                             </span>
                           )}
                         </div>
@@ -671,14 +660,14 @@ export function InvoiceDetailSheet({ open, onOpenChange, invoice, onDataChange }
                   <div className="flex justify-between items-center pt-2 border-t font-semibold">
                     <span>{t('paymentDialog.totalPayment')}:</span>
                     <span>
-                      {new Intl.NumberFormat('en-US', { style: 'currency', currency: invoice.currency || 'USD' }).format(showExchangeRate && equivalentAmount ? equivalentAmount : (watchedAmount || 0))}
+                      {new Intl.NumberFormat('en-US', { style: 'currency', currency: invoice.currency || getClinicCurrency() }).format(showExchangeRate && equivalentAmount ? equivalentAmount : (watchedAmount || 0))}
                     </span>
                   </div>
                 </div>
 
                 <div className="flex justify-between items-center bg-muted p-3 rounded-md">
                   <span className="font-semibold text-lg">{t('paymentDialog.remainingAmount')}</span>
-                  <span className="font-bold text-lg">{new Intl.NumberFormat('en-US', { style: 'currency', currency: invoice.currency || 'USD' }).format(invoice.total - (invoice.paid_amount || 0))}</span>
+                  <span className="font-bold text-lg">{new Intl.NumberFormat('en-US', { style: 'currency', currency: invoice.currency || getClinicCurrency() }).format(invoice.total - (invoice.paid_amount || 0))}</span>
                 </div>
 
                 <FormField

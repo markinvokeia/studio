@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { formatDisplayDate } from '@/lib/utils';
 import { buildMovementConcept } from '@/lib/financial-summary';
 import type { FinancialSummaryPrintData } from '@/stores/print-document-store';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 interface FinancialSummaryPrintTemplateProps {
   data: FinancialSummaryPrintData;
@@ -22,8 +23,9 @@ export function FinancialSummaryPrintTemplate({ data }: FinancialSummaryPrintTem
   const t = useTranslations('PrintTemplates');
   const tStatement = useTranslations('AccountStatement');
   const { report, dateRange } = data;
+  const primaryCurrency = getClinicCurrency();
   const currencies = Object.keys(report.history_by_currency).sort((a, b) =>
-    a === 'UYU' ? -1 : b === 'UYU' ? 1 : a.localeCompare(b)
+    a === primaryCurrency ? -1 : b === primaryCurrency ? 1 : a.localeCompare(b)
   );
 
   const dateFrom = report.report_start_date ?? dateRange?.from ?? null;

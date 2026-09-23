@@ -28,6 +28,8 @@ import { useTableViewMode } from '@/hooks/use-table-view-mode';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
+import { formatMoney } from '@/lib/currency';
 
 type ActionType = 'schedule' | 'complete';
 
@@ -52,6 +54,8 @@ const DateCell = ({ dateValue }: { dateValue: string | null }) => {
 };
 
 interface OrderItemsTableProps {
+  /** Moneda del documento. Por defecto, la de la clínica. */
+  currency?: string;
   items: OrderItem[];
   isLoading?: boolean;
   onItemsUpdate?: () => void;
@@ -64,7 +68,11 @@ interface OrderItemsTableProps {
   canComplete?: boolean;
 }
 
-export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quoteId, quoteDocNo, isSales = true, userId, patient, canSchedule = true, canComplete = true }: OrderItemsTableProps) {
+export function OrderItemsTable({
+  currency: currencyProp, items, isLoading = false, onItemsUpdate, quoteId, quoteDocNo, isSales = true, userId, patient, canSchedule = true, canComplete = true }: OrderItemsTableProps) {
+  const currency = currencyProp ?? getClinicCurrency();
+  /** Importes en la moneda del documento. */
+  const formatMoney2 = (v: number) => formatMoney(v, currency);
   const t = useTranslations('OrderItemsTable');
   const { toast } = useToast();
   const { isNarrow: panelNarrow } = useNarrowMode();
@@ -443,10 +451,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
       ),
       cell: ({ row }) => {
         const amount = parseFloat(row.getValue('unit_price'));
-        const formatted = new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'USD',
-        }).format(amount);
+        const formatted = formatMoney(amount, getClinicCurrency());
         return <div className="font-medium">{formatted}</div>;
       },
     },
@@ -457,15 +462,12 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
       ),
       cell: ({ row }) => {
         const amount = parseFloat(row.getValue('total'));
-        const formatted = new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'USD',
-        }).format(amount);
+        const formatted = formatMoney(amount, getClinicCurrency());
         return (
           <div className="font-medium">
             {formatted}
             {/* El importe ya viene rebajado: la nota deja ver por qué. */}
-            <AppliedDiscountNote line={row.original} currency="USD" />
+            <AppliedDiscountNote line={row.original} currency={currency} />
           </div>
         );
       },
@@ -580,7 +582,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
             const statusVariant: any = { completed: 'success', scheduled: 'info', cancelled: 'destructive' }[item.status?.toLowerCase() ?? ''] ?? 'default';
             const canScheduleCard = canSchedule && !item.scheduled_date && item.status !== 'completed' && !item.completed_date;
             const canCompleteCard = canComplete && !item.completed_date;
-            const fmt = (v: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
+            const fmt = (v: number) => formatMoney2(v);
             const actionsEl = isSelected && (canScheduleCard || canCompleteCard) ? (
               <>
                 {canScheduleCard && (
@@ -615,7 +617,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
                       <span>{t('columns.quantity')}: {item.quantity}</span>
                       {item.unit_price != null ? <span>{t('columns.unitPrice')}: {fmt(item.unit_price)}</span> : null}
                       {item.total != null ? <span className="font-medium text-foreground">{t('columns.total')}: {fmt(item.total)}</span> : null}
-                      <AppliedDiscountNote line={item} currency="USD" />
+                      <AppliedDiscountNote line={item} currency={currency} />
                       {item.scheduled_date ? <span>{t('columns.scheduled')}: {formatDateTime(item.scheduled_date)}</span> : null}
                       {item.completed_date ? <span>{t('columns.completed')}: {formatDateTime(item.completed_date)}</span> : null}
                       {item.invoiced_date ? <span>{t('columns.invoiced')}: {formatDateTime(item.invoiced_date)}</span> : null}
@@ -714,7 +716,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
           summary: selectedItem?.service_name || '',
           description: selectedItem?.service_name || '',
           services: selectedItem ? allServices.filter(s => String(s.id) === String(selectedItem.service_id)) : [],
-          quote: quoteId ? { id: quoteId, doc_no: quoteDocNo || '', user_id: '', total: 0, status: 'draft', payment_status: 'unpaid', billing_status: 'not_invoiced', currency: 'USD', exchange_rate: 1, notes: '', createdAt: '' } : undefined,
+          quote: quoteId ? { id: quoteId, doc_no: quoteDocNo || '', user_id: '', total: 0, status: 'draft', payment_status: 'unpaid', billing_status: 'not_invoiced', currency: getClinicCurrency(), exchange_rate: 1, notes: '', createdAt: '' } : undefined,
         }}
         readOnlyFields={{ user: true, services: true, quote: true }}
         onSaveSuccess={handleAppointmentSaveSuccess}

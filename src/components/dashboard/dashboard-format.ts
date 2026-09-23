@@ -1,5 +1,6 @@
 import type { DashboardCurrency } from '@/lib/types';
 
+import { formatMoneyCompact } from '@/lib/currency';
 import { formatDate } from '@/lib/utils';
 
 /**
@@ -15,9 +16,6 @@ export function parseDateOnly(date: string | null | undefined): Date | null {
   return new Date(year, month - 1, day);
 }
 
-const SYMBOLS: Record<DashboardCurrency, string> = { UYU: '$', USD: 'US$' };
-
-const amountFmt = new Intl.NumberFormat('es-UY', { maximumFractionDigits: 0 });
 const countFmt = new Intl.NumberFormat('es-UY');
 
 /** Marcador de "sin dato de origen". Distinto de un cero real, que sí se imprime. */
@@ -29,7 +27,7 @@ export const EMPTY = '—';
  */
 export function formatAmount(value: number | null | undefined, currency: DashboardCurrency): string {
   if (value === null || value === undefined) return EMPTY;
-  return `${SYMBOLS[currency]} ${amountFmt.format(value)}`;
+  return formatMoneyCompact(value, currency);
 }
 
 export function formatCount(value: number | null | undefined): string {

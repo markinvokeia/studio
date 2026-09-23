@@ -72,6 +72,9 @@ import { DialogDescription } from '../ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { ScrollArea } from '../ui/scroll-area';
+import { currencySchema } from '@/lib/currency';
+import { CurrencySelect } from '@/components/ui/currency-select';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 
 const getCreateInvoiceFormSchema = (t: (key: string) => string, maxDiscountPct: number) => z.object({
@@ -82,7 +85,7 @@ const getCreateInvoiceFormSchema = (t: (key: string) => string, maxDiscountPct: 
   /** Descuento sobre el total del documento. Solo con ambito 'total'. */
   discount_mode: z.enum(['percent', 'amount']).nullish(),
   discount_value: z.coerce.number().min(0).nullish(),
-  currency: z.enum(['UYU', 'USD']),
+  currency: currencySchema,
   order_id: z.string().optional(),
   quote_id: z.string().optional(),
   created_at: z.date({ required_error: t('validation.dateRequired') }),
@@ -187,7 +190,7 @@ const getColumns = (
         const amount = parseFloat(row.getValue('total'));
         const formatted = new Intl.NumberFormat('en-US', {
           style: 'currency',
-          currency: row.original.currency || 'USD',
+          currency: row.original.currency || getClinicCurrency(),
         }).format(amount);
         return <div className="text-right font-medium pr-4">{formatted}</div>;
       },
@@ -243,7 +246,7 @@ const getColumns = (
         const amount = row.original.paid_amount ? parseFloat(row.original.paid_amount.toString()) : 0;
         const formatted = new Intl.NumberFormat('en-US', {
           style: 'currency',
-          currency: row.original.currency || 'USD',
+          currency: row.original.currency || getClinicCurrency(),
         }).format(amount);
         return <div className="text-right font-medium pr-4">{formatted}</div>;
       },
@@ -659,7 +662,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
       user_id: '',
       doctor_id: '',
       sede_id: '',
-      currency: 'UYU',
+      currency: getClinicCurrency(),
       items: [],
       total: 0,
       created_at: new Date(),
@@ -845,7 +848,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
               user_id: userId,
               doctor_id: invoice.doctor_id ? String(invoice.doctor_id) : '',
               sede_id: invoice.sede_id ? String(invoice.sede_id) : (activeSede?.id || ''),
-              currency: (invoice.currency?.toUpperCase() as any) || 'UYU',
+              currency: (invoice.currency?.toUpperCase() as any) || getClinicCurrency(),
               total: Number(invoice.total || 0),
               order_id: invoice.order_id ? String(invoice.order_id) : undefined,
               quote_id: invoice.quote_id ? String(invoice.quote_id) : undefined,
@@ -892,7 +895,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
               user_id: initialUser ? initialUser.id : '',
               doctor_id: '',
               sede_id: activeSede?.id || '',
-              currency: 'UYU',
+              currency: getClinicCurrency(),
               items: preloadedItems,
               total: 0,
               created_at: new Date(),
@@ -1185,13 +1188,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                 <FormField control={form.control} name="currency" render={({ field }) => (
                   <FormItem>
                     <FormLabel>{t('currency')}</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                      <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        <SelectItem value="USD">USD</SelectItem>
-                        <SelectItem value="UYU">UYU</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <FormControl><CurrencySelect value={field.value} onChange={field.onChange} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
@@ -1451,7 +1448,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                             mode={(items as any[])[index]?.discount_mode}
                             value={(items as any[])[index]?.discount_value}
                             base={computeGrossTotal((items as any[])[index]?.unit_price ?? 0, (items as any[])[index]?.quantity ?? 0)}
-                            currency={form.watch('currency') || 'UYU'}
+                            currency={form.watch('currency') || getClinicCurrency()}
                             maxPct={discounts.maxPct}
                             defaultPct={discounts.defaultPct}
                             canApply={discounts.canApply}
@@ -1471,7 +1468,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                         mode={invoiceDiscountMode}
                         value={invoiceDiscountValue}
                         base={documentTotals.grossTotal}
-                        currency={form.watch('currency') || 'UYU'}
+                        currency={form.watch('currency') || getClinicCurrency()}
                         maxPct={discounts.maxPct}
                         defaultPct={discounts.defaultPct}
                         canApply={discounts.canApply}
@@ -1489,7 +1486,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                       grossTotal={documentTotals.grossTotal}
                       discountAmount={documentTotals.discountAmount}
                       total={documentTotals.total}
-                      currency={form.watch('currency') || 'UYU'}
+                      currency={form.watch('currency') || getClinicCurrency()}
                     />
                   </div>
                 </CardContent>

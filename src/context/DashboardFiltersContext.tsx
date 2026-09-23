@@ -5,6 +5,7 @@ import type { DateRange } from 'react-day-picker';
 import { endOfMonth, startOfMonth } from 'date-fns';
 
 import { useAuth } from '@/context/AuthContext';
+import { useCurrencySettings } from '@/hooks/useCurrencySettings';
 import type { DashboardCurrency } from '@/lib/types';
 
 interface DashboardFiltersContextType {
@@ -48,8 +49,10 @@ export function DashboardFiltersProvider({ children }: { children: React.ReactNo
   const { user } = useAuth();
   const userId = user?.id;
 
+  const { code: clinicCurrency, options: currencyOptions } = useCurrencySettings();
+
   const [sedeId, setSedeIdState] = useState<string | null>(null);
-  const [currency, setCurrencyState] = useState<DashboardCurrency>('UYU');
+  const [currency, setCurrencyState] = useState<DashboardCurrency>(clinicCurrency);
   // Se deja indefinido en el primer render y se completa al montar: construir la fecha
   // durante el render del servidor produce un desajuste de hidratación.
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
@@ -62,9 +65,12 @@ export function DashboardFiltersProvider({ children }: { children: React.ReactNo
   // Los filtros persistidos son por usuario: dos cuentas en el mismo navegador no se pisan.
   useEffect(() => {
     setSedeIdState(readStored(userId, 'sedeId'));
+    // El valor persistido solo se respeta si sigue siendo una de las monedas
+    // de la clínica: si se cambió la configuración, un `UYU` guardado de antes
+    // dejaría el panel en una moneda con la que ya no se opera.
     const storedCurrency = readStored(userId, 'currency');
-    setCurrencyState(storedCurrency === 'USD' ? 'USD' : 'UYU');
-  }, [userId]);
+    setCurrencyState(storedCurrency && currencyOptions.includes(storedCurrency) ? storedCurrency : clinicCurrency);
+  }, [userId, clinicCurrency, currencyOptions]);
 
   const setSedeId = useCallback(
     (next: string | null) => {

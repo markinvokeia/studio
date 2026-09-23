@@ -1,58 +1,26 @@
 'use client';
 
-import { API_ROUTES } from '@/constants/routes';
-import { getWebhookBaseUrl } from '@/lib/runtime-config';
-import { api } from '@/services/api';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
-export interface ClinicInfo {
-  name: string;
-  logoUrl: string;
-  phone?: string;
-  address?: string;
-  email?: string;
-  /** RUT de la clínica — se imprime en el membrete de recetas y comprobantes. */
-  rut?: string;
-  currency?: 'UYU' | 'USD';
-}
+import { useClinicInfoStore } from '@/stores/clinic-info-store';
 
-// Module-level cache — fetched at most once per session across all components
-let _cache: ClinicInfo | null = null;
-let _promise: Promise<ClinicInfo | null> | null = null;
+export type { ClinicInfo } from '@/services/clinic-info';
+export { fetchClinicInfo } from '@/services/clinic-info';
 
-export function fetchClinicInfo(): Promise<ClinicInfo | null> {
-  if (_promise) return _promise;
-  _promise = api
-    .get(API_ROUTES.CLINIC)
-    .then((raw: unknown) => {
-      const data = Array.isArray(raw) ? (raw as Record<string, unknown>[])[0] : (raw as Record<string, unknown>);
-      if (!data) return null;
-      const get = (...keys: string[]) => keys.map((k) => data[k]).find((v) => v != null && v !== '') as string | undefined;
-      const rawCurrency = get('currency', 'moneda');
-      const info: ClinicInfo = {
-        name: get('name', 'clinic_name', 'nombre') ?? '',
-        // Always use the n8n webhook endpoint — it handles Drive auth transparently.
-        logoUrl: `${getWebhookBaseUrl()}/clinic/logo`,
-        phone: get('phone', 'telefono', 'phone_number', 'tel'),
-        address: get('address', 'direccion', 'domicilio'),
-        email: get('email', 'correo'),
-        rut: get('rut', 'RUT'),
-        currency: rawCurrency === 'USD' || rawCurrency === 'UYU' ? rawCurrency : undefined,
-      };
-      _cache = info;
-      return info;
-    })
-    .catch(() => null);
-  return _promise;
-}
-
-export function useClinicInfo(): ClinicInfo | null {
-  const [info, setInfo] = useState<ClinicInfo | null>(_cache);
+/**
+ * Datos de la clínica desde el store. Los carga
+ * `ClinicPreferencesInitializer` tras el login; este hook dispara el fetch
+ * igualmente como red de seguridad, para las pantallas públicas que se montan
+ * fuera de `PrivateRoute` (portal del paciente, TV de sala de espera).
+ */
+export function useClinicInfo() {
+  const info = useClinicInfoStore((s) => s.info);
+  const isLoaded = useClinicInfoStore((s) => s.isLoaded);
+  const fetchInfo = useClinicInfoStore((s) => s.fetchInfo);
 
   useEffect(() => {
-    if (_cache) { setInfo(_cache); return; }
-    fetchClinicInfo().then(setInfo);
-  }, []);
+    if (!isLoaded) fetchInfo();
+  }, [isLoaded, fetchInfo]);
 
   return info;
 }

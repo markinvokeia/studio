@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { CurrencyPicker } from '@/components/ui/currency-picker';
 import { Dialog, DialogBody, DialogCancelButton, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -14,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { DEFAULT_CURRENCY, normalizeCurrencyCode } from '@/constants/currencies';
 import { BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
@@ -21,6 +23,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { Clinic, Sede } from '@/lib/types';
 import { DEFAULT_PHONE_COUNTRY } from '@/lib/countries';
 import { api } from '@/services/api';
+import { useClinicInfoStore } from '@/stores/clinic-info-store';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { isValidPhoneNumber } from 'libphonenumber-js';
 import { AlertTriangle, Building, Building2, Info, Loader2, Mail, MapPin, Pencil, Phone, Plus, RefreshCw, Trash2, UploadCloud } from 'lucide-react';
@@ -68,7 +71,8 @@ async function getClinic(fallbacks: ClinicFallbacks): Promise<Clinic | null> {
             location: c.address || fallbacks.location,
             contact_email: c.email || 'no-email@example.com',
             phone_number: c.phone || '000-000-0000',
-            currency: c.currency || 'USD',
+            currency: normalizeCurrencyCode(c.currency) || DEFAULT_CURRENCY,
+            secondary_currency: normalizeCurrencyCode(c.secondary_currency) ?? null,
             rut: c.rut || '',
         };
     } catch {
@@ -135,6 +139,7 @@ export default function ClinicsPage() {
     const canDeleteSede = hasPermission(BUSINESS_CONFIG_PERMISSIONS.SEDES_DELETE);
 
     const { toast } = useToast();
+    const refreshClinicInfo = useClinicInfoStore((s) => s.refresh);
 
     // Clinic state
     const [clinic, setClinic] = React.useState<Clinic | null>(null);
@@ -227,6 +232,9 @@ export default function ClinicsPage() {
         formData.append('email', clinic.contact_email);
         formData.append('phone', clinic.phone_number);
         if (clinic.currency) formData.append('currency', clinic.currency);
+        // Siempre se envía, también vacía: es como se quita la moneda
+        // secundaria y se vuelve a operar en moneda única.
+        formData.append('secondary_currency', clinic.secondary_currency ?? '');
         if (clinic.rut) formData.append('rut', clinic.rut);
         if (logoFile) formData.append('data', logoFile);
         try {
@@ -237,6 +245,9 @@ export default function ClinicsPage() {
                 if (first.id && first.name) {
                     toast({ title: tc('toast.successTitle'), description: tc('toast.successDesc') });
                     loadClinic();
+                    // La moneda la lee medio producto desde el store; sin esto
+                    // el cambio no se vería hasta el siguiente login.
+                    refreshClinicInfo();
                 } else throw new Error(tc('toast.errorUnknown'));
             } else throw new Error(tc('toast.errorUnknown'));
         } catch (error) {
@@ -460,15 +471,31 @@ export default function ClinicsPage() {
 
                             <div className="space-y-2">
                                 <Label htmlFor="currency">{tc('currencyLabel')}</Label>
-                                <Select onValueChange={(v) => handleSelectChange('currency', v)} value={clinic.currency}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder={tc('currencyPlaceholder')} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="USD">USD</SelectItem>
-                                        <SelectItem value="UYU">UYU</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                <CurrencyPicker
+                                    id="currency"
+                                    value={clinic.currency}
+                                    onChange={(v) => handleSelectChange('currency', v ?? DEFAULT_CURRENCY)}
+                                    placeholder={tc('currencyPlaceholder')}
+                                    searchPlaceholder={tc('currencySearchPlaceholder')}
+                                    emptyLabel={tc('currencyEmpty')}
+                                />
+                                <p className="text-xs text-muted-foreground">{tc('currencyHelp')}</p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="secondary_currency">{tc('secondaryCurrencyLabel')}</Label>
+                                <CurrencyPicker
+                                    id="secondary_currency"
+                                    value={clinic.secondary_currency ?? undefined}
+                                    onChange={(v) => setClinic((prev) => (prev ? { ...prev, secondary_currency: v ?? null } : prev))}
+                                    exclude={clinic.currency}
+                                    clearable
+                                    placeholder={tc('secondaryCurrencyPlaceholder')}
+                                    clearLabel={tc('secondaryCurrencyNone')}
+                                    searchPlaceholder={tc('currencySearchPlaceholder')}
+                                    emptyLabel={tc('currencyEmpty')}
+                                />
+                                <p className="text-xs text-muted-foreground">{tc('secondaryCurrencyHelp')}</p>
                             </div>
                         </div>
 

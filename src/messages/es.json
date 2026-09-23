@@ -3068,35 +3068,36 @@
       "prefillLast": "Rellenar con último cierre",
       "cashCountTitle": "Conteo de Efectivo ({currency})",
       "cashCountDescription": "Ingrese el conteo físico de efectivo para cada denominación.",
-      "uyuCountTitle": "Conteo UYU",
-      "usdCountTitle": "Conteo USD",
       "steps": {
         "config": "Configuración",
-        "countUYU": "Conteo de Efectivo (UYU)",
-        "countUSD": "Conteo de Efectivo (USD)",
         "bankDeposit": "Depósito Bancario",
         "review": "Revisar",
         "declare": "Declarar",
         "report": "Reporte",
-        "confirm": "Confirmación"
+        "confirm": "Confirmación",
+        "count": "Contar {currency}"
       },
-      "title": "Cerrar Sesión"
+      "title": "Cerrar Sesión",
+      "count": {
+        "title": "Conteo de efectivo ({currency})",
+        "noDenominations": "No hay desglose de billetes para {currency}. Introduce el importe total contado."
+      }
     },
     "bankDeposit": {
       "title": "Declaración de Depósito Bancario",
       "description": "Declare las denominaciones de efectivo físico que se retirarán para el banco. Este paso es opcional.",
-      "countUYU": "Depósito Bancario UYU",
-      "countUSD": "Depósito Bancario USD",
       "attachFiles": "Adjuntar Archivos",
-      "chooseFiles": "Elegir Archivos"
+      "chooseFiles": "Elegir Archivos",
+      "count": "Depositar {currency}"
     },
     "confirmation": {
       "sessionInfo": "Info de Sesión",
       "cashSummary": "Resumen de Efectivo",
-      "totalUYU": "Total UYU",
-      "totalUSD": "Total USD",
       "totalOpening": "Total Apertura",
-      "confirmButton": "Confirmar"
+      "confirmButton": "Confirmar",
+      "total": "Total {currency}",
+      "denomination": "Denominación {currency}",
+      "quantity": "Cantidad"
     },
     "activeSession": {
       "columns": {
@@ -3935,7 +3936,7 @@
     "emailPlaceholder": "ej. juan.perez@ejemplo.com",
     "save": "Guardar",
     "logoAlt": "Vista previa del logo",
-    "currencyLabel": "Moneda",
+    "currencyLabel": "Moneda principal",
     "currencyPlaceholder": "Seleccionar una moneda",
     "fallbacks": {
       "name": "Sin nombre",
@@ -3984,7 +3985,14 @@
     "sedeDeleteConfirmDelete": "Eliminar",
     "validation": {
       "phoneInvalid": "Número de teléfono inválido"
-    }
+    },
+    "currencySearchPlaceholder": "Buscar por código o nombre…",
+    "currencyEmpty": "No se encontró la moneda",
+    "currencyHelp": "La moneda con la que trabaja la clínica. Se usa por defecto en presupuestos, facturas, cobros e informes.",
+    "secondaryCurrencyLabel": "Moneda secundaria (opcional)",
+    "secondaryCurrencyPlaceholder": "Sin moneda secundaria",
+    "secondaryCurrencyNone": "Sin moneda secundaria",
+    "secondaryCurrencyHelp": "Configúrala solo si la clínica también opera en una segunda moneda. Vacía ⇒ se trabaja en moneda única y se oculta el tipo de cambio."
   },
   "SchedulesPage": {
     "title": "Horarios",
@@ -4493,7 +4501,9 @@
       "create": "Crear",
       "cancel": "Cancelar",
       "save": "Guardar Cambios"
-    }
+    },
+    "secondaryCurrency": "Moneda secundaria",
+    "noAutoRate": "El histórico automático de cotizaciones solo existe para el par UYU/USD. Con cualquier otro par, el tipo de cambio se carga a mano al abrir la caja."
   },
   "ProductCategoriesPage": {
     "title": "Categorías de Productos",

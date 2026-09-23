@@ -19,6 +19,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { cn, formatServicePrice } from '@/lib/utils';
 import { api } from '@/services/api';
 import { getSalesServices } from '@/services/services';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 interface PatientGroupServicesTabProps {
     groupId: string;
@@ -64,7 +65,7 @@ function mapService(s: any): ServiceRow {
         name: s.name ?? '',
         category: s.category_name ?? s.category ?? '',
         price: s.price != null ? Number(s.price) : undefined,
-        currency: s.currency ?? 'UYU',
+        currency: s.currency ?? getClinicCurrency(),
         is_active: s.is_active ?? true,
     };
 }

@@ -27,13 +27,16 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { currencySchema } from '@/lib/currency';
+import { CurrencySelect } from '@/components/ui/currency-select';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 const prepaidFormSchema = (t: (key: string) => string) => z.object({
     user_id: z.string().min(1, t('validation.userRequired')),
     payment_amount: z.coerce.number().positive(t('validation.amountPositive')),
     payment_method_id: z.string().min(1, t('validation.methodRequired')),
     created_at: z.date({ required_error: t('validation.dateRequired') }),
-    currency: z.enum(['UYU', 'USD']),
+    currency: currencySchema,
     notes: z.string().optional(),
     is_historical: z.boolean().default(false),
 });
@@ -78,7 +81,7 @@ export function PurchasePrepaidFormDialog({ open, onOpenChange, initialUser, onS
             payment_amount: 0,
             payment_method_id: '',
             created_at: new Date(),
-            currency: clinicInfo?.currency ?? 'UYU',
+            currency: clinicInfo?.currency ?? getClinicCurrency(),
             notes: '',
             is_historical: false,
         },
@@ -94,7 +97,7 @@ export function PurchasePrepaidFormDialog({ open, onOpenChange, initialUser, onS
             payment_amount: 0,
             payment_method_id: '',
             created_at: new Date(),
-            currency: clinicInfo?.currency ?? 'UYU',
+            currency: clinicInfo?.currency ?? getClinicCurrency(),
             notes: '',
             is_historical: false,
         });
@@ -220,13 +223,7 @@ export function PurchasePrepaidFormDialog({ open, onOpenChange, initialUser, onS
                                     <FormField control={form.control} name="currency" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>{t('prepaidDialog.currency')}</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}>
-                                                <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="USD">USD</SelectItem>
-                                                    <SelectItem value="UYU">UYU</SelectItem>
-                                                </SelectContent>
-                                            </Select>
+                                            <FormControl><CurrencySelect value={field.value} onChange={field.onChange} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )} />

@@ -20,9 +20,15 @@ import { api } from '@/services/api';
 import { ColumnDef, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { DollarSign, History, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { getCurrency } from '@/constants/currencies';
+import { useCurrencySettings } from '@/hooks/useCurrencySettings';
 
 export default function CurrenciesPage() {
     const t = useTranslations('CurrenciesPage');
+    // El historial de cotizaciones es el feed BROU (UYU↔USD). Con cualquier
+    // otro par no hay datos que mostrar: se enseñan las monedas configuradas y
+    // se explica que el tipo de cambio se carga a mano al abrir la caja.
+    const { def, secondaryCode, hasAutoRate } = useCurrencySettings();
     const { toast } = useToast();
     const isNarrow = useViewportNarrow();
 
@@ -76,7 +82,10 @@ export default function CurrenciesPage() {
         setRowSelection({});
     };
 
-    React.useEffect(() => { fetchExchangeRates(); }, [fetchExchangeRates]);
+    React.useEffect(() => {
+        if (hasAutoRate) fetchExchangeRates();
+        else setIsLoading(false);
+    }, [fetchExchangeRates, hasAutoRate]);
 
     const columns: ColumnDef<ExchangeRateHistoryItem>[] = React.useMemo(() => [
         { accessorKey: 'fecha', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.date')} /> },
@@ -133,12 +142,24 @@ export default function CurrenciesPage() {
                     </div>
                 </CardHeader>
                 <CardContent className="bg-card pb-4 px-4">
-                    <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{t('baseCurrency')}</p>
-                        <Badge variant="secondary">UYU (Pesos Uruguayos)</Badge>
+                    <div className="space-y-2">
+                        <div className="space-y-1">
+                            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{t('baseCurrency')}</p>
+                            <Badge variant="secondary">{def.code} ({def.name})</Badge>
+                        </div>
+                        {secondaryCode && (
+                            <div className="space-y-1">
+                                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{t('secondaryCurrency')}</p>
+                                <Badge variant="secondary">{getCurrency(secondaryCode).code} ({getCurrency(secondaryCode).name})</Badge>
+                            </div>
+                        )}
+                        {!hasAutoRate && (
+                            <p className="text-xs text-muted-foreground pt-1">{t('noAutoRate')}</p>
+                        )}
                     </div>
                 </CardContent>
             </Card>
+            {hasAutoRate && (
             <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border-0 lg:border shadow-none lg:shadow-sm">
                 <CardHeader className="flex-none p-4">
                     <div className="flex items-start gap-3">
@@ -174,6 +195,7 @@ export default function CurrenciesPage() {
                     />
                 </CardContent>
             </Card>
+            )}
         </div>
     );
 

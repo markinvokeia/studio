@@ -35,6 +35,7 @@ import { getSalesServices } from '@/services/services';
 import { ensureDoctorOption } from '@/services/doctors';
 import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
 import { GOOGLE_CALENDAR_COLORS } from '@/components/calendar/calendar-constants';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 interface ClinicSessionDialogProps {
     open: boolean;
@@ -242,7 +243,7 @@ export function ClinicSessionDialog({
                     status: q.status || 'draft',
                     payment_status: q.payment_status || 'unpaid',
                     billing_status: q.billing_status || 'not invoiced',
-                    currency: q.currency || 'USD',
+                    currency: q.currency || getClinicCurrency(),
                     exchange_rate: q.exchange_rate || 1,
                     notes: q.notes || '',
                     createdAt: q.createdAt || q.created_at || new Date().toISOString().split('T')[0],
@@ -989,7 +990,7 @@ export function ClinicSessionDialog({
                                                                 {selectedQuote.createdAt ? formatDisplayDate(selectedQuote.createdAt) : ''}
                                                             </span>
                                                             <span className="text-muted-foreground">
-                                                                ({new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedQuote.currency || 'USD' }).format(selectedQuote.total)})
+                                                                ({new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedQuote.currency || getClinicCurrency() }).format(selectedQuote.total)})
                                                             </span>
                                                         </span>
                                                     ) : (
@@ -1028,7 +1029,7 @@ export function ClinicSessionDialog({
                                                                     <div className="flex flex-col">
                                                                         <span className="font-medium">{quote.doc_no}</span>
                                                                         <span className="text-xs text-muted-foreground">
-                                                                            {quote.createdAt ? formatDisplayDate(quote.createdAt) : ''} • {new Intl.NumberFormat('en-US', { style: 'currency', currency: quote.currency || 'USD' }).format(quote.total)}
+                                                                            {quote.createdAt ? formatDisplayDate(quote.createdAt) : ''} • {new Intl.NumberFormat('en-US', { style: 'currency', currency: quote.currency || getClinicCurrency() }).format(quote.total)}
                                                                         </span>
                                                                     </div>
                                                                 </CommandItem>

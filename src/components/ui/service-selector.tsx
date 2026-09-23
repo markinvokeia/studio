@@ -13,6 +13,7 @@ import { getPurchaseServices, getSalesServices } from '@/services/services';
 import { Check, ChevronsUpDown, Loader2, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 interface ServiceSelectorProps {
     /** Tipo de servicio: true = sales (clínica), false = purchase (proveedores) */
@@ -104,7 +105,7 @@ export function ServiceSelector({
                 setServices(result.items.map((s: any) => ({
                     ...s,
                     id: String(s.id),
-                    currency: s.currency || 'UYU',
+                    currency: s.currency || getClinicCurrency(),
                 })));
             } catch (error) {
                 console.error('Failed to fetch services:', error);
@@ -161,7 +162,7 @@ export function ServiceSelector({
             await api.post(API_ROUTES.PURCHASES.SERVICES_UPSERT, {
                 name,
                 price: 0,
-                currency: 'UYU',
+                currency: getClinicCurrency(),
                 is_sales: isSales,
                 is_active: true,
                 duration_minutes: 60,
@@ -177,7 +178,7 @@ export function ServiceSelector({
             const newServices = result.items.map((s: any) => ({
                 ...s,
                 id: String(s.id),
-                currency: s.currency || 'UYU',
+                currency: s.currency || getClinicCurrency(),
             }));
             setServices(newServices);
 

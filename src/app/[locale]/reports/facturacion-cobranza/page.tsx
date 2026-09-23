@@ -28,6 +28,8 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { ReportCurrencyFilter } from '@/components/reports/currency-filter';
+import { useReportCurrency } from '@/hooks/useReportCurrency';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('es-UY', { maximumFractionDigits: 0 }).format(n);
@@ -39,9 +41,7 @@ export default function FacturacionCobranzaPage() {
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
   });
-  const [currency, setCurrency] = useState('all');
-
-  const [chartCurrency, setChartCurrency] = useState<'UYU' | 'USD'>('UYU');
+  const { currency, setCurrency, chartCurrency, setChartCurrency, activeCurrency, isDual, options: currencyOptions } = useReportCurrency();
 
   const [data, setData] = useState<ReportFactCobranzaResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -107,7 +107,6 @@ export default function FacturacionCobranzaPage() {
   const activeCurrencies = Object.keys(facturadoByCurrency).filter((c) => facturadoByCurrency[c] > 0).sort();
   const showMultiCurrency = currency === 'all' && activeCurrencies.length > 1;
   const displayCurrency = currency !== 'all' ? currency : activeCurrencies[0] ?? '';
-  const activeCurrency = (currency !== 'all' ? currency : chartCurrency) as 'UYU' | 'USD';
 
   const chartData = [...(data?.rows ?? [])]
     .filter((r) => r.currency === activeCurrency)
@@ -124,16 +123,7 @@ export default function FacturacionCobranzaPage() {
   const filters = (
     <div className="flex flex-wrap items-center gap-3">
       <DateRangePresets value={dateRange} onChange={setDateRange} />
-      <Select value={currency} onValueChange={setCurrency}>
-        <SelectTrigger className="h-8 w-24 text-xs">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todas</SelectItem>
-          <SelectItem value="UYU">UYU</SelectItem>
-          <SelectItem value="USD">USD</SelectItem>
-        </SelectContent>
-      </Select>
+      <ReportCurrencyFilter value={currency} onChange={setCurrency} allLabel="Todas" />
     </div>
   );
 
@@ -239,7 +229,7 @@ export default function FacturacionCobranzaPage() {
           {/* Print: both currencies side by side — fixed dimensions */}
           {currency === 'all' && (
             <div className="hidden print:grid print:grid-cols-2 print:gap-4">
-              {(['UYU', 'USD'] as const).map((cur) => {
+              {currencyOptions.map((cur) => {
                 const curData = [...(data?.rows ?? [])].filter(r => r.currency === cur).reverse().map(r => ({
                   mes: r.mes,
                   facturado: Number(r.total_facturado),

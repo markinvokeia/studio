@@ -29,6 +29,8 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { ReportCurrencyFilter } from '@/components/reports/currency-filter';
+import { useReportCurrency } from '@/hooks/useReportCurrency';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('es-UY', { maximumFractionDigits: 0 }).format(n);
@@ -40,10 +42,8 @@ export default function IngresosPeriodoPage() {
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
   });
-  const [currency, setCurrency] = useState('all');
-  const [groupBy, setGroupBy] = useState('day');
-
-  const [chartCurrency, setChartCurrency] = useState<'UYU' | 'USD'>('UYU');
+    const [groupBy, setGroupBy] = useState('day');
+  const { currency, setCurrency, chartCurrency, setChartCurrency, activeCurrency, isDual, options: currencyOptions } = useReportCurrency();
 
   const [data, setData] = useState<ReportIngresosResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -91,7 +91,6 @@ export default function IngresosPeriodoPage() {
 
   const { exportCSV, exportExcel, exportPDF } = useReportExport(columns, data?.rows ?? null, 'ingresos-periodo');
 
-  const activeCurrency = (currency !== 'all' ? currency : chartCurrency) as 'UYU' | 'USD';
 
   const chartData = [...(data?.rows ?? [])]
     .filter((r) => r.currency === activeCurrency)
@@ -131,16 +130,7 @@ export default function IngresosPeriodoPage() {
           </SelectContent>
         </Select>
       </div>
-      <Select value={currency} onValueChange={setCurrency}>
-        <SelectTrigger className="h-8 w-24 text-xs">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todas</SelectItem>
-          <SelectItem value="UYU">UYU</SelectItem>
-          <SelectItem value="USD">USD</SelectItem>
-        </SelectContent>
-      </Select>
+      <ReportCurrencyFilter value={currency} onChange={setCurrency} allLabel="Todas" />
     </div>
   );
 
@@ -217,7 +207,7 @@ export default function IngresosPeriodoPage() {
           {/* Print: dual-currency layout — only shown when Ambos is selected */}
           {currency === 'all' && (
             <div className="hidden print:grid print:grid-cols-2 print:gap-4">
-              {(['UYU', 'USD'] as const).map((cur) => {
+              {currencyOptions.map((cur) => {
                 const curChartData = [...(data?.rows ?? [])].filter(r => r.currency === cur).reverse().map(r => ({
                   periodo: String(r.periodo ?? '').substring(5, 10),
                   total: Number(r.total_cobrado),

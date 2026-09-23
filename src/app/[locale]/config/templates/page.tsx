@@ -32,6 +32,7 @@ import type { PrintDocumentType } from '@/stores/print-document-store';
 import type { EmailTemplateType } from '@/lib/email-template-defaults';
 import type { WhatsappTemplateType } from '@/lib/whatsapp-template-defaults';
 import type { DocPrintTemplate, CommunicationTemplate } from '@/lib/types';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -120,7 +121,7 @@ function substituteDocForPreview(
     clinic_email: clinicEmail || 'contacto@miclinica.com', clinic_phone_email_sep: ph || ' | ',
     doc_no: type === 'invoice' ? 'FAC-0021' : type === 'quote' ? 'PRE-0015' : type === 'credit_note' ? 'NC-0003' : 'PAG-0042',
     date: '28/05/2026', due_date: '28/06/2026', status: 'Registrada', payment_status: 'Pagado',
-    currency: 'UYU', patient_name: 'Ana García', reference: 'PRE-0015', original_invoice: 'FAC-0021',
+    currency: getClinicCurrency(), patient_name: 'Ana García', reference: 'PRE-0015', original_invoice: 'FAC-0021',
     total: '800', paid: '500', pending: '300', amount_invoiced: '800', pending_invoice: '0',
     amount_paid: '500', pending_payment: '300', method: 'Efectivo', transaction_type: 'Pago directo',
     exchange_rate: '', amount: '800', notes: '', generated_at: format(new Date(), 'dd/MM/yyyy HH:mm'),
@@ -144,7 +145,7 @@ function substituteEmailForPreview(
     clinic_email: clinicEmail || 'contacto@miclinica.com',
     patient_name: 'Ana García', patient_email: 'ana@example.com',
     doc_no: type === 'email_invoice' ? 'FAC-0021' : type === 'email_quote' || type === 'email_quote_approved' || type === 'email_quote_rejected' ? 'PRE-0015' : 'PAG-0042',
-    date: '28/05/2026', status: 'Registrada', currency: 'UYU',
+    date: '28/05/2026', status: 'Registrada', currency: getClinicCurrency(),
     total: '800', amount: '800', method: 'Efectivo', items_table: sampleItems,
     exchange_rate: '1.00',
     appointment_date: '30/06/2026', appointment_time: '10:00',

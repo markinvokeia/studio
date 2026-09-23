@@ -4,6 +4,7 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 interface FinancialSummaryProps {
   total: number;
@@ -35,7 +36,7 @@ export function FinancialSummary({
   const formatCurrency = (amount: number, curr: string) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: curr || 'UYU',
+      currency: curr || getClinicCurrency(),
     }).format(amount);
   };
 

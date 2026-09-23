@@ -52,6 +52,9 @@ import * as React from 'react';
 import { DateRange } from 'react-day-picker';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { currencySchema } from '@/lib/currency';
+import { CurrencySelect } from '@/components/ui/currency-select';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 const transactionFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
@@ -60,7 +63,7 @@ const transactionFormSchema = (t: (key: string) => string) => z.object({
     amount: z.coerce.number().positive(t('validation.amountPositive')),
     description: z.string().min(1, t('validation.descriptionRequired')),
     beneficiary_name: z.string().optional(),
-    currency: z.enum(['UYU', 'USD', 'EUR']).default('UYU'),
+    currency: currencySchema,
     exchange_rate: z.coerce.number().optional().default(1),
     external_reference: z.string().optional(),
     tags: z.string().optional(),
@@ -307,7 +310,7 @@ export default function MiscellaneousTransactionsPage() {
             } else {
                 form.reset({
                     transaction_date: format(new Date(), 'yyyy-MM-dd'),
-                    currency: clinicInfo?.currency ?? 'UYU',
+                    currency: clinicInfo?.currency ?? getClinicCurrency(),
                     exchange_rate: 1,
                     description: '',
                     beneficiary_name: '',
@@ -658,7 +661,7 @@ export default function MiscellaneousTransactionsPage() {
                                         <FormMessage />
                                     </FormItem>
                                 )} />
-                                <FormField control={form.control} name="currency" render={({ field }) => (<FormItem><FormLabel>{t('dialog.currency')}</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="USD">USD</SelectItem><SelectItem value="UYU">UYU</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="currency" render={({ field }) => (<FormItem><FormLabel>{t('dialog.currency')}</FormLabel><FormControl><CurrencySelect value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
                             </div>
                             <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>{t('dialog.description')}</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
                             <div className="grid grid-cols-2 gap-4">

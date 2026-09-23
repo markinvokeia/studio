@@ -5,6 +5,8 @@ import { AppliedDiscountNote } from '@/components/ui/discount-control';
 import { formatDisplayDate } from '@/lib/utils';
 import type { LedgerRow } from '@/lib/patient-ledger';
 import type { LedgerPrintData } from '@/stores/print-document-store';
+import { currencySymbol, formatMoney } from '@/lib/currency';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 interface LedgerPrintTemplateProps {
   data: LedgerPrintData;
@@ -12,14 +14,8 @@ interface LedgerPrintTemplateProps {
 
 // ── Formatting helpers (mirror the on-screen ledger in patient-ledger.tsx) ───────
 
-function currencySymbol(currency: string): string {
-  if (currency === 'UYU') return '$';
-  if (currency === 'USD') return 'U$';
-  return currency;
-}
-
-function money(amount: number): string {
-  return (amount || 0).toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function money(amount: number, currency?: string): string {
+  return formatMoney(amount, currency, { showSymbol: false, decimals: 2 });
 }
 
 /** Always shows a number (0 → "$0,00") — used for Debe/Haber. */
@@ -73,8 +69,10 @@ export function LedgerPrintTemplate({ data }: LedgerPrintTemplateProps) {
   const t = useTranslations('PatientLedger');
   const tStatement = useTranslations('AccountStatement');
   const { patientName, rowsByCurrency, periodLabel } = data;
+  // La moneda de la clínica va primero; el resto, alfabético.
+  const primaryCurrency = getClinicCurrency();
   const currencies = Object.keys(rowsByCurrency).sort((a, b) =>
-    a === 'UYU' ? -1 : b === 'UYU' ? 1 : a.localeCompare(b),
+    a === primaryCurrency ? -1 : b === primaryCurrency ? 1 : a.localeCompare(b),
   );
 
   return (

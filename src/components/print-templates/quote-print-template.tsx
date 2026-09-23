@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { buildDocumentDiscountView, readDiscountAmount } from '@/lib/discounts';
 import { formatDisplayDate } from '@/lib/utils';
 import type { QuotePrintData } from '@/stores/print-document-store';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 interface QuotePrintTemplateProps {
   data: QuotePrintData;
@@ -18,7 +19,7 @@ export function QuotePrintTemplate({ data }: QuotePrintTemplateProps) {
   const { quote, items, invoices } = data;
 
   const docNo = quote.doc_no || quote.quote_doc_no || quote.id;
-  const currency = quote.currency || 'UYU';
+  const currency = quote.currency || getClinicCurrency();
   const total = Number(quote.total || 0);
   const amountInvoiced = Number(quote.amount_invoiced ?? 0);
   const pendingInvoice = Number(quote.amount_pending_invoice ?? Math.max(total - amountInvoiced, 0));

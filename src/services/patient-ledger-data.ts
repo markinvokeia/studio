@@ -3,6 +3,7 @@ import { mapLineDiscountFields } from '@/lib/discounts';
 import type { Invoice, InvoiceItem, Payment, Quote, QuoteItem } from '@/lib/types';
 import { api } from './api';
 import { mapApiPaymentToPayment } from './payments-service';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 function normalizeQuote(raw: any, userId: string): Quote {
   return {
@@ -17,7 +18,7 @@ function normalizeQuote(raw: any, userId: string): Quote {
     status: (String(raw.status || 'draft').toLowerCase() as Quote['status']),
     payment_status: (String(raw.payment_status || 'unpaid').toLowerCase() as Quote['payment_status']),
     billing_status: String(raw.billing_status || 'not invoiced').toLowerCase(),
-    currency: (raw.currency || 'USD') as Quote['currency'],
+    currency: (raw.currency || getClinicCurrency()) as Quote['currency'],
     notes: raw.notes || '',
     createdAt: raw.createdAt || raw.created_at || new Date().toISOString(),
     exchange_rate: raw.exchange_rate != null ? Number(raw.exchange_rate) : undefined,
@@ -45,7 +46,7 @@ function normalizeInvoice(raw: any, userId: string): Invoice {
     sede_id: raw.sede_id != null ? String(raw.sede_id) : undefined,
     sede_name: raw.sede_name || undefined,
     total: parseFloat(raw.total) || 0,
-    currency: (raw.currency || 'USD') as Invoice['currency'],
+    currency: (raw.currency || getClinicCurrency()) as Invoice['currency'],
     notes: raw.notes || '',
     status: raw.status || 'draft',
     payment_status: raw.payment_state || raw.payment_status || 'unpaid',

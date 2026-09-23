@@ -26,12 +26,15 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { currencySchema } from '@/lib/currency';
+import { CurrencySelect } from '@/components/ui/currency-select';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 const smartPaymentFormSchema = (t: (key: string) => string) => z.object({
   payment_amount: z.coerce.number().min(0, t('validation.amountNonNegative')),
   payment_method_id: z.string().optional(),
   created_at: z.date({ required_error: t('validation.dateRequired') }),
-  currency: z.enum(['UYU', 'USD']),
+  currency: currencySchema,
   notes: z.string().optional(),
   is_historical: z.boolean().default(false),
 }).refine(
@@ -115,7 +118,7 @@ export function SmartPaymentFormDialog({ open, onOpenChange, initialUser, onSave
       payment_amount: 0,
       payment_method_id: '',
       created_at: new Date(),
-      currency: clinicInfo?.currency ?? 'UYU',
+      currency: clinicInfo?.currency ?? getClinicCurrency(),
       notes: '',
       is_historical: false,
     },
@@ -132,7 +135,7 @@ export function SmartPaymentFormDialog({ open, onOpenChange, initialUser, onSave
       payment_amount: 0,
       payment_method_id: '',
       created_at: new Date(),
-      currency: clinicInfo?.currency ?? 'UYU',
+      currency: clinicInfo?.currency ?? getClinicCurrency(),
       notes: '',
       is_historical: false,
     });
@@ -163,7 +166,7 @@ export function SmartPaymentFormDialog({ open, onOpenChange, initialUser, onSave
       const data = await fetchPatientLedgerData(initialUser.id);
       const eligible = data.invoices
         .filter((inv) => (inv.type || 'invoice') !== 'credit_note')
-        .filter((inv) => (inv.currency || 'USD') === watchedCurrency)
+        .filter((inv) => (inv.currency || getClinicCurrency()) === watchedCurrency)
         .filter((inv) => ['unpaid', 'partial', 'partially_paid'].includes(String(inv.payment_status || '').toLowerCase()))
         .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
@@ -357,13 +360,7 @@ export function SmartPaymentFormDialog({ open, onOpenChange, initialUser, onSave
                   <FormField control={form.control} name="currency" render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t('smartPaymentDialog.currency')}</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                        <SelectContent>
-                          <SelectItem value="USD">USD</SelectItem>
-                          <SelectItem value="UYU">UYU</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormControl><CurrencySelect value={field.value} onChange={field.onChange} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />

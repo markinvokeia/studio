@@ -59,6 +59,11 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import * as z from 'zod';
+import { currencySchema } from '@/lib/currency';
+import { CurrencySelect } from '@/components/ui/currency-select';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
+import { useCurrencySettings } from '@/hooks/useCurrencySettings';
+import { formatMoney } from '@/lib/currency';
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
 /** El tope de descuento es un dato de runtime, así que el esquema es una fábrica. */
@@ -78,7 +83,7 @@ const buildItemSchema = (maxDiscountPct: number) => z.object({
 type ItemFormValues = z.infer<ReturnType<typeof buildItemSchema>>;
 
 const buildQuoteEditSchema = (maxDiscountPct: number) => z.object({
-  currency: z.enum(['USD', 'UYU']),
+  currency: currencySchema,
   exchange_rate: z.coerce.number().min(0.0001, 'Tasa de cambio inválida'),
   notes: z.string().optional(),
   items: z.array(z.object({
@@ -337,7 +342,7 @@ async function getOrdersForQuote(quoteId: string, isSales: boolean): Promise<Ord
       status: o.status,
       createdAt: o.created_at || o.createdAt || new Date().toISOString(),
       updatedAt: o.updated_at || o.updatedAt || new Date().toISOString(),
-      currency: o.currency || 'UYU',
+      currency: o.currency || getClinicCurrency(),
     }));
   } catch {
     return [];
@@ -451,7 +456,7 @@ const getColumns = (t: (key: string) => string): ColumnDef<Quote>[] => [
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('QuoteColumns.currency')} />,
     cell: ({ row }) => {
       const currency = row.getValue('currency') as string;
-      return <div className="font-medium">{currency || 'USD'}</div>;
+      return <div className="font-medium">{currency || getClinicCurrency()}</div>;
     },
   },
   {
@@ -494,7 +499,7 @@ async function getQuotesForUser(userId: string): Promise<Quote[]> {
       status: normalizeQuoteStatus(q.status),
       payment_status: normalizeQuotePaymentStatus(q.payment_status),
       billing_status: String(q.billing_status || 'not invoiced').toLowerCase(),
-      currency: q.currency || 'USD',
+      currency: q.currency || getClinicCurrency(),
       exchange_rate: Number(q.exchange_rate || 1),
       notes: q.notes || '',
       createdAt: q.createdAt || q.created_at || new Date().toISOString().split('T')[0],
@@ -520,7 +525,7 @@ function ItemTotalField({ form, applyDiscount }: { form: ReturnType<typeof useFo
     Number(unitPrice), Number(quantity),
     applyDiscount ? { mode: discountMode, value: discountValue } : null,
   );
-  const formatted = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(total);
+  const formatted = formatMoney(total, getClinicCurrency());
   return (
     <div className="space-y-1.5">
       <label className="text-sm font-medium">Total</label>
@@ -537,7 +542,7 @@ const BILLING_BADGE: Record<string, any> = { invoiced: 'success', partially_invo
 function formatCurrency(amount: number | undefined, currency: string | undefined) {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: currency || 'USD',
+    currency: currency || getClinicCurrency(),
   }).format(Number(amount || 0));
 }
 
@@ -584,6 +589,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   const t = useTranslations();
   const tQuotes = useTranslations('QuotesPage');
   const { toast } = useToast();
+  const { code: clinicCurrency } = useCurrencySettings();
   const { activeCashSession } = useAuth();
   const { hasPermission } = usePermissions();
   const { open: openBillingWizard } = useBillingWizard();
@@ -809,7 +815,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
             doc_no: p.doc_no || p.payment_doc_no || '',
             invoice_doc_no: p.invoice_doc_no || '',
             amount: Math.abs(Number(p.amount_applied ?? p.amount ?? 0)),
-            currency: p.invoice_currency || p.source_currency || p.currency || 'UYU',
+            currency: p.invoice_currency || p.source_currency || p.currency || getClinicCurrency(),
             method: p.payment_method_name || p.method || p.payment_method || '',
             payment_date: p.payment_date || p.created_at || '',
             createdAt: p.created_at || '',
@@ -1063,8 +1069,8 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
 
   React.useEffect(() => {
     if (!isEditQuoteOpen || !selectedQuote) return;
-    const currency = (selectedQuote.currency as 'USD' | 'UYU') ?? 'USD';
-    const exchangeRate = currency === 'UYU' ? 1 : (selectedQuote.exchange_rate || getSessionExchangeRate());
+    const currency = (selectedQuote.currency) ?? getClinicCurrency();
+    const exchangeRate = currency === clinicCurrency ? 1 : (selectedQuote.exchange_rate || getSessionExchangeRate());
     const hasCurrentQuoteItems = quoteItemsQuoteId === selectedQuote.id;
     const mappedItems = (hasCurrentQuoteItems ? quoteItems : []).map(i => ({
       id: i.id,
@@ -1092,7 +1098,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   const watchedEditExchangeRate = quoteEditForm.watch('exchange_rate');
   React.useEffect(() => {
     if (!isEditQuoteOpen) return;
-    if (watchedEditCurrency === 'UYU') {
+    if (watchedEditCurrency === clinicCurrency) {
       if (watchedEditExchangeRate !== 1) quoteEditForm.setValue('exchange_rate', 1);
     } else {
       const sessionRate = getSessionExchangeRate();
@@ -1414,7 +1420,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
       payment_date: pay.payment_date || pay.createdAt || '',
       amount_applied: pay.amount,
       source_amount: pay.amount,
-      source_currency: (pay.currency as 'UYU' | 'USD') || 'UYU',
+      source_currency: (pay.currency) || getClinicCurrency(),
       payment_method: pay.method || '',
       transaction_type: (pay.transaction_type as import('@/lib/types').Payment['transaction_type']) || 'direct_payment',
       transaction_id: pay.transaction_id || null,
@@ -1929,21 +1935,15 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
               </DialogHeader>
               <DialogBody className="space-y-4 py-4 px-6">
                 {/* Currency + Exchange rate */}
-                <div className={`grid gap-4 ${watchedEditCurrency === 'UYU' ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                <div className={`grid gap-4 ${watchedEditCurrency === clinicCurrency ? 'grid-cols-1' : 'grid-cols-2'}`}>
                   <FormField control={quoteEditForm.control} name="currency" render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t('UserQuotes.dialogs.editQuote.currency')}</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                        <SelectContent>
-                          <SelectItem value="USD">USD</SelectItem>
-                          <SelectItem value="UYU">UYU</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormControl><CurrencySelect value={field.value} onChange={field.onChange} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
-                  {watchedEditCurrency !== 'UYU' && (
+                  {watchedEditCurrency !== clinicCurrency && (
                     <FormField control={quoteEditForm.control} name="exchange_rate" render={({ field }) => (
                       <FormItem>
                         <FormLabel>{t('UserQuotes.dialogs.editQuote.exchangeRate')}</FormLabel>
@@ -2072,7 +2072,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                                         <Input
                                           readOnly
                                           disabled
-                                          value={new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedEditCurrency || 'USD' }).format(Number(field.value) || 0)}
+                                          value={new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedEditCurrency || getClinicCurrency() }).format(Number(field.value) || 0)}
                                           className="bg-muted text-muted-foreground cursor-not-allowed"
                                         />
                                       </FormControl>
@@ -2085,7 +2085,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                                       mode={watchedEditItems?.[index]?.discount_mode}
                                       value={watchedEditItems?.[index]?.discount_value}
                                       base={computeGrossTotal(watchedEditItems?.[index]?.unit_price ?? 0, watchedEditItems?.[index]?.quantity ?? 0)}
-                                      currency={watchedEditCurrency || 'USD'}
+                                      currency={watchedEditCurrency || getClinicCurrency()}
                                       maxPct={discounts.maxPct}
                                       defaultPct={discounts.defaultPct}
                                       canApply={discounts.canApply}
@@ -2137,7 +2137,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                             mode={watchedEditDiscountMode}
                             value={watchedEditDiscountValue}
                             base={editDocumentTotals.grossTotal}
-                            currency={watchedEditCurrency || 'USD'}
+                            currency={watchedEditCurrency || getClinicCurrency()}
                             maxPct={discounts.maxPct}
                             defaultPct={discounts.defaultPct}
                             canApply={discounts.canApply}
@@ -2155,7 +2155,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                           grossTotal={editDocumentTotals.grossTotal}
                           discountAmount={editDocumentTotals.discountAmount}
                           total={editDocumentTotals.total}
-                          currency={watchedEditCurrency || 'USD'}
+                          currency={watchedEditCurrency || getClinicCurrency()}
                         />
                       </div>
                     )}
@@ -2270,7 +2270,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                       mode={itemForm.watch('discount_mode')}
                       value={itemForm.watch('discount_value')}
                       base={computeGrossTotal(itemForm.watch('unit_price') ?? 0, itemForm.watch('quantity') ?? 0)}
-                      currency={selectedQuote?.currency || 'USD'}
+                      currency={selectedQuote?.currency || getClinicCurrency()}
                       maxPct={discounts.maxPct}
                       defaultPct={discounts.defaultPct}
                       canApply={discounts.canApply}

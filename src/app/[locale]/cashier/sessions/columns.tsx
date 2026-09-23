@@ -9,15 +9,18 @@ import { Eye, Printer } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { createSelectColumn } from '@/components/ui/table-select-column';
 import { formatDisplayDate } from '@/lib/utils';
+import { formatMoney } from '@/lib/currency';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 interface CashSessionsColumnsProps {
     onView: (session: CajaSesion) => void;
     onPrint: (session: CajaSesion) => void;
 }
 
-const formatCurrency = (value?: number) => {
+/** Importe en la moneda de la sesión; antes formateaba siempre como USD. */
+const formatCurrency = (value?: number, currency?: string) => {
     if (value === undefined || value === null) return 'N/A';
-    return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+    return formatMoney(value, currency ?? getClinicCurrency());
 }
 
 export const CashSessionsColumnsWrapper = ({ onView, onPrint }: CashSessionsColumnsProps): ColumnDef<CajaSesion>[] => {

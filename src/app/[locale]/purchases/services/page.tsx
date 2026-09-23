@@ -43,6 +43,9 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { ServicesColumnsWrapper } from './columns';
 import { useDeepLink } from '@/hooks/use-deep-link';
+import { currencySchema } from '@/lib/currency';
+import { CurrencySelect } from '@/components/ui/currency-select';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 console.log("Purchases Services Page Loaded. API_ROUTES.SERVICES_ALL:", API_ROUTES.PURCHASES.SERVICES_ALL);
 
@@ -52,7 +55,7 @@ const serviceFormSchema = (t: (key: string) => string) => z.object({
   category_id: z.string().min(1, t('categoryRequired')),
   category: z.string().optional(),
   price: z.coerce.number().min(0, t('priceNonNegative')),
-  currency: z.enum(['UYU', 'USD']).default('USD'),
+  currency: currencySchema,
   description: z.string().optional(),
   color: z.string().optional(),
   is_active: z.boolean().default(true),
@@ -60,17 +63,24 @@ const serviceFormSchema = (t: (key: string) => string) => z.object({
 
 type ServiceFormValues = z.infer<ReturnType<typeof serviceFormSchema>>;
 
-const DEFAULT_SERVICE_FORM_VALUES: ServiceFormValues = {
+/**
+ * Valores iniciales de un servicio nuevo.
+ *
+ * Es una función, no una constante: la moneda de la clínica se carga tras el
+ * login, y una constante de módulo la congelaría en el valor por defecto que
+ * hubiera en el momento de importar el fichero.
+ */
+const defaultServiceFormValues = (): ServiceFormValues => ({
   id: undefined,
   name: '',
   category_id: '',
   category: '',
   price: 0,
-  currency: 'USD',
+  currency: getClinicCurrency(),
   description: '',
   color: '',
   is_active: true,
-};
+});
 
 /** Filtro de estado del catálogo: 'all' no envía `is_active` al endpoint. */
 type ServiceStatusFilter = 'all' | 'true' | 'false';
@@ -88,7 +98,7 @@ async function getServices(isActive: ServiceStatusFilter): Promise<Service[]> {
       category: apiService.category_name || apiService.category || 'No Category',
       category_id: apiService.category_id ? String(apiService.category_id) : undefined,
       price: apiService.price || 0,
-      currency: apiService.currency || 'USD',
+      currency: apiService.currency || getClinicCurrency(),
       duration_minutes: apiService.duration_minutes || 0,
       description: apiService.description,
       indications: apiService.indications,
@@ -164,10 +174,7 @@ function PurchaseServiceFormFields({ form, categories, onCategoryCreated, t }: {
         )} />
         <FormField control={form.control} name="currency" render={({ field }) => (
           <FormItem><FormLabel>{t('createDialog.currency')}</FormLabel>
-            <Select onValueChange={(v) => { if (v) field.onChange(v); }} value={field.value || 'USD'}>
-              <FormControl><SelectTrigger><SelectValue placeholder={t('createDialog.selectCurrency')} /></SelectTrigger></FormControl>
-              <SelectContent><SelectItem value="USD">USD</SelectItem><SelectItem value="UYU">UYU</SelectItem></SelectContent>
-            </Select><FormMessage /></FormItem>
+            <FormControl><CurrencySelect value={field.value} onChange={(v) => { if (v) field.onChange(v); }} placeholder={t('createDialog.selectCurrency')} /></FormControl><FormMessage /></FormItem>
         )} />
         <FormField control={form.control} name="color" render={({ field }) => (
           <FormItem><FormLabel>{t('createDialog.colorLabel')}</FormLabel><FormControl><Input type="color" className="h-10 w-full cursor-pointer" {...field} /></FormControl><FormMessage /></FormItem>
@@ -272,11 +279,11 @@ export default function ServicesPage() {
 
   const createForm = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceFormSchema(tValidation)),
-    defaultValues: DEFAULT_SERVICE_FORM_VALUES,
+    defaultValues: defaultServiceFormValues(),
   });
   const detailForm = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceFormSchema(tValidation)),
-    defaultValues: DEFAULT_SERVICE_FORM_VALUES,
+    defaultValues: defaultServiceFormValues(),
   });
 
   const loadServices = React.useCallback(async () => {
@@ -312,7 +319,7 @@ export default function ServicesPage() {
       name: selectedService.name,
       category_id: categoryId,
       price: selectedService.price,
-      currency: (selectedService.currency as 'USD' | 'UYU') || 'USD',
+      currency: selectedService.currency || getClinicCurrency(),
       description: selectedService.description || '',
       color: selectedService.color || '',
       is_active: selectedService.is_active ?? true,
@@ -322,7 +329,7 @@ export default function ServicesPage() {
 
   const handleCreate = () => {
     if (!canCreateProduct) return;
-    createForm.reset(DEFAULT_SERVICE_FORM_VALUES);
+    createForm.reset(defaultServiceFormValues());
     setCreateError(null);
     setIsCreateDialogOpen(true);
   };

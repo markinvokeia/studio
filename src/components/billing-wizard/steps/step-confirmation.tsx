@@ -11,6 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import type { Invoice, Payment } from '@/lib/types';
 import type { CreatedPayment } from './step-payment';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
+import { formatMoney } from '@/lib/currency';
 
 interface StepConfirmationProps {
   invoiceId?: string;
@@ -28,8 +30,8 @@ interface StepConfirmationProps {
   onClose: () => void;
 }
 
-function fmtCurrency(amount: number, currency = 'USD') {
-  return new Intl.NumberFormat('es-UY', { style: 'currency', currency }).format(amount);
+function fmtCurrency(amount: number, currency?: string) {
+  return formatMoney(amount, currency ?? getClinicCurrency());
 }
 
 function fmtDate(dateStr?: string) {
@@ -51,7 +53,7 @@ export function StepConfirmation({
   total,
   totalPaid,
   pendingAfter,
-  currency = 'USD',
+  currency = getClinicCurrency(),
   appliedCredits,
   creditsTotal,
   isSales,
@@ -75,7 +77,7 @@ export function StepConfirmation({
       user_name: patientName || '',
       user_id: '',
       total: total ?? 0,
-      currency: currency as 'UYU' | 'USD',
+      currency: currency,
       status: 'booked',
       payment_status: 'unpaid',
       createdAt: new Date().toISOString(),
@@ -100,7 +102,7 @@ export function StepConfirmation({
       payment_date: payment.date || new Date().toISOString(),
       amount_applied: payment.amount ?? 0,
       source_amount: payment.amount ?? 0,
-      source_currency: (payment.currency as 'UYU' | 'USD') || 'UYU',
+      source_currency: (payment.currency) || getClinicCurrency(),
       payment_method: payment.methodName || '',
       transaction_type: (payment.transactionType as Payment['transaction_type']) || 'direct_payment',
       transaction_id: payment.transactionId,

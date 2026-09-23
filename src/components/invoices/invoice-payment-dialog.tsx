@@ -48,6 +48,10 @@ import Link from 'next/link';
 import * as React from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import * as z from 'zod';
+import { CurrencySelect } from '@/components/ui/currency-select';
+import { useCurrencySettings } from '@/hooks/useCurrencySettings';
+import { convertAmount } from '@/lib/currency';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 
@@ -112,11 +116,12 @@ export function InvoicePaymentDialog({
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
   const canAccessCashier = hasPermission(CASHIER_PERMISSIONS.VIEW_MENU);
+  // Moneda principal de la clínica: la referencia de todas las conversiones.
+  const { code: companyCurrency } = useCurrencySettings();
 
   const [paymentMethods, setPaymentMethods] = React.useState<PaymentMethod[]>([]);
   const [userCredits, setUserCredits] = React.useState<Credit[]>([]);
   const [appliedCredits, setAppliedCredits] = React.useState<Map<string, number>>(new Map());
-  const [companyCurrency, setCompanyCurrency] = React.useState<string>('USD');
   const [paidAmount, setPaidAmount] = React.useState<number>(0);
   const [paymentSubmissionError, setPaymentSubmissionError] = React.useState<string | null>(null);
   const [isNoSessionAlertOpen, setIsNoSessionAlertOpen] = React.useState(false);
@@ -144,12 +149,9 @@ export function InvoicePaymentDialog({
 
   const equivalentAmount = React.useMemo(() => {
     if (!showExchangeRate || !watchedAmount || !watchedExchangeRate) return null;
-    if (watchedInvoiceCurrency === 'USD' && watchedPaymentCurrency === 'UYU')
-      return watchedAmount / watchedExchangeRate;
-    if (watchedInvoiceCurrency === 'UYU' && watchedPaymentCurrency === 'USD')
-      return watchedAmount * watchedExchangeRate;
-    return null;
-  }, [showExchangeRate, watchedAmount, watchedExchangeRate, watchedInvoiceCurrency, watchedPaymentCurrency]);
+    if (watchedInvoiceCurrency === watchedPaymentCurrency) return null;
+    return convertAmount(watchedAmount, watchedPaymentCurrency, watchedInvoiceCurrency, watchedExchangeRate, companyCurrency);
+  }, [showExchangeRate, watchedAmount, watchedExchangeRate, watchedInvoiceCurrency, watchedPaymentCurrency, companyCurrency]);
 
   // Keep exchange_rate in sync with session rate
   React.useEffect(() => {
@@ -164,37 +166,26 @@ export function InvoicePaymentDialog({
   // ── Credits total with currency conversion ───────────────────────────────
   const creditsTotalInInvoiceCurrency = React.useMemo(() => {
     if (!invoice) return 0;
-    const invoiceCurrency = invoice.currency || 'USD';
+    const invoiceCurrency = invoice.currency || companyCurrency;
     return Array.from(appliedCredits.entries()).reduce((sum, [creditId, amount]) => {
       const credit = userCredits.find((c) => c.source_id === creditId);
       if (!credit) return sum;
-      let converted = amount;
-      if (credit.currency !== invoiceCurrency) {
-        if (invoiceCurrency === 'USD' && credit.currency === 'UYU')
-          converted = amount / sessionExchangeRate;
-        else if (invoiceCurrency === 'UYU' && credit.currency === 'USD')
-          converted = amount * sessionExchangeRate;
-      }
-      return sum + converted;
+      return sum + convertAmount(amount, credit.currency ?? invoiceCurrency, invoiceCurrency, sessionExchangeRate, companyCurrency);
     }, 0);
-  }, [appliedCredits, userCredits, invoice, sessionExchangeRate]);
+  }, [appliedCredits, userCredits, invoice, sessionExchangeRate, companyCurrency]);
 
   // Auto-adjust payment amount when credits change
   React.useEffect(() => {
     if (!invoice || !isOpen) return;
     const invoiceTotal = invoice.total || 0;
-    const invoiceCurrency = invoice.currency || 'USD';
+    const invoiceCurrency = invoice.currency || companyCurrency;
     const remainingBalance = Math.max(0, invoiceTotal - paidAmount - creditsTotalInInvoiceCurrency);
     const paymentCurrency = form.getValues('payment_currency') || invoiceCurrency;
-    let amountToSet = remainingBalance;
-    if (paymentCurrency !== invoiceCurrency && sessionExchangeRate > 0) {
-      if (invoiceCurrency === 'USD' && paymentCurrency === 'UYU')
-        amountToSet = remainingBalance * sessionExchangeRate;
-      else if (invoiceCurrency === 'UYU' && paymentCurrency === 'USD')
-        amountToSet = remainingBalance / sessionExchangeRate;
-    }
+    const amountToSet = sessionExchangeRate > 0
+      ? convertAmount(remainingBalance, invoiceCurrency, paymentCurrency, sessionExchangeRate, companyCurrency)
+      : remainingBalance;
     form.setValue('amount', Math.round(amountToSet * 100) / 100);
-  }, [creditsTotalInInvoiceCurrency, invoice, isOpen, form, sessionExchangeRate, appliedCredits.size, paidAmount]);
+  }, [creditsTotalInInvoiceCurrency, invoice, isOpen, form, sessionExchangeRate, appliedCredits.size, paidAmount, companyCurrency]);
 
   // Remaining amount (live, as user types)
   const remainingAmountToPay = React.useMemo(() => {
@@ -253,7 +244,7 @@ export function InvoicePaymentDialog({
   // Initialize form when dialog opens
   React.useEffect(() => {
     if (!isOpen || !invoice) return;
-    const invoiceCurrency = invoice.currency || 'USD';
+    const invoiceCurrency = invoice.currency || getClinicCurrency();
     form.reset({
       amount: Math.max(0, (invoice.total || 0) - (invoice.paid_amount || 0)),
       method: '',
@@ -273,9 +264,6 @@ export function InvoicePaymentDialog({
     fetchUserCredits(invoice.user_id);
     fetchInvoicePaidAmount(invoice.id);
 
-    api.get(API_ROUTES.CLINIC).then((clinicData) => {
-      setCompanyCurrency(clinicData.currency || 'USD');
-    }).catch(() => {});
   }, [isOpen, invoice, fetchPaymentMethods, fetchUserCredits, fetchInvoicePaidAmount, form]);
 
   // ── Submit ────────────────────────────────────────────────────────────────
@@ -300,7 +288,7 @@ export function InvoicePaymentDialog({
     }
 
     const invoiceTotal = invoice.total || 0;
-    const invoiceCurrency = invoice.currency || 'USD';
+    const invoiceCurrency = invoice.currency || getClinicCurrency();
 
     let paymentAmountInInvoiceCurrency = 0;
     if (values.amount) {
@@ -315,10 +303,7 @@ export function InvoicePaymentDialog({
         if (!credit) return sum;
         let converted = amount;
         if (credit.currency !== invoiceCurrency) {
-          if (invoiceCurrency === 'USD' && credit.currency === 'UYU')
-            converted = amount / sessionExchangeRate;
-          else if (invoiceCurrency === 'UYU' && credit.currency === 'USD')
-            converted = amount * sessionExchangeRate;
+          converted = convertAmount(amount, credit.currency ?? invoiceCurrency, invoiceCurrency, sessionExchangeRate, companyCurrency);
         }
         return sum + converted;
       },
@@ -607,17 +592,7 @@ export function InvoicePaymentDialog({
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>{t('paymentDialog.currency')}</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder={t('paymentDialog.selectCurrency')} />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="USD">USD</SelectItem>
-                              <SelectItem value="UYU">UYU</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <FormControl><CurrencySelect value={field.value} onChange={field.onChange} placeholder={t('paymentDialog.selectCurrency')} /></FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -683,13 +658,10 @@ export function InvoicePaymentDialog({
                       </span>
                       {Array.from(appliedCredits.entries()).map(([id, amount]) => {
                         const credit = userCredits.find((c) => c.source_id === id);
-                        const invoiceCurrency = invoice?.currency || 'USD';
+                        const invoiceCurrency = invoice?.currency || getClinicCurrency();
                         let converted = amount;
                         if (credit && credit.currency !== invoiceCurrency) {
-                          if (invoiceCurrency === 'USD' && credit.currency === 'UYU')
-                            converted = amount / sessionExchangeRate;
-                          else if (invoiceCurrency === 'UYU' && credit.currency === 'USD')
-                            converted = amount * sessionExchangeRate;
+                          converted = convertAmount(amount, credit.currency ?? invoiceCurrency, invoiceCurrency, sessionExchangeRate, companyCurrency);
                         }
                         return (
                           <div key={id} className="flex justify-between text-sm pl-2">
@@ -700,7 +672,7 @@ export function InvoicePaymentDialog({
                               <span>
                                 {new Intl.NumberFormat('en-US', {
                                   style: 'currency',
-                                  currency: credit?.currency || 'USD',
+                                  currency: credit?.currency || getClinicCurrency(),
                                 }).format(amount)}
                               </span>
                               {credit?.currency !== invoiceCurrency && (
@@ -727,16 +699,16 @@ export function InvoicePaymentDialog({
                           <span>
                             {new Intl.NumberFormat('en-US', {
                               style: 'currency',
-                              currency: watchedPaymentCurrency || 'USD',
+                              currency: watchedPaymentCurrency || getClinicCurrency(),
                             }).format(watchedAmount ?? 0)}
                           </span>
-                          {watchedPaymentCurrency !== (invoice?.currency || 'USD') &&
+                          {watchedPaymentCurrency !== (invoice?.currency || getClinicCurrency()) &&
                             equivalentAmount && (
                               <span className="text-xs text-muted-foreground">
                                 ≈{' '}
                                 {new Intl.NumberFormat('en-US', {
                                   style: 'currency',
-                                  currency: invoice?.currency || 'USD',
+                                  currency: invoice?.currency || getClinicCurrency(),
                                 }).format(equivalentAmount)}
                               </span>
                             )}
@@ -749,7 +721,7 @@ export function InvoicePaymentDialog({
                     <span>{t('paymentDialog.totalPayment')}:</span>
                     <span>
                       {(() => {
-                        const invoiceCurrency = invoice?.currency || 'USD';
+                        const invoiceCurrency = invoice?.currency || getClinicCurrency();
                         let total = creditsTotalInInvoiceCurrency;
                         if (watchedAmount) {
                           total +=
@@ -774,7 +746,7 @@ export function InvoicePaymentDialog({
                   <span className="font-bold text-lg">
                     {new Intl.NumberFormat('en-US', {
                       style: 'currency',
-                      currency: invoice?.currency || 'USD',
+                      currency: invoice?.currency || getClinicCurrency(),
                     }).format(remainingAmountToPay)}
                   </span>
                 </div>

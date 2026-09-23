@@ -2,6 +2,7 @@ import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { format, parseISO } from "date-fns"
 import type { QuoteItem, TreatmentDetail } from '@/lib/types'
+import { formatMoney, formatMoneyCompact, formatMultiCurrency } from '@/lib/currency'
 import { getDateFnsLocale } from '@/lib/locale'
 
 export function cn(...inputs: ClassValue[]) {
@@ -199,21 +200,25 @@ export function formatServicePrice(
     return freeLabel;
   }
 
-  return currency ? `${currency} ${normalizedPrice}` : String(normalizedPrice);
+  return formatMoney(normalizedPrice, currency);
 }
 
-const _moneyFmt = new Intl.NumberFormat('es-UY', { maximumFractionDigits: 0 });
-
+/**
+ * Importe con su código de moneda, como `1.234 (USD)`.
+ *
+ * @deprecated Usar `formatMoney`/`formatMoneyCompact` de `@/lib/currency`, que
+ * formatean con el símbolo y el locale de la moneda en vez de anteponer
+ * siempre los separadores uruguayos. Se mantiene porque lo usan ~20 archivos.
+ */
 export function fmtMoney(amount: number, currency: string): string {
-  return `${_moneyFmt.format(amount)} (${currency})`;
+  return formatMoneyCompact(amount, currency, { showSymbol: false, showCode: true });
 }
 
+/**
+ * @deprecated Usar `formatMultiCurrency` de `@/lib/currency`.
+ */
 export function fmtMultiCurrency(amounts: Record<string, number>): string {
-  const entries = Object.entries(amounts)
-    .filter(([, v]) => v !== 0)
-    .sort(([a], [b]) => a.localeCompare(b));
-  if (entries.length === 0) return '—';
-  return entries.map(([c, v]) => `${_moneyFmt.format(v)} (${c})`).join(' / ');
+  return formatMultiCurrency(amounts);
 }
 
 /**

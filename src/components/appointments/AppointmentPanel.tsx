@@ -85,6 +85,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 import { BUSINESS_CONFIG_PERMISSIONS, SALES_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS, SYSTEM_PERMISSIONS } from '@/constants/permissions';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 /**
  * Color de respaldo del punto de un servicio que no tiene color propio. Estaba
@@ -601,7 +602,7 @@ export function AppointmentPanel({
         id: String(q.id),
         doc_no: q.doc_no || q.quote_doc_no || '',
         total: Number(q.total_presupuesto ?? q.total ?? 0),
-        currency: q.currency || 'USD',
+        currency: q.currency || getClinicCurrency(),
         paymentStatus: String(q.payment_status ?? '').toLowerCase(),
         billingStatus: String(q.billing_status ?? '').toLowerCase(),
         amountInvoiced: Number(q.monto_facturado ?? q.amount_invoiced ?? 0),
@@ -772,7 +773,7 @@ export function AppointmentPanel({
           user_id: String(found.user_id || ''),
           user_name: found.user_name || '',
           total: Number(found.total || 0),
-          currency: found.currency || 'USD',
+          currency: found.currency || getClinicCurrency(),
           status: found.status || 'draft',
           payment_status: found.payment_state || found.payment_status || 'unpaid',
           paid_amount: Number(found.paid_amount || 0),

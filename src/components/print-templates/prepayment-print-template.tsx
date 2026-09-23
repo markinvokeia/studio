@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { formatDisplayDate } from '@/lib/utils';
 import type { PrepaymentPrintData } from '@/stores/print-document-store';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 interface PrepaymentPrintTemplateProps {
   data: PrepaymentPrintData;
@@ -13,7 +14,7 @@ export function PrepaymentPrintTemplate({ data }: PrepaymentPrintTemplateProps) 
   const { prepayment } = data;
 
   const docNo = prepayment.doc_no || prepayment.payment_doc_no || prepayment.id;
-  const currency = prepayment.source_currency || prepayment.currency || 'UYU';
+  const currency = prepayment.source_currency || prepayment.currency || getClinicCurrency();
   const amount = Number(prepayment.source_amount || prepayment.amount_applied || 0);
 
   return (
