@@ -7185,7 +7185,10 @@
   "Common": {
     "accessDenied": "Acceso Denegado",
     "noPermission": "No tienes permisos para acceder a esta página.",
-    "loading": "Cargando..."
+    "loading": "Cargando...",
+    "errorTitle": "Algo salió mal",
+    "genericError": "No se pudo completar la acción. Inténtalo de nuevo.",
+    "timeoutError": "El servidor tardó demasiado en responder. Es posible que el cambio se haya guardado: actualiza antes de volver a intentarlo."
   },
   "ImportPage": {
     "title": "Importar Datos",

@@ -9,8 +9,6 @@ pnpm dev           # Start dev server on 0.0.0.0:3000
 pnpm build         # Production build
 pnpm lint          # ESLint (Next.js config)
 pnpm typecheck     # TypeScript type check without emit
-pnpm genkit:dev    # Start Google Genkit AI dev server
-pnpm genkit:watch  # Start Genkit with file watching
 ```
 
 **Before committing:** Always run `pnpm typecheck && pnpm lint`.
@@ -107,6 +105,7 @@ React Hook Form + Zod only. Define the schema first, then derive the TypeScript 
 | `permissions-protection` | Any access control or conditional UI work |
 | `tailwind-v4-shadcn` | Tailwind/shadcn issues, dark mode, CSS variables |
 | `date-formatting` | Any time a date or datetime is read, displayed, or sent to the backend |
+| `ux-interaction-patterns` | Any button, form, dialog, row action or fetch that talks to the backend (in-flight locking, timeouts, loading/error/empty states) |
 
 ## Environment variables
 

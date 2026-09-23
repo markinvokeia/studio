@@ -7207,7 +7207,10 @@
   "Common": {
     "accessDenied": "Access Denied",
     "noPermission": "You do not have permission to access this page.",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "errorTitle": "Something went wrong",
+    "genericError": "The action could not be completed. Please try again.",
+    "timeoutError": "The server took too long to respond. The change may have been saved — refresh before trying again."
   },
   "ImportPage": {
     "title": "Import Data",
