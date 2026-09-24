@@ -19,7 +19,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
-import { normalizePaymentMethodCode } from '@/lib/payment-methods';
+import { getPaymentMethodLabel, isCashEquivalentMethod, isKnownPaymentMethodCode, normalizePaymentMethodCode } from '@/lib/payment-methods';
 import { CajaMovimiento, CajaSesion, CashPoint } from '@/lib/types';
 import { cn, formatDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -179,6 +179,8 @@ function CashierPageInner() {
                     fecha: mov.created_at,
                     usuarioId: mov.registered_by_user,
                     metodoPago: normalizePaymentMethodCode(mov.payment_method_code),
+                    metodoPagoNombre: mov.payment_method_name,
+                    esEquivalenteEfectivo: isCashEquivalentMethod(mov.payment_method_code, mov.is_cash_equivalent),
                     documentNumber: mov.document_number,
                     registeredUserName: mov.client,
                 };
@@ -446,7 +448,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
         const income: { UYU: number; USD: number } = { UYU: openingDetails.totalUYU, USD: openingDetails.totalUSD };
         movements.forEach(mov => {
             const currency = mov.currency as ('UYU' | 'USD');
-            if (mov.metodoPago === 'CASH' && income[currency] !== undefined) {
+            if (mov.esEquivalenteEfectivo && income[currency] !== undefined) {
                 if (mov.tipo === 'INGRESO') {
                     income[currency] += mov.monto;
                 } else {
@@ -486,7 +488,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
     const totalPos = useMemo(() => {
         const pos: { UYU: number; USD: number } = { UYU: 0, USD: 0 };
         movements
-            .filter(m => m.tipo === 'INGRESO' && ['CREDIT_CARD', 'DEBIT_CARD'].includes(normalizePaymentMethodCode(m.metodoPago)))
+            .filter(m => m.tipo === 'INGRESO' && ['CREDIT_CARD', 'DEBIT_CARD'].includes(m.metodoPago))
             .forEach(mov => {
                 const currency = mov.currency as ('UYU' | 'USD');
                 if (pos[currency] !== undefined) {
@@ -533,10 +535,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
         {
             accessorKey: 'metodoPago',
             header: tColumns('method'),
-            cell: ({ row }) => {
-                const methodCode = normalizePaymentMethodCode(row.original.metodoPago);
-                return tPaymentMethods(methodCode) || methodCode;
-            }
+            cell: ({ row }) => getPaymentMethodLabel(row.original.metodoPago, row.original.metodoPagoNombre, tPaymentMethods)
         },
         { accessorKey: 'fecha', header: tColumns('date'), cell: ({ row }) => {
             const dateStr = row.original.fecha;
@@ -624,7 +623,6 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                                 const dateDisplay = isToday(parsed)
                                     ? `${tColumns('today')} - ${format(parsed, 'HH:mm')}`
                                     : format(parsed, 'dd/MM/yyyy HH:mm');
-                                const methodCode = normalizePaymentMethodCode(mov.metodoPago);
                                 return (
                                     <DataCard isSelected={_isSelected}
                                         accentColor={isExpense ? '#F43F5E' : '#10B981'}
@@ -633,7 +631,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                                             { label: tColumns('description'), value: mov.descripcion || '-' },
                                             { label: tColumns('amount'), value: <span className={cn(isExpense ? 'text-red-500' : 'text-green-500', 'font-semibold')}>{isExpense ? '-' : '+'}{mov.monto.toFixed(2)} {mov.currency}</span>, primary: true },
                                             { label: tColumns('registeredUser'), value: mov.registeredUserName || '-' },
-                                            { label: tColumns('method'), value: tPaymentMethods(methodCode) || methodCode },
+                                            { label: tColumns('method'), value: getPaymentMethodLabel(mov.metodoPago, mov.metodoPagoNombre, tPaymentMethods) },
                                             { label: tColumns('date'), value: dateDisplay },
                                         ]}
                                     />
@@ -1203,13 +1201,15 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
 
                 {currencyData?.desglose_detallado?.map((detail: any) => {
                     const methodCode = normalizePaymentMethodCode(detail.codigo);
-                    if (methodCode === 'CASH') return null;
+                    // Cash-equivalent methods (and the opening float) are already summed into
+                    // the cash row above; only the other methods get their own line.
+                    if (methodCode === 'OPEN' || isCashEquivalentMethod(methodCode, detail.es_efectivo)) return null;
 
                     return (
                         <div key={detail.codigo} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                             <Label className="flex items-center gap-2 font-semibold">
                                 <CreditCard className="h-5 w-5 text-muted-foreground" />
-                                {t(`methods.${methodCode.toLowerCase()}`, { defaultMessage: detail.codigo })}
+                                {isKnownPaymentMethodCode(methodCode) ? t(`methods.${methodCode.toLowerCase()}`) : (detail.metodo || detail.codigo)}
                             </Label>
                             <div className="text-center md:col-span-3"><div className="text-muted-foreground">{t('systemTotal')}</div><div className="font-semibold">${parseFloat(detail.monto).toFixed(2)}</div></div>
                         </div>

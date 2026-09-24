@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
-import { normalizePaymentMethodCode } from '@/lib/payment-methods';
+import { getPaymentMethodLabel, isCashEquivalentMethod, normalizePaymentMethodCode } from '@/lib/payment-methods';
 import { CajaMovimiento, CajaSesion } from '@/lib/types';
 import { cn, formatDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -92,6 +92,8 @@ async function getSessionMovements(sessionId: string): Promise<CajaMovimiento[]>
                 fecha: mov.created_at,
                 usuarioId: mov.registered_by_user,
                 metodoPago: normalizePaymentMethodCode(mov.payment_method_code),
+                metodoPagoNombre: mov.payment_method_name,
+                esEquivalenteEfectivo: isCashEquivalentMethod(mov.payment_method_code, mov.is_cash_equivalent),
                 currency: mov.currency,
                 documentNumber: mov.document_number,
             };
@@ -204,10 +206,7 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
         {
             accessorKey: 'metodoPago',
             header: ({ column }) => <DataTableColumnHeader column={column} title={tMovementColumns('method')} />,
-            cell: ({ row }) => {
-                const methodCode = normalizePaymentMethodCode(row.original.metodoPago);
-                return tPaymentMethods(methodCode) || methodCode;
-            }
+            cell: ({ row }) => getPaymentMethodLabel(row.original.metodoPago, row.original.metodoPagoNombre, tPaymentMethods)
         },
         { accessorKey: 'fecha', header: ({ column }) => <DataTableColumnHeader column={column} title={tMovementColumns('date')} />, cell: ({ row }) => formatDateTime(row.original.fecha) },
     ];

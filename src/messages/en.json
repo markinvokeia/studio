@@ -3166,6 +3166,7 @@
         "mobile_payment": "Mobile Payment",
         "mercado_pago": "Mercado Pago",
         "pe": "PE",
+        "ca": "Agile Purchase",
         "card": "Card",
         "transfer": "Transfer",
         "other": "Other"
@@ -3486,6 +3487,7 @@
         "MOBILE_PAYMENT": "Mobile Payment",
         "MERCADO_PAGO": "Mercado Pago",
         "PE": "Non-cash",
+        "CA": "Agile Purchase",
         "Cash": "Cash",
         "CN": "Credit Note"
       }

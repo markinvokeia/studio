@@ -109,7 +109,9 @@
             "converted_amount": "={{ $json.converted_amount }}",
             "user_id": "={{ $('Validar Entrada').first().json.prepaid ? $('Validar Entrada').first().json.user.id : $('Obtener Info Factura').first().json.user_id }}",
             "notes": "={{ $('Validar Entrada').first().json.notes }}",
-            "is_historical": "={{ $('Validar Entrada').first().json.is_historical }}"
+            "is_historical": "={{ $('Validar Entrada').first().json.is_historical }}",
+            "created_by": "={{ $('When Executed by Another Workflow').item.json.userId }}",
+            "updated_by": "={{ $('When Executed by Another Workflow').item.json.userId }}"
           },
           "matchingColumns": [
             "id"
@@ -270,6 +272,46 @@
               "type": "boolean",
               "canBeUsedToMatch": true,
               "removed": false
+            },
+            {
+              "id": "external_id",
+              "displayName": "external_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "doctor_id",
+              "displayName": "doctor_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "created_by",
+              "displayName": "created_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_by",
+              "displayName": "updated_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -331,6 +373,9 @@
             {
               "name": "credit_payment",
               "type": "array"
+            },
+            {
+              "name": "userId"
             }
           ]
         }
@@ -346,7 +391,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const query = $json.query;\n\nconst input = $input.first().json;\n// Validar datos de entrada desde el trigger\nconst invoice_id = input.invoice_id || query?.invoice_id || '';\nconst cash_session_id = input.cash_session_id || query?.cash_session_id || null;\nconst payment_date = query?.payment_date || input.payment_date  || '';\nconst payment_amount = input.amount || query?.amount || query?.paid_amount || query?.payment_amount || 0;\nconst payment_method = query?.method || input.method  || '';\nconst payment_method_id = query?.payment_method_id || input.payment_method_id  || 1 ;\nconst user = input.user || query?.user || {};\nconst currency = input.payment_currency || query?.payment_currency || 'UYU';\nconst invoice_currency = input.invoice_currency || query?.invoice_currency || 'UYU';\nconst exchange_rate = input?.exchange_rate || query?.exchange_rate  || 1 ;\nconst converted_amount = input.converted_amount || query?.converted_amount || payment_amount;\nconst credit_payment = input.credit_payment\nconst prepaid = !invoice_id || invoice_id === '' ? true : false\nconst total_paid = query?.total_paid || payment_amount;\nconst notes = query?.notes || '';\nconst is_historical = query?.is_historical\nconst is_sales = query?.is_sales\n\n// Validaciones básicas\n// if (!invoice_id || invoice_id === '') {\n//   return [{ json: { error: true, message: 'Numero de factura es requerido' } }];\n// }\n\nif (!payment_date || payment_date === '') {\n  return [{ json: { error: true, message: 'La fecha del pago es requerida' } }];\n}\n\nif ((!total_paid || total_paid === '') && credit_payment?.length === 0) {\n  return [{ json: { error: true, message: 'El monto del pago es requerido' } }];\n}\n\nif ((!payment_method || payment_method === '') && credit_payment?.length === 0) {\n  return [{ json: { error: true, message: 'El método de pago es requerido' } }];\n}\n\nreturn [{\n  json: {\n    invoice_id,\n    payment_date,\n    payment_amount,\n    payment_method,\n    payment_method_id,\n    cash_session_id,    \n    user: user,\n    currency,\n    invoice_currency,\n    exchange_rate,\n    converted_amount,\n    conversion: currency !== invoice_currency,\n    credit_payment,\n    prepaid,\n    total_paid,\n    notes,\n    is_historical,\n    is_sales\n  }\n}];"
+        "jsCode": "const query = $json.query;\n\nconst input = $input.first().json;\n// Validar datos de entrada desde el trigger\nconst invoice_id = input.invoice_id || query?.invoice_id || '';\nconst cash_session_id = input.cash_session_id || query?.cash_session_id || null;\nconst payment_date = query?.payment_date || input.payment_date  || '';\nconst payment_amount = input.amount || query?.amount || query?.paid_amount || query?.payment_amount || 0;\nconst payment_method = query?.method || input.method  || '';\nconst payment_method_id = query?.payment_method_id || input.payment_method_id || null;\nconst user = input.user || query?.user || {};\nconst currency = input.payment_currency || query?.payment_currency || 'UYU';\nconst invoice_currency = input.invoice_currency || query?.invoice_currency || 'UYU';\nconst exchange_rate = input?.exchange_rate || query?.exchange_rate  || 1 ;\nconst converted_amount = input.converted_amount || query?.converted_amount || payment_amount;\nconst credit_payment = input.credit_payment\nconst prepaid = !invoice_id || invoice_id === '' ? true : false\nconst total_paid = query?.total_paid || payment_amount;\nconst notes = query?.notes || '';\nconst is_historical = query?.is_historical\nconst is_sales = query?.is_sales\n\n// Validaciones básicas\n// if (!invoice_id || invoice_id === '') {\n//   return [{ json: { error: true, message: 'Numero de factura es requerido' } }];\n// }\n\nif (!payment_date || payment_date === '') {\n  return [{ json: { error: true, message: 'La fecha del pago es requerida' } }];\n}\n\nif ((!total_paid || total_paid === '') && credit_payment?.length === 0) {\n  return [{ json: { error: true, message: 'El monto del pago es requerido' } }];\n}\n\nif ((!payment_method || payment_method === '') && credit_payment?.length === 0) {\n  return [{ json: { error: true, message: 'El método de pago es requerido' } }];\n}\n\n// Un pago con monto (no solo créditos) necesita su método de pago. Antes se asumía\n// el id 1 (Efectivo) y el cobro entraba en caja como efectivo sin que nadie lo eligiera.\n// Se lanza (no se retorna { error }) para que salga por la salida de error del nodo.\nif (Number(payment_amount) !== 0 && !payment_method_id) {\n  throw new Error('El método de pago es requerido');\n}\n\nreturn [{\n  json: {\n    invoice_id,\n    payment_date,\n    payment_amount,\n    payment_method,\n    payment_method_id,\n    cash_session_id,    \n    user: user,\n    currency,\n    invoice_currency,\n    exchange_rate,\n    converted_amount,\n    conversion: currency !== invoice_currency,\n    credit_payment,\n    prepaid,\n    total_paid,\n    notes,\n    is_historical,\n    is_sales\n  }\n}];"
       },
       "id": "d417aeec-c6ed-4793-98aa-65e0fd71689f",
       "name": "Validar Entrada",
@@ -361,7 +406,7 @@
     {
       "parameters": {
         "mode": "raw",
-        "jsonOutput": "={\n  \"success\": false,\n  \"message\": \"{{ $json.message }}\",\n}",
+        "jsonOutput": "={\n  \"success\": false,\n  \"message\": {{ JSON.stringify(typeof $json.message === 'string' && $json.message ? $json.message : (typeof $json.error === 'string' && $json.error ? $json.error : 'No se pudo registrar el pago')) }}\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.set",
@@ -436,7 +481,9 @@
             "user_id": "={{ $('Validar Entrada').first().json.prepaid ? $('Validar Entrada').first().json.user.id : $('Obtener Info Factura').first().json.user_id }}",
             "type": "={{ $('When Executed by Another Workflow').first().json.type || 'INFLOW' }}",
             "currency": "={{ $('Validar Entrada').first().json.currency || 'UYU' }}",
-            "is_sales": "={{ $('Registrar Pago').first().json.is_sales }}"
+            "is_sales": "={{ $('Registrar Pago').first().json.is_sales }}",
+            "created_by": "={{ $('When Executed by Another Workflow').item.json.userId }}",
+            "updated_by": "={{ $('When Executed by Another Workflow').item.json.userId }}"
           },
           "matchingColumns": [
             "id"
@@ -579,6 +626,26 @@
               "type": "number",
               "canBeUsedToMatch": true,
               "removed": true
+            },
+            {
+              "id": "created_by",
+              "displayName": "created_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_by",
+              "displayName": "updated_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -923,7 +990,9 @@
             "amount": "={{ $('Validar Entrada').first().json.payment_amount }}",
             "payment_id": "={{ $('Registrar Pago').first().json.id }}",
             "allocated_currency": "={{ $('Validar Entrada').first().json.currency }}",
-            "target_amount": "={{ $('Validar Entrada').first().json.payment_amount / $('Validar Entrada').first().json.exchange_rate }}"
+            "target_amount": "={{ $('Validar Entrada').first().json.payment_amount / $('Validar Entrada').first().json.exchange_rate }}",
+            "created_by": "={{ $('When Executed by Another Workflow').item.json.userId }}",
+            "updated_by": "={{ $('When Executed by Another Workflow').item.json.userId }}"
           },
           "matchingColumns": [
             "id"
@@ -1005,6 +1074,26 @@
               "defaultMatch": false,
               "display": true,
               "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_by",
+              "displayName": "created_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_by",
+              "displayName": "updated_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
               "canBeUsedToMatch": true,
               "removed": false
             }
@@ -1350,7 +1439,9 @@
             "amount": "={{ $json.amount }}",
             "payment_id": "={{ $json.source_id }}",
             "allocated_currency": "={{ $json.currency }}",
-            "target_amount": "={{ $('Validar Entrada').first().json.invoice_currency === $json.currency ? $json.amount : ($('Validar Entrada').first().json.invoice_currency !== 'UYU' ? $json.amount / ($json.exchange_rate || 1) : $json.amount * ($json.exchange_rate || 1)) }}"
+            "target_amount": "={{ $('Validar Entrada').first().json.invoice_currency === $json.currency ? $json.amount : ($('Validar Entrada').first().json.invoice_currency !== 'UYU' ? $json.amount / ($json.exchange_rate || 1) : $json.amount * ($json.exchange_rate || 1)) }}",
+            "created_by": "={{ $('When Executed by Another Workflow').item.json.userId }}",
+            "updated_by": "={{ $('When Executed by Another Workflow').item.json.userId }}"
           },
           "matchingColumns": [
             "id"
@@ -1434,6 +1525,26 @@
               "type": "number",
               "canBeUsedToMatch": true,
               "removed": false
+            },
+            {
+              "id": "created_by",
+              "displayName": "created_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_by",
+              "displayName": "updated_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -1477,7 +1588,9 @@
             "allocated_currency": "={{ $json.currency }}",
             "target_amount": "={{ $('Validar Entrada').first().json.invoice_currency === $json.currency ? $json.amount : ($('Validar Entrada').first().json.invoice_currency !== 'UYU' ? $json.amount / ($json.exchange_rate || 1) : $json.amount * ($json.exchange_rate || 1)) }}",
             "target_id": "={{ $('Validar Entrada').first().json.invoice_id }}",
-            "source_id": "={{ $json.source_id }}"
+            "source_id": "={{ $json.source_id }}",
+            "updated_by": "={{ $('When Executed by Another Workflow').item.json.userId }}",
+            "created_by": "={{ $('When Executed by Another Workflow').item.json.userId }}"
           },
           "matchingColumns": [
             "id"
@@ -1541,7 +1654,7 @@
               "display": true,
               "type": "string",
               "canBeUsedToMatch": true,
-              "removed": true
+              "removed": false
             },
             {
               "id": "allocated_currency",
@@ -1570,6 +1683,16 @@
               "defaultMatch": false,
               "display": true,
               "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_by",
+              "displayName": "updated_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
               "canBeUsedToMatch": true,
               "removed": false
             }
@@ -1656,10 +1779,8 @@
           "payment_method": "Cash",
           "payment_date": "2026-07-10T13:49:07.632-04:00",
           "cash_session_id": 178,
-          "credit_payment": []
-        },
-        "pairedItem": {
-          "item": 0
+          "credit_payment": [],
+          "userId": "03a03ce2-7e6b-4013-97cf-6bf31bb7933c"
         }
       }
     ]
@@ -2067,7 +2188,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "c3fdb680-3da8-4b44-ac07-8ecd71bf542b",
+  "versionId": "3264f4f1-9157-47e3-a364-16db2412b10a",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"

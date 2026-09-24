@@ -3143,6 +3143,7 @@
         "mobile_payment": "Pago Móvil",
         "mercado_pago": "Mercado Pago",
         "pe": "PE",
+        "ca": "Compra ágil",
         "card": "Tarjeta",
         "transfer": "Transferencia",
         "other": "Otro"
@@ -3463,6 +3464,7 @@
         "MOBILE_PAYMENT": "Pago Móvil",
         "MERCADO_PAGO": "Mercado Pago",
         "PE": "Pago en especies",
+        "CA": "Compra ágil",
         "Cash": "Efectivo",
         "CN": "Nota de crédito"
       }

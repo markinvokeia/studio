@@ -1590,7 +1590,11 @@ export type CajaMovimiento = {
   id: string;
   cajaSesionId: string;
   tipo: 'INGRESO' | 'EGRESO';
-  metodoPago: 'CASH' | 'BANK_TRANSFER' | 'CREDIT_CARD' | 'DEBIT_CARD' | 'MOBILE_PAYMENT' | 'MERCADO_PAGO' | 'PE';
+  /** Normalized payment method code; custom methods keep their own code. */
+  metodoPago: string;
+  metodoPagoNombre?: string;
+  /** Whether the method counts as physical cash (payment_methods.is_cash_equivalent). */
+  esEquivalenteEfectivo: boolean;
   monto: number;
   descripcion: string;
   fecha: string;

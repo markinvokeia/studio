@@ -10,8 +10,8 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        192,
-        -368
+        -16,
+        -320
       ],
       "typeVersion": 1,
       "id": "fa8c15a7-891a-4587-961c-07b628a03804",
@@ -559,7 +559,8 @@
           "id": "C6sB1r7ab5H5EmJj",
           "name": "JWT Auth account"
         }
-      }
+      },
+      "disabled": true
     },
     {
       "parameters": {
@@ -574,7 +575,7 @@
           "mappingMode": "defineBelow",
           "value": {
             "authorization": "={{ $json.headers.authorization.replaceAll('Bearer ','') }}",
-            "user_id": "={{ $json.body.user_id || $json.query.user_id}}"
+            "user_id": "={{ $json.body?.user_id || $json.query?.user_id }}"
           },
           "matchingColumns": [
             "authorization"
@@ -666,7 +667,8 @@
         0
       ],
       "name": "Call Cash-session-active-workflow1",
-      "id": "0aa3a7a4-6c1b-49e8-9512-9d63dd1841e2"
+      "id": "0aa3a7a4-6c1b-49e8-9512-9d63dd1841e2",
+      "disabled": true
     },
     {
       "parameters": {
@@ -688,7 +690,9 @@
             "user_id": "={{ $('cash-session/open').item.json.body.user_id }}",
             "opened_at": "={{ $now }}",
             "status": "OPEN",
-            "opening_details": "={{ JSON.parse($('cash-session/open').item.json.body.opening_details) }}"
+            "opening_details": "={{ JSON.parse($('cash-session/open').item.json.body.opening_details) }}",
+            "created_by": "={{ $('cash-session/open').item.json.jwtPayload.userId }}",
+            "updated_by": "={{ $('cash-session/open').item.json.jwtPayload.userId }}"
           },
           "matchingColumns": [
             "id"
@@ -783,6 +787,36 @@
               "type": "object",
               "canBeUsedToMatch": true,
               "removed": true
+            },
+            {
+              "id": "bank_deposit_details",
+              "displayName": "bank_deposit_details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "created_by",
+              "displayName": "created_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_by",
+              "displayName": "updated_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -805,6 +839,7 @@
           "name": "Postgres account"
         }
       },
+      "disabled": true,
       "onError": "continueErrorOutput"
     },
     {
@@ -840,7 +875,8 @@
         32
       ],
       "id": "f0d33978-d176-4017-8583-94cdff0c7cf5",
-      "name": "cash-session-success"
+      "name": "cash-session-success",
+      "disabled": true
     },
     {
       "parameters": {
@@ -855,7 +891,8 @@
         208
       ],
       "id": "21f27834-ca80-4eed-ad65-f6737f5a5730",
-      "name": "cash-session-error"
+      "name": "cash-session-error",
+      "disabled": true
     },
     {
       "parameters": {
@@ -898,7 +935,8 @@
         0
       ],
       "id": "d6326528-e775-49c4-9fe8-1d9e313bf810",
-      "name": "If cash-session-open"
+      "name": "If cash-session-open",
+      "disabled": true
     },
     {
       "parameters": {
@@ -913,7 +951,8 @@
         -96
       ],
       "id": "68230bf7-9368-4afd-a66a-35f96d26d3a0",
-      "name": "error cash-session is open"
+      "name": "error cash-session is open",
+      "disabled": true
     },
     {
       "parameters": {
@@ -943,21 +982,8 @@
     },
     {
       "parameters": {
-        "jsCode": "const webhookBody = $('cash-session/close').first().json.body; \nconst sessionData = $('Get Session with Openings').first().json;\nconst movementsData = $('Get Movements Summary').all().map(item => item.json);\n\nconst sessionId = sessionData.id;\nconst closingNotes = webhookBody.notes || '';\nconst closingDetails = webhookBody.closing_denominations || {};\n\n// Saldos iniciales\nconst openingBalances = sessionData.opening_balances || [];\nconst currenciesToProcess = ['UYU', 'USD']; \n\nconst outputArray = [];\n\nfor (const currency of currenciesToProcess) {\n    \n    // A. DATOS DE APERTURA (Solo Físico)\n    const openingObj = openingBalances.find(b => b.currency === currency);\n    const openingAmount = parseFloat(openingObj ? openingObj.opening_amount : 0);\n\n    // B. DATOS DE MOVIMIENTOS (Sistema)\n    const movs = movementsData.find(m => m.currency === currency) || { \n        cash_in: 0, cash_out: 0, card_total: 0, transfer_total: 0, other_total: 0 \n    };\n\n    const sysCashIn = parseFloat(movs.cash_in || 0);\n    const sysCashOut = parseFloat(movs.cash_out || 0);\n    const sysCard = parseFloat(movs.card_total || 0);\n    const sysTransfer = parseFloat(movs.transfer_total || 0);\n    const sysOther = parseFloat(movs.other_total || 0);\n\n    // C. DATOS DECLARADOS (Usuario cuenta billetes)\n    const declaredKey = `declared_cash_${currency.toLowerCase()}`;\n    const declaredPhysicalCash = parseFloat(webhookBody[declaredKey] || 0);\n\n    // PASO 1: Calcular saldo físico esperado\n    const expectedPhysicalBalance = (openingAmount + sysCashIn) - sysCashOut;\n\n    // PASO 2: Calcular EXPECTATIVA GLOBAL DEL SISTEMA (Cuánto valor generó/tiene la sesión)\n    const totalSystemExpectation = openingAmount;\n\n    // PASO 3: Calcular TOTAL DE ACTIVOS REALES (Lo que declaramos tener)\n    const totalAssetsDeclared = declaredPhysicalCash + sysCard + sysTransfer + sysOther;\n\n    // PASO 4: VARIACIÓN\n    const variance = totalAssetsDeclared - totalSystemExpectation;\n    const cash_variance = declaredPhysicalCash - expectedPhysicalBalance;\n\n    // -----------------------------------------------------------------------\n\n    outputArray.push({\n        json: {\n            cash_session_id: sessionId,\n            currency: currency,\n            \n            // Guardamos el declarado físico\n            declared_cash: declaredPhysicalCash,\n            \n            // Guardamos el calculado físico (para referencia futura del saldo de caja)\n            calculated_cash: expectedPhysicalBalance,\n            \n            // Guardamos los acumuladores digitales\n            calculated_card: sysCard,\n            calculated_transfer: sysTransfer,\n            calculated_other: sysOther,\n            total_cash_payouts: sysCashOut,\n            \n            // La varianza final del ejercicio\n            cash_variance: cash_variance,\n            \n            // Extras\n            closing_notes: closingNotes,\n            closing_details: closingDetails \n        }\n    });\n}\n\nreturn outputArray;"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1104,
-        464
-      ],
-      "id": "fe1f4795-365c-43da-bb7f-badf44d3db78",
-      "name": "Code in JavaScript"
-    },
-    {
-      "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT\n    cp.id AS cash_point_id,\n    cp.name AS cash_point_name,\n    cp.is_active,\n\n    CASE\n        WHEN cs.id IS NOT NULL THEN 'OPEN'\n        ELSE 'CLOSED'\n    END AS session_status,\n    \n    cs.id AS active_session_id,\n    cs.opening_details, \n    \n    u.name AS active_user_name,\n    u.id AS active_user_id,\n\n    (\n        SELECT json_agg(json_build_object(\n            'currency', csc.currency,\n            'opening_amount', csc.opening_amount,\n            'rate', csc.date_rate,\n            'cash_in', m.total_in,\n            'cash_out', m.total_out,\n            'cash_on_hand', (csc.opening_amount + m.total_in - m.total_out)\n        ))\n        FROM public.cash_session_currencies csc\n        LEFT JOIN LATERAL (\n            SELECT\n  \n                COALESCE(SUM(\n                    CASE \n                      WHEN pm.code = 'CASH' AND cm.amount > 0 THEN ABS(cm.amount) \n                      ELSE 0 \n                  END\n                ), 0) AS total_in,\n                \n                COALESCE(SUM(\n                    CASE \n                      WHEN pm.code = 'CASH' AND cm.amount < 0 THEN ABS(cm.amount) \n                      ELSE 0 \n                  END\n                ), 0) AS total_out\n            FROM public.cash_movements cm\n            LEFT JOIN public.payment_methods pm ON cm.payment_method_id = pm.id\n            WHERE cm.cash_session_id = cs.id\n              AND cm.currency = csc.currency\n              AND pm.code = 'CASH'\n        ) m ON true\n        WHERE csc.cash_session_id = cs.id\n    ) AS amounts\n\nFROM\n    public.cash_points AS cp\nLEFT JOIN\n    public.cash_sessions AS cs ON cp.id = cs.cash_point_id AND cs.status = 'OPEN'\nLEFT JOIN\n    public.users AS u ON cs.user_id = u.id\nWHERE\n    cp.is_active = true\nORDER BY\n    cp.name;",
+        "query": "SELECT\n    cp.id AS cash_point_id,\n    cp.name AS cash_point_name,\n    cp.is_active,\n\n    CASE\n        WHEN cs.id IS NOT NULL THEN 'OPEN'\n        ELSE 'CLOSED'\n    END AS session_status,\n    \n    cs.id AS active_session_id,\n    cs.opening_details, \n    \n    u.name AS active_user_name,\n    u.id AS active_user_id,\n\n    (\n        SELECT json_agg(json_build_object(\n            'currency', csc.currency,\n            'opening_amount', csc.opening_amount,\n            'rate', csc.date_rate,\n            'cash_in', m.total_in,\n            'cash_out', m.total_out,\n            'cash_on_hand', (csc.opening_amount + m.total_in - m.total_out)\n        ))\n        FROM public.cash_session_currencies csc\n        LEFT JOIN LATERAL (\n            SELECT\n  \n                COALESCE(SUM(\n                    CASE \n                      WHEN pm.is_cash_equivalent AND cm.amount > 0 THEN ABS(cm.amount) \n                      ELSE 0 \n                  END\n                ), 0) AS total_in,\n                \n                COALESCE(SUM(\n                    CASE \n                      WHEN pm.is_cash_equivalent AND cm.amount < 0 THEN ABS(cm.amount) \n                      ELSE 0 \n                  END\n                ), 0) AS total_out\n            FROM public.cash_movements cm\n            LEFT JOIN public.payment_methods pm ON cm.payment_method_id = pm.id\n            WHERE cm.cash_session_id = cs.id\n              AND cm.currency = csc.currency\n              AND pm.is_cash_equivalent\n        ) m ON true\n        WHERE csc.cash_session_id = cs.id\n    ) AS amounts\n\nFROM\n    public.cash_points AS cp\nLEFT JOIN\n    public.cash_sessions AS cs ON cp.id = cs.cash_point_id AND cs.status = 'OPEN'\nLEFT JOIN\n    public.users AS u ON cs.user_id = u.id\nWHERE\n    cp.is_active = true\nORDER BY\n    cp.name;",
         "options": {}
       },
       "type": "n8n-nodes-base.postgres",
@@ -1068,7 +1094,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT\n  m.id AS movement_id,\n  m.type,\n  m.amount,\n  m.currency,\n  m.description,\n  m.created_at,\n  pm.code AS payment_method_code,\n  u.name AS registered_by_user,\n  m.is_sales,\n  COALESCE(cp.name, misc.beneficiary) AS client,\n  -- COALESCE elige el primer valor que NO sea nulo entre las tablas unidas\n  COALESCE(p.doc_no, misc.doc_no, 'N/A') AS document_number\nFROM\n  public.cash_movements AS m\n-- Joins fijos (siempre existen)\nINNER JOIN public.payment_methods AS pm ON m.payment_method_id = pm.id\nLEFT JOIN public.users AS u ON m.user_id = u.id\n\n-- Joins condicionales (Dependen del source_type y source_id)\nLEFT JOIN public.payments AS p \n  ON m.payment_id = p.id AND m.source_type = 'payment'\nLEFT JOIN public.users AS cp\n  ON p.user_id = cp.id\n\nLEFT JOIN public.miscellaneous_transactions AS misc \n  ON m.source_id = misc.id AND m.source_type = 'miscellaneous'\n\nWHERE\n  m.cash_session_id = $1\nORDER BY\n  m.created_at DESC;",
+        "query": "SELECT\n  m.id AS movement_id,\n  m.type,\n  m.amount,\n  m.currency,\n  m.description,\n  m.created_at,\n  pm.code AS payment_method_code,\n  pm.name AS payment_method_name,\n  pm.is_cash_equivalent,\n  u.name AS registered_by_user,\n  m.is_sales,\n  COALESCE(cp.name, misc.beneficiary) AS client,\n  -- COALESCE elige el primer valor que NO sea nulo entre las tablas unidas\n  COALESCE(p.doc_no, misc.doc_no, 'N/A') AS document_number\nFROM\n  public.cash_movements AS m\n-- Joins fijos (siempre existen)\nINNER JOIN public.payment_methods AS pm ON m.payment_method_id = pm.id\nLEFT JOIN public.users AS u ON m.user_id = u.id\n\n-- Joins condicionales (Dependen del source_type y source_id)\nLEFT JOIN public.payments AS p \n  ON m.payment_id = p.id AND m.source_type = 'payment'\nLEFT JOIN public.users AS cp\n  ON p.user_id = cp.id\n\nLEFT JOIN public.miscellaneous_transactions AS misc \n  ON m.source_id = misc.id AND m.source_type = 'miscellaneous'\n\nWHERE\n  m.cash_session_id = $1\nORDER BY\n  m.created_at DESC;",
         "options": {
           "queryReplacement": "={{ $json.query.cash_session_id }}"
         }
@@ -1191,7 +1217,8 @@
             "closed_at": "={{ $now.toISO() }}",
             "closing_notes": "={{ $('cash-session/close').item.json.body.notes || ''}}",
             "closing_details": "={{ $('cash-session/close').item.json.body.closing_denominations }}",
-            "bank_deposit_details": "={{ $('cash-session/close').item.json.body.bank_deposit_denominations }}"
+            "bank_deposit_details": "={{ $('cash-session/close').item.json.body.bank_deposit_denominations }}",
+            "updated_by": "={{ $('cash-session/close').item.json.jwtPayload.userId }}"
           },
           "matchingColumns": [
             "id"
@@ -1293,6 +1320,26 @@
               "type": "object",
               "canBeUsedToMatch": true,
               "removed": false
+            },
+            {
+              "id": "created_by",
+              "displayName": "created_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "updated_by",
+              "displayName": "updated_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -1336,7 +1383,7 @@
             {
               "id": "a42f3d78-07e4-460b-97a5-a46d313bc048",
               "name": "details",
-              "value": "={{ {session: $json, movements: $('Code in JavaScript').all().map(item => item.json)} }}",
+              "value": "={{ {session: $json, movements: $('Code in JavaScript3').all().map(item => item.json)} }}",
               "type": "object"
             }
           ]
@@ -1806,7 +1853,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT\n    currency AS moneda,\n\n    -- 1. TOTALES GLOBALES\n    SUM(CASE WHEN is_cash_equivalent THEN monto_por_metodo ELSE 0 END) AS total_efectivo,\n    SUM(CASE WHEN NOT is_cash_equivalent THEN monto_por_metodo ELSE 0 END) AS total_otros_medios,\n    SUM(monto_por_metodo) AS total_general,\n    \n    -- 2. DESGLOSE DETALLADO\n    json_agg(\n        json_build_object(\n            'codigo', payment_method_code,\n            'metodo', payment_method,\n            'monto', monto_por_metodo\n        )\n    ) AS desglose_detallado\n    \nFROM (\n    -- SUBQUERY: Agrupa movimientos y aperturas\n    SELECT\n        currency,\n        payment_method,\n        payment_method_code,\n        is_cash_equivalent,\n        SUM(monto_ajustado) AS monto_por_metodo\n    FROM (\n        -- A. APERTURA DE CAJA (UYU)\n        SELECT \n            'UYU' AS currency, \n            'Apertura Caja' AS payment_method, \n            'OPEN' AS payment_method_code,\n            COALESCE((opening_details->'uyu'->>'total')::numeric, 0) AS monto_ajustado, \n            TRUE AS is_cash_equivalent \n        FROM public.cash_sessions \n        WHERE id = $1\n\n        UNION ALL\n\n        -- A. APERTURA DE CAJA (USD)\n        SELECT \n            'USD' AS currency, \n            'Apertura Caja' AS payment_method, \n            'OPEN' AS payment_method_code,\n            COALESCE((opening_details->'usd'->>'total')::numeric, 0) AS monto_ajustado, \n            TRUE AS is_cash_equivalent \n        FROM public.cash_sessions \n        WHERE id = $1\n        \n        UNION ALL\n        \n        -- B. MOVIMIENTOS CON LÓGICA DE SIGNOS APLICADA\n        SELECT \n            cm.currency, \n            pm.name, \n            pm.code,\n            cm.amount,\n            COALESCE(pm.is_cash_equivalent, FALSE)\n        FROM public.cash_movements cm\n        LEFT JOIN public.payment_methods pm ON cm.payment_method_id = pm.id\n        WHERE cm.cash_session_id = $1\n    ) AS raw_data\n    WHERE monto_ajustado <> 0\n    GROUP BY currency, payment_method, payment_method_code, is_cash_equivalent\n) AS datos_agrupados\nGROUP BY currency;",
+        "query": "SELECT\n    currency AS moneda,\n\n    -- 1. TOTALES GLOBALES\n    SUM(CASE WHEN is_cash_equivalent THEN monto_por_metodo ELSE 0 END) AS total_efectivo,\n    SUM(CASE WHEN NOT is_cash_equivalent THEN monto_por_metodo ELSE 0 END) AS total_otros_medios,\n    SUM(monto_por_metodo) AS total_general,\n    \n    -- 2. DESGLOSE DETALLADO\n    json_agg(\n        json_build_object(\n            'codigo', payment_method_code,\n            'metodo', payment_method,\n            'monto', monto_por_metodo,\n            'es_efectivo', is_cash_equivalent\n        )\n    ) AS desglose_detallado\n    \nFROM (\n    -- SUBQUERY: Agrupa movimientos y aperturas\n    SELECT\n        currency,\n        payment_method,\n        payment_method_code,\n        is_cash_equivalent,\n        SUM(monto_ajustado) AS monto_por_metodo\n    FROM (\n        -- A. APERTURA DE CAJA (UYU)\n        SELECT \n            'UYU' AS currency, \n            'Apertura Caja' AS payment_method, \n            'OPEN' AS payment_method_code,\n            COALESCE((opening_details->'uyu'->>'total')::numeric, 0) AS monto_ajustado, \n            TRUE AS is_cash_equivalent \n        FROM public.cash_sessions \n        WHERE id = $1\n\n        UNION ALL\n\n        -- A. APERTURA DE CAJA (USD)\n        SELECT \n            'USD' AS currency, \n            'Apertura Caja' AS payment_method, \n            'OPEN' AS payment_method_code,\n            COALESCE((opening_details->'usd'->>'total')::numeric, 0) AS monto_ajustado, \n            TRUE AS is_cash_equivalent \n        FROM public.cash_sessions \n        WHERE id = $1\n        \n        UNION ALL\n        \n        -- B. MOVIMIENTOS CON LÓGICA DE SIGNOS APLICADA\n        SELECT \n            cm.currency, \n            pm.name, \n            pm.code,\n            cm.amount,\n            COALESCE(pm.is_cash_equivalent, FALSE)\n        FROM public.cash_movements cm\n        LEFT JOIN public.payment_methods pm ON cm.payment_method_id = pm.id\n        WHERE cm.cash_session_id = $1\n    ) AS raw_data\n    WHERE monto_ajustado <> 0\n    GROUP BY currency, payment_method, payment_method_code, is_cash_equivalent\n) AS datos_agrupados\nGROUP BY currency;",
         "options": {
           "queryReplacement": "={{ $json.query.cash_session_id }}"
         }
@@ -2037,7 +2084,8 @@
         32
       ],
       "id": "e204227d-772e-4e8f-9644-a0080f3d7378",
-      "name": "Code in JavaScript1"
+      "name": "Code in JavaScript1",
+      "disabled": true
     },
     {
       "parameters": {
@@ -2187,7 +2235,8 @@
           "id": "6b7Sjdnppbfve8ka",
           "name": "Postgres account"
         }
-      }
+      },
+      "disabled": true
     },
     {
       "parameters": {
@@ -2238,7 +2287,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT \n    m.currency,\n\n    -- 1. CASH IN (Entradas de Efectivo)\n    SUM(CASE \n        WHEN pm.code = 'CASH' AND m.amount > 0 THEN ABS(m.amount) \n        ELSE 0 \n    END) as cash_in,\n\n    -- 2. CASH OUT (Salidas de Efectivo)\n    SUM(CASE \n        WHEN pm.code = 'CASH' AND m.amount < 0 THEN ABS(m.amount) \n        ELSE 0 \n    END) as cash_out,\n    \n    -- 3. OTROS MEDIOS (Totales Netos)\n    SUM(CASE WHEN pm.code IN ('CREDIT_CARD', 'DEBIT_CARD') THEN m.amount ELSE 0 END) as card_total,\n    SUM(CASE WHEN pm.code = 'BANK_TRANSFER' THEN m.amount ELSE 0 END) as transfer_total,\n    SUM(CASE WHEN pm.code NOT IN ('CASH', 'CREDIT_CARD', 'DEBIT_CARD', 'BANK_TRANSFER') AND pm.is_cash_equivalent = false THEN m.amount ELSE 0 END) as other_total\n\nFROM public.cash_movements m\nJOIN public.payment_methods pm ON m.payment_method_id = pm.id\nWHERE m.cash_session_id = $1\nGROUP BY m.currency;",
+        "query": "SELECT\n    m.currency,\n\n    -- Efectivo = todo método marcado como equivalente a efectivo\n    -- (payment_methods.is_cash_equivalent), igual que cash-session/declare.\n\n    -- 1. CASH IN (Entradas de Efectivo)\n    SUM(CASE\n        WHEN pm.is_cash_equivalent AND m.amount > 0 THEN ABS(m.amount)\n        ELSE 0\n    END) as cash_in,\n\n    -- 2. CASH OUT (Salidas de Efectivo)\n    SUM(CASE\n        WHEN pm.is_cash_equivalent AND m.amount < 0 THEN ABS(m.amount)\n        ELSE 0\n    END) as cash_out,\n\n    -- 3. OTROS MEDIOS (Totales Netos) — solo métodos que NO son equivalentes a efectivo\n    SUM(CASE WHEN NOT pm.is_cash_equivalent AND pm.code IN ('CREDIT_CARD', 'DEBIT_CARD') THEN m.amount ELSE 0 END) as card_total,\n    SUM(CASE WHEN NOT pm.is_cash_equivalent AND pm.code = 'BANK_TRANSFER' THEN m.amount ELSE 0 END) as transfer_total,\n    SUM(CASE WHEN NOT pm.is_cash_equivalent AND pm.code NOT IN ('CREDIT_CARD', 'DEBIT_CARD', 'BANK_TRANSFER') THEN m.amount ELSE 0 END) as other_total\n\nFROM public.cash_movements m\nJOIN public.payment_methods pm ON m.payment_method_id = pm.id\nWHERE m.cash_session_id = $1\nGROUP BY m.currency;",
         "options": {
           "queryReplacement": "={{ $('Get Session with Openings').first().json.id }}"
         }
@@ -2270,7 +2319,8 @@
         32
       ],
       "id": "adcb7768-a38b-4a61-8bae-253d5fffb7e6",
-      "name": "Merge info"
+      "name": "Merge info",
+      "disabled": true
     },
     {
       "parameters": {
@@ -3460,52 +3510,556 @@
           "name": "OpenAi account 2"
         }
       }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cash-session/open",
+        "authentication": "jwtAuth",
+        "responseMode": "lastNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        3056,
+        1504
+      ],
+      "id": "77781cb2-e2ed-4b27-ab0f-a8e4e5d0d9d1",
+      "name": "cash-session/open1",
+      "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "Dwt3WdobiGtSwEcH",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/Dwt3WdobiGtSwEcH",
+          "cachedResultName": "Is Cash session active workflow"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user_id": "={{ $json.body.user_id }}"
+          },
+          "matchingColumns": [
+            "authorization"
+          ],
+          "schema": [
+            {
+              "id": "authorization",
+              "displayName": "authorization",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        3296,
+        1504
+      ],
+      "name": "Call Cash-session-active-workflow2",
+      "id": "3bd4f0e6-db77-4086-9144-7bcb505a6cf4"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "cash_sessions",
+          "mode": "list",
+          "cachedResultName": "cash_sessions"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "cash_point_id": "={{ $('cash-session/open1').item.json.body.cash_point_id }}",
+            "user_id": "={{ $('cash-session/open1').item.json.body.user_id }}",
+            "opened_at": "={{ $now }}",
+            "status": "OPEN",
+            "opening_details": "={{ JSON.parse($('cash-session/open1').item.json.body.opening_details) }}",
+            "created_by": "={{ $('cash-session/open1').item.json.jwtPayload.userId }}",
+            "updated_by": "={{ $('cash-session/open1').item.json.jwtPayload.userId }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "opened_at",
+              "displayName": "opened_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "closed_at",
+              "displayName": "closed_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "closing_notes",
+              "displayName": "closing_notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "cash_point_id",
+              "displayName": "cash_point_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "opening_details",
+              "displayName": "opening_details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "closing_details",
+              "displayName": "closing_details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "bank_deposit_details",
+              "displayName": "bank_deposit_details",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "created_by",
+              "displayName": "created_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_by",
+              "displayName": "updated_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3760,
+        1616
+      ],
+      "id": "3ccb739d-5c79-4bef-9a3d-52798b948529",
+      "name": "Insert rows in cash-session1",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "84900b52-c892-4800-8dc8-64820fe9d27b",
+              "name": "message",
+              "value": "Operación realizada correctamente",
+              "type": "string"
+            },
+            {
+              "id": "ddc813cb-ea86-4a02-bbf4-fee1360d57e9",
+              "name": "code",
+              "value": 200,
+              "type": "number"
+            },
+            {
+              "id": "c16b3ffd-b321-4849-abb0-8d5a3936cf7e",
+              "name": "session",
+              "value": "={{ $('Insert rows in cash-session1').first().json }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4528,
+        1536
+      ],
+      "id": "3e750f32-1a76-40cf-979e-958ad0413fad",
+      "name": "cash-session-success2"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n\"message\": {{ $json.message }},\n\"code\": 400\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4000,
+        1712
+      ],
+      "id": "b2c53419-18d3-45c1-9490-ed30cf522e36",
+      "name": "cash-session-error3"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c17649ba-e749-45d6-b3f5-113f045b11ff",
+              "leftValue": "={{ $json.code }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "db771580-2861-48ce-9031-d5a6e5dc971f",
+              "leftValue": "={{ $json.code }}",
+              "rightValue": 200,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3536,
+        1504
+      ],
+      "id": "3b6c7655-0f1a-4fd3-ad8e-523407e9464f",
+      "name": "If cash-session-open1"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"code\": 409,\n  \"message\": \"Error: Ya tienes una sesión de caja abierta.\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3760,
+        1408
+      ],
+      "id": "98d25db4-16d8-44f7-9222-9d58aacf6aff",
+      "name": "error cash-session is open1"
+    },
+    {
+      "parameters": {
+        "jsCode": "/*\n* =============================================================================\n* PREPARAR APERTURA MULTIMONEDA\n* =============================================================================\n* Una fila de `cash_session_currencies` por cada moneda con la que se abre la\n* caja.\n*\n* Las monedas ya NO están cableadas: se leen de `opening_amount`, que el\n* frontend manda indexado por código ISO ({ \"EUR\": 905, \"USD\": 0 }) según lo\n* que tenga configurado la clínica. Antes este nodo creaba siempre dos filas,\n* UYU y USD, así que una clínica en euros abría la caja con dos monedas que no\n* usa y sin la suya.\n*\n* `date_rate` es el tipo de cambio de la moneda principal de la sesión\n* (`body.currency`) frente a las demás, así que la principal va siempre a 1 —\n* exactamente el criterio que ya tenía UYU.\n*/\n\nconst newSessionId = $json.id;\nconst body = $('cash-session/open1').first().json.body ?? {};\n\nconst primary = String(body.currency || '').trim().toUpperCase();\nconst rate = Number(body.date_rate) || 1;\n\n// `opening_amount` puede llegar como objeto o como JSON en texto.\nlet amounts = body.opening_amount ?? {};\nif (typeof amounts === 'string') {\n  try { amounts = JSON.parse(amounts); } catch (e) { amounts = {}; }\n}\n\nconst rows = Object.entries(amounts)\n  .map(([code, amount]) => [String(code).trim().toUpperCase(), Number(amount) || 0])\n  .filter(([code]) => /^[A-Z]{3}$/.test(code))\n  .map(([code, amount]) => ({\n    json: {\n      cash_session_id: newSessionId,\n      currency: code,\n      opening_amount: amount,\n      // La moneda de la sesión es la referencia: su tasa contra sí misma es 1.\n      date_rate: code === primary ? 1 : rate,\n    },\n  }));\n\n// Si no llegó ninguna moneda utilizable, se abre igual con la principal en cero\n// en vez de dejar la sesión sin ninguna fila de moneda.\nif (rows.length === 0 && /^[A-Z]{3}$/.test(primary)) {\n  rows.push({\n    json: { cash_session_id: newSessionId, currency: primary, opening_amount: 0, date_rate: 1 },\n  });\n}\n\nreturn rows;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4000,
+        1536
+      ],
+      "id": "ac809e72-ccf3-4322-b48e-985142033e5e",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "cash_session_currencies",
+          "mode": "list",
+          "cachedResultName": "cash_session_currencies"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "cash_session_id": "={{ $json.cash_session_id }}",
+            "currency": "={{ $json.currency }}",
+            "opening_amount": "={{ $json.opening_amount }}",
+            "date_rate": "={{ $json.date_rate }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "cash_session_id",
+              "displayName": "cash_session_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "currency",
+              "displayName": "currency",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "opening_amount",
+              "displayName": "opening_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "declared_cash",
+              "displayName": "declared_cash",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "calculated_cash",
+              "displayName": "calculated_cash",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "calculated_card",
+              "displayName": "calculated_card",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "calculated_transfer",
+              "displayName": "calculated_transfer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "calculated_other",
+              "displayName": "calculated_other",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "total_cash_payouts",
+              "displayName": "total_cash_payouts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "cash_variance",
+              "displayName": "cash_variance",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "date_rate",
+              "displayName": "date_rate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        4176,
+        1536
+      ],
+      "id": "b6cf945b-b16a-4d2f-bcd1-1fdafd870133",
+      "name": "Insert rows in a table1",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  rows: $input.all()\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4352,
+        1536
+      ],
+      "id": "d0d302bf-2811-4aad-a2a9-2c05ad57e80a",
+      "name": "Merge info1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const webhookBody = $('cash-session/close').first().json.body; \nconst sessionData = $('Get Session with Openings').first().json;\nconst movementsData = $('Get Movements Summary').all().map(item => item.json);\n\nconst sessionId = sessionData.id;\nconst closingNotes = webhookBody.notes || '';\nconst closingDetails = webhookBody.closing_denominations || {};\n\n// Saldos iniciales\nconst openingBalances = sessionData.opening_balances || [];\nconst currenciesToProcess = ['UYU', 'USD']; \n\nconst outputArray = [];\n\nfor (const currency of currenciesToProcess) {\n    \n    // A. DATOS DE APERTURA (Solo Físico)\n    const openingObj = openingBalances.find(b => b.currency === currency);\n    const openingAmount = parseFloat(openingObj ? openingObj.opening_amount : 0);\n\n    // B. DATOS DE MOVIMIENTOS (Sistema)\n    const movs = movementsData.find(m => m.currency === currency) || { \n        cash_in: 0, cash_out: 0, card_total: 0, transfer_total: 0, other_total: 0 \n    };\n\n    const sysCashIn = parseFloat(movs.cash_in || 0);\n    const sysCashOut = parseFloat(movs.cash_out || 0);\n    const sysCard = parseFloat(movs.card_total || 0);\n    const sysTransfer = parseFloat(movs.transfer_total || 0);\n    const sysOther = parseFloat(movs.other_total || 0);\n\n    // C. DATOS DECLARADOS (Usuario cuenta billetes)\n    const declaredKey = `declared_cash_${currency.toLowerCase()}`;\n    const declaredPhysicalCash = parseFloat(webhookBody[declaredKey] || 0);\n\n    // PASO 1: Calcular saldo físico esperado\n    const expectedPhysicalBalance = (openingAmount + sysCashIn) - sysCashOut;\n\n    // PASO 2: Calcular EXPECTATIVA GLOBAL DEL SISTEMA (Cuánto valor generó/tiene la sesión)\n    const totalSystemExpectation = openingAmount;\n\n    // PASO 3: Calcular TOTAL DE ACTIVOS REALES (Lo que declaramos tener)\n    const totalAssetsDeclared = declaredPhysicalCash + sysCard + sysTransfer + sysOther;\n\n    // PASO 4: VARIACIÓN\n    const variance = totalAssetsDeclared - totalSystemExpectation;\n    const cash_variance = declaredPhysicalCash - expectedPhysicalBalance;\n\n    // -----------------------------------------------------------------------\n\n    outputArray.push({\n        json: {\n            cash_session_id: sessionId,\n            currency: currency,\n            \n            // Guardamos el declarado físico\n            declared_cash: declaredPhysicalCash,\n            \n            // Guardamos el calculado físico (para referencia futura del saldo de caja)\n            calculated_cash: expectedPhysicalBalance,\n            \n            // Guardamos los acumuladores digitales\n            calculated_card: sysCard,\n            calculated_transfer: sysTransfer,\n            calculated_other: sysOther,\n            total_cash_payouts: sysCashOut,\n            \n            // La varianza final del ejercicio\n            cash_variance: cash_variance,\n            \n            // Extras\n            closing_notes: closingNotes,\n            closing_details: closingDetails \n        }\n    });\n}\n\nreturn outputArray;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1104,
+        464
+      ],
+      "id": "46254e2e-3672-46b2-b465-3195b00adf17",
+      "name": "Code in JavaScript3"
     }
   ],
   "pinData": {
-    "cash-session/close": [
-      {
-        "json": {
-          "headers": {
-            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
-            "content-length": "29926",
-            "accept": "*/*",
-            "accept-encoding": "gzip, deflate, br, zstd",
-            "accept-language": "en-US,en;q=0.9",
-            "content-type": "multipart/form-data; boundary=----WebKitFormBoundary0dYyLCzRG2HC5Bct",
-            "origin": "https://9000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev",
-            "priority": "u=1, i",
-            "referer": "https://9000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/",
-            "sec-ch-ua": "\"Brave\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": "\"Windows\"",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "cross-site",
-            "sec-gpc": "1",
-            "x-forwarded-for": "189.31.201.10",
-            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
-            "x-forwarded-port": "443",
-            "x-forwarded-proto": "https",
-            "x-forwarded-server": "6c8052c64eb2",
-            "x-real-ip": "189.31.201.10"
-          },
-          "params": {},
-          "query": {},
-          "body": {
-            "cash_session_id": "112",
-            "declared_cash_uyu": "8050",
-            "declared_cash_usd": "95",
-            "notes": "",
-            "closing_denominations": "{\"uyu\":{\"50\":1,\"2000\":4,\"total\":8050},\"usd\":{\"5\":1,\"20\":2,\"50\":1,\"total\":95}}",
-            "bank_deposit_denominations": "{\"uyu\":{\"1000\":1,\"2000\":2},\"usd\":{\"50\":1}}"
-          },
-          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/close",
-          "executionMode": "production"
-        }
-      }
-    ],
     "cash-session/totales": [
       {
         "json": {
@@ -3537,49 +4091,6 @@
           },
           "body": {},
           "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/totales",
-          "executionMode": "production"
-        }
-      }
-    ],
-    "cash-session/open": [
-      {
-        "json": {
-          "headers": {
-            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
-            "content-length": "29926",
-            "accept": "*/*",
-            "accept-encoding": "gzip, deflate, br, zstd",
-            "accept-language": "en-US,en;q=0.9",
-            "content-type": "multipart/form-data; boundary=----WebKitFormBoundary0dYyLCzRG2HC5Bct",
-            "origin": "https://9000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev",
-            "priority": "u=1, i",
-            "referer": "https://9000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/",
-            "sec-ch-ua": "\"Brave\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": "\"Windows\"",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "cross-site",
-            "sec-gpc": "1",
-            "x-forwarded-for": "189.31.201.10",
-            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
-            "x-forwarded-port": "443",
-            "x-forwarded-proto": "https",
-            "x-forwarded-server": "6c8052c64eb2",
-            "x-real-ip": "189.31.201.10"
-          },
-          "params": {},
-          "query": {},
-          "body": {
-            "cash_session_id": "112",
-            "declared_cash_uyu": "8050",
-            "declared_cash_usd": "95",
-            "notes": "",
-            "closing_denominations": "{\"uyu\":{\"50\":1,\"2000\":4,\"total\":8050},\"usd\":{\"5\":1,\"20\":2,\"50\":1,\"total\":95}}",
-            "bank_deposit_denominations": "{\"uyu\":{\"1000\":1,\"2000\":2},\"usd\":{\"50\":1}}"
-          },
-          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/close",
           "executionMode": "production"
         }
       }
@@ -4026,6 +4537,119 @@
           "executionMode": "production"
         }
       }
+    ],
+    "cash-session/open": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+            "content-length": "404",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3ODg5NTUxNjF9.gR-Rv6_Aa8ldtsgHSGQ4jBiSFJ99XGbLWfgtvljhy64",
+            "cache-control": "no-cache",
+            "content-type": "application/json",
+            "origin": "http://localhost:3000",
+            "pragma": "no-cache",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/es-ES/cashier",
+            "sec-ch-ua": "\"Chromium\";v=\"152\", \"Not?A_Brand\";v=\"24\", \"Google Chrome\";v=\"152\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"macOS\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "179.24.144.231",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "eda8517699da",
+            "x-real-ip": "179.24.144.231"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "cash_point_id": "4",
+            "currency": "USD",
+            "date_rate": 34,
+            "user_id": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "status": "OPEN",
+            "opening_amount": {
+              "EUR": 905,
+              "USD": 0
+            },
+            "opening_details": "{\"currency\":\"USD\",\"date_rate\":34,\"eur\":{\"5\":1,\"10\":1,\"20\":2,\"50\":1,\"100\":1,\"200\":1,\"500\":1,\"total\":905},\"usd\":{\"total\":0},\"opened_by\":\"Raidelis Fonseca\",\"opened_at\":\"2026-09-23T18:52:47.194Z\"}"
+          },
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/open",
+          "executionMode": "production",
+          "jwtPayload": {
+            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "email": "raidel@invokeia.com",
+            "expiresIn": "24h",
+            "iat": 1788955161
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "cash-session/close": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+            "content-length": "877",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3ODg5NTUxNjF9.gR-Rv6_Aa8ldtsgHSGQ4jBiSFJ99XGbLWfgtvljhy64",
+            "cache-control": "no-cache",
+            "content-type": "multipart/form-data; boundary=----WebKitFormBoundary8Pliqpy0DbsTyHy0",
+            "origin": "http://localhost:3000",
+            "pragma": "no-cache",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/es-ES/cashier",
+            "sec-ch-ua": "\"Chromium\";v=\"152\", \"Not?A_Brand\";v=\"24\", \"Google Chrome\";v=\"152\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"macOS\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "179.24.144.231",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "eda8517699da",
+            "x-real-ip": "179.24.144.231"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "cash_session_id": "187",
+            "declared_cash_eur": "1250",
+            "declared_cash_usd": "0",
+            "declared_cash": "{\"EUR\":1250,\"USD\":0}",
+            "notes": "",
+            "closing_denominations": "{\"eur\":{\"50\":1,\"200\":1,\"500\":2,\"total\":1250},\"usd\":{\"total\":0}}",
+            "bank_deposit_denominations": "{\"eur\":{},\"usd\":{}}"
+          },
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/cash-session/close",
+          "executionMode": "production",
+          "jwtPayload": {
+            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "email": "raidel@invokeia.com",
+            "expiresIn": "24h",
+            "iat": 1788955161
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
     ]
   },
   "connections": {
@@ -4274,17 +4898,6 @@
         [
           {
             "node": "is_active",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Code in JavaScript": {
-      "main": [
-        [
-          {
-            "node": "Update currencies",
             "type": "main",
             "index": 0
           }
@@ -4555,7 +5168,7 @@
       "main": [
         [
           {
-            "node": "Code in JavaScript",
+            "node": "Code in JavaScript3",
             "type": "main",
             "index": 0
           }
@@ -4947,6 +5560,108 @@
           }
         ]
       ]
+    },
+    "cash-session/open1": {
+      "main": [
+        [
+          {
+            "node": "Call Cash-session-active-workflow2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Cash-session-active-workflow2": {
+      "main": [
+        [
+          {
+            "node": "If cash-session-open1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert rows in cash-session1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "cash-session-error3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If cash-session-open1": {
+      "main": [
+        [
+          {
+            "node": "error cash-session is open1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert rows in cash-session1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Insert rows in a table1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert rows in a table1": {
+      "main": [
+        [
+          {
+            "node": "Merge info1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge info1": {
+      "main": [
+        [
+          {
+            "node": "cash-session-success2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Update currencies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
@@ -4957,7 +5672,7 @@
     "callerPolicy": "workflowsFromSameOwner",
     "availableInMCP": false
   },
-  "versionId": "6aaf4458-c375-42cc-ac48-8cd41de06579",
+  "versionId": "ca899607-36fd-4583-9980-783d282cac63",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
