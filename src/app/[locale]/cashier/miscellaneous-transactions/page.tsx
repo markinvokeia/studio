@@ -300,7 +300,7 @@ export default function MiscellaneousTransactionsPage() {
                     beneficiary_name: editingTransaction.beneficiary_name || '',
                     currency: editingTransaction.currency as any,
                     exchange_rate: editingTransaction.exchange_rate,
-                    external_reference: editingTransaction.external_reference,
+                    external_reference: cleanValue(editingTransaction.external_reference),
                     tags: Array.isArray(editingTransaction.tags) ? editingTransaction.tags.join(', ') : '',
                     payment_method_id: editingTransaction.payment_method_id?.toString(),
                 });
@@ -326,22 +326,30 @@ export default function MiscellaneousTransactionsPage() {
         setIsDialogOpen(true);
     };
 
-    const handleEdit = (transaction: MiscellaneousTransaction) => {
-        setEditingTransaction(transaction);
-        setSubmissionError(null);
-        setIsDialogOpen(true);
-    };
-
-    // A transaction can only be deleted while its cash movement can still be reversed:
+    // A transaction can only be edited or deleted while its cash movement can still be changed:
     // either it never hit a cash session (still pending) or its session is the one currently open.
-    const isTransactionDeletable = React.useCallback((transaction: MiscellaneousTransaction) => {
+    const isTransactionModifiable = React.useCallback((transaction: MiscellaneousTransaction) => {
         if (!transaction.cash_session_id) return true;
         const activeSessionId = activeCashSession?.data?.id;
         return activeSessionId != null && String(transaction.cash_session_id) === String(activeSessionId);
     }, [activeCashSession]);
 
+    const handleEdit = (transaction: MiscellaneousTransaction) => {
+        if (!isTransactionModifiable(transaction)) {
+            toast({
+                variant: 'destructive',
+                title: t('toasts.errorTitle'),
+                description: t('actions.editDisabledClosedSession'),
+            });
+            return;
+        }
+        setEditingTransaction(transaction);
+        setSubmissionError(null);
+        setIsDialogOpen(true);
+    };
+
     const handleDelete = (transaction: MiscellaneousTransaction) => {
-        if (!isTransactionDeletable(transaction)) {
+        if (!isTransactionModifiable(transaction)) {
             toast({
                 variant: 'destructive',
                 title: t('toasts.errorTitle'),
@@ -404,7 +412,7 @@ export default function MiscellaneousTransactionsPage() {
             id: 'actions',
             cell: ({ row }) => {
                 const transaction = row.original;
-                const canDelete = isTransactionDeletable(transaction);
+                const canModify = isTransactionModifiable(transaction);
                 return (
                     // The menu is portaled but still a React child of the row: without this, clicks on
                     // the trigger or its items bubble up to onRowClick and also open the edit dialog.
@@ -418,11 +426,17 @@ export default function MiscellaneousTransactionsPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
-                                <DropdownMenuItem onClick={() => handleEdit(transaction)}>{t('actions.edit')}</DropdownMenuItem>
                                 <DropdownMenuItem
-                                    onClick={() => canDelete && handleDelete(transaction)}
-                                    disabled={!canDelete}
-                                    title={canDelete ? undefined : t('actions.deleteDisabledClosedSession')}
+                                    onClick={() => canModify && handleEdit(transaction)}
+                                    disabled={!canModify}
+                                    title={canModify ? undefined : t('actions.editDisabledClosedSession')}
+                                >
+                                    {t('actions.edit')}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => canModify && handleDelete(transaction)}
+                                    disabled={!canModify}
+                                    title={canModify ? undefined : t('actions.deleteDisabledClosedSession')}
                                     className="text-destructive"
                                 >
                                     {t('actions.delete')}
