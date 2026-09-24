@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(perl -0pi -e \"s/'UYU' \\\\| 'USD' \\\\| string/CurrencyCode/g; s/'UYU' \\\\| 'USD'/CurrencyCode/g\" src/lib/types.ts)",
-      "Bash(perl -0pi -e \"s/  currency\\\\?: 'UYU' \\\\| 'USD';\\\\n  \\\\/\\\\/ New fields from API response/  currency?: CurrencyCode;\\\\n  \\\\/\\\\/ New fields from API response/\" src/lib/types.ts)",
-      "Bash(pnpm typecheck *)"
-    ]
-  }
-}
