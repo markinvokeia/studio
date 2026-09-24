@@ -340,6 +340,10 @@ export function DoctorAgentChat({
     const div = document.createElement('div');
     // Mount outside <body> so Radix's aria-hidden/inert sweep (hideOthers) never
     // targets this container — it only operates on document.body children.
+    // Being a sibling of <body>, it also escapes every print rule that hides the
+    // app shell (`print:hidden` wrappers, `body > *:not([data-print-container])`),
+    // so it has to hide itself or the floating button lands on the printed PDF.
+    div.className = 'print:hidden';
     document.documentElement.appendChild(div);
     portalContainerRef.current = div;
     setIsClient(true);
