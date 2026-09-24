@@ -5201,6 +5201,8 @@
       "notes": "Notes",
       "tooth": "Tooth",
       "odontogramUpdate": "Odontogram Update",
+      "viewOdontogram": "View odontogram",
+      "openAppointment": "View appointment",
       "showMore": "Show more",
       "showDetails": "Show details",
       "hideDetails": "Hide details",

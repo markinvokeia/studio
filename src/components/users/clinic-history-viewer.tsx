@@ -39,8 +39,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
-import { ResizableSheet, SheetDescription, SheetTitle } from '@/components/ui/resizable-sheet';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ResizableSheet, SheetTitle } from '@/components/ui/resizable-sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
@@ -64,9 +63,7 @@ import { api } from '@/services/api';
 import { addYears, format, isBefore, isValid, parseISO } from 'date-fns';
 import { getDateFnsLocale } from '@/lib/locale';
 import {
-    Activity,
     AlertTriangle,
-    Calendar as CalendarIcon,
     CalendarCheck,
     CalendarSync,
     Check,
@@ -82,9 +79,7 @@ import {
     FolderArchive,
     GlassWater,
     Heart,
-    Link2,
     Loader2,
-    MapPin,
     MoreHorizontal,
     Pill,
     Plus,
@@ -93,11 +88,9 @@ import {
     SlidersHorizontal,
     Smile,
     Stethoscope,
-    StickyNote,
     Trash2,
     Upload,
     User,
-    UserSquare,
     Wind,
     X,
     ZoomIn,
@@ -1783,6 +1776,81 @@ function parsePlanProximaCita(value: string | null | undefined): string {
     }
 }
 
+interface TimelineRowProps {
+    icon: React.ReactNode;
+    /** Cabecera siempre visible: tipo, fecha y, plegado, una línea de vista previa. */
+    summary: React.ReactNode;
+    /** Queda a la derecha de la cabecera, sin interacción (estado, color...). */
+    trailing?: React.ReactNode;
+    /** Controles interactivos de la cabecera (menú de estado, editar...). No despliegan la fila. */
+    actions?: React.ReactNode;
+    expanded: boolean;
+    /** Sin handler la fila no se despliega (p. ej. sesiones en el portal del paciente). */
+    onToggle?: () => void;
+    /** Resalta el registro ligado a la cita que se está atendiendo. */
+    highlighted?: boolean;
+    /** Detalle completo, sin truncar. Solo se monta desplegado. */
+    children?: React.ReactNode;
+}
+
+/**
+ * Registro de la línea de tiempo: la cabecera se toca para desplegar el detalle
+ * completo. Quién está abierto lo decide el padre (acordeón, uno a la vez).
+ *
+ * El clic se escucha en toda la cabecera; el botón interno está para el teclado y
+ * los lectores de pantalla (su clic sube a la cabecera, no se maneja dos veces).
+ * Las `actions` cortan la propagación, también la de los menús en portal de Radix.
+ */
+function TimelineRow({ icon, summary, trailing, actions, expanded, onToggle, highlighted = false, children }: TimelineRowProps) {
+    const isExpandable = Boolean(onToggle);
+    const isOpen = isExpandable && expanded;
+    const summaryContent = (
+        <>
+            {icon}
+            <div className="min-w-0 flex-1">{summary}</div>
+        </>
+    );
+    return (
+        <div
+            className={cn(
+                'border-b last:border-b-0 border-l-2 transition-colors',
+                highlighted
+                    ? 'border-l-primary bg-primary/5 dark:border-l-link dark:bg-link/10'
+                    : cn('border-l-transparent', isOpen && 'bg-muted/30'),
+            )}
+        >
+            <div
+                className={cn('flex items-start gap-2 px-2.5 py-2', isExpandable && 'cursor-pointer transition-colors hover:bg-muted/50')}
+                onClick={onToggle}
+            >
+                {isExpandable ? (
+                    <button
+                        type="button"
+                        aria-expanded={isOpen}
+                        className="flex min-w-0 flex-1 items-start gap-2 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                        {summaryContent}
+                    </button>
+                ) : summaryContent}
+                {trailing}
+                {actions && (
+                    <div className="flex shrink-0 items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        {actions}
+                    </div>
+                )}
+                {isExpandable && (
+                    <ChevronDown
+                        aria-hidden
+                        className={cn('mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200', isOpen && 'rotate-180')}
+                    />
+                )}
+            </div>
+            {/* 38px = padding de la fila + ícono + gap: el detalle arranca alineado con el texto de la cabecera. */}
+            {isOpen && <div className="space-y-1 pb-2.5 pl-[38px] pr-2.5 text-xs">{children}</div>}
+        </div>
+    );
+}
+
 // Treatment Timeline Component with CRUD
 export type TimelineFilter = 'all' | 'clinica' | 'odontograma' | 'appointment';
 
@@ -1874,13 +1942,10 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
     }, [userId, userName, isPrintingHistory, printClinicHistory, toast, tPrint]);
 
     const [openItems, setOpenItems] = React.useState<string[]>([]);
-    const [selectedItemKey, setSelectedItemKey] = React.useState<string | null>(null);
 
     const [isSessionDialogOpen, setIsSessionDialogOpen] = React.useState(false);
     const [isOdontogramDialogOpen, setIsOdontogramDialogOpen] = React.useState(false);
     const [isOdontogramViewerOpen, setIsOdontogramViewerOpen] = React.useState(false);
-    const [isSessionDetailSheetOpen, setIsSessionDetailSheetOpen] = React.useState(false);
-    const [sessionDetailData, setSessionDetailData] = React.useState<PatientSession | null>(null);
     const [editingSession, setEditingSession] = React.useState<PatientSession | null>(null);
     const [deletingSession, setDeletingSession] = React.useState<PatientSession | null>(null);
 
@@ -2249,10 +2314,18 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
         return latest ? String((latest.data as PatientSession).sesion_id) : null;
     }, [filteredItems]);
 
-    const selectedItem = React.useMemo(() => {
-        if (!selectedItemKey) return null;
-        return filteredItems.find((item, i) => getItemKey(item, i) === selectedItemKey) ?? null;
-    }, [filteredItems, selectedItemKey]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Modo doctor: los registros son un acordeón (uno abierto a la vez). Por defecto se
+    // abre el último realizado: las citas futuras encabezan la lista pero todavía no
+    // pasaron. La elección del usuario se ata al paciente, así al cambiar de paciente
+    // (Mi Consultorio reusa el componente) vuelve el default.
+    const [expandedChoice, setExpandedChoice] = React.useState<{ userId: string; key: string | null } | null>(null);
+    // Mismo criterio que la badge "Próxima" de las citas (`item.date > new Date()`).
+    const defaultExpandedIndex = filteredItems.findIndex(item => !(item.date > new Date()));
+    const defaultExpandedKey = filteredItems.length === 0
+        ? null
+        : getItemKey(filteredItems[Math.max(0, defaultExpandedIndex)], Math.max(0, defaultExpandedIndex));
+    const expandedKey = expandedChoice?.userId === userId ? expandedChoice.key : defaultExpandedKey;
+    const toggleExpanded = (key: string) => setExpandedChoice({ userId, key: expandedKey === key ? null : key });
 
     if (isLoading || isLoadingAppointments) {
         return (
@@ -2440,7 +2513,6 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                 <div>
                                     {filteredItems.map((item, index) => {
                                         const key = getItemKey(item, index);
-                                        const isSelected = selectedItemKey === key;
                                         if (item.kind === 'appointment') {
                                             const appt = item.data;
                                             const isFuture = item.date > new Date();
@@ -2491,117 +2563,21 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                     {isFuture ? <CalendarSync className="h-3 w-3 text-violet-500 dark:text-violet-400" /> : <CalendarCheck className="h-3 w-3 text-blue-500 dark:text-blue-400" />}
                                                 </div>
                                             );
-                                            if (isDoctorMode) {
-                                                // Sin clic: toda la info visible una sola vez. Arriba: Tipo + Fecha/horas; debajo: el resto.
-                                                return (
-                                                    <div key={key} className="flex items-start gap-2 px-2.5 py-2 border-b last:border-b-0 border-l-2 border-l-transparent">
-                                                        {apptIcon}
-                                                        <div className="flex-1 min-w-0 space-y-1.5">
-                                                            <div className="flex items-start justify-between gap-2">
-                                                                <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                                                                    {apptTypeBadge}
-                                                                    {apptUpcomingBadge}
-                                                                    <span className="text-xs font-medium text-foreground">
-                                                                        {formatDisplayDateWithWeekday(item.date, locale)}{startLabel && ` · ${startLabel}`}{endLabel && ` → ${endLabel}`}
-                                                                    </span>
-                                                                    {durationMin != null && (
-                                                                        <span className="text-xs text-muted-foreground">({t('apptDurationMin', { min: durationMin })})</span>
-                                                                    )}
-                                                                </div>
-                                                                {apptStatusBadge}
-                                                            </div>
-                                                            <div className="space-y-1 text-xs">
-                                                                {appt.calendar_name && (
-                                                                    <div className="flex items-center gap-1.5">
-                                                                        <span className="text-muted-foreground shrink-0">{t('apptCalendar')}:</span>
-                                                                        <span className="text-foreground truncate">{appt.calendar_name}</span>
-                                                                    </div>
-                                                                )}
-                                                                {appt.doctorName && (
-                                                                    <div className="flex items-center gap-1.5">
-                                                                        <span className="text-muted-foreground shrink-0">{t('apptDoctor')}:</span>
-                                                                        <span className="text-foreground truncate">{appt.doctorName}</span>
-                                                                    </div>
-                                                                )}
-                                                                {treatmentNames.length > 0 && (
-                                                                    <div className="flex items-start gap-1.5">
-                                                                        <span className="text-muted-foreground shrink-0">{t('treatments')}:</span>
-                                                                        <span className="text-foreground">{treatmentNames.join(', ')}</span>
-                                                                    </div>
-                                                                )}
-                                                                {appt.notes && (
-                                                                    <div className="flex items-start gap-1.5">
-                                                                        <span className="text-muted-foreground shrink-0">{t('notes')}:</span>
-                                                                        <span className="text-foreground whitespace-pre-wrap">{appt.notes}</span>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            }
+                                            // Plegada: tipo, fecha/horas y una línea de vista previa. Desplegada: todo,
+                                            // sin truncar (la etiqueta va inline para que el texto largo envuelva).
+                                            // Fuera del modo doctor la cabecera suma presupuesto/factura, el menú de
+                                            // estado y editar; el panel completo de la cita queda como acción del detalle.
+                                            const isExpanded = expandedKey === key;
+                                            const apptPreview = treatmentNames.length > 0 ? treatmentNames.join(', ') : apptNotes;
                                             return (
-                                                <div
+                                                <TimelineRow
                                                     key={key}
-                                                    className={cn(
-                                                        'flex items-start gap-2 px-2.5 py-2 border-b last:border-b-0 transition-colors border-l-2',
-                                                        readOnly ? 'cursor-default' : 'cursor-pointer',
-                                                        isSelected ? 'bg-primary/5 border-l-primary dark:bg-link/10 dark:border-l-link' : 'border-l-transparent hover:bg-muted/50',
-                                                    )}
-                                                    onClick={() => {
-                                                        setSelectedItemKey(isSelected ? null : key);
-                                                        // Portal del paciente: la cita se ve en la línea de
-                                                        // tiempo, pero no abre el panel lateral de detalle.
-                                                        if (readOnly) return;
-                                                        openApptPanel(appt);
-                                                    }}
-                                                >
-                                                    {apptIcon}
-                                                    <div className="flex-1 min-w-0 flex flex-row items-start justify-between gap-2">
-                                                        <div className="min-w-0">
-                                                            <div className="flex items-center gap-1 flex-wrap">
-                                                                {apptTypeBadge}
-                                                                {apptUpcomingBadge}
-                                                                <span className="text-xs text-muted-foreground">
-                                                                    {formatDisplayDateWithWeekday(item.date, locale)}{startLabel && ` · ${startLabel}`}{endLabel && ` → ${endLabel}`}
-                                                                </span>
-                                                                {appt.quote_doc_no && (
-                                                                    <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-1.5 py-0 leading-relaxed font-mono">
-                                                                        {appt.quote_doc_no}
-                                                                    </Badge>
-                                                                )}
-                                                                {appt.invoice_id && (
-                                                                    <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-1.5 py-0 leading-relaxed font-mono">
-                                                                        <FileText className="h-2.5 w-2.5 mr-0.5" />#{appt.invoice_id}
-                                                                    </Badge>
-                                                                )}
-                                                            </div>
-                                                            {apptNotes && (
-                                                                <p className="flex items-center gap-1 text-xs font-medium mt-0.5 min-w-0" title={apptNotes}>
-                                                                    <StickyNote className="h-3 w-3 shrink-0 text-muted-foreground" />
-                                                                    <span className="truncate">{apptNotes}</span>
-                                                                </p>
-                                                            )}
-                                                            <p className="flex items-center gap-x-3 gap-y-0.5 flex-wrap text-xs text-muted-foreground">
-                                                                <span className="flex items-center gap-1 min-w-0" title={t('apptCalendar')}>
-                                                                    <MapPin className="h-3 w-3 shrink-0" />
-                                                                    <span className="truncate">{appt.calendar_name || t('apptUnassigned')}</span>
-                                                                </span>
-                                                                <span className="flex items-center gap-1 min-w-0" title={t('apptDoctor')}>
-                                                                    <UserSquare className="h-3 w-3 shrink-0" />
-                                                                    <span className="truncate">{appt.doctorName || t('apptUnassigned')}</span>
-                                                                </span>
-                                                                {(appt.services?.length ?? 0) > 0 && (
-                                                                    <span className="flex items-center gap-1 min-w-0" title={t('apptServices')}>
-                                                                        <Stethoscope className="h-3 w-3 shrink-0" />
-                                                                        <span className="truncate">
-                                                                            {appt.services!.map((service) => service.name).filter(Boolean).join(', ')}
-                                                                        </span>
-                                                                    </span>
-                                                                )}
-                                                            </p>
-                                                        </div>
-                                                        <div className="flex items-center gap-1 shrink-0">
+                                                    icon={apptIcon}
+                                                    expanded={isExpanded}
+                                                    onToggle={() => toggleExpanded(key)}
+                                                    trailing={isDoctorMode ? apptStatusBadge : undefined}
+                                                    actions={isDoctorMode ? undefined : (
+                                                        <>
                                                             {apptStatusControl}
                                                             {/* Editar la cita (fecha, hora, agenda, doctor, tratamientos) en la
                                                                 tarjeta inline. El gate vive en el consumidor: sin el permiso
@@ -2616,23 +2592,81 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                                     size="icon"
                                                                     className="h-6 w-6"
                                                                     title={t('edit')}
-                                                                    onClick={(e) => { e.stopPropagation(); onEditAppointment(appt); }}
+                                                                    onClick={() => onEditAppointment(appt)}
                                                                 >
                                                                     <Edit3 className="h-3.5 w-3.5" />
                                                                 </Button>
                                                             )}
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                                        </>
+                                                    )}
+                                                    summary={
+                                                        <>
+                                                            <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                                                                {apptTypeBadge}
+                                                                {apptUpcomingBadge}
+                                                                <span className="text-xs font-medium text-foreground">
+                                                                    {formatDisplayDateWithWeekday(item.date, locale)}{startLabel && ` · ${startLabel}`}{endLabel && ` → ${endLabel}`}
+                                                                </span>
+                                                                {durationMin != null && (
+                                                                    <span className="text-xs text-muted-foreground">({t('apptDurationMin', { min: durationMin })})</span>
+                                                                )}
+                                                                {!isDoctorMode && appt.quote_doc_no && (
+                                                                    <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-1.5 py-0 leading-relaxed font-mono">
+                                                                        {appt.quote_doc_no}
+                                                                    </Badge>
+                                                                )}
+                                                                {!isDoctorMode && appt.invoice_id && (
+                                                                    <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-1.5 py-0 leading-relaxed font-mono">
+                                                                        <FileText className="h-2.5 w-2.5 mr-0.5" />#{appt.invoice_id}
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+                                                            {!isExpanded && apptPreview && (
+                                                                <p className="mt-0.5 truncate text-xs text-muted-foreground">{apptPreview}</p>
+                                                            )}
+                                                        </>
+                                                    }
+                                                >
+                                                    <p className="break-words text-foreground">
+                                                        <span className="text-muted-foreground">{t('apptCalendar')}:</span>{' '}
+                                                        {appt.calendar_name || t('apptUnassigned')}
+                                                    </p>
+                                                    <p className="break-words text-foreground">
+                                                        <span className="text-muted-foreground">{t('apptDoctor')}:</span>{' '}
+                                                        {appt.doctorName || t('apptUnassigned')}
+                                                    </p>
+                                                    {treatmentNames.length > 0 && (
+                                                        <p className="break-words text-foreground">
+                                                            <span className="text-muted-foreground">{t('treatments')}:</span>{' '}
+                                                            {treatmentNames.join(', ')}
+                                                        </p>
+                                                    )}
+                                                    {apptNotes && (
+                                                        <p className="whitespace-pre-wrap break-words text-foreground">
+                                                            <span className="text-muted-foreground">{t('notes')}:</span>{' '}
+                                                            {apptNotes}
+                                                        </p>
+                                                    )}
+                                                    {/* Panel completo (cobro, sesión vinculada...). El modo doctor no lo usa y en
+                                                        solo lectura (portal del paciente) solo se ve el registro. */}
+                                                    {!isDoctorMode && !readOnly && (
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="mt-1 h-7 gap-1.5 text-xs"
+                                                            onClick={() => openApptPanel(appt)}
+                                                        >
+                                                            <Eye className="h-3.5 w-3.5" />
+                                                            {t('openAppointment')}
+                                                        </Button>
+                                                    )}
+                                                </TimelineRow>
                                             );
                                         }
                                         const session = item.data as PatientSession;
                                         const isOdontogramSession = session.tipo_sesion === 'odontograma';
                                         const Icon = isOdontogramSession ? Smile : Stethoscope;
-                                        // Modo doctor: la sesión se muestra inline, con todo su detalle desplegado.
-                                        // Es la vista que usa "Mi Consultorio", donde el doctor necesita leer el
-                                        // procedimiento completo sin expandir nada (sobre todo en mobile).
-                                        const inlineDoctorSession = isDoctorMode;
                                         const isLinkedToAppointment = Boolean(
                                             linkedAppointmentId && String(session.appointment_id ?? '') === linkedAppointmentId
                                         );
@@ -2673,160 +2707,51 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                 title={session.color}
                                             />
                                         ) : null;
-                                        if (inlineDoctorSession) {
-                                            // Sin clic: todo visible una vez. Arriba: Tipo + Fecha; debajo: el resto (Próxima cita al final si hay).
-                                            const planProximaCita = parsePlanProximaCita(session.plan_proxima_cita);
-                                            const treatmentLabels = (session.tratamientos ?? [])
-                                                .map((tr: any) => [tr.numero_diente ? `${tr.numero_diente}:` : '', tr.descripcion].filter(Boolean).join(' '))
-                                                .filter(Boolean);
-                                            const hasNextPlan = (!!planProximaCita && planProximaCita.trim() !== '') || !!session.fecha_proxima_cita;
-                                            const attachmentLabels = (session.archivos_adjuntos ?? [])
-                                                .map((file: any) => file.file_name || file.ruta)
-                                                .filter(Boolean);
-                                            // Resumen del odontograma: se agrupan las piezas por condición para que la
-                                            // sesión informe qué se marcó sin tener que abrir el odontograma completo.
-                                            const odontogramGroups = isOdontogramSession && session.estado_odontograma
-                                                ? Object.entries(
-                                                    Object.entries(session.estado_odontograma as Record<string, Record<string, string>>)
-                                                        .reduce((acc: Record<string, string[]>, [tooth, surfaces]) => {
-                                                            new Set(Object.values(surfaces ?? {})).forEach(condition => {
-                                                                (acc[condition] ??= []).push(tooth);
-                                                            });
-                                                            return acc;
-                                                        }, {})
-                                                )
-                                                : [];
-                                            return (
-                                                <div
-                                                    key={key}
-                                                    className={cn(
-                                                        'flex items-start gap-2 px-2.5 py-2 border-b last:border-b-0 border-l-2 transition-colors',
-                                                        isLinkedToAppointment ? 'border-l-primary bg-primary/5 dark:border-l-link dark:bg-link/10' : 'border-l-transparent',
-                                                        // El odontograma completo sigue estando a un clic de distancia.
-                                                        isOdontogramSession && 'cursor-pointer hover:bg-muted/50',
-                                                    )}
-                                                    onClick={isOdontogramSession ? () => {
-                                                        setSessionDetailData(session);
-                                                        setIsOdontogramViewerOpen(true);
-                                                    } : undefined}
-                                                >
-                                                    {sessionIcon}
-                                                    <div className="flex-1 min-w-0 space-y-1.5">
+                                        // Plegada: tipo, fecha y el procedimiento en una línea. Desplegada: el resto
+                                        // (Próxima cita al final si hay). En el portal del paciente se ve el registro,
+                                        // no el detalle clínico, así que la sesión no se despliega.
+                                        const canExpandSession = !isPortalReadOnly;
+                                        const isExpanded = canExpandSession && expandedKey === key;
+                                        // Editar/eliminar: no en modo doctor (Mi Consultorio gestiona sus sesiones)
+                                        // ni en solo lectura. El odontograma se edita desde su propio visor.
+                                        const canManageSession = !isDoctorMode && !readOnly && !isOdontogramSession;
+                                        const sessionDoctorName = session.nombre_doctor || session.doctor_name;
+                                        const planProximaCita = parsePlanProximaCita(session.plan_proxima_cita);
+                                        const treatmentLabels = (session.tratamientos ?? [])
+                                            .map((tr: any) => [tr.numero_diente ? `${tr.numero_diente}:` : '', tr.descripcion].filter(Boolean).join(' '))
+                                            .filter(Boolean);
+                                        const hasNextPlan = (!!planProximaCita && planProximaCita.trim() !== '') || !!session.fecha_proxima_cita;
+                                        const attachments = (session.archivos_adjuntos ?? [])
+                                            .filter((file: any) => file.file_name || file.ruta);
+                                        // Resumen del odontograma: se agrupan las piezas por condición para que la
+                                        // sesión informe qué se marcó sin tener que abrir el odontograma completo.
+                                        const odontogramGroups = isOdontogramSession && session.estado_odontograma
+                                            ? Object.entries(
+                                                Object.entries(session.estado_odontograma as Record<string, Record<string, string>>)
+                                                    .reduce((acc: Record<string, string[]>, [tooth, surfaces]) => {
+                                                        new Set(Object.values(surfaces ?? {})).forEach(condition => {
+                                                            (acc[condition] ??= []).push(tooth);
+                                                        });
+                                                        return acc;
+                                                    }, {})
+                                            )
+                                            : [];
+                                        const sessionPreview = session.procedimiento_realizado?.trim()
+                                            || (isOdontogramSession ? t('odontogramUpdate') : t('noTitle'));
+                                        return (
+                                            <TimelineRow
+                                                key={key}
+                                                icon={sessionIcon}
+                                                expanded={isExpanded}
+                                                onToggle={canExpandSession ? () => toggleExpanded(key) : undefined}
+                                                highlighted={isLinkedToAppointment}
+                                                trailing={sessionColorDot}
+                                                summary={
+                                                    <>
                                                         <div className="flex items-center gap-1.5 flex-wrap">
                                                             {sessionTypeBadge}
                                                             <span className="text-xs font-medium text-foreground">{formatDate(session.fecha_sesion)}</span>
                                                             {contextBadges}
-                                                        </div>
-                                                        <div className="space-y-1 text-xs">
-                                                            {odontogramGroups.length > 0 && (
-                                                                <div className="space-y-0.5">
-                                                                    <p className="text-muted-foreground">{t('odontogramUpdate')}:</p>
-                                                                    <div className="space-y-0.5">
-                                                                        {odontogramGroups.map(([condition, teeth]) => {
-                                                                            const def = CONDITION_MAP[condition as keyof typeof CONDITION_MAP];
-                                                                            const label = def ? t(`conditions.${condition}` as Parameters<typeof t>[0]) : condition;
-                                                                            return (
-                                                                                <div key={condition} className="flex min-w-0 flex-wrap items-center gap-x-1.5">
-                                                                                    {def && (
-                                                                                        <span
-                                                                                            className="inline-flex items-center rounded px-1 py-0.5 font-mono text-[10px] font-bold text-white"
-                                                                                            style={{ backgroundColor: def.color }}
-                                                                                        >
-                                                                                            {def.icon}
-                                                                                        </span>
-                                                                                    )}
-                                                                                    <span className="text-foreground">{label}:</span>
-                                                                                    <span className="text-muted-foreground tabular-nums">
-                                                                                        {teeth.sort((a, b) => Number(a) - Number(b)).join(', ')}
-                                                                                    </span>
-                                                                                </div>
-                                                                            );
-                                                                        })}
-                                                                    </div>
-                                                                </div>
-                                                            )}
-                                                            {/* La etiqueta va inline dentro del mismo párrafo, no como columna de
-                                                                un flex: así el texto largo envuelve contra el borde izquierdo de
-                                                                la tarjeta y no deja un hueco bajo la etiqueta. */}
-                                                            {session.procedimiento_realizado && (
-                                                                <p className="whitespace-pre-wrap break-words text-foreground">
-                                                                    <span className="text-muted-foreground">{t('procedure')}:</span>{' '}
-                                                                    {session.procedimiento_realizado}
-                                                                </p>
-                                                            )}
-                                                            {(session.nombre_doctor || session.doctor_name) && (
-                                                                <p className="break-words text-foreground">
-                                                                    <span className="text-muted-foreground">{t('apptDoctor')}:</span>{' '}
-                                                                    {session.nombre_doctor || session.doctor_name}
-                                                                </p>
-                                                            )}
-                                                            {session.diagnostico && session.diagnostico.trim() !== '' && (
-                                                                <p className="whitespace-pre-wrap break-words text-foreground">
-                                                                    <span className="text-muted-foreground">{t('diagnosis')}:</span>{' '}
-                                                                    {session.diagnostico}
-                                                                </p>
-                                                            )}
-                                                            {session.notas_clinicas && session.notas_clinicas.trim() !== '' && (
-                                                                <p className="whitespace-pre-wrap break-words text-foreground">
-                                                                    <span className="text-muted-foreground">{t('notes')}:</span>{' '}
-                                                                    {session.notas_clinicas}
-                                                                </p>
-                                                            )}
-                                                            {treatmentLabels.length > 0 && (
-                                                                <p className="break-words text-foreground">
-                                                                    <span className="text-muted-foreground">{t('treatments')}:</span>{' '}
-                                                                    {treatmentLabels.join(', ')}
-                                                                </p>
-                                                            )}
-                                                            {attachmentLabels.length > 0 && (
-                                                                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-                                                                    <span className="text-muted-foreground">{t('attachments')}:</span>
-                                                                    {attachmentLabels.map((name: string, fileIndex: number) => (
-                                                                        <span
-                                                                            key={`${session.sesion_id}-attachment-${fileIndex}`}
-                                                                            className="flex min-w-0 items-center gap-1 rounded border bg-background px-1.5 py-0.5 text-foreground"
-                                                                        >
-                                                                            <FileText className="h-3 w-3 shrink-0 text-amber-500 dark:text-amber-400" />
-                                                                            <span className="truncate">{name}</span>
-                                                                        </span>
-                                                                    ))}
-                                                                </div>
-                                                            )}
-                                                            {hasNextPlan && (
-                                                                <p className="whitespace-pre-wrap break-words text-foreground">
-                                                                    <span className="text-muted-foreground">{t('nextPlan')}:</span>{' '}
-                                                                    {planProximaCita}
-                                                                    {session.fecha_proxima_cita && ` (${formatDate(session.fecha_proxima_cita)})`}
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    {sessionColorDot}
-                                                </div>
-                                            );
-                                        }
-                                        return (
-                                            <div
-                                                key={key}
-                                                className={cn('flex items-start gap-2 px-2.5 py-2 cursor-pointer border-b last:border-b-0 transition-colors border-l-2', isSelected ? 'bg-primary/5 border-l-primary dark:bg-link/10 dark:border-l-link' : 'border-l-transparent hover:bg-muted/50')}
-                                                onClick={() => {
-                                                    setSelectedItemKey(isSelected ? null : key);
-                                                    // Portal del paciente: se ve el ítem, no el detalle clínico.
-                                                    if (readOnly) return;
-                                                    setSessionDetailData(session);
-                                                    if (session.tipo_sesion === 'odontograma') {
-                                                        setIsOdontogramViewerOpen(true);
-                                                    } else if (!isDoctorMode) {
-                                                        setIsSessionDetailSheetOpen(true);
-                                                    }
-                                                }}
-                                            >
-                                                {sessionIcon}
-                                                <div className="flex flex-1 min-w-0 items-start justify-between gap-3">
-                                                    <div className="min-w-0 flex-1">
-                                                        <div className="flex items-center gap-1 flex-wrap">
-                                                            {sessionTypeBadge}
-                                                            <span className="text-xs text-muted-foreground">{formatDate(session.fecha_sesion)}</span>
                                                             {!isDoctorMode && session.quote_doc_no && (
                                                                 <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-1.5 py-0 leading-relaxed font-mono">
                                                                     {session.quote_doc_no}
@@ -2838,20 +2763,137 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                                 </Badge>
                                                             )}
                                                         </div>
-                                                        <p className="flex items-center gap-1 text-xs font-medium mt-0.5 min-w-0" title={t('procedure')}>
-                                                            <Activity className="h-3 w-3 shrink-0 text-muted-foreground" />
-                                                            <span className="truncate">{session.procedimiento_realizado || t('noTitle')}</span>
-                                                        </p>
-                                                        {(session.nombre_doctor || session.doctor_name) && (
-                                                            <p className="flex items-center gap-1 text-xs text-muted-foreground min-w-0" title={t('apptDoctor')}>
-                                                                <UserSquare className="h-3 w-3 shrink-0" />
-                                                                <span className="truncate">{session.nombre_doctor || session.doctor_name}</span>
-                                                            </p>
+                                                        {!isExpanded && (
+                                                            <p className="mt-0.5 truncate text-xs text-muted-foreground">{sessionPreview}</p>
+                                                        )}
+                                                        {/* Sin despliegue (portal) el doctor queda visible en la cabecera. */}
+                                                        {!canExpandSession && sessionDoctorName && (
+                                                            <p className="truncate text-xs text-muted-foreground">{sessionDoctorName}</p>
+                                                        )}
+                                                    </>
+                                                }
+                                            >
+                                                {odontogramGroups.length > 0 && (
+                                                    <div className="space-y-0.5">
+                                                        <p className="text-muted-foreground">{t('odontogramUpdate')}:</p>
+                                                        <div className="space-y-0.5">
+                                                            {odontogramGroups.map(([condition, teeth]) => {
+                                                                const def = CONDITION_MAP[condition as keyof typeof CONDITION_MAP];
+                                                                const label = def ? t(`conditions.${condition}` as Parameters<typeof t>[0]) : condition;
+                                                                return (
+                                                                    <div key={condition} className="flex min-w-0 flex-wrap items-center gap-x-1.5">
+                                                                        {def && (
+                                                                            <span
+                                                                                className="inline-flex items-center rounded px-1 py-0.5 font-mono text-[10px] font-bold text-white"
+                                                                                style={{ backgroundColor: def.color }}
+                                                                            >
+                                                                                {def.icon}
+                                                                            </span>
+                                                                        )}
+                                                                        <span className="text-foreground">{label}:</span>
+                                                                        <span className="text-muted-foreground tabular-nums">
+                                                                            {teeth.sort((a, b) => Number(a) - Number(b)).join(', ')}
+                                                                        </span>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {session.procedimiento_realizado && (
+                                                    <p className="whitespace-pre-wrap break-words text-foreground">
+                                                        <span className="text-muted-foreground">{t('procedure')}:</span>{' '}
+                                                        {session.procedimiento_realizado}
+                                                    </p>
+                                                )}
+                                                {sessionDoctorName && (
+                                                    <p className="break-words text-foreground">
+                                                        <span className="text-muted-foreground">{t('apptDoctor')}:</span>{' '}
+                                                        {sessionDoctorName}
+                                                    </p>
+                                                )}
+                                                {session.diagnostico && session.diagnostico.trim() !== '' && (
+                                                    <p className="whitespace-pre-wrap break-words text-foreground">
+                                                        <span className="text-muted-foreground">{t('diagnosis')}:</span>{' '}
+                                                        {session.diagnostico}
+                                                    </p>
+                                                )}
+                                                {session.notas_clinicas && session.notas_clinicas.trim() !== '' && (
+                                                    <p className="whitespace-pre-wrap break-words text-foreground">
+                                                        <span className="text-muted-foreground">{t('notes')}:</span>{' '}
+                                                        {session.notas_clinicas}
+                                                    </p>
+                                                )}
+                                                {treatmentLabels.length > 0 && (
+                                                    <p className="break-words text-foreground">
+                                                        <span className="text-muted-foreground">{t('treatments')}:</span>{' '}
+                                                        {treatmentLabels.join(', ')}
+                                                    </p>
+                                                )}
+                                                {attachments.length > 0 && (
+                                                    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                                                        <span className="text-muted-foreground">{t('attachments')}:</span>
+                                                        {attachments.map((file: any, fileIndex: number) => (
+                                                            <button
+                                                                key={`${session.sesion_id}-attachment-${fileIndex}`}
+                                                                type="button"
+                                                                onClick={() => handleViewTimelineAttachment(file, session.sesion_id)}
+                                                                className="flex min-w-0 max-w-full items-center gap-1 rounded border bg-background px-1.5 py-0.5 text-left text-foreground transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                                            >
+                                                                <FileText className="h-3 w-3 shrink-0 text-amber-500 dark:text-amber-400" />
+                                                                <span className="break-all">{file.file_name || file.ruta}</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                {hasNextPlan && (
+                                                    <p className="whitespace-pre-wrap break-words text-foreground">
+                                                        <span className="text-muted-foreground">{t('nextPlan')}:</span>{' '}
+                                                        {planProximaCita}
+                                                        {session.fecha_proxima_cita && ` (${formatDate(session.fecha_proxima_cita)})`}
+                                                    </p>
+                                                )}
+                                                {(isOdontogramSession || canManageSession) && (
+                                                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                                                        {isOdontogramSession && (
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className="h-7 gap-1.5 text-xs"
+                                                                onClick={() => setIsOdontogramViewerOpen(true)}
+                                                            >
+                                                                <Smile className="h-3.5 w-3.5" />
+                                                                {t('viewOdontogram')}
+                                                            </Button>
+                                                        )}
+                                                        {canManageSession && (
+                                                            <>
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    className="h-7 gap-1.5 text-xs"
+                                                                    onClick={() => handleEditSession(session)}
+                                                                >
+                                                                    <Edit3 className="h-3.5 w-3.5" />
+                                                                    {tPage('common.edit')}
+                                                                </Button>
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-7 gap-1.5 text-xs text-destructive hover:text-destructive"
+                                                                    onClick={() => handleDeleteSession(session)}
+                                                                >
+                                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                                    {tPage('common.delete')}
+                                                                </Button>
+                                                            </>
                                                         )}
                                                     </div>
-                                                    {sessionColorDot}
-                                                </div>
-                                            </div>
+                                                )}
+                                            </TimelineRow>
                                         );
                                     })}
                                 </div>
@@ -2954,152 +2996,6 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                     setPendingCancellation(null);
                 }}
             />
-
-            {/* Clinical Session Detail Sheet */}
-            {!readOnly && <ResizableSheet
-                open={isSessionDetailSheetOpen}
-                onOpenChange={(open) => { setIsSessionDetailSheetOpen(open); if (!open) setSessionDetailData(null); }}
-                defaultWidth={600}
-                minWidth={380}
-                storageKey="session-detail-sheet-width"
-            >
-                {sessionDetailData && (() => {
-                    const session = sessionDetailData;
-                    const planProximaCita = parsePlanProximaCita(session.plan_proxima_cita);
-                    return (
-                        <div className="flex flex-col h-full">
-                            <div className="px-6 py-4 border-b shrink-0">
-                                <SheetTitle className="flex items-center gap-2 text-base font-semibold">
-                                    <Stethoscope className="h-4 w-4 text-primary dark:text-link shrink-0" />
-                                    {session.procedimiento_realizado || t('noTitle')}
-                                </SheetTitle>
-                                <SheetDescription className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-xs text-muted-foreground">
-                                    <span className="flex items-center gap-1"><CalendarIcon className="h-3 w-3" />{formatDate(session.fecha_sesion)}</span>
-                                    {(session.nombre_doctor || session.doctor_name) && (
-                                        <span className="flex items-center gap-1"><User className="h-3 w-3" />{session.nombre_doctor || session.doctor_name}</span>
-                                    )}
-                                    {session.quote_id && (
-                                        <span className="flex items-center gap-1"><Link2 className="h-3 w-3" />{t('quote')}: {(session as any).quote_doc_no || session.quote_id}</span>
-                                    )}
-                                </SheetDescription>
-                            </div>
-                            <ScrollArea className="flex-1">
-                                <div className="p-6 space-y-3">
-                                    {session.procedimiento_realizado && (
-                                        <div className="border-l-2 border-primary/50 dark:border-link/60 pl-3 py-1.5 bg-muted/30 dark:bg-muted/50 rounded-r-md">
-                                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{t('procedure')}</p>
-                                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{session.procedimiento_realizado}</p>
-                                        </div>
-                                    )}
-                                    {session.diagnostico && session.diagnostico.trim() !== '' && (
-                                        <div className="border-l-2 border-red-400/50 dark:border-red-500/70 pl-3 py-1.5 bg-red-50/60 dark:bg-red-950/20 rounded-r-md">
-                                            <p className="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide mb-1">{t('diagnosis')}</p>
-                                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{session.diagnostico}</p>
-                                        </div>
-                                    )}
-                                    {session.notas_clinicas && session.notas_clinicas.trim() !== '' && (
-                                        <div className="border-l-2 border-cyan-400/50 dark:border-cyan-500/70 pl-3 py-1.5 bg-cyan-50/50 dark:bg-cyan-950/20 rounded-r-md">
-                                            <p className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 uppercase tracking-wide mb-1">{t('notes')}</p>
-                                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{session.notas_clinicas}</p>
-                                        </div>
-                                    )}
-                                    {(planProximaCita || session.fecha_proxima_cita) && (
-                                        <div className="border-l-2 border-blue-400/50 dark:border-blue-500/70 pl-3 py-1.5 bg-blue-50/60 dark:bg-blue-950/20 rounded-r-md">
-                                            <div className="flex items-center justify-between gap-4 flex-wrap">
-                                                <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">{t('nextPlan') || 'Plan próxima cita'}</p>
-                                                {session.fecha_proxima_cita && (
-                                                    <span className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400">
-                                                        <CalendarIcon className="h-3 w-3" />
-                                                        <span className="font-semibold">{t('nextSessionDate') || 'Fecha'}:</span>
-                                                        {formatDate(session.fecha_proxima_cita)}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            {planProximaCita && <p className="text-sm whitespace-pre-wrap leading-relaxed mt-1">{planProximaCita}</p>}
-                                        </div>
-                                    )}
-                                    {session.tratamientos && session.tratamientos.length > 0 && (
-                                        <div className="border-l-2 border-green-500/50 dark:border-green-500/70 pl-3 py-1.5 bg-green-50/60 dark:bg-green-950/20 rounded-r-md">
-                                            <p className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide mb-2">{t('treatments') || 'Tratamientos'}</p>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
-                                                {session.tratamientos.map((tr: any, i: number) => (
-                                                    <div key={i} className="flex items-baseline gap-2 min-w-0">
-                                                        {tr.numero_diente && (
-                                                            <span className="shrink-0 text-xs bg-primary/10 text-primary dark:bg-link/15 dark:text-link px-1.5 py-0.5 rounded font-mono font-medium">{t('tooth') || 'Diente'} {tr.numero_diente}</span>
-                                                        )}
-                                                        <p className="text-sm leading-relaxed text-muted-foreground break-words">{tr.descripcion}</p>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                    {session.estado_odontograma && Object.keys(session.estado_odontograma).length > 0 && (
-                                        <div className="border-l-2 border-purple-500/50 dark:border-purple-500/70 pl-3 py-1.5 bg-purple-50/60 dark:bg-purple-950/20 rounded-r-md">
-                                            <p className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide mb-2">{t('odontogramUpdate')}</p>
-                                            <div className="flex flex-wrap gap-1.5">
-                                                {Object.entries(session.estado_odontograma).map(([tooth, data]: [string, any]) => {
-                                                    const surfaces = Object.keys(data).filter(k => k !== 'condition' && k !== 'notes' && k !== 'lastModified');
-                                                    const surfaceText = surfaces.length > 0 ? surfaces.map(s => t(`surfaces.${s}`) || s).join(', ') : '';
-                                                    const extractCondition = (d: any): string => {
-                                                        if (typeof d === 'string') return d;
-                                                        if (Array.isArray(d)) return d[0] || '';
-                                                        for (const key of Object.keys(d)) {
-                                                            const val = d[key];
-                                                            if (typeof val === 'string') return val;
-                                                            if (Array.isArray(val) && val.length > 0) return val[0];
-                                                        }
-                                                        return '';
-                                                    };
-                                                    const condition = data.condition || extractCondition(data);
-                                                    const conditionLabel = condition ? t(`conditions.${condition}`) || condition : '';
-                                                    return (
-                                                        <span key={tooth} className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary dark:bg-link/15 dark:text-link px-2 py-1 rounded font-medium">
-                                                            <span className="font-mono">#{tooth}</span>
-                                                            <span className="text-primary/70 dark:text-link/80">-</span>
-                                                            <span>{conditionLabel}</span>
-                                                            {surfaceText && <span className="text-primary/60 dark:text-link/70">({surfaceText})</span>}
-                                                        </span>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    )}
-                                    {(session as any).archivos_adjuntos && (session as any).archivos_adjuntos.length > 0 && (
-                                        <div className="border-l-2 border-amber-500/50 dark:border-amber-500/70 pl-3 py-1.5 bg-amber-50/50 dark:bg-amber-950/20 rounded-r-md">
-                                            <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide mb-2">{t('attachments') || 'Adjuntos'}</p>
-                                            <div className="flex flex-wrap gap-1">
-                                                {(session as any).archivos_adjuntos.map((att: any, i: number) => (
-                                                    <button key={i} type="button"
-                                                        className="flex items-center gap-1 text-xs bg-background border border-muted px-2 py-1 rounded hover:bg-muted/50 transition-colors cursor-pointer"
-                                                        onClick={() => handleViewTimelineAttachment(att, session.sesion_id)}>
-                                                        <FileText className="h-3 w-3 text-amber-500 dark:text-amber-400" />
-                                                        <span className="truncate max-w-[160px]">{att.file_name || att.nombre || att.name || 'File'}</span>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </ScrollArea>
-                            {!readOnly && (
-                                <div className="flex items-center gap-2 px-6 py-4 border-t shrink-0 bg-background">
-                                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive gap-1.5"
-                                        onClick={() => { handleDeleteSession(session); setIsSessionDetailSheetOpen(false); }}>
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                        {tPage('common.delete')}
-                                    </Button>
-                                    <div className="flex-1" />
-                                    <Button size="sm" variant="outline" className="gap-1.5"
-                                        onClick={() => { handleEditSession(session); setIsSessionDetailSheetOpen(false); }}>
-                                        <Edit3 className="h-3.5 w-3.5" />
-                                        {tPage('common.edit')}
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
-                    );
-                })()}
-            </ResizableSheet>}
 
             {/* Odontogram View Sheet */}
             <ResizableSheet

@@ -1545,7 +1545,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
               <>
                 <div className="flex-1 min-h-0 overflow-y-auto pr-1 pb-2">
                   {/* Misma línea de tiempo que la historia clínica, en modo doctor y sin
-                      citas: cada sesión se ve desplegada, sin truncar, en desktop y mobile. */}
+                      citas: acordeón con la sesión más reciente desplegada, sin truncar. */}
                   <TreatmentTimeline
                     sessions={patientSessions}
                     appointments={[]}
