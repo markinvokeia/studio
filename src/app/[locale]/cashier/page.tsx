@@ -45,8 +45,13 @@ import { CurrencySelect } from '@/components/ui/currency-select';
  * Se leen de la propia sesión y no de la configuración actual de la clínica:
  * una caja abierta antes de cambiar la moneda debe seguir cerrándose con las
  * monedas con las que se abrió.
+ *
+ * Con `movements` se añaden además las monedas de los movimientos: una caja
+ * puede recibir cobros en una moneda con la que no se abrió, y esos importes
+ * tienen que verse y arquearse (el cierre del backend crea su fila con
+ * apertura 0).
  */
-function useSessionCurrencies(session: CajaSesion | null | undefined): string[] {
+function useSessionCurrencies(session: CajaSesion | null | undefined, movements?: CajaMovimiento[]): string[] {
     const { options: clinicCurrencies, code: clinicCurrency } = useCurrencySettings();
     const amounts = (session as any)?.amounts;
     const sessionCurrency = session?.currency;
@@ -57,8 +62,12 @@ function useSessionCurrencies(session: CajaSesion | null | undefined): string[] 
         const primary = normalizeCurrencyCode(sessionCurrency) ?? clinicCurrency;
         const codes = new Set<string>([primary, ...fromAmounts]);
         if (fromAmounts.length === 0) clinicCurrencies.forEach(c => codes.add(c));
+        movements?.forEach(mov => {
+            const code = normalizeCurrencyCode(mov.currency);
+            if (code) codes.add(code);
+        });
         return [...codes];
-    }, [amounts, sessionCurrency, clinicCurrency, clinicCurrencies]);
+    }, [amounts, sessionCurrency, clinicCurrency, clinicCurrencies, movements]);
 }
 
 /**
@@ -452,7 +461,10 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
     const { printCajaApertura } = usePrintDocument();
     const { code: clinicCurrency } = useCurrencySettings();
     const sessionCurrency = normalizeCurrencyCode(session.currency) ?? clinicCurrency;
-    const sessionCurrencies = useSessionCurrencies(session);
+    // Monedas con las que se abrió la caja (comparten el `date_rate` de la
+    // sesión) y, aparte, todas las que tienen importes que mostrar.
+    const openedCurrencies = useSessionCurrencies(session);
+    const sessionCurrencies = useSessionCurrencies(session, movements);
 
     const [isPrinting, setIsPrinting] = React.useState(false);
     const isViewportNarrow = useViewportNarrow();
@@ -510,9 +522,12 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
         [sumByCurrency],
     );
 
-    /** Totales por moneda al shape `{ v, c }` que consumen las tarjetas. */
+    /**
+     * Totales por moneda al shape `{ v, c }` que consumen las tarjetas. La
+     * apertura solo lista las monedas con las que se abrió la caja.
+     */
     const toCardAmounts = useCallback(
-        (totals: Record<string, number>) => sessionCurrencies.map(c => ({ v: totals[c] ?? 0, c })),
+        (totals: Record<string, number>, codes: string[] = sessionCurrencies) => codes.map(c => ({ v: totals[c] ?? 0, c })),
         [sessionCurrencies],
     );
 
@@ -541,7 +556,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                 const isExpense = row.original.tipo === 'EGRESO';
                 return (
                     <span className={cn(isExpense ? 'text-red-500' : 'text-green-500')}>
-                        {isExpense ? '-' : ''}${row.original.monto.toFixed(2)} {row.original.currency}
+                        {isExpense ? '-' : ''}{formatMoney(row.original.monto, row.original.currency)}
                     </span>
                 );
             }
@@ -569,9 +584,11 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
         // `date_rate` son unidades de la moneda principal por cada unidad de la
         // secundaria. Convertir a la moneda de la sesión es multiplicar o
         // dividir según cuál de las dos sea esa moneda.
+        // Solo hay tasa para las monedas con las que se abrió la caja; una moneda
+        // que entró solo por movimientos se muestra sin conversión.
         const rate = session.date_rate || 1;
         const convertedAmount =
-            sessionCurrency !== currency
+            sessionCurrency !== currency && openedCurrencies.includes(currency)
                 ? `(≈ ${formatMoney(sessionCurrency === clinicCurrency ? amount * rate : amount / rate, sessionCurrency)})`
                 : null;
 
@@ -609,7 +626,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
             <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                     {[
-                        { title: t('openSession.openingAmount'), accentColor: '#6366f1', extra: <p className="text-[10px] text-muted-foreground mt-1">{formatDateTime(session.fechaApertura)}</p>, amounts: toCardAmounts(openingDetails.totals) },
+                        { title: t('openSession.openingAmount'), accentColor: '#6366f1', extra: <p className="text-[10px] text-muted-foreground mt-1">{formatDateTime(session.fechaApertura)}</p>, amounts: toCardAmounts(openingDetails.totals, openedCurrencies) },
                         { title: t('activeSession.cashOnHand'), accentColor: '#3B82F6', amounts: toCardAmounts(cashOnHand) },
                         { title: t('activeSession.totalIncome'), accentColor: '#10B981', amounts: toCardAmounts(totalIncome) },
                         { title: t('activeSession.totalOutcome'), accentColor: '#F43F5E', amounts: toCardAmounts(totalOutcome) },
@@ -648,7 +665,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                                         fields={[
                                             { label: tColumns('documentNumber'), value: mov.documentNumber || '-' },
                                             { label: tColumns('description'), value: mov.descripcion || '-' },
-                                            { label: tColumns('amount'), value: <span className={cn(isExpense ? 'text-red-500' : 'text-green-500', 'font-semibold')}>{isExpense ? '-' : '+'}{mov.monto.toFixed(2)} {mov.currency}</span>, primary: true },
+                                            { label: tColumns('amount'), value: <span className={cn(isExpense ? 'text-red-500' : 'text-green-500', 'font-semibold')}>{isExpense ? '-' : '+'}{formatMoney(mov.monto, mov.currency)}</span>, primary: true },
                                             { label: tColumns('registeredUser'), value: mov.registeredUserName || '-' },
                                             { label: tColumns('method'), value: getPaymentMethodLabel(mov.metodoPago, mov.metodoPagoNombre, tPaymentMethods) },
                                             { label: tColumns('date'), value: dateDisplay },
@@ -743,8 +760,8 @@ function CloseSessionWizard({
 }) {
     const t = useTranslations('CashierPage');
     // Las monedas del cierre son las de la sesión que se está cerrando, no las
-    // que la clínica tenga configuradas ahora.
-    const currencies = useSessionCurrencies(activeSession);
+    // que la clínica tenga configuradas ahora, más las de sus movimientos.
+    const currencies = useSessionCurrencies(activeSession, sessionMovements);
     const totalsByCurrency = useMemo(
         () => Object.fromEntries(currencies.map(code => [code, denominationTotal(denominations[code])])),
         [currencies, denominations],
@@ -1300,9 +1317,9 @@ const DeclareCashup = ({ activeSession, currencies, declaredTotals, denomination
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                     <Label className="flex items-center gap-2 font-semibold"><Banknote className="h-5 w-5 text-muted-foreground" />{t('methods.cash')}</Label>
-                    <div className="text-center"><div className="text-muted-foreground">{t('systemTotal')}</div><div className="font-semibold">${systemCash.toFixed(2)}</div></div>
-                    <div className="text-center"><div className="text-muted-foreground">{t('declared')}</div><div className="font-semibold">${declaredCash.toFixed(2)}</div></div>
-                    <div className="text-center"><div className="text-muted-foreground">{t('difference')}</div><div className={cn("font-semibold", cashDifference < 0 ? "text-red-500" : "text-green-500")}>${cashDifference.toFixed(2)}</div></div>
+                    <div className="text-center"><div className="text-muted-foreground">{t('systemTotal')}</div><div className="font-semibold">{formatMoney(systemCash, currency)}</div></div>
+                    <div className="text-center"><div className="text-muted-foreground">{t('declared')}</div><div className="font-semibold">{formatMoney(declaredCash, currency)}</div></div>
+                    <div className="text-center"><div className="text-muted-foreground">{t('difference')}</div><div className={cn("font-semibold", cashDifference < 0 ? "text-red-500" : "text-green-500")}>{formatMoney(cashDifference, currency)}</div></div>
                 </div>
 
                 {currencyData?.desglose_detallado?.map((detail: any) => {
@@ -1317,7 +1334,7 @@ const DeclareCashup = ({ activeSession, currencies, declaredTotals, denomination
                                 <CreditCard className="h-5 w-5 text-muted-foreground" />
                                 {isKnownPaymentMethodCode(methodCode) ? t(`methods.${methodCode.toLowerCase()}`) : (detail.metodo || detail.codigo)}
                             </Label>
-                            <div className="text-center md:col-span-3"><div className="text-muted-foreground">{t('systemTotal')}</div><div className="font-semibold">${parseFloat(detail.monto).toFixed(2)}</div></div>
+                            <div className="text-center"><div className="text-muted-foreground">{t('systemTotal')}</div><div className="font-semibold">{formatMoney(detail.monto, currency)}</div></div>
                         </div>
                     );
                 })}
@@ -1402,7 +1419,9 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
         const currencyMovement = movements.find((m: any) => m.currency === currency);
         if (!currencyMovement) return null;
 
-        const openingAmount = session.opening_details?.[currency.toLowerCase()]?.total || 0;
+        // Las monedas que entraron solo por movimientos no tienen conteo de apertura;
+        // el cierre devuelve su `opening_amount` (0).
+        const openingAmount = session.opening_details?.[currency.toLowerCase()]?.total ?? currencyMovement.opening_amount ?? 0;
         const declaredCash = currencyMovement.declared_cash || 0;
         const systemCash = currencyMovement.calculated_cash || 0;
         const systemCard = currencyMovement.calculated_card || 0;

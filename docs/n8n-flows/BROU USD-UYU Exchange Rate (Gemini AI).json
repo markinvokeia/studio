@@ -10,11 +10,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -16,
-        -320
+        -480,
+        1008
       ],
       "typeVersion": 1,
-      "id": "fa8c15a7-891a-4587-961c-07b628a03804",
+      "id": "eb7dab12-f280-4cb8-b329-f5bda8a668f7",
       "name": "Sticky Note1"
     },
     {
@@ -26,10 +26,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -736,
-        -368
+        -1200,
+        960
       ],
-      "id": "656c09ea-9fde-4549-b9bb-a8fdfcd770d3",
+      "id": "0a3454d6-ded6-4791-a03c-a2017496a808",
       "name": "Sticky Note26"
     },
     {
@@ -39,10 +39,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -288,
-        448
+        -752,
+        1776
       ],
-      "id": "9fdb80d7-e4f7-4e83-ab91-4b8b1f355fc6",
+      "id": "1299bc8b-fae1-42fe-8ffc-6b1f9cf26a6c",
       "name": "Code2"
     },
     {
@@ -58,10 +58,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -688,
-        -240
+        -1152,
+        1088
       ],
-      "id": "b0dad78c-0bad-4f27-8e28-a4cba0e5e524",
+      "id": "0ede504c-3eb6-4966-b7ca-7c3902823151",
       "name": "cash_points/upsert",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -85,10 +85,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -688,
-        192
+        -1152,
+        1520
       ],
-      "id": "8bfd6d27-e35d-48f9-b75f-d0f75c237169",
+      "id": "2c782e63-96b1-4bb3-b4dd-452a429a2277",
       "name": "cash_points/delete",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -111,10 +111,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -688,
-        448
+        -1152,
+        1776
       ],
-      "id": "085dd08f-998f-42d3-88c6-15c914e9ead8",
+      "id": "c04dfc6c-2798-472f-b447-3e9b1a42940f",
       "name": "cash_points/search",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -135,10 +135,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -480,
-        448
+        -944,
+        1776
       ],
-      "id": "529add98-f568-4c39-b7ef-bb7228d6d7d3",
+      "id": "e83b1b21-e652-4f38-ba28-a7915cf9c20a",
       "name": "Select cash_points",
       "credentials": {
         "postgres": {
@@ -176,10 +176,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -480,
-        192
+        -944,
+        1520
       ],
-      "id": "5c5b6438-52da-4c7e-9093-40ba12a7cfd8",
+      "id": "9910740a-72a8-4e80-9fc8-37345732dcc6",
       "name": "Delete rows in cash_points",
       "alwaysOutputData": false,
       "credentials": {
@@ -219,10 +219,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -464,
-        -256
+        -928,
+        1072
       ],
-      "id": "35a703f7-515d-400b-bd5b-bebf2cfd405b",
+      "id": "036ab5ac-8d62-49ae-ad7b-28498cc903e5",
       "name": "If exist cash_points"
     },
     {
@@ -236,10 +236,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        -192,
-        112
+        -656,
+        1440
       ],
-      "id": "041ae474-4e8a-4e4c-8fa1-dea46c3f9fc0",
+      "id": "410a36b9-158b-4861-a4de-8731dc4a46a6",
       "name": "cash_points delete success"
     },
     {
@@ -252,10 +252,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        -192,
-        288
+        -656,
+        1616
       ],
-      "id": "6f247868-cff2-4dab-81dd-01f5915a3c5c",
+      "id": "5746c003-a24f-40cb-8d54-f0ab300b8d76",
       "name": "cash_points delete error"
     },
     {
@@ -269,10 +269,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        -32,
-        -272
+        -496,
+        1056
       ],
-      "id": "4879aab9-d51e-441e-91ae-333dc2798e97",
+      "id": "2470351f-37e4-40df-b7e1-07f1532e94cb",
       "name": "cash_points upsert success"
     },
     {
@@ -285,10 +285,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        -32,
-        -80
+        -496,
+        1248
       ],
-      "id": "467072c4-6f52-4779-9eb5-565a6d457b3b",
+      "id": "6ba8c296-0a69-437e-ac65-be5253bc0c03",
       "name": "cash_points upsert error"
     },
     {
@@ -387,10 +387,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -272,
-        -288
+        -736,
+        1040
       ],
-      "id": "0b390ace-244f-4cad-a1b7-8287ab48b227",
+      "id": "52ada78c-b1c5-41e4-9996-25e82ea700df",
       "name": "Update rows in cash_points",
       "alwaysOutputData": false,
       "credentials": {
@@ -496,10 +496,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -272,
-        -96
+        -736,
+        1232
       ],
-      "id": "8bf17909-4767-4ed4-8a4f-0bc3a68df54e",
+      "id": "7eb29d4c-bd61-4e39-8811-d050f3ec628c",
       "name": "Insert rows in cash_points",
       "alwaysOutputData": false,
       "credentials": {
@@ -522,10 +522,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        256,
-        -256
+        -208,
+        1072
       ],
-      "id": "acc6c781-8d5a-47e4-bf98-9d124ff5d5ad",
+      "id": "6be62c55-ec87-4e36-84bd-406a986bbe1b",
       "name": "cash-session/active",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -548,10 +548,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        256,
-        0
+        -208,
+        1328
       ],
-      "id": "9785f0ab-a6e4-4e6a-9c0a-0640bd7c0441",
+      "id": "04e6e283-a691-41cd-a3ea-5a516716d60c",
       "name": "cash-session/open",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -610,11 +610,11 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        496,
-        -256
+        32,
+        1072
       ],
       "name": "Call Cash-session-active-workflow",
-      "id": "21dc4ef4-1dc4-4dd8-8032-df144fb180bc"
+      "id": "e4d9ccb7-ad28-41ee-95f5-0ec7ad7aea53"
     },
     {
       "parameters": {
@@ -663,11 +663,11 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        496,
-        0
+        32,
+        1328
       ],
       "name": "Call Cash-session-active-workflow1",
-      "id": "0aa3a7a4-6c1b-49e8-9512-9d63dd1841e2",
+      "id": "8eae91f8-e57f-4513-96c6-7c09ccb765fd",
       "disabled": true
     },
     {
@@ -827,10 +827,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        960,
-        112
+        496,
+        1440
       ],
-      "id": "bafa8611-ff88-441e-8b0d-74b01ddcaf93",
+      "id": "e7eda461-26af-4186-a2c8-74662c26ab7e",
       "name": "Insert rows in cash-session",
       "alwaysOutputData": false,
       "credentials": {
@@ -871,10 +871,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1728,
-        32
+        1264,
+        1360
       ],
-      "id": "f0d33978-d176-4017-8583-94cdff0c7cf5",
+      "id": "1745117f-4501-4bf3-b550-6ee9241dc3fd",
       "name": "cash-session-success",
       "disabled": true
     },
@@ -887,10 +887,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1200,
-        208
+        736,
+        1536
       ],
-      "id": "21f27834-ca80-4eed-ad65-f6737f5a5730",
+      "id": "9fcc27a1-a736-4226-90f6-d4d29e6cb2ff",
       "name": "cash-session-error",
       "disabled": true
     },
@@ -931,10 +931,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        736,
-        0
+        272,
+        1328
       ],
-      "id": "d6326528-e775-49c4-9fe8-1d9e313bf810",
+      "id": "e6a752c0-ef21-4193-8126-8bb7017ae089",
       "name": "If cash-session-open",
       "disabled": true
     },
@@ -947,10 +947,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        960,
-        -96
+        496,
+        1232
       ],
-      "id": "68230bf7-9368-4afd-a66a-35f96d26d3a0",
+      "id": "8c654768-12ff-4363-a874-d036874ff8b7",
       "name": "error cash-session is open",
       "disabled": true
     },
@@ -967,10 +967,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        256,
-        560
+        -208,
+        1888
       ],
-      "id": "111a31c1-7e72-4ae4-954a-82d1f5bacc32",
+      "id": "55f62e53-4703-4e77-893a-8f665409c2aa",
       "name": "cash-session/close",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -989,10 +989,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -480,
-        736
+        -944,
+        2064
       ],
-      "id": "14e58c6d-e1d4-422d-8e17-49b5db48ccc8",
+      "id": "7df8dff5-8a07-4464-980c-2693748b2082",
       "name": "Execute a SQL query",
       "alwaysOutputData": true,
       "credentials": {
@@ -1016,10 +1016,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -688,
-        736
+        -1152,
+        2064
       ],
-      "id": "bc4b4461-1e90-46b2-9e54-c04dfe35fd0b",
+      "id": "37a2ddd8-1a24-4959-837e-e0eb83f7e677",
       "name": "cash_points/status",
       "webhookId": "9e026276-49db-48b7-ab9a-8fb74b566313",
       "credentials": {
@@ -1036,10 +1036,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        672,
-        928
+        208,
+        2256
       ],
-      "id": "d3106fcc-1f73-4318-b33f-e10b6b8ea06c",
+      "id": "64e41183-2648-463d-bbe7-72bb3481fcad",
       "name": "Code3"
     },
     {
@@ -1055,10 +1055,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        256,
-        928
+        -208,
+        2256
       ],
-      "id": "3e204ece-ba9c-45e0-a7e3-7db55ca5cb1f",
+      "id": "8aeda319-e43e-4ce1-a615-86357fbde8f3",
       "name": "cash-session/search",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -1079,10 +1079,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        464,
-        928
+        0,
+        2256
       ],
-      "id": "ae532f86-34d8-4f3d-98bd-153aeaf08d76",
+      "id": "e5523894-c5e0-45c3-98f0-8ec2c0cf4e5a",
       "name": "Select cash-session",
       "credentials": {
         "postgres": {
@@ -1102,10 +1102,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -480,
-        1008
+        -944,
+        2336
       ],
-      "id": "262c953e-7c9c-4182-8da2-b474d18e8aaa",
+      "id": "11e53409-bd51-4a93-bffc-bbcc2a3354c9",
       "name": "Execute a SQL query1",
       "alwaysOutputData": true,
       "credentials": {
@@ -1129,10 +1129,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -688,
-        1008
+        -1152,
+        2336
       ],
-      "id": "10b72e81-e5c0-42d9-8d7e-b80793020366",
+      "id": "0f8e4cd5-46a6-4c7f-aeca-d933ed7be148",
       "name": "cash-session/movements",
       "webhookId": "9e026276-49db-48b7-ab9a-8fb74b566313",
       "credentials": {
@@ -1150,11 +1150,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -736,
-        944
+        -1200,
+        2272
       ],
       "typeVersion": 1,
-      "id": "1828c2f5-e51e-474b-8e2a-f74797ee774d",
+      "id": "9b8cf448-a4f8-4a31-9a18-4c0ac1b3ce5d",
       "name": "Sticky Note2"
     },
     {
@@ -1165,11 +1165,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -736,
-        656
+        -1200,
+        1984
       ],
       "typeVersion": 1,
-      "id": "285e5de5-d966-4bbc-aec8-a1274ac7cab2",
+      "id": "69833825-054f-49b0-a84f-19d06031d35b",
       "name": "Sticky Note"
     },
     {
@@ -1189,10 +1189,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        736,
-        -256
+        272,
+        1072
       ],
-      "id": "bd3370b8-d424-4df1-a9c4-7de0d706e410",
+      "id": "52fe2466-cc9e-4dd8-ad38-9178d716bc2d",
       "name": "is_active"
     },
     {
@@ -1350,10 +1350,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2368,
-        480
+        1904,
+        1808
       ],
-      "id": "43b1933b-6078-406b-b2dd-c4b44122b2bc",
+      "id": "ee8ba591-0dc6-4d93-af42-300b864ba6de",
       "name": "Close Cash Session",
       "alwaysOutputData": true,
       "credentials": {
@@ -1393,10 +1393,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2784,
-        384
+        2320,
+        1712
       ],
-      "id": "f15ac471-f361-4d43-8f70-2859bc9d70e7",
+      "id": "bd89490b-29ac-4562-83b4-6173b64b5445",
       "name": "cash-session-success1"
     },
     {
@@ -1408,10 +1408,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2576,
-        576
+        2112,
+        1904
       ],
-      "id": "a9d52243-80db-4e05-8132-17cec3ea9d25",
+      "id": "c695e86b-46b9-4fef-968a-b75b9e503b52",
       "name": "cash-session-error1"
     },
     {
@@ -1421,10 +1421,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1504,
-        928
+        1040,
+        2256
       ],
-      "id": "db54b6b9-67fe-4ba3-b4c8-f2cdc7c085cd",
+      "id": "69c8dfd7-4af6-414c-ac2e-69c24d9a738f",
       "name": "Code"
     },
     {
@@ -1439,10 +1439,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        1104,
-        928
+        640,
+        2256
       ],
-      "id": "348f234a-d63e-4686-b65a-3ba3c329f26c",
+      "id": "b023578c-3834-47b1-87ab-dcfe071b59e2",
       "name": "cash-session/totales",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c"
     },
@@ -1457,10 +1457,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1296,
-        928
+        832,
+        2256
       ],
-      "id": "4c34b987-2dfd-4882-a7c4-06639022f70c",
+      "id": "ec19ba18-ca66-4b8f-ba8c-06c384954c59",
       "name": "Get session movements1",
       "alwaysOutputData": true,
       "credentials": {
@@ -1481,10 +1481,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3312,
-        -336
+        2848,
+        992
       ],
-      "id": "b24d4f17-bf7a-416a-82cd-47b7d171359f",
+      "id": "ac6b2012-6ee2-44d5-b67a-cf2508b08d84",
       "name": "Execute a SQL query2",
       "alwaysOutputData": true,
       "credentials": {
@@ -1503,11 +1503,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        3120,
-        -32
+        2656,
+        1296
       ],
       "typeVersion": 1,
-      "id": "078e3698-148f-42c6-a65d-de8ad29c481d",
+      "id": "445ee4fe-00bf-42ff-b499-e8fb4af1b4de",
       "name": "Sticky Note3",
       "disabled": true
     },
@@ -1524,10 +1524,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        3104,
-        -336
+        2640,
+        992
       ],
-      "id": "d68b9072-f83d-4fb9-bdd4-ef418575cb80",
+      "id": "fc748e67-9ef2-457c-949b-b25536bfd90e",
       "name": "cash-session/day-rates",
       "webhookId": "9e026276-49db-48b7-ab9a-8fb74b566313",
       "credentials": {
@@ -1548,13 +1548,13 @@
           }
         }
       },
-      "id": "74fe4a30-c1df-4214-ad70-d15e20ea04c9",
+      "id": "412d6ef9-1850-46fa-b10a-ef37eac7efa2",
       "name": "Fetch BROU Cotizaciones",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        3408,
-        48
+        2944,
+        1376
       ],
       "disabled": true
     },
@@ -1562,13 +1562,13 @@
       "parameters": {
         "jsCode": "// Obtener el HTML de la respuesta\nconst html = $input.first().json.data;\n\n// Función para extraer cotización USD\nfunction extractUSDRate(htmlContent) {\n  // El BROU usa una tabla con class que contiene las cotizaciones\n  // Buscamos la fila de USD (Dólar USA)\n  \n  let compra = null;\n  let venta = null;\n  \n  // Regex para encontrar la fila de USD y extraer compra/venta\n  // El patrón busca: texto \"USD\" o \"Dólar\" seguido de valores numéricos\n  const usdPattern = /(?:USD|D[óo]lar\\s*(?:USA|Estadounidense|Americano)).*?([\\d]+[,.]?[\\d]*).*?([\\d]+[,.]?[\\d]*)/gis;\n  \n  // Alternativa: buscar en estructura de tabla\n  // Patrón para tablas del BROU\n  const tableRowPattern = /<tr[^>]*>.*?(?:USD|DOLAR|Dólar).*?<\\/tr>/gis;\n  const valuePattern = />\\s*([\\d]{2}[,.]\\d{1,4})\\s*</g;\n  \n  // Buscar filas que contengan USD\n  const rows = htmlContent.match(tableRowPattern);\n  \n  if (rows && rows.length > 0) {\n    for (const row of rows) {\n      // Verificar que sea USD (no otra moneda)\n      if (/USD|D[óo]lar\\s*(USA|Estadounidense|Americano|Billete)?/i.test(row)) {\n        const values = [];\n        let match;\n        \n        // Extraer todos los valores numéricos de la fila\n        const numPattern = />\\s*([\\d]{2}[,.]\\d{1,4})\\s*</g;\n        while ((match = numPattern.exec(row)) !== null) {\n          values.push(parseFloat(match[1].replace(',', '.')));\n        }\n        \n        // Los dos primeros valores típicamente son compra y venta\n        if (values.length >= 2) {\n          // Compra es generalmente el menor, venta el mayor\n          compra = Math.min(values[0], values[1]);\n          venta = Math.max(values[0], values[1]);\n          break;\n        }\n      }\n    }\n  }\n  \n  // Fallback: búsqueda más simple\n  if (!compra || !venta) {\n    const simplePattern = /USD[^\\d]*([\\d]{2}[,.]\\d+)[^\\d]*([\\d]{2}[,.]\\d+)/i;\n    const simpleMatch = htmlContent.match(simplePattern);\n    if (simpleMatch) {\n      const v1 = parseFloat(simpleMatch[1].replace(',', '.'));\n      const v2 = parseFloat(simpleMatch[2].replace(',', '.'));\n      compra = Math.min(v1, v2);\n      venta = Math.max(v1, v2);\n    }\n  }\n  \n  return { compra, venta };\n}\n\n// Función para generar HTML de la tabla\nfunction generateTableHTML(htmlContent, compra, venta) {\n  // Extraer todas las cotizaciones para la tabla completa\n  const currencies = [];\n  \n  // Patrones para diferentes monedas\n  const currencyPatterns = [\n    { name: 'Dólar USA', code: 'USD', pattern: /(?:USD|Dólar\\s*USA)[^\\d]*([\\d]{2}[,.]\\d+)[^\\d]*([\\d]{2}[,.]\\d+)/i },\n    { name: 'Euro', code: 'EUR', pattern: /(?:EUR|Euro)[^\\d]*([\\d]{2}[,.]\\d+)[^\\d]*([\\d]{2}[,.]\\d+)/i },\n    { name: 'Peso Argentino', code: 'ARS', pattern: /(?:Peso\\s*Argentino|ARS)[^\\d]*([\\d]+[,.]\\d+)[^\\d]*([\\d]+[,.]\\d+)/i },\n    { name: 'Real', code: 'BRL', pattern: /(?:Real|BRL)[^\\d]*([\\d]+[,.]\\d+)[^\\d]*([\\d]+[,.]\\d+)/i },\n  ];\n  \n  for (const curr of currencyPatterns) {\n    const match = htmlContent.match(curr.pattern);\n    if (match) {\n      currencies.push({\n        name: curr.name,\n        code: curr.code,\n        compra: parseFloat(match[1].replace(',', '.')),\n        venta: parseFloat(match[2].replace(',', '.'))\n      });\n    }\n  }\n  \n  // Si no encontramos nada, al menos incluir USD con los valores extraídos\n  if (currencies.length === 0 && compra && venta) {\n    currencies.push({\n      name: 'Dólar USA',\n      code: 'USD',\n      compra: compra,\n      venta: venta\n    });\n  }\n  \n  // Generar HTML de la tabla\n  const tableHTML = `\n<style>\n  .brou-cotizaciones {\n    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;\n    border-collapse: collapse;\n    width: 100%;\n    max-width: 500px;\n    margin: 0 auto;\n    box-shadow: 0 2px 8px rgba(0,0,0,0.1);\n    border-radius: 8px;\n    overflow: hidden;\n  }\n  .brou-cotizaciones thead {\n    background: linear-gradient(135deg, #1a5276 0%, #2980b9 100%);\n    color: white;\n  }\n  .brou-cotizaciones th {\n    padding: 14px 16px;\n    text-align: left;\n    font-weight: 600;\n    text-transform: uppercase;\n    font-size: 12px;\n    letter-spacing: 0.5px;\n  }\n  .brou-cotizaciones td {\n    padding: 12px 16px;\n    border-bottom: 1px solid #e0e0e0;\n  }\n  .brou-cotizaciones tbody tr:hover {\n    background-color: #f5f9fc;\n  }\n  .brou-cotizaciones tbody tr:last-child td {\n    border-bottom: none;\n  }\n  .brou-cotizaciones .currency-name {\n    font-weight: 500;\n    color: #2c3e50;\n  }\n  .brou-cotizaciones .currency-code {\n    color: #7f8c8d;\n    font-size: 11px;\n    margin-left: 6px;\n  }\n  .brou-cotizaciones .rate {\n    font-family: 'SF Mono', Monaco, monospace;\n    font-weight: 600;\n    color: #27ae60;\n  }\n  .brou-cotizaciones .rate-venta {\n    color: #e74c3c;\n  }\n  .brou-header {\n    text-align: center;\n    padding: 16px;\n    background: #f8f9fa;\n    border-bottom: 2px solid #1a5276;\n  }\n  .brou-header h3 {\n    margin: 0;\n    color: #1a5276;\n    font-size: 16px;\n  }\n  .brou-header small {\n    color: #7f8c8d;\n    font-size: 11px;\n  }\n  .brou-footer {\n    text-align: center;\n    padding: 10px;\n    background: #f8f9fa;\n    font-size: 11px;\n    color: #7f8c8d;\n  }\n</style>\n<div class=\"brou-container\">\n  <table class=\"brou-cotizaciones\">\n    <thead>\n      <tr>\n        <th>Moneda</th>\n        <th>Compra</th>\n        <th>Venta</th>\n      </tr>\n    </thead>\n    <tbody>\n      ${currencies.map(c => `\n      <tr>\n        <td>\n          <span class=\"currency-name\">${c.name}</span>\n          <span class=\"currency-code\">${c.code}</span>\n        </td>\n        <td class=\"rate\">${c.compra.toFixed(2)}</td>\n        <td class=\"rate rate-venta\">${c.venta.toFixed(2)}</td>\n      </tr>\n      `).join('')}\n    </tbody>\n  </table>\n  <div class=\"brou-footer\">\n    Fuente: BROU | Actualizado: ${new Date().toLocaleString('es-UY', { timeZone: 'America/Montevideo' })}\n  </div>\n</div>\n`;\n  \n  return tableHTML.trim();\n}\n\n// Ejecutar extracción\nconst { compra, venta } = extractUSDRate(html);\nconst tableHtml = generateTableHTML(html, compra, venta);\n\n// Retornar resultado en el formato solicitado\nreturn [{\n  json: {\n    compra: compra,\n    venta: venta,\n    html: tableHtml\n  }\n}];"
       },
-      "id": "57187fa7-e8c2-468f-b5da-a7c0cc10f1a2",
+      "id": "7796c697-3311-4ae5-acfa-440f18b79baf",
       "name": "Parse USD Exchange Rate",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4000,
-        48
+        3536,
+        1376
       ],
       "disabled": true
     },
@@ -1591,13 +1591,13 @@
           }
         }
       },
-      "id": "b5fefe50-3c2c-497c-9db2-20bb0ccdc9ab",
+      "id": "70c8d8dd-dcba-4427-b23e-248b1b8469aa",
       "name": "cotizacion-usd",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        3184,
-        48
+        2720,
+        1376
       ],
       "webhookId": "1149d38b-0334-44bb-a0e7-50640515ff0e",
       "disabled": true
@@ -1610,10 +1610,10 @@
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.7,
       "position": [
-        3616,
-        48
+        3152,
+        1376
       ],
-      "id": "531f3a4d-2e6f-4d12-903a-0106cb1c2ddd",
+      "id": "16c92b47-1cce-460b-a7b9-bbcdf9d3008c",
       "name": "Basic LLM Chain",
       "disabled": true
     },
@@ -1624,10 +1624,10 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
       "position": [
-        3616,
-        224
+        3152,
+        1552
       ],
-      "id": "0baa6696-95eb-499e-8c53-e7ce5a70cb07",
+      "id": "72c5c16e-5c11-4764-a6e1-9bb77efe41e4",
       "name": "Google Gemini Chat Model",
       "credentials": {
         "googlePalmApi": {
@@ -1648,13 +1648,13 @@
           }
         }
       },
-      "id": "27af8415-ed74-4600-b9c1-9813b56ccaa3",
+      "id": "9a0116f8-4c60-422f-9f30-df815784e7de",
       "name": "Fetch BROU Page",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        3328,
-        480
+        2864,
+        1808
       ]
     },
     {
@@ -1666,26 +1666,26 @@
           "systemPromptTemplate": "Eres un experto en extracción de datos financieros de páginas web bancarias.\n\nAnaliza el contenido HTML que proviene del Banco República Oriental del Uruguay (BROU) y extrae las cotizaciones de monedas.\n\nINSTRUCCIONES:\n1. Busca en el HTML la tabla de cotizaciones de monedas\n2. Para CADA moneda encontrada, extrae:\n   - Nombre de la moneda (ej: \"Dólar USA\", \"Euro\", \"Peso Argentino\", \"Real\")\n   - Código ISO (ej: \"USD\", \"EUR\", \"ARS\", \"BRL\")\n   - Valor de COMPRA (el precio al que el banco compra la moneda)\n   - Valor de VENTA (el precio al que el banco vende la moneda)\n\n3. IMPORTANTE sobre los valores:\n   - Convierte los valores a números decimales\n   - Usa PUNTO como separador decimal (42.15, no 42,15)\n   - El valor de COMPRA es siempre MENOR que el de VENTA\n   - Si ves valores como \"42,150\" o \"42.150\" es 42.15 (cuarenta y dos con quince centésimos)\n\n4. Para USD específicamente:\n   - Copia el valor de compra a \"usd_compra\"\n   - Copia el valor de venta a \"usd_venta\"\n\n5. Si encuentras una fecha de actualización, extráela en formato YYYY-MM-DD\n\nRECUERDA: El BROU es un banco uruguayo. Los valores están en Pesos Uruguayos (UYU). Un dólar vale aproximadamente entre 40-45 UYU."
         }
       },
-      "id": "60fc81a1-1c7c-44d7-b0b8-f3937dfc70a6",
+      "id": "72bc5219-c8db-414d-a597-068567e8e833",
       "name": "Extract Exchange Rates",
       "type": "@n8n/n8n-nodes-langchain.informationExtractor",
       "typeVersion": 1.2,
       "position": [
-        3536,
-        480
+        3072,
+        1808
       ]
     },
     {
       "parameters": {
         "jsCode": "// Obtener datos extraídos por Gemini\nconst extracted = $input.first().json.datos_completos;\n\n// Mapeo de códigos de moneda a banderas emoji\nconst currencyFlags = {\n  USD: { emoji: \"🇺🇸\", name: \"Estados Unidos\" },\n  EUR: { emoji: \"🇪🇺\", name: \"Unión Europea\" },\n  ARS: { emoji: \"🇦🇷\", name: \"Argentina\" },\n  BRL: { emoji: \"🇧🇷\", name: \"Brasil\" },\n  GBP: { emoji: \"🇬🇧\", name: \"Reino Unido\" },\n  CHF: { emoji: \"🇨🇭\", name: \"Suiza\" },\n  JPY: { emoji: \"🇯🇵\", name: \"Japón\" },\n  CNY: { emoji: \"🇨🇳\", name: \"China\" },\n  MXN: { emoji: \"🇲🇽\", name: \"México\" },\n  CLP: { emoji: \"🇨🇱\", name: \"Chile\" },\n  PYG: { emoji: \"🇵🇾\", name: \"Paraguay\" },\n  UYU: { emoji: \"🇺🇾\", name: \"Uruguay\" },\n  CAD: { emoji: \"🇨🇦\", name: \"Canadá\" },\n  AUD: { emoji: \"🇦🇺\", name: \"Australia\" },\n  NZD: { emoji: \"🇳🇿\", name: \"Nueva Zelanda\" },\n  SEK: { emoji: \"🇸🇪\", name: \"Suecia\" },\n  NOK: { emoji: \"🇳🇴\", name: \"Noruega\" },\n  DKK: { emoji: \"🇩🇰\", name: \"Dinamarca\" },\n  COP: { emoji: \"🇨🇴\", name: \"Colombia\" },\n  PEN: { emoji: \"🇵🇪\", name: \"Perú\" },\n  BOB: { emoji: \"🇧🇴\", name: \"Bolivia\" },\n  VES: { emoji: \"🇻🇪\", name: \"Venezuela\" },\n  KRW: { emoji: \"🇰🇷\", name: \"Corea del Sur\" },\n  INR: { emoji: \"🇮🇳\", name: \"India\" },\n  RUB: { emoji: \"🇷🇺\", name: \"Rusia\" },\n  ZAR: { emoji: \"🇿🇦\", name: \"Sudáfrica\" },\n  ILS: { emoji: \"🇮🇱\", name: \"Israel\" },\n  TRY: { emoji: \"🇹🇷\", name: \"Turquía\" },\n  HKD: { emoji: \"🇭🇰\", name: \"Hong Kong\" },\n  SGD: { emoji: \"🇸🇬\", name: \"Singapur\" },\n  default: { emoji: \"💱\", name: \"Moneda\" },\n};\n\n// Función para obtener la bandera\nconst getFlag = (codigo) => {\n  const code = (codigo || \"\").toUpperCase();\n  return currencyFlags[code] || currencyFlags[\"default\"];\n};\n\n// Extraer valores USD\nlet compra = extracted.usd_compra;\nlet venta = extracted.usd_venta;\n\n// Fallback: buscar en array de cotizaciones\nif (!compra || !venta) {\n  const usdCotizacion = extracted.cotizaciones?.find(\n    (c) =>\n      c.codigo === \"USD\" ||\n      c.moneda?.toLowerCase().includes(\"dólar\") ||\n      c.moneda?.toLowerCase().includes(\"dolar\"),\n  );\n  if (usdCotizacion) {\n    compra = compra || usdCotizacion.compra;\n    venta = venta || usdCotizacion.venta;\n  }\n}\n\nconst cotizaciones = extracted.cotizaciones || [];\n\n// Generar HTML de la tabla con banderas\nconst generateHTML = (data, compraUSD, ventaUSD) => {\n  if (!data || data.length === 0) {\n    return '<div class=\"brou-error\">No se encontraron cotizaciones</div>';\n  }\n\n  const rows = data\n    .map((c) => {\n      const isUSD =\n        c.codigo === \"USD\" || c.moneda?.toLowerCase().includes(\"dólar\");\n      const compraVal =\n        typeof c.compra === \"number\" ? c.compra.toFixed(2) : c.compra;\n      const ventaVal =\n        typeof c.venta === \"number\" ? c.venta.toFixed(2) : c.venta;\n      const flag = getFlag(c.codigo);\n\n      return `\n      <tr${isUSD ? ' class=\"highlighted\"' : \"\"}>\n        <td class=\"currency-cell\">\n          <span class=\"flag-icon\" title=\"${flag.name}\">${flag.emoji}</span>\n          <div class=\"currency-info\">\n            <span class=\"currency-name\">${c.moneda || \"N/A\"}</span>\n            <span class=\"currency-code\">${c.codigo || \"\"}</span>\n          </div>\n        </td>\n        <td class=\"rate rate-compra\">${compraVal}</td>\n        <td class=\"rate rate-venta\">${ventaVal}</td>\n      </tr>`;\n    })\n    .join(\"\");\n\n  return `\n<style>\n  .brou-container {\n    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n    max-width: 580px;\n    margin: 0 auto;\n  }\n  .brou-cotizaciones {\n    border-collapse: collapse;\n    width: 100%;\n    box-shadow: 0 4px 24px rgba(0,0,0,0.12);\n    border-radius: 16px;\n    overflow: hidden;\n    background: white;\n  }\n  .brou-cotizaciones thead {\n    background: linear-gradient(135deg, #1e3a5f 0%, #2d6a9f 100%);\n    color: white;\n  }\n  .brou-cotizaciones th {\n    padding: 18px 24px;\n    text-align: left;\n    font-weight: 600;\n    text-transform: uppercase;\n    font-size: 11px;\n    letter-spacing: 1.2px;\n  }\n  .brou-cotizaciones th:not(:first-child) {\n    text-align: right;\n  }\n  .brou-cotizaciones td {\n    padding: 16px 24px;\n    border-bottom: 1px solid #f0f0f0;\n    vertical-align: middle;\n  }\n  .brou-cotizaciones td:not(:first-child) {\n    text-align: right;\n  }\n  .brou-cotizaciones tbody tr {\n    transition: background-color 0.15s ease;\n  }\n  .brou-cotizaciones tbody tr:hover {\n    background-color: #fafbfc;\n  }\n  .brou-cotizaciones tbody tr.highlighted {\n    background: linear-gradient(90deg, #eef6ff 0%, #f5faff 100%);\n  }\n  .brou-cotizaciones tbody tr.highlighted:hover {\n    background: linear-gradient(90deg, #e3f0ff 0%, #eef6ff 100%);\n  }\n  .brou-cotizaciones tbody tr.highlighted .currency-name {\n    color: #1e3a5f;\n  }\n  .brou-cotizaciones tbody tr:last-child td {\n    border-bottom: none;\n  }\n  .brou-cotizaciones .currency-cell {\n    display: flex;\n    align-items: center;\n    gap: 14px;\n  }\n  .brou-cotizaciones .flag-icon {\n    font-size: 32px;\n    line-height: 1;\n    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));\n  }\n  .brou-cotizaciones .currency-info {\n    display: flex;\n    flex-direction: column;\n    gap: 3px;\n  }\n  .brou-cotizaciones .currency-name {\n    font-weight: 600;\n    color: #1e293b;\n    font-size: 14px;\n    line-height: 1.3;\n  }\n  .brou-cotizaciones .currency-code {\n    color: #64748b;\n    font-size: 11px;\n    font-weight: 600;\n    letter-spacing: 0.5px;\n  }\n  .brou-cotizaciones .rate {\n    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', monospace;\n    font-weight: 700;\n    font-size: 17px;\n    letter-spacing: -0.5px;\n  }\n  .brou-cotizaciones .rate-compra {\n    color: #10b981;\n  }\n  .brou-cotizaciones .rate-venta {\n    color: #ef4444;\n  }\n  .brou-footer {\n    text-align: center;\n    padding: 18px 24px;\n    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);\n    font-size: 12px;\n    color: #64748b;\n    border-top: 1px solid #e2e8f0;\n  }\n  .brou-footer a {\n    color: #2563eb;\n    text-decoration: none;\n    font-weight: 600;\n  }\n  .brou-footer a:hover {\n    text-decoration: underline;\n  }\n  .brou-footer .update-time {\n    margin-top: 6px;\n    font-size: 11px;\n    color: #94a3b8;\n  }\n  .brou-footer .brou-logo {\n    font-size: 10px;\n    margin-top: 8px;\n    padding-top: 8px;\n    border-top: 1px solid #e2e8f0;\n    color: #94a3b8;\n  }\n  .brou-error {\n    padding: 40px;\n    text-align: center;\n    color: #ef4444;\n    background: #fef2f2;\n    border-radius: 16px;\n  }\n  @media (max-width: 480px) {\n    .brou-cotizaciones th,\n    .brou-cotizaciones td {\n      padding: 12px 16px;\n    }\n    .brou-cotizaciones .flag-icon {\n      font-size: 26px;\n    }\n    .brou-cotizaciones .rate {\n      font-size: 15px;\n    }\n  }\n</style>\n<div class=\"brou-container\">\n  <table class=\"brou-cotizaciones\">\n    <thead>\n      <tr>\n        <th>Moneda</th>\n        <th>Compra</th>\n        <th>Venta</th>\n      </tr>\n    </thead>\n    <tbody>${rows}\n    </tbody>\n  </table>\n  <div class=\"brou-footer\">\n    <div>Fuente: <a href=\"https://www.brou.com.uy/cotizaciones\" target=\"_blank\" rel=\"noopener\">Banco República (BROU)</a></div>\n    <div class=\"update-time\">Actualizado: ${new Date().toLocaleString(\"es-UY\", {\n      timeZone: \"America/Montevideo\",\n      weekday: \"long\",\n      year: \"numeric\",\n      month: \"long\",\n      day: \"numeric\",\n      hour: \"2-digit\",\n      minute: \"2-digit\",\n    })}</div>\n    <div class=\"brou-logo\">🇺🇾 Cotizaciones en Pesos Uruguayos (UYU)</div>\n  </div>\n</div>\n`.trim();\n};\n\n// Construir respuesta final\nlet html = null\nif (!$(\"/cotizaciones\").first().json.query.rendered || $(\"/cotizaciones\").first().json.query.rendered === \"true\") {\n  html = generateHTML(cotizaciones, compra, venta);\n}\n\nreturn [\n  {\n    json: {\n      compra: compra,\n      venta: venta,\n      html: html,\n    },\n  },\n];\n"
       },
-      "id": "982a3d98-9eeb-4dc8-9dc3-1127cf0ba7ef",
+      "id": "72c948e9-a3a5-471a-94ca-b3b1eab01beb",
       "name": "Format Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3536,
-        816
+        3072,
+        2144
       ]
     },
     {
@@ -1708,13 +1708,13 @@
           }
         }
       },
-      "id": "2e003996-e545-43dd-90f1-6cc43185dfa3",
+      "id": "fd41e9bf-bc78-42f3-a6f7-e49801b2237f",
       "name": "/cotizaciones",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        3120,
-        816
+        2656,
+        2144
       ],
       "webhookId": "cotizacion-usd-brou",
       "credentials": {
@@ -1743,13 +1743,13 @@
           }
         }
       },
-      "id": "54c2ca7d-d53b-4592-b981-a7fa6de7ece8",
+      "id": "5c75639f-1ee5-4c68-9e86-bfd2dcf7c766",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        4272,
-        -16
+        3808,
+        1312
       ],
       "webhookId": "cotizacion-usd-brou",
       "disabled": true
@@ -1765,13 +1765,13 @@
           }
         }
       },
-      "id": "1de5ee86-41d3-4983-8866-83e871721591",
+      "id": "e4a66f36-017a-4fb8-a71a-fff78d3469d2",
       "name": "Fetch BROU Page1",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        4496,
-        -16
+        4032,
+        1312
       ],
       "disabled": true
     },
@@ -1784,13 +1784,13 @@
           "systemPromptTemplate": "Eres un experto en extracción de datos financieros de páginas web bancarias.\n\nAnaliza el contenido HTML que proviene del Banco República Oriental del Uruguay (BROU) y extrae las cotizaciones de monedas.\n\nINSTRUCCIONES:\n1. Busca en el HTML la tabla de cotizaciones de monedas\n2. Para CADA moneda encontrada, extrae:\n   - Nombre de la moneda (ej: \"Dólar USA\", \"Euro\", \"Peso Argentino\", \"Real\")\n   - Código ISO (ej: \"USD\", \"EUR\", \"ARS\", \"BRL\")\n   - Valor de COMPRA (el precio al que el banco compra la moneda)\n   - Valor de VENTA (el precio al que el banco vende la moneda)\n\n3. IMPORTANTE sobre los valores:\n   - Convierte los valores a números decimales\n   - Usa PUNTO como separador decimal (42.15, no 42,15)\n   - El valor de COMPRA es siempre MENOR que el de VENTA\n   - Si ves valores como \"42,150\" o \"42.150\" es 42.15 (cuarenta y dos con quince centésimos)\n\n4. Para USD específicamente:\n   - Copia el valor de compra a \"usd_compra\"\n   - Copia el valor de venta a \"usd_venta\"\n\n5. Si encuentras una fecha de actualización, extráela en formato YYYY-MM-DD\n\nRECUERDA: El BROU es un banco uruguayo. Los valores están en Pesos Uruguayos (UYU). Un dólar vale aproximadamente entre 40-45 UYU."
         }
       },
-      "id": "858ca603-47f8-4d3d-81fb-779a222139e1",
+      "id": "1d89f26a-4bbc-448b-9842-8bb82a96e992",
       "name": "Extract Exchange Rates1",
       "type": "@n8n/n8n-nodes-langchain.informationExtractor",
       "typeVersion": 1.2,
       "position": [
-        4784,
-        -16
+        4320,
+        1312
       ],
       "disabled": true
     },
@@ -1800,13 +1800,13 @@
           "temperature": 0
         }
       },
-      "id": "99262fe4-7aad-447e-93a1-2145b1b3f514",
+      "id": "30fcbe1f-1bba-4a18-b321-a1905f4c60ff",
       "name": "Google Gemini Chat Model2",
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
       "position": [
-        4784,
-        208
+        4320,
+        1536
       ],
       "disabled": true
     },
@@ -1814,13 +1814,13 @@
       "parameters": {
         "jsCode": "// Obtener datos extraídos por Gemini\nconst extracted = $input.first().json;\n\n// Mapeo de códigos de moneda a banderas emoji\nconst currencyFlags = {\n  'USD': { emoji: '🇺🇸', name: 'Estados Unidos' },\n  'EUR': { emoji: '🇪🇺', name: 'Unión Europea' },\n  'ARS': { emoji: '🇦🇷', name: 'Argentina' },\n  'BRL': { emoji: '🇧🇷', name: 'Brasil' },\n  'GBP': { emoji: '🇬🇧', name: 'Reino Unido' },\n  'CHF': { emoji: '🇨🇭', name: 'Suiza' },\n  'JPY': { emoji: '🇯🇵', name: 'Japón' },\n  'CNY': { emoji: '🇨🇳', name: 'China' },\n  'MXN': { emoji: '🇲🇽', name: 'México' },\n  'CLP': { emoji: '🇨🇱', name: 'Chile' },\n  'PYG': { emoji: '🇵🇾', name: 'Paraguay' },\n  'UYU': { emoji: '🇺🇾', name: 'Uruguay' },\n  'CAD': { emoji: '🇨🇦', name: 'Canadá' },\n  'AUD': { emoji: '🇦🇺', name: 'Australia' },\n  'NZD': { emoji: '🇳🇿', name: 'Nueva Zelanda' },\n  'SEK': { emoji: '🇸🇪', name: 'Suecia' },\n  'NOK': { emoji: '🇳🇴', name: 'Noruega' },\n  'DKK': { emoji: '🇩🇰', name: 'Dinamarca' },\n  'COP': { emoji: '🇨🇴', name: 'Colombia' },\n  'PEN': { emoji: '🇵🇪', name: 'Perú' },\n  'BOB': { emoji: '🇧🇴', name: 'Bolivia' },\n  'VES': { emoji: '🇻🇪', name: 'Venezuela' },\n  'KRW': { emoji: '🇰🇷', name: 'Corea del Sur' },\n  'INR': { emoji: '🇮🇳', name: 'India' },\n  'RUB': { emoji: '🇷🇺', name: 'Rusia' },\n  'ZAR': { emoji: '🇿🇦', name: 'Sudáfrica' },\n  'ILS': { emoji: '🇮🇱', name: 'Israel' },\n  'TRY': { emoji: '🇹🇷', name: 'Turquía' },\n  'HKD': { emoji: '🇭🇰', name: 'Hong Kong' },\n  'SGD': { emoji: '🇸🇬', name: 'Singapur' },\n  'default': { emoji: '💱', name: 'Moneda' }\n};\n\n// Función para obtener la bandera\nconst getFlag = (codigo) => {\n  const code = (codigo || '').toUpperCase();\n  return currencyFlags[code] || currencyFlags['default'];\n};\n\n// Extraer valores USD\nlet compra = extracted.usd_compra;\nlet venta = extracted.usd_venta;\n\n// Fallback: buscar en array de cotizaciones\nif (!compra || !venta) {\n  const usdCotizacion = extracted.cotizaciones?.find(c => \n    c.codigo === 'USD' || \n    c.moneda?.toLowerCase().includes('dólar') ||\n    c.moneda?.toLowerCase().includes('dolar')\n  );\n  if (usdCotizacion) {\n    compra = compra || usdCotizacion.compra;\n    venta = venta || usdCotizacion.venta;\n  }\n}\n\nconst cotizaciones = extracted.cotizaciones || [];\n\n// Generar HTML de la tabla con banderas\nconst generateHTML = (data, compraUSD, ventaUSD) => {\n  if (!data || data.length === 0) {\n    return '<div class=\"brou-error\">No se encontraron cotizaciones</div>';\n  }\n\n  const rows = data.map(c => {\n    const isUSD = c.codigo === 'USD' || c.moneda?.toLowerCase().includes('dólar');\n    const compraVal = typeof c.compra === 'number' ? c.compra.toFixed(2) : c.compra;\n    const ventaVal = typeof c.venta === 'number' ? c.venta.toFixed(2) : c.venta;\n    const flag = getFlag(c.codigo);\n    \n    return `\n      <tr${isUSD ? ' class=\"highlighted\"' : ''}>\n        <td class=\"currency-cell\">\n          <span class=\"flag-icon\" title=\"${flag.name}\">${flag.emoji}</span>\n          <div class=\"currency-info\">\n            <span class=\"currency-name\">${c.moneda || 'N/A'}</span>\n            <span class=\"currency-code\">${c.codigo || ''}</span>\n          </div>\n        </td>\n        <td class=\"rate rate-compra\">${compraVal}</td>\n        <td class=\"rate rate-venta\">${ventaVal}</td>\n      </tr>`;\n  }).join('');\n\n  return `\n<style>\n  .brou-container {\n    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n    max-width: 580px;\n    margin: 0 auto;\n  }\n  .brou-cotizaciones {\n    border-collapse: collapse;\n    width: 100%;\n    box-shadow: 0 4px 24px rgba(0,0,0,0.12);\n    border-radius: 16px;\n    overflow: hidden;\n    background: white;\n  }\n  .brou-cotizaciones thead {\n    background: linear-gradient(135deg, #1e3a5f 0%, #2d6a9f 100%);\n    color: white;\n  }\n  .brou-cotizaciones th {\n    padding: 18px 24px;\n    text-align: left;\n    font-weight: 600;\n    text-transform: uppercase;\n    font-size: 11px;\n    letter-spacing: 1.2px;\n  }\n  .brou-cotizaciones th:not(:first-child) {\n    text-align: right;\n  }\n  .brou-cotizaciones td {\n    padding: 16px 24px;\n    border-bottom: 1px solid #f0f0f0;\n    vertical-align: middle;\n  }\n  .brou-cotizaciones td:not(:first-child) {\n    text-align: right;\n  }\n  .brou-cotizaciones tbody tr {\n    transition: background-color 0.15s ease;\n  }\n  .brou-cotizaciones tbody tr:hover {\n    background-color: #fafbfc;\n  }\n  .brou-cotizaciones tbody tr.highlighted {\n    background: linear-gradient(90deg, #eef6ff 0%, #f5faff 100%);\n  }\n  .brou-cotizaciones tbody tr.highlighted:hover {\n    background: linear-gradient(90deg, #e3f0ff 0%, #eef6ff 100%);\n  }\n  .brou-cotizaciones tbody tr.highlighted .currency-name {\n    color: #1e3a5f;\n  }\n  .brou-cotizaciones tbody tr:last-child td {\n    border-bottom: none;\n  }\n  .brou-cotizaciones .currency-cell {\n    display: flex;\n    align-items: center;\n    gap: 14px;\n  }\n  .brou-cotizaciones .flag-icon {\n    font-size: 32px;\n    line-height: 1;\n    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));\n  }\n  .brou-cotizaciones .currency-info {\n    display: flex;\n    flex-direction: column;\n    gap: 3px;\n  }\n  .brou-cotizaciones .currency-name {\n    font-weight: 600;\n    color: #1e293b;\n    font-size: 14px;\n    line-height: 1.3;\n  }\n  .brou-cotizaciones .currency-code {\n    color: #64748b;\n    font-size: 11px;\n    font-weight: 600;\n    letter-spacing: 0.5px;\n  }\n  .brou-cotizaciones .rate {\n    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', monospace;\n    font-weight: 700;\n    font-size: 17px;\n    letter-spacing: -0.5px;\n  }\n  .brou-cotizaciones .rate-compra {\n    color: #10b981;\n  }\n  .brou-cotizaciones .rate-venta {\n    color: #ef4444;\n  }\n  .brou-footer {\n    text-align: center;\n    padding: 18px 24px;\n    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);\n    font-size: 12px;\n    color: #64748b;\n    border-top: 1px solid #e2e8f0;\n  }\n  .brou-footer a {\n    color: #2563eb;\n    text-decoration: none;\n    font-weight: 600;\n  }\n  .brou-footer a:hover {\n    text-decoration: underline;\n  }\n  .brou-footer .update-time {\n    margin-top: 6px;\n    font-size: 11px;\n    color: #94a3b8;\n  }\n  .brou-footer .brou-logo {\n    font-size: 10px;\n    margin-top: 8px;\n    padding-top: 8px;\n    border-top: 1px solid #e2e8f0;\n    color: #94a3b8;\n  }\n  .brou-error {\n    padding: 40px;\n    text-align: center;\n    color: #ef4444;\n    background: #fef2f2;\n    border-radius: 16px;\n  }\n  @media (max-width: 480px) {\n    .brou-cotizaciones th,\n    .brou-cotizaciones td {\n      padding: 12px 16px;\n    }\n    .brou-cotizaciones .flag-icon {\n      font-size: 26px;\n    }\n    .brou-cotizaciones .rate {\n      font-size: 15px;\n    }\n  }\n</style>\n<div class=\"brou-container\">\n  <table class=\"brou-cotizaciones\">\n    <thead>\n      <tr>\n        <th>Moneda</th>\n        <th>Compra</th>\n        <th>Venta</th>\n      </tr>\n    </thead>\n    <tbody>${rows}\n    </tbody>\n  </table>\n  <div class=\"brou-footer\">\n    <div>Fuente: <a href=\"https://www.brou.com.uy/cotizaciones\" target=\"_blank\" rel=\"noopener\">Banco República (BROU)</a></div>\n    <div class=\"update-time\">Actualizado: ${new Date().toLocaleString('es-UY', { \n      timeZone: 'America/Montevideo',\n      weekday: 'long',\n      year: 'numeric',\n      month: 'long',\n      day: 'numeric',\n      hour: '2-digit',\n      minute: '2-digit'\n    })}</div>\n    <div class=\"brou-logo\">🇺🇾 Cotizaciones en Pesos Uruguayos (UYU)</div>\n  </div>\n</div>\n`.trim();\n};\n\n// Construir respuesta final\nconst html = generateHTML(cotizaciones, compra, venta);\n\nreturn [{\n  json: {\n    compra: compra,\n    venta: venta,\n    html: html\n  }\n}];"
       },
-      "id": "a3bfb385-c449-4c17-ab21-ff1be664e6e4",
+      "id": "e6a19dc3-8047-4bee-b729-0c2416e3c593",
       "name": "Format Response1",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5120,
-        -16
+        4656,
+        1312
       ],
       "disabled": true
     },
@@ -1837,10 +1837,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -688,
-        1280
+        -1152,
+        2608
       ],
-      "id": "de1ad45f-7a5a-426e-9ea9-c9f2b1906a36",
+      "id": "0ad86b47-ea8a-4718-93a0-37304c515f1f",
       "name": "cash-session/declare",
       "webhookId": "9e026276-49db-48b7-ab9a-8fb74b566313",
       "credentials": {
@@ -1853,7 +1853,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT\n    currency AS moneda,\n\n    -- 1. TOTALES GLOBALES\n    SUM(CASE WHEN is_cash_equivalent THEN monto_por_metodo ELSE 0 END) AS total_efectivo,\n    SUM(CASE WHEN NOT is_cash_equivalent THEN monto_por_metodo ELSE 0 END) AS total_otros_medios,\n    SUM(monto_por_metodo) AS total_general,\n    \n    -- 2. DESGLOSE DETALLADO\n    json_agg(\n        json_build_object(\n            'codigo', payment_method_code,\n            'metodo', payment_method,\n            'monto', monto_por_metodo,\n            'es_efectivo', is_cash_equivalent\n        )\n    ) AS desglose_detallado\n    \nFROM (\n    -- SUBQUERY: Agrupa movimientos y aperturas\n    SELECT\n        currency,\n        payment_method,\n        payment_method_code,\n        is_cash_equivalent,\n        SUM(monto_ajustado) AS monto_por_metodo\n    FROM (\n        -- A. APERTURA DE CAJA (UYU)\n        SELECT \n            'UYU' AS currency, \n            'Apertura Caja' AS payment_method, \n            'OPEN' AS payment_method_code,\n            COALESCE((opening_details->'uyu'->>'total')::numeric, 0) AS monto_ajustado, \n            TRUE AS is_cash_equivalent \n        FROM public.cash_sessions \n        WHERE id = $1\n\n        UNION ALL\n\n        -- A. APERTURA DE CAJA (USD)\n        SELECT \n            'USD' AS currency, \n            'Apertura Caja' AS payment_method, \n            'OPEN' AS payment_method_code,\n            COALESCE((opening_details->'usd'->>'total')::numeric, 0) AS monto_ajustado, \n            TRUE AS is_cash_equivalent \n        FROM public.cash_sessions \n        WHERE id = $1\n        \n        UNION ALL\n        \n        -- B. MOVIMIENTOS CON LÓGICA DE SIGNOS APLICADA\n        SELECT \n            cm.currency, \n            pm.name, \n            pm.code,\n            cm.amount,\n            COALESCE(pm.is_cash_equivalent, FALSE)\n        FROM public.cash_movements cm\n        LEFT JOIN public.payment_methods pm ON cm.payment_method_id = pm.id\n        WHERE cm.cash_session_id = $1\n    ) AS raw_data\n    WHERE monto_ajustado <> 0\n    GROUP BY currency, payment_method, payment_method_code, is_cash_equivalent\n) AS datos_agrupados\nGROUP BY currency;",
+        "query": "SELECT\n    currency AS moneda,\n\n    -- 1. TOTALES GLOBALES\n    SUM(CASE WHEN is_cash_equivalent THEN monto_por_metodo ELSE 0 END) AS total_efectivo,\n    SUM(CASE WHEN NOT is_cash_equivalent THEN monto_por_metodo ELSE 0 END) AS total_otros_medios,\n    SUM(monto_por_metodo) AS total_general,\n    \n    -- 2. DESGLOSE DETALLADO\n    json_agg(\n        json_build_object(\n            'codigo', payment_method_code,\n            'metodo', payment_method,\n            'monto', monto_por_metodo,\n            'es_efectivo', is_cash_equivalent\n        )\n    ) AS desglose_detallado\n    \nFROM (\n    -- SUBQUERY: Agrupa movimientos y aperturas\n    SELECT\n        currency,\n        payment_method,\n        payment_method_code,\n        is_cash_equivalent,\n        SUM(monto_ajustado) AS monto_por_metodo\n    FROM (\n        -- A. APERTURA DE CAJA — una fila por moneda con la que se abrió la sesión\n        -- (antes solo UYU y USD fijos). El total sale del conteo de apertura;\n        -- si no lo hay, del importe de apertura de la moneda.\n        SELECT\n            csc.currency,\n            'Apertura Caja' AS payment_method,\n            'OPEN' AS payment_method_code,\n            COALESCE((s.opening_details->lower(csc.currency)->>'total')::numeric, csc.opening_amount, 0) AS monto_ajustado,\n            TRUE AS is_cash_equivalent\n        FROM public.cash_session_currencies csc\n        JOIN public.cash_sessions s ON s.id = csc.cash_session_id\n        WHERE csc.cash_session_id = $1\n\n        UNION ALL\n        \n        -- B. MOVIMIENTOS CON LÓGICA DE SIGNOS APLICADA\n        SELECT \n            cm.currency, \n            pm.name, \n            pm.code,\n            cm.amount,\n            COALESCE(pm.is_cash_equivalent, FALSE)\n        FROM public.cash_movements cm\n        LEFT JOIN public.payment_methods pm ON cm.payment_method_id = pm.id\n        WHERE cm.cash_session_id = $1\n    ) AS raw_data\n    WHERE monto_ajustado <> 0\n    GROUP BY currency, payment_method, payment_method_code, is_cash_equivalent\n) AS datos_agrupados\nGROUP BY currency;",
         "options": {
           "queryReplacement": "={{ $json.query.cash_session_id }}"
         }
@@ -1861,10 +1861,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -480,
-        1280
+        -944,
+        2608
       ],
-      "id": "42d0bfe2-03a8-4a0e-8b02-108de6df5832",
+      "id": "914ce7b1-5581-4f63-a312-59a7d9699758",
       "name": "Get session declaration",
       "alwaysOutputData": true,
       "credentials": {
@@ -1888,10 +1888,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        256,
-        1216
+        -208,
+        2544
       ],
-      "id": "e5768515-a007-4b54-8075-5af6fcbf20b7",
+      "id": "24db045b-8c60-40e5-a074-304cd83d422f",
       "name": "cash-session/prefill",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -1912,10 +1912,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        464,
-        1216
+        0,
+        2544
       ],
-      "id": "ddb461c0-9400-418a-a6bc-daebb3eca4ce",
+      "id": "860e448d-05eb-44f0-8a2c-140a012f9bd0",
       "name": "Select last closed cash-session",
       "alwaysOutputData": true,
       "credentials": {
@@ -1939,10 +1939,10 @@
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        3120,
-        480
+        2656,
+        1808
       ],
-      "id": "4d08be6e-0277-4b1d-a96e-9e0dccb9e031",
+      "id": "27902302-da2a-466e-bf36-d0333dcaa6cd",
       "name": "Everyday @ 7:50 AM"
     },
     {
@@ -2005,10 +2005,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3888,
-        480
+        3424,
+        1808
       ],
-      "id": "b251d585-6fd6-47a9-af1f-5fb0000afb28",
+      "id": "e489b058-f7e6-4cdd-b37a-937a2346ad3b",
       "name": "Save cotization",
       "credentials": {
         "postgres": {
@@ -2045,10 +2045,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3328,
-        816
+        2864,
+        2144
       ],
-      "id": "ab302d46-6f84-483d-9f8d-8a625d9224ea",
+      "id": "e41c5ee1-8bb3-4bff-9754-5b1ff9ded4a8",
       "name": "Get last cotization",
       "credentials": {
         "postgres": {
@@ -2066,11 +2066,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        3040,
-        400
+        2576,
+        1728
       ],
       "typeVersion": 1,
-      "id": "15b29bd0-eac7-4d29-9ca0-2ca22d082425",
+      "id": "fdd983a0-7ced-435e-9a24-3581aeec4ddd",
       "name": "Sticky Note4"
     },
     {
@@ -2080,10 +2080,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1200,
-        32
+        736,
+        1360
       ],
-      "id": "e204227d-772e-4e8f-9644-a0080f3d7378",
+      "id": "dc6c88ec-40e4-42f3-bbc0-a5235c7a588b",
       "name": "Code in JavaScript1",
       "disabled": true
     },
@@ -2225,10 +2225,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1376,
-        32
+        912,
+        1360
       ],
-      "id": "3ed9bc48-1285-46b8-9c45-c0c7d1c182fc",
+      "id": "cdbd22ec-fce3-4c95-8a1e-7df3b97d0342",
       "name": "Insert rows in a table",
       "credentials": {
         "postgres": {
@@ -2241,7 +2241,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE public.cash_session_currencies\nSET \n    declared_cash = $1,\n    calculated_cash = $2,\n    calculated_card = $3,\n    calculated_transfer = $4,\n    calculated_other = $5,\n    total_cash_payouts = $6,\n    cash_variance = $7\nWHERE \n    cash_session_id = $8 \n    AND currency = $9;",
+        "query": "-- Upsert: las monedas que entraron solo por movimientos (sin fila de apertura)\n-- se crean con apertura 0. date_rate queda en su default (1): no hay un tipo de\n-- cambio de apertura para una moneda con la que la caja no se abrió.\nINSERT INTO public.cash_session_currencies (\n    cash_session_id,\n    currency,\n    opening_amount,\n    declared_cash,\n    calculated_cash,\n    calculated_card,\n    calculated_transfer,\n    calculated_other,\n    total_cash_payouts,\n    cash_variance\n)\nVALUES ($8, $9, 0, $1, $2, $3, $4, $5, $6, $7)\nON CONFLICT (cash_session_id, currency) DO UPDATE SET\n    declared_cash = EXCLUDED.declared_cash,\n    calculated_cash = EXCLUDED.calculated_cash,\n    calculated_card = EXCLUDED.calculated_card,\n    calculated_transfer = EXCLUDED.calculated_transfer,\n    calculated_other = EXCLUDED.calculated_other,\n    total_cash_payouts = EXCLUDED.total_cash_payouts,\n    cash_variance = EXCLUDED.cash_variance;",
         "options": {
           "queryReplacement": "={{ [$json.declared_cash, $json.calculated_cash, $json.calculated_card, $json.calculated_transfer, $json.calculated_other, $json.total_cash_payouts, $json.cash_variance, $json.cash_session_id, $json.currency] }}"
         }
@@ -2249,10 +2249,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1312,
-        464
+        848,
+        1792
       ],
-      "id": "d49f08db-c271-4346-ac4c-049a273101db",
+      "id": "786bfe2f-faf0-4cfd-baa8-a973872dffa1",
       "name": "Update currencies",
       "credentials": {
         "postgres": {
@@ -2272,10 +2272,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        464,
-        560
+        0,
+        1888
       ],
-      "id": "ddf326a9-53bf-49ea-9a90-5bba42d4a4b8",
+      "id": "848a08fc-d032-481a-943a-32ee58916693",
       "name": "Get Session with Openings",
       "credentials": {
         "postgres": {
@@ -2295,10 +2295,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        896,
-        464
+        432,
+        1792
       ],
-      "id": "7d8819af-70d5-4b8f-9365-487a3dfde21f",
+      "id": "f3c20930-1bdb-44a8-a969-e0a99c6a581b",
       "name": "Get Movements Summary",
       "alwaysOutputData": true,
       "credentials": {
@@ -2315,10 +2315,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1552,
-        32
+        1088,
+        1360
       ],
-      "id": "adcb7768-a38b-4a61-8bae-253d5fffb7e6",
+      "id": "dd19fddb-9788-401e-8954-3a7c457f6397",
       "name": "Merge info",
       "disabled": true
     },
@@ -2350,10 +2350,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        672,
-        560
+        208,
+        1888
       ],
-      "id": "eabcb6fc-b19e-40a3-a813-ba908ff42ee1",
+      "id": "031673ee-322e-438b-b2ed-4abb0e23db46",
       "name": "Has opened cash session?"
     },
     {
@@ -2365,10 +2365,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        896,
-        656
+        432,
+        1984
       ],
-      "id": "81084911-dd91-4a14-8196-eb363d472774",
+      "id": "f391051b-2da0-4a5c-be36-e837a740b233",
       "name": "cash-session-error2"
     },
     {
@@ -2379,11 +2379,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -736,
-        1200
+        -1200,
+        2528
       ],
       "typeVersion": 1,
-      "id": "e9feb23a-3b26-4316-a076-6b3187288449",
+      "id": "7cee65a2-dead-452d-a51f-fca764f9bb1c",
       "name": "Sticky Note5"
     },
     {
@@ -2393,10 +2393,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1520,
-        464
+        1056,
+        1792
       ],
-      "id": "3137e471-1dd6-4083-8100-fa7c547a8ec4",
+      "id": "b680d6b8-93f6-40fd-9d19-4a93348000e4",
       "name": "Get Request Images1",
       "alwaysOutputData": true
     },
@@ -2438,10 +2438,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1728,
-        464
+        1264,
+        1792
       ],
-      "id": "56ffba23-366c-4466-8363-a64d3aaa4e1b",
+      "id": "1c93ddfd-a9da-4fa1-800f-2e5d283bb383",
       "name": "Has images?1"
     },
     {
@@ -2451,10 +2451,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        672,
-        1216
+        208,
+        2544
       ],
-      "id": "d8ba8091-28f7-4315-bc07-4b373d9cf184",
+      "id": "142ae44f-3f21-4b96-a6e5-693e076de8e3",
       "name": "Code in JavaScript2"
     },
     {
@@ -2469,10 +2469,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        256,
-        1504
+        -208,
+        2832
       ],
-      "id": "d8359364-824a-4736-9771-6f49fff87e60",
+      "id": "d5ecdd04-9abd-4123-b8d3-4dfb95c26cae",
       "name": "cash-session/print",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2493,10 +2493,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        464,
-        1504
+        0,
+        2832
       ],
-      "id": "ea2e536a-c8a8-487a-9c60-8937684ecca4",
+      "id": "eb2e9a67-d7b0-4c6f-a400-a14199c38866",
       "name": "Get cash session details",
       "credentials": {
         "postgres": {
@@ -2533,10 +2533,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1104,
-        1504
+        640,
+        2832
       ],
-      "id": "9e39e331-aa9f-4452-a1e8-3d66b2d88f86",
+      "id": "349ac61d-d260-4752-a7b1-8225d550829b",
       "name": "Success build?"
     },
     {
@@ -2558,10 +2558,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        1312,
-        1408
+        848,
+        2736
       ],
-      "id": "f01c0a81-4cc9-4aae-a9a7-6ae56edf3283",
+      "id": "56cb26c2-87fd-43f0-8931-a36a3eba4278",
       "name": "OK: PDF"
     },
     {
@@ -2581,10 +2581,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        1312,
-        1600
+        848,
+        2928
       ],
-      "id": "a60435e1-99c7-424f-afa8-1c42cb274760",
+      "id": "42b0e531-3c79-4bed-8a51-f01b3aece699",
       "name": "Error"
     },
     {
@@ -2615,10 +2615,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1088,
-        1872
+        624,
+        3200
       ],
-      "id": "337e1b07-44a7-432a-85f3-0e56f9b8ad49",
+      "id": "8f31037b-1c58-46a8-81e6-0ee799d4e0a7",
       "name": "Success build?1"
     },
     {
@@ -2667,10 +2667,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        880,
-        1872
+        416,
+        3200
       ],
-      "id": "22770e25-a86f-4aa0-bf20-da714b501dd8",
+      "id": "c6dafb18-3750-40cf-9123-85d9c412f02e",
       "name": "Build Invoice Email1"
     },
     {
@@ -2692,10 +2692,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        1296,
-        1776
+        832,
+        3104
       ],
-      "id": "4f1bfe8d-2eb5-4ff6-9e37-0d4deebaa2ce",
+      "id": "7176df8f-4c3a-49f4-b871-82eae779c1fc",
       "name": "OK: PDF1"
     },
     {
@@ -2715,10 +2715,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        1296,
-        1968
+        832,
+        3296
       ],
-      "id": "1e2d56d4-2abb-4000-8bfb-3600b7c02322",
+      "id": "85200a30-e10e-4a5a-9469-83502d7114e3",
       "name": "Error1"
     },
     {
@@ -2733,10 +2733,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        256,
-        1968
+        -208,
+        3296
       ],
-      "id": "02e0b1f3-9f9d-4018-9188-3160440ec769",
+      "id": "cf91e2e9-0cf1-4ff4-9244-cf5fbd528648",
       "name": "cash-session/open/print",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2757,10 +2757,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        464,
-        1968
+        0,
+        3296
       ],
-      "id": "7f33d53e-9305-48bb-994f-ca26e5c3310d",
+      "id": "172080ed-559b-4717-ad5a-bdeefbc4cb24",
       "name": "Get Open Cash Session Details",
       "alwaysOutputData": true,
       "credentials": {
@@ -2798,10 +2798,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        672,
-        1968
+        208,
+        3296
       ],
-      "id": "dd842a7e-d7f2-4020-9f4c-ab956cee74fe",
+      "id": "b537505a-335c-4c40-b5af-d03bff9cebd2",
       "name": "Exists?"
     },
     {
@@ -2823,10 +2823,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        880,
-        2064
+        416,
+        3392
       ],
-      "id": "9cd6c46c-b54c-4003-b0c5-c0a56c36bccd",
+      "id": "31ad012b-b93e-405b-8d88-fd4c28934bbc",
       "name": "Error2"
     },
     {
@@ -2857,10 +2857,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1088,
-        2320
+        624,
+        3648
       ],
-      "id": "a41f7567-9aad-4034-ad70-d0421d5a9af8",
+      "id": "b96a9575-d625-4c38-af27-3f2914bc33e2",
       "name": "Success build?2"
     },
     {
@@ -2909,10 +2909,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        880,
-        2320
+        416,
+        3648
       ],
-      "id": "1734e321-35cc-41ca-a252-d7a6e389863f",
+      "id": "2f9eecfe-7086-4b9f-b330-3657cd3fb37c",
       "name": "Build Invoice Email2"
     },
     {
@@ -2934,10 +2934,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        1296,
-        2224
+        832,
+        3552
       ],
-      "id": "71f80291-cf87-4caf-9dd7-1d4d456dc3ed",
+      "id": "df073e82-0352-46ed-a47c-e759226051bf",
       "name": "OK: PDF2"
     },
     {
@@ -2957,10 +2957,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        1296,
-        2416
+        832,
+        3744
       ],
-      "id": "1b63b4f9-076b-4220-b772-25e5835aa3f4",
+      "id": "edf16d15-f342-44f4-b1c8-61e881fd2617",
       "name": "Error3"
     },
     {
@@ -2991,10 +2991,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        672,
-        2416
+        208,
+        3744
       ],
-      "id": "fafefcad-4121-4d9e-b77f-85d5ea00f1f1",
+      "id": "b4ef3e58-334e-424b-9c7d-bbf10ee2133f",
       "name": "Exists?1"
     },
     {
@@ -3016,10 +3016,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        880,
-        2512
+        416,
+        3840
       ],
-      "id": "cec14691-6abe-47fe-a870-70147fd37f4d",
+      "id": "2f6b7f18-e27f-448b-959d-be3312814e47",
       "name": "Error4"
     },
     {
@@ -3034,10 +3034,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        256,
-        2416
+        -208,
+        3744
       ],
-      "id": "7c3e4869-c6a7-4779-b22e-6e1084035219",
+      "id": "6f3ee0dc-7d3c-4eec-a696-2b4efeb8abae",
       "name": "cash-session/close/print",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -3058,10 +3058,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        464,
-        2416
+        0,
+        3744
       ],
-      "id": "baf7fbd6-3fdc-4909-9cd9-1114d1da4578",
+      "id": "1715ac87-e06b-450e-9f2b-1a65d3661b24",
       "name": "Get Close Cash Session Details",
       "alwaysOutputData": true,
       "credentials": {
@@ -3098,10 +3098,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        672,
-        1504
+        208,
+        2832
       ],
-      "id": "ca255053-1659-4eec-ab10-536f2a7769bb",
+      "id": "6d4944b9-c97d-419d-a0dc-d1b8359b9c53",
       "name": "is open?"
     },
     {
@@ -3150,10 +3150,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        896,
-        1584
+        432,
+        2912
       ],
-      "id": "ff8f4727-36d8-4040-a552-1a42cc20e194",
+      "id": "bbf1490f-1e97-4d00-9fc8-2e1c688acf31",
       "name": "Build Closed Session"
     },
     {
@@ -3202,10 +3202,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        896,
-        1424
+        432,
+        2752
       ],
-      "id": "52815ebb-5f74-404f-94b5-2340d503eb80",
+      "id": "95bbdbbc-6dda-40a8-bb06-1c78ea2ea137",
       "name": "Build Open Session"
     },
     {
@@ -3265,10 +3265,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        1936,
-        368
+        1472,
+        1696
       ],
-      "id": "150ccb07-3889-43f8-be71-061a06adbcf8",
+      "id": "bfbd83d1-ac32-4f5d-a50e-eb86a68a65bf",
       "name": "Call 'Attachements CRUD'"
     },
     {
@@ -3299,10 +3299,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        2144,
-        368
+        1680,
+        1696
       ],
-      "id": "80caa66e-26a1-416c-94e0-da9169cefeb5",
+      "id": "ee778618-350a-4596-98db-b84d9b1df2e9",
       "name": "Success?"
     },
     {
@@ -3314,13 +3314,13 @@
           "allowedOrigins": "*"
         }
       },
-      "id": "ce4ba6d2-f23a-4ed1-b51e-745ec4f299f3",
+      "id": "3a5c0176-40dd-49b4-8e8c-29d3c05c9cd4",
       "name": "LIST /cotizaciones-history",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        3120,
-        1088
+        2656,
+        2416
       ],
       "webhookId": "cotizacion-usd-brou",
       "credentials": {
@@ -3341,10 +3341,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3328,
-        1088
+        2864,
+        2416
       ],
-      "id": "4999597e-a947-4f9d-a3d2-482e772ca24d",
+      "id": "a9e0ff78-c311-4fbf-9214-655f709d3297",
       "name": "Select cotization history",
       "credentials": {
         "postgres": {
@@ -3370,10 +3370,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        3536,
-        1088
+        3072,
+        2416
       ],
-      "id": "e04cf651-c273-480b-8b20-a482278cb53b",
+      "id": "03a24be3-e3b4-445a-a3de-7bfb55a03ed5",
       "name": "Ok"
     },
     {
@@ -3387,10 +3387,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2576,
-        384
+        2112,
+        1712
       ],
-      "id": "069cfedb-37d8-4b10-89ea-3d1803c7ee28",
+      "id": "3e29a75f-efab-4066-9c60-7512a8e211b3",
       "name": "Execute a SQL query3",
       "credentials": {
         "postgres": {
@@ -3410,10 +3410,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        480,
-        2800
+        16,
+        4128
       ],
-      "id": "a1c9fbb2-a238-4f99-b8df-7fdb219c4083",
+      "id": "ea744661-1ed8-4f19-8f19-6a25f3bbe7fa",
       "name": "Get cash session details1",
       "credentials": {
         "postgres": {
@@ -3434,10 +3434,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        272,
-        2800
+        -192,
+        4128
       ],
-      "id": "b3239225-5845-4542-baae-d9d6fb07b604",
+      "id": "5e5f4645-b9c9-4413-8e0e-e4b858a1175a",
       "name": "GET cash-session/details",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -3455,11 +3455,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        192,
-        2688
+        -272,
+        4016
       ],
       "typeVersion": 1,
-      "id": "f8477924-4f57-4b43-b16f-5b732179e704",
+      "id": "b7f5ec67-f8c2-4ef6-aada-11b10d73655b",
       "name": "Sticky Note6"
     },
     {
@@ -3479,10 +3479,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        688,
-        2800
+        224,
+        4128
       ],
-      "id": "938d8976-2239-4583-91d4-d5938878ed8b",
+      "id": "49809f40-5386-4f29-924f-3b1c32cc5599",
       "name": "OK"
     },
     {
@@ -3499,10 +3499,10 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.3,
       "position": [
-        3536,
-        640
+        3072,
+        1968
       ],
-      "id": "7ce6656b-ba2c-454a-bd34-f4d3bcafa7ab",
+      "id": "3e7fe003-e1d0-47ed-9350-01b24b40c115",
       "name": "OpenAI Chat Model",
       "credentials": {
         "openAiApi": {
@@ -3524,10 +3524,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        3056,
-        1504
+        2592,
+        2832
       ],
-      "id": "77781cb2-e2ed-4b27-ab0f-a8e4e5d0d9d1",
+      "id": "f77b50d2-a255-402c-9c9a-b7077c3f59a8",
       "name": "cash-session/open1",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -3584,11 +3584,11 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        3296,
-        1504
+        2832,
+        2832
       ],
       "name": "Call Cash-session-active-workflow2",
-      "id": "3bd4f0e6-db77-4086-9144-7bcb505a6cf4"
+      "id": "443f14be-5826-49bd-8439-e7c5103ff31d"
     },
     {
       "parameters": {
@@ -3747,10 +3747,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3760,
-        1616
+        3296,
+        2944
       ],
-      "id": "3ccb739d-5c79-4bef-9a3d-52798b948529",
+      "id": "0e91581b-fed4-438c-90df-365c3084bb7d",
       "name": "Insert rows in cash-session1",
       "alwaysOutputData": false,
       "credentials": {
@@ -3790,10 +3790,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        4528,
-        1536
+        4064,
+        2864
       ],
-      "id": "3e750f32-1a76-40cf-979e-958ad0413fad",
+      "id": "a26babba-58cc-4618-9523-e4a4061859f5",
       "name": "cash-session-success2"
     },
     {
@@ -3805,10 +3805,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        4000,
-        1712
+        3536,
+        3040
       ],
-      "id": "b2c53419-18d3-45c1-9490-ed30cf522e36",
+      "id": "eaebcd5b-f0c5-460a-a095-fa3656716beb",
       "name": "cash-session-error3"
     },
     {
@@ -3848,10 +3848,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        3536,
-        1504
+        3072,
+        2832
       ],
-      "id": "3b6c7655-0f1a-4fd3-ad8e-523407e9464f",
+      "id": "66a9a942-8d12-4537-b8a9-b50e3cbe35f8",
       "name": "If cash-session-open1"
     },
     {
@@ -3863,10 +3863,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        3760,
-        1408
+        3296,
+        2736
       ],
-      "id": "98d25db4-16d8-44f7-9222-9d58aacf6aff",
+      "id": "4a91cc0a-097a-440a-8ea9-c69b9f7cbb71",
       "name": "error cash-session is open1"
     },
     {
@@ -3876,10 +3876,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4000,
-        1536
+        3536,
+        2864
       ],
-      "id": "ac809e72-ccf3-4322-b48e-985142033e5e",
+      "id": "b39e39cc-c97e-44c6-abd9-15e89dbdbf2d",
       "name": "Code in JavaScript"
     },
     {
@@ -4020,10 +4020,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        4176,
-        1536
+        3712,
+        2864
       ],
-      "id": "b6cf945b-b16a-4d2f-bcd1-1fdafd870133",
+      "id": "9a5e14d7-b895-4ec5-9769-2eef6bdb303d",
       "name": "Insert rows in a table1",
       "credentials": {
         "postgres": {
@@ -4039,23 +4039,23 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4352,
-        1536
+        3888,
+        2864
       ],
-      "id": "d0d302bf-2811-4aad-a2a9-2c05ad57e80a",
+      "id": "9db8086d-15ca-427c-8eea-b2315486365f",
       "name": "Merge info1"
     },
     {
       "parameters": {
-        "jsCode": "const webhookBody = $('cash-session/close').first().json.body; \nconst sessionData = $('Get Session with Openings').first().json;\nconst movementsData = $('Get Movements Summary').all().map(item => item.json);\n\nconst sessionId = sessionData.id;\nconst closingNotes = webhookBody.notes || '';\nconst closingDetails = webhookBody.closing_denominations || {};\n\n// Saldos iniciales\nconst openingBalances = sessionData.opening_balances || [];\nconst currenciesToProcess = ['UYU', 'USD']; \n\nconst outputArray = [];\n\nfor (const currency of currenciesToProcess) {\n    \n    // A. DATOS DE APERTURA (Solo Físico)\n    const openingObj = openingBalances.find(b => b.currency === currency);\n    const openingAmount = parseFloat(openingObj ? openingObj.opening_amount : 0);\n\n    // B. DATOS DE MOVIMIENTOS (Sistema)\n    const movs = movementsData.find(m => m.currency === currency) || { \n        cash_in: 0, cash_out: 0, card_total: 0, transfer_total: 0, other_total: 0 \n    };\n\n    const sysCashIn = parseFloat(movs.cash_in || 0);\n    const sysCashOut = parseFloat(movs.cash_out || 0);\n    const sysCard = parseFloat(movs.card_total || 0);\n    const sysTransfer = parseFloat(movs.transfer_total || 0);\n    const sysOther = parseFloat(movs.other_total || 0);\n\n    // C. DATOS DECLARADOS (Usuario cuenta billetes)\n    const declaredKey = `declared_cash_${currency.toLowerCase()}`;\n    const declaredPhysicalCash = parseFloat(webhookBody[declaredKey] || 0);\n\n    // PASO 1: Calcular saldo físico esperado\n    const expectedPhysicalBalance = (openingAmount + sysCashIn) - sysCashOut;\n\n    // PASO 2: Calcular EXPECTATIVA GLOBAL DEL SISTEMA (Cuánto valor generó/tiene la sesión)\n    const totalSystemExpectation = openingAmount;\n\n    // PASO 3: Calcular TOTAL DE ACTIVOS REALES (Lo que declaramos tener)\n    const totalAssetsDeclared = declaredPhysicalCash + sysCard + sysTransfer + sysOther;\n\n    // PASO 4: VARIACIÓN\n    const variance = totalAssetsDeclared - totalSystemExpectation;\n    const cash_variance = declaredPhysicalCash - expectedPhysicalBalance;\n\n    // -----------------------------------------------------------------------\n\n    outputArray.push({\n        json: {\n            cash_session_id: sessionId,\n            currency: currency,\n            \n            // Guardamos el declarado físico\n            declared_cash: declaredPhysicalCash,\n            \n            // Guardamos el calculado físico (para referencia futura del saldo de caja)\n            calculated_cash: expectedPhysicalBalance,\n            \n            // Guardamos los acumuladores digitales\n            calculated_card: sysCard,\n            calculated_transfer: sysTransfer,\n            calculated_other: sysOther,\n            total_cash_payouts: sysCashOut,\n            \n            // La varianza final del ejercicio\n            cash_variance: cash_variance,\n            \n            // Extras\n            closing_notes: closingNotes,\n            closing_details: closingDetails \n        }\n    });\n}\n\nreturn outputArray;"
+        "jsCode": "/*\n* =============================================================================\n* PREPARAR CIERRE MULTIMONEDA\n* =============================================================================\n* Una fila de cierre por cada moneda que haya pasado por la caja:\n*   - las monedas con las que se abrió (cash_session_currencies),\n*   - las de cualquier movimiento registrado en la sesión,\n*   - las que el usuario declaró con un importe distinto de cero.\n*\n* Antes la lista era fija (['UYU', 'USD']): una caja abierta en EUR no guardaba\n* nada al cerrar, y un cobro en una moneda con la que no se abrió la caja no\n* entraba en el arqueo. Las monedas que no tienen fila de apertura se crean en\n* \"Update currencies\" (upsert) con apertura 0.\n*/\nconst webhookBody = $('cash-session/close').first().json.body ?? {};\nconst sessionData = $('Get Session with Openings').first().json;\n// \"Get Movements Summary\" siempre emite un item (alwaysOutputData): si la sesión\n// no tiene movimientos llega vacío, sin moneda, y se descarta.\nconst movementsData = $('Get Movements Summary').all()\n    .map(item => item.json)\n    .filter(m => m && m.currency);\n\nconst sessionId = sessionData.id;\nconst closingNotes = webhookBody.notes || '';\nconst closingDetails = webhookBody.closing_denominations || {};\n\nconst normalize = (code) => String(code ?? '').trim().toUpperCase();\nconst isCurrencyCode = (code) => /^[A-Z]{3}$/.test(code);\n\n// Saldos iniciales\nconst openingBalances = sessionData.opening_balances || [];\n\n// Declarado físico por moneda. El frontend manda el mapa completo en\n// `declared_cash` (JSON) y, por compatibilidad, un campo\n// `declared_cash_<código>` por moneda. Si llegan ambos, manda el campo suelto.\nlet declaredMap = webhookBody.declared_cash ?? {};\nif (typeof declaredMap === 'string') {\n    try { declaredMap = JSON.parse(declaredMap); } catch (e) { declaredMap = {}; }\n}\nconst declared = {};\nfor (const [code, amount] of Object.entries(declaredMap || {})) {\n    const c = normalize(code);\n    if (isCurrencyCode(c)) declared[c] = parseFloat(amount) || 0;\n}\nfor (const [key, amount] of Object.entries(webhookBody)) {\n    const match = /^declared_cash_([a-z]{3})$/i.exec(key);\n    if (match) declared[normalize(match[1])] = parseFloat(amount) || 0;\n}\n\nconst currenciesToProcess = [...new Set([\n    ...openingBalances.map(b => normalize(b.currency)),\n    ...movementsData.map(m => normalize(m.currency)),\n    ...Object.keys(declared).filter(c => declared[c] !== 0),\n])].filter(isCurrencyCode);\n\nconst outputArray = [];\n\nfor (const currency of currenciesToProcess) {\n\n    // A. DATOS DE APERTURA (Solo Físico) — 0 si la moneda no se abrió\n    const openingObj = openingBalances.find(b => normalize(b.currency) === currency);\n    const openingAmount = parseFloat(openingObj ? openingObj.opening_amount : 0) || 0;\n\n    // B. DATOS DE MOVIMIENTOS (Sistema)\n    const movs = movementsData.find(m => normalize(m.currency) === currency) || {\n        cash_in: 0, cash_out: 0, card_total: 0, transfer_total: 0, other_total: 0\n    };\n\n    const sysCashIn = parseFloat(movs.cash_in || 0);\n    const sysCashOut = parseFloat(movs.cash_out || 0);\n    const sysCard = parseFloat(movs.card_total || 0);\n    const sysTransfer = parseFloat(movs.transfer_total || 0);\n    const sysOther = parseFloat(movs.other_total || 0);\n\n    // C. DATOS DECLARADOS (Usuario cuenta billetes)\n    const declaredPhysicalCash = declared[currency] ?? 0;\n\n    // Saldo físico esperado y varianza del efectivo\n    const expectedPhysicalBalance = (openingAmount + sysCashIn) - sysCashOut;\n    const cash_variance = declaredPhysicalCash - expectedPhysicalBalance;\n\n    outputArray.push({\n        json: {\n            cash_session_id: sessionId,\n            currency: currency,\n\n            // Apertura de esta moneda (0 si entró solo por movimientos)\n            opening_amount: openingAmount,\n\n            // Guardamos el declarado físico\n            declared_cash: declaredPhysicalCash,\n\n            // Guardamos el calculado físico (para referencia futura del saldo de caja)\n            calculated_cash: expectedPhysicalBalance,\n\n            // Guardamos los acumuladores digitales\n            calculated_card: sysCard,\n            calculated_transfer: sysTransfer,\n            calculated_other: sysOther,\n            total_cash_payouts: sysCashOut,\n\n            // La varianza final del ejercicio\n            cash_variance: cash_variance,\n\n            // Extras\n            closing_notes: closingNotes,\n            closing_details: closingDetails\n        }\n    });\n}\n\nreturn outputArray;\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1104,
-        464
+        640,
+        1792
       ],
-      "id": "46254e2e-3672-46b2-b465-3195b00adf17",
+      "id": "2576b320-2b70-4222-b0b1-36c8eab2b859",
       "name": "Code in JavaScript3"
     }
   ],
@@ -5204,11 +5204,6 @@
         ]
       ]
     },
-    "Execute a SQL query1": {
-      "main": [
-        []
-      ]
-    },
     "Get Request Images1": {
       "main": [
         [
@@ -5287,11 +5282,6 @@
             "index": 0
           }
         ]
-      ]
-    },
-    "OK: PDF": {
-      "main": [
-        []
       ]
     },
     "Success build?1": {
@@ -5491,8 +5481,7 @@
             "type": "main",
             "index": 0
           }
-        ],
-        []
+        ]
       ]
     },
     "LIST /cotizaciones-history": {
@@ -5672,7 +5661,7 @@
     "callerPolicy": "workflowsFromSameOwner",
     "availableInMCP": false
   },
-  "versionId": "ca899607-36fd-4583-9980-783d282cac63",
+  "versionId": "fc11000f-5339-408e-809a-1a4261497849",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
