@@ -27,6 +27,7 @@ import * as React from 'react';
 import { Badge } from '../ui/badge';
 import { Input } from '../ui/input';
 import { Switch } from '../ui/switch';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 type UserServiceAssignment = {
   service_id: string;
@@ -84,7 +85,7 @@ async function getServicesForUser(userId: string, t: any, isSalesUser: boolean):
       name: apiService.name || t('General.unknown'),
       category: apiService.category || t('General.notAvailable'),
       price: apiService.price || 0,
-      currency: apiService.currency || 'USD',
+      currency: apiService.currency || getClinicCurrency(),
       duration_minutes: apiService.duration_minutes || 0,
       is_active: apiService.is_active,
       is_sales: apiService.is_sales as boolean | undefined,
@@ -100,7 +101,7 @@ async function getServicesForUser(userId: string, t: any, isSalesUser: boolean):
 async function getAllServices(isSalesUser: boolean): Promise<Service[]> {
   try {
     const result = isSalesUser ? await getSalesServices({ limit: 100 }) : await getPurchaseServices({ limit: 100 });
-    return result.items.map((service: any) => ({ id: String(service.id), name: service.name, category: service.category, price: service.price, currency: service.currency || 'USD', duration_minutes: service.duration_minutes, is_active: service.is_active, is_sales: service.is_sales as boolean | undefined }));
+    return result.items.map((service: any) => ({ id: String(service.id), name: service.name, category: service.category, price: service.price, currency: service.currency || getClinicCurrency(), duration_minutes: service.duration_minutes, is_active: service.is_active, is_sales: service.is_sales as boolean | undefined }));
   } catch (error) {
     console.error("Failed to fetch all services:", error);
     return [];

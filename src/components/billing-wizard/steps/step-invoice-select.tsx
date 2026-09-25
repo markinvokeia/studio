@@ -10,6 +10,8 @@ import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
 import { cn, formatDisplayDate } from '@/lib/utils';
 import type { Invoice } from '@/lib/types';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
+import { formatMoney } from '@/lib/currency';
 
 // ── Internal types ────────────────────────────────────────────────────────────
 
@@ -68,8 +70,8 @@ interface StepInvoiceSelectProps {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function fmtCurrency(amount: number, currency = 'USD') {
-  return new Intl.NumberFormat('es-UY', { style: 'currency', currency }).format(amount);
+function fmtCurrency(amount: number, currency?: string) {
+  return formatMoney(amount, currency ?? getClinicCurrency());
 }
 
 function fmtDateTime(dateStr?: string): string | null {
@@ -179,7 +181,7 @@ export function StepInvoiceSelect({
           const detail = await fetchInvoiceDetail(
             invoiceId,
             isSales,
-            inv.currency || 'USD',
+            inv.currency || getClinicCurrency(),
           );
           setDetailCache((prev) => new Map(prev).set(invoiceId, detail));
         } catch {
@@ -202,7 +204,7 @@ export function StepInvoiceSelect({
     );
   }
 
-  const currency = invoices[0]?.currency || 'USD';
+  const currency = invoices[0]?.currency || getClinicCurrency();
 
   const totalSelected = invoices
     .filter((inv) => selectedIds.has(inv.id))

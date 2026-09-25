@@ -52,6 +52,9 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import * as z from 'zod';
+import { currencySchema } from '@/lib/currency';
+import { CurrencySelect } from '@/components/ui/currency-select';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 /**
  * `maxDiscountPct` llega de las preferencias de la clínica, así que el esquema
@@ -65,7 +68,7 @@ const quoteFormSchema = (t: (key: string) => string, maxDiscountPct: number) => 
     /** Descuento sobre el total del documento. Sólo con ámbito 'total'. */
     discount_mode: z.enum(['percent', 'amount']).nullish(),
     discount_value: z.coerce.number().min(0).nullish(),
-    currency: z.enum(['UYU', 'USD']).default('USD'),
+    currency: currencySchema,
     status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'pending', 'confirmed',
         'Draft', 'Sent', 'Accepted', 'Rejected', 'Pending', 'Confirmed']),
     payment_status: z.enum(['unpaid', 'paid', 'partial', 'partially_paid',
@@ -141,7 +144,7 @@ async function getClinic(): Promise<Clinic | null> {
             location: apiClinic.address || '',
             contact_email: apiClinic.email || '',
             phone_number: apiClinic.phone || '',
-            currency: apiClinic.currency || 'UYU',
+            currency: apiClinic.currency || getClinicCurrency(),
         };
     } catch {
         return null;
@@ -220,7 +223,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
     // Reset form when dialog opens — pre-carga ítems IA si están disponibles
     React.useEffect(() => {
         if (!open) return;
-        const defaultCurrency = clinic?.currency || 'UYU';
+        const defaultCurrency = clinic?.currency || getClinicCurrency();
         const sessionRate = getSessionExchangeRate();
         // Los ítems precargados por IA entran sin descuento: aplicarlo es una
         // decisión del usuario, no algo que se herede del servicio.
@@ -260,7 +263,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
             }
         );
         // Set exchange rate based on currency vs clinic currency
-        if (defaultCurrency !== (clinic?.currency || 'UYU')) {
+        if (defaultCurrency !== (clinic?.currency || getClinicCurrency())) {
             form.setValue('exchange_rate', sessionRate);
         }
         setDoctorName('');
@@ -270,7 +273,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
 
     const watchedCurrency = form.watch('currency');
     const watchedExchangeRate = form.watch('exchange_rate');
-    const isClinicCurrency = watchedCurrency === (clinic?.currency || 'UYU');
+    const isClinicCurrency = watchedCurrency === (clinic?.currency || getClinicCurrency());
 
     React.useEffect(() => {
         if (isClinicCurrency) {
@@ -412,7 +415,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                     status: values.patient_confirmed ? 'confirmed' : (quoteData.status || 'draft'),
                     payment_status: quoteData.payment_status || 'unpaid',
                     billing_status: quoteData.billing_status || 'not invoiced',
-                    currency: quoteData.currency || 'USD',
+                    currency: quoteData.currency || getClinicCurrency(),
                     exchange_rate: parseFloat(quoteData.exchange_rate) || 1,
                     notes: quoteData.notes || '',
                     createdAt: quoteData.created_at || new Date().toISOString(),
@@ -507,15 +510,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>{t('quoteDialog.currency')}</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}>
-                                                <FormControl>
-                                                    <SelectTrigger><SelectValue placeholder={t('quoteDialog.selectCurrency')} /></SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="USD">USD</SelectItem>
-                                                    <SelectItem value="UYU">UYU</SelectItem>
-                                                </SelectContent>
-                                            </Select>
+                                            <FormControl><CurrencySelect value={field.value} onChange={field.onChange} placeholder={t('quoteDialog.selectCurrency')} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -688,7 +683,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                                             mode={watchedItems?.[index]?.discount_mode}
                                                             value={watchedItems?.[index]?.discount_value}
                                                             base={computeGrossTotal(watchedItems?.[index]?.unit_price ?? 0, watchedItems?.[index]?.quantity ?? 0)}
-                                                            currency={watchedCurrency || 'UYU'}
+                                                            currency={watchedCurrency || getClinicCurrency()}
                                                             maxPct={discounts.maxPct}
                                                             defaultPct={discounts.defaultPct}
                                                             canApply={discounts.canApply}
@@ -825,7 +820,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                                                     mode={watchedItems?.[index]?.discount_mode}
                                                                     value={watchedItems?.[index]?.discount_value}
                                                                     base={computeGrossTotal(watchedItems?.[index]?.unit_price ?? 0, watchedItems?.[index]?.quantity ?? 0)}
-                                                                    currency={watchedCurrency || 'UYU'}
+                                                                    currency={watchedCurrency || getClinicCurrency()}
                                                                     maxPct={discounts.maxPct}
                                                                     defaultPct={discounts.defaultPct}
                                                                     canApply={discounts.canApply}
@@ -866,7 +861,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                                     mode={watchedDiscountMode}
                                                     value={watchedDiscountValue}
                                                     base={documentTotals.grossTotal}
-                                                    currency={watchedCurrency || 'UYU'}
+                                                    currency={watchedCurrency || getClinicCurrency()}
                                                     maxPct={discounts.maxPct}
                                                     defaultPct={discounts.defaultPct}
                                                     canApply={discounts.canApply}
@@ -884,7 +879,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                                 grossTotal={documentTotals.grossTotal}
                                                 discountAmount={documentTotals.discountAmount}
                                                 total={documentTotals.total}
-                                                currency={watchedCurrency || 'UYU'}
+                                                currency={watchedCurrency || getClinicCurrency()}
                                             />
                                         </div>
                                     </div>

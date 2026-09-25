@@ -43,6 +43,9 @@ import * as z from 'zod';
 import { ServicesColumnsWrapper } from './columns';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useDeepLink } from '@/hooks/use-deep-link';
+import { currencySchema } from '@/lib/currency';
+import { CurrencySelect } from '@/components/ui/currency-select';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 console.log("Services Page Loaded. API_ROUTES.SERVICES:", API_ROUTES.SERVICES);
 
@@ -52,7 +55,7 @@ const serviceFormSchema = (t: (key: string) => string) => z.object({
   category_id: z.string().min(1, t('categoryRequired')),
   category: z.string().optional(),
   price: z.coerce.number().min(0, t('priceNonNegative')),
-  currency: z.enum(['UYU', 'USD']).default('USD'),
+  currency: currencySchema,
   duration_minutes: z.coerce.number().int().positive(t('durationInteger')),
   description: z.string().optional(),
   indications: z.string().optional(),
@@ -70,13 +73,20 @@ const serviceFormSchema = (t: (key: string) => string) => z.object({
 
 type ServiceFormValues = z.infer<ReturnType<typeof serviceFormSchema>>;
 
-const DEFAULT_SERVICE_FORM_VALUES: ServiceFormValues = {
+/**
+ * Valores iniciales de un servicio nuevo.
+ *
+ * Es una función, no una constante: la moneda de la clínica se carga tras el
+ * login, y una constante de módulo la congelaría en el valor por defecto que
+ * hubiera en el momento de importar el fichero.
+ */
+const defaultServiceFormValues = (): ServiceFormValues => ({
   id: undefined,
   name: '',
   category_id: '',
   category: '',
   price: 0,
-  currency: 'USD',
+  currency: getClinicCurrency(),
   duration_minutes: 60,
   description: '',
   indications: '',
@@ -84,7 +94,7 @@ const DEFAULT_SERVICE_FORM_VALUES: ServiceFormValues = {
   is_active: true,
   service_type: 'single',
   treatment_steps: [],
-};
+});
 
 const PAGE_SIZE = 10;
 
@@ -107,7 +117,7 @@ async function getServices(params: { page: number; limit: number; search: string
       category: apiService.category_name || apiService.category || 'No Category',
       category_id: apiService.category_id ? String(apiService.category_id) : undefined,
       price: apiService.price || 0,
-      currency: apiService.currency || 'USD',
+      currency: apiService.currency || getClinicCurrency(),
       duration_minutes: apiService.duration_minutes || 0,
       description: apiService.description,
       indications: apiService.indications,
@@ -186,10 +196,7 @@ function ServiceFormFields({ form, categories, onCategoryCreated, t }: { form: a
         )} />
         <FormField control={form.control} name="currency" render={({ field }) => (
           <FormItem><FormLabel>{t('createDialog.currency')}</FormLabel>
-            <Select onValueChange={(v) => { if (v) field.onChange(v); }} value={field.value || 'USD'}>
-              <FormControl><SelectTrigger><SelectValue placeholder={t('createDialog.selectCurrency')} /></SelectTrigger></FormControl>
-              <SelectContent><SelectItem value="USD">USD</SelectItem><SelectItem value="UYU">UYU</SelectItem></SelectContent>
-            </Select><FormMessage /></FormItem>
+            <FormControl><CurrencySelect value={field.value} onChange={(v) => { if (v) field.onChange(v); }} placeholder={t('createDialog.selectCurrency')} /></FormControl><FormMessage /></FormItem>
         )} />
       </div>
       <FormField control={form.control} name="description" render={({ field }) => (
@@ -738,12 +745,12 @@ export default function ServicesPage() {
 
   const createForm = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceFormSchema(tValidation)),
-    defaultValues: DEFAULT_SERVICE_FORM_VALUES,
+    defaultValues: defaultServiceFormValues(),
   });
 
   const detailForm = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceFormSchema(tValidation)),
-    defaultValues: DEFAULT_SERVICE_FORM_VALUES,
+    defaultValues: defaultServiceFormValues(),
   });
 
   const [searchTerm, setSearchTerm] = React.useState('');
@@ -808,7 +815,7 @@ export default function ServicesPage() {
       name: selectedService.name,
       category_id: categoryId,
       price: selectedService.price,
-      currency: (selectedService.currency as 'USD' | 'UYU') || 'USD',
+      currency: selectedService.currency || getClinicCurrency(),
       duration_minutes: selectedService.duration_minutes,
       description: selectedService.description || '',
       indications: selectedService.indications || '',
@@ -822,7 +829,7 @@ export default function ServicesPage() {
 
   const handleCreate = () => {
     if (!canCreate) return;
-    createForm.reset(DEFAULT_SERVICE_FORM_VALUES);
+    createForm.reset(defaultServiceFormValues());
     setCreateError(null);
     setIsCreateDialogOpen(true);
   };

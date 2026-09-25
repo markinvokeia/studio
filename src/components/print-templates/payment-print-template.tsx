@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { formatDisplayDate } from '@/lib/utils';
 import type { PaymentPrintData } from '@/stores/print-document-store';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 interface PaymentPrintTemplateProps {
   data: PaymentPrintData;
@@ -13,7 +14,7 @@ export function PaymentPrintTemplate({ data }: PaymentPrintTemplateProps) {
   const { payment } = data;
 
   const docNo = payment.doc_no || payment.payment_doc_no || payment.id;
-  const currency = payment.source_currency || payment.currency || 'UYU';
+  const currency = payment.source_currency || payment.currency || getClinicCurrency();
 
   return (
     <div>

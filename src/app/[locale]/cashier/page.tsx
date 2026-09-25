@@ -34,36 +34,47 @@ import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { useCallback, useMemo } from 'react';
+import { getCurrency, normalizeCurrencyCode } from '@/constants/currencies';
+import { formatMoney } from '@/lib/currency';
+import { useCurrencySettings } from '@/hooks/useCurrencySettings';
+import { CurrencySelect } from '@/components/ui/currency-select';
 
-const denominationsUYU = [2000, 1000, 500, 200, 100, 50, 20];
-const coinsUYU = [10, 5, 2, 1];
-const denominationsUSD = [100, 50, 20, 10, 5, 1];
-const coinsUSD: number[] = [];
+/**
+ * Monedas con las que se abrió una sesión de caja.
+ *
+ * Se leen de la propia sesión y no de la configuración actual de la clínica:
+ * una caja abierta antes de cambiar la moneda debe seguir cerrándose con las
+ * monedas con las que se abrió.
+ */
+function useSessionCurrencies(session: CajaSesion | null | undefined): string[] {
+    const { options: clinicCurrencies, code: clinicCurrency } = useCurrencySettings();
+    const amounts = (session as any)?.amounts;
+    const sessionCurrency = session?.currency;
+    return useMemo(() => {
+        const fromAmounts = ((amounts || []) as any[])
+            .map((a) => normalizeCurrencyCode(a?.currency))
+            .filter(Boolean) as string[];
+        const primary = normalizeCurrencyCode(sessionCurrency) ?? clinicCurrency;
+        const codes = new Set<string>([primary, ...fromAmounts]);
+        if (fromAmounts.length === 0) clinicCurrencies.forEach(c => codes.add(c));
+        return [...codes];
+    }, [amounts, sessionCurrency, clinicCurrency, clinicCurrencies]);
+}
 
-const UYU_IMAGES: Record<number, string> = {
-    2000: '/billetes/billete_2000.svg',
-    1000: '/billetes/billete_1000.svg',
-    500: '/billetes/billete_500.svg',
-    200: '/billetes/billete_200.svg',
-    100: '/billetes/billete_100.svg',
-    50: '/billetes/billete_50.svg',
-    20: '/billetes/billete_20.svg',
-    10: '/billetes/moneda_10.svg',
-    5: '/billetes/moneda_5.svg',
-    2: '/billetes/moneda_2.svg',
-    1: '/billetes/moneda_1.svg',
-};
+/**
+ * Las denominaciones, las monedas y las imágenes de billetes salen ahora del
+ * catálogo (`@/constants/currencies`), para que el arqueo funcione con
+ * cualquier moneda que configure la clínica y no solo con UYU y USD.
+ */
 
-const USD_IMAGES: Record<number, string> = {
-    100: '/billetes/usd/USD_billete_100.svg',
-    50: '/billetes/usd/USD_billete_50.svg',
-    20: '/billetes/usd/USD_billete_20.svg',
-    10: '/billetes/usd/USD_billete_10.svg',
-    5: '/billetes/usd/USD_billete_5.svg',
-    1: '/billetes/usd/USD_billete_1.svg',
-};
+/**
+ * Pasos del asistente de apertura. Los de conteo son uno por moneda y se
+ * generan como `COUNT_<CÓDIGO>`, así que no se pueden enumerar aquí.
+ */
+type OpenSessionStep = 'CONFIG' | 'CONFIRM' | `COUNT_${string}`;
 
-type OpenSessionStep = 'CONFIG' | 'COUNT_UYU' | 'COUNT_USD' | 'CONFIRM';
+/** Id del paso de conteo de una moneda. */
+const countStepId = (code: string): OpenSessionStep => `COUNT_${code}`;
 
 interface CashPointStatus extends CashPoint {
     status: 'OPEN' | 'CLOSED';
@@ -82,6 +93,7 @@ function CashierPageInner() {
     const t = useTranslations('CashierPage');
     const { user, checkActiveSession } = useAuth();
     const { toast } = useToast();
+    const { code: clinicCurrency, isDual } = useCurrencySettings();
     const router = useRouter();
     const searchParams = useSearchParams();
     const locale = useLocale();
@@ -99,8 +111,17 @@ function CashierPageInner() {
     const [showOpeningWizard, setShowOpeningWizard] = React.useState(false);
     const [openWizardStep, setOpenWizardStep] = React.useState<OpenSessionStep>('CONFIG');
     const [openingSessionData, setOpeningSessionData] = React.useState<Partial<CajaSesion>>({});
-    const [uyuDenominations, setUyuDenominations] = React.useState<Record<string, number>>({});
-    const [usdDenominations, setUsdDenominations] = React.useState<Record<string, number>>({});
+    /**
+     * Conteo físico por moneda: `{ UYU: { '100': 3, ... }, USD: { ... } }`.
+     * Antes eran dos estados separados con las monedas en el nombre, lo que
+     * impedía arquear en cualquier otra moneda.
+     */
+    const [denominations, setDenominations] = React.useState<Record<string, Record<string, number>>>({});
+    const setDenominationsFor = React.useCallback(
+        (code: string, details: Record<string, number>) =>
+            setDenominations(prev => ({ ...prev, [code]: details })),
+        [],
+    );
 
     // Tracks whether the user explicitly navigated to the cash points dashboard
     const viewingAllCashPointsRef = React.useRef(false);
@@ -116,8 +137,14 @@ function CashierPageInner() {
                 const openingDetails = cp.opening_details || {};
                 const openingAmounts = cp.opening_amounts || cp.amounts || [];
 
-                const uyuOpening = openingAmounts.find((oa: any) => oa.currency === 'UYU')?.opening_amount || 0;
-                const usdOpening = openingAmounts.find((oa: any) => oa.currency === 'USD')?.opening_amount || 0;
+                // Totales de apertura por moneda, sea cual sea: el backend
+                // devuelve una fila por moneda con la que se abrió la caja.
+                const openingByCurrency: Record<string, number> = {};
+                openingAmounts.forEach((oa: any) => {
+                    const code = normalizeCurrencyCode(oa?.currency);
+                    if (code) openingByCurrency[code] = Number(oa.opening_amount) || 0;
+                });
+                const totalOpening = Object.values(openingByCurrency).reduce((sum, v) => sum + v, 0);
 
                 return {
                     id: String(cp.cash_point_id),
@@ -134,11 +161,13 @@ function CashierPageInner() {
                         cash_point_name: cp.cash_point_name,
                         estado: 'ABIERTA',
                         fechaApertura: openingDetails.opened_at || new Date().toISOString(),
-                        montoApertura: uyuOpening + usdOpening,
+                        montoApertura: totalOpening,
                         opening_details: {
                             ...openingDetails,
-                            uyu: { ...openingDetails.uyu, total: uyuOpening },
-                            usd: { ...openingDetails.usd, total: usdOpening }
+                            ...Object.fromEntries(Object.entries(openingByCurrency).map(([code, total]) => [
+                                code.toLowerCase(),
+                                { ...(openingDetails[code.toLowerCase()] ?? {}), total },
+                            ])),
                         },
                         currency: openingDetails.currency,
                         date_rate: openingDetails.date_rate,
@@ -251,17 +280,14 @@ function CashierPageInner() {
                             setCloseWizardStep('REVIEW');
                             setClosedSessionReport(null);
                             setActiveSession(null);
-                            setUyuDenominations({});
-                            setUsdDenominations({});
+                            setDenominations({});
                             checkActiveSession();
                             fetchCashPointStatus();
                         }}
                         activeSession={activeSession}
                         sessionMovements={sessionMovements}
-                        uyuDenominations={uyuDenominations}
-                        setUyuDenominations={setUyuDenominations}
-                        usdDenominations={usdDenominations}
-                        setUsdDenominations={setUsdDenominations}
+                        denominations={denominations}
+                        setDenominationsFor={setDenominationsFor}
                         closedSessionReport={closedSessionReport}
                         setClosedSessionReport={setClosedSessionReport}
                         checkActiveSession={checkActiveSession}
@@ -294,8 +320,7 @@ function CashierPageInner() {
                     onExitWizard={(newSession) => {
                         setShowOpeningWizard(false);
                         setOpenWizardStep('CONFIG');
-                        setUyuDenominations({});
-                        setUsdDenominations({});
+                        setDenominations({});
                         if (newSession) {
                             setActiveSession(newSession);
                             checkActiveSession();
@@ -304,10 +329,8 @@ function CashierPageInner() {
                     }}
                     sessionData={openingSessionData}
                     setSessionData={setOpeningSessionData}
-                    uyuDenominations={uyuDenominations}
-                    setUyuDenominations={setUyuDenominations}
-                    usdDenominations={usdDenominations}
-                    setUsdDenominations={setUsdDenominations}
+                    denominations={denominations}
+                    setDenominationsFor={setDenominationsFor}
                     toast={toast}
                 />
             </div>
@@ -319,7 +342,9 @@ function CashierPageInner() {
             <OpenSessionDashboard
                 cashPoints={cashPoints}
                 onStartOpening={(cashPoint) => {
-                    setOpeningSessionData({ puntoDeCajaId: cashPoint.id, cash_point_name: cashPoint.name, currency: 'UYU', date_rate: 40 });
+                    // El tipo de cambio real lo carga el paso de configuración
+                    // del asistente; aquí solo se siembra la moneda de la clínica.
+                    setOpeningSessionData({ puntoDeCajaId: cashPoint.id, cash_point_name: cashPoint.name, currency: clinicCurrency, date_rate: isDual ? 0 : 1 });
                     setShowOpeningWizard(true);
                 }}
                 onViewSession={(session) => {
@@ -425,78 +450,71 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
     const t = useTranslations('CashierPage');
     const { toast } = useToast();
     const { printCajaApertura } = usePrintDocument();
-    const sessionCurrency = session.currency || 'UYU';
+    const { code: clinicCurrency } = useCurrencySettings();
+    const sessionCurrency = normalizeCurrencyCode(session.currency) ?? clinicCurrency;
+    const sessionCurrencies = useSessionCurrencies(session);
+
     const [isPrinting, setIsPrinting] = React.useState(false);
     const isViewportNarrow = useViewportNarrow();
 
     const openingDetails = useMemo(() => {
         const amounts = (session as any).amounts || [];
-        const uyuData = amounts.find((a: any) => a.currency === 'UYU');
-        const usdData = amounts.find((a: any) => a.currency === 'USD');
         const denominations = typeof session.opening_details === 'object' && session.opening_details !== null
             ? (session.opening_details as Record<string, Record<string, number>>)
             : {};
 
-        return {
-            totalUYU: uyuData?.opening_amount || 0,
-            totalUSD: usdData?.opening_amount || 0,
-            denominations
-        };
-    }, [(session as any).amounts, session.opening_details]);
-
-    const cashOnHand = useMemo(() => {
-        const income: { UYU: number; USD: number } = { UYU: openingDetails.totalUYU, USD: openingDetails.totalUSD };
-        movements.forEach(mov => {
-            const currency = mov.currency as ('UYU' | 'USD');
-            if (mov.esEquivalenteEfectivo && income[currency] !== undefined) {
-                if (mov.tipo === 'INGRESO') {
-                    income[currency] += mov.monto;
-                } else {
-                    income[currency] -= mov.monto;
-                }
-            }
+        // Los montos de apertura llegan como una fila por moneda; se indexan
+        // por código para no depender de cuáles ni cuántas sean.
+        const totals: Record<string, number> = Object.fromEntries(sessionCurrencies.map(c => [c, 0]));
+        amounts.forEach((a: any) => {
+            const code = normalizeCurrencyCode(a?.currency);
+            if (code) totals[code] = Number(a.opening_amount) || 0;
         });
-        return income;
-    }, [movements, openingDetails]);
 
-    const totalIncome = useMemo(() => {
-        const income: { UYU: number; USD: number } = { UYU: 0, USD: 0 };
-        movements
-            .filter(m => m.tipo === 'INGRESO')
-            .forEach(mov => {
-                const currency = mov.currency as ('UYU' | 'USD');
-                if (income[currency] !== undefined) {
-                    income[currency] += mov.monto;
-                }
-            });
-        return income;
-    }, [movements]);
+        return { totals, denominations };
+    }, [(session as any).amounts, session.opening_details, sessionCurrencies]);
 
-    const totalOutcome = useMemo(() => {
-        const outcome: { UYU: number; USD: number } = { UYU: 0, USD: 0 };
-        movements
-            .filter(m => m.tipo === 'EGRESO')
-            .forEach(mov => {
-                const currency = mov.currency as ('UYU' | 'USD');
-                if (outcome[currency] !== undefined) {
-                    outcome[currency] += mov.monto;
-                }
-            });
-        return outcome;
-    }, [movements]);
+    /**
+     * Suma los movimientos que cumplen `predicate`, agrupados por moneda. Antes
+     * había cuatro copias de este bucle con `{ UYU, USD }` escrito a mano.
+     */
+    const sumByCurrency = useCallback((
+        predicate: (mov: CajaMovimiento) => boolean,
+        seed: Record<string, number> = {},
+        sign: (mov: CajaMovimiento) => number = () => 1,
+    ) => {
+        const totals: Record<string, number> = Object.fromEntries(sessionCurrencies.map(c => [c, seed[c] ?? 0]));
+        movements.filter(predicate).forEach(mov => {
+            const code = normalizeCurrencyCode(mov.currency);
+            if (!code) return;
+            totals[code] = (totals[code] ?? 0) + sign(mov) * mov.monto;
+        });
+        return totals;
+    }, [movements, sessionCurrencies]);
 
-    const totalPos = useMemo(() => {
-        const pos: { UYU: number; USD: number } = { UYU: 0, USD: 0 };
-        movements
-            .filter(m => m.tipo === 'INGRESO' && ['CREDIT_CARD', 'DEBIT_CARD'].includes(m.metodoPago))
-            .forEach(mov => {
-                const currency = mov.currency as ('UYU' | 'USD');
-                if (pos[currency] !== undefined) {
-                    pos[currency] += mov.monto;
-                }
-            });
-        return pos;
-    }, [movements]);
+    const cashOnHand = useMemo(
+        () => sumByCurrency(
+            mov => mov.esEquivalenteEfectivo,
+            openingDetails.totals,
+            mov => (mov.tipo === 'INGRESO' ? 1 : -1),
+        ),
+        [sumByCurrency, openingDetails.totals],
+    );
+
+    const totalIncome = useMemo(() => sumByCurrency(m => m.tipo === 'INGRESO'), [sumByCurrency]);
+
+    const totalOutcome = useMemo(() => sumByCurrency(m => m.tipo === 'EGRESO'), [sumByCurrency]);
+
+    const totalPos = useMemo(
+        () => sumByCurrency(m => m.tipo === 'INGRESO' && ['CREDIT_CARD', 'DEBIT_CARD'].includes(m.metodoPago)),
+        [sumByCurrency],
+    );
+
+    /** Totales por moneda al shape `{ v, c }` que consumen las tarjetas. */
+    const toCardAmounts = useCallback(
+        (totals: Record<string, number>) => sessionCurrencies.map(c => ({ v: totals[c] ?? 0, c })),
+        [sessionCurrencies],
+    );
 
     const allMovements = React.useMemo(() => movements, [movements]);
 
@@ -546,14 +564,15 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
         }},
     ];
 
-    const renderAmount = (amount: number, currency: 'UYU' | 'USD', key?: string) => {
-        const formattedAmount = `${currency} ${amount.toFixed(2)}`;
+    const renderAmount = (amount: number, currency: string, key?: string) => {
+        const formattedAmount = formatMoney(amount, currency);
+        // `date_rate` son unidades de la moneda principal por cada unidad de la
+        // secundaria. Convertir a la moneda de la sesión es multiplicar o
+        // dividir según cuál de las dos sea esa moneda.
+        const rate = session.date_rate || 1;
         const convertedAmount =
-            session.currency !== currency
-                ? `(≈ ${session.currency} ${(currency === 'USD'
-                    ? amount * (session.date_rate || 1)
-                    : amount / (session.date_rate || 1)
-                ).toFixed(2)})`
+            sessionCurrency !== currency
+                ? `(≈ ${formatMoney(sessionCurrency === clinicCurrency ? amount * rate : amount / rate, sessionCurrency)})`
                 : null;
 
         return (
@@ -590,11 +609,11 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
             <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                     {[
-                        { title: t('openSession.openingAmount'), accentColor: '#6366f1', extra: <p className="text-[10px] text-muted-foreground mt-1">{formatDateTime(session.fechaApertura)}</p>, amounts: [{ v: openingDetails.totalUYU, c: 'UYU' as const }, { v: openingDetails.totalUSD, c: 'USD' as const }] },
-                        { title: t('activeSession.cashOnHand'), accentColor: '#3B82F6', amounts: [{ v: cashOnHand.UYU, c: 'UYU' as const }, { v: cashOnHand.USD, c: 'USD' as const }] },
-                        { title: t('activeSession.totalIncome'), accentColor: '#10B981', amounts: [{ v: totalIncome.UYU, c: 'UYU' as const }, { v: totalIncome.USD, c: 'USD' as const }] },
-                        { title: t('activeSession.totalOutcome'), accentColor: '#F43F5E', amounts: [{ v: totalOutcome.UYU, c: 'UYU' as const }, { v: totalOutcome.USD, c: 'USD' as const }] },
-                        { title: t('activeSession.totalPos'), accentColor: '#8B5CF6', amounts: [{ v: totalPos.UYU, c: 'UYU' as const }, { v: totalPos.USD, c: 'USD' as const }] },
+                        { title: t('openSession.openingAmount'), accentColor: '#6366f1', extra: <p className="text-[10px] text-muted-foreground mt-1">{formatDateTime(session.fechaApertura)}</p>, amounts: toCardAmounts(openingDetails.totals) },
+                        { title: t('activeSession.cashOnHand'), accentColor: '#3B82F6', amounts: toCardAmounts(cashOnHand) },
+                        { title: t('activeSession.totalIncome'), accentColor: '#10B981', amounts: toCardAmounts(totalIncome) },
+                        { title: t('activeSession.totalOutcome'), accentColor: '#F43F5E', amounts: toCardAmounts(totalOutcome) },
+                        { title: t('activeSession.totalPos'), accentColor: '#8B5CF6', amounts: toCardAmounts(totalPos) },
                     ].map(card => (
                         <div key={card.title} className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
                             <div className="h-[3px] w-full" style={{ background: card.accentColor }} />
@@ -642,30 +661,26 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                     <TabsContent value="opening_details">
                         {openingDetails.denominations ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-                                <Table className="w-full">
-                                    <TableHeader><TableRow><TableHead colSpan={3}>UYU</TableHead></TableRow></TableHeader>
-                                    <TableBody>
-                                        {openingDetails.denominations.uyu && Object.entries(openingDetails.denominations.uyu).map(([den, qty]) => (
-                                            den !== 'total' && <TableRow key={`uyu-${den}`}>
-                                                <TableCell>$ {den}</TableCell>
-                                                <TableCell className="text-right">{Number(qty)}</TableCell>
-                                                <TableCell className="text-right">$ {(Number(den) * Number(qty)).toFixed(2)}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                                <Table className="w-full">
-                                    <TableHeader><TableRow><TableHead colSpan={3}>USD</TableHead></TableRow></TableHeader>
-                                    <TableBody>
-                                        {openingDetails.denominations.usd && Object.entries(openingDetails.denominations.usd).map(([den, qty]) => (
-                                            den !== 'total' && <TableRow key={`usd-${den}`}>
-                                                <TableCell>$ {den}</TableCell>
-                                                <TableCell className="text-right">{Number(qty)}</TableCell>
-                                                <TableCell className="text-right">$ {(Number(den) * Number(qty)).toFixed(2)}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
+                                {/* Una tabla por moneda de la sesión. El backend guarda las
+                                    denominaciones indexadas por el código en minúsculas. */}
+                                {sessionCurrencies.map(code => {
+                                    const rows = openingDetails.denominations[code.toLowerCase()];
+                                    if (!rows) return null;
+                                    return (
+                                        <Table className="w-full" key={code}>
+                                            <TableHeader><TableRow><TableHead colSpan={3}>{code}</TableHead></TableRow></TableHeader>
+                                            <TableBody>
+                                                {Object.entries(rows).map(([den, qty]) => (
+                                                    den !== 'total' && <TableRow key={`${code}-${den}`}>
+                                                        <TableCell>{formatMoney(Number(den), code, { decimals: 0 })}</TableCell>
+                                                        <TableCell className="text-right">{Number(qty)}</TableCell>
+                                                        <TableCell className="text-right">{formatMoney(Number(den) * Number(qty), code)}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    );
+                                })}
                             </div>
                         ) : <p className="text-muted-foreground p-4 text-center">No denomination details available for this session.</p>}
                     </TabsContent>
@@ -709,10 +724,8 @@ function CloseSessionWizard({
     onExitWizard,
     activeSession,
     sessionMovements,
-    uyuDenominations,
-    setUyuDenominations,
-    usdDenominations,
-    setUsdDenominations,
+    denominations,
+    setDenominationsFor,
     closedSessionReport,
     setClosedSessionReport,
     checkActiveSession
@@ -722,45 +735,50 @@ function CloseSessionWizard({
     onExitWizard: () => void;
     activeSession: CajaSesion;
     sessionMovements: CajaMovimiento[];
-    uyuDenominations: Record<string, number>;
-    setUyuDenominations: (denominations: Record<string, number>) => void;
-    usdDenominations: Record<string, number>;
-    setUsdDenominations: (denominations: Record<string, number>) => void;
+    denominations: Record<string, Record<string, number>>;
+    setDenominationsFor: (code: string, details: Record<string, number>) => void;
     closedSessionReport: any | null;
     setClosedSessionReport: (report: any | null) => void;
     checkActiveSession: () => Promise<void>;
 }) {
     const t = useTranslations('CashierPage');
-    const uyuTotal = useMemo(() => Object.entries(uyuDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [uyuDenominations]);
-    const usdTotal = useMemo(() => Object.entries(usdDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [usdDenominations]);
-    const [bankDepositUyuDenominations, setBankDepositUyuDenominations] = React.useState<Record<string, number>>({});
-    const [bankDepositUsdDenominations, setBankDepositUsdDenominations] = React.useState<Record<string, number>>({});
+    // Las monedas del cierre son las de la sesión que se está cerrando, no las
+    // que la clínica tenga configuradas ahora.
+    const currencies = useSessionCurrencies(activeSession);
+    const totalsByCurrency = useMemo(
+        () => Object.fromEntries(currencies.map(code => [code, denominationTotal(denominations[code])])),
+        [currencies, denominations],
+    );
+    const [bankDeposit, setBankDeposit] = React.useState<Record<string, Record<string, number>>>({});
+    const setBankDepositFor = useCallback(
+        (code: string, details: Record<string, number>) => setBankDeposit(prev => ({ ...prev, [code]: details })),
+        [],
+    );
     const [bankDepositFiles, setBankDepositFiles] = React.useState<File[]>([]);
-
-    const handleNextStep = () => {
-        if (currentStep === 'REVIEW') setCurrentStep('COUNT_UYU');
-        else if (currentStep === 'COUNT_UYU') setCurrentStep('COUNT_USD');
-        else if (currentStep === 'COUNT_USD') setCurrentStep('BANK_DEPOSIT');
-        else if (currentStep === 'BANK_DEPOSIT') setCurrentStep('DECLARE');
-    };
-
-    const handlePreviousStep = () => {
-        if (currentStep === 'COUNT_UYU') setCurrentStep('REVIEW');
-        else if (currentStep === 'COUNT_USD') setCurrentStep('COUNT_UYU');
-        else if (currentStep === 'BANK_DEPOSIT') setCurrentStep('COUNT_USD');
-        else if (currentStep === 'DECLARE') setCurrentStep('BANK_DEPOSIT');
-    };
-
 
     const closeSteps: Array<{ id: string; label: string; icon: React.ElementType }> = [
         { id: 'REVIEW', label: t('wizard.steps.review'), icon: BookOpenCheck },
-        { id: 'COUNT_UYU', label: t('wizard.steps.countUYU'), icon: Banknote },
-        { id: 'COUNT_USD', label: t('wizard.steps.countUSD'), icon: DollarSign },
+        ...currencies.map(code => ({
+            id: countStepId(code),
+            label: t('wizard.steps.count', { currency: code }),
+            icon: Banknote,
+        })),
         { id: 'BANK_DEPOSIT', label: t('wizard.steps.bankDeposit'), icon: Upload },
         { id: 'DECLARE', label: t('wizard.steps.declare'), icon: CheckCircle2 },
         { id: 'REPORT', label: t('wizard.steps.report'), icon: FileText },
     ];
-    const closeStepOrder = ['REVIEW', 'COUNT_UYU', 'COUNT_USD', 'BANK_DEPOSIT', 'DECLARE', 'REPORT'];
+    const closeStepOrder = closeSteps.map(s => s.id);
+
+    const handleNextStep = () => {
+        const idx = closeStepOrder.indexOf(currentStep);
+        // REPORT es terminal: sólo se llega tras confirmar en DECLARE.
+        if (idx >= 0 && idx < closeStepOrder.length - 2) setCurrentStep(closeStepOrder[idx + 1]);
+    };
+
+    const handlePreviousStep = () => {
+        const idx = closeStepOrder.indexOf(currentStep);
+        if (idx > 0) setCurrentStep(closeStepOrder[idx - 1]);
+    };
 
     return (
         <div className="flex flex-col flex-1 min-h-0">
@@ -822,26 +840,15 @@ function CloseSessionWizard({
                         isWizardOpen={true}
                     />
                 )}
-                {currentStep === 'COUNT_UYU' && (
-                    <CashCounter
-                        currency="UYU"
-                        denominations={denominationsUYU}
-                        coins={coinsUYU}
-                        quantities={uyuDenominations}
-                        onQuantitiesChange={setUyuDenominations}
-                        imageMap={UYU_IMAGES}
+                {currencies.map(code => currentStep === countStepId(code) && (
+                    <CurrencyDenominationCounter
+                        key={code}
+                        code={code}
+                        title={t('wizard.count.title', { currency: code })}
+                        quantities={denominations[code] ?? {}}
+                        onQuantitiesChange={setDenominationsFor}
                     />
-                )}
-                {currentStep === 'COUNT_USD' && (
-                    <CashCounter
-                        currency="USD"
-                        denominations={denominationsUSD}
-                        coins={coinsUSD}
-                        quantities={usdDenominations}
-                        onQuantitiesChange={setUsdDenominations}
-                        imageMap={USD_IMAGES}
-                    />
-                )}
+                ))}
                 {currentStep === 'BANK_DEPOSIT' && (
                     <div className="space-y-6">
                         <div>
@@ -849,26 +856,18 @@ function CloseSessionWizard({
                             <p className="text-sm text-muted-foreground mt-0.5">{t('bankDeposit.description')}</p>
                         </div>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <DenominationCounter
-                                title={t('bankDeposit.countUYU')}
-                                denominations={denominationsUYU}
-                                coins={coinsUYU}
-                                currency="UYU"
-                                quantities={bankDepositUyuDenominations}
-                                onQuantitiesChange={setBankDepositUyuDenominations}
-                                imageMap={UYU_IMAGES}
-                                availableDenominations={uyuDenominations}
-                            />
-                            <DenominationCounter
-                                title={t('bankDeposit.countUSD')}
-                                denominations={denominationsUSD}
-                                coins={coinsUSD}
-                                currency="USD"
-                                quantities={bankDepositUsdDenominations}
-                                onQuantitiesChange={setBankDepositUsdDenominations}
-                                imageMap={USD_IMAGES}
-                                availableDenominations={usdDenominations}
-                            />
+                            {/* Sólo se puede depositar lo que se contó, de ahí
+                                `availableDenominations`. */}
+                            {currencies.map(code => (
+                                <CurrencyDenominationCounter
+                                    key={code}
+                                    code={code}
+                                    title={t('bankDeposit.count', { currency: code })}
+                                    quantities={bankDeposit[code] ?? {}}
+                                    onQuantitiesChange={setBankDepositFor}
+                                    availableDenominations={denominations[code]}
+                                />
+                            ))}
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="files">{t('bankDeposit.attachFiles')}</Label>
@@ -910,12 +909,10 @@ function CloseSessionWizard({
                 {currentStep === 'DECLARE' && (
                     <DeclareCashup
                         activeSession={activeSession}
-                        declaredUyu={uyuTotal}
-                        declaredUsd={usdTotal}
-                        uyuDenominations={uyuDenominations}
-                        usdDenominations={usdDenominations}
-                        bankDepositUyu={bankDepositUyuDenominations}
-                        bankDepositUsd={bankDepositUsdDenominations}
+                        currencies={currencies}
+                        declaredTotals={totalsByCurrency}
+                        denominations={denominations}
+                        bankDeposit={bankDeposit}
                         bankDepositFiles={bankDepositFiles}
                         checkActiveSession={checkActiveSession}
                         onSessionClosed={(reportData) => {
@@ -944,6 +941,135 @@ function CloseSessionWizard({
                     </div>
                 </div>
             )}
+        </div>
+    );
+}
+
+/**
+ * Total de un conteo físico: Σ denominación × cantidad.
+ *
+ * Las monedas sin denominaciones en el catálogo se cuentan con un único campo
+ * de importe, que se guarda bajo la clave `total`; ahí no hay nada que sumar y
+ * ese valor ES el total.
+ */
+function denominationTotal(quantities: Record<string, number> | undefined): number {
+    if (!quantities) return 0;
+    const sum = Object.entries(quantities).reduce(
+        (acc, [den, qty]) => (den === 'total' ? acc : acc + (Number(den) || 0) * (Number(qty) || 0)),
+        0,
+    );
+    return sum !== 0 ? sum : Number(quantities.total) || 0;
+}
+
+/**
+ * Conteo de una moneda, resolviendo sus denominaciones desde el catálogo.
+ *
+ * Una moneda sin denominaciones cargadas no puede arquearse billete a billete,
+ * así que cae a un único campo de monto total: es preferible a no dejar abrir
+ * la caja. El importe se guarda bajo la clave `total`, que es la que el resto
+ * del flujo ya lee.
+ */
+function CurrencyDenominationCounter({ code, quantities, onQuantitiesChange, lastClosingDetails, title, availableDenominations }: {
+    code: string;
+    quantities: Record<string, number>;
+    onQuantitiesChange: (code: string, details: Record<string, number>) => void;
+    lastClosingDetails?: Record<string, number> | null;
+    title: string;
+    availableDenominations?: Record<string, number>;
+}) {
+    const t = useTranslations('CashierPage');
+    const def = getCurrency(code);
+    const handleChange = useCallback(
+        (details: Record<string, number>) => onQuantitiesChange(code, details),
+        [code, onQuantitiesChange],
+    );
+
+    if (!def.denominations?.length) {
+        return (
+            <div className="space-y-2 max-w-sm">
+                <h3 className="text-lg font-semibold">{title}</h3>
+                <p className="text-sm text-muted-foreground">{t('wizard.count.noDenominations', { currency: code })}</p>
+                <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={quantities.total ?? ''}
+                    onChange={(e) => handleChange({ total: Math.max(0, parseFloat(e.target.value) || 0) })}
+                    aria-label={title}
+                />
+            </div>
+        );
+    }
+
+    return (
+        <DenominationCounter
+            title={title}
+            denominations={def.denominations}
+            coins={def.coins ?? []}
+            currency={code}
+            quantities={quantities}
+            onQuantitiesChange={handleChange}
+            imageMap={def.imageMap ?? {}}
+            lastClosingDetails={lastClosingDetails}
+            availableDenominations={availableDenominations}
+        />
+    );
+}
+
+/**
+ * Ficha de una denominación sin imagen de billete.
+ *
+ * Solo UYU y USD tienen SVGs en `public/billetes`; el resto de monedas se
+ * cuentan con esto. No es un hueco decorativo: al contar efectivo se escanea la
+ * columna de un vistazo, así que cada denominación recibe un color distinto
+ * —interpolando entre los dos colores de marca— para que se distingan igual que
+ * se distinguen los billetes reales. El valor va escrito dentro, que es el dato
+ * que de verdad hace falta.
+ */
+function DenominationChip({ value, currency, index, total, shape }: {
+    value: number;
+    currency: string;
+    /** Posición en la lista, para repartir el color. */
+    index: number;
+    total: number;
+    shape: 'note' | 'coin';
+}) {
+    // Rampa entre el primario (263°) y el secundario (341°) de la marca.
+    const ratio = total > 1 ? index / (total - 1) : 0;
+    const hue = 263 + (341 - 263) * ratio;
+    const from = `hsl(${hue} 62% 42%)`;
+    const to = `hsl(${hue + 14} 72% 30%)`;
+
+    // Trama diagonal fina: da textura de papel moneda sin competir con el número.
+    const texture =
+        'repeating-linear-gradient(45deg, rgba(255,255,255,0.14) 0px, rgba(255,255,255,0.14) 1px, transparent 1px, transparent 5px)';
+
+    const isCoin = shape === 'coin';
+    const label = formatMoney(value, currency, { showSymbol: false, decimals: 0 });
+
+    // Hay monedas con billetes de seis cifras (COP, PYG): el texto se encoge
+    // para que "100.000" quepa sin recortarse ni desbordar la ficha.
+    const fontSize = isCoin
+        ? (label.length > 4 ? 9 : 11)
+        : (label.length > 6 ? 10 : label.length > 4 ? 12 : 14);
+
+    return (
+        <div
+            role="img"
+            aria-label={`${value} ${currency}`}
+            className={cn(
+                'w-full h-full flex items-center justify-center overflow-hidden select-none px-1',
+                'ring-1 ring-inset ring-white/25 shadow-sm',
+                isCoin ? 'rounded-full' : 'rounded-md',
+            )}
+            style={{ backgroundImage: `${texture}, linear-gradient(135deg, ${from}, ${to})` }}
+        >
+            <span
+                className="font-bold tabular-nums leading-none text-white drop-shadow-sm"
+                style={{ fontSize: `${fontSize}px` }}
+            >
+                {label}
+            </span>
         </div>
     );
 }
@@ -1003,7 +1129,7 @@ const DenominationCounter = ({ title, denominations, coins, currency, quantities
                 <Button type="button" variant="secondary" size="sm" onClick={loadLastClosing} disabled={!lastClosingDetails}>{t('wizard.prefillLast')}</Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
-                {denominations.map(den => {
+                {denominations.map((den, denIndex) => {
                     const isDisabled = availableDenominations ? (availableDenominations[den] || 0) <= 0 : false;
                     return (
                         <div key={den} className="flex items-center gap-3 w-full">
@@ -1011,7 +1137,7 @@ const DenominationCounter = ({ title, denominations, coins, currency, quantities
                                 {imageMap[den] ? (
                                     <Image src={imageMap[den]} alt={`${den} ${currency}`} layout="fill" className="rounded-md object-contain" />
                                 ) : (
-                                    <div className="w-full h-full bg-muted rounded-md flex items-center justify-center text-xs text-muted-foreground">No Image</div>
+                                    <DenominationChip value={den} currency={currency} index={denIndex} total={denominations.length} shape="note" />
                                 )}
                             </div>
                             <div className="flex items-center flex-1">
@@ -1036,7 +1162,7 @@ const DenominationCounter = ({ title, denominations, coins, currency, quantities
                 <div className="border-t pt-4">
                     <h4 className="font-medium text-md mb-3 flex items-center gap-2"><Coins /> Monedas</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
-                        {coins.map(den => {
+                        {coins.map((den, coinIndex) => {
                             const isDisabled = availableDenominations ? (availableDenominations[den] || 0) <= 0 : false;
                             return (
                                 <div key={den} className="flex items-center gap-3 w-full">
@@ -1044,7 +1170,7 @@ const DenominationCounter = ({ title, denominations, coins, currency, quantities
                                         {imageMap[den] ? (
                                             <Image src={imageMap[den]} alt={`${den} ${currency}`} layout="fill" className="rounded-full object-contain" />
                                         ) : (
-                                            <div className="w-full h-full bg-muted rounded-full flex items-center justify-center text-xs text-muted-foreground">No Img</div>
+                                            <DenominationChip value={den} currency={currency} index={coinIndex} total={coins.length} shape="coin" />
                                         )}
                                     </div>
                                     <div className="flex items-center flex-1">
@@ -1071,43 +1197,15 @@ const DenominationCounter = ({ title, denominations, coins, currency, quantities
     );
 };
 
-const CashCounter = ({ currency, denominations, coins, quantities, onQuantitiesChange, imageMap }: {
-    currency: string;
-    denominations: number[];
-    coins: number[];
-    quantities: Record<string, number>;
-    onQuantitiesChange: (quantities: Record<string, number>) => void;
-    imageMap: Record<number, string>;
-
-}) => {
-    const t = useTranslations('CashierPage');
-    return (
-        <div className="space-y-2">
-            <h3 className="font-medium text-base">{t('wizard.cashCountTitle', { currency })}</h3>
-            <p className="text-sm text-muted-foreground mb-3">{t('wizard.cashCountDescription')}</p>
-            <DenominationCounter
-                title={currency === 'UYU' ? t('wizard.uyuCountTitle') : t('wizard.usdCountTitle')}
-                denominations={denominations}
-                coins={coins}
-                currency={currency}
-                quantities={quantities}
-                onQuantitiesChange={onQuantitiesChange}
-                imageMap={imageMap}
-            />
-        </div>
-    );
-};
 
 
 
-const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominations, usdDenominations, bankDepositUyu, bankDepositUsd, bankDepositFiles, onSessionClosed, onBack, checkActiveSession }: {
+const DeclareCashup = ({ activeSession, currencies, declaredTotals, denominations, bankDeposit, bankDepositFiles, onSessionClosed, onBack, checkActiveSession }: {
     activeSession: CajaSesion;
-    declaredUyu: number;
-    declaredUsd: number;
-    uyuDenominations: Record<string, number>;
-    usdDenominations: Record<string, number>;
-    bankDepositUyu: Record<string, number>;
-    bankDepositUsd: Record<string, number>;
+    currencies: string[];
+    declaredTotals: Record<string, number>;
+    denominations: Record<string, Record<string, number>>;
+    bankDeposit: Record<string, Record<string, number>>;
     bankDepositFiles: File[];
     onSessionClosed: (reportData: any) => void;
     onBack: () => void;
@@ -1143,17 +1241,25 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
     const handleCloseSession = async () => {
         const formData = new FormData();
         formData.append('cash_session_id', activeSession.id);
-        formData.append('declared_cash_uyu', declaredUyu.toString());
-        formData.append('declared_cash_usd', declaredUsd.toString());
+        // Un campo por moneda, `declared_cash_<código en minúsculas>`. Para
+        // UYU y USD son exactamente los mismos nombres que antes, así que el
+        // backend actual sigue funcionando sin cambios.
+        currencies.forEach(code => {
+            formData.append(`declared_cash_${code.toLowerCase()}`, String(declaredTotals[code] ?? 0));
+        });
+        // Mapa completo por moneda, para que el backend pueda dejar de depender
+        // de los campos por moneda de arriba.
+        formData.append('declared_cash', JSON.stringify(declaredTotals));
         formData.append('notes', notes);
-        formData.append('closing_denominations', JSON.stringify({
-            uyu: { ...uyuDenominations, total: declaredUyu },
-            usd: { ...usdDenominations, total: declaredUsd }
-        }));
-        formData.append('bank_deposit_denominations', JSON.stringify({
-            uyu: bankDepositUyu,
-            usd: bankDepositUsd
-        }));
+        formData.append('closing_denominations', JSON.stringify(
+            Object.fromEntries(currencies.map(code => [
+                code.toLowerCase(),
+                { ...(denominations[code] ?? {}), total: declaredTotals[code] ?? 0 },
+            ])),
+        ));
+        formData.append('bank_deposit_denominations', JSON.stringify(
+            Object.fromEntries(currencies.map(code => [code.toLowerCase(), bankDeposit[code] ?? {}])),
+        ));
         bankDepositFiles.forEach((file, index) => {
             formData.append('files', file);
         });
@@ -1181,9 +1287,9 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
         }
     };
 
-    const renderTotalsByCurrency = (currency: 'UYU' | 'USD') => {
+    const renderTotalsByCurrency = (currency: string) => {
         const currencyData = systemTotals.find(d => d.moneda === currency);
-        const declaredCash = currency === 'UYU' ? declaredUyu : declaredUsd;
+        const declaredCash = declaredTotals[currency] ?? 0;
 
         const systemCash = parseFloat(currencyData?.total_efectivo) || 0;
         const cashDifference = declaredCash - systemCash;
@@ -1228,9 +1334,12 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
                 <h3 className="font-semibold text-base">{t('title')}</h3>
                 <p className="text-sm text-muted-foreground mt-0.5">{t('description')}</p>
             </div>
-            {renderTotalsByCurrency('UYU')}
-            <hr />
-            {renderTotalsByCurrency('USD')}
+            {currencies.map((code, idx) => (
+                <React.Fragment key={code}>
+                    {idx > 0 && <hr />}
+                    {renderTotalsByCurrency(code)}
+                </React.Fragment>
+            ))}
             <div className="space-y-2">
                 <Label htmlFor="notes">{t('notes')}</Label>
                 <Textarea id="notes" placeholder={t('notesPlaceholder')} value={notes} onChange={(e) => setNotes(e.target.value)} />
@@ -1257,6 +1366,13 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
     const [isPrinting, setIsPrinting] = React.useState(false);
     const reportDetails = Array.isArray(reportData) && reportData.length > 0 ? reportData[0] : reportData;
     const { session, movements } = reportDetails?.details || { session: {}, movements: [] };
+    /** Monedas presentes en el cierre, en el orden en que llegan. */
+    const reportCurrencies = React.useMemo(() => {
+        const codes = (movements || [])
+            .map((m: any) => normalizeCurrencyCode(m?.currency))
+            .filter(Boolean) as string[];
+        return [...new Set(codes)];
+    }, [movements]);
 
     const handlePrintClose = async () => {
         setIsPrinting(true);
@@ -1279,13 +1395,10 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
         );
     }
 
-    const formatCurrency = (value: number | string | null | undefined, currency: string) => {
-        const numValue = Number(value);
-        if (isNaN(numValue)) return `${currency} 0.00`;
-        return numValue.toLocaleString('en-US', { style: 'currency', currency: currency });
-    };
+    const formatCurrency = (value: number | string | null | undefined, currency: string) =>
+        formatMoney(value, currency);
 
-    const renderReportSection = (currency: 'UYU' | 'USD') => {
+    const renderReportSection = (currency: string) => {
         const currencyMovement = movements.find((m: any) => m.currency === currency);
         if (!currencyMovement) return null;
 
@@ -1324,8 +1437,10 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
                 </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {renderReportSection('UYU')}
-                {renderReportSection('USD')}
+                {/* Una sección por moneda con movimientos en el cierre. */}
+                {reportCurrencies.map(code => (
+                    <React.Fragment key={code}>{renderReportSection(code)}</React.Fragment>
+                ))}
             </div>
             <div>
                 <p><strong>{t('closingTime')}</strong> {formatDateTime(session.closed_at)}</p>
@@ -1345,19 +1460,18 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
 
 
 
-function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionData, setSessionData, uyuDenominations, setUyuDenominations, usdDenominations, setUsdDenominations, toast }: {
+function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionData, setSessionData, denominations, setDenominationsFor, toast }: {
     currentStep: OpenSessionStep;
     setCurrentStep: React.Dispatch<React.SetStateAction<OpenSessionStep>>;
     onExitWizard: (session?: CajaSesion) => void;
     sessionData: Partial<CajaSesion>;
     setSessionData: React.Dispatch<React.SetStateAction<Partial<CajaSesion>>>;
-    uyuDenominations: Record<string, number>;
-    setUyuDenominations: React.Dispatch<React.SetStateAction<Record<string, number>>>;
-    usdDenominations: Record<string, number>;
-    setUsdDenominations: React.Dispatch<React.SetStateAction<Record<string, number>>>;
+    denominations: Record<string, Record<string, number>>;
+    setDenominationsFor: (code: string, details: Record<string, number>) => void;
     toast: any;
 }) {
     const t = useTranslations('CashierPage');
+    const { options: currencies, hasAutoRate, isDual } = useCurrencySettings();
     const { user, checkActiveSession } = useAuth();
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -1366,8 +1480,14 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
     const [sellRate, setSellRate] = React.useState(0);
     const [avgRate, setAvgRate] = React.useState(0);
     const [exchangeRatesHtml, setExchangeRatesHtml] = React.useState('');
-    const [exchangeRateStatus, setExchangeRateStatus] = React.useState<'loading' | 'loaded' | 'error'>('loading');
-    const [lastClosingDetails, setLastClosingDetails] = React.useState<{ uyu: Record<string, number>, usd: Record<string, number> } | null>(null);
+    // Arranca en 'loaded' cuando no hay cotización automática que pedir: si no,
+    // el paso se quedaría girando para siempre esperando una petición que nunca
+    // se lanza.
+    const [exchangeRateStatus, setExchangeRateStatus] = React.useState<'loading' | 'loaded' | 'error'>(
+        hasAutoRate ? 'loading' : 'loaded',
+    );
+    // Indexado por el código de moneda en minúsculas, como lo guarda el backend.
+    const [lastClosingDetails, setLastClosingDetails] = React.useState<Record<string, Record<string, number>> | null>(null);
 
     const fetchRates = React.useCallback(async () => {
         setExchangeRateStatus('loading');
@@ -1405,23 +1525,44 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
         }
     };
 
+    const openSteps = useMemo<Array<{ id: OpenSessionStep; label: string; icon: React.ElementType }>>(() => [
+        // Configuración = moneda + tipo de cambio. Solo aplica con dos monedas.
+        ...(isDual ? [{ id: 'CONFIG' as OpenSessionStep, label: t('wizard.steps.config'), icon: Settings }] : []),
+        ...currencies.map(code => ({
+            id: countStepId(code),
+            label: t('wizard.steps.count', { currency: code }),
+            icon: Banknote,
+        })),
+        { id: 'CONFIRM' as OpenSessionStep, label: t('wizard.steps.confirm'), icon: CheckCircle2 },
+    ], [isDual, currencies, t]);
+    const openStepOrder = useMemo<OpenSessionStep[]>(() => openSteps.map(step => step.id), [openSteps]);
+
     React.useEffect(() => {
         if (currentStep === 'CONFIG') {
-            fetchRates();
+            if (hasAutoRate) fetchRates();
+            // Sin feed de cotización no hay nada que esperar: el tipo de cambio
+            // se carga a mano en este mismo paso.
+            else setExchangeRateStatus('loaded');
         }
-        if (currentStep === 'COUNT_UYU' || currentStep === 'COUNT_USD') {
+        if (currentStep.startsWith('COUNT_')) {
             fetchLastClosing();
         }
-    }, [currentStep, fetchRates]);
+    }, [currentStep, fetchRates, hasAutoRate]);
 
-    const uyuTotal = useMemo(() => Object.entries(uyuDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [uyuDenominations]);
-    const usdTotal = useMemo(() => Object.entries(usdDenominations).reduce((sum, [den, qty]) => sum + (Number(den) || 0) * (qty || 0), 0), [usdDenominations]);
+    /**
+     * El paso de configuración solo existe para elegir moneda y tipo de cambio.
+     * Con una sola moneda no hay nada que configurar, así que se salta y el
+     * asistente empieza directamente por el conteo.
+     */
+    React.useEffect(() => {
+        if (!openStepOrder.includes(currentStep)) setCurrentStep(openStepOrder[0]);
+    }, [currentStep, openStepOrder, setCurrentStep]);
 
-    const totalOpeningAmountUYU = uyuTotal;
-    const totalOpeningAmountUSD = usdTotal;
-
-    const memoizedSetUyuDenominations = useCallback((details: Record<string, number>) => setUyuDenominations(details), [setUyuDenominations]);
-    const memoizedSetUsdDenominations = useCallback((details: Record<string, number>) => setUsdDenominations(details), [setUsdDenominations]);
+    /** Total contado en cada moneda del arqueo. */
+    const totalsByCurrency = useMemo(
+        () => Object.fromEntries(currencies.map(code => [code, denominationTotal(denominations[code])])),
+        [currencies, denominations],
+    );
 
     const handleNextStep = async () => {
         if (currentStep === 'CONFIG') {
@@ -1429,31 +1570,34 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                 toast({ variant: 'destructive', title: t('toast.error'), description: 'Please fill all fields.' });
                 return;
             }
-            setCurrentStep('COUNT_UYU');
-        } else if (currentStep === 'COUNT_UYU') {
-            setCurrentStep('COUNT_USD');
-        } else if (currentStep === 'COUNT_USD') {
-            setCurrentStep('CONFIRM');
+            setCurrentStep(openStepOrder[1]);
+            return;
         }
+        const idx = openStepOrder.indexOf(currentStep);
+        if (idx >= 0 && idx < openStepOrder.length - 1) setCurrentStep(openStepOrder[idx + 1]);
     };
 
     const handleConfirmAndOpen = async () => {
         setIsSubmitting(true);
         setSubmissionError(null);
 
+        // Las denominaciones van indexadas por el código en minúsculas —el
+        // mismo formato que ya guardaba el backend para `uyu`/`usd`—, así que
+        // cualquier moneda encaja sin cambiar el contrato.
         const openingDetails = {
             currency: sessionData.currency,
             date_rate: sessionData.date_rate,
-            uyu: { ...uyuDenominations, total: uyuTotal },
-            usd: { ...usdDenominations, total: usdTotal },
+            ...Object.fromEntries(currencies.map(code => [
+                code.toLowerCase(),
+                { ...(denominations[code] ?? {}), total: totalsByCurrency[code] ?? 0 },
+            ])),
             opened_by: user?.name,
             opened_at: new Date().toISOString()
         };
 
-        const totalOpeningAmount = {
-            USD: totalOpeningAmountUSD,
-            UYU: totalOpeningAmountUYU,
-        };
+        const totalOpeningAmount: Record<string, number> = Object.fromEntries(
+            currencies.map(code => [code, totalsByCurrency[code] ?? 0]),
+        );
 
         try {
             const responseData = await api.post(API_ROUTES.CASHIER.SESSIONS_OPEN, {
@@ -1506,10 +1650,9 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
 
 
     const handlePreviousStep = async () => {
-        if (currentStep === 'CONFIRM') setCurrentStep('COUNT_USD');
-        else if (currentStep === 'COUNT_USD') setCurrentStep('COUNT_UYU');
-        else if (currentStep === 'COUNT_UYU') setCurrentStep('CONFIG');
-        else if (currentStep === 'CONFIG') onExitWizard();
+        const idx = openStepOrder.indexOf(currentStep);
+        if (idx > 0) setCurrentStep(openStepOrder[idx - 1]);
+        else onExitWizard();
     };
 
     const renderConfigContent = () => {
@@ -1542,77 +1685,71 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                         <div><strong>{t('openSession.user')}:</strong> {user?.name}</div>
                         <div><strong>{t('openSession.openingDate')}:</strong> {format(new Date(), 'dd/MM/yyyy HH:mm')}</div>
                     </div>
-                    <Alert variant="info" className="bg-orange-100 border-orange-200 text-orange-800">
-                        <Info className="h-4 w-4" />
-                        <AlertDescription>{t('openSession.exchangeRateTooltip')}</AlertDescription>
-                    </Alert>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                            <Label htmlFor="buy_rate">Compra</Label>
-                            <Input id="buy_rate" value={buyRate.toFixed(2)} readOnly disabled={disabled} />
-                        </div>
-                        <div className="space-y-1">
-                            <Label htmlFor="sell_rate">Venta</Label>
-                            <Input id="sell_rate" value={sellRate.toFixed(2)} readOnly disabled={disabled} />
-                        </div>
-                    </div>
-                    <div className="space-y-1">
-                        <Label htmlFor="date_rate">{t('openSession.exchangeRate')}</Label>
-                        <Input id="date_rate" type="number" step="0.01" value={sessionData.date_rate || ''} onChange={(e) => setSessionData(prev => ({ ...prev, date_rate: Math.round((parseFloat(e.target.value) || 0) * 100) / 100 }))} disabled={disabled} />
-                    </div>
+                    {/* Sin segunda moneda no hay nada que convertir: ni
+                        cotización del día ni tipo de cambio de la sesión. */}
+                    {isDual && (
+                        <>
+                            <Alert variant="info" className="bg-orange-100 border-orange-200 text-orange-800">
+                                <Info className="h-4 w-4" />
+                                <AlertDescription>{t('openSession.exchangeRateTooltip')}</AlertDescription>
+                            </Alert>
+                            {hasAutoRate && (
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <Label htmlFor="buy_rate">Compra</Label>
+                                        <Input id="buy_rate" value={buyRate.toFixed(2)} readOnly disabled={disabled} />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label htmlFor="sell_rate">Venta</Label>
+                                        <Input id="sell_rate" value={sellRate.toFixed(2)} readOnly disabled={disabled} />
+                                    </div>
+                                </div>
+                            )}
+                            <div className="space-y-1">
+                                <Label htmlFor="date_rate">{t('openSession.exchangeRate')}</Label>
+                                <Input id="date_rate" type="number" step="0.01" value={sessionData.date_rate || ''} onChange={(e) => setSessionData(prev => ({ ...prev, date_rate: Math.round((parseFloat(e.target.value) || 0) * 100) / 100 }))} disabled={disabled} />
+                            </div>
+                        </>
+                    )}
                     <div className="space-y-1">
                         <Label>{t('openSession.currency')}</Label>
-                        <Select value={sessionData.currency} onValueChange={(value) => setSessionData(prev => ({ ...prev, currency: value as 'UYU' | 'USD' | 'EUR' }))} disabled={disabled}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="UYU">UYU</SelectItem>
-                                <SelectItem value="USD">USD</SelectItem>
-                                <SelectItem value="EUR">EUR</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <CurrencySelect
+                            value={sessionData.currency}
+                            onChange={(value) => setSessionData(prev => ({ ...prev, currency: value }))}
+                            disabled={disabled}
+                        />
                     </div>
                 </div>
-                <div
-                    className="h-[400px] w-full overflow-y-auto rounded-lg"
-                    dangerouslySetInnerHTML={{ __html: exchangeRatesHtml }}
-                />
+                {hasAutoRate && (
+                    <div
+                        className="h-[400px] w-full overflow-y-auto rounded-lg"
+                        dangerouslySetInnerHTML={{ __html: exchangeRatesHtml }}
+                    />
+                )}
             </div>
         );
     }
 
-    const stepTitles: Record<OpenSessionStep, string> = {
+    const stepTitles: Record<string, string> = {
         CONFIG: t('wizard.steps.config'),
-        COUNT_UYU: t('wizard.steps.countUYU'),
-        COUNT_USD: t('wizard.steps.countUSD'),
-        CONFIRM: t('wizard.steps.confirm')
+        CONFIRM: t('wizard.steps.confirm'),
+        ...Object.fromEntries(currencies.map(code => [countStepId(code), t('wizard.steps.count', { currency: code })])),
     };
 
-    const stepComponents: Record<OpenSessionStep, React.ReactNode> = {
+    const stepComponents: Record<string, React.ReactNode> = {
         'CONFIG': renderConfigContent(),
-        'COUNT_UYU': (
-            <DenominationCounter
-                title="Conteo de Efectivo (UYU)"
-                denominations={denominationsUYU}
-                coins={coinsUYU}
-                currency="UYU"
-                quantities={uyuDenominations}
-                onQuantitiesChange={memoizedSetUyuDenominations}
-                imageMap={UYU_IMAGES}
-                lastClosingDetails={lastClosingDetails?.uyu}
-            />
-        ),
-        'COUNT_USD': (
-            <DenominationCounter
-                title="Conteo de Efectivo (USD)"
-                denominations={denominationsUSD}
-                coins={coinsUSD}
-                currency="USD"
-                quantities={usdDenominations}
-                onQuantitiesChange={memoizedSetUsdDenominations}
-                imageMap={USD_IMAGES}
-                lastClosingDetails={lastClosingDetails?.usd}
-            />
-        ),
+        // Un paso de conteo por moneda configurada.
+        ...Object.fromEntries(currencies.map(code => [
+            countStepId(code),
+            <CurrencyDenominationCounter
+                key={code}
+                code={code}
+                quantities={denominations[code] ?? {}}
+                onQuantitiesChange={setDenominationsFor}
+                lastClosingDetails={lastClosingDetails?.[code.toLowerCase()]}
+                title={t('wizard.count.title', { currency: code })}
+            />,
+        ])),
         'CONFIRM': (
             <div className="space-y-6">
                 <Card>
@@ -1628,26 +1765,26 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                 <Card>
                     <CardHeader><CardTitle>{t('confirmation.cashSummary')}</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="text-lg"><strong>{t('confirmation.totalUYU')}:</strong> {totalOpeningAmountUYU.toFixed(2)} UYU</div>
-                        <div className="text-lg"><strong>{t('confirmation.totalUSD')}:</strong> {totalOpeningAmountUSD.toFixed(2)} USD</div>
+                        {currencies.map(code => (
+                            <div className="text-lg" key={code}>
+                                <strong>{t('confirmation.total', { currency: code })}:</strong>{' '}
+                                {formatMoney(totalsByCurrency[code] ?? 0, code)}
+                            </div>
+                        ))}
 
                         <Collapsible>
                             <CollapsibleTrigger asChild>
                                 <Button variant="link" className="p-0 h-auto text-xs">Ver desglose</Button>
                             </CollapsibleTrigger>
                             <CollapsibleContent className="space-y-4 mt-2">
-                                <Table>
-                                    <TableHeader><TableRow><TableHead>Denominación UYU</TableHead><TableHead>Cantidad</TableHead></TableRow></TableHeader>
-                                    <TableBody>
-                                        {Object.entries(uyuDenominations).map(([den, qty]) => qty > 0 && <TableRow key={den}><TableCell>{den}</TableCell><TableCell>{qty}</TableCell></TableRow>)}
-                                    </TableBody>
-                                </Table>
-                                <Table>
-                                    <TableHeader><TableRow><TableHead>Denominación USD</TableHead><TableHead>Cantidad</TableHead></TableRow></TableHeader>
-                                    <TableBody>
-                                        {Object.entries(usdDenominations).map(([den, qty]) => qty > 0 && <TableRow key={den}><TableCell>{den}</TableCell><TableCell>{qty}</TableCell></TableRow>)}
-                                    </TableBody>
-                                </Table>
+                                {currencies.map(code => (
+                                    <Table key={code}>
+                                        <TableHeader><TableRow><TableHead>{t('confirmation.denomination', { currency: code })}</TableHead><TableHead>{t('confirmation.quantity')}</TableHead></TableRow></TableHeader>
+                                        <TableBody>
+                                            {Object.entries(denominations[code] ?? {}).map(([den, qty]) => qty > 0 && <TableRow key={den}><TableCell>{den}</TableCell><TableCell>{qty}</TableCell></TableRow>)}
+                                        </TableBody>
+                                    </Table>
+                                ))}
                             </CollapsibleContent>
                         </Collapsible>
                     </CardContent>
@@ -1656,13 +1793,6 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
         )
     };
 
-    const openSteps: Array<{ id: OpenSessionStep; label: string; icon: React.ElementType }> = [
-        { id: 'CONFIG', label: t('wizard.steps.config'), icon: Settings },
-        { id: 'COUNT_UYU', label: t('wizard.steps.countUYU'), icon: Banknote },
-        { id: 'COUNT_USD', label: t('wizard.steps.countUSD'), icon: DollarSign },
-        { id: 'CONFIRM', label: t('wizard.steps.confirm'), icon: CheckCircle2 },
-    ];
-    const openStepOrder: OpenSessionStep[] = ['CONFIG', 'COUNT_UYU', 'COUNT_USD', 'CONFIRM'];
 
     return (
         <div className="flex flex-col flex-1 min-h-0">

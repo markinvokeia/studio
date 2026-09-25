@@ -34,6 +34,7 @@ import { ColumnFiltersState, RowSelectionState } from '@tanstack/react-table';
 import { ArrowRight, CreditCard, Loader2, Maximize2, Minimize2, Printer, RefreshCw, Send, StickyNote } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 
 export default function PaymentsPage() {
@@ -158,7 +159,7 @@ function PaymentsPageContent() {
     }, [t, toast]);
 
     // Prepaid credit balance (only relevant when selectedPayment.invoice_id is null)
-    const prepaidCurrency = selectedPayment?.currency || selectedPayment?.source_currency || 'USD';
+    const prepaidCurrency = selectedPayment?.currency || selectedPayment?.source_currency || getClinicCurrency();
     const prepaidTotal = Math.abs(Number(selectedPayment?.amount_applied || selectedPayment?.amount || 0));
     const prepaidUsed = React.useMemo(
         () => paymentAllocations.reduce((sum, a) => sum + Math.abs(Number(a.monto_desde_pago || 0)), 0),
@@ -357,7 +358,7 @@ function PaymentsPageContent() {
                                                 <span className="text-sm font-semibold">
                                                     {new Intl.NumberFormat('en-US', {
                                                         style: 'currency',
-                                                        currency: selectedPayment.currency || selectedPayment.source_currency || 'USD',
+                                                        currency: selectedPayment.currency || selectedPayment.source_currency || getClinicCurrency(),
                                                     }).format(Math.abs(Number(selectedPayment.amount_applied || selectedPayment.amount || 0)))}
                                                 </span>
                                             ),

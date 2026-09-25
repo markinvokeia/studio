@@ -12,6 +12,9 @@ import { useDiscountSettings } from '@/hooks/useDiscountSettings';
 import { computeDiscountAmount, computeGrossTotal, computeLineTotals, roundCurrency } from '@/lib/discounts';
 import { cn } from '@/lib/utils';
 import type { DiscountMode, Service } from '@/lib/types';
+import { useCurrencySettings } from '@/hooks/useCurrencySettings';
+import { formatMoney } from '@/lib/currency';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -42,8 +45,8 @@ interface StepItemsEditorProps {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function fmtCurrency(amount: number, currency = 'USD') {
-  return new Intl.NumberFormat('es-UY', { style: 'currency', currency }).format(amount);
+function fmtCurrency(amount: number, currency?: string) {
+  return formatMoney(amount, currency ?? getClinicCurrency());
 }
 
 function makeTempId() {
@@ -65,6 +68,9 @@ export function StepItemsEditor({
 }: StepItemsEditorProps) {
   const [showSelector, setShowSelector] = React.useState(false);
   const discounts = useDiscountSettings();
+  // Monedas que la clínica ofrece, más la del documento si se guardó en otra.
+  const { optionsFor } = useCurrencySettings();
+  const currencyOptions = optionsFor(currency);
 
   /**
    * Totales SIEMPRE derivados de precio x cantidad y del descuento aplicado;
@@ -164,7 +170,7 @@ export function StepItemsEditor({
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground font-medium">Moneda:</span>
           <div className="flex rounded-md border overflow-hidden">
-            {(['UYU', 'USD'] as const).map((c) => (
+            {currencyOptions.map((c) => (
               <button
                 key={c}
                 type="button"

@@ -2,6 +2,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import type { Invoice } from '@/lib/types';
 import { api } from './api';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 export interface PendingPatientInvoice {
     id: string;
@@ -29,7 +30,7 @@ export async function fetchPatientDueInvoices(userId: string): Promise<PendingPa
                 docNo: row.doc_no || '',
                 dueDate: String(row.due_date).slice(0, 10),
                 amount: Number(row.total || 0) - Number(row.paid_amount || 0),
-                currency: row.currency || 'UYU',
+                currency: row.currency || getClinicCurrency(),
             }))
             .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
     } catch (error) {
@@ -107,7 +108,7 @@ export async function getBookedInvoices(params: GetInvoicesParams): Promise<Invo
             user_id: apiInvoice.user_id != null ? String(apiInvoice.user_id) : '',
             user_name: apiInvoice.user_name || 'N/A',
             total: Number(apiInvoice.total) || 0,
-            currency: apiInvoice.currency || 'UYU',
+            currency: apiInvoice.currency || getClinicCurrency(),
         }));
 
         return { items, total: normalized.total || items.length };

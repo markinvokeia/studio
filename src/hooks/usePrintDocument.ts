@@ -14,6 +14,7 @@ import { fetchClinicInfo } from '@/hooks/useClinicInfo';
 import { fetchPatientLedgerData } from '@/services/patient-ledger-data';
 import { fetchClinicHistoryPrintData } from '@/services/clinic-history-print-data';
 import { buildPatientLedger, type LedgerRow } from '@/lib/patient-ledger';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 // ── Data mappers (match patterns in user-quotes.tsx / user-invoices.tsx) ───────
 
@@ -67,7 +68,7 @@ function mapInvoicePayments(raw: any[]): Payment[] {
     payment_date: p.payment_date || p.created_at || '',
     amount_applied: Math.abs(Number(p.amount_applied ?? p.amount ?? 0)),
     source_amount: Number(p.source_amount ?? p.amount ?? 0),
-    source_currency: p.source_currency || p.invoice_currency || p.currency || 'UYU',
+    source_currency: p.source_currency || p.invoice_currency || p.currency || getClinicCurrency(),
     exchange_rate: p.exchange_rate ? Number(p.exchange_rate) : undefined,
     payment_method: p.payment_method_name || p.payment_method || p.method || '',
     payment_method_code: p.payment_method_code || '',
@@ -79,7 +80,7 @@ function mapInvoicePayments(raw: any[]): Payment[] {
     updatedAt: p.updated_at || p.updatedAt || '',
     amount: Math.abs(Number(p.amount_applied ?? p.amount ?? 0)),
     method: p.payment_method_name || p.payment_method || p.method || '',
-    currency: p.invoice_currency || p.source_currency || p.currency || 'UYU',
+    currency: p.invoice_currency || p.source_currency || p.currency || getClinicCurrency(),
     type: p.type || null,
   }));
 }

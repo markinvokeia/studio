@@ -81,6 +81,9 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import * as z from 'zod';
+import { currencySchema } from '@/lib/currency';
+import { CurrencySelect } from '@/components/ui/currency-select';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 
 const quoteFormSchema = (t: (key: string) => string, maxDiscountPct: number) => z.object({
@@ -90,7 +93,7 @@ const quoteFormSchema = (t: (key: string) => string, maxDiscountPct: number) => 
     /** Descuento sobre el total del documento. Sólo con ámbito 'total'. */
     discount_mode: z.enum(['percent', 'amount']).nullish(),
     discount_value: z.coerce.number().min(0).nullish(),
-    currency: z.enum(['UYU', 'USD']).default('USD'),
+    currency: currencySchema,
     status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'pending', 'confirmed',
         'Draft', 'Sent', 'Accepted', 'Rejected', 'Pending', 'Confirmed']),
     payment_status: z.enum(['unpaid', 'paid', 'partial', 'partially_paid',
@@ -379,7 +382,7 @@ async function getQuotes(params: { page: number; limit: number; search: string }
             status: normalizeQuoteStatus(apiQuote.status),
             payment_status: normalizeQuotePaymentStatus(apiQuote.payment_status),
             billing_status: String(apiQuote.billing_status || 'not invoiced').toLowerCase(),
-            currency: apiQuote.currency || 'UYU',
+            currency: apiQuote.currency || getClinicCurrency(),
             user_name: apiQuote.user_name || t('defaults.noName'),
             userEmail: apiQuote.userEmail || t('defaults.noEmail'),
             sede_id: apiQuote.sede_id != null ? String(apiQuote.sede_id) : undefined,
@@ -459,7 +462,7 @@ async function getOrders(quoteId: string, t: (key: string) => string): Promise<O
             status: apiOrder.status,
             createdAt: apiOrder.created_at || apiOrder.createdAt || new Date().toISOString().split('T')[0],
             updatedAt: apiOrder.updated_at || apiOrder.updatedAt || new Date().toISOString().split('T')[0],
-            currency: apiOrder.currency || 'UYU',
+            currency: apiOrder.currency || getClinicCurrency(),
         }));
     } catch (error) {
         console.error("Failed to fetch orders:", error);
@@ -507,7 +510,7 @@ async function getInvoices(quoteId: string, t: (key: string) => string): Promise
             total: parseFloat(apiInvoice.total) || 0,
             status: apiInvoice.status || 'draft',
             createdAt: apiInvoice.created_at || apiInvoice.createdAt || new Date().toISOString(),
-            currency: apiInvoice.currency || 'USD',
+            currency: apiInvoice.currency || getClinicCurrency(),
             order_id: apiInvoice.order_id,
             user_name: apiInvoice.user_name || apiInvoice.name || t('defaults.notAvailable'),
             user_id: apiInvoice.user_id,
@@ -585,7 +588,7 @@ async function getPayments(quoteId: string, t: (key: string) => string): Promise
             amount: isNewFormat ? parseFloat(apiPayment.amount_applied) : (parseFloat(apiPayment.amount) || 0),
             amount_applied: isNewFormat ? parseFloat(apiPayment.amount_applied) : (parseFloat(apiPayment.amount) || 0),
             source_amount: isNewFormat ? parseFloat(apiPayment.source_amount) : (parseFloat(apiPayment.amount) || 0),
-            source_currency: (isNewFormat ? apiPayment.source_currency : apiPayment.currency) as 'UYU' | 'USD' || 'UYU',
+            source_currency: (isNewFormat ? apiPayment.source_currency : apiPayment.currency) || getClinicCurrency(),
             method: apiPayment.payment_method_name || apiPayment.method,
             payment_method: apiPayment.payment_method_name || apiPayment.method,
             payment_method_code: apiPayment.payment_method_code,
@@ -640,7 +643,7 @@ async function getClinic(): Promise<Clinic | null> {
             location: apiClinic.address || '',
             contact_email: apiClinic.email || '',
             phone_number: apiClinic.phone || '',
-            currency: apiClinic.currency || 'UYU',
+            currency: apiClinic.currency || getClinicCurrency(),
         };
     } catch (error) {
         console.error("Failed to fetch clinic:", error);
@@ -996,7 +999,7 @@ export default function QuotesPage() {
         setEditingQuote(null);
         setSelectedQuoteUser(null);
         const sessionRate = getSessionExchangeRate();
-        const defaultCurrency = clinic?.currency || 'UYU';
+        const defaultCurrency = clinic?.currency || getClinicCurrency();
         const exchangeRate = defaultCurrency === clinic?.currency ? 1 : sessionRate;
         quoteForm.reset(
             {
@@ -1033,7 +1036,7 @@ export default function QuotesPage() {
             status: (statusMap[quote.status] || quote.status.toLowerCase()) as any,
             payment_status: (paymentStatusMap[quote.payment_status] || quote.payment_status) as any,
             billing_status: (billingStatusMap[quote.billing_status] || quote.billing_status) as any,
-            currency: (quote.currency || 'USD') as any,
+            currency: (quote.currency || getClinicCurrency()) as any,
         };
     };
 
@@ -1538,7 +1541,7 @@ export default function QuotesPage() {
     const watchedQuantity = quoteItemForm.watch('quantity');
     const watchedQuoteExchangeRate = quoteForm.watch('exchange_rate');
     const watchedQuoteCurrency = quoteForm.watch('currency');
-    const isClinicCurrency = watchedQuoteCurrency === (clinic?.currency || 'UYU');
+    const isClinicCurrency = watchedQuoteCurrency === (clinic?.currency || getClinicCurrency());
 
     React.useEffect(() => {
         if (isClinicCurrency) {
@@ -1636,7 +1639,7 @@ export default function QuotesPage() {
                                                 label: t('tabs.total'),
                                                 value: new Intl.NumberFormat('en-US', {
                                                     style: 'currency',
-                                                    currency: selectedQuote.currency || 'USD',
+                                                    currency: selectedQuote.currency || getClinicCurrency(),
                                                 }).format(selectedQuote.total),
                                                 variant: 'default',
                                             },
@@ -1644,7 +1647,7 @@ export default function QuotesPage() {
                                                 label: tRoot('QuoteColumns.amountInvoiced'),
                                                 value: new Intl.NumberFormat('en-US', {
                                                     style: 'currency',
-                                                    currency: selectedQuote.currency || 'USD',
+                                                    currency: selectedQuote.currency || getClinicCurrency(),
                                                 }).format(Number(selectedQuote.amount_invoiced || 0)),
                                                 variant: 'default',
                                             },
@@ -1652,7 +1655,7 @@ export default function QuotesPage() {
                                                 label: tRoot('QuoteColumns.pendingInvoice'),
                                                 value: new Intl.NumberFormat('en-US', {
                                                     style: 'currency',
-                                                    currency: selectedQuote.currency || 'USD',
+                                                    currency: selectedQuote.currency || getClinicCurrency(),
                                                 }).format(Number(selectedQuote.amount_pending_invoice || 0)),
                                                 variant: 'default',
                                             },
@@ -1660,7 +1663,7 @@ export default function QuotesPage() {
                                                 label: tRoot('QuoteColumns.amountPaid'),
                                                 value: new Intl.NumberFormat('en-US', {
                                                     style: 'currency',
-                                                    currency: selectedQuote.currency || 'USD',
+                                                    currency: selectedQuote.currency || getClinicCurrency(),
                                                 }).format(Number(selectedQuote.amount_paid || 0)),
                                                 variant: 'default',
                                             },
@@ -1668,7 +1671,7 @@ export default function QuotesPage() {
                                                 label: tRoot('QuoteColumns.pendingPayment'),
                                                 value: new Intl.NumberFormat('en-US', {
                                                     style: 'currency',
-                                                    currency: selectedQuote.currency || 'USD',
+                                                    currency: selectedQuote.currency || getClinicCurrency(),
                                                 }).format(Number(selectedQuote.amount_pending_payment || 0)),
                                                 variant: 'default',
                                             },
@@ -1977,7 +1980,7 @@ export default function QuotesPage() {
                                                             </SheetHeader>
                                                             <div className="flex-1 overflow-y-auto p-4 space-y-4">
                                                                 <div className="grid grid-cols-2 gap-3 text-sm">
-                                                                    <div><p className="text-xs text-muted-foreground">{tRoot('InvoicesPage.columns.total')}</p><p className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || 'USD' }).format(selectedInvoice.total)}</p></div>
+                                                                    <div><p className="text-xs text-muted-foreground">{tRoot('InvoicesPage.columns.total')}</p><p className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || getClinicCurrency() }).format(selectedInvoice.total)}</p></div>
                                                                     <div><p className="text-xs text-muted-foreground">{tRoot('InvoicesPage.columns.status')}</p><Badge variant="outline" className="capitalize">{tInvoiceStatus(selectedInvoice.status.toLowerCase())}</Badge></div>
                                                                     <div><p className="text-xs text-muted-foreground">{tRoot('InvoicesPage.columns.paymentStatus')}</p><Badge variant="secondary" className="capitalize">{selectedInvoice.payment_status ? tInvoiceStatus(selectedInvoice.payment_status.toLowerCase()) : ''}</Badge></div>
                                                                     <div><p className="text-xs text-muted-foreground">{tRoot('InvoicesPage.columns.createdAt')}</p><p>{formatDisplayDate(selectedInvoice.createdAt)}</p></div>
@@ -2031,7 +2034,7 @@ export default function QuotesPage() {
                                                             <div className="grid grid-cols-2 gap-3 overflow-y-auto p-4 text-sm">
                                                                 <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.invoice_doc_no')}</p><p className="font-medium">{selectedPayment.invoice_doc_no || 'N/A'}</p></div>
                                                                 <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.date')}</p><p>{formatDisplayDate(selectedPayment.payment_date || selectedPayment.createdAt)}</p></div>
-                                                                <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.amount_applied')}</p><p className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedPayment.currency || selectedPayment.source_currency || 'USD' }).format(Math.abs(Number(selectedPayment.amount_applied || selectedPayment.amount || 0)))}</p></div>
+                                                                <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.amount_applied')}</p><p className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedPayment.currency || selectedPayment.source_currency || getClinicCurrency() }).format(Math.abs(Number(selectedPayment.amount_applied || selectedPayment.amount || 0)))}</p></div>
                                                                 <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.method')}</p><p>{selectedPayment.payment_method_code || selectedPayment.method || 'N/A'}</p></div>
                                                                 <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.transaction_type')}</p><Badge variant="secondary" className="capitalize">{selectedPayment.transaction_type}</Badge></div>
                                                                 <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.exchange_rate')}</p><p>{selectedPayment.exchange_rate || 'N/A'}</p></div>
@@ -2185,13 +2188,7 @@ export default function QuotesPage() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>{t('quoteDialog.currency')}</FormLabel>
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                    <FormControl><SelectTrigger><SelectValue placeholder={t('quoteDialog.selectCurrency')} /></SelectTrigger></FormControl>
-                                                    <SelectContent>
-                                                        <SelectItem value="USD">USD</SelectItem>
-                                                        <SelectItem value="UYU">UYU</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
+                                                <FormControl><CurrencySelect value={field.value} onChange={field.onChange} placeholder={t('quoteDialog.selectCurrency')} /></FormControl>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
@@ -2315,7 +2312,7 @@ export default function QuotesPage() {
                                                                 mode={watchedItems?.[index]?.discount_mode}
                                                                 value={watchedItems?.[index]?.discount_value}
                                                                 base={computeGrossTotal(watchedItems?.[index]?.unit_price ?? 0, watchedItems?.[index]?.quantity ?? 0)}
-                                                                currency={quoteForm.watch('currency') || 'UYU'}
+                                                                currency={quoteForm.watch('currency') || getClinicCurrency()}
                                                                 maxPct={discounts.maxPct}
                                                                 defaultPct={discounts.defaultPct}
                                                                 canApply={discounts.canApply}
@@ -2437,7 +2434,7 @@ export default function QuotesPage() {
                                                                         mode={watchedItems?.[index]?.discount_mode}
                                                                         value={watchedItems?.[index]?.discount_value}
                                                                         base={computeGrossTotal(watchedItems?.[index]?.unit_price ?? 0, watchedItems?.[index]?.quantity ?? 0)}
-                                                                        currency={quoteForm.watch('currency') || 'UYU'}
+                                                                        currency={quoteForm.watch('currency') || getClinicCurrency()}
                                                                         maxPct={discounts.maxPct}
                                                                         defaultPct={discounts.defaultPct}
                                                                         canApply={discounts.canApply}
@@ -2474,7 +2471,7 @@ export default function QuotesPage() {
                                                         mode={watchedQuoteDiscountMode}
                                                         value={watchedQuoteDiscountValue}
                                                         base={quoteDocumentTotals.grossTotal}
-                                                        currency={quoteForm.watch('currency') || 'UYU'}
+                                                        currency={quoteForm.watch('currency') || getClinicCurrency()}
                                                         maxPct={discounts.maxPct}
                                                         defaultPct={discounts.defaultPct}
                                                         canApply={discounts.canApply}
@@ -2488,7 +2485,7 @@ export default function QuotesPage() {
                                                         }}
                                                     />
                                                 )}
-                                                <DocumentTotals grossTotal={quoteDocumentTotals.grossTotal} discountAmount={quoteDocumentTotals.discountAmount} total={quoteDocumentTotals.total} currency={quoteForm.watch('currency') || 'UYU'} />
+                                                <DocumentTotals grossTotal={quoteDocumentTotals.grossTotal} discountAmount={quoteDocumentTotals.discountAmount} total={quoteDocumentTotals.total} currency={quoteForm.watch('currency') || getClinicCurrency()} />
                                             </div>
                                         </div>
                                     </CardContent>
@@ -2712,7 +2709,7 @@ export default function QuotesPage() {
                                             mode={watchedItemDiscountMode}
                                             value={watchedItemDiscountValue}
                                             base={computeGrossTotal(watchedItemUnitPrice ?? 0, watchedItemQuantity ?? 0)}
-                                            currency={selectedQuote?.currency || 'UYU'}
+                                            currency={selectedQuote?.currency || getClinicCurrency()}
                                             maxPct={discounts.maxPct}
                                             defaultPct={discounts.defaultPct}
                                             canApply={discounts.canApply}

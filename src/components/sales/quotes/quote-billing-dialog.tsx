@@ -27,6 +27,7 @@ import { calculateQuoteFinancialSummary, fetchQuoteInvoicesForFinancials } from 
 import { useToast } from '@/hooks/use-toast';
 import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
 import { addDays, parseISO } from 'date-fns';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 type ServiceStepOption = {
   id: string;
@@ -85,7 +86,7 @@ async function fetchOrderForQuoteBilling(quoteId: string, isSales: boolean): Pro
       status: firstOrder.status || 'draft',
       createdAt: firstOrder.created_at || firstOrder.createdAt || '',
       updatedAt: firstOrder.updated_at || firstOrder.updatedAt || '',
-      currency: firstOrder.currency || 'UYU',
+      currency: firstOrder.currency || getClinicCurrency(),
     };
   } catch {
     return null;
@@ -418,7 +419,7 @@ export function QuoteBillingDialog({
         quote_id: Number(quote.id),
         user_id: quote.user_id,
         doctor_id: quote.doctor_id,
-        currency: quote.currency || 'UYU',
+        currency: quote.currency || getClinicCurrency(),
         invoice_date: toLocalISOString(new Date()),
         due_date: values.due_date ? toLocalISOString(values.due_date) : undefined,
         notes: values.notes || '',
@@ -468,7 +469,7 @@ export function QuoteBillingDialog({
   };
 
   const fmtCurrency = React.useCallback(
-    (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: quote?.currency || 'USD' }).format(amount),
+    (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: quote?.currency || getClinicCurrency() }).format(amount),
     [quote?.currency],
   );
 
@@ -773,7 +774,7 @@ export function QuoteBillingDialog({
                           <div>
                             <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70">total</p>
                             <p className="text-2xl font-semibold leading-none text-foreground">
-                              {new Intl.NumberFormat('en-US', { style: 'currency', currency: quote?.currency || 'USD' }).format(invoiceTotal)}
+                              {new Intl.NumberFormat('en-US', { style: 'currency', currency: quote?.currency || getClinicCurrency() }).format(invoiceTotal)}
                             </p>
                           </div>
                         </div>

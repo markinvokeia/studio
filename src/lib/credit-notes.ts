@@ -2,6 +2,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { CreditNote } from '@/lib/types';
 import { api } from '@/services/api';
 import { normalizeApiResponse } from '@/lib/api-utils';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 export async function getCreditNotesForInvoice(
     invoiceId: string,
@@ -42,7 +43,7 @@ export async function getCreditNotesForInvoice(
             parent_id: apiInvoice.parent_id ? String(apiInvoice.parent_id) : undefined,
             createdAt: apiInvoice.created_at || new Date().toISOString().split('T')[0],
             updatedAt: apiInvoice.updatedAt || new Date().toISOString().split('T')[0],
-            currency: apiInvoice.currency || 'USD',
+            currency: apiInvoice.currency || getClinicCurrency(),
         }));
     } catch (error) {
         console.error("Failed to fetch credit notes for invoice:", error);

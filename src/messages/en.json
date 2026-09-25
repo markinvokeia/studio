@@ -3091,35 +3091,36 @@
       "prefillLast": "Prefill with Last Closing Cashup",
       "cashCountTitle": "Cash Count ({currency})",
       "cashCountDescription": "Enter the physical cash count for each denomination.",
-      "uyuCountTitle": "UYU Count",
-      "usdCountTitle": "USD Count",
       "steps": {
         "config": "Configuration",
-        "countUYU": "Cash Count (UYU)",
-        "countUSD": "Cash Count (USD)",
         "bankDeposit": "Bank Deposit",
         "review": "Review",
         "declare": "Declare",
         "report": "Report",
-        "confirm": "Confirmation"
+        "confirm": "Confirmation",
+        "count": "Count {currency}"
       },
-      "title": "Close Session"
+      "title": "Close Session",
+      "count": {
+        "title": "Cash count ({currency})",
+        "noDenominations": "No banknote breakdown is available for {currency}. Enter the total counted amount."
+      }
     },
     "bankDeposit": {
       "title": "Bank Deposit Declaration",
       "description": "Declare the physical cash denominations to be taken out for banking. This step is optional.",
-      "countUYU": "UYU Bank Deposit",
-      "countUSD": "USD Bank Deposit",
       "attachFiles": "Attach Files",
-      "chooseFiles": "Choose Files"
+      "chooseFiles": "Choose Files",
+      "count": "Deposit {currency}"
     },
     "confirmation": {
       "sessionInfo": "Session Info",
       "cashSummary": "Cash Summary",
-      "totalUYU": "Total UYU",
-      "totalUSD": "Total USD",
       "totalOpening": "Total Opening",
-      "confirmButton": "Confirm"
+      "confirmButton": "Confirm",
+      "total": "Total {currency}",
+      "denomination": "{currency} denomination",
+      "quantity": "Quantity"
     },
     "activeSession": {
       "columns": {
@@ -3960,7 +3961,7 @@
     "emailPlaceholder": "e.g. john.doe@example.com",
     "save": "Save",
     "logoAlt": "Logo preview",
-    "currencyLabel": "Currency",
+    "currencyLabel": "Primary currency",
     "currencyPlaceholder": "Select a currency",
     "fallbacks": {
       "name": "No name",
@@ -4009,7 +4010,14 @@
     "sedeDeleteConfirmDelete": "Delete",
     "validation": {
       "phoneInvalid": "Invalid phone number"
-    }
+    },
+    "currencySearchPlaceholder": "Search by code or name…",
+    "currencyEmpty": "No matching currency",
+    "currencyHelp": "The currency the clinic works in. It is used by default across quotes, invoices, payments and reports.",
+    "secondaryCurrencyLabel": "Secondary currency (optional)",
+    "secondaryCurrencyPlaceholder": "No secondary currency",
+    "secondaryCurrencyNone": "No secondary currency",
+    "secondaryCurrencyHelp": "Set it only if the clinic also operates in a second currency. Leave it empty to work in a single currency and hide exchange rates."
   },
   "SchedulesPage": {
     "title": "Schedules",
@@ -4518,7 +4526,9 @@
       "create": "Create",
       "cancel": "Cancel",
       "save": "Save Changes"
-    }
+    },
+    "secondaryCurrency": "Secondary currency",
+    "noAutoRate": "Automatic exchange-rate history is only available for the UYU/USD pair. With any other pair the rate is entered manually when opening the cash session."
   },
   "ProductCategoriesPage": {
     "title": "Product Categories",

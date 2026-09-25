@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { cn, formatDateTime } from '@/lib/utils';
 import type { CajaCierrePrintData } from '@/stores/print-document-store';
+import { sessionCurrencyCodes } from '@/lib/currency';
 
 interface CajaCierrePrintTemplateProps {
   data: CajaCierrePrintData;
@@ -20,7 +21,8 @@ export function CajaCierrePrintTemplate({ data }: CajaCierrePrintTemplateProps) 
   const bankDepositDetails = details.bank_deposit_details ?? {};
   const currenciesData = details.currencies_data ?? [];
   const movements = details.movements_data ?? [];
-  const currencies = ['UYU', 'USD'] as const;
+  // Monedas realmente presentes en la sesión, no un par fijo.
+  const currencies = sessionCurrencyCodes(movements);
 
   function renderMovementsTable(currency: string) {
     const currMovs = movements.filter((m) => m.currency === currency);

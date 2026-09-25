@@ -2,6 +2,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { Service, UserServicesEntry } from '@/lib/types';
 import { api } from './api';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 export interface ServicesResponse {
     items: Service[];
@@ -61,7 +62,7 @@ export async function getServices(params: GetServicesParams = {}): Promise<Servi
         const mappedServices = items.map((service: any) => ({
             ...service,
             id: String(service.id),
-            currency: service.currency || 'USD',
+            currency: service.currency || getClinicCurrency(),
             category_id: service.category_id ? String(service.category_id) : undefined,
             category_name: service.category_name || service.category || '',
         }));
@@ -112,7 +113,7 @@ export async function getUserServices(userId: string): Promise<Service[]> {
         return userServicesData.map((s: any) => ({
             ...s,
             id: String(s.id),
-            currency: s.currency || 'USD',
+            currency: s.currency || getClinicCurrency(),
         }));
     } catch (error) {
         console.error('Failed to fetch user services:', error);
@@ -140,7 +141,7 @@ export async function getUsersServicesBatch(userIds: string[]): Promise<Map<stri
             const services = (entry.services || []).map((s: any) => ({
                 ...s,
                 id: String(s.id),
-                currency: s.currency || 'USD',
+                currency: s.currency || getClinicCurrency(),
                 duration_minutes: s.duration_minutes || 30,
             }));
             serviceMap.set(String(entry.user_id), services);

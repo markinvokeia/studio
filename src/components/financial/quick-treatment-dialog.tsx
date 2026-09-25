@@ -36,17 +36,7 @@ import { buildDiscountedDocument, computeGrossTotal, isDiscountWithinLimit } fro
 import type { Clinic, User } from '@/lib/types';
 import { preserveTimeIfToday, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
-
-async function getClinicCurrency(): Promise<string> {
-  try {
-    const data = await api.get(API_ROUTES.CLINIC);
-    const clinicsData = Array.isArray(data) ? data : (data.clinics || data.data || data.result || []);
-    const clinic: Partial<Clinic> | undefined = clinicsData[0];
-    return clinic?.currency || 'UYU';
-  } catch {
-    return 'UYU';
-  }
-}
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 const quickTreatmentSchema = (t: (key: string) => string, maxDiscountPct: number) => z.object({
   created_at: z.date({ required_error: t('validation.dateRequired') }),
@@ -94,7 +84,7 @@ export function QuickTreatmentDialog({ open, onOpenChange, mode, patient, isSale
   const { toast } = useToast();
   const { activeSede } = useAuth();
 
-  const [currency, setCurrency] = React.useState('UYU');
+  const [currency, setCurrency] = React.useState(getClinicCurrency);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [doctorName, setDoctorName] = React.useState('');
   const [showDescription, setShowDescription] = React.useState(false);
@@ -144,7 +134,7 @@ export function QuickTreatmentDialog({ open, onOpenChange, mode, patient, isSale
 
   React.useEffect(() => {
     if (!open) return;
-    getClinicCurrency().then(setCurrency);
+    setCurrency(getClinicCurrency());
     resetForCurrentMode(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);

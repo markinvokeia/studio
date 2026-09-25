@@ -1,4 +1,5 @@
 import type { Invoice, InvoiceItem, Payment, Quote, QuoteItem } from '@/lib/types';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 export type LedgerRowStatus = 'presupuestado' | 'facturado' | 'parcial' | 'pagado' | 'notaCredito';
 
@@ -106,7 +107,7 @@ export function buildPatientLedger(params: {
       if (billed) {
         const { item, invoice } = billed;
         billedInvoiceItemIds.add(String(item.id));
-        const currency = invoice.currency || quote.currency || 'USD';
+        const currency = invoice.currency || quote.currency || getClinicCurrency();
         pushRow(currency, {
           id: `invoice-item-${item.id}`,
           // The quote's date, not the invoice's — billing a presupuesto shouldn't move
@@ -136,7 +137,7 @@ export function buildPatientLedger(params: {
           dueDate: invoice.due_date || undefined,
         });
       } else {
-        const currency = quote.currency || 'USD';
+        const currency = quote.currency || getClinicCurrency();
         pushRow(currency, {
           id: `quote-item-${quoteItem.id}`,
           date: quote.createdAt,
@@ -172,7 +173,7 @@ export function buildPatientLedger(params: {
     if ((invoice.type || 'invoice') === 'credit_note') continue;
     const items = invoiceItemsByInvoice[invoice.id] || [];
     const standaloneItems = items.filter((item) => !billedInvoiceItemIds.has(String(item.id)));
-    const currency = invoice.currency || 'USD';
+    const currency = invoice.currency || getClinicCurrency();
 
     if (standaloneItems.length > 0) {
       for (const item of standaloneItems) {
@@ -226,7 +227,7 @@ export function buildPatientLedger(params: {
   for (const creditNote of invoices) {
     if ((creditNote.type || 'invoice') !== 'credit_note') continue;
     const items = invoiceItemsByInvoice[creditNote.id] || [];
-    const currency = creditNote.currency || 'USD';
+    const currency = creditNote.currency || getClinicCurrency();
 
     if (items.length > 0) {
       for (const item of items) {
@@ -272,7 +273,7 @@ export function buildPatientLedger(params: {
     // running balance and read as a second, separate payment (see e.g. a "Finalizado"
     // credit allocation showing up right after the prepayment that funded it).
     if ((payment.transaction_type || 'direct_payment') !== 'direct_payment') continue;
-    const currency = payment.currency || payment.source_currency || 'USD';
+    const currency = payment.currency || payment.source_currency || getClinicCurrency();
     pushRow(currency, {
       id: `payment-${payment.id}`,
       date: payment.payment_date || payment.createdAt,
@@ -341,7 +342,7 @@ export function splitLedgerByRange(rows: LedgerRow[], range: { from: Date; to: D
     // Renderers special-case `kind === 'balance'` and show a translated label instead
     // of this — kept only as a non-empty fallback for anything that reads it directly.
     label: 'Saldo anterior',
-    currency: rows[0]?.currency || 'USD',
+    currency: rows[0]?.currency || getClinicCurrency(),
     debe: openingBalance > 0 ? openingBalance : 0,
     haber: openingBalance < 0 ? -openingBalance : 0,
     runningBalance: openingBalance,

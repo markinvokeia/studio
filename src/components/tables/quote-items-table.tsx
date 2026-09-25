@@ -21,10 +21,14 @@ import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
+import { formatMoney } from '@/lib/currency';
 
-const fmtUSD = (v: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
+
 
 interface QuoteItemsTableProps {
+  /** Moneda del documento. Por defecto, la de la clínica. */
+  currency?: string;
   items: QuoteItem[];
   isLoading?: boolean;
   onRefresh?: () => void;
@@ -103,10 +107,7 @@ const getColumns = (
       cell: ({ row }) => {
         const amount = parseFloat(row.getValue('unit_price'));
         const roundedAmount = Math.round(amount * 100) / 100;
-        const formatted = new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'USD',
-        }).format(roundedAmount);
+        const formatted = formatMoney(roundedAmount, getClinicCurrency());
         return <div className="font-medium">{formatted}</div>;
       },
     },
@@ -118,15 +119,12 @@ const getColumns = (
       cell: ({ row }) => {
         const amount = parseFloat(row.getValue('total'));
         const roundedAmount = Math.round(amount * 100) / 100;
-        const formatted = new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'USD',
-        }).format(roundedAmount);
+        const formatted = formatMoney(roundedAmount, getClinicCurrency());
         return (
           <div className="font-medium">
             {formatted}
             {/* El importe ya viene rebajado: la nota deja ver por que. */}
-            <AppliedDiscountNote line={row.original} currency="USD" />
+            <AppliedDiscountNote line={row.original} currency={getClinicCurrency()} />
           </div>
         );
       },
@@ -172,7 +170,11 @@ const getColumns = (
   return baseColumns;
 };
 
-export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefreshing, canEdit, onCreate, onEdit, onDelete, showToothNumber = true, onRowSelectionChange, rowSelection, setRowSelection, extraButtons, forceCardMode = false }: QuoteItemsTableProps) {
+export function QuoteItemsTable({
+  currency: currencyProp, items, isLoading = false, onRefresh, isRefreshing, canEdit, onCreate, onEdit, onDelete, showToothNumber = true, onRowSelectionChange, rowSelection, setRowSelection, extraButtons, forceCardMode = false }: QuoteItemsTableProps) {
+  const currency = currencyProp ?? getClinicCurrency();
+  /** Importes en la moneda del documento. */
+  const formatMoney2 = (v: number) => formatMoney(v, currency);
   const t = useTranslations('QuotesPage.itemDialog');
   const tShared = useTranslations('UserColumns');
   const { isNarrow: panelNarrow } = useNarrowMode();
@@ -237,8 +239,8 @@ export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefresh
                   <span>{t('id')}: {item.id}</span>
                   {showToothNumber && item.tooth_number ? <span>{t('toothNumber')}: {item.tooth_number}</span> : null}
                   <span>{t('quantity')}: {item.quantity}</span>
-                  <span>{t('unitPrice')}: {fmtUSD(item.unit_price || 0)}</span>
-                  <span className="font-medium text-foreground">{t('total')}: {fmtUSD(item.total || 0)}</span>
+                  <span>{t('unitPrice')}: {formatMoney2(item.unit_price || 0)}</span>
+                  <span className="font-medium text-foreground">{t('total')}: {formatMoney2(item.total || 0)}</span>
                 </>
               )}
               actions={canEdit ? (
@@ -266,11 +268,11 @@ export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefresh
                 { label: t('quantity'), value: String(item.quantity) },
                 {
                   label: t('unitPrice'),
-                  value: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.unit_price || 0),
+                  value: formatMoney2(item.unit_price || 0),
                 },
                 {
                   label: t('total'),
-                  value: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.total || 0),
+                  value: formatMoney2(item.total || 0),
                   primary: true,
                 },
               ]}

@@ -5,6 +5,9 @@ import { UserFinancial } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Eye, EyeOff, FileText, Printer } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useCurrencySettings } from '@/hooks/useCurrencySettings';
+import { formatMoney } from '@/lib/currency';
+import type { CurrencyFinancialData } from '@/lib/types';
 
 interface UserFinancialSummaryStatsProps {
   financialData?: UserFinancial | null;
@@ -28,48 +31,36 @@ export function UserFinancialSummaryStats({
   const tProvider = useTranslations('ProvidersPage');
   const t = variant === 'provider' ? tProvider : tPatient;
 
-  const formatCurrency = (value: unknown, currency: 'USD' | 'UYU') => {
-    const symbol = currency === 'USD' ? 'U$S' : '$U';
-    const numericValue = Number(value) || 0;
-    const formattedValue = new Intl.NumberFormat('es-UY', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(numericValue);
+  // Moneda principal arriba, secundaria debajo. Con una sola configurada, la
+  // segunda línea desaparece.
+  const { code: primaryCurrency, secondaryCode } = useCurrencySettings();
 
-    return `${symbol} ${formattedValue}`;
-  };
+  const amountFor = (code: string, field: keyof CurrencyFinancialData) =>
+    Number(financialData?.financial_data?.[code]?.[field] ?? 0);
 
   const stats = [
     {
       title: t('stats.totalInvoiced'),
-      value: {
-        USD: financialData?.financial_data?.USD?.total_invoiced ?? 0,
-        UYU: financialData?.financial_data?.UYU?.total_invoiced ?? 0,
-      },
+      primary: amountFor(primaryCurrency, 'total_invoiced'),
+      secondary: secondaryCode ? amountFor(secondaryCode, 'total_invoiced') : null,
       accentColor: '#3B82F6',
     },
     {
       title: t('stats.totalPaid'),
-      value: {
-        USD: financialData?.financial_data?.USD?.total_paid ?? 0,
-        UYU: financialData?.financial_data?.UYU?.total_paid ?? 0,
-      },
+      primary: amountFor(primaryCurrency, 'total_paid'),
+      secondary: secondaryCode ? amountFor(secondaryCode, 'total_paid') : null,
       accentColor: '#10B981',
     },
     {
       title: t('stats.currentDebt'),
-      value: {
-        USD: financialData?.financial_data?.USD?.current_debt ?? 0,
-        UYU: financialData?.financial_data?.UYU?.current_debt ?? 0,
-      },
+      primary: amountFor(primaryCurrency, 'current_debt'),
+      secondary: secondaryCode ? amountFor(secondaryCode, 'current_debt') : null,
       accentColor: '#F43F5E',
     },
     {
       title: t('stats.availableBalance'),
-      value: {
-        USD: financialData?.financial_data?.USD?.available_balance ?? 0,
-        UYU: financialData?.financial_data?.UYU?.available_balance ?? 0,
-      },
+      primary: amountFor(primaryCurrency, 'available_balance'),
+      secondary: secondaryCode ? amountFor(secondaryCode, 'available_balance') : null,
       accentColor: '#8B5CF6',
     },
   ];
@@ -114,10 +105,10 @@ export function UserFinancialSummaryStats({
       <CollapsibleContent className="transition-all">
         <div className="grid grid-cols-2 gap-2 pb-2 md:grid-cols-4">
           {stats.map((stat) => {
-            const uyuValue = Number(stat.value.UYU ?? 0);
+            const primaryValue = stat.primary;
             const isBalance = stat.title === t('stats.availableBalance');
             const valueColor = isBalance
-              ? uyuValue >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'
+              ? primaryValue >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'
               : undefined;
 
             return (
@@ -132,11 +123,13 @@ export function UserFinancialSummaryStats({
                   </span>
                   <div className="flex flex-col leading-tight mt-0.5">
                     <span className={cn('text-2xl font-bold tracking-tight', valueColor ?? 'text-foreground')}>
-                      {formatCurrency(uyuValue, 'UYU')}
+                      {formatMoney(primaryValue, primaryCurrency, { decimals: 2 })}
                     </span>
-                    <span className="text-xs text-muted-foreground">
-                      {formatCurrency(stat.value.USD ?? 0, 'USD')}
-                    </span>
+                    {secondaryCode && stat.secondary !== null && (
+                      <span className="text-xs text-muted-foreground">
+                        {formatMoney(stat.secondary, secondaryCode, { decimals: 2 })}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

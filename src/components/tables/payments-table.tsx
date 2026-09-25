@@ -24,6 +24,7 @@ import { useTranslations } from 'next-intl';
 import React from 'react';
 import { Button } from '../ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '../ui/dropdown-menu';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 const PAYMENT_TYPE_FILTER_OPTIONS: Exclude<PaymentTypeFilter, 'all'>[] = ['prepaid', 'direct_payment', 'payment_allocation', 'credit_note_allocation'];
 
@@ -142,7 +143,7 @@ const getColumns = (
       ),
       cell: ({ row }) => {
         const amount = Math.abs(parseFloat(row.getValue('source_amount')));
-        const currency = row.original.source_currency || 'USD';
+        const currency = row.original.source_currency || getClinicCurrency();
         const formatted = new Intl.NumberFormat('en-US', {
           style: 'currency',
           currency: currency,

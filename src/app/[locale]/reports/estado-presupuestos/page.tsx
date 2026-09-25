@@ -28,6 +28,9 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { ReportCurrencyFilter } from '@/components/reports/currency-filter';
+import { useReportCurrency } from '@/hooks/useReportCurrency';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('es-UY', { maximumFractionDigits: 0 }).format(n);
@@ -49,7 +52,7 @@ export default function PresupuestosPendientesPage() {
     to: endOfMonth(new Date()),
   });
   const [status, setStatus] = useState('draft');
-  const [currency, setCurrency] = useState('all');
+  const { currency, setCurrency, activeCurrency, isDual } = useReportCurrency();
 
   const [data, setData] = useState<ReportPresupuestosResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -143,23 +146,14 @@ export default function PresupuestosPendientesPage() {
           <SelectItem value="rejected">Rechazado</SelectItem>
         </SelectContent>
       </Select>
-      <Select value={currency} onValueChange={setCurrency}>
-        <SelectTrigger className="h-8 w-28 text-xs">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todas</SelectItem>
-          <SelectItem value="UYU">UYU</SelectItem>
-          <SelectItem value="USD">USD</SelectItem>
-        </SelectContent>
-      </Select>
+      <ReportCurrencyFilter value={currency} onChange={setCurrency} allLabel="Todas" />
     </div>
   );
 
   const s = data?.summary;
 
   const byCur = (data?.rows ?? []).reduce<Record<string, number>>((acc, r) => {
-    const c = r.currency ?? 'UYU';
+    const c = r.currency ?? getClinicCurrency();
     acc[c] = (acc[c] || 0) + Number(r.total ?? 0);
     return acc;
   }, {});

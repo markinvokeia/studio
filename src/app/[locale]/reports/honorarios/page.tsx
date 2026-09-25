@@ -29,6 +29,8 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { useReportCurrency } from '@/hooks/useReportCurrency';
+import { ReportCurrencyFilter } from '@/components/reports/currency-filter';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('es-UY', { maximumFractionDigits: 0 }).format(n);
@@ -41,9 +43,7 @@ export default function HonorariosPage() {
     to: endOfMonth(new Date()),
   });
   const [basis, setBasis] = useState<'cobrado' | 'facturado'>('cobrado');
-  const [currency, setCurrency] = useState('all');
-
-  const [chartCurrency, setChartCurrency] = useState<'UYU' | 'USD'>('UYU');
+  const { currency, setCurrency, chartCurrency, setChartCurrency, activeCurrency, isDual, options: currencyOptions } = useReportCurrency();
 
   const [data, setData] = useState<ReportHonorariosResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -103,7 +103,6 @@ export default function HonorariosPage() {
   const activeCurrencies = Object.keys(baseByCurrency).filter((c) => baseByCurrency[c] > 0).sort();
   const showMultiCurrency = currency === 'all' && activeCurrencies.length > 1;
   const displayCurrency = currency !== 'all' ? currency : activeCurrencies[0] ?? '';
-  const activeCurrency = (currency !== 'all' ? currency : chartCurrency) as 'UYU' | 'USD';
   const activeRows = (data?.rows ?? []).filter((r) => r.currency === activeCurrency);
 
   const chartData = activeRows.map((r) => ({
@@ -129,16 +128,7 @@ export default function HonorariosPage() {
           </SelectContent>
         </Select>
       </div>
-      <Select value={currency} onValueChange={setCurrency}>
-        <SelectTrigger className="h-8 w-28 text-xs">
-          <SelectValue placeholder="Todas" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todas</SelectItem>
-          <SelectItem value="UYU">UYU</SelectItem>
-          <SelectItem value="USD">USD</SelectItem>
-        </SelectContent>
-      </Select>
+      <ReportCurrencyFilter value={currency} onChange={setCurrency} allLabel="Todas" />
     </div>
   );
 
@@ -239,7 +229,7 @@ export default function HonorariosPage() {
           {/* Print: dual-currency layout — only shown when Ambos is selected */}
           {currency === 'all' && (
             <div className="hidden print:grid print:grid-cols-2 print:gap-4">
-              {(['UYU', 'USD'] as const).map((cur) => {
+              {currencyOptions.map((cur) => {
                 const curRows = (data?.rows ?? []).filter(r => r.currency === cur);
                 const curChartData = curRows.map(r => ({
                   doctor: r.doctor_name.split(' ').slice(-1)[0],

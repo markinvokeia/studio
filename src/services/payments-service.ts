@@ -2,6 +2,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { Payment } from '@/lib/types';
 import api from '@/services/api';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 export type { Payment };
 
@@ -99,11 +100,11 @@ export function mapApiPaymentToPayment(apiPayment: any): Payment {
     status: apiPayment.status || 'completed',
     createdAt: apiPayment.payment_date || apiPayment.created_at,
     updatedAt: apiPayment.payment_date || apiPayment.created_at,
-    currency: apiPayment.invoice_currency || apiPayment.source_currency || apiPayment.currency || 'USD',
+    currency: apiPayment.invoice_currency || apiPayment.source_currency || apiPayment.currency || getClinicCurrency(),
     payment_date: apiPayment.payment_date || apiPayment.created_at,
     amount_applied: isNewFormat ? parseFloat(apiPayment.amount_applied) : parseFloat(apiPayment.converted_amount || apiPayment.amount_applied),
     source_amount: isNewFormat ? parseFloat(apiPayment.source_amount) : parseFloat(apiPayment.amount),
-    source_currency: apiPayment.source_currency || apiPayment.currency || 'USD',
+    source_currency: apiPayment.source_currency || apiPayment.currency || getClinicCurrency(),
     exchange_rate: isNewFormat ? parseFloat(apiPayment.exchange_rate) : parseFloat(apiPayment.exchange_rate || '1'),
     payment_method_id: apiPayment.payment_method_id ? String(apiPayment.payment_method_id) : undefined,
     payment_method: apiPayment.payment_method_name || apiPayment.payment_method || apiPayment.method || 'N/A',

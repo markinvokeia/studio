@@ -26,14 +26,15 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { ReportCurrencyFilter } from '@/components/reports/currency-filter';
+import { useReportCurrency } from '@/hooks/useReportCurrency';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('es-UY', { maximumFractionDigits: 0 }).format(n);
 
 export default function DeudoresPage() {
   const t = useTranslations('ReportDeudoresPage');
-
-  const [currency, setCurrency] = useState('UYU');
+  const { currency, setCurrency, isDual } = useReportCurrency({ includeAll: false });
   const [minAmount, setMinAmount] = useState('');
   const [bucket, setBucket]     = useState('all');
 
@@ -103,15 +104,7 @@ export default function DeudoresPage() {
     <div className="flex flex-wrap items-center gap-3">
       <div className="flex items-center gap-2">
         <Label className="text-xs whitespace-nowrap">{t('filter_moneda')}</Label>
-        <Select value={currency} onValueChange={setCurrency}>
-          <SelectTrigger className="h-8 w-24 text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="UYU">UYU</SelectItem>
-            <SelectItem value="USD">USD</SelectItem>
-          </SelectContent>
-        </Select>
+      <ReportCurrencyFilter value={currency} onChange={setCurrency} includeAll={false} />
       </div>
       <div className="flex items-center gap-2">
         <Label className="text-xs whitespace-nowrap">{t('filter_bucket')}</Label>

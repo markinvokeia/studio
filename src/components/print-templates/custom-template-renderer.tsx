@@ -15,6 +15,7 @@ import type { ClinicInfo } from '@/hooks/useClinicInfo';
 import type { PrintData, PrintDocumentType, QuotePrintData, InvoicePrintData, PaymentPrintData, CreditNotePrintData, PrepaymentPrintData, FinancialSummaryPrintData, CajaAperturaPrintData, CajaCierrePrintData, CajaSesionPrintData } from '@/stores/print-document-store';
 import type { FinancialSummaryMovement, CajaSessionMovement, CajaSessionDetails } from '@/lib/types';
 import { normalizePaymentMethodCode } from '@/lib/payment-methods';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 interface CustomTemplateRendererProps {
   html: string;
@@ -271,8 +272,9 @@ function buildCajaClosingSummaryTable(
 }
 
 function buildCajaMovementsTable(movements: CajaSessionMovement[]): string {
+  const primaryCurrency = getClinicCurrency();
   const currencies = [...new Set(movements.map((m) => m.currency))].sort((a, b) =>
-    a === 'UYU' ? -1 : b === 'UYU' ? 1 : a.localeCompare(b)
+    a === primaryCurrency ? -1 : b === primaryCurrency ? 1 : a.localeCompare(b)
   );
   if (!currencies.length) return '<p style="color:#9ca3af;text-align:center;padding:0.5rem;">Sin movimientos registrados.</p>';
 
@@ -356,7 +358,7 @@ function substituteVariables(html: string, data: PrintData, type: PrintDocumentT
   if (type === 'invoice') {
     const d = data as InvoicePrintData;
     const { invoice, items, payments } = d;
-    const currency = invoice.currency || 'UYU';
+    const currency = invoice.currency || getClinicCurrency();
     const { total, paid, pending, paymentStatus } = computeInvoiceTotals(invoice, payments);
     // El ambito sale del documento, no de la preferencia vigente de la clinica.
     const invoiceDiscountView = buildDocumentDiscountView(invoice, items);
@@ -383,7 +385,7 @@ function substituteVariables(html: string, data: PrintData, type: PrintDocumentT
     const { quote, items, invoices } = d;
     // El ambito sale del documento, no de la preferencia vigente de la clinica.
     const quoteDiscountView = buildDocumentDiscountView(quote, items);
-    const currency = quote.currency || 'UYU';
+    const currency = quote.currency || getClinicCurrency();
     const total = Number(quote.total || 0);
     const amountInvoiced = Number(quote.amount_invoiced ?? 0);
     const pendingInvoice = Number(quote.amount_pending_invoice ?? Math.max(total - amountInvoiced, 0));
@@ -410,7 +412,7 @@ function substituteVariables(html: string, data: PrintData, type: PrintDocumentT
   } else if (type === 'payment') {
     const d = data as PaymentPrintData;
     const { payment } = d;
-    const currency = payment.source_currency || 'UYU';
+    const currency = payment.source_currency || getClinicCurrency();
     Object.assign(values, {
       doc_no: payment.doc_no || payment.payment_doc_no || payment.id,
       date: formatDisplayDate(payment.payment_date || payment.createdAt),
@@ -426,7 +428,7 @@ function substituteVariables(html: string, data: PrintData, type: PrintDocumentT
   } else if (type === 'credit_note') {
     const d = data as CreditNotePrintData;
     const { creditNote, items, originalInvoice } = d;
-    const currency = creditNote.currency || 'UYU';
+    const currency = creditNote.currency || getClinicCurrency();
     const total = Number(creditNote.total || 0);
     // Las lineas se copian de la factura madre y ya vienen descontadas.
     const creditNoteDiscountView = buildDocumentDiscountView(creditNote, items);
@@ -448,7 +450,7 @@ function substituteVariables(html: string, data: PrintData, type: PrintDocumentT
   } else if (type === 'prepayment') {
     const d = data as PrepaymentPrintData;
     const { prepayment } = d;
-    const currency = prepayment.source_currency || 'UYU';
+    const currency = prepayment.source_currency || getClinicCurrency();
     const amount = Number(prepayment.source_amount || prepayment.amount_applied || 0);
     Object.assign(values, {
       doc_no: prepayment.doc_no || prepayment.payment_doc_no || prepayment.id,
@@ -501,8 +503,9 @@ function substituteVariables(html: string, data: PrintData, type: PrintDocumentT
     const { report, dateRange } = d;
     const dateFrom = report.report_start_date ?? dateRange?.from ?? null;
     const dateTo   = report.report_end_date   ?? dateRange?.to   ?? null;
+    const primaryCurrency = getClinicCurrency();
     const currencies = Object.keys(report.history_by_currency).sort((a, b) =>
-      a === 'UYU' ? -1 : b === 'UYU' ? 1 : a.localeCompare(b)
+      a === primaryCurrency ? -1 : b === primaryCurrency ? 1 : a.localeCompare(b)
     );
     const movementsTable = currencies
       .map((cur) => {

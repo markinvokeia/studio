@@ -48,11 +48,12 @@ import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
 import { DataTablePagination } from '../ui/data-table-pagination';
 import { DataTableToolbar } from '../ui/data-table-toolbar';
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 function formatCurrency(amount: number | undefined, currency: string | undefined) {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: currency || 'USD',
+    currency: currency || getClinicCurrency(),
   }).format(Number(amount || 0));
 }
 
@@ -185,7 +186,7 @@ const getColumns = (
         const roundedAmount = Math.round(amount * 100) / 100;
         const formatted = new Intl.NumberFormat('en-US', {
           style: 'currency',
-          currency: row.original.currency || 'USD',
+          currency: row.original.currency || getClinicCurrency(),
         }).format(roundedAmount);
         return <div className="font-medium">{formatted}</div>;
       },

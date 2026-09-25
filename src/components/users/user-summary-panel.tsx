@@ -21,6 +21,8 @@ import * as React from 'react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { TreatmentSequence } from '@/lib/types';
+import { useCurrencySettings } from '@/hooks/useCurrencySettings';
+import { formatMoney } from '@/lib/currency';
 
 type SummaryTab = 'financial' | 'treatment';
 
@@ -44,17 +46,15 @@ function formatShortDate(dateStr?: string | null): string {
 function FinancialContent({ financialData }: { financialData?: UserFinancial | null }) {
     const tPatient = useTranslations('UsersPage');
 
-    const formatCurrency = (value: unknown, currency: 'USD' | 'UYU') => {
-        const symbol = currency === 'USD' ? 'U$S' : '$U';
-        const num = Number(value) || 0;
-        return `${symbol} ${new Intl.NumberFormat('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num)}`;
-    };
+    const { code: primaryCurrency, secondaryCode } = useCurrencySettings();
+    const amountFor = (code: string, field: string) =>
+        Number((financialData?.financial_data as Record<string, any> | undefined)?.[code]?.[field] ?? 0);
 
     const stats = [
-        { title: tPatient('stats.totalInvoiced'), uyu: financialData?.financial_data?.UYU?.total_invoiced ?? 0, usd: financialData?.financial_data?.USD?.total_invoiced ?? 0, accent: '#3B82F6' },
-        { title: tPatient('stats.totalPaid'), uyu: financialData?.financial_data?.UYU?.total_paid ?? 0, usd: financialData?.financial_data?.USD?.total_paid ?? 0, accent: '#10B981' },
-        { title: tPatient('stats.currentDebt'), uyu: financialData?.financial_data?.UYU?.current_debt ?? 0, usd: financialData?.financial_data?.USD?.current_debt ?? 0, accent: '#F43F5E' },
-        { title: tPatient('stats.availableBalance'), uyu: financialData?.financial_data?.UYU?.available_balance ?? 0, usd: financialData?.financial_data?.USD?.available_balance ?? 0, accent: '#8B5CF6' },
+        { title: tPatient('stats.totalInvoiced'), primary: amountFor(primaryCurrency, 'total_invoiced'), secondary: secondaryCode ? amountFor(secondaryCode, 'total_invoiced') : null, accent: '#3B82F6' },
+        { title: tPatient('stats.totalPaid'), primary: amountFor(primaryCurrency, 'total_paid'), secondary: secondaryCode ? amountFor(secondaryCode, 'total_paid') : null, accent: '#10B981' },
+        { title: tPatient('stats.currentDebt'), primary: amountFor(primaryCurrency, 'current_debt'), secondary: secondaryCode ? amountFor(secondaryCode, 'current_debt') : null, accent: '#F43F5E' },
+        { title: tPatient('stats.availableBalance'), primary: amountFor(primaryCurrency, 'available_balance'), secondary: secondaryCode ? amountFor(secondaryCode, 'available_balance') : null, accent: '#8B5CF6' },
     ];
 
     return (
@@ -62,7 +62,7 @@ function FinancialContent({ financialData }: { financialData?: UserFinancial | n
             {stats.map((stat) => {
                 const isBalance = stat.title === tPatient('stats.availableBalance');
                 const valueColor = isBalance
-                    ? stat.uyu >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'
+                    ? stat.primary >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'
                     : undefined;
                 return (
                     <div key={stat.title} className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
@@ -71,9 +71,11 @@ function FinancialContent({ financialData }: { financialData?: UserFinancial | n
                             <span className="text-[9px] uppercase tracking-wide text-muted-foreground font-medium truncate">{stat.title}</span>
                             <div className="flex flex-col leading-tight mt-0.5">
                                 <span className={cn('text-2xl font-bold tracking-tight', valueColor ?? 'text-foreground')}>
-                                    {formatCurrency(stat.uyu, 'UYU')}
+                                    {formatMoney(stat.primary, primaryCurrency, { decimals: 2 })}
                                 </span>
-                                <span className="text-xs text-muted-foreground">{formatCurrency(stat.usd, 'USD')}</span>
+                                {secondaryCode && stat.secondary !== null && (
+                                    <span className="text-xs text-muted-foreground">{formatMoney(stat.secondary, secondaryCode, { decimals: 2 })}</span>
+                                )}
                             </div>
                         </div>
                     </div>

@@ -19,8 +19,12 @@ import { MoreHorizontal } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Button } from '../ui/button';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
+import { formatMoney } from '@/lib/currency';
 
 interface InvoiceItemsTableProps {
+  /** Moneda del documento. Por defecto, la de la clínica. */
+  currency?: string;
   items: InvoiceItem[];
   isLoading?: boolean;
   onRefresh?: () => void;
@@ -34,7 +38,11 @@ interface InvoiceItemsTableProps {
   setRowSelection?: React.Dispatch<React.SetStateAction<RowSelectionState>>;
 }
 
-export function InvoiceItemsTable({ items, isLoading = false, onRefresh, isRefreshing, onCreate, canEdit = false, onEdit, onDelete, onRowSelectionChange, rowSelection, setRowSelection }: InvoiceItemsTableProps) {
+export function InvoiceItemsTable({
+  currency: currencyProp, items, isLoading = false, onRefresh, isRefreshing, onCreate, canEdit = false, onEdit, onDelete, onRowSelectionChange, rowSelection, setRowSelection }: InvoiceItemsTableProps) {
+  const currency = currencyProp ?? getClinicCurrency();
+  /** Importes en la moneda del documento. */
+  const formatMoney2 = (v: number) => formatMoney(v, currency);
   const t = useTranslations('InvoicesPage.InvoiceItemsTable');
   const { isNarrow: panelNarrow } = useNarrowMode();
   const viewportNarrow = useViewportNarrow();
@@ -122,10 +130,7 @@ export function InvoiceItemsTable({ items, isLoading = false, onRefresh, isRefre
       ),
       cell: ({ row }) => {
         const amount = parseFloat(row.getValue('unit_price'));
-        const formatted = new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'USD',
-        }).format(amount);
+        const formatted = formatMoney(amount, getClinicCurrency());
         return <div className="font-medium">{formatted}</div>;
       },
     },
@@ -138,15 +143,12 @@ export function InvoiceItemsTable({ items, isLoading = false, onRefresh, isRefre
       ),
       cell: ({ row }) => {
         const amount = parseFloat(row.getValue('total'));
-        const formatted = new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'USD',
-        }).format(amount);
+        const formatted = formatMoney(amount, getClinicCurrency());
         return (
           <div className="font-medium">
             {formatted}
             {/* El importe ya viene rebajado: la nota deja ver por que. */}
-            <AppliedDiscountNote line={row.original} currency="USD" />
+            <AppliedDiscountNote line={row.original} currency={currency} />
           </div>
         );
       },
@@ -218,8 +220,8 @@ export function InvoiceItemsTable({ items, isLoading = false, onRefresh, isRefre
                 <>
                   {(item.steps || item.step_id) ? <span>{t('columns.step')}: {item.steps || item.step_id}</span> : null}
                   <span>{t('columns.quantity')}: {item.quantity}</span>
-                  <span>{t('columns.unitPrice')}: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.unit_price || 0)}</span>
-                  <span className="font-medium text-foreground">{t('columns.total')}: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.total || 0)}</span>
+                  <span>{t('columns.unitPrice')}: {formatMoney2(item.unit_price || 0)}</span>
+                  <span className="font-medium text-foreground">{t('columns.total')}: {formatMoney2(item.total || 0)}</span>
                 </>
               )}
             />
@@ -230,7 +232,7 @@ export function InvoiceItemsTable({ items, isLoading = false, onRefresh, isRefre
               subtitle={[
                 (item.steps || item.step_id) ? `${t('columns.step')}: ${item.steps || item.step_id}` : undefined,
                 `${t('columns.quantity')}: ${item.quantity}`,
-                `${t('columns.total')}: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.total || 0)}`,
+                `${t('columns.total')}: ${formatMoney2(item.total || 0)}`,
               ].filter(Boolean).join(' · ')}
               showArrow={!!onRowSelectionChange}
               onClick={() => onRowSelectionChange?.([item])}

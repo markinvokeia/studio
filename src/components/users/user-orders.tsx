@@ -27,6 +27,7 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataCard } from '@/components/ui/data-card';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 const STATUS_BADGE: Record<string, any> = { completed: 'success', pending: 'info', processing: 'default', cancelled: 'destructive' };
@@ -78,7 +79,7 @@ const getColumns = (t: (key: string) => string): ColumnDef<Order>[] => [
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('QuoteColumns.currency')} />,
     cell: ({ row }) => {
       const currency = row.getValue('currency') as string;
-      return <div className="font-medium">{currency || 'USD'}</div>;
+      return <div className="font-medium">{currency || getClinicCurrency()}</div>;
     },
   },
   {
@@ -119,7 +120,7 @@ async function getOrdersForUser(userId: string): Promise<Order[]> {
       status: apiOrder.status,
       createdAt: apiOrder.created_at,
       updatedAt: apiOrder.updated_at,
-      currency: apiOrder.currency || 'USD',
+      currency: apiOrder.currency || getClinicCurrency(),
       notes: apiOrder.notes || '',
     }));
   } catch (error) {

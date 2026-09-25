@@ -50,6 +50,7 @@ import { PATIENT_FINANCIAL_VIEW_PERMISSIONS, SALES_PERMISSIONS } from '@/constan
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 interface WorkflowStep {
     id: number | string;
@@ -331,7 +332,7 @@ export function AppointmentFormDialog({
                     status: q.status || 'draft',
                     payment_status: q.payment_status || 'unpaid',
                     billing_status: q.billing_status || 'not_invoiced',
-                    currency: q.currency || 'USD',
+                    currency: q.currency || getClinicCurrency(),
                     exchange_rate: q.exchange_rate || 1,
                     notes: q.notes || '',
                     createdAt: q.createdAt || q.created_at || new Date().toISOString().split('T')[0],
@@ -523,7 +524,7 @@ export function AppointmentFormDialog({
             await api.post(API_ROUTES.PURCHASES.SERVICES_UPSERT, {
                 name,
                 price: 0,
-                currency: 'UYU',
+                currency: getClinicCurrency(),
                 is_sales: true,
                 is_active: true,
                 duration_minutes: 60,
@@ -1359,7 +1360,7 @@ export function AppointmentFormDialog({
                                                             {appointment.quote.createdAt ? formatDisplayDate(appointment.quote.createdAt) : ''}
                                                         </span>
                                                         <span className="text-muted-foreground">
-                                                            ({new Intl.NumberFormat('en-US', { style: 'currency', currency: appointment.quote.currency || 'USD' }).format(appointment.quote.total)})
+                                                            ({new Intl.NumberFormat('en-US', { style: 'currency', currency: appointment.quote.currency || getClinicCurrency() }).format(appointment.quote.total)})
                                                         </span>
                                                     </span>
                                                 ) : (
@@ -1411,7 +1412,7 @@ export function AppointmentFormDialog({
                                                                 <div className="flex flex-col">
                                                                     <span className="font-medium">{quote.doc_no}</span>
                                                                     <span className="text-xs text-muted-foreground">
-                                                                        {quote.createdAt ? formatDisplayDate(quote.createdAt) : ''} • {new Intl.NumberFormat('en-US', { style: 'currency', currency: quote.currency || 'USD' }).format(quote.total)} • {tQuotes(`quoteDialog.${quote.status?.toLowerCase()}`)}
+                                                                        {quote.createdAt ? formatDisplayDate(quote.createdAt) : ''} • {new Intl.NumberFormat('en-US', { style: 'currency', currency: quote.currency || getClinicCurrency() }).format(quote.total)} • {tQuotes(`quoteDialog.${quote.status?.toLowerCase()}`)}
                                                                     </span>
                                                                 </div>
                                                             </CommandItem>

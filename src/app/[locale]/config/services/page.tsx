@@ -36,13 +36,16 @@ import * as React from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { ServicesColumnsWrapper } from './columns';
+import { currencySchema } from '@/lib/currency';
+import { CurrencySelect } from '@/components/ui/currency-select';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 const serviceFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
   name: z.string().min(1, t('nameRequired')),
   category: z.string().min(1, t('categoryRequired')),
   price: z.coerce.number().positive(t('pricePositive')),
-  currency: z.enum(['UYU', 'USD']).default('USD'),
+  currency: currencySchema,
   duration_minutes: z.coerce.number().int().positive(t('durationInteger')),
   description: z.string().optional(),
   indications: z.string().optional(),
@@ -69,7 +72,7 @@ async function getServices(): Promise<Service[]> {
       name: apiService.name || 'No Name',
       category: apiService.category_name || apiService.category || 'No Category',
       price: apiService.price || 0,
-      currency: apiService.currency || 'USD',
+      currency: apiService.currency || getClinicCurrency(),
       duration_minutes: apiService.duration_minutes || 0,
       description: apiService.description,
       indications: apiService.indications,
@@ -193,7 +196,7 @@ export default function ServicesPage() {
       name: '',
       category: '',
       price: 0,
-      currency: clinicInfo?.currency ?? 'UYU',
+      currency: clinicInfo?.currency ?? getClinicCurrency(),
       duration_minutes: 60,
       description: '',
       indications: '',
@@ -212,7 +215,7 @@ export default function ServicesPage() {
       name: service.name,
       category: service.category,
       price: service.price,
-      currency: service.currency || 'USD',
+      currency: service.currency || getClinicCurrency(),
       duration_minutes: service.duration_minutes,
       description: service.description,
       indications: service.indications,
@@ -377,17 +380,7 @@ export default function ServicesPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>{t('createDialog.currency')}</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder={t('createDialog.selectCurrency')} />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="USD">USD</SelectItem>
-                            <SelectItem value="UYU">UYU</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <FormControl><CurrencySelect value={field.value} onChange={field.onChange} placeholder={t('createDialog.selectCurrency')} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}

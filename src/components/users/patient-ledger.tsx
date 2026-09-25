@@ -49,6 +49,9 @@ import type { CreditNote, Invoice, InvoiceItem, Payment, PaymentMethod, Quote, Q
 import { cn, formatDisplayDate, preserveTimeIfToday, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { fetchPatientLedgerData, type PatientLedgerData } from '@/services/patient-ledger-data';
+import { currencySchema, currencySymbol, formatMoney } from '@/lib/currency';
+import { useCurrencySettings } from '@/hooks/useCurrencySettings';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
@@ -151,22 +154,15 @@ export interface PatientLedgerHandle {
   getVisibleLedger: () => VisibleLedger;
 }
 
-/** Short currency symbol shown in the amount columns: "$" for UYU, "U$" for USD. */
-function currencySymbol(currency: string): string {
-  if (currency === 'UYU') return '$';
-  if (currency === 'USD') return 'U$';
-  return currency;
-}
-
 /** Always two decimals (e.g. 25 → "25,00", 25.5 → "25,50"), thousands-separated. */
-function fmtNumber2(amount: number): string {
-  return (amount || 0).toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function fmtNumber2(amount: number, currency?: string): string {
+  return formatMoney(amount, currency, { showSymbol: false, decimals: 2 });
 }
 
-/** Always renders a number — including "<symbol>0,00" for a zero amount — so balances and
+/** Always renders a number — including "<symbol> 0,00" for a zero amount — so balances and
  *  Debe/Haber cells never show a dash. */
 function fmtAmountZero(amount: number, currency: string) {
-  return `${currencySymbol(currency)}${fmtNumber2(amount)}`;
+  return formatMoney(amount, currency, { decimals: 2 });
 }
 
 const STATUS_VARIANT: Record<LedgerRowStatus, 'secondary' | 'outline' | 'warning' | 'success' | 'destructive'> = {
@@ -590,24 +586,31 @@ function ToothIcon({ className }: { className?: string }) {
  */
 function CurrencyAmountInput({ amount, currency, onAmountChange, onCurrencyChange, currencyLocked, placeholder, ariaLabel, className }: {
   amount: number;
-  currency: 'UYU' | 'USD';
+  currency: string;
   onAmountChange: (v: number) => void;
-  onCurrencyChange?: (c: 'UYU' | 'USD') => void;
+  onCurrencyChange?: (c: string) => void;
   currencyLocked?: boolean;
   placeholder?: string;
   ariaLabel?: string;
   className?: string;
 }) {
+  const { optionsFor } = useCurrencySettings();
+  const options = optionsFor(currency);
+  // Con una sola moneda no hay nada que elegir: se muestra el símbolo, igual
+  // que en modo edición, en vez de un desplegable de un único elemento.
+  const showSelector = !currencyLocked && !!onCurrencyChange && options.length > 1;
+
   return (
     <div className={cn('flex items-center gap-1.5', className)}>
-      {currencyLocked || !onCurrencyChange ? (
+      {!showSelector ? (
         <span className="flex h-8 shrink-0 items-center px-1 text-xs font-medium text-muted-foreground">{currencySymbol(currency)}</span>
       ) : (
-        <Select value={currency} onValueChange={(v) => onCurrencyChange(v as 'UYU' | 'USD')}>
+        <Select value={currency} onValueChange={(v) => onCurrencyChange!(v)}>
           <SelectTrigger className="h-8 w-[5.5rem] shrink-0 px-2 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="UYU">$ UYU</SelectItem>
-            <SelectItem value="USD">U$ USD</SelectItem>
+            {options.map((code) => (
+              <SelectItem key={code} value={code}>{currencySymbol(code)} {code}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       )}
@@ -654,7 +657,7 @@ function InlineEditorShell({ title, controls, line1, line2, belowSlot }: {
 const buildQuoteEditorSchema = (maxDiscountPct: number) => z.object({
   created_at: z.date(),
   due_date: z.date().optional(),
-  currency: z.enum(['UYU', 'USD']),
+  currency: currencySchema,
   service_id: z.string().min(1),
   service_name: z.string().optional(),
   tooth_number: z.string().optional(),
@@ -751,7 +754,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
           : (!isEdit && doc === 'invoice')
             ? addMonths(new Date(), 1)
             : undefined,
-      currency: ((editInvoice?.currency || editQuote?.currency || editRow?.currency) as 'UYU' | 'USD' | undefined) || (currency as 'UYU' | 'USD'),
+      currency: editInvoice?.currency || editQuote?.currency || editRow?.currency || currency,
       service_id: editItem?.service_id || editRow?.serviceId || '',
       service_name: editItem?.service_name || editRow?.label || '',
       tooth_number: (editItem as QuoteItem | undefined)?.tooth_number != null ? String((editItem as QuoteItem).tooth_number) : '',
@@ -1146,7 +1149,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
 
 const paymentEditorSchema = z.object({
   created_at: z.date(),
-  currency: z.enum(['UYU', 'USD']),
+  currency: currencySchema,
   payment_amount: z.coerce.number().positive(),
   payment_method_id: z.string().min(1),
   notes: z.string().optional(),
@@ -1204,7 +1207,7 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
     resolver: zodResolver(paymentEditorSchema),
     defaultValues: {
       created_at: editPayment?.payment_date ? new Date(editPayment.payment_date) : new Date(),
-      currency: (editPayment?.source_currency as 'UYU' | 'USD' | undefined) || (currency as 'UYU' | 'USD'),
+      currency: editPayment?.source_currency || currency,
       payment_amount: editPayment ? Math.abs(editPayment.amount_applied ?? editPayment.source_amount ?? 0) : 0,
       payment_method_id: editPayment?.payment_method_id || '',
       notes: editPayment?.notes || '',
@@ -1650,7 +1653,7 @@ function CreditNoteInlineEditor({ row, userId, parentInvoiceId, sedeId, maxCredi
             </FieldIcon>
             <CurrencyAmountInput
               amount={form.watch('unit_price')}
-              currency={row.currency as 'UYU' | 'USD'}
+              currency={row.currency}
               onAmountChange={(v) => form.setValue('unit_price', v, { shouldValidate: true })}
               currencyLocked
               ariaLabel={t('dialogs.creditNote.unitPrice')}
@@ -1681,6 +1684,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
   const { toast } = useToast();
   const { user: operator } = useAuth();
   const clinicInfo = useClinicInfo();
+  const { optionsFor } = useCurrencySettings();
   const { validateActiveSession, showCashSessionError } = useCashSessionValidation();
   const { hasPermission } = usePermissions();
   const { printQuote, printInvoice, printPayment, printCreditNote } = usePrintDocument();
@@ -1763,16 +1767,15 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
 
   const handleManualRefresh = React.useCallback(() => { void load(true); }, [load]);
 
-  // Both supported currencies are always offered in the toggle, regardless of whether this
-  // patient has rows in either — the filter must stay usable (and default correctly, see
-  // `load` above) even for a patient with no records yet.
-  const currencies = React.useMemo(() => {
-    const keys = new Set(Object.keys(ledgerByCurrency));
-    keys.add('UYU');
-    keys.add('USD');
-    if (clinicInfo?.currency) keys.add(clinicInfo.currency);
-    return Array.from(keys);
-  }, [ledgerByCurrency, clinicInfo]);
+  // Las monedas que ofrece el filtro son las que la clínica tiene configuradas
+  // —principal y, si la hay, secundaria—, tenga o no el paciente movimientos en
+  // ellas: así el filtro sigue siendo usable (y toma bien su valor por defecto,
+  // ver `load`) con un paciente sin registros.
+  //
+  // Solo se añade una tercera cuando la moneda activa no es ninguna de esas,
+  // que es el caso de un registro guardado en otra ocasión con otra moneda: sin
+  // ella el Select no podría representar su valor.
+  const currencies = React.useMemo(() => optionsFor(currency), [optionsFor, currency]);
   const rows = React.useMemo(
     () => (currency ? ledgerByCurrency[currency] || [] : []),
     [currency, ledgerByCurrency],
@@ -1808,7 +1811,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
   }), [load, visibleLedger]);
 
   // Currency used by the inline create editor (ledger's own currency, else clinic default).
-  const editorCurrency = currency || clinicInfo?.currency || 'UYU';
+  const editorCurrency = currency || clinicInfo?.currency || getClinicCurrency();
 
   // Reset transient inline state whenever the underlying rows change (after a reload).
   const closeInline = React.useCallback(() => {
@@ -2393,7 +2396,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
         docNo: i.doc_no || i.invoice_doc_no || i.id,
         date: i.createdAt,
         pending: round2((i.total || 0) - (i.paid_amount || 0)),
-        currency: i.currency || 'USD',
+        currency: i.currency || getClinicCurrency(),
       }))
       .filter((p) => p.pending > 0.005);
   }, [ledgerData]);
@@ -2747,11 +2750,11 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
             <div className="patient-ledger-footer-totals grid grid-cols-3 gap-2">
               <div className="patient-ledger-footer-total-cell text-right">
                 <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t('footer.totalDebit')}</div>
-                <div className="text-sm font-semibold tabular-nums">{fmtAmountZero(totals.totalDebe, currency || 'USD')}</div>
+                <div className="text-sm font-semibold tabular-nums">{fmtAmountZero(totals.totalDebe, currency || getClinicCurrency())}</div>
               </div>
               <div className="patient-ledger-footer-total-cell text-right">
                 <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t('footer.totalCredit')}</div>
-                <div className="text-sm font-semibold tabular-nums">{fmtAmountZero(totals.totalHaber, currency || 'USD')}</div>
+                <div className="text-sm font-semibold tabular-nums">{fmtAmountZero(totals.totalHaber, currency || getClinicCurrency())}</div>
               </div>
               <div className="patient-ledger-footer-total-cell text-right">
                 <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t('footer.finalBalance')}</div>
@@ -2765,7 +2768,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
                         : 'text-foreground',
                   )}
                 >
-                  {fmtAmountZero(totals.finalBalance, currency || 'USD')}
+                  {fmtAmountZero(totals.finalBalance, currency || getClinicCurrency())}
                 </div>
               </div>
             </div>

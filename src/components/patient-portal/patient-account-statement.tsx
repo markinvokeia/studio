@@ -18,6 +18,7 @@ import { buildPatientLedger } from '@/lib/patient-ledger';
 import type { LedgerRow } from '@/lib/patient-ledger';
 import { cn, formatDisplayDate } from '@/lib/utils';
 import { fetchPatientLedgerData } from '@/services/patient-ledger-data';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 interface PatientAccountStatementProps {
   userId: string;
@@ -100,9 +101,10 @@ export function PatientAccountStatement({ userId, patientName }: PatientAccountS
     );
   }
 
+  const primaryCurrency = getClinicCurrency();
   const currencies = Object.keys(rowsByCurrency)
     .filter((c) => (rowsByCurrency[c] || []).length > 0)
-    .sort((a, b) => (a === 'UYU' ? -1 : b === 'UYU' ? 1 : a.localeCompare(b)));
+    .sort((a, b) => (a === primaryCurrency ? -1 : b === primaryCurrency ? 1 : a.localeCompare(b)));
 
   if (currencies.length === 0) {
     return (

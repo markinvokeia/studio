@@ -48,6 +48,9 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { currencySchema } from '@/lib/currency';
+import { CurrencySelect } from '@/components/ui/currency-select';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 const prepaidFormSchema = (t: (key: string) => string) => z.object({
     user_id: z.string().min(1, t('validation.userRequired')),
@@ -56,7 +59,7 @@ const prepaidFormSchema = (t: (key: string) => string) => z.object({
     created_at: z.date({
         required_error: t('validation.dateRequired'),
     }),
-    currency: z.enum(['UYU', 'USD']),
+    currency: currencySchema,
     notes: z.string().optional(),
     is_historical: z.boolean().default(false),
 });
@@ -206,7 +209,7 @@ export default function PaymentsPage() {
     }, [t, toast]);
 
     // Prepaid credit balance (only relevant when selectedPayment.invoice_id is null)
-    const prepaidCurrency = selectedPayment?.currency || selectedPayment?.source_currency || 'USD';
+    const prepaidCurrency = selectedPayment?.currency || selectedPayment?.source_currency || getClinicCurrency();
     const prepaidTotal = Math.abs(Number(selectedPayment?.amount_applied || selectedPayment?.amount || 0));
     const prepaidUsed = React.useMemo(
         () => paymentAllocations.reduce((sum, a) => sum + Math.abs(Number(a.monto_desde_pago || 0)), 0),
@@ -221,7 +224,7 @@ export default function PaymentsPage() {
             payment_amount: 0,
             payment_method_id: '',
             created_at: new Date(),
-            currency: clinicInfo?.currency ?? 'UYU',
+            currency: clinicInfo?.currency ?? getClinicCurrency(),
             notes: '',
             is_historical: false
         }
@@ -486,7 +489,7 @@ export default function PaymentsPage() {
                                                 <span className="text-sm font-semibold">
                                                     {new Intl.NumberFormat('en-US', {
                                                         style: 'currency',
-                                                        currency: selectedPayment.currency || selectedPayment.source_currency || 'USD',
+                                                        currency: selectedPayment.currency || selectedPayment.source_currency || getClinicCurrency(),
                                                     }).format(Math.abs(Number(selectedPayment.amount_applied || selectedPayment.amount || 0)))}
                                                 </span>
                                             ),
@@ -772,7 +775,7 @@ export default function PaymentsPage() {
                                             <FormMessage />
                                         </FormItem>
                                     )} />
-                                    <FormField control={form.control} name="currency" render={({ field }) => (<FormItem><FormLabel>{t('prepaidDialog.currency')}</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="USD">USD</SelectItem><SelectItem value="UYU">UYU</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                                    <FormField control={form.control} name="currency" render={({ field }) => (<FormItem><FormLabel>{t('prepaidDialog.currency')}</FormLabel><FormControl><CurrencySelect value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
                                 </div>
                                 <FormField
                                     control={form.control}

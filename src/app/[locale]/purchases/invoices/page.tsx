@@ -45,6 +45,7 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 const invoiceItemSchema = z.object({
     id: z.string().optional(),
@@ -86,7 +87,7 @@ async function getInvoices(params: { page: number; limit: number; search: string
             createdAt: apiInvoice.created_at || new Date().toISOString().split('T')[0],
             updatedAt: apiInvoice.updatedAt || new Date().toISOString().split('T')[0],
             due_date: apiInvoice.due_date || null,
-            currency: apiInvoice.currency || 'USD',
+            currency: apiInvoice.currency || getClinicCurrency(),
             sede_id: apiInvoice.sede_id != null ? String(apiInvoice.sede_id) : undefined,
             sede_name: apiInvoice.sede_name || undefined,
             notes: apiInvoice.notes || '',
@@ -169,11 +170,11 @@ async function getPaymentsForInvoice(invoiceId: string): Promise<Payment[]> {
             status: apiPayment.status || 'completed',
             createdAt: apiPayment.payment_date || apiPayment.created_at || new Date().toISOString().split('T')[0],
             updatedAt: apiPayment.payment_date || apiPayment.updatedAt || new Date().toISOString().split('T')[0],
-            currency: isNewFormat ? apiPayment.invoice_currency : (apiPayment.source_currency || 'USD'),
+            currency: isNewFormat ? apiPayment.invoice_currency : (apiPayment.source_currency || getClinicCurrency()),
             payment_date: apiPayment.payment_date,
             amount_applied: isNewFormat ? parseFloat(apiPayment.amount_applied) : (parseFloat(apiPayment.amount_applied) || 0),
             source_amount: isNewFormat ? parseFloat(apiPayment.source_amount) : (parseFloat(apiPayment.source_amount) || 0),
-            source_currency: apiPayment.source_currency || 'USD',
+            source_currency: apiPayment.source_currency || getClinicCurrency(),
             exchange_rate: isNewFormat ? parseFloat(apiPayment.exchange_rate) : (apiPayment.exchange_rate ? parseFloat(String(apiPayment.exchange_rate)) : 1),
             payment_method: apiPayment.payment_method_name || apiPayment.payment_method,
             payment_method_code: apiPayment.payment_method_code,
@@ -785,7 +786,7 @@ function InvoicesPageContent() {
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs text-muted-foreground">{t('columns.total')}:</span>
-                                                <span className="font-semibold text-sm">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || 'USD' }).format(selectedInvoice.total)}</span>
+                                                <span className="font-semibold text-sm">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || getClinicCurrency() }).format(selectedInvoice.total)}</span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs text-muted-foreground">{t('columns.provider')}:</span>
@@ -895,7 +896,7 @@ function InvoicesPageContent() {
                                                             <div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2">
                                                                 <div><p className="text-xs text-muted-foreground">{tPayments('invoice_doc_no')}</p><p className="font-medium">{selectedPayment.invoice_doc_no || 'N/A'}</p></div>
                                                                 <div><p className="text-xs text-muted-foreground">{tPayments('date')}</p><p>{formatDisplayDate(selectedPayment.payment_date || selectedPayment.createdAt)}</p></div>
-                                                                <div><p className="text-xs text-muted-foreground">{tPayments('amount_applied')}</p><p className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedPayment.currency || selectedPayment.source_currency || 'USD' }).format(Math.abs(Number(selectedPayment.amount_applied || selectedPayment.amount || 0)))}</p></div>
+                                                                <div><p className="text-xs text-muted-foreground">{tPayments('amount_applied')}</p><p className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedPayment.currency || selectedPayment.source_currency || getClinicCurrency() }).format(Math.abs(Number(selectedPayment.amount_applied || selectedPayment.amount || 0)))}</p></div>
                                                                 <div><p className="text-xs text-muted-foreground">{tPayments('method')}</p><p>{selectedPayment.payment_method_code || selectedPayment.method || 'N/A'}</p></div>
                                                                 <div><p className="text-xs text-muted-foreground">{tPayments('transaction_type')}</p><Badge variant="secondary" className="capitalize">{tPaymentTransactionType(selectedPayment.transaction_type || 'direct_payment')}</Badge></div>
                                                                 <div><p className="text-xs text-muted-foreground">{tPayments('exchange_rate')}</p><p>{selectedPayment.exchange_rate || 'N/A'}</p></div>

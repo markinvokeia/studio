@@ -9,6 +9,10 @@ import {
   Users,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { CURRENCIES } from '@/constants/currencies';
+
+/** Códigos aceptados en la columna `currency` de los CSV de importación. */
+const CURRENCY_CODES = CURRENCIES.map((c) => c.code);
 
 export type ImportFieldType = 'text' | 'email' | 'phone' | 'date' | 'boolean' | 'number' | 'enum';
 
@@ -72,7 +76,7 @@ export const IMPORT_SCHEMAS: Record<ImportEntityType, ImportSchema> = {
       { key: 'name', label: 'Nombre', required: true, type: 'text' },
       { key: 'category', label: 'Categoría', required: true, type: 'text' },
       { key: 'price', label: 'Precio', required: true, type: 'number' },
-      { key: 'currency', label: 'Moneda', required: false, type: 'enum', enumValues: ['USD', 'UYU'], hint: 'USD o UYU' },
+      { key: 'currency', label: 'Moneda', required: false, type: 'enum', enumValues: CURRENCY_CODES, hint: 'Código ISO de 3 letras (USD, EUR, MXN…). Vacío ⇒ la moneda de la clínica.' },
       { key: 'duration_minutes', label: 'Duración (minutos)', required: true, type: 'number' },
       { key: 'description', label: 'Descripción', required: false, type: 'text' },
       { key: 'indications', label: 'Indicaciones', required: false, type: 'text' },
@@ -90,7 +94,7 @@ export const IMPORT_SCHEMAS: Record<ImportEntityType, ImportSchema> = {
       { key: 'service_name', label: 'Servicio', required: true, type: 'text' },
       { key: 'quantity', label: 'Cantidad', required: true, type: 'number' },
       { key: 'unit_price', label: 'Precio Unitario', required: true, type: 'number' },
-      { key: 'currency', label: 'Moneda', required: false, type: 'enum', enumValues: ['USD', 'UYU'] },
+      { key: 'currency', label: 'Moneda', required: false, type: 'enum', enumValues: CURRENCY_CODES },
       { key: 'tooth_number', label: 'Número de Diente', required: false, type: 'number' },
       { key: 'notes', label: 'Notas', required: false, type: 'text' },
       { key: 'status', label: 'Estado', required: false, type: 'enum', enumValues: ['draft', 'sent', 'accepted', 'rejected', 'pending'] },
@@ -106,7 +110,7 @@ export const IMPORT_SCHEMAS: Record<ImportEntityType, ImportSchema> = {
       { key: 'service_name', label: 'Servicio', required: true, type: 'text' },
       { key: 'quantity', label: 'Cantidad', required: true, type: 'number' },
       { key: 'unit_price', label: 'Precio Unitario', required: true, type: 'number' },
-      { key: 'currency', label: 'Moneda', required: false, type: 'enum', enumValues: ['USD', 'UYU'] },
+      { key: 'currency', label: 'Moneda', required: false, type: 'enum', enumValues: CURRENCY_CODES },
       { key: 'notes', label: 'Notas', required: false, type: 'text' },
       { key: 'status', label: 'Estado', required: false, type: 'enum', enumValues: ['draft', 'sent', 'paid', 'overdue'] },
     ],
@@ -121,7 +125,7 @@ export const IMPORT_SCHEMAS: Record<ImportEntityType, ImportSchema> = {
       { key: 'amount', label: 'Monto', required: true, type: 'number' },
       { key: 'payment_method', label: 'Método de Pago', required: true, type: 'text' },
       { key: 'date', label: 'Fecha', required: true, type: 'date', hint: 'YYYY-MM-DD, DD/MM/YYYY u otros formatos' },
-      { key: 'currency', label: 'Moneda', required: false, type: 'enum', enumValues: ['USD', 'UYU'] },
+      { key: 'currency', label: 'Moneda', required: false, type: 'enum', enumValues: CURRENCY_CODES },
       { key: 'notes', label: 'Notas', required: false, type: 'text' },
     ],
   },

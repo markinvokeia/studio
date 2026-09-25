@@ -114,6 +114,7 @@ import { useAuth } from '@/context/AuthContext';
 import { canManageReminder, isRecurringReminder, normalizeReminder } from '@/lib/reminders';
 import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
 import { InvoiceFormDialog } from '@/components/tables/invoices-table';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 
 // ── Notification action deep-link ────────────────────────────────────────────
@@ -2696,7 +2697,7 @@ export default function AppointmentsPage() {
                 id: String(q.id),
                 doc_no: q.doc_no || q.quote_doc_no || '',
                 total: Number(q.total || 0),
-                currency: q.currency || 'USD',
+                currency: q.currency || getClinicCurrency(),
                 status: q.status || 'draft',
                 createdAt: q.created_at || q.createdAt || '',
             } as Quote));
@@ -2721,7 +2722,7 @@ export default function AppointmentsPage() {
                 user_id: String(inv.user_id || ''),
                 user_name: inv.user_name || '',
                 total: Number(inv.total || 0),
-                currency: inv.currency || 'USD',
+                currency: inv.currency || getClinicCurrency(),
                 status: inv.status || 'draft',
                 payment_status: inv.payment_state || inv.payment_status || 'unpaid',
                 paid_amount: Number(inv.paid_amount || 0),
@@ -4319,7 +4320,7 @@ export default function AppointmentsPage() {
         const patientInvoices = appointment.patientId ? (patientInvoicesMap[appointment.patientId] ?? []) : [];
         const linkedQuote = appointment.quote_id ? patientQuotes.find((q) => String(q.id) === String(appointment.quote_id)) : undefined;
         const linkedInvoice = appointment.invoice_id ? patientInvoices.find((i) => String(i.id) === String(appointment.invoice_id)) : undefined;
-        const fmtMoney = (amount: number, currency?: string) => new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD' }).format(amount);
+        const fmtMoney = (amount: number, currency?: string) => new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || getClinicCurrency() }).format(amount);
         const hasSession = sessionExistsMap[appointment.id];
 
         // Shared building blocks reused across the "invoke" and "custom" layouts.

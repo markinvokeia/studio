@@ -5,6 +5,7 @@ import { buildDocumentDiscountView, readDiscountAmount } from '@/lib/discounts';
 import { formatDisplayDate } from '@/lib/utils';
 import { computeInvoiceTotals } from '@/components/print-templates/invoice-totals';
 import type { InvoicePrintData } from '@/stores/print-document-store';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 interface InvoicePrintTemplateProps {
   data: InvoicePrintData;
@@ -19,7 +20,7 @@ export function InvoicePrintTemplate({ data }: InvoicePrintTemplateProps) {
   const { invoice, items, payments } = data;
 
   const docNo = invoice.doc_no || invoice.invoice_doc_no || invoice.invoice_ref || invoice.id;
-  const currency = invoice.currency || 'UYU';
+  const currency = invoice.currency || getClinicCurrency();
   const { total, paid, pending, paymentStatus } = computeInvoiceTotals(invoice, payments);
 
   const isCredit = invoice.type?.toLowerCase().includes('credit');

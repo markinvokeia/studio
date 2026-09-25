@@ -38,6 +38,15 @@ export type User = {
   active_sede_id?: string | null;
 };
 
+/**
+ * Código ISO 4217 de 3 letras (`USD`, `EUR`, `UYU`, …). Es lo que se guarda y
+ * lo que viaja al backend. Deliberadamente `string` y no una unión cerrada: la
+ * moneda es configurable por clínica, y un registro histórico puede venir en
+ * cualquier moneda con la que se haya operado en el pasado. El conjunto que la
+ * UI ofrece lo acotan `@/constants/currencies` y `useCurrencySettings()`.
+ */
+export type CurrencyCode = string;
+
 export type CurrencyFinancialData = {
   total_paid: number;
   current_debt: number;
@@ -47,10 +56,8 @@ export type CurrencyFinancialData = {
   total_credit_notes: number;
 };
 
-export type UserFinancialData = {
-  USD?: CurrencyFinancialData;
-  UYU?: CurrencyFinancialData;
-};
+/** Datos financieros del paciente, indexados por código de moneda. */
+export type UserFinancialData = Partial<Record<CurrencyCode, CurrencyFinancialData>>;
 
 export type UserFinancial = {
   user_id: string;
@@ -165,7 +172,7 @@ export type Debtor = {
   patient_name: string;
   email: string;
   identity_document: string;
-  currency: 'UYU' | 'USD';
+  currency: CurrencyCode;
   pending_invoices_count: string;
   total_debt_amount: string;
 };
@@ -264,7 +271,7 @@ export type Quote = {
   status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'pending' | 'confirmed';
   payment_status: 'unpaid' | 'paid' | 'partial' | 'partially_paid';
   billing_status: string;
-  currency?: 'UYU' | 'USD';
+  currency?: CurrencyCode;
   user_name?: string;
   userEmail?: string;
   notes?: string;
@@ -301,7 +308,7 @@ export type Order = {
   quote_id: string;
   quote_doc_no?: string;
   user_name?: string;
-  currency?: 'UYU' | 'USD';
+  currency?: CurrencyCode;
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
   is_invoiced?: boolean;
   notes?: string;
@@ -342,7 +349,7 @@ export type Invoice = {
   sede_id?: string;
   sede_name?: string;
   total: number;
-  currency?: 'UYU' | 'USD';
+  currency?: CurrencyCode;
   notes?: string;
   status: 'draft' | 'sent' | 'paid' | 'overdue' | 'booked';
   payment_status: 'unpaid' | 'paid' | 'partial' | 'partially_paid';
@@ -399,7 +406,7 @@ export type Payment = {
   payment_date: string;
   amount_applied: number;
   source_amount: number;
-  source_currency: 'UYU' | 'USD';
+  source_currency: CurrencyCode;
   exchange_rate?: number;
   payment_method_id?: string;
   payment_method: string;
@@ -417,7 +424,7 @@ export type Payment = {
   updatedAt: string;
   amount: number;
   method: string;
-  currency?: 'UYU' | 'USD';
+  currency?: CurrencyCode;
   type: 'invoice' | 'credit_note' | null;
 };
 
@@ -476,7 +483,7 @@ export type Service = {
   category_id?: string;
   category_name?: string;
   price: number;
-  currency?: 'UYU' | 'USD';
+  currency?: CurrencyCode;
   duration_minutes: number;
   description?: string;
   indications?: string;
@@ -500,7 +507,14 @@ export type Clinic = {
   phone_number: string;
   logo?: string;
   logo_base64?: string;
-  currency?: 'UYU' | 'USD';
+  /** Moneda de trabajo principal. Es la que usa toda la UI por defecto. */
+  currency?: CurrencyCode;
+  /**
+   * Segunda moneda opcional en la que la clínica también acepta operar.
+   * Configurada ⇒ los formularios ofrecen ambas y aparece el tipo de cambio.
+   * Vacía ⇒ la clínica opera en moneda única.
+   */
+  secondary_currency?: CurrencyCode | null;
   // New fields from API response
   address?: string;
   phone?: string;
@@ -974,7 +988,7 @@ export type AppointmentAttendanceRate = {
 
 /* ── Panel de Control Gerencial ─────────────────────────────────────────────── */
 
-export type DashboardCurrency = 'UYU' | 'USD';
+export type DashboardCurrency = CurrencyCode;
 
 /**
  * Métrica con doble lectura hoy / mes acumulado.
@@ -1568,7 +1582,7 @@ export type CajaSesion = {
   closing_details?: object | string | null;
   notasCierre?: string | null;
   currencies_data?: Array<{
-    currency: 'UYU' | 'USD';
+    currency: CurrencyCode;
     opening_amount: number;
     declared_cash: number;
     calculated_cash: number;
@@ -1580,7 +1594,7 @@ export type CajaSesion = {
   currency?: string;
   date_rate?: number;
   amounts?: Array<{
-    currency: 'UYU' | 'USD' | string;
+    currency: CurrencyCode;
     opening_amount: number;
     cash_on_hand?: number;
   }>;
@@ -1600,7 +1614,7 @@ export type CajaMovimiento = {
   fecha: string;
   usuarioId: string;
   pagoId?: string;
-  currency: 'UYU' | 'USD';
+  currency: CurrencyCode;
   isSales?: boolean;
   documentNumber?: string;
   registeredUserName?: string;
@@ -1731,7 +1745,7 @@ export type ProviderGroup = {
 export type Credit = {
   source_id: string;
   available_balance: string;
-  currency: 'UYU' | 'USD';
+  currency: CurrencyCode;
   type: 'credit_note' | 'prepaid';
 };
 
@@ -2199,7 +2213,7 @@ export type StickyNote = {
 export interface ReportFiltersBase {
   date_from: string;
   date_to: string;
-  currency?: 'UYU' | 'USD';
+  currency?: CurrencyCode;
 }
 
 // R-01: Cierre de Caja

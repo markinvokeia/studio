@@ -40,6 +40,7 @@ import type { DiscountMode } from '@/lib/types';
 import { StepPayment, type PaymentResult, type CreatedPayment } from './steps/step-payment';
 import { StepConfirmation } from './steps/step-confirmation';
 import { StepQuoteItems, type QuoteBillingLine } from './steps/step-quote-items';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -82,7 +83,7 @@ async function loadQuoteById(quoteId: string, patientId: string | undefined): Pr
       doc_no: found.doc_no || found.quote_doc_no || '',
       user_id: String(found.user_id || patientId),
       total: Number(found.total || 0),
-      currency: found.currency || 'UYU',
+      currency: found.currency || getClinicCurrency(),
       status: found.status || 'confirmed',
     } as Quote;
   } catch {
@@ -126,7 +127,7 @@ async function createInvoiceFromOrder(
   const billingQuery = {
     quote_id: Number(quote.id),
     user_id: quote.user_id,
-    currency: quote.currency || 'UYU',
+    currency: quote.currency || getClinicCurrency(),
     invoice_date: toLocalISOString(new Date()),
     notes: '',
     items: billingItems,
@@ -164,7 +165,7 @@ async function fetchInvoiceById(invoiceId: string, userId: string): Promise<Invo
       user_name: found.user_name || '',
       userEmail: found.user_email || found.userEmail || '',
       total: Number(found.total || 0),
-      currency: found.currency || 'USD',
+      currency: found.currency || getClinicCurrency(),
       status: found.status || 'draft',
       payment_status: found.payment_state || found.payment_status || 'unpaid',
       paid_amount: Number(found.paid_amount || 0),
@@ -262,7 +263,7 @@ async function createDirectInvoice(
     user_name: '',
     // Neto ya calculado por buildDiscountedDocument, no la suma cruda de líneas.
     total: document.total,
-    currency: currency as 'USD' | 'UYU',
+    currency: currency,
     status: raw.status || 'draft',
     payment_status: raw.payment_status || 'unpaid',
     paid_amount: 0,
@@ -407,7 +408,7 @@ export function BillingWizardModal() {
   const [editableItems, setEditableItems] = React.useState<EditableItem[]>([]);
   /** Descuento sobre el total de la factura libre. Solo con ambito 'total'. */
   const [freeformDiscount, setFreeformDiscount] = React.useState<{ mode: DiscountMode | null; value: number | null }>({ mode: null, value: null });
-  const [freeformCurrency, setFreeformCurrency] = React.useState<string>('UYU');
+  const [freeformCurrency, setFreeformCurrency] = React.useState<string>(getClinicCurrency);
   const [freeformSedeId, setFreeformSedeId] = React.useState<string>('');
   // Patient selected in patient-selection step (freeform flow without context.patientId)
   const [selectedPatient, setSelectedPatient] = React.useState<User | null>(null);
@@ -500,7 +501,7 @@ export function BillingWizardModal() {
       setError(null);
       setTreatmentLoadError(null);
       setEditableItems([]);
-      setFreeformCurrency('UYU');
+      setFreeformCurrency(getClinicCurrency());
       setFreeformSedeId('');
       setSelectedPatient(null);
       setPaymentSubStep(0);
@@ -558,7 +559,7 @@ export function BillingWizardModal() {
         })
         .finally(() => setIsLoadingTreatment(false));
     } else {
-      setFreeformCurrency(context.currency || 'UYU');
+      setFreeformCurrency(context.currency || getClinicCurrency());
       setFreeformSedeId(activeSede?.id || '');
       if (context.preloadedItems && context.preloadedItems.length > 0) {
         // Caller already prepared items (e.g. AppointmentPanel) — use them directly
@@ -753,7 +754,7 @@ export function BillingWizardModal() {
     async (result: PaymentResult) => {
       const primaryInvoice = pendingInvoicesForPayment[0] || resolvedInvoice;
       const targetInvoiceId = result.invoiceId || primaryInvoice?.id;
-      const targetCurrency = result.currency || primaryInvoice?.currency || 'USD';
+      const targetCurrency = result.currency || primaryInvoice?.currency || getClinicCurrency();
 
       const sessionIds = new Set(result.payments.map((p) => p.transactionId).filter(Boolean));
       let payments = result.payments.map((p) => ({ ...p, isNew: true }));
@@ -825,7 +826,7 @@ export function BillingWizardModal() {
     async (invoiceDocNo?: string) => {
       const targetInvoice = resolvedInvoice || pendingInvoicesForPayment[0] || null;
       const targetId = targetInvoice?.id;
-      const targetCurrency = targetInvoice?.currency || 'USD';
+      const targetCurrency = targetInvoice?.currency || getClinicCurrency();
 
       let payments: CreatedPayment[] = [];
       if (targetId) {

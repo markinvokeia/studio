@@ -62,6 +62,10 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import * as z from 'zod';
+import { currencySchema } from '@/lib/currency';
+import { CurrencySelect } from '@/components/ui/currency-select';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
+import { formatMoney } from '@/lib/currency';
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
 /** El tope de descuento es un dato de runtime: el esquema se construye con el. */
@@ -82,7 +86,7 @@ type ItemFormValues = z.infer<ReturnType<typeof buildItemSchema>>;
 
 const buildInvoiceEditSchema = (maxDiscountPct: number) => z.object({
   type: z.enum(['invoice', 'credit_note']),
-  currency: z.enum(['USD', 'UYU']),
+  currency: currencySchema,
   created_at: z.date({ required_error: 'La fecha de factura es obligatoria' }),
   due_date: z.date().optional(),
   is_historical: z.boolean().optional(),
@@ -130,7 +134,7 @@ function ItemTotalField({ form, applyDiscount }: { form: ReturnType<typeof useFo
     <div className="space-y-1.5">
       <label className="text-sm font-medium">Total</label>
       <Input
-        value={new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(total)}
+        value={formatMoney(total, getClinicCurrency())}
         readOnly
         disabled
         className="bg-muted text-muted-foreground cursor-not-allowed"
@@ -177,7 +181,7 @@ const getColumns = (t: (key: string) => string, tStatus: (key: string) => string
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('InvoicesPage.columns.total')} />,
     cell: ({ row }) => (
       <div className="font-medium">
-        {new Intl.NumberFormat('en-US', { style: 'currency', currency: row.original.currency || 'USD' }).format(parseFloat(row.getValue('total')))}
+        {new Intl.NumberFormat('en-US', { style: 'currency', currency: row.original.currency || getClinicCurrency() }).format(parseFloat(row.getValue('total')))}
       </div>
     ),
   },
@@ -204,7 +208,7 @@ const getColumns = (t: (key: string) => string, tStatus: (key: string) => string
       const amount = row.original.paid_amount != null ? Number(row.original.paid_amount) : 0;
       return (
         <div className="font-medium tabular-nums">
-          {new Intl.NumberFormat('en-US', { style: 'currency', currency: row.original.currency || 'USD' }).format(amount)}
+          {new Intl.NumberFormat('en-US', { style: 'currency', currency: row.original.currency || getClinicCurrency() }).format(amount)}
         </div>
       );
     },
@@ -218,7 +222,7 @@ const getColumns = (t: (key: string) => string, tStatus: (key: string) => string
       const remaining = Math.max(0, total - paid);
       return (
         <div className="font-medium tabular-nums">
-          {new Intl.NumberFormat('en-US', { style: 'currency', currency: row.original.currency || 'USD' }).format(remaining)}
+          {new Intl.NumberFormat('en-US', { style: 'currency', currency: row.original.currency || getClinicCurrency() }).format(remaining)}
         </div>
       );
     },
@@ -249,7 +253,7 @@ const getColumns = (t: (key: string) => string, tStatus: (key: string) => string
 
 // ── Invoice-detail inner table columns ────────────────────────────────────────
 const fmtCurrency = (v: number, currency?: string) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD' }).format(v || 0);
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || getClinicCurrency() }).format(v || 0);
 
 function getInvoiceItemColumns(currency: string | undefined, opts: {
   canUpdateItem: boolean;
@@ -372,7 +376,7 @@ async function getInvoicesForUser(userId: string): Promise<Invoice[]> {
       notes: d.notes || '',
       createdAt: d.created_at,
       updatedAt: d.updated_at,
-      currency: d.currency || 'USD',
+      currency: d.currency || getClinicCurrency(),
       is_historical: d.is_historical || false,
       due_date: d.due_date || null,
       paid_amount: d.paid_amount != null ? parseFloat(d.paid_amount) : undefined,
@@ -514,7 +518,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
     { accessorKey: 'date', header: 'Fecha', size: 100, cell: ({ row }: any) => row.original.date ? formatDisplayDate(row.original.date) : '-' },
     { accessorKey: 'method', header: 'Método', size: 130, cell: ({ row }: any) => row.original.method || '-' },
     { accessorKey: 'currency', header: 'Moneda', size: 80 },
-    { accessorKey: 'amount', header: 'Monto', size: 130, cell: ({ row }: any) => new Intl.NumberFormat('en-US', { style: 'currency', currency: row.original.currency || 'USD' }).format(row.original.amount) },
+    { accessorKey: 'amount', header: 'Monto', size: 130, cell: ({ row }: any) => new Intl.NumberFormat('en-US', { style: 'currency', currency: row.original.currency || getClinicCurrency() }).format(row.original.amount) },
   ], []);
 
   // ── Data loading ────────────────────────────────────────────────────────────
@@ -570,7 +574,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
       setInvoicePayments(raw.map((p: any, idx: number) => ({
         id: p.id != null ? String(p.id) : (p.doc_no || p.payment_doc_no || String(idx)),
         amount: Math.abs(Number(p.amount_applied ?? p.amount ?? 0)),
-        currency: p.invoice_currency || p.source_currency || p.currency || 'UYU',
+        currency: p.invoice_currency || p.source_currency || p.currency || getClinicCurrency(),
         method: p.payment_method_name || p.method || p.payment_method || '',
         date: p.payment_date || p.created_at || p.date || '',
         doc_no: p.doc_no || p.payment_doc_no || '',
@@ -721,7 +725,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
     }));
     invoiceEditForm.reset({
       type: (selectedInvoice.type as 'invoice' | 'credit_note') ?? 'invoice',
-      currency: (selectedInvoice.currency as 'USD' | 'UYU') ?? 'USD',
+      currency: (selectedInvoice.currency) ?? getClinicCurrency(),
       created_at: selectedInvoice.createdAt ? parseISO(formatDate(selectedInvoice.createdAt)) : new Date(),
       due_date: selectedInvoice.due_date ? parseISO(formatDate(selectedInvoice.due_date)) : undefined,
       is_historical: selectedInvoice.is_historical ?? false,
@@ -867,7 +871,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
     if (!isCreditNoteOpen || !selectedInvoice) return;
     creditNoteForm.reset({
       type: 'credit_note',
-      currency: (selectedInvoice.currency as 'USD' | 'UYU') ?? 'UYU',
+      currency: (selectedInvoice.currency) ?? getClinicCurrency(),
       created_at: new Date(),
       due_date: undefined,
       is_historical: false,
@@ -1166,7 +1170,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                     meta={(
                       <>
                         <span>{formatDisplayDate(invoice.createdAt)}</span>
-                        <span className="font-medium text-foreground">{t('InvoicesPage.columns.total')}: {invoice.total != null ? `${invoice.currency || 'USD'} ${Number(invoice.total).toFixed(2)}` : '-'}</span>
+                        <span className="font-medium text-foreground">{t('InvoicesPage.columns.total')}: {invoice.total != null ? `${invoice.currency || getClinicCurrency()} ${Number(invoice.total).toFixed(2)}` : '-'}</span>
                         {invoice.quote_doc_no ? <span>{t('InvoicesPage.columns.quoteDocNo')}: {invoice.quote_doc_no}</span> : null}
                         {invoice.due_date ? <span>{t('InvoicesPage.columns.dueDate')}: {formatDisplayDate(invoice.due_date)}</span> : null}
                       </>
@@ -1180,7 +1184,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                   subtitle={formatDisplayDate(invoice.createdAt)}
                   badge={badgeGroup}
                   fields={[
-                    { label: t('InvoicesPage.columns.total'), value: invoice.total != null ? `${invoice.currency || 'USD'} ${Number(invoice.total).toFixed(2)}` : '-', primary: true },
+                    { label: t('InvoicesPage.columns.total'), value: invoice.total != null ? `${invoice.currency || getClinicCurrency()} ${Number(invoice.total).toFixed(2)}` : '-', primary: true },
                     { label: t('InvoicesPage.columns.quoteDocNo'), value: invoice.quote_doc_no || '-' },
                     { label: t('InvoicesPage.columns.dueDate'), value: invoice.due_date ? formatDisplayDate(invoice.due_date) : '-' },
                   ]}
@@ -1452,7 +1456,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
             {(() => {
               const paidAmt = Number(selectedInvoice.paid_amount) || 0;
               const pendingAmt = Math.max(0, selectedInvoice.total - paidAmt);
-              const cur = selectedInvoice.currency || 'USD';
+              const cur = selectedInvoice.currency || getClinicCurrency();
               const fmt = (v: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: cur }).format(v);
               return (
                 <div className="flex-none border-t bg-muted/30 px-6 py-3">
@@ -1509,13 +1513,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                   <FormField control={invoiceEditForm.control} name="currency" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Moneda</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                        <SelectContent>
-                          <SelectItem value="USD">USD</SelectItem>
-                          <SelectItem value="UYU">UYU</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormControl><CurrencySelect value={field.value} onChange={field.onChange} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
@@ -1662,7 +1660,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                                         <Input
                                           readOnly
                                           disabled
-                                          value={new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedEditInvoiceCurrency || 'USD' }).format(Number(field.value) || 0)}
+                                          value={new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedEditInvoiceCurrency || getClinicCurrency() }).format(Number(field.value) || 0)}
                                           className="bg-muted text-muted-foreground cursor-not-allowed"
                                         />
                                       </FormControl>
@@ -1675,7 +1673,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                                       mode={watchedEditInvoiceItems?.[index]?.discount_mode}
                                       value={watchedEditInvoiceItems?.[index]?.discount_value}
                                       base={computeGrossTotal(watchedEditInvoiceItems?.[index]?.unit_price ?? 0, watchedEditInvoiceItems?.[index]?.quantity ?? 0)}
-                                      currency={watchedEditInvoiceCurrency || 'USD'}
+                                      currency={watchedEditInvoiceCurrency || getClinicCurrency()}
                                       maxPct={discounts.maxPct}
                                       defaultPct={discounts.defaultPct}
                                       canApply={discounts.canApply}
@@ -1707,7 +1705,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                             mode={watchedEditInvoiceDiscountMode}
                             value={watchedEditInvoiceDiscountValue}
                             base={editInvoiceTotals.grossTotal}
-                            currency={watchedEditInvoiceCurrency || 'USD'}
+                            currency={watchedEditInvoiceCurrency || getClinicCurrency()}
                             maxPct={discounts.maxPct}
                             defaultPct={discounts.defaultPct}
                             canApply={discounts.canApply}
@@ -1725,7 +1723,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                           grossTotal={editInvoiceTotals.grossTotal}
                           discountAmount={editInvoiceTotals.discountAmount}
                           total={editInvoiceTotals.total}
-                          currency={watchedEditInvoiceCurrency || 'USD'}
+                          currency={watchedEditInvoiceCurrency || getClinicCurrency()}
                         />
                       </div>
                     )}
@@ -1807,7 +1805,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                       mode={itemForm.watch('discount_mode')}
                       value={itemForm.watch('discount_value')}
                       base={computeGrossTotal(itemForm.watch('unit_price') ?? 0, itemForm.watch('quantity') ?? 0)}
-                      currency={selectedInvoice?.currency || 'USD'}
+                      currency={selectedInvoice?.currency || getClinicCurrency()}
                       maxPct={discounts.maxPct}
                       defaultPct={discounts.defaultPct}
                       canApply={discounts.canApply}
@@ -1868,7 +1866,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                     <DialogDescription>
                       Factura referenciada: {selectedInvoice?.doc_no}. Monto pagado disponible:{' '}
                       <span className="font-medium text-foreground">
-                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice?.currency || 'USD' }).format(Number(selectedInvoice?.paid_amount) || 0)}
+                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice?.currency || getClinicCurrency() }).format(Number(selectedInvoice?.paid_amount) || 0)}
                       </span>
                     </DialogDescription>
                   </div>
@@ -1880,13 +1878,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                   <FormField control={creditNoteForm.control} name="currency" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Moneda</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                        <SelectContent>
-                          <SelectItem value="USD">USD</SelectItem>
-                          <SelectItem value="UYU">UYU</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormControl><CurrencySelect value={field.value} onChange={field.onChange} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
@@ -2003,7 +1995,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                                         <Input
                                           readOnly
                                           disabled
-                                          value={new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedCreditNoteCurrency || 'USD' }).format(Number(field.value) || 0)}
+                                          value={new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedCreditNoteCurrency || getClinicCurrency() }).format(Number(field.value) || 0)}
                                           className="bg-muted text-muted-foreground cursor-not-allowed"
                                         />
                                       </FormControl>
@@ -2029,13 +2021,13 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                         <p className="text-xs text-muted-foreground">
                           Máximo permitido:{' '}
                           <span className="font-medium text-foreground">
-                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice?.currency || 'USD' }).format(Number(selectedInvoice?.paid_amount) || 0)}
+                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice?.currency || getClinicCurrency() }).format(Number(selectedInvoice?.paid_amount) || 0)}
                           </span>
                         </p>
                         <div className="text-right">
                           <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Total</p>
                           <p className={`text-2xl font-semibold ${creditNoteItemFields.reduce((sum, _, i) => sum + (Number(creditNoteForm.getValues(`items.${i}.total`)) || 0), 0) > (Number(selectedInvoice?.paid_amount) || 0) ? 'text-destructive' : ''}`}>
-                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedCreditNoteCurrency || 'USD' }).format(
+                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedCreditNoteCurrency || getClinicCurrency() }).format(
                               creditNoteItemFields.reduce((sum, _, i) => sum + (Number(creditNoteForm.getValues(`items.${i}.total`)) || 0), 0)
                             )}
                           </p>

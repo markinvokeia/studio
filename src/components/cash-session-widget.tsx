@@ -16,6 +16,8 @@ import { Skeleton } from './ui/skeleton';
 import { cn } from '@/lib/utils';
 import { CASHIER_PERMISSIONS } from '@/constants/permissions';
 import { usePermissions } from '@/hooks/usePermissions';
+import { normalizeCurrencyCode } from '@/constants/currencies';
+import { formatMoney } from '@/lib/currency';
 
 export const OpenCashSessionWidget = () => {
     const t = useTranslations('OpenCashSessionWidget');
@@ -35,8 +37,10 @@ export const OpenCashSessionWidget = () => {
 
     if (isOpen) {
         const balances = activeCashSession!.data.current_balances || [];
-        const uyuAmount = balances.find((a: any) => a.currency === 'UYU')?.cash_on_hand || 0;
-        const usdAmount = balances.find((a: any) => a.currency === 'USD')?.cash_on_hand || 0;
+        // Una línea por moneda con saldo en la sesión, sea cual sea.
+        const balanceRows = balances
+            .map((a: any) => ({ currency: normalizeCurrencyCode(a?.currency), amount: Number(a?.cash_on_hand) || 0 }))
+            .filter((b: any) => !!b.currency) as Array<{ currency: string; amount: number }>;
 
         return (
             <Popover>
@@ -55,14 +59,12 @@ export const OpenCashSessionWidget = () => {
                         {t('activeSession.button')}
                     </p>
                     <div className="flex flex-col gap-1 text-sm">
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">UYU</span>
-                            <span className="font-semibold">{uyuAmount.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">USD</span>
-                            <span className="font-semibold">{usdAmount.toFixed(2)}</span>
-                        </div>
+                        {balanceRows.map((b) => (
+                            <div className="flex justify-between" key={b.currency}>
+                                <span className="text-muted-foreground">{b.currency}</span>
+                                <span className="font-semibold">{formatMoney(b.amount, b.currency, { showSymbol: false })}</span>
+                            </div>
+                        ))}
                     </div>
                     <Link href={`/${locale}/cashier?view=active`} passHref>
                         <Button variant="outline" size="sm" className="w-full mt-3 h-7 text-xs rounded-lg">
