@@ -1147,6 +1147,12 @@
     "noSuggestions": "Sin sugerencias",
     "search": "Buscar",
     "selectedServices": "Servicios Seleccionados",
+    "loadErrors": {
+      "title": "No se pudo cargar la agenda",
+      "description": "Hubo un problema al cargar consultorios, servicios o doctores. Revisá la conexión e intentá de nuevo.",
+      "fetchError": "No se pudieron actualizar las citas. Se muestran los últimos datos cargados.",
+      "retry": "Reintentar"
+    },
     "toasts": {
       "appointmentCancelled": "Cita cancelada",
       "appointmentCancelledDesc": "La cita ha sido cancelada.",
@@ -1177,6 +1183,9 @@
       "sessionUpdated": "Sesión clínica actualizada",
       "errorCreatingSession": "Error al guardar sesión",
       "errorCreatingSessionDesc": "Ocurrió un error al guardar la sesión clínica.",
+      "sessionFailedAppointmentCreated": "Cita creada, pero la sesión no se pudo guardar",
+      "sessionFailedAppointmentCreatedDesc": "La cita quedó guardada. Complete la sesión clínica desde el historial del paciente.",
+      "createdWithoutSessionId": "La cita se creó, pero no se pudo obtener su ID. Cree la sesión manualmente desde el historial del paciente.",
       "patientIdRequired": "Se requiere el ID del paciente",
       "errorLoadingQuoteItems": "Error al cargar tratamientos",
       "errorLoadingQuoteItemsDesc": "No se pudieron cargar los tratamientos del presupuesto.",
@@ -5683,6 +5692,8 @@
       "hint": "Buscá por título de la cita o por nombre, teléfono, email o documento del paciente. Incluye todas las fechas.",
       "minChars": "Escribí al menos {count} caracteres.",
       "empty": "Ninguna cita coincide con la búsqueda.",
+      "error": "No se pudo completar la búsqueda.",
+      "retry": "Reintentar",
       "untitled": "Cita sin título",
       "clear": "Limpiar",
       "close": "Cerrar",

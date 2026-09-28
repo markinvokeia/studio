@@ -33,8 +33,10 @@ import { MagicWandButton } from '@/components/ai/magic-wand-button';
 import { GOOGLE_CALENDAR_COLORS } from '@/components/calendar/calendar-constants';
 
 import { useLocalAI } from '@/hooks/use-local-ai';
+import { getErrorMessage } from '@/lib/error-utils';
 import { getPriorityColor, isReminderAuthor } from '@/lib/reminders';
 import { cn, toLocalISOString } from '@/lib/utils';
+import { isTimeoutError } from '@/services/api';
 
 import type {
   Calendar,
@@ -77,7 +79,7 @@ interface ReminderFormDialogProps {
    *  serie disfrazada, y el backend la ignora. */
   scope?: CalendarItemScope;
   editingReminder?: CalendarReminder | null;
-  onSave: (values: ReminderFormValues) => void;
+  onSave: (values: ReminderFormValues) => void | Promise<void>;
 }
 
 const DEFAULT_DURATION_MINUTES = 15;
@@ -125,6 +127,7 @@ export function ReminderFormDialog({
 }: ReminderFormDialogProps) {
   const t = useTranslations('Reminders');
   const tGeneral = useTranslations('General');
+  const tCommon = useTranslations('Common');
   const { enhanceText, isReady: aiReady } = useLocalAI();
 
   const [title, setTitle] = React.useState('');
@@ -148,6 +151,7 @@ export function ReminderFormDialog({
   const [calendarId, setCalendarId] = React.useState<string | null>(null);
   const [color, setColor] = React.useState(getPriorityColor('MEDIUM'));
   const [error, setError] = React.useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   const isColorManuallySelectedRef = React.useRef(false);
   const itemType = editingReminder?.type ?? initialType;
   const isNote = itemType === 'note';
@@ -233,7 +237,7 @@ export function ReminderFormDialog({
     setColor(nextColor);
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const cleanTitle = title.trim();
     // Con "todo el día" las horas las fija la convención de la tabla (00:00:00–23:59:59 del
@@ -293,24 +297,42 @@ export function ReminderFormDialog({
       };
     }
 
-    onSave({
-      type: itemType,
-      calendar_id: calendarId,
-      title: cleanTitle,
-      description: description.trim() || null,
-      start_datetime: toLocalISOString(start),
-      end_datetime: toLocalISOString(end),
-      color,
-      priority,
-      visibility,
-      is_all_day: isAllDay,
-      recurrence,
-    });
-    onOpenChange(false);
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      await onSave({
+        type: itemType,
+        calendar_id: calendarId,
+        title: cleanTitle,
+        description: description.trim() || null,
+        start_datetime: toLocalISOString(start),
+        end_datetime: toLocalISOString(end),
+        color,
+        priority,
+        visibility,
+        is_all_day: isAllDay,
+        recurrence,
+      });
+      onOpenChange(false);
+    } catch (submitError) {
+      // El padre revierte sus datos optimistas; acá se conserva el formulario con
+      // lo que el usuario escribió y se muestra el error inline.
+      setError(isTimeoutError(submitError) ? tCommon('timeoutError') : (getErrorMessage(submitError) || t('errorDesc')));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        // No cerrar con el guardado en vuelo: al reabrir se reenviaría y, si el
+        // backend ya lo procesó, duplicaría el ítem.
+        if (!next && isSubmitting) return;
+        onOpenChange(next);
+      }}
+    >
       <DialogContent maxWidth="md" confirmOnClose isDirty={title.trim() !== ''}>
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
           <DialogHeader>
@@ -632,10 +654,10 @@ export function ReminderFormDialog({
               <span />
             )}
             <div className="flex gap-2">
-              <DialogCancelButton variant="outline">
+              <DialogCancelButton variant="outline" disabled={isSubmitting}>
                 {tGeneral('cancel')}
               </DialogCancelButton>
-              <Button type="submit">{editingReminder ? t('saveEdit') : t('saveCreate')}</Button>
+              <Button type="submit" loading={isSubmitting} disabled={isSubmitting}>{editingReminder ? t('saveEdit') : t('saveCreate')}</Button>
             </div>
           </DialogFooter>
         </form>

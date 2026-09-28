@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { ChevronDown, ChevronRight, MessageSquare } from 'lucide-react';
+import { ChevronDown, ChevronRight, Loader2, MessageSquare } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import {
@@ -36,6 +36,9 @@ interface AppointmentStatusRailProps {
   /** Read-only: the rail still shows the current status but no transition can be
    *  triggered. Used when the viewer lacks permission to update appointments. */
   readOnly?: boolean;
+  /** Hay un cambio de estado en vuelo: bloquea nuevas transiciones y muestra el
+   *  spinner en el disparador. */
+  isUpdating?: boolean;
 }
 
 const STATUS_FLOW: AppointmentStatus[] = [
@@ -56,6 +59,7 @@ export function AppointmentStatusRail({
   onRequestCustomCancellation,
   variant = 'top',
   readOnly = false,
+  isUpdating = false,
 }: AppointmentStatusRailProps) {
   const tStatus = useTranslations('AppointmentStatus');
   const tMenu = useTranslations('AppointmentStatusMenu');
@@ -87,6 +91,7 @@ export function AppointmentStatusRail({
           return (
             <DropdownMenuItem
               key={reason}
+              disabled={isUpdating}
               onSelect={(event) => {
                 if (!closeOnSelect) event.preventDefault();
                 onChange('cancelled', { cancellation_reason: reason });
@@ -106,6 +111,7 @@ export function AppointmentStatusRail({
         <>
           <DropdownMenuSeparator />
           <DropdownMenuItem
+            disabled={isUpdating}
             onSelect={(event) => {
               if (!closeOnSelect) event.preventDefault();
               onRequestCustomCancellation();
@@ -131,10 +137,10 @@ export function AppointmentStatusRail({
 
     return (
       <DropdownMenu modal={false}>
-        <DropdownMenuTrigger asChild disabled={readOnly}>
+        <DropdownMenuTrigger asChild disabled={readOnly || isUpdating}>
           <button
             type="button"
-            disabled={readOnly}
+            disabled={readOnly || isUpdating}
             className="inline-flex h-11 w-full items-center justify-between gap-3 rounded-full border px-4 text-base font-semibold shadow-sm transition-colors disabled:cursor-default"
             style={{
               borderColor: `${currentColor}40`,
@@ -147,7 +153,11 @@ export function AppointmentStatusRail({
                 className="grid h-7 w-7 shrink-0 place-items-center rounded-full"
                 style={{ backgroundColor: `${currentColor}24` }}
               >
-                <CurrentIcon className="h-4 w-4" style={{ color: currentColor }} strokeWidth={2.5} />
+                {isUpdating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" style={{ color: currentColor }} />
+                ) : (
+                  <CurrentIcon className="h-4 w-4" style={{ color: currentColor }} strokeWidth={2.5} />
+                )}
               </span>
               <span className="truncate">{tStatus(current)}</span>
             </span>
@@ -173,6 +183,7 @@ export function AppointmentStatusRail({
             return (
               <DropdownMenuItem
                 key={status}
+                disabled={isUpdating}
                 onSelect={() => onChange(status)}
                 className="gap-2 text-sm"
               >
@@ -215,7 +226,7 @@ export function AppointmentStatusRail({
             const item = (
               <button
                 type="button"
-                disabled={readOnly || (!isEnabled && status !== 'cancelled')}
+                disabled={readOnly || isUpdating || (!isEnabled && status !== 'cancelled')}
                 onClick={() => {
                   if (status !== 'cancelled' && isEnabled) onChange(status);
                 }}
@@ -269,10 +280,11 @@ export function AppointmentStatusRail({
     <div className="border-b border-border bg-card px-3 py-3 sm:px-5 sm:py-4 min-[1200px]:hidden">
       <div className="sm:hidden">
         <DropdownMenu modal={false}>
-          <DropdownMenuTrigger asChild>
+          <DropdownMenuTrigger asChild disabled={readOnly || isUpdating}>
             <button
               type="button"
-              className="inline-flex h-11 w-full items-center justify-between gap-3 rounded-full border border-primary/25 bg-primary/10 px-4 text-base font-semibold text-primary shadow-sm"
+              disabled={readOnly || isUpdating}
+              className="inline-flex h-11 w-full items-center justify-between gap-3 rounded-full border border-primary/25 bg-primary/10 px-4 text-base font-semibold text-primary shadow-sm disabled:cursor-default"
             >
               <span className="inline-flex min-w-0 items-center gap-2">
                 <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary/15">
@@ -301,7 +313,7 @@ export function AppointmentStatusRail({
               return (
                 <DropdownMenuItem
                   key={status}
-                  disabled={!isEnabled || isCurrent}
+                  disabled={isUpdating || !isEnabled || isCurrent}
                   onSelect={(event) => {
                     event.preventDefault();
                     if (isEnabled) onChange(status);
@@ -331,7 +343,7 @@ export function AppointmentStatusRail({
             <button
               ref={isCurrent ? activeStatusRef : undefined}
               type="button"
-              disabled={!isEnabled && status !== 'cancelled'}
+              disabled={isUpdating || (!isEnabled && status !== 'cancelled')}
               onClick={() => {
                 if (status !== 'cancelled' && isEnabled) onChange(status);
               }}

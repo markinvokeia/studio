@@ -33,8 +33,10 @@ import { Appointment, Calendar as CalendarType, PatientSession, Quote, QuoteItem
 import { cn, formatDisplayDate, toLocalISOString } from '@/lib/utils';
 import { getOwnAppointmentColor } from '@/lib/appointment-color';
 import { useAuth } from '@/context/AuthContext';
-import api from '@/services/api';
+import api, { REQUEST_TIMEOUT_MS, isTimeoutError } from '@/services/api';
+import { getErrorMessage } from '@/lib/error-utils';
 import { markLocallyCreated } from '@/hooks/use-appointment-status';
+import { useAsyncAction } from '@/hooks/use-async-action';
 import { getSalesServices } from '@/services/services';
 import { TreatmentPlanReviewDialog } from '@/components/appointments/TreatmentPlanReviewDialog';
 import { FutureAppointmentsConfirmDialog } from '@/components/appointments/future-appointments-confirm-dialog';
@@ -103,6 +105,9 @@ interface AppointmentFormDialogProps {
      *  time falls outside the calendar's working hours (optionally scoped to a
      *  calendar). Save is blocked with an error when it returns true. */
     isDateTimeBlocked?: (start: Date, calendarId?: string) => boolean;
+    /** Refresca los datos de la agenda. Se llama cuando un guardado hace timeout,
+     *  porque el backend pudo haberlo aplicado igual. */
+    onRequestRefresh?: () => void;
 }
 
 export function AppointmentFormDialog({
@@ -121,15 +126,23 @@ export function AppointmentFormDialog({
     checkDoctorAvailability = false,
     userQuotes: externalUserQuotes,
     isDateTimeBlocked,
+    onRequestRefresh,
 }: AppointmentFormDialogProps) {
     const t = useTranslations('AppointmentsPage');
     const tColumns = useTranslations('AppointmentsColumns');
     const tGeneral = useTranslations('General');
     const tToasts = useTranslations('AppointmentsPage.toasts');
+    const tCommon = useTranslations('Common');
     const tQuotes = useTranslations('QuotesPage');
     const tReschedule = useTranslations('AppointmentReschedule');
     const { user: currentUser } = useAuth();
     const { toast } = useToast();
+    /** Mensaje legible de un error de guardado; traduce el timeout al texto estándar
+     *  (que avisa que el cambio pudo haberse guardado igual). */
+    const describeError = React.useCallback(
+        (error: unknown, fallback: string) => (isTimeoutError(error) ? tCommon('timeoutError') : getErrorMessage(error) || fallback),
+        [tCommon],
+    );
     const { reschedule } = useAppointmentReschedule();
     const { open: openAccountStatement } = usePatientLedgerSheet();
     const { open: openPatientView, lastUpdatedPatient } = usePatientView();
@@ -530,7 +543,7 @@ export function AppointmentFormDialog({
                 duration_minutes: 60,
                 category: '',
                 description: '',
-            });
+            }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
             const result = await getSalesServices({ search: name, limit: 50 });
             const newServices = result.items.filter((apiService: any) => apiService.name?.trim()).map((apiService: any): Service => ({
                 id: String(apiService.id),
@@ -739,7 +752,10 @@ export function AppointmentFormDialog({
     };
 
 
-    const handleSave = async () => {
+    // Flujo de guardado. Se envuelve más abajo con `useAsyncAction`: el botón
+    // "Guardar" queda bloqueado (ref síncrona) mientras corre, así un doble clic
+    // no crea dos citas.
+    const runSaveFlow = async () => {
         const isEditing = !!editingAppointment;
         if (isEditing) {
             const hasChanges = appointment.date !== editingAppointment?.date || appointment.time !== editingAppointment?.time;
@@ -920,7 +936,9 @@ export function AppointmentFormDialog({
 
         // Original flow: Create appointment immediately (no session)
         try {
-            const responseData = await api.post(API_ROUTES.APPOINTMENTS_UPSERT, payload);
+            const responseData = await api.post(API_ROUTES.APPOINTMENTS_UPSERT, payload, undefined, undefined, {
+                timeoutMs: REQUEST_TIMEOUT_MS.mutation,
+            });
             const result = Array.isArray(responseData) ? responseData[0] : responseData;
 
             // Since api.ts already throws for non-2xx codes, a successful return is a success
@@ -996,9 +1014,19 @@ export function AppointmentFormDialog({
                 }
             }
         } catch (error) {
-            toast({ variant: "destructive", title: tToasts('error'), description: error instanceof Error ? error.message : tToasts('unexpectedError') });
+            // Tras un timeout la cita puede haberse creado o actualizado igual: se
+            // refresca la agenda y el mensaje estándar lo advierte antes de reintentar.
+            if (isTimeoutError(error)) onRequestRefresh?.();
+            toast({ variant: "destructive", title: tToasts('error'), description: describeError(error, tToasts('unexpectedError')) });
         }
     };
+
+    // Bloqueo síncrono del guardado: `run` ignora llamadas que lleguen mientras
+    // hay una en vuelo (doble clic, Enter + clic) y expone `isPending` para el
+    // botón. El propio flujo ya muestra sus toasts, así que no se duplica el error.
+    const saveAppointment = useAsyncAction<[], void>(runSaveFlow, { showErrorToast: false });
+    const isSavingAppointment = saveAppointment.isPending;
+    const handleSave = saveAppointment.run;
 
     const loadLinkedSession = React.useCallback(async (appt: Appointment) => {
         const patientId = appt.patientId;
@@ -1046,9 +1074,13 @@ export function AppointmentFormDialog({
                 return;
             }
 
+            let appointmentCreated = false;
             try {
                 // 1. Create the appointment first
-                const appointmentResponse = await api.post(API_ROUTES.APPOINTMENTS_UPSERT, pendingAppointmentPayload);
+                const appointmentResponse = await api.post(API_ROUTES.APPOINTMENTS_UPSERT, pendingAppointmentPayload, undefined, undefined, {
+                    timeoutMs: REQUEST_TIMEOUT_MS.mutation,
+                });
+                appointmentCreated = true;
                 console.log('[handleSaveSession] Raw appointment response:', JSON.stringify(appointmentResponse));
 
                 // Extract appointment ID from response: { code, message, data: { id } }
@@ -1068,11 +1100,30 @@ export function AppointmentFormDialog({
 
                 if (!appointmentId) {
                     console.error('[handleSaveSession] Could not extract appointment ID. Response keys:', Object.keys(appointmentResult || {}), 'Data keys:', Object.keys(responseData || {}));
-                    toast({ variant: 'destructive', title: tToasts('error'), description: 'No se pudo obtener el ID de la cita creada. Por favor, cree la sesión manualmente desde el historial del paciente.' });
+                    toast({ variant: 'destructive', title: tToasts('error'), description: tToasts('createdWithoutSessionId') });
                     const startDateTime = parseISO(pendingAppointmentPayload.start);
+                    // La cita ya existe: se cierra el flujo para que el usuario no
+                    // reintente y cree otra (sin id no se puede adjuntar la sesión).
+                    setPendingAppointmentPayload(null);
+                    setHasPendingSession(false);
+                    setIsSessionDialogOpen(false);
                     if (onSaveSuccess) onSaveSuccess(appointmentResult || {}, startDateTime);
                     return;
                 }
+
+                // La cita ya quedó creada. Se suelta el payload pendiente para que,
+                // si el paso siguiente (la sesión) falla, el reintento no vuelva a
+                // crear otra cita: el flujo de "sesión suelta" reutiliza el id que
+                // se guarda acá (en la forma que ese flujo sabe leer).
+                setPendingAppointmentPayload(null);
+                setPendingSaveResult({
+                    result: {
+                        ...(appointmentResult && typeof appointmentResult === 'object' ? appointmentResult : {}),
+                        id: appointmentResult?.id ?? appointmentId,
+                        appointment_id: appointmentResult?.appointment_id ?? appointmentId,
+                    },
+                    startDateTime: parseISO(pendingAppointmentPayload.start),
+                });
 
                 // 2. Create the session with the appointment_id
                 const sessionFormData = new FormData();
@@ -1092,7 +1143,9 @@ export function AppointmentFormDialog({
                     (sessionData.archivos_adjuntos as File[]).forEach(file => sessionFormData.append('newly_added_files', file));
                 }
 
-                await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, sessionFormData);
+                await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, sessionFormData, undefined, undefined, {
+                    timeoutMs: REQUEST_TIMEOUT_MS.longRunning,
+                });
 
                 toast({
                     title: tToasts('sessionCreated'),
@@ -1109,11 +1162,16 @@ export function AppointmentFormDialog({
                 if (onSaveSuccess) onSaveSuccess(appointmentResult, startDateTime);
             } catch (error: any) {
                 console.error('[handleSaveSession] Error creating appointment/session:', error);
-                const errorMessage = error?.message || error?.data?.error || tToasts('errorCreatingSessionDesc');
+                if (isTimeoutError(error)) onRequestRefresh?.();
+                const errorMessage = isTimeoutError(error)
+                    ? tCommon('timeoutError')
+                    : (error?.message || error?.data?.error || '');
                 toast({
                     variant: 'destructive',
-                    title: tToasts('errorCreatingSession'),
-                    description: errorMessage
+                    title: appointmentCreated ? tToasts('sessionFailedAppointmentCreated') : tToasts('errorCreatingSession'),
+                    description: errorMessage || (appointmentCreated
+                        ? tToasts('sessionFailedAppointmentCreatedDesc')
+                        : tToasts('errorCreatingSessionDesc')),
                 });
                 throw error; // Re-throw so the session dialog knows it failed
             }
@@ -1149,7 +1207,9 @@ export function AppointmentFormDialog({
 
         try {
             const isEditing = !!sessionData.sesion_id;
-            await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, payload);
+            await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, payload, undefined, undefined, {
+                timeoutMs: REQUEST_TIMEOUT_MS.longRunning,
+            });
             toast({
                 title: isEditing ? tToasts('sessionUpdated') : tToasts('sessionCreated'),
                 ...(isEditing ? {} : { description: tToasts('sessionCreatedDesc') }),
@@ -1166,7 +1226,8 @@ export function AppointmentFormDialog({
             }
         } catch (error: any) {
             console.error('[handleSaveSession] Error:', error);
-            const errorMessage = error?.message || error?.data?.error || tToasts('errorCreatingSessionDesc');
+            if (isTimeoutError(error)) onRequestRefresh?.();
+            const errorMessage = describeError(error, tToasts('errorCreatingSessionDesc'));
             toast({
                 variant: 'destructive',
                 title: tToasts('errorCreatingSession'),
@@ -1207,7 +1268,15 @@ export function AppointmentFormDialog({
 
     return (
         <>
-            <Dialog open={open} onOpenChange={onOpenChange}>
+            <Dialog
+                open={open}
+                onOpenChange={(next) => {
+                    // No cerrar con una petición en vuelo: reabrir y reenviar
+                    // crearía una segunda cita.
+                    if (!next && isSavingAppointment) return;
+                    onOpenChange(next);
+                }}
+            >
                 <DialogContent maxWidth="4xl" confirmOnClose isDirty={hasBeenEdited}>
                     <DialogHeader>
                         <DialogTitle>
@@ -1763,8 +1832,13 @@ export function AppointmentFormDialog({
                         )}
                     </DialogBody>
                     <DialogFooter className="flex-row justify-end gap-2 space-x-0">
-                        <DialogCancelButton variant="outline">{t('createDialog.cancel')}</DialogCancelButton>
-                        <Button onClick={handleSave} disabled={isSessionDialogOpen}>
+                        <DialogCancelButton variant="outline" disabled={isSavingAppointment}>{t('createDialog.cancel')}</DialogCancelButton>
+                        <Button
+                            type="button"
+                            onClick={() => { void handleSave(); }}
+                            loading={isSavingAppointment}
+                            disabled={isSessionDialogOpen || isSavingAppointment}
+                        >
                             {isReschedule ? tReschedule('submit') : t('createDialog.save')}
                         </Button>
                     </DialogFooter>
@@ -1878,7 +1952,7 @@ export function AppointmentFormDialog({
                     onConfirm={() => {
                         setFutureConfirm(null);
                         skipFutureCheckRef.current = true;
-                        handleSave();
+                        void handleSave();
                     }}
                     onCancel={() => setFutureConfirm(null)}
                 />

@@ -76,9 +76,13 @@ export function useAppointmentStatus(options: UseAppointmentStatusOptions = {}) 
   const tStatus = useTranslations('AppointmentStatus');
   const tMenu = useTranslations('AppointmentStatusMenu');
   const [isUpdating, setIsUpdating] = React.useState(false);
+  // Bloqueo síncrono: el estado no se aplica hasta el siguiente render, así que un
+  // doble clic (o Enter + clic) sobre otro estado dispararía dos POST.
+  const inFlightRef = React.useRef(false);
 
   const updateStatus = React.useCallback(
     async ({ appointment, newStatus, cancellation_reason, cancellation_note, note }: UpdateStatusArgs) => {
+      if (inFlightRef.current) return false;
       if (!canTransition(appointment.status, newStatus)) return false;
 
       // Defensive guards: when cancelling, reason is required;
@@ -86,6 +90,7 @@ export function useAppointmentStatus(options: UseAppointmentStatusOptions = {}) 
       if (newStatus === 'cancelled' && !cancellation_reason) return false;
       if (cancellation_reason === 'other' && !cancellation_note?.trim()) return false;
 
+      inFlightRef.current = true;
       setIsUpdating(true);
       try {
         await updateAppointmentStatusRequest({
@@ -114,6 +119,7 @@ export function useAppointmentStatus(options: UseAppointmentStatusOptions = {}) 
         });
         return false;
       } finally {
+        inFlightRef.current = false;
         setIsUpdating(false);
       }
     },

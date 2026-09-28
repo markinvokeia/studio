@@ -69,14 +69,16 @@ import { getEffectiveAppointmentContact, normalizeResponsibleContact, patchAppoi
 import { getDependantContactInfo } from '@/components/patients/patient-form-utils';
 import { getDateFnsLocale } from '@/lib/locale';
 import { cn, toLocalISOString } from '@/lib/utils';
-import api from '@/services/api';
+import api, { REQUEST_TIMEOUT_MS, isTimeoutError } from '@/services/api';
+import { getErrorMessage } from '@/lib/error-utils';
 import { getQuoteItems } from '@/services/quotes';
 import { updateAppointmentStatusRequest, fetchFuturePatientAppointments, searchAppointments, type FuturePatientAppointment } from '@/services/appointments';
 import { FutureAppointmentsConfirmDialog } from '@/components/appointments/future-appointments-confirm-dialog';
+import { useAsyncAction, useKeyedAsyncAction } from '@/hooks/use-async-action';
 import { getSalesServices, getUsersServicesBatch, fetchServicesByIds } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
 import { addMinutes, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isValid, parseISO, set, startOfMonth, startOfWeek } from 'date-fns';
-import { BellRing, BookOpenText, Building2, Calendar as CalendarIcon, CalendarDays, Clock, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileSpreadsheet, FileText, History, Images, Layers, Link2, Loader2, Palette, PlusCircle, Receipt, RefreshCw, Search, Stethoscope, Trash2, UserCog, UserRound, Users, X, Zap } from 'lucide-react';
+import { AlertTriangle, BellRing, BookOpenText, Building2, Calendar as CalendarIcon, CalendarDays, Clock, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileSpreadsheet, FileText, History, Images, Layers, Link2, Loader2, Palette, PlusCircle, Receipt, RefreshCw, Search, Stethoscope, Trash2, UserCog, UserRound, Users, X, Zap } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
@@ -458,7 +460,9 @@ async function getAppointments(
             .filter((apt): apt is Appointment => apt !== null);
     } catch (error) {
         console.error("Failed to fetch appointments:", error);
-        return [];
+        // Se re-lanza para que `loadAppointments` pueda mostrar el error (en vez de
+        // una agenda vacía que parece "no hay citas").
+        throw error;
     }
 }
 
@@ -712,7 +716,7 @@ async function getReminders(startDate: Date, endDate: Date, userId?: string | nu
             .filter((reminder: CalendarReminder | null): reminder is CalendarReminder => reminder !== null);
     } catch (error) {
         console.error("Failed to fetch reminders:", error);
-        return [];
+        throw error;
     }
 }
 
@@ -738,7 +742,7 @@ async function getCalendars(): Promise<CalendarType[]> {
             }));
     } catch (error) {
         console.error("Failed to fetch calendars:", error);
-        return [];
+        throw error;
     }
 }
 
@@ -752,8 +756,9 @@ async function getSedes(): Promise<Sede[]> {
             name: s.name || '',
             is_active: s.is_active !== undefined ? s.is_active : true,
         }));
-    } catch {
-        return [];
+    } catch (error) {
+        console.error("Failed to fetch sedes:", error);
+        throw error;
     }
 }
 
@@ -763,7 +768,7 @@ async function getServices(): Promise<Service[]> {
         return result.items.map((s: any) => ({ ...s, id: String(s.id) }));
     } catch (error) {
         console.error("Failed to fetch services:", error);
-        return [];
+        throw error;
     }
 }
 
@@ -786,7 +791,7 @@ async function getDoctors(): Promise<UserType[]> {
         return doctorsData.map((d: any) => ({ ...d, id: String(d.id) }));
     } catch (error) {
         console.error("Failed to fetch doctors:", error);
-        return [];
+        throw error;
     }
 }
 
@@ -833,6 +838,8 @@ export default function AppointmentsPage() {
     const tGeneral = useTranslations('General');
     const tUserRoles = useTranslations('UserRoles');
     const tToasts = useTranslations('AppointmentsPage.toasts');
+    const tLoadErrors = useTranslations('AppointmentsPage.loadErrors');
+    const tCommon = useTranslations('Common');
     const tOrderStatus = useTranslations('OrderStatus');
     const tReminders = useTranslations('Reminders');
     const tPanel = useTranslations('AppointmentPanel');
@@ -868,6 +875,13 @@ export default function AppointmentsPage() {
     const { toast } = useToast();
     const { reschedule: rescheduleAppointment } = useAppointmentReschedule();
 
+    /** Mensaje legible de un error de mutación. Traduce el timeout al texto estándar
+     *  (que además avisa que el cambio pudo haberse guardado igual). */
+    const describeError = React.useCallback(
+        (error: unknown, fallback: string) => (isTimeoutError(error) ? tCommon('timeoutError') : getErrorMessage(error) || fallback),
+        [tCommon],
+    );
+
     const [appointments, setAppointments] = React.useState<Appointment[]>([]);
     const [reminders, setReminders] = React.useState<CalendarReminder[]>([]);
     const [calendars, setCalendars] = React.useState<CalendarType[]>([]);
@@ -878,6 +892,11 @@ export default function AppointmentsPage() {
     const [doctorCalendarMap, setDoctorCalendarMap] = React.useState<Map<string, CalendarType[]>>(new Map());
     const [selectedCalendarIds, setSelectedCalendarIds] = React.useState<string[]>([]);
     const [isDataLoading, setIsDataLoading] = React.useState(true);
+    // Falló la carga del esqueleto (agendas/servicios/doctores): la grilla no se
+    // puede usar y se ofrece reintentar en vez de mostrar una agenda vacía.
+    const [initialLoadError, setInitialLoadError] = React.useState(false);
+    // Falló la última carga de citas: se mantienen los datos previos y se avisa.
+    const [appointmentsError, setAppointmentsError] = React.useState(false);
     const [isCreateOpen, setCreateOpen] = React.useState(false);
     const [isPrintScheduleOpen, setIsPrintScheduleOpen] = React.useState(false);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -931,6 +950,10 @@ export default function AppointmentsPage() {
     const [searchResults, setSearchResults] = React.useState<Appointment[]>([]);
     const [isSearching, setIsSearching] = React.useState(false);
     const [searchHasSearched, setSearchHasSearched] = React.useState(false);
+    // La última búsqueda falló: el panel muestra error + Reintentar en vez de "sin resultados".
+    const [searchError, setSearchError] = React.useState(false);
+    // Cambia para volver a disparar la búsqueda actual desde "Reintentar".
+    const [searchRetryNonce, setSearchRetryNonce] = React.useState(0);
     const [selectedSearchId, setSelectedSearchId] = React.useState<string | null>(null);
     const [searchFocusDate, setSearchFocusDate] = React.useState<Date | null>(null);
     // Cita a resaltar en la grilla al elegir un resultado. El nonce re-dispara el
@@ -947,6 +970,7 @@ export default function AppointmentsPage() {
         setSearchCalendarIds([]);
         setSearchResults([]);
         setSearchHasSearched(false);
+        setSearchError(false);
         setSelectedSearchId(null);
         setFocusedEvent(null);
         setSearchCollapsed(false);
@@ -1145,16 +1169,18 @@ export default function AppointmentsPage() {
             if (bulkDoctorIds.length > 0) params.doctor_ids = bulkDoctorIds;
             if (bulkCalendarIds.length > 0) params.calendar_source_ids = bulkCalendarIds;
             if (bulkStatuses.length > 0) params.statuses = bulkStatuses;
-            const response = await api.post(API_ROUTES.APPOINTMENTS_FILTER_IDS, params);
+            const response = await api.post(API_ROUTES.APPOINTMENTS_FILTER_IDS, params, undefined, undefined, {
+                timeoutMs: REQUEST_TIMEOUT_MS.mutation,
+            });
             const ids: string[] = (response?.ids ?? []).map(String);
             setBulkSelectedIds(new Set(ids));
             toast({ title: tBulk('filterResult', { count: ids.length }) });
-        } catch {
-            toast({ variant: 'destructive', title: tBulk('filterError') });
+        } catch (error) {
+            toast({ variant: 'destructive', title: tBulk('filterError'), description: describeError(error, tCommon('genericError')) });
         } finally {
             setIsBulkLoading(false);
         }
-    }, [bulkDatePreset, bulkDoctorIds, bulkCalendarIds, bulkStatuses, tBulk]);
+    }, [bulkDatePreset, bulkDoctorIds, bulkCalendarIds, bulkStatuses, tBulk, describeError, tCommon, toast]);
 
     const handleToggleAppointmentSelect = React.useCallback((id: string) => {
         setBulkSelectedIds((prev) => {
@@ -1172,7 +1198,7 @@ export default function AppointmentsPage() {
                 doctor_id: doctorId,
                 doctor_name: doctorName,
                 doctor_email: doctorEmail,
-            });
+            }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.longRunning });
             const updated: number = response?.updated ?? 0;
             const failed: number = response?.failed ?? 0;
             if (failed > 0) {
@@ -1189,8 +1215,8 @@ export default function AppointmentsPage() {
             setBulkStatuses([]);
             setBulkDatePreset('today');
             refreshCalendarDataRef.current();
-        } catch {
-            toast({ variant: 'destructive', title: tBulk('reassignError') });
+        } catch (error) {
+            toast({ variant: 'destructive', title: tBulk('reassignError'), description: describeError(error, tCommon('genericError')) });
         } finally {
             setIsReassignLoading(false);
         }
@@ -1506,7 +1532,6 @@ export default function AppointmentsPage() {
 
     // ── In-canvas (inline) appointment creation ─────────────────────────────
     const [inlineDraft, setInlineDraft] = React.useState<InlineAppointmentDraftState | null>(null);
-    const [isSavingInline, setIsSavingInline] = React.useState(false);
     const [isInlineDiscardConfirmOpen, setIsInlineDiscardConfirmOpen] = React.useState(false);
     const [inlineDebt, setInlineDebt] = React.useState<{ currency: string; amount: number }[]>([]);
     const [inlineCancelledCount, setInlineCancelledCount] = React.useState(0);
@@ -1585,11 +1610,10 @@ export default function AppointmentsPage() {
         return ranges.some((b) => startMin < b.endMin && endMin > b.startMin);
     }, [blockUnavailable, clinicSchedules, defaultSede, clinicExceptions, calendars]);
 
-    const handleSaveInlineDraft = React.useCallback(async () => {
+    const runSaveInlineDraft = React.useCallback(async () => {
         // Las citas importadas de Google llegan sin paciente y aun así se pueden
         // guardar; el resto sigue necesitando uno (ver la validación más abajo).
         if (!inlineDraft || (!inlineDraft.patient && !inlineDraft.editing?.imported_from_google)) return;
-        setIsSavingInline(true);
         try {
             const start = inlineDraft.date;
             const end = addMinutes(start, inlineDraft.durationMin || 30);
@@ -1614,7 +1638,6 @@ export default function AppointmentsPage() {
             // Calendar: those arrive with no patient assigned and must stay editable.
             if (!patient?.id && !isImported) {
                 toast({ variant: 'destructive', title: tToasts('missingInfoTitle'), description: tToasts('patientRequired') });
-                setIsSavingInline(false);
                 return;
             }
 
@@ -1624,7 +1647,6 @@ export default function AppointmentsPage() {
             // 18:15 con cierre a las 18:00 está fuera de horario igual.
             if (isDateTimeBlocked(start, calendar?.id ? String(calendar.id) : undefined, end)) {
                 toast({ variant: 'destructive', title: tToasts('slotBlockedTitle'), description: tToasts('slotBlockedDescription') });
-                setIsSavingInline(false);
                 return;
             }
 
@@ -1637,7 +1659,6 @@ export default function AppointmentsPage() {
                     const future = await fetchFuturePatientAppointments(String(patient.id), calendars);
                     if (future.length > 0) {
                         setInlineFutureConfirm({ appointments: future, patientName: patient.name });
-                        setIsSavingInline(false);
                         return;
                     }
                 }
@@ -1695,7 +1716,9 @@ export default function AppointmentsPage() {
                 payload.google_event_id = editing.googleEventId;
                 if (editing.calendar_source_id) payload.old_calendar_source_id = editing.calendar_source_id;
             }
-            const response = await api.post(API_ROUTES.APPOINTMENTS_UPSERT, payload);
+            const response = await api.post(API_ROUTES.APPOINTMENTS_UPSERT, payload, undefined, undefined, {
+                timeoutMs: REQUEST_TIMEOUT_MS.mutation,
+            });
             const result = Array.isArray(response) ? response[0] : response;
             if (result?.error || (result?.code && result.code >= 400)) throw new Error(result?.message || 'Failed to save appointment');
             toast({ title: editing ? tToasts('appointmentUpdated') : tToasts('appointmentCreated') });
@@ -1705,11 +1728,17 @@ export default function AppointmentsPage() {
             setInlineDraft(null);
             refreshCalendarDataRef.current();
         } catch (error) {
-            toast({ variant: 'destructive', title: tToasts('error'), description: error instanceof Error ? error.message : tToasts('unexpectedError') });
-        } finally {
-            setIsSavingInline(false);
+            // Tras un timeout la cita puede haberse guardado igual: se recarga la
+            // grilla para reflejarlo antes de que el usuario reintente.
+            if (isTimeoutError(error)) refreshCalendarDataRef.current();
+            toast({ variant: 'destructive', title: tToasts('error'), description: describeError(error, tToasts('unexpectedError')) });
         }
-    }, [inlineDraft, toast, tToasts, rescheduleAppointment, user?.id, calendars, isDateTimeBlocked, markSessionAction]);
+    }, [inlineDraft, toast, tToasts, rescheduleAppointment, user?.id, calendars, isDateTimeBlocked, markSessionAction, describeError]);
+
+    // Bloqueo síncrono del guardado inline: `run` ignora los clics que lleguen
+    // mientras hay una petición en vuelo (doble clic = dos citas).
+    const saveInlineDraft = useAsyncAction<[], void>(runSaveInlineDraft, { showErrorToast: false });
+    const isSavingInline = saveInlineDraft.isPending;
 
     const isInlineDraftDirty = (
         inlineDraft
@@ -1799,7 +1828,7 @@ export default function AppointmentsPage() {
                 cancelledCount={inlineCancelledCount}
                 onViewStatement={inlineDraft.patient && canViewPatientStatement ? () => openAccountStatement(inlineDraft.patient!.id, inlineDraft.patient!.name) : undefined}
                 isSaving={isSavingInline}
-                onSave={handleSaveInlineDraft}
+                onSave={saveInlineDraft.run}
                 onCancel={requestInlineDraftClose}
                 accentColor={accentColor}
                 canCreatePatient={canCreateInlinePatient}
@@ -2161,6 +2190,7 @@ export default function AppointmentsPage() {
             setSearchResults([]);
             setIsSearching(false);
             setSearchHasSearched(false);
+            setSearchError(false);
             return;
         }
         const handle = setTimeout(async () => {
@@ -2177,10 +2207,13 @@ export default function AppointmentsPage() {
                     .map((row) => mapApiAppointmentRow(row, calendars, services, doctors, t))
                     .filter((a): a is Appointment => a !== null);
                 setSearchResults(mapped);
+                setSearchError(false);
             } catch (err) {
                 if (reqId !== searchReqIdRef.current) return;
                 console.error('Appointment search failed:', err);
                 setSearchResults([]);
+                // El panel distingue error de "sin resultados" y ofrece reintentar.
+                setSearchError(true);
             } finally {
                 if (reqId === searchReqIdRef.current) {
                     setIsSearching(false);
@@ -2189,7 +2222,7 @@ export default function AppointmentsPage() {
             }
         }, SEARCH_DEBOUNCE_MS);
         return () => clearTimeout(handle);
-    }, [searchActive, searchQuery, searchCalendarIds, calendars, services, doctors, t]);
+    }, [searchActive, searchQuery, searchCalendarIds, calendars, services, doctors, t, searchRetryNonce]);
 
     // El chip colapsado es solo para mobile: en desktop el panel siempre se muestra.
     React.useEffect(() => {
@@ -2397,8 +2430,9 @@ export default function AppointmentsPage() {
             return [...prev, optimisticReminder];
         });
         setSelectedReminder((prev) => (prev && prev.id === optimisticReminder.id ? optimisticReminder : prev));
-        setEditingReminder(null);
-        setReminderInitialDate(null);
+        // `editingReminder` NO se limpia acá: si el guardado falla, el diálogo
+        // sigue abierto y el reintento debe seguir siendo una edición (con id),
+        // no un alta nueva. Lo limpia el `onOpenChange` cuando el diálogo se cierra.
 
         try {
             const response = await api.post(API_ROUTES.REMINDERS_UPSERT, {
@@ -2418,7 +2452,7 @@ export default function AppointmentsPage() {
                 scope: editingReminder ? pendingScope : 'occurrence',
                 raise_alert: editingReminder?.raise_alert ?? true,
                 created_by: editingReminder?.created_by ?? user?.id ?? undefined,
-            });
+            }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
             const result = Array.isArray(response) ? response[0] : response;
             if (result?.error || (result?.code && result.code >= 400)) {
                 throw new Error(result?.message || tReminders('errorDesc'));
@@ -2438,12 +2472,10 @@ export default function AppointmentsPage() {
             if (values.recurrence || editingReminder?.series_id) refreshCalendarDataRef.current();
             refreshReminders();
         } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: tReminders('error'),
-                description: error instanceof Error ? error.message : tReminders('errorDesc'),
-            });
+            // Rollback: el ítem optimista se descarta recargando del backend. El
+            // diálogo muestra el error inline y conserva lo que el usuario escribió.
             refreshCalendarDataRef.current();
+            throw error;
         }
     }, [editingReminder, pendingScope, tReminders, toast, refreshReminders, user]);
 
@@ -2464,7 +2496,7 @@ export default function AppointmentsPage() {
         openReminderForm(reminder, 'occurrence');
     }, [openReminderForm]);
 
-    const handleMarkReminderDone = React.useCallback(async (reminder: CalendarReminder) => {
+    const runMarkReminderDone = React.useCallback(async (reminder: CalendarReminder) => {
         const now = toLocalISOString(new Date());
         const updated: CalendarReminder = { ...reminder, status: 'done', updated_at: now, completed_at: now };
         setReminders((prev) => prev.map((item) => (item.id === reminder.id ? updated : item)));
@@ -2474,7 +2506,7 @@ export default function AppointmentsPage() {
                 ...reminder,
                 status: 'done',
                 raise_alert: reminder.raise_alert ?? true,
-            });
+            }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
             const result = Array.isArray(response) ? response[0] : response;
             if (result?.error || (result?.code && result.code >= 400)) {
                 throw new Error(result?.message || tReminders('errorDesc'));
@@ -2489,13 +2521,13 @@ export default function AppointmentsPage() {
             toast({
                 variant: 'destructive',
                 title: tReminders('error'),
-                description: error instanceof Error ? error.message : tReminders('errorDesc'),
+                description: describeError(error, tReminders('errorDesc')),
             });
             refreshCalendarDataRef.current();
         }
-    }, [tReminders, toast]);
+    }, [tReminders, toast, describeError]);
 
-    const deleteReminderWithScope = React.useCallback(async (reminder: CalendarReminder, scope: CalendarItemScope) => {
+    const runDeleteReminderWithScope = React.useCallback(async (reminder: CalendarReminder, scope: CalendarItemScope) => {
         // Con alcance de serie desaparece más de una fila, así que la baja optimista
         // saca todas las de la serie en vez de solo la clickeada.
         setReminders((prev) => prev.filter((item) => (
@@ -2506,7 +2538,9 @@ export default function AppointmentsPage() {
         setSelectedReminder(null);
         setIsReminderPanelOpen(false);
         try {
-            const response = await api.post(API_ROUTES.REMINDERS_DELETE, { id: reminder.id, scope });
+            const response = await api.post(API_ROUTES.REMINDERS_DELETE, { id: reminder.id, scope }, undefined, undefined, {
+                timeoutMs: REQUEST_TIMEOUT_MS.mutation,
+            });
             const result = Array.isArray(response) ? response[0] : response;
             if (result?.error || (result?.code && result.code >= 400)) {
                 throw new Error(result?.message || tReminders('errorDesc'));
@@ -2516,19 +2550,41 @@ export default function AppointmentsPage() {
             toast({
                 variant: 'destructive',
                 title: tReminders('error'),
-                description: error instanceof Error ? error.message : tReminders('errorDesc'),
+                description: describeError(error, tReminders('errorDesc')),
             });
             refreshCalendarDataRef.current();
         }
-    }, [tReminders, toast]);
+    }, [tReminders, toast, describeError]);
+
+    // Bloqueo por recordatorio: marcar hecho o borrar dos veces seguidas ya no
+    // dispara dos POST (el segundo se ignora mientras el primero está en vuelo).
+    const markReminderDoneAction = useKeyedAsyncAction(
+        async (reminder: CalendarReminder) => { await runMarkReminderDone(reminder); },
+        { showErrorToast: false },
+    );
+    const reminderDeleteAction = useKeyedAsyncAction(
+        async (reminder: CalendarReminder, scope: CalendarItemScope) => { await runDeleteReminderWithScope(reminder, scope); },
+        { showErrorToast: false },
+    );
+
+    const handleMarkReminderDone = (reminder: CalendarReminder) => {
+        void markReminderDoneAction.run(reminder.id, reminder);
+    };
+
+    const deleteReminderWithScope = (reminder: CalendarReminder, scope: CalendarItemScope) => {
+        void reminderDeleteAction.run(reminder.id, reminder, scope);
+    };
+
+    const isReminderActionPending = (reminder: CalendarReminder) =>
+        markReminderDoneAction.isPending(reminder.id) || reminderDeleteAction.isPending(reminder.id);
 
     const handleDeleteReminder = React.useCallback((reminder: CalendarReminder) => {
         if (isRecurringReminder(reminder)) {
             setScopePrompt({ action: 'delete', reminder });
             return;
         }
-        void deleteReminderWithScope(reminder, 'occurrence');
-    }, [deleteReminderWithScope]);
+        void reminderDeleteAction.run(reminder.id, reminder, 'occurrence');
+    }, [reminderDeleteAction]);
 
     const handleEdit = (appointment: Appointment) => {
         if (calendarMode === 'custom' && openInlineDraftForAppointment(appointment, false)) {
@@ -2551,24 +2607,40 @@ export default function AppointmentsPage() {
     };
 
     // Quick doctor/room reassignment (upsert) from the calendar context menu or
+    // Quick doctor/room reassignment (upsert) from the calendar context menu or
     // the detail panel — no confirmation step, optimistic UI, then a silent refresh.
-    const handleReassign = React.useCallback(async (appointment: Appointment, change: AppointmentReassignChange) => {
-        try {
+    //
+    // Bloqueo POR CITA (`useKeyedAsyncAction`): solo esa fila queda pendiente y sus
+    // ítems de menú deshabilitados, así dos selecciones rápidas no compiten por el
+    // mismo upsert (ganaba la respuesta más vieja).
+    const reassignAction = useKeyedAsyncAction(
+        async (appointment: Appointment, change: AppointmentReassignChange) => {
             const updated = await reassignAppointmentField(appointment, change);
             setAppointments((prev) => prev.map((a) => (a.id === updated.id ? { ...a, ...updated } : a)));
             setSelectedAppointment((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev));
-            toast({
-                title: change.doctor ? tToasts('doctorReassigned') : tToasts('calendarReassigned'),
-            });
             refreshCalendarDataRef.current();
-        } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: tToasts('error'),
-                description: error instanceof Error ? error.message : tToasts('unexpectedError'),
-            });
-        }
-    }, [toast, tToasts]);
+            return change;
+        },
+        {
+            onSuccess: (change) => {
+                toast({ title: change.doctor ? tToasts('doctorReassigned') : tToasts('calendarReassigned') });
+            },
+            onError: (error) => {
+                toast({
+                    variant: 'destructive',
+                    title: tToasts('error'),
+                    description: describeError(error, tToasts('unexpectedError')),
+                });
+            },
+            showErrorToast: false,
+        },
+    );
+
+    const handleReassign = (appointment: Appointment, change: AppointmentReassignChange) => {
+        void reassignAction.run(appointment.id, appointment, change);
+    };
+
+    const isReassignPending = (appointment: Appointment) => reassignAction.isPending(appointment.id);
 
     // ── Mover / redimensionar por arrastre ───────────────────────────────────
 
@@ -2594,7 +2666,7 @@ export default function AppointmentsPage() {
      * Arrastrar es corregir la hora, no reprogramar con el paciente; el menú
      * contextual "Reprogramar" sigue haciendo lo otro.
      */
-    const applyEventTimeChange = React.useCallback(async (result: CalendarDragResult) => {
+    const runApplyEventTimeChange = React.useCallback(async (result: CalendarDragResult) => {
         const { data, start, end, originalStart, originalEnd, mode } = result;
         if (start.getTime() === originalStart.getTime() && end.getTime() === originalEnd.getTime()) return;
 
@@ -2633,7 +2705,7 @@ export default function AppointmentsPage() {
                     start_datetime: nextStart,
                     end_datetime: nextEndValue,
                     raise_alert: reminder.raise_alert ?? true,
-                });
+                }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
                 const res = Array.isArray(response) ? response[0] : response;
                 if (res?.error || (res?.code && res.code >= 400)) throw new Error(res?.message || tReminders('errorDesc'));
                 const saved = normalizeReminder(res?.reminder || res);
@@ -2646,7 +2718,7 @@ export default function AppointmentsPage() {
                 toast({
                     variant: 'destructive',
                     title: tReminders('error'),
-                    description: error instanceof Error ? error.message : tReminders('errorDesc'),
+                    description: describeError(error, tReminders('errorDesc')),
                 });
             }
             return;
@@ -2676,10 +2748,20 @@ export default function AppointmentsPage() {
             toast({
                 variant: 'destructive',
                 title: tToasts('error'),
-                description: error instanceof Error ? error.message : tToasts('unexpectedError'),
+                description: describeError(error, tToasts('unexpectedError')),
             });
         }
-    }, [personalizedCalendarId, isDateTimeBlocked, toast, tToasts, tReminders]);
+    }, [personalizedCalendarId, isDateTimeBlocked, toast, tToasts, tReminders, describeError]);
+
+    // Bloqueo por evento para mover/redimensionar (drag, resize y los submenús
+    // "Mover a…"/"Duración"): dos gestos seguidos no compiten por el mismo upsert.
+    const eventTimeAction = useKeyedAsyncAction(
+        async (result: CalendarDragResult) => { await runApplyEventTimeChange(result); },
+        { showErrorToast: false },
+    );
+    const applyEventTimeChange = (result: CalendarDragResult) => {
+        void eventTimeAction.run(String(result.eventId), result);
+    };
 
     // ── Context-menu financial / session quick actions ───────────────────────
     // Lazily-loaded data keyed by patient/appointment, populated the first time an
@@ -2772,31 +2854,59 @@ export default function AppointmentsPage() {
         });
     }, [ensureSessionInfo, ensurePatientQuotes, ensurePatientInvoices]);
 
-    const handleLinkQuote = React.useCallback(async (appointment: Appointment, quote: Quote | null) => {
-        try {
+    const linkQuoteAction = useKeyedAsyncAction(
+        async (appointment: Appointment, quote: Quote | null) => {
             const updated = await reassignAppointmentField(appointment, {
                 quote: quote ? { id: quote.id, doc_no: quote.doc_no } : null,
             });
             setAppointments((prev) => prev.map((a) => (a.id === updated.id ? { ...a, ...updated } : a)));
             setSelectedAppointment((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev));
-            toast({ title: quote ? tToasts('quoteLinked') : tToasts('quoteUnlinked') });
             refreshCalendarDataRef.current();
-        } catch (error) {
-            toast({ variant: 'destructive', title: tToasts('error'), description: error instanceof Error ? error.message : tToasts('unexpectedError') });
-        }
-    }, [toast, tToasts]);
+            return quote;
+        },
+        {
+            onSuccess: (quote) => {
+                toast({ title: quote ? tToasts('quoteLinked') : tToasts('quoteUnlinked') });
+            },
+            onError: (error) => {
+                toast({ variant: 'destructive', title: tToasts('error'), description: describeError(error, tToasts('unexpectedError')) });
+            },
+            showErrorToast: false,
+        },
+    );
 
-    const handleLinkInvoice = React.useCallback(async (appointment: Appointment, invoice: Invoice) => {
-        try {
-            await linkInvoiceToAppointment(invoice.id, appointment.id);
+    const handleLinkQuote = (appointment: Appointment, quote: Quote | null) => {
+        void linkQuoteAction.run(appointment.id, appointment, quote);
+    };
+
+    const isLinkQuotePending = (appointment: Appointment) => linkQuoteAction.isPending(appointment.id);
+
+    const linkInvoiceAction = useKeyedAsyncAction(
+        async (appointment: Appointment, invoice: Invoice) => {
+            // `propagateErrors`: acá el vínculo es la acción del usuario y la UI no
+            // puede confirmar un link que en realidad falló.
+            await linkInvoiceToAppointment(invoice.id, appointment.id, { propagateErrors: true });
             setAppointments((prev) => prev.map((a) => (a.id === appointment.id ? { ...a, invoice_id: invoice.id } : a)));
             setSelectedAppointment((prev) => (prev && prev.id === appointment.id ? { ...prev, invoice_id: invoice.id } : prev));
-            toast({ title: tToasts('invoiceLinked') });
             refreshCalendarDataRef.current();
-        } catch (error) {
-            toast({ variant: 'destructive', title: tToasts('error'), description: error instanceof Error ? error.message : tToasts('unexpectedError') });
-        }
-    }, [toast, tToasts]);
+            return invoice;
+        },
+        {
+            onSuccess: () => {
+                toast({ title: tToasts('invoiceLinked') });
+            },
+            onError: (error) => {
+                toast({ variant: 'destructive', title: tToasts('error'), description: describeError(error, tToasts('unexpectedError')) });
+            },
+            showErrorToast: false,
+        },
+    );
+
+    const handleLinkInvoice = (appointment: Appointment, invoice: Invoice) => {
+        void linkInvoiceAction.run(appointment.id, appointment, invoice);
+    };
+
+    const isLinkInvoicePending = (appointment: Appointment) => linkInvoiceAction.isPending(appointment.id);
 
     // Opens the global Cobro Rápido wizard with whatever the appointment already
     // has (invoice → quote → services), mirroring the detail panel behavior.
@@ -2825,7 +2935,7 @@ export default function AppointmentsPage() {
         setIsDeleteAlertOpen(true);
     };
 
-    const { updateStatus } = useAppointmentStatus({
+    const { updateStatus, isUpdating: isUpdatingAppointmentStatus } = useAppointmentStatus({
         onSuccess: (appt, newStatus, extra) => {
             const patch = {
                 status: newStatus,
@@ -2856,14 +2966,14 @@ export default function AppointmentsPage() {
 
     // Soft-delete: flips the appointment's status to 'deleted' on the backend
     // (excluded from future fetches) and removes it from the calendar immediately.
-    const handleSoftDelete = React.useCallback(async (appointment: Appointment) => {
+    const runSoftDelete = React.useCallback(async (appointment: Appointment) => {
         try {
             const response = await api.post(API_ROUTES.APPOINTMENTS_UPDATE_STATUS, {
                 appointment_id: appointment.id,
                 google_event_id: appointment.googleEventId,
                 calendar_source_id: appointment.calendar_source_id,
                 status: 'deleted',
-            });
+            }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
             const result = Array.isArray(response) ? response[0] : response;
             if (result?.error || (result?.code && result.code >= 400)) {
                 throw new Error(result?.message || 'Failed to delete appointment');
@@ -2871,15 +2981,24 @@ export default function AppointmentsPage() {
             setAppointments((prev) => prev.filter((a) => a.id !== appointment.id));
             setIsDetailViewOpen(false);
             setSelectedAppointment(null);
+            // El diálogo de confirmación se cierra recién acá (ya no se cierra
+            // solo al hacer clic): si el borrado falla, el usuario mantiene el
+            // contexto y ve el toast de error.
+            setSoftDeleteTarget(null);
             toast({ title: tToasts('appointmentDeleted'), description: tToasts('appointmentDeletedDesc') });
         } catch (error) {
             toast({
                 variant: 'destructive',
                 title: tToasts('error'),
-                description: error instanceof Error ? error.message : tToasts('failedDelete'),
+                description: describeError(error, tToasts('failedDelete')),
             });
         }
-    }, [toast, tToasts]);
+    }, [toast, tToasts, describeError]);
+
+    // Bloqueo síncrono del borrado suave (menú contextual y panel de detalle).
+    const softDelete = useAsyncAction<[Appointment], void>(runSoftDelete, { showErrorToast: false });
+    const handleSoftDelete = softDelete.run;
+    const isSoftDeleting = softDelete.isPending;
 
     const [pendingCancellation, setPendingCancellation] = React.useState<Appointment | null>(null);
     const handleRequestCustomCancellation = React.useCallback((appointment: Appointment) => {
@@ -2894,7 +3013,7 @@ export default function AppointmentsPage() {
             cancellation_note: note,
         });
         setPendingCancellation(null);
-    }, [pendingCancellation, updateStatus]);
+    }, [pendingCancellation, updateStatus, user]);
 
     // Clinic Session Handlers
     const handleOpenClinicSession = async (appointment: Appointment) => {
@@ -2983,7 +3102,7 @@ export default function AppointmentsPage() {
             toast({
                 variant: 'destructive',
                 title: t('toasts.errorCreatingSession'),
-                description: error instanceof Error ? error.message : t('toasts.errorCreatingSessionDesc'),
+                description: describeError(error, t('toasts.errorCreatingSessionDesc')),
             });
             throw error;
         }
@@ -3013,6 +3132,11 @@ export default function AppointmentsPage() {
             // Defensive: exclude soft-deleted appointments (the backend also excludes them).
             setAppointments(fetchedAppointments.filter((a) => (a.status as string) !== 'deleted'));
             setReminders(fetchedReminders);
+            setAppointmentsError(false);
+        } catch {
+            // Error ≠ vacío: se conservan las citas ya cargadas y se avisa con
+            // "Reintentar" (el detalle ya quedó en consola desde los fetchers).
+            if (requestId === loadAppointmentsRequestIdRef.current) setAppointmentsError(true);
         } finally {
             if (requestId === loadAppointmentsRequestIdRef.current) setIsRefreshing(false);
         }
@@ -3238,7 +3362,13 @@ export default function AppointmentsPage() {
 
     const handleNotifQuote = React.useCallback(async (patientId: string, patientName: string, items?: SessionPreloadedService[], notifId?: string) => {
         setQuickQuotePatient({ id: patientId, name: patientName, email: '', phone_number: '', is_active: true, avatar: '' } as UserType);
-        setQuickQuoteInitialItems(await enrichItemsWithPrices(items));
+        // Si falla el enriquecido, el diálogo igual abre con lo que trajo la
+        // notificación (sin precios) en vez de quedar en un rechazo sin manejar.
+        try {
+            setQuickQuoteInitialItems(await enrichItemsWithPrices(items));
+        } catch {
+            setQuickQuoteInitialItems(items);
+        }
         setPendingQuoteNotifId(notifId);
         setIsQuickQuoteOpen(true);
     }, [enrichItemsWithPrices]);
@@ -3262,7 +3392,11 @@ export default function AppointmentsPage() {
 
     const handleNotifInvoice = React.useCallback(async (patientId: string, patientName: string, items?: SessionPreloadedService[], notifId?: string) => {
         setInvoicePatient({ id: patientId, name: patientName, email: '', phone_number: '', is_active: true, avatar: '' } as UserType);
-        setInvoiceInitialItems(await enrichItemsWithPrices(items));
+        try {
+            setInvoiceInitialItems(await enrichItemsWithPrices(items));
+        } catch {
+            setInvoiceInitialItems(items);
+        }
         setPendingInvoiceNotifId(notifId);
         setIsInvoiceFormOpen(true);
     }, [enrichItemsWithPrices]);
@@ -3370,38 +3504,58 @@ export default function AppointmentsPage() {
 
     const loadInitialData = React.useCallback(async () => {
         setIsDataLoading(true);
-        const [fetchedCalendars, fetchedServices, fetchedDoctors, fetchedSettings, fetchedSedes] = await Promise.all([
-            getCalendars(),
-            getServices(),
-            getDoctors(),
-            getCalendarSettings(),
-            getSedes(),
-        ]);
-        setCalendars(fetchedCalendars);
-        setSedes(fetchedSedes);
-        setServices(fetchedServices);
-        setDoctors(fetchedDoctors);
+        setInitialLoadError(false);
+        try {
+            // allSettled: si falla un pedido (p. ej. doctores) se conserva lo que sí
+            // llegó y la grilla sigue funcionando. Solo la falta de agendas o de
+            // settings deja la vista inutilizable y muestra el error con reintento.
+            const [calendarsResult, servicesResult, doctorsResult, settingsResult, sedesResult] = await Promise.allSettled([
+                getCalendars(),
+                getServices(),
+                getDoctors(),
+                getCalendarSettings(),
+                getSedes(),
+            ]);
+            const fetchedCalendars = calendarsResult.status === 'fulfilled' ? calendarsResult.value : [];
+            const fetchedServices = servicesResult.status === 'fulfilled' ? servicesResult.value : [];
+            const fetchedDoctors = doctorsResult.status === 'fulfilled' ? doctorsResult.value : [];
+            const fetchedSedes = sedesResult.status === 'fulfilled' ? sedesResult.value : [];
+            const fetchedSettings = settingsResult.status === 'fulfilled' ? settingsResult.value : null;
 
-        handleSettingsChange(fetchedSettings);
+            if (calendarsResult.status === 'rejected' || settingsResult.status === 'rejected') {
+                setInitialLoadError(true);
+            }
 
-        const doctorIds = fetchedDoctors.map(d => d.id).filter(Boolean);
-        const serviceMap = await getUsersServicesBatch(doctorIds);
-        setDoctorServiceMap(serviceMap);
+            setCalendars(fetchedCalendars);
+            setSedes(fetchedSedes);
+            setServices(fetchedServices);
+            setDoctors(fetchedDoctors);
 
-        setDoctorCalendarMap(await getDoctorCalendarMap(fetchedCalendars));
+            if (fetchedSettings) handleSettingsChange(fetchedSettings);
 
-        setSelectedDoctorIds(fetchedDoctors.map(d => d.id));
-        // Honor the configured default branch (sede): show only its calendars by
-        // default. Empty = all. prevSedeRef keeps the live-change effect from
-        // re-applying this same selection right after load.
-        const defaultSedeId = fetchedSettings.default_sede || '';
-        const initialCalendarIds = (defaultSedeId
-            ? fetchedCalendars.filter(c => String(c.sede_id) === String(defaultSedeId))
-            : fetchedCalendars
-        ).map(c => c.id).filter(id => id);
-        prevSedeRef.current = defaultSedeId;
-        setSelectedCalendarIds(initialCalendarIds);
-        setIsDataLoading(false);
+            const doctorIds = fetchedDoctors.map(d => d.id).filter(Boolean);
+            const serviceMap = await getUsersServicesBatch(doctorIds);
+            setDoctorServiceMap(serviceMap);
+
+            setDoctorCalendarMap(await getDoctorCalendarMap(fetchedCalendars));
+
+            setSelectedDoctorIds(fetchedDoctors.map(d => d.id));
+            // Honor the configured default branch (sede): show only its calendars by
+            // default. Empty = all. prevSedeRef keeps the live-change effect from
+            // re-applying this same selection right after load.
+            const defaultSedeId = fetchedSettings?.default_sede || '';
+            const initialCalendarIds = (defaultSedeId
+                ? fetchedCalendars.filter(c => String(c.sede_id) === String(defaultSedeId))
+                : fetchedCalendars
+            ).map(c => c.id).filter(id => id);
+            prevSedeRef.current = defaultSedeId;
+            setSelectedCalendarIds(initialCalendarIds);
+        } catch (error) {
+            console.error('Failed to load initial appointments data:', error);
+            setInitialLoadError(true);
+        } finally {
+            setIsDataLoading(false);
+        }
     }, [handleSettingsChange]);
 
     // Moved doctor filtering to AppointmentFormDialog
@@ -3489,7 +3643,7 @@ export default function AppointmentsPage() {
         }
     };
 
-    const handleEventColorChange = async (eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' }), colorId: string) => {
+    const runEventColorChange = async (eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' }), colorId: string) => {
         const colorHex = colorMap.get(colorId);
         if (eventData.kind === 'reminder') {
             const color = colorHex || eventData.color || '#8b5cf6';
@@ -3502,7 +3656,7 @@ export default function AppointmentsPage() {
                     ...eventData,
                     color,
                     raise_alert: eventData.raise_alert ?? true,
-                });
+                }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
                 const result = Array.isArray(response) ? response[0] : response;
                 if (result?.error || (result?.code && result.code >= 400)) {
                     throw new Error(result?.message || tReminders('errorDesc'));
@@ -3516,7 +3670,7 @@ export default function AppointmentsPage() {
                 toast({
                     variant: 'destructive',
                     title: tReminders('error'),
-                    description: error instanceof Error ? error.message : tReminders('errorDesc'),
+                    description: describeError(error, tReminders('errorDesc')),
                 });
                 forceRefresh();
             }
@@ -3539,7 +3693,9 @@ export default function AppointmentsPage() {
         };
 
         try {
-            const responseData = await api.post(API_ROUTES.APPOINTMENTS_UPDATE_COLOR, payload);
+            const responseData = await api.post(API_ROUTES.APPOINTMENTS_UPDATE_COLOR, payload, undefined, undefined, {
+                timeoutMs: REQUEST_TIMEOUT_MS.mutation,
+            });
             if (responseData.error || (responseData.code && responseData.code >= 400)) {
                 throw new Error(responseData.message || 'Failed to update color');
             }
@@ -3553,21 +3709,40 @@ export default function AppointmentsPage() {
             toast({
                 variant: 'destructive',
                 title: tToasts('errorUpdatingColor'),
-                description: error instanceof Error ? error.message : tToasts('errorUpdatingColorDesc'),
+                description: describeError(error, tToasts('errorUpdatingColorDesc')),
             });
             // Revert optimistic update on failure
             forceRefresh();
         }
     };
 
-    const confirmDeleteAppointment = async () => {
+    // Bloqueo por evento para el cambio de color: dos selecciones rápidas de
+    // etiquetas no compiten por el mismo upsert.
+    const colorChangeAction = useKeyedAsyncAction(
+        async (eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' }), colorId: string) => {
+            await runEventColorChange(eventData, colorId);
+        },
+        { showErrorToast: false },
+    );
+
+    const colorEventKey = (eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' })) =>
+        `${eventData.kind ?? 'appointment'}:${eventData.id}`;
+
+    const handleEventColorChange = (eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' }), colorId: string) => {
+        void colorChangeAction.run(colorEventKey(eventData), eventData, colorId);
+    };
+
+    const isColorChangePending = (eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' })) =>
+        colorChangeAction.isPending(colorEventKey(eventData));
+
+    const runCancelAppointment = async () => {
         if (!deletingAppointment) return;
         try {
             const responseData = await api.delete(API_ROUTES.APPOINTMENTS_DELETE, {
                 appointment_id: deletingAppointment.id,
                 google_event_id: deletingAppointment.googleEventId,
                 calendar_source_id: deletingAppointment.calendar_source_id,
-            });
+            }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
             const result = Array.isArray(responseData) ? responseData[0] : responseData;
 
             const isSuccess = !result.error && (result.code === 200 || result.success || result.message);
@@ -3588,10 +3763,15 @@ export default function AppointmentsPage() {
             toast({
                 variant: 'destructive',
                 title: tToasts('error'),
-                description: error instanceof Error ? error.message : tToasts('failedCancel'),
+                description: describeError(error, tToasts('failedCancel')),
             });
         }
     };
+
+    // Bloqueo síncrono del borrado duro: el diálogo se queda abierto hasta que
+    // termina (o falla) y el botón muestra el spinner.
+    const cancelAppointment = useAsyncAction<[], void>(runCancelAppointment, { showErrorToast: false });
+    const isCancellingAppointment = cancelAppointment.isPending;
 
     const onDateChange = React.useCallback((newRange: { start: Date; end: Date }) => {
         // Ignora el re-aviso cuando el rango no cambió (p. ej. al "saltar" a una
@@ -4257,7 +4437,11 @@ export default function AppointmentsPage() {
                 {GOOGLE_CALENDAR_COLORS.map((color) => (
                     <div
                         key={color.id}
-                        className="w-6 h-6 rounded-full cursor-pointer hover:opacity-80"
+                        aria-disabled={isColorChangePending(eventData) || undefined}
+                        className={cn(
+                            'w-6 h-6 rounded-full',
+                            isColorChangePending(eventData) ? 'pointer-events-none opacity-50' : 'cursor-pointer hover:opacity-80',
+                        )}
                         style={{ backgroundColor: color.hex }}
                         onClick={(e) => {
                             e.stopPropagation();
@@ -4279,6 +4463,7 @@ export default function AppointmentsPage() {
                     <ContextMenuSeparator />
                     {reminder.status !== 'done' && (
                         <ContextMenuItem
+                            disabled={isReminderActionPending(reminder)}
                             onClick={(e) => {
                                 e.stopPropagation();
                                 handleMarkReminderDone(reminder);
@@ -4300,6 +4485,7 @@ export default function AppointmentsPage() {
                         {tReminders('edit')}
                     </ContextMenuItem>
                     <ContextMenuItem
+                        disabled={isReminderActionPending(reminder)}
                         onClick={(e) => {
                             e.stopPropagation();
                             handleDeleteReminder(reminder);
@@ -4322,6 +4508,13 @@ export default function AppointmentsPage() {
         const linkedInvoice = appointment.invoice_id ? patientInvoices.find((i) => String(i.id) === String(appointment.invoice_id)) : undefined;
         const fmtMoney = (amount: number, currency?: string) => new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || getClinicCurrency() }).format(amount);
         const hasSession = sessionExistsMap[appointment.id];
+        // Acciones de ESTA cita en vuelo: los ítems del menú que las disparan se
+        // deshabilitan para que no compitan dos upserts sobre la misma fila.
+        const rowActionPending =
+            isReassignPending(appointment) ||
+            isLinkQuotePending(appointment) ||
+            isLinkInvoicePending(appointment) ||
+            isColorChangePending(eventData);
 
         // Shared building blocks reused across the "invoke" and "custom" layouts.
         const statusSubmenu = (
@@ -4338,6 +4531,7 @@ export default function AppointmentsPage() {
                         appointment={appointment}
                         onChange={(s, extra) => handleStatusChange(appointment, s, extra)}
                         onRequestCustomCancellation={() => handleRequestCustomCancellation(appointment)}
+                        isUpdating={isUpdatingAppointmentStatus}
                         ItemComponent={ContextMenuItem}
                         SubComponent={ContextMenuSub}
                         SubTriggerComponent={ContextMenuSubTrigger}
@@ -4430,7 +4624,7 @@ export default function AppointmentsPage() {
 
         const doctorSubmenu = (
             <ContextMenuSub>
-                <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                <ContextMenuSubTrigger disabled={rowActionPending} className="cursor-pointer gap-2">
                     <UserCog className="h-4 w-4 shrink-0" />
                     <span className="flex min-w-0 flex-col">
                         <span>{appointment.doctorId ? tPanel('changeDoctor') : tPanel('assignDoctor')}</span>
@@ -4446,6 +4640,7 @@ export default function AppointmentsPage() {
                         doctors.map((doctor) => (
                             <ContextMenuItem
                                 key={doctor.id}
+                                disabled={rowActionPending}
                                 onSelect={() => {
                                     if (String(doctor.id) !== String(appointment.doctorId)) {
                                         handleReassign(appointment, { doctor });
@@ -4466,7 +4661,7 @@ export default function AppointmentsPage() {
         );
         const calendarSubmenu = (
             <ContextMenuSub>
-                <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                <ContextMenuSubTrigger disabled={rowActionPending} className="cursor-pointer gap-2">
                     <Building2 className="h-4 w-4 shrink-0" />
                     <span className="flex min-w-0 flex-col">
                         <span>{appointment.calendar_source_id ? tPanel('changeCalendar') : tPanel('assignCalendar')}</span>
@@ -4482,6 +4677,7 @@ export default function AppointmentsPage() {
                         calendars.map((calendar) => (
                             <ContextMenuItem
                                 key={calendar.id}
+                                disabled={rowActionPending}
                                 onSelect={() => {
                                     if (String(calendar.id) !== String(appointment.calendar_source_id)) {
                                         handleReassign(appointment, { calendar });
@@ -4599,6 +4795,7 @@ export default function AppointmentsPage() {
                         appointment={appointment}
                         onChange={(s, extra) => handleStatusChange(appointment, s, extra)}
                         onRequestCustomCancellation={() => handleRequestCustomCancellation(appointment)}
+                        isUpdating={isUpdatingAppointmentStatus}
                         ItemComponent={ContextMenuItem}
                         SubComponent={ContextMenuSub}
                         SubTriggerComponent={ContextMenuSubTrigger}
@@ -4665,7 +4862,7 @@ export default function AppointmentsPage() {
 
                 {/* Quote: link/change */}
                 <ContextMenuSub onOpenChange={(o) => { if (o && appointment.patientId) ensurePatientQuotes(appointment.patientId); }}>
-                    <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                    <ContextMenuSubTrigger disabled={rowActionPending} className="cursor-pointer gap-2">
                         <Link2 className="h-4 w-4 shrink-0" />
                         <span className="flex min-w-0 flex-col">
                             <span>{appointment.quote_id ? t('contextMenu.changeQuote') : t('contextMenu.linkQuote')}</span>
@@ -4685,6 +4882,7 @@ export default function AppointmentsPage() {
                                 subtitle: fmtMoney(quote.total, quote.currency),
                             }))}
                             selectedId={appointment.quote_id}
+                            disabled={rowActionPending}
                             onSelect={(id) => { const quote = patientQuotes.find((q) => String(q.id) === id); if (quote && String(id) !== String(appointment.quote_id)) handleLinkQuote(appointment, quote); }}
                             onCreateNew={() => handleCreateQuoteForAppointment(appointment)}
                             createLabel={t('contextMenu.newQuote')}
@@ -4696,7 +4894,7 @@ export default function AppointmentsPage() {
 
                 {/* Invoice: bill/change */}
                 <ContextMenuSub onOpenChange={(o) => { if (o && appointment.patientId) ensurePatientInvoices(appointment.patientId); }}>
-                    <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                    <ContextMenuSubTrigger disabled={rowActionPending} className="cursor-pointer gap-2">
                         <Receipt className="h-4 w-4 shrink-0" />
                         <span className="flex min-w-0 flex-col">
                             <span>{appointment.invoice_id ? t('contextMenu.changeInvoice') : t('contextMenu.createInvoice')}</span>
@@ -4716,6 +4914,7 @@ export default function AppointmentsPage() {
                                 subtitle: fmtMoney(invoice.total, invoice.currency),
                             }))}
                             selectedId={appointment.invoice_id}
+                            disabled={rowActionPending}
                             onSelect={(id) => { const invoice = patientInvoices.find((i) => String(i.id) === id); if (invoice && String(id) !== String(appointment.invoice_id)) handleLinkInvoice(appointment, invoice); }}
                             onCreateNew={() => handleCreateInvoiceForAppointment(appointment)}
                             createLabel={t('contextMenu.newInvoice')}
@@ -4945,7 +5144,16 @@ export default function AppointmentsPage() {
     return (
         <Card className="border-none shadow-none h-full">
             <CardContent className="relative p-0 h-[calc(100vh-6rem)] min-h-[600px]">
-                {!calendarSettings ? (
+                {initialLoadError && (calendars.length === 0 || !calendarSettings) ? (
+                    <div className="flex h-full w-full flex-col items-center justify-center gap-3 px-6 text-center">
+                        <AlertTriangle className="h-8 w-8 text-destructive" />
+                        <p className="font-medium">{tLoadErrors('title')}</p>
+                        <p className="max-w-md text-sm text-muted-foreground">{tLoadErrors('description')}</p>
+                        <Button variant="outline" onClick={() => { void loadInitialData(); }} loading={isDataLoading}>
+                            {tLoadErrors('retry')}
+                        </Button>
+                    </div>
+                ) : !calendarSettings ? (
                     <div className="flex h-full w-full items-center justify-center">
                         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                     </div>
@@ -4983,6 +5191,8 @@ export default function AppointmentsPage() {
                                 results={searchResultItems}
                                 isLoading={isSearching}
                                 hasSearched={searchHasSearched}
+                                hasError={searchError}
+                                onRetry={() => setSearchRetryNonce((n) => n + 1)}
                                 minChars={SEARCH_MIN_CHARS}
                                 selectedId={selectedSearchId ?? undefined}
                                 dateLocale={gapsDateLocale}
@@ -5000,6 +5210,15 @@ export default function AppointmentsPage() {
                                 onExpand={handleExpandSearch}
                                 onClose={handleCloseSearch}
                             />
+                        )}
+                        {appointmentsError && (
+                            <div className="absolute bottom-3 left-1/2 z-40 flex w-[min(92%,28rem)] -translate-x-1/2 items-center gap-2 rounded-lg border border-destructive/30 bg-card/95 px-3 py-2 text-xs text-destructive shadow-lg backdrop-blur">
+                                <AlertTriangle className="h-4 w-4 shrink-0" />
+                                <span className="flex-1">{tLoadErrors('fetchError')}</span>
+                                <Button variant="outline" size="sm" className="h-7 shrink-0 px-2 text-xs" onClick={forceRefresh} loading={isRefreshing}>
+                                    {tLoadErrors('retry')}
+                                </Button>
+                            </div>
                         )}
                         <Calendar
                             view={currentView}
@@ -5667,6 +5886,7 @@ export default function AppointmentsPage() {
                 checkCalendarAvailability={checkCalendarAvailability}
                 checkDoctorAvailability={checkDoctorAvailability}
                 isDateTimeBlocked={isDateTimeBlocked}
+                onRequestRefresh={forceRefresh}
             />
             <PrintScheduleDialog
                 open={isPrintScheduleOpen}
@@ -5725,7 +5945,7 @@ export default function AppointmentsPage() {
                     onConfirm={() => {
                         setInlineFutureConfirm(null);
                         skipInlineFutureCheckRef.current = true;
-                        handleSaveInlineDraft();
+                        void saveInlineDraft.run();
                     }}
                     onCancel={() => setInlineFutureConfirm(null)}
                 />
@@ -5777,36 +5997,58 @@ export default function AppointmentsPage() {
                 />
             )}
 
-            <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+            <AlertDialog
+                open={isDeleteAlertOpen}
+                onOpenChange={(next) => {
+                    // No cerrar con la cancelación en vuelo.
+                    if (!next && isCancellingAppointment) return;
+                    setIsDeleteAlertOpen(next);
+                }}
+            >
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>{t('createDialog.cancelAppointmentTitle')}</AlertDialogTitle>
                         <AlertDialogDescription>{t('createDialog.cancelAppointmentDescription', { serviceName: deletingAppointment?.service_name, date: deletingAppointment?.date })}</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogAction onClick={confirmDeleteAppointment} className="bg-destructive hover:bg-destructive/90">{t('AppointmentsColumns.cancel')}</AlertDialogAction>
-                        <AlertDialogCancel onClick={() => setIsDeleteAlertOpen(false)}>{t('createDialog.close')}</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={(e) => { e.preventDefault(); void cancelAppointment.run(); }}
+                            disabled={isCancellingAppointment}
+                            className="bg-destructive hover:bg-destructive/90"
+                        >
+                            {isCancellingAppointment && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {t('AppointmentsColumns.cancel')}
+                        </AlertDialogAction>
+                        <AlertDialogCancel disabled={isCancellingAppointment} onClick={() => setIsDeleteAlertOpen(false)}>{t('createDialog.close')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
 
             {/* Soft-delete confirmation for the right-click menu (same as the detail panel button) */}
-            <AlertDialog open={!!softDeleteTarget} onOpenChange={(v) => !v && setSoftDeleteTarget(null)}>
+            <AlertDialog
+                open={!!softDeleteTarget}
+                onOpenChange={(v) => {
+                    if (!v && isSoftDeleting) return;
+                    if (!v) setSoftDeleteTarget(null);
+                }}
+            >
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>{tPanel('deleteTitle')}</AlertDialogTitle>
                         <AlertDialogDescription>{tPanel('deleteDescription')}</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>{tPanel('deleteCancel')}</AlertDialogCancel>
+                        <AlertDialogCancel disabled={isSoftDeleting}>{tPanel('deleteCancel')}</AlertDialogCancel>
                         <AlertDialogAction
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            onClick={() => {
+                            disabled={isSoftDeleting}
+                            onClick={(e) => {
+                                e.preventDefault();
                                 const target = softDeleteTarget;
-                                setSoftDeleteTarget(null);
-                                if (target) handleSoftDelete(target);
+                                if (target) void handleSoftDelete(target);
                             }}
                         >
+                            {isSoftDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             {tPanel('deleteConfirm')}
                         </AlertDialogAction>
                     </AlertDialogFooter>
@@ -5874,6 +6116,7 @@ export default function AppointmentsPage() {
                 onReschedule={handleReschedule}
                 onOpenClinicSession={handleOpenClinicSession}
                 onStatusChange={handleStatusChange}
+                isUpdatingStatus={isUpdatingAppointmentStatus}
                 onRequestCustomCancellation={handleRequestCustomCancellation}
                 onBillingSuccess={() => { loadAppointments(); if (selectedAppointment?.quote_id) loadQuoteInfo(selectedAppointment.quote_id); }}
                 doctors={doctors}

@@ -1,282 +1,126 @@
 # AGENTS.md
 
-This file contains guidelines and conventions for agentic coding agents working in this React frontend codebase.
+This file provides guidance to AI agents when working with code in this repository.
 
-## Build/Lint/Test Commands
+## Commands
 
-### Development
-
-- `pnpm dev` - Start development server on 0.0.0.0:3000
-- `pnpm genkit:dev` - Start Genkit AI development server
-- `pnpm genkit:watch` - Start Genkit with file watching
-
-### Production
-
-- `pnpm build` - Build for production
-- `pnpm start` - Start production server
-
-### Code Quality
-
-- `pnpm lint` - Run ESLint for code linting (Next.js built-in)
-- `pnpm typecheck` - Run TypeScript type checking without emitting files
-
-## Tech Stack & Architecture
-
-Healthcare/dental clinic management SaaS.
-
-**Framework:** Next.js 15 with App Router, TypeScript (strict mode), Tailwind CSS with Shadcn/ui
-**Key Libraries:** React Hook Form + Zod, next-intl, Google Genkit, Recharts, Radix UI, next-themes, date-fns, Firebase
-
-**Directory Structure:**
-
-- `src/app/[locale]/` - i18n-routed Next.js App Router pages
-- `src/components/ui/` - Shadcn/ui primitives and reusable components
-- `src/components/[feature]/` - Feature-specific components
-- `src/context/` - AuthContext, AlertNotificationsContext, and other React contexts
-- `src/hooks/` - Custom hooks (`useAuth`, `usePermissions`, etc.)
-- `src/services/api.ts` - Centralized API client
-- `src/lib/types.ts` - Centralized shared type definitions
-- `src/lib/permissions.ts` - Permission filtering utilities
-- `src/lib/runtime-config.ts` - Runtime environment configuration getters
-- `src/constants/routes.ts` - API endpoint definitions
-- `src/constants/permissions.ts` - Permission code constants
-- `src/config/nav.ts` - Navigation menu with permission guards
-- `src/ai/flows/` - Google Genkit AI flows
-- `src/messages/{en,es}.json` - i18n translation files
-
-## Code Style Guidelines
-
-### TypeScript Conventions
-
-- **Strict mode enabled** in tsconfig.json with no build errors ignored
-- Use `interface` for object shapes, `type` for primitives/unions
-- Export all types from `src/lib/types.ts` for centralized type management
-- Use generic types for reusable components: `interface Props<T>`
-- Always type function parameters and return values explicitly
-- Use `const` assertions for literal types: `const colors = ['red', 'blue'] as const`
-- Prefer union types over enums for better TypeScript performance
-- Use `z.infer<typeof schema>` for form data types after Zod validation
-
-### Component Patterns
-
-Always use `'use client'` directive for interactive components in Next.js App Router:
-
-```typescript
-'use client'
-
-import * as React from 'react'
-import { cn } from '@/lib/utils'
-
-interface ComponentProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: 'default' | 'secondary'
-}
-
-export const Component = React.forwardRef<HTMLDivElement, ComponentProps>(
-  ({ className, variant = 'default', ...props }, ref) => {
-    return (
-      <div
-        ref={ref}
-        className={cn('base-styles', variant === 'secondary' && 'secondary-styles', className)}
-        {...props}
-      />
-    )
-  }
-)
-
-Component.displayName = 'Component'
+```bash
+pnpm dev           # Start dev server on 0.0.0.0:3000
+pnpm build         # Production build
+pnpm lint          # ESLint (Next.js config)
+pnpm typecheck     # TypeScript type check without emit
 ```
 
-### Import Organization
+**Before committing:** Always run `pnpm typecheck && pnpm lint`.
 
-Follow this strict order with empty lines between groups:
+## Architecture
 
-1. React and external libraries
-2. Internal UI components (@/components/ui/*)
-3. Feature components (@/components/*)
-4. Hooks, utilities, and services
-5. Types, constants, and config
+Healthcare/dental clinic management SaaS. Next.js 15 App Router + TypeScript strict mode + Tailwind CSS + shadcn/ui.
 
-### Naming Conventions
+**Key libraries:** React Hook Form + Zod, next-intl, Google Genkit, Recharts, Radix UI, next-themes, date-fns, Firebase.
 
-- **Components:** PascalCase (`UserProfile`, `DataTable`)
-- **Files:** kebab-case (`user-profile.tsx`, `data-table.tsx`)
-- **Functions/Variables:** camelCase (`fetchUserData`, `isLoading`)
-- **Constants:** SCREAMING_SNAKE_CASE (`API_ROUTES`, `MAX_ITEMS`)
-- **Types/Interfaces:** PascalCase (`UserData`, `ApiResponse`)
-- **Custom Hooks:** `use` prefix (`useAuth`, `useLocalStorage`)
+### Directory structure
 
-### Path Aliases
+```
+src/
+├── app/[locale]/          # i18n-routed App Router pages
+├── components/
+│   ├── ui/                # shadcn/ui primitives
+│   └── [feature]/         # Feature-specific components
+├── context/               # AuthContext, AlertNotificationsContext
+├── hooks/                 # Custom hooks (useAuth, usePermissions, etc.)
+├── services/api.ts        # Centralized API client
+├── lib/
+│   ├── types.ts           # All shared types (central, 958 lines)
+│   ├── permissions.ts     # Permission filtering utilities
+│   └── utils.ts
+├── constants/
+│   ├── routes.ts          # All API endpoint definitions (~200+ endpoints)
+│   └── permissions.ts     # Permission code constants
+├── config/nav.ts          # Navigation menu with permission guards
+├── ai/flows/              # Google Genkit AI flows
+└── messages/{en,es}.json  # i18n translation files
+```
 
-- `@/components/*` - All components (ui/, feature/, auth/, etc.)
-- `@/lib/*` - Utilities, types, helpers, and static data
-- `@/hooks/*` - Custom React hooks
-- `@/services/*` - API services and external integrations
+### API layer
 
-### Form Handling
+`src/services/api.ts` wraps all HTTP calls with Bearer token auth (from localStorage). Base URL and all env-derived values come from `src/lib/runtime-config.ts` — **never read `process.env` or `NEXT_PUBLIC_*` directly**. Route constants live in `src/constants/routes.ts` — never hardcode API routes inline.
 
-Always use React Hook Form with Zod validation. Define schemas and use `z.infer<typeof schema>` for type safety.
+### Auth & permissions
 
-### API Integration
+`AuthContext` manages JWT token, user data, roles, and cash session state (all persisted in localStorage). The permission system is role-based:
 
-- Use `@/services/api` for all API calls. It wraps HTTP calls with Bearer token auth from localStorage.
-- Define API response types in `@/lib/types.ts`
-- Implement proper error handling and loading states
-- **CRITICAL:** Never hardcode API routes inline - use constants from `src/constants/routes.ts`
-- Base URL and all environment-derived values come from `src/lib/runtime-config.ts` - never read `process.env` or `NEXT_PUBLIC_*` directly in application code
+- `usePermissions()` hook — `hasPermission(code)`, `hasAnyPermission([])`, `hasAllPermissions([])`
+- `<Can>` component — conditional UI rendering
+- `<PrivateRoute>` — route-level protection
+- Navigation menu in `src/config/nav.ts` is filtered by permissions at runtime
+
+**When adding pages, buttons, or any access-controlled UI:** load and follow the `permissions-protection` skill.
 
 ### Internationalization
 
-- Use `useTranslations` from next-intl
-- Translations in `src/messages/[locale].json`
-- Locale-based routing with `[locale]` dynamic segments
-- **MANDATORY:** Every time new text is added to the application, add the respective translations for all supported languages in ALL language files (`src/messages/[locale].json`)
+All routes are under `[locale]/` (Spanish `es` / English `en`). Use `useTranslations()` from next-intl. **Every new user-facing string must have entries added to both `src/messages/en.json` and `src/messages/es.json`.**
 
-## Development Workflow
+**Per-client overrides:** a client can override specific translation keys via `src/messages/overrides/<NEXT_PUBLIC_CLIENT_ID>/<locale>.json` (partial file — only the changed keys; everything else falls back to the base). `src/i18n.ts` deep-merges the base with the client's override. See [`docs/i18n-overrides.md`](docs/i18n-overrides.md).
 
-### Before Making Changes
+## Code Conventions
 
-1. Run `pnpm typecheck` to ensure type safety
-2. Run `pnpm lint` to check code style
-3. Review existing components in similar feature directories
-4. Check `@/lib/types.ts` for relevant type definitions
+### TypeScript
 
-### After Making Changes
+- `interface` for object shapes, `type` for primitives/unions
+- All shared types go in `src/lib/types.ts`
+- Use `z.infer<typeof schema>` for form data types
+- Prefer union types over enums
 
-1. **CRITICAL:** Run `pnpm typecheck && pnpm lint` to verify code quality - never commit without this
-2. Test functionality manually in development server
-3. **MANDATORY:** Add i18n keys and translations for all supported languages for any new user-facing text
-4. Verify responsive design across different screen sizes
+### Components
 
-## Security Considerations
+Interactive components need `'use client'`. Use `React.forwardRef` + `displayName` for reusable UI components. Use `cn()` from `@/lib/utils` for conditional class merging.
 
-- Never expose API keys, tokens, or sensitive data in client code
-- Validate all user inputs with Zod schemas before API calls
-- Use runtime configuration getters from `src/lib/runtime-config.ts` for environment-derived values
-- Implement proper authentication checks and role-based access
-- Sanitize data before rendering to prevent XSS attacks
-- Use HTTPS for all external API calls
+### Import order (with blank lines between groups)
 
-## Performance Guidelines
+1. React and external libraries
+2. `@/components/ui/*`
+3. `@/components/*` (feature components)
+4. Hooks, utilities, services
+5. Types, constants, config
 
-- Use `React.memo` for expensive components with stable props
-- Implement proper loading states to prevent layout shifts
-- Optimize bundle size with dynamic imports for large components
-- Use Next.js built-in Image component for optimized images
-- Consider virtualization (react-window) for long lists
-- Memoize expensive calculations with `useMemo`
-- Use `useCallback` for event handlers passed to child components
-- Implement proper dependency arrays in hooks
+### Naming
 
-## Additional Guidelines
+- Components/types: `PascalCase`
+- Files: `kebab-case`
+- Functions/variables: `camelCase`
+- Constants: `SCREAMING_SNAKE_CASE`
+- Hooks: `use` prefix
 
-### Theming
+### Forms
 
-- Use `next-themes` for dark/light mode support
-- Theme provider wraps the app in `src/components/theme-provider.tsx`
-- Use CSS custom properties for theme values
-- Support both system preference and manual theme selection
+React Hook Form + Zod only. Define the schema first, then derive the TypeScript type with `z.infer`.
 
-### Environment Variables
+## Skills to use
 
-**IMPORTANT:** See [`docs/runtime-config.md`](docs/runtime-config.md) before working with environment variables.
+| Skill | When |
+| ------- | ------ |
+| `frontend-design` | Creating/improving UI components and pages |
+| `vercel-react-best-practices` | Any React/Next.js code task |
+| `permissions-protection` | Any access control or conditional UI work |
+| `tailwind-v4-shadcn` | Tailwind/shadcn issues, dark mode, CSS variables |
+| `date-formatting` | Any time a date or datetime is read, displayed, or sent to the backend |
+| `ux-interaction-patterns` | Any button, form, dialog, row action or fetch that talks to the backend (in-flight locking, timeouts, loading/error/empty states) |
 
-Variables are injected at runtime, not build time, via `window.__INVOKEIA_RUNTIME_CONFIG__` from the script written by the Server Component `src/app/[locale]/layout.tsx`.
+## Environment variables
 
-- Always access runtime configuration through getters in `src/lib/runtime-config.ts`
-- Never read `process.env` or `NEXT_PUBLIC_*` directly in application code
+> **IMPORTANT:** See [`docs/runtime-config.md`](docs/runtime-config.md) before working with env vars.
 
-### Charts and Data Visualization
+Variables are injected at **runtime** (not build time) via `window.__INVOKEIA_RUNTIME_CONFIG__` — a `<script>` tag written by the Server Component `src/app/[locale]/layout.tsx`. Always access them through the getters in `src/lib/runtime-config.ts`, never via `process.env` directly.
 
-- Use Recharts for consistent chart implementations
-- Define chart data types in `@/lib/types.ts`
-- Implement responsive chart containers
-- Use consistent color schemes across all charts
+## Postgres MCP (base de datos de DEV)
 
-### Date and Time Handling
+El MCP `postgres` da acceso directo a la base de datos de DEV. Se puede usar libremente para **explorar y consultar** (listar esquemas/objetos, `SELECT`, `EXPLAIN`, analizar salud/índices), pero se deben respetar estos guardarraíles:
 
-**MANDATORY:** Load and follow the `date-formatting` skill whenever you read, display, or send a date or datetime value.
-
-- **Never** use `new Date(isoString).toLocaleString/toLocaleTimeString/toLocaleDateString()` — they apply local timezone offset to UTC strings, producing wrong results.
-- **Never** use `format(parseISO(isoString), '...')` directly with a UTC ISO string — same problem.
-- **Never** use `date.toISOString()` when sending dates to the backend — it shifts to UTC.
-- All date utilities live in `src/lib/utils.ts`. Quick reference:
-  - Display date + time → `formatDateTime(value)`
-  - Display date only (UI) → `formatDisplayDate(value)`
-  - Date in `yyyy-MM-dd` format → `formatDate(value)`
-  - Send date to backend → `toLocalISOString(dateObject)`
-
-## Sistema de Permisos y Control de Acceso
-
-**IMPORTANTE:** Este proyecto implementa un sistema de permisos basado en roles. Antes de agregar, modificar o eliminar cualquier funcionalidad que involucre control de acceso, **DEBES cargar y usar el skill `permissions-protection`**.
-
-### Cuándo Usar Este Skill
-
-Usa el skill `permissions-protection` cuando:
-
-1. **Crear nuevas páginas o rutas** que necesiten protección de acceso
-2. **Agregar botones, acciones o elementos de UI** que deban mostrarse/ocultarse según permisos
-3. **Modificar formularios o tablas** que contengan acciones condicionadas
-4. **Trabajar con menús de navegación** (`src/config/nav.ts`)
-
-### Archivos del Sistema de Permisos
-
-- `src/context/AuthContext.tsx` - Proveedor de autenticación con permisos
-- `src/hooks/usePermissions.ts` - Hook para verificar permisos en componentes
-- `src/components/auth/Can.tsx` - Componente para renderizado condicional
-- `src/components/auth/PrivateRoute.tsx` - Protección de rutas
-- `src/lib/permissions.ts` - Utilitarios para filtrar menú
-- `src/config/nav.ts` - Configuración del menú con permisos
-- `src/constants/permissions.ts` - Constantes de códigos de permisos
-
-### Autenticación y Estado
-
-`AuthContext` gestiona el token JWT, datos del usuario, roles y estado de sesión de caja, persistidos en localStorage. El sistema de permisos está basado en roles.
-
-- `usePermissions()` expone `hasPermission(code)`, `hasAnyPermission([])` y `hasAllPermissions([])`
-- `<Can>` controla renderizado condicional de UI
-- `<PrivateRoute>` protege rutas
-- `src/config/nav.ts` se filtra por permisos en runtime
-
-### Códigos de Permiso
-
-Los permisos se definen en el backend con códigos como:
-
-- `CATALOG_MEDICATIONS_CREATE`, `CATALOG_MEDICATIONS_READ`, etc.
-- `USUARIOS_VIEW_LIST`, `USUARIOS_CREATE`, `USUARIOS_EDIT`, `USUARIOS_DELETE`
-- `ROLES_VIEW_LIST`, `ROLES_CREATE`, etc.
-
-Para agregar permisos al menú o proteger rutas, consulta los códigos disponibles en el endpoint `/auth/me`.
-
-## Available Skills
-
-Este proyecto cuenta con skills especializados que debes cargar cuando trabajes en tareas específicas. Usa el comando `/load-skill` o la herramienta `skill` para activarlos.
-
-### Cuándo Usar Cada Skill
-
-| Skill | Cuándo Usarlo |
-|-------|---------------|
-| **frontend-design** | Cuando necesites crear interfaces de usuario de alta calidad, nuevos componentes, páginas completas, o mejorar el diseño existente. Genera código creativo y pulido evitando estéticos genéricos de IA. |
-| **interface-design** | Para diseñar dashboards, paneles de admin, aplicaciones y herramientas interactivas. Especialmente útil para crear pantallas desde cero o redesigns importantes. |
-| **vercel-react-best-practices** | Al escribir, revisar o refactorizar código React/Next.js. Optimiza patrones de rendimiento, uso de hooks, data fetching, y bundle optimization. Úsalo PROACTIVAMENTE en cualquier tarea de componentes o páginas. |
-| **tailwind-v4-shadcn** | Cuando tengas problemas con Tailwind v4, shadcn/ui, colores que no funcionan, errores de `@theme`, problemas de dark mode, o al inicial el proyecto con esta tecnología. Sigue el patrón de 4 pasos: CSS variables, Tailwind mapping, base styles, dark mode automático. |
-| **permissions-protection** | Ya documentado en la sección anterior. **SIEMPRE** cuando trabajes con control de acceso, permisos de usuario, o elementos de UI condicionales. |
-| **date-formatting** | **SIEMPRE** cuando leas, muestres o envíes una fecha o datetime. Evita conversiones incorrectas de timezone con strings ISO UTC que vienen de la API. |
-
-### Cómo Cargar un Skill
-
-Cuando necesites usar un skill, ejecútalo con la herramienta `skill`:
-
-```
-Usa el skill "frontend-design" para crear el componente de login
-```
-
-### Orden de Preferencia
-
-1. Primero carga `vercel-react-best-practices` para cualquier tarea de React/Next.js
-2. Para diseño UI, carga `frontend-design` o `interface-design`
-3. Para problemas de Tailwind/shadcn, carga `tailwind-v4-shadcn`
-4. Para permisos, siempre usa `permissions-protection`
-
----
-
-This file should be updated as the codebase evolves and new patterns are established.
+- **Nunca ejecutar `INSERT`, `UPDATE`, `DELETE`, `TRUNCATE`, `DROP`, `ALTER`, `CREATE` ni ninguna otra sentencia que modifique datos o esquema sin confirmación explícita del usuario primero.** Mostrar la sentencia SQL exacta que se va a ejecutar y esperar el visto bueno antes de correrla.
+- Tratar DEV como un entorno compartido, no descartable: aunque sea "solo dev", otros pueden depender de sus datos/estado — no asumir que se puede resetear o limpiar sin preguntar.
+- Nunca ejecutar sentencias destructivas o de bulk-update "para probar" ni como parte de debugging exploratorio.
+- Si una consulta de solo lectura es pesada (full scans en tablas grandes, sin `LIMIT`), preferir acotarla (`LIMIT`, filtros por fecha/id) para no degradar el entorno compartido.
+- No usar el MCP de Postgres para leer ni exponer datos de pacientes/PII más allá de lo estrictamente necesario para la tarea en curso; nunca pegar dumps completos de tablas sensibles en la conversación sin necesidad.
+- Nunca ejecutar cambios de configuración a nivel de servidor/rol/extensión (`ALTER SYSTEM`, `CREATE EXTENSION`, gestión de roles, etc.) sin confirmación explícita.
+- Si una tarea requiere una migración de esquema, se debe hacer a través del flujo normal del backend (migraciones versionadas), no ejecutando DDL suelto vía MCP.

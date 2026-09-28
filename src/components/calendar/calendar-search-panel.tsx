@@ -43,6 +43,10 @@ interface CalendarSearchPanelProps {
   isLoading: boolean;
   /** Ya se lanzó al menos una búsqueda con el término actual (controla el "sin resultados"). */
   hasSearched: boolean;
+  /** La última búsqueda falló: se muestra el error (y Reintentar) en vez del vacío. */
+  hasError?: boolean;
+  /** Reintenta la búsqueda actual sin cambiar el término. */
+  onRetry?: () => void;
   /** Mínimo de caracteres para disparar la búsqueda. */
   minChars: number;
   /** Id del resultado elegido (resaltado). */
@@ -136,6 +140,8 @@ export function CalendarSearchPanel({
   results,
   isLoading,
   hasSearched,
+  hasError = false,
+  onRetry,
   minChars,
   selectedId,
   dateLocale,
@@ -288,11 +294,31 @@ export function CalendarSearchPanel({
             <Loader2 className="h-5 w-5 animate-spin" />
           </div>
         ) : results.length === 0 ? (
-          hasSearched ? (
+          hasError ? (
+            <div className="flex flex-col items-center gap-2 px-3 py-8 text-center">
+              <p className="text-sm text-destructive">{t('error')}</p>
+              {onRetry && (
+                <Button variant="outline" size="sm" onClick={onRetry}>
+                  {t('retry')}
+                </Button>
+              )}
+            </div>
+          ) : hasSearched ? (
             <p className="py-8 text-center text-sm text-muted-foreground">{t('empty')}</p>
           ) : null
         ) : (
-          byDay.map(([dayKey, dayResults]) => (
+          <>
+            {hasError && (
+              <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-2 py-1.5 text-xs text-destructive">
+                <span className="flex-1">{t('error')}</span>
+                {onRetry && (
+                  <Button variant="ghost" size="sm" className="h-6 shrink-0 px-2 text-xs" onClick={onRetry}>
+                    {t('retry')}
+                  </Button>
+                )}
+              </div>
+            )}
+            {byDay.map(([dayKey, dayResults]) => (
             <div key={dayKey}>
               <p className="px-1 pb-1 text-xs font-medium capitalize text-muted-foreground">
                 {format(dayResults[0].start, 'EEEE d MMM yyyy', { locale: dateLocale })}
@@ -341,7 +367,8 @@ export function CalendarSearchPanel({
                 })}
               </div>
             </div>
-          ))
+            ))}
+          </>
         )}
       </div>
     </div>

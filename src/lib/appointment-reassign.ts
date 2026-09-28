@@ -1,4 +1,4 @@
-import { api } from '@/services/api';
+import { api, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 import { getOwnAppointmentColor } from '@/lib/appointment-color';
 import type { Appointment, Calendar as CalendarType, Service, User } from '@/lib/types';
@@ -79,7 +79,9 @@ export async function reassignAppointmentField(
   change: AppointmentReassignChange,
 ): Promise<Appointment> {
   const payload = buildReassignPayload(appointment, change);
-  const response = await api.post(API_ROUTES.APPOINTMENTS_UPSERT, payload);
+  const response = await api.post(API_ROUTES.APPOINTMENTS_UPSERT, payload, undefined, undefined, {
+    timeoutMs: REQUEST_TIMEOUT_MS.mutation,
+  });
   const result = Array.isArray(response) ? response[0] : response;
   if (result?.error || (result?.code && result.code >= 400)) {
     throw new Error(result?.message || 'Failed to update appointment');

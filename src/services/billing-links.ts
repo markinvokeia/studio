@@ -1,21 +1,30 @@
-import { api } from '@/services/api';
+import { api, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
+
+interface LinkInvoiceOptions {
+  /** Re-lanza el error en vez de tragárselo. Úsalo en acciones del usuario que
+   *  muestran feedback (la UI no puede confirmar un vínculo que falló). El default
+   *  sigue siendo fire-and-forget para los flujos del wizard. */
+  propagateErrors?: boolean;
+}
 
 /**
  * Links an invoice to an appointment after Cobro Rápido.
- * Fire-and-forget: logs a warning on failure but never blocks the wizard flow.
+ * Fire-and-forget por defecto: loguea el fallo pero no bloquea el wizard.
  */
 export async function linkInvoiceToAppointment(
   invoiceId: string,
   appointmentId: string,
+  options: LinkInvoiceOptions = {},
 ): Promise<void> {
   try {
     await api.post(API_ROUTES.APPOINTMENTS_LINK_INVOICE, {
       appointment_id: appointmentId,
       invoice_id: invoiceId,
-    });
-  } catch {
+    }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
+  } catch (error) {
     console.warn('[billing-links] Failed to link invoice to appointment', { invoiceId, appointmentId });
+    if (options.propagateErrors) throw error;
   }
 }
 
@@ -30,7 +39,7 @@ export async function linkInvoiceToClinicSession(
     await api.post(API_ROUTES.CLINIC_SESSIONS_LINK_INVOICE, {
       sesion_id: sessionId,
       invoice_id: invoiceId,
-    });
+    }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
   } catch {
     console.warn('[billing-links] Failed to link invoice to clinic session', { invoiceId, sessionId });
   }
@@ -47,7 +56,7 @@ export async function linkInvoiceToOdontogramSession(
     await api.post(API_ROUTES.SESSIONS_LINK_INVOICE, {
       sesion_id: sessionId,
       invoice_id: invoiceId,
-    });
+    }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
   } catch {
     console.warn('[billing-links] Failed to link invoice to odontogram session', { invoiceId, sessionId });
   }

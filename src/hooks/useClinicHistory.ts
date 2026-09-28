@@ -2,7 +2,7 @@
 
 import { API_ROUTES } from '@/constants/routes';
 import { Ailment, Medication, PatientSession } from '@/lib/types';
-import api from '@/services/api';
+import api, { REQUEST_TIMEOUT_MS } from '@/services/api';
 import { useCallback, useState } from 'react';
 
 export interface ClinicDocument {
@@ -831,7 +831,9 @@ export function useClinicHistory(): UseClinicHistoryReturn {
         try {
             const { archivos_adjuntos, deletedAttachmentIds, ...sessionData } = data;
             const formData = buildSessionFormData(sessionData, { paciente_id: userId }, files);
-            const response = await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, formData);
+            const response = await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, formData, undefined, undefined, {
+                timeoutMs: REQUEST_TIMEOUT_MS.longRunning,
+            });
             await fetchPatientSessions(userId);
             // La API devuelve [{ code, data: { id: "334", ... } }] — normalizar el array
             // y leer el id desde todos los paths posibles del backend.
@@ -860,7 +862,9 @@ export function useClinicHistory(): UseClinicHistoryReturn {
             if (existingAttachments && existingAttachments.length > 0) {
                 formData.append('existing_attachment_ids', JSON.stringify(existingAttachments.map((att: any) => String(att.id))));
             }
-            await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, formData);
+            await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, formData, undefined, undefined, {
+                timeoutMs: REQUEST_TIMEOUT_MS.longRunning,
+            });
             await fetchPatientSessions(userId);
         } catch (error) {
             console.error("Failed to update session:", error);
@@ -873,7 +877,9 @@ export function useClinicHistory(): UseClinicHistoryReturn {
     const deleteSession = useCallback(async (sessionId: number, userId: string) => {
         setIsSubmittingSession(true);
         try {
-            await api.delete(API_ROUTES.CLINIC_HISTORY.SESSIONS_DELETE, { id: sessionId });
+            await api.delete(API_ROUTES.CLINIC_HISTORY.SESSIONS_DELETE, { id: sessionId }, undefined, undefined, {
+                timeoutMs: REQUEST_TIMEOUT_MS.mutation,
+            });
             await fetchPatientSessions(userId);
         } catch (error) {
             console.error("Failed to delete session:", error);

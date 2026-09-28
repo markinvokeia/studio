@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useTranslations } from 'next-intl';
 
 import { useToast } from '@/hooks/use-toast';
-import { api } from '@/services/api';
+import { api, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 import { canReschedule } from '@/constants/appointment-status';
 import type { Appointment } from '@/lib/types';
@@ -38,9 +38,12 @@ export function useAppointmentReschedule(options: UseAppointmentRescheduleOption
   const { toast } = useToast();
   const t = useTranslations('AppointmentReschedule');
   const [isRescheduling, setIsRescheduling] = React.useState(false);
+  // Bloqueo síncrono: un doble clic no debe cancelar/crear la cita dos veces.
+  const inFlightRef = React.useRef(false);
 
   const reschedule = React.useCallback(
     async (original: Appointment, payload: ReschedulePayload) => {
+      if (inFlightRef.current) return null;
       if (!canReschedule(original.status)) {
         toast({
           variant: 'destructive',
@@ -50,13 +53,16 @@ export function useAppointmentReschedule(options: UseAppointmentRescheduleOption
         return null;
       }
 
+      inFlightRef.current = true;
       setIsRescheduling(true);
       try {
         const body = {
           original_appointment_id: original.id,
           ...payload,
         };
-        const response = await api.post(API_ROUTES.APPOINTMENTS_RESCHEDULE, body);
+        const response = await api.post(API_ROUTES.APPOINTMENTS_RESCHEDULE, body, undefined, undefined, {
+          timeoutMs: REQUEST_TIMEOUT_MS.mutation,
+        });
         const result = Array.isArray(response) ? response[0] : response;
 
         if (result?.error || (result?.code && result.code >= 400)) {
@@ -75,6 +81,7 @@ export function useAppointmentReschedule(options: UseAppointmentRescheduleOption
         });
         return null;
       } finally {
+        inFlightRef.current = false;
         setIsRescheduling(false);
       }
     },

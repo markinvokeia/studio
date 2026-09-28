@@ -1147,6 +1147,12 @@
     "noSuggestions": "No suggestions",
     "search": "Search",
     "selectedServices": "Selected Services",
+    "loadErrors": {
+      "title": "The agenda could not be loaded",
+      "description": "There was a problem loading clinics, services or doctors. Check your connection and try again.",
+      "fetchError": "The appointments could not be refreshed. Showing the last loaded data.",
+      "retry": "Retry"
+    },
     "toasts": {
       "appointmentCancelled": "Appointment cancelled",
       "appointmentCancelledDesc": "Appointment has been cancelled.",
@@ -1177,6 +1183,9 @@
       "sessionUpdated": "Clinic session updated",
       "errorCreatingSession": "Error saving session",
       "errorCreatingSessionDesc": "An error occurred while saving the clinic session.",
+      "sessionFailedAppointmentCreated": "Appointment created, but the session could not be saved",
+      "sessionFailedAppointmentCreatedDesc": "The appointment was saved. Complete the clinic session from the patient's clinical history.",
+      "createdWithoutSessionId": "The appointment was created, but its ID could not be read. Create the session manually from the patient's clinical history.",
       "patientIdRequired": "Patient ID is required",
       "errorLoadingQuoteItems": "Error loading treatments",
       "errorLoadingQuoteItemsDesc": "Could not load treatments from quote.",
@@ -5706,6 +5715,8 @@
       "hint": "Search by appointment title or by patient name, phone, email or ID. Covers every date.",
       "minChars": "Type at least {count} characters.",
       "empty": "No appointments match your search.",
+      "error": "The search could not be completed.",
+      "retry": "Retry",
       "untitled": "Untitled appointment",
       "clear": "Clear",
       "close": "Close",

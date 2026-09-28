@@ -3,7 +3,7 @@ import { addMonths, format, isValid, parseISO } from 'date-fns';
 import { API_ROUTES } from '@/constants/routes';
 import { normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
 import type { Appointment, AppointmentStatus, Calendar, CancellationReason, User } from '@/lib/types';
-import { api } from '@/services/api';
+import { api, REQUEST_TIMEOUT_MS } from '@/services/api';
 
 /**
  * Agendas activas para los formularios de cita. Vive acá y no en una pantalla porque
@@ -105,7 +105,9 @@ export async function updateAppointmentStatusRequest({
     note,
   };
 
-  const response = await api.post(API_ROUTES.APPOINTMENTS_UPDATE_STATUS, payload);
+  const response = await api.post(API_ROUTES.APPOINTMENTS_UPDATE_STATUS, payload, undefined, undefined, {
+    timeoutMs: REQUEST_TIMEOUT_MS.mutation,
+  });
   const result = Array.isArray(response) ? response[0] : response;
 
   if (result?.error || (result?.code && result.code >= 400)) {

@@ -67,6 +67,9 @@ interface StatusMenuEntriesProps {
   appointment: Appointment;
   onChange: (newStatus: AppointmentStatus, extra?: StatusChangeExtra) => void;
   onRequestCustomCancellation?: () => void;
+  /** Mientras hay un cambio de estado en vuelo, las transiciones se bloquean para
+   *  que un segundo clic no dispare otro POST sobre la misma cita. */
+  isUpdating?: boolean;
   Item: React.ComponentType<any>;
   Sub: React.ComponentType<any>;
   SubTrigger: React.ComponentType<any>;
@@ -80,6 +83,7 @@ function StatusMenuEntries({
   appointment,
   onChange,
   onRequestCustomCancellation,
+  isUpdating = false,
   Item,
   Sub,
   SubTrigger,
@@ -109,7 +113,7 @@ function StatusMenuEntries({
   const statusItem = (status: AppointmentStatus) => {
     const Icon = STATUS_ICONS[status];
     const isCurrent = status === current;
-    const enabled = !isCurrent && allowed.includes(status);
+    const enabled = !isCurrent && allowed.includes(status) && !isUpdating;
     const statusColor = colorOf(status);
     return (
       <Item
@@ -129,7 +133,7 @@ function StatusMenuEntries({
   const cancelReasonItem = (reason: CancellationReason) => {
     const ReasonIcon = CANCELLATION_REASON_ICONS[reason];
     const isCurrent = current === 'cancelled' && appointment.cancellation_reason === reason;
-    const enabled = canCancel && !isCurrent;
+    const enabled = canCancel && !isCurrent && !isUpdating;
     return (
       <Item
         key={`reason-${reason}`}
@@ -155,7 +159,7 @@ function StatusMenuEntries({
           <React.Fragment key="cancel-submenu">
             <Separator />
             <Sub>
-              <SubTrigger disabled={!canCancel} className="flex items-center gap-2 cursor-pointer">
+              <SubTrigger disabled={!canCancel || isUpdating} className="flex items-center gap-2 cursor-pointer">
                 <ColorDot color={CANCELLATION_REASON_COLOR} />
                 <CancelIcon className="h-4 w-4 shrink-0" style={{ color: CANCELLATION_REASON_COLOR }} />
                 <span className="capitalize">{tMenu('cancelSubmenu')}</span>
@@ -247,6 +251,7 @@ export function AppointmentStatusMenu({
           appointment={appointment}
           onChange={onChange}
           onRequestCustomCancellation={onRequestCustomCancellation}
+          isUpdating={isUpdating}
           Item={DropdownMenuItem}
           Sub={DropdownMenuSub}
           SubTrigger={DropdownMenuSubTrigger}
@@ -274,6 +279,8 @@ interface AppointmentStatusContextItemsProps {
   appointment: Appointment;
   onChange: (newStatus: AppointmentStatus, extra?: StatusChangeExtra) => void;
   onRequestCustomCancellation?: () => void;
+  /** Bloquea las transiciones mientras hay un cambio de estado en vuelo. */
+  isUpdating?: boolean;
   ItemComponent: React.ComponentType<any>;
   SubComponent: React.ComponentType<any>;
   SubTriggerComponent: React.ComponentType<any>;
@@ -285,6 +292,7 @@ export function AppointmentStatusContextItems({
   appointment,
   onChange,
   onRequestCustomCancellation,
+  isUpdating,
   ItemComponent,
   SubComponent,
   SubTriggerComponent,
@@ -296,6 +304,7 @@ export function AppointmentStatusContextItems({
       appointment={appointment}
       onChange={onChange}
       onRequestCustomCancellation={onRequestCustomCancellation}
+      isUpdating={isUpdating}
       Item={ItemComponent}
       Sub={SubComponent}
       SubTrigger={SubTriggerComponent}

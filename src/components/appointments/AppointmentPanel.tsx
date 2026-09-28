@@ -462,6 +462,8 @@ interface AppointmentPanelProps {
     newStatus: AppointmentStatus,
     extra?: StatusChangeExtra,
   ) => void;
+  /** Cambio de estado en vuelo: bloquea las transiciones y muestra el spinner. */
+  isUpdatingStatus?: boolean;
   onRequestCustomCancellation?: (appointment: Appointment) => void;
   /** Doctors offered in the quick-edit picker. Fetched lazily when omitted. */
   doctors?: User[];
@@ -490,6 +492,7 @@ export function AppointmentPanel({
   onOpenClinicSession,
   onReschedule,
   onStatusChange,
+  isUpdatingStatus,
   onRequestCustomCancellation,
   onBillingSuccess,
   doctors: doctorsProp,
@@ -1001,6 +1004,7 @@ export function AppointmentPanel({
                 <AppointmentStatusRail
                   variant="dropdown"
                   readOnly={!canEditAppointment}
+                  isUpdating={isUpdatingStatus}
                   appointment={appointment}
                   onChange={(status, extra) => onStatusChange(appointment, status, extra)}
                   onRequestCustomCancellation={
@@ -1518,6 +1522,7 @@ export function AppointmentPanel({
             <AppointmentStatusRail
               variant="side"
               readOnly={!canEditAppointment}
+              isUpdating={isUpdatingStatus}
               appointment={appointment}
               onChange={(status, extra) => onStatusChange(appointment, status, extra)}
               onRequestCustomCancellation={

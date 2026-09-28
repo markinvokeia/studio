@@ -20,6 +20,8 @@ interface ContextEntityPickerProps {
   createLabel: string;
   searchPlaceholder: string;
   emptyText: string;
+  /** Hay una acción de esta cita en vuelo: se bloquean las selecciones. */
+  disabled?: boolean;
 }
 
 /**
@@ -36,6 +38,7 @@ export function ContextEntityPicker({
   createLabel,
   searchPlaceholder,
   emptyText,
+  disabled = false,
 }: ContextEntityPickerProps) {
   const [query, setQuery] = React.useState('');
 
@@ -71,7 +74,7 @@ export function ContextEntityPicker({
       </div>
 
       {/* Pinned "create new" — always visible above the scrollable list */}
-      <ContextMenuItem onSelect={onCreateNew} className="flex items-center gap-2 cursor-pointer font-medium">
+      <ContextMenuItem disabled={disabled} onSelect={onCreateNew} className="flex items-center gap-2 cursor-pointer font-medium">
         <Plus className="h-4 w-4 shrink-0" />
         {createLabel}
       </ContextMenuItem>
@@ -86,6 +89,7 @@ export function ContextEntityPicker({
           filtered.map((item) => (
             <ContextMenuItem
               key={item.id}
+              disabled={disabled}
               onSelect={() => onSelect(item.id)}
               className="flex items-center gap-2 cursor-pointer"
             >
