@@ -43,7 +43,7 @@ import {
 import type { PrescriptionPatientInfo } from '@/lib/prescription-render';
 import { PatientPrescription, PrescriptionItem, PrescriptionTemplate } from '@/lib/types';
 import { cn, formatDate, formatDisplayDate } from '@/lib/utils';
-import api from '@/services/api';
+import api, { REQUEST_TIMEOUT_MS } from '@/services/api';
 
 import { addDays } from 'date-fns';
 import { Calendar as CalendarIcon, Eye, FileText, Loader2, Pencil, PenLine, Plus, Printer, Trash2 } from 'lucide-react';
@@ -337,7 +337,9 @@ export function PrescriptionDialog({
                 // impresión, así el papel no puede salir distinto de la pantalla.
                 content_html: contentHtml,
             };
-            const response = await api.post(API_ROUTES.PATIENT_PRESCRIPTIONS_UPSERT, payload);
+            const response = await api.post(API_ROUTES.PATIENT_PRESCRIPTIONS_UPSERT, payload, undefined, undefined, {
+                timeoutMs: REQUEST_TIMEOUT_MS.mutation,
+            });
             const record = Array.isArray(response)
                 ? response[0]
                 : (response?.rows?.[0] || response?.data || response?.result || response);
@@ -665,7 +667,13 @@ export function PrescriptionDialog({
     );
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog
+            open={open}
+            onOpenChange={(next) => {
+                if (!next && isSubmitting) return;
+                onOpenChange(next);
+            }}
+        >
             <DialogContent maxWidth="7xl" className="h-full max-h-[95vh] p-0">
                 <DialogHeader className="border-b px-4 py-3 sm:px-6 sm:py-4">
                     <DialogTitle>{savedPrescription ? t('editTitle') : t('createTitle')}</DialogTitle>
@@ -722,7 +730,7 @@ export function PrescriptionDialog({
                             {isPrinting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Printer className="mr-1.5 h-4 w-4" />}
                             {t('print')}
                         </Button>
-                        <DialogCancelButton variant="outline">{t('close')}</DialogCancelButton>
+                        <DialogCancelButton variant="outline" disabled={isSubmitting}>{t('close')}</DialogCancelButton>
                         <Button type="submit" disabled={isSubmitting}>
                             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             {isSubmitting ? t('saving') : t('save')}

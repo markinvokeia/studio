@@ -368,13 +368,19 @@ textarea::placeholder {
   text-align: right;
 }
 
-@container patient-ledger (min-width: 40rem) {
+/* Row floor = its fixed columns, not its content: date 8rem + treatment 10rem +
+   3 × 6rem amounts + 4 × 0.75rem gaps + 1.5rem row padding + border + 1rem
+   wrapper padding ≈ 41.75rem. (`max-content` used to size rows off the full,
+   untruncated treatment label, forcing horizontal scroll that hid the Saldo
+   column.) The switch-over sits ~1.25rem above that floor so a vertical
+   scrollbar in the list can't tip it into horizontal scroll. */
+@container patient-ledger (min-width: 43rem) {
   .patient-ledger-col-header {
     display: flex;
   }
 
   .patient-ledger-row-min-w {
-    min-width: max-content;
+    min-width: 41.75rem;
   }
 
   .patient-ledger-amounts {
@@ -403,6 +409,142 @@ textarea::placeholder {
   .patient-ledger-footer-total-cell {
     width: 6rem;
     flex: none;
+  }
+}
+
+/* ── Ledger inline editors (container query) ───────────────────────────────
+   The create/edit editors in patient-ledger.tsx live in the same variable-width
+   panel as the ledger, so they size off their own width too. Each editor lays
+   its fields on a grid whose areas are picked per editor (`data-layout`) and
+   per width tier, so fields always land in fixed, full rows instead of
+   wrapping raggedly. Fields opt into a slot with `[grid-area:<name>]`; a slot
+   with no field (e.g. `pend` while editing a payment) just stays empty.
+   Tiers: < 34rem (phone / narrow sheet), 34–60rem (split panel), ≥ 60rem. */
+.ledger-editor {
+  container-type: inline-size;
+  container-name: ledger-editor;
+}
+
+/* Same tint as the editor card (`bg-primary/5` over the card), but opaque so the
+   sticky header covers the fields scrolling beneath it. */
+.ledger-editor-header {
+  background: linear-gradient(hsl(var(--primary) / 0.05), hsl(var(--primary) / 0.05)), hsl(var(--card));
+}
+
+.ledger-editor-grid {
+  display: grid;
+  align-items: center;
+  gap: 0.5rem;
+  /* Outer columns keep a floor so the short fields that sit there (quantity,
+     tooth) never clip their placeholder on a phone. */
+  grid-template-columns: minmax(5.5rem, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(5.5rem, 1fr);
+}
+
+.ledger-editor-grid > * {
+  min-width: 0;
+}
+
+.ledger-editor-grid[data-layout='invoice'] {
+  grid-template-areas:
+    'date date due due'
+    'svc svc svc svc'
+    'qty amt amt amt'
+    'doc doc doc doc'
+    'sede sede sede sede'
+    'notes notes notes tooth';
+}
+
+.ledger-editor-grid[data-layout='quote'] {
+  grid-template-areas:
+    'date date date date'
+    'svc svc svc svc'
+    'qty amt amt amt'
+    'doc doc doc doc'
+    'sede sede sede sede'
+    'notes notes notes tooth';
+}
+
+.ledger-editor-grid[data-layout='payment'] {
+  grid-template-areas:
+    'date date hist hist'
+    'method method method method'
+    'amt amt amt amt'
+    'notes notes notes notes'
+    'pend pend pend pend';
+}
+
+.ledger-editor-grid[data-layout='credit-note'] {
+  grid-template-areas:
+    'date date date date'
+    'svc svc svc svc'
+    'qty amt amt amt'
+    'total total total total'
+    'notes notes notes notes';
+}
+
+@container ledger-editor (min-width: 34rem) {
+  .ledger-editor-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .ledger-editor-grid[data-layout='invoice'] {
+    grid-template-areas:
+      'date date svc svc svc svc'
+      'due due qty amt amt amt'
+      'doc doc doc sede sede sede'
+      'notes notes notes notes notes tooth';
+  }
+
+  .ledger-editor-grid[data-layout='quote'] {
+    grid-template-areas:
+      'date date svc svc svc svc'
+      'qty amt amt amt amt amt'
+      'doc doc doc sede sede sede'
+      'notes notes notes notes notes tooth';
+  }
+
+  .ledger-editor-grid[data-layout='payment'] {
+    grid-template-areas:
+      'date date method method method method'
+      'amt amt amt hist hist hist'
+      'notes notes notes pend pend pend';
+  }
+
+  .ledger-editor-grid[data-layout='credit-note'] {
+    grid-template-areas:
+      'date date svc svc svc svc'
+      'qty amt amt total total total'
+      'notes notes notes notes notes notes';
+  }
+}
+
+@container ledger-editor (min-width: 60rem) {
+  .ledger-editor-grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+
+  .ledger-editor-grid[data-layout='invoice'] {
+    grid-template-areas:
+      'date date svc svc svc svc qty amt amt amt amt amt'
+      'due due doc doc doc sede sede sede notes notes notes tooth';
+  }
+
+  .ledger-editor-grid[data-layout='quote'] {
+    grid-template-areas:
+      'date date svc svc svc svc qty amt amt amt amt amt'
+      'doc doc doc sede sede sede notes notes notes notes notes tooth';
+  }
+
+  .ledger-editor-grid[data-layout='payment'] {
+    grid-template-areas:
+      'date date method method method method method amt amt amt amt amt'
+      'notes notes notes notes notes notes hist hist pend pend pend pend';
+  }
+
+  .ledger-editor-grid[data-layout='credit-note'] {
+    grid-template-areas:
+      'date date svc svc svc svc qty amt amt amt total total'
+      'notes notes notes notes notes notes notes notes notes notes notes notes';
   }
 }
 

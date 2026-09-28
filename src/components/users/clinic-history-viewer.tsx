@@ -46,6 +46,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
 import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
+import { useAsyncAction } from '@/hooks/use-async-action';
 import { statusBadgeClassNames, statusBadgeInlineStyle } from '@/lib/appointment-status-display';
 import { getStatusIcon } from '@/components/appointments/status-icons';
 import { useAppointmentStatus } from '@/hooks/use-appointment-status';
@@ -2187,17 +2188,19 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
         setDeletingSession(session);
     };
 
-    const confirmDeleteSession = async () => {
-        if (!deletingSession) return;
-        try {
+    const deleteSessionAction = useAsyncAction(
+        async () => {
+            if (!deletingSession) return;
             await onDeleteSession(deletingSession.sesion_id, userId);
-            toast({ title: t('toast.success'), description: t('toast.deleteSuccess') });
-        } catch (error) {
-            toast({ title: t('toast.error'), variant: 'destructive' });
-        } finally {
-            setDeletingSession(null);
+        },
+        {
+            onSuccess: () => {
+                toast({ title: t('toast.success'), description: t('toast.deleteSuccess') });
+                setDeletingSession(null);
+            },
+            errorTitle: t('toast.error'),
         }
-    };
+    );
 
     const handleSaveViaDialog = async (data: ClinicSessionFormData) => {
         if (editingSession?.sesion_id) {
@@ -2919,7 +2922,13 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
             />
 
             {/* Delete Confirmation Dialog */}
-            <Dialog open={!!deletingSession} onOpenChange={() => setDeletingSession(null)}>
+            <Dialog
+                open={!!deletingSession}
+                onOpenChange={(next) => {
+                    if (!next && deleteSessionAction.isPending) return;
+                    if (!next) setDeletingSession(null);
+                }}
+            >
                 <DialogContent maxWidth="sm">
                     <DialogHeader>
                         <DialogTitle>{tPage('common.delete')}</DialogTitle>
@@ -2928,10 +2937,11 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                         <p className="text-muted-foreground">{tDialog('deleteConfirm')}</p>
                     </DialogBody>
                     <DialogFooter className="px-6 py-4 border-t gap-2">
-                        <Button variant="outline" onClick={() => setDeletingSession(null)}>
+                        <Button variant="outline" onClick={() => setDeletingSession(null)} disabled={deleteSessionAction.isPending}>
                             {tDialog('cancel')}
                         </Button>
-                        <Button variant="destructive" onClick={confirmDeleteSession} className="px-8">
+                        <Button variant="destructive" onClick={() => deleteSessionAction.run()} disabled={deleteSessionAction.isPending} className="px-8">
+                            {deleteSessionAction.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             {tPage('common.delete')}
                         </Button>
                     </DialogFooter>

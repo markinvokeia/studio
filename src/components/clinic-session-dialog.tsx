@@ -780,7 +780,13 @@ export function ClinicSessionDialog({
     const dateLocale = getDateFnsLocale(locale);
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog
+            open={open}
+            onOpenChange={(next) => {
+                if (!next && isSubmitting) return;
+                onOpenChange(next);
+            }}
+        >
             <DialogContent
                 maxWidth="2xl"
                 showMaximize
@@ -1533,7 +1539,7 @@ export function ClinicSessionDialog({
                         </div>
                     </div>
                     <DialogFooter className="px-6 py-4 border-t shrink-0">
-                        <DialogCancelButton variant="outline">
+                        <DialogCancelButton variant="outline" disabled={isSubmitting}>
                             {t('cancel')}
                         </DialogCancelButton>
                         <Button type="submit" disabled={isSubmitting || isFetchingProcedure || isFetchingPlan || isProcedureDebouncing || isPlanDebouncing}>
