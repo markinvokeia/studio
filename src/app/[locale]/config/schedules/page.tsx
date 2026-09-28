@@ -1,9 +1,9 @@
 'use client';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -15,14 +15,17 @@ import { Separator } from '@/components/ui/separator';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
+import { useAsyncAction } from '@/hooks/use-async-action';
+import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
+import { getErrorMessage } from '@/lib/error-utils';
 import { ClinicSchedule, Sede } from '@/lib/types';
-import api from '@/services/api';
+import api, { isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, Building2, CalendarClock, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { AlertTriangle, Building2, CalendarClock, Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -38,38 +41,29 @@ const scheduleFormSchema = (t: (key: string) => string) => z.object({
 
 type ScheduleFormValues = z.infer<ReturnType<typeof scheduleFormSchema>>;
 
-async function getSedes(): Promise<Sede[]> {
-    try {
-        const data = await api.get(API_ROUTES.SEDES, { page: '1', limit: '200' });
-        const raw = Array.isArray(data) ? data : (data.sedes || data.data || []);
-        return raw.map((s: any) => ({
-            id: String(s.id),
-            clinic_id: String(s.clinic_id),
-            name: s.name || '',
-            is_active: s.is_active !== undefined ? s.is_active : true,
-        }));
-    } catch {
-        return [];
-    }
+async function getSedes(signal?: AbortSignal): Promise<Sede[]> {
+    const data = await api.get(API_ROUTES.SEDES, { page: '1', limit: '200' }, undefined, { signal });
+    const raw = Array.isArray(data) ? data : (data?.sedes || data?.data || []);
+    return raw.map((s: any) => ({
+        id: String(s.id),
+        clinic_id: String(s.clinic_id),
+        name: s.name || '',
+        is_active: s.is_active !== undefined ? s.is_active : true,
+    }));
 }
 
-async function getSchedules(sedeId?: string): Promise<ClinicSchedule[]> {
-    try {
-        const params: Record<string, string> = {};
-        if (sedeId) params.sede_id = sedeId;
-        const data = await api.get(API_ROUTES.CLINIC_SCHEDULES, params);
-        const schedulesData = Array.isArray(data) ? data : (data.schedules || data.data || data.result || []);
-        return schedulesData.map((apiSchedule: any) => ({
-            id: String(apiSchedule.id),
-            day_of_week: apiSchedule.day_of_week,
-            start_time: apiSchedule.start_time,
-            end_time: apiSchedule.end_time,
-            sede_id: apiSchedule.sede_id ? String(apiSchedule.sede_id) : undefined,
-        }));
-    } catch (error) {
-        console.error("Failed to fetch schedules:", error);
-        return [];
-    }
+async function getSchedules(sedeId?: string, signal?: AbortSignal): Promise<ClinicSchedule[]> {
+    const params: Record<string, string> = {};
+    if (sedeId) params.sede_id = sedeId;
+    const data = await api.get(API_ROUTES.CLINIC_SCHEDULES, params, undefined, { signal });
+    const schedulesData = Array.isArray(data) ? data : (data?.schedules || data?.data || data?.result || []);
+    return schedulesData.map((apiSchedule: any) => ({
+        id: String(apiSchedule.id),
+        day_of_week: apiSchedule.day_of_week,
+        start_time: apiSchedule.start_time,
+        end_time: apiSchedule.end_time,
+        sede_id: apiSchedule.sede_id ? String(apiSchedule.sede_id) : undefined,
+    }));
 }
 
 async function upsertSchedule(scheduleData: ScheduleFormValues) {
@@ -78,7 +72,7 @@ async function upsertSchedule(scheduleData: ScheduleFormValues) {
         day_of_week: Number(scheduleData.day_of_week),
         sede_id: Number(scheduleData.sede_id),
     };
-    const responseData = await api.post(API_ROUTES.CLINIC_SCHEDULES_UPSERT, payload);
+    const responseData = await api.post(API_ROUTES.CLINIC_SCHEDULES_UPSERT, payload, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         throw new Error(responseData[0]?.message || 'Failed to save schedule');
     }
@@ -86,7 +80,7 @@ async function upsertSchedule(scheduleData: ScheduleFormValues) {
 }
 
 async function deleteSchedule(id: string) {
-    const responseData = await api.delete(API_ROUTES.CLINIC_SCHEDULES_DELETE, { id });
+    const responseData = await api.delete(API_ROUTES.CLINIC_SCHEDULES_DELETE, { id }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         throw new Error(responseData[0]?.message || 'Failed to delete schedule');
     }
@@ -96,6 +90,7 @@ async function deleteSchedule(id: string) {
 export default function SchedulesPage() {
     const t = useTranslations('SchedulesPage');
     const tValidation = useTranslations('SchedulesPage.validation');
+    const tCommon = useTranslations('Common');
     const { toast } = useToast();
     const isNarrow = useViewportNarrow();
     const { hasPermission } = usePermissions();
@@ -104,14 +99,11 @@ export default function SchedulesPage() {
     const canUpdate = hasPermission(BUSINESS_CONFIG_PERMISSIONS.SCHEDULES_UPDATE);
     const canDelete = hasPermission(BUSINESS_CONFIG_PERMISSIONS.SCHEDULES_DELETE);
 
-    const [sedes, setSedes] = React.useState<Sede[]>([]);
+    const { data: sedes, isLoading: isSedesLoading, isRefreshing: isSedesRefreshing, error: sedesError, reload: loadSedes } = useDataLoader(getSedes, [] as Sede[]);
     const [activeSede, setActiveSede] = React.useState<string>('');
-    const [schedules, setSchedules] = React.useState<ClinicSchedule[]>([]);
-    const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedSchedule, setSelectedSchedule] = React.useState<ClinicSchedule | null>(null);
     const [isEditing, setIsEditing] = React.useState(false);
-    const [isSaving, setIsSaving] = React.useState(false);
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
@@ -123,24 +115,30 @@ export default function SchedulesPage() {
     });
 
     React.useEffect(() => {
-        getSedes().then(fetched => {
-            setSedes(fetched);
-            if (fetched.length > 0) setActiveSede(fetched[0].id);
-        });
-    }, []);
+        if (!activeSede && sedes.length > 0) setActiveSede(sedes[0].id);
+    }, [sedes, activeSede]);
 
-    const loadSchedules = React.useCallback(async () => {
-        if (!activeSede) return;
-        setIsRefreshing(true);
-        const fetched = await getSchedules(activeSede);
-        setSchedules(fetched);
-        setIsRefreshing(false);
-    }, [activeSede]);
+    // Switching sede quickly can't show another sede's schedules: only the latest request writes.
+    const {
+        data: schedules,
+        isLoading: isSchedulesLoading,
+        isRefreshing,
+        error: loadError,
+        reload: loadSchedules,
+    } = useDataLoader(
+        (signal) => getSchedules(activeSede, signal),
+        [] as ClinicSchedule[],
+        [activeSede],
+        { enabled: !!activeSede }
+    );
+    const isLoading = isSedesLoading || (!!activeSede && isSchedulesLoading);
 
+    // A different sede shows a different list: drop the selection that belonged to the previous one.
     React.useEffect(() => {
-        handleClose();
-        loadSchedules();
-    }, [loadSchedules]);
+        setSelectedSchedule(null);
+        setRowSelection({});
+        setIsEditing(false);
+    }, [activeSede]);
 
     const getDayLabel = (day: number | string) => {
         const dayMap: Record<string, string> = {
@@ -152,6 +150,11 @@ export default function SchedulesPage() {
 
     const handleRowSelection = (rows: ClinicSchedule[]) => {
         const schedule = rows[0] ?? null;
+        // Don't drop an in-flight save or unsaved edits by clicking another row.
+        if (save.isPending || (isEditing && form.formState.isDirty && !window.confirm(tCommon('unsavedChangesConfirm')))) {
+            setRowSelection(selectedSchedule ? { [selectedSchedule.id]: true } : {});
+            return;
+        }
         setSelectedSchedule(schedule);
         setSubmissionError(null);
         if (schedule) {
@@ -176,6 +179,8 @@ export default function SchedulesPage() {
     };
 
     const handleBack = () => {
+        if (save.isPending) return;
+        if (isEditing && form.formState.isDirty && !window.confirm(tCommon('unsavedChangesConfirm'))) return;
         if (isEditing && selectedSchedule) {
             setIsEditing(false);
             form.reset({ ...selectedSchedule, day_of_week: String(selectedSchedule.day_of_week), sede_id: selectedSchedule.sede_id || '' });
@@ -185,41 +190,60 @@ export default function SchedulesPage() {
     };
 
     const handleSedeChange = (sedeId: string) => {
+        if (sedeId === activeSede || save.isPending) return;
+        if (isEditing && form.formState.isDirty && !window.confirm(tCommon('unsavedChangesConfirm'))) return;
         setActiveSede(sedeId);
     };
 
-    const onSubmit = async (values: ScheduleFormValues) => {
-        setSubmissionError(null);
-        setIsSaving(true);
-        try {
+    const save = useAsyncAction(
+        async (values: ScheduleFormValues) => {
+            setSubmissionError(null);
             await upsertSchedule(values);
-            toast({ title: selectedSchedule ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle') });
-            await loadSchedules();
-            setIsEditing(false);
-            if (!values.id) {
-                setIsCreateDialogOpen(false);
-                handleClose();
-            }
-        } catch (error) {
-            setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
-        } finally {
-            setIsSaving(false);
+            return values;
+        },
+        {
+            onSuccess: async (values) => {
+                toast({ title: values.id ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle') });
+                const fresh = await loadSchedules();
+                setIsEditing(false);
+                if (!values.id) {
+                    setIsCreateDialogOpen(false);
+                    handleClose();
+                    return;
+                }
+                const updated = fresh?.find((s) => s.id === values.id);
+                if (updated) {
+                    setSelectedSchedule(updated);
+                    form.reset({ ...updated, day_of_week: String(updated.day_of_week), sede_id: updated.sede_id || '' });
+                }
+            },
+            onError: (error) => {
+                if (isTimeoutError(error)) {
+                    // The schedule may have been saved anyway: refresh so the user can check before retrying.
+                    setSubmissionError(tCommon('timeoutError'));
+                    loadSchedules();
+                    return;
+                }
+                setSubmissionError(getErrorMessage(error) || t('toast.genericError'));
+            },
+            showErrorToast: false,
         }
-    };
+    );
 
-    const confirmDelete = async () => {
-        if (!deletingSchedule) return;
-        try {
-            await deleteSchedule(deletingSchedule.id);
-            toast({ title: t('toast.deleteSuccessTitle') });
-            setIsDeleteDialogOpen(false);
-            setDeletingSchedule(null);
-            handleClose();
-            loadSchedules();
-        } catch (error) {
-            toast({ variant: 'destructive', title: t('toast.errorTitle'), description: t('toast.deleteErrorDescription') });
+    const remove = useAsyncAction(
+        (schedule: ClinicSchedule) => deleteSchedule(schedule.id),
+        {
+            onSuccess: async () => {
+                toast({ title: t('toast.deleteSuccessTitle') });
+                setIsDeleteDialogOpen(false);
+                setDeletingSchedule(null);
+                handleClose();
+                await loadSchedules();
+            },
+            onError: (error) => { if (isTimeoutError(error)) loadSchedules(); },
+            errorTitle: t('toast.deleteErrorDescription'),
         }
-    };
+    );
 
     const columns: ColumnDef<ClinicSchedule>[] = [
         {
@@ -297,6 +321,7 @@ export default function SchedulesPage() {
                                 variant={activeSede === sede.id ? 'default' : 'outline'}
                                 size="sm"
                                 className="h-7 text-xs gap-1.5"
+                                aria-pressed={activeSede === sede.id}
                                 onClick={() => handleSedeChange(sede.id)}
                             >
                                 <Building2 className="h-3 w-3" />
@@ -306,7 +331,21 @@ export default function SchedulesPage() {
                     </div>
                 </div>
             )}
-            {sedes.length === 0 && !isRefreshing && (
+            {sedesError && !isSedesLoading && (
+                // A failed sede load is not "no sedes configured": show it and let the user retry.
+                <div className="flex-none px-4 pb-3">
+                    <Alert variant="destructive" className="py-2">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertDescription className="flex flex-wrap items-center gap-3">
+                            <span>{tCommon('loadError')} {sedesError}</span>
+                            <Button size="sm" variant="outline" className="h-7" onClick={() => loadSedes()} loading={isSedesRefreshing}>
+                                {tCommon('retry')}
+                            </Button>
+                        </AlertDescription>
+                    </Alert>
+                </div>
+            )}
+            {sedes.length === 0 && !isSedesLoading && !sedesError && (
                 <div className="flex-none px-4 pb-3">
                     <p className="text-sm text-muted-foreground">{t('sede.noSedesConfigured')}</p>
                 </div>
@@ -320,6 +359,8 @@ export default function SchedulesPage() {
                     onCreate={canCreate && activeSede ? handleCreate : undefined}
                     onRefresh={loadSchedules}
                     isRefreshing={isRefreshing}
+                    isLoading={isLoading}
+                    loadError={loadError}
                     enableSingleRowSelection
                     rowSelection={rowSelection}
                     setRowSelection={setRowSelection}
@@ -365,7 +406,7 @@ export default function SchedulesPage() {
                             </Button>
                         )}
                         {selectedSchedule && !isEditing && canDelete && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" onClick={() => { setDeletingSchedule(selectedSchedule); setIsDeleteDialogOpen(true); }}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" aria-label={t('deleteDialog.confirm')} onClick={() => { setDeletingSchedule(selectedSchedule); setIsDeleteDialogOpen(true); }}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         )}
@@ -375,7 +416,7 @@ export default function SchedulesPage() {
             <Separator />
             <CardContent className="flex-1 overflow-auto p-4">
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(save.run)} className="space-y-4">
                         {submissionError && (
                             <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />
@@ -383,14 +424,13 @@ export default function SchedulesPage() {
                                 <AlertDescription>{submissionError}</AlertDescription>
                             </Alert>
                         )}
-                        {scheduleFields(!isEditing)}
+                        {scheduleFields(!isEditing || save.isPending)}
                         {isEditing && (
                             <div className="flex gap-2 pt-2">
-                                <Button type="button" variant="outline" onClick={() => { setIsEditing(false); if (selectedSchedule) form.reset({ ...selectedSchedule, day_of_week: String(selectedSchedule.day_of_week), sede_id: selectedSchedule.sede_id || '' }); else handleClose(); }} disabled={isSaving}>
+                                <Button type="button" variant="outline" onClick={() => { setIsEditing(false); setSubmissionError(null); if (selectedSchedule) form.reset({ ...selectedSchedule, day_of_week: String(selectedSchedule.day_of_week), sede_id: selectedSchedule.sede_id || '' }); else handleClose(); }} disabled={save.isPending}>
                                     {t('createDialog.cancel')}
                                 </Button>
-                                <Button type="submit" disabled={isSaving}>
-                                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                <Button type="submit" loading={save.isPending}>
                                     {selectedSchedule ? t('createDialog.editSave') : t('createDialog.save')}
                                 </Button>
                             </div>
@@ -411,21 +451,22 @@ export default function SchedulesPage() {
                 leftPanelDefaultSize={40}
                 rightPanelDefaultSize={60}
             />
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
-                        <AlertDialogDescription>{t('deleteDialog.description')}</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <ConfirmActionDialog
+                open={isDeleteDialogOpen}
+                onOpenChange={setIsDeleteDialogOpen}
+                title={t('deleteDialog.title')}
+                description={t('deleteDialog.description', {
+                    schedule: deletingSchedule ? `${getDayLabel(deletingSchedule.day_of_week)} ${deletingSchedule.start_time}–${deletingSchedule.end_time}` : '',
+                })}
+                cancelLabel={t('deleteDialog.cancel')}
+                confirmLabel={t('deleteDialog.confirm')}
+                onConfirm={() => { if (deletingSchedule) remove.run(deletingSchedule); }}
+                isPending={remove.isPending}
+            />
             <Dialog
                 open={isCreateDialogOpen}
                 onOpenChange={(open) => {
+                    if (!open && save.isPending) return;
                     setIsCreateDialogOpen(open);
                     if (!open) {
                         setIsEditing(false);
@@ -434,7 +475,7 @@ export default function SchedulesPage() {
                     }
                 }}
             >
-                <DialogContent maxWidth="lg" confirmOnClose isDirty={form.formState.isDirty}>
+                <DialogContent maxWidth="lg" confirmOnClose isDirty={form.formState.isDirty && !save.isPending}>
                     <DialogHeader>
                         <DialogTitle>
                             {t('createDialog.title')}
@@ -446,7 +487,7 @@ export default function SchedulesPage() {
                         </DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col min-h-0">
+                        <form onSubmit={form.handleSubmit(save.run)} className="flex flex-col min-h-0">
                             <DialogBody className="space-y-4 px-6 py-4">
                                 {submissionError && (
                                     <Alert variant="destructive">
@@ -455,14 +496,13 @@ export default function SchedulesPage() {
                                         <AlertDescription>{submissionError}</AlertDescription>
                                     </Alert>
                                 )}
-                                {scheduleFields(false)}
+                                {scheduleFields(save.isPending)}
                             </DialogBody>
                             <DialogFooter>
-                                <DialogCancelButton disabled={isSaving}>
+                                <DialogCancelButton disabled={save.isPending}>
                                     {t('createDialog.cancel')}
                                 </DialogCancelButton>
-                                <Button type="submit" disabled={isSaving}>
-                                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                <Button type="submit" loading={save.isPending}>
                                     {t('createDialog.save')}
                                 </Button>
                             </DialogFooter>

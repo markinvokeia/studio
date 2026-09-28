@@ -1,9 +1,10 @@
 'use client';
 
-import { FileText, HelpCircle, Loader2, Percent, Save, SlidersHorizontal } from 'lucide-react';
+import { AlertTriangle, FileText, HelpCircle, Percent, Save, SlidersHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,8 +16,11 @@ import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 import { CLINIC_PREFS_PERMISSIONS } from '@/constants/permissions';
+import { useAsyncAction } from '@/hooks/use-async-action';
+import { useDataLoader } from '@/hooks/use-data-loader';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
+import { REQUEST_TIMEOUT_MS, isTimeoutError } from '@/services/api';
 import type { ClinicPreferences, DiscountScope } from '@/lib/types';
 import {
   DEFAULT_CLINIC_PREFERENCES,
@@ -34,6 +38,7 @@ import { useClinicPreferencesStore } from '@/stores/clinic-preferences-store';
  */
 export default function ClinicPrefsConfigPage() {
   const t = useTranslations('ClinicPrefsPage');
+  const tCommon = useTranslations('Common');
   const { hasPermission } = usePermissions();
   const canUpdate = hasPermission(CLINIC_PREFS_PERMISSIONS.UPDATE);
   const { toast } = useToast();
@@ -41,31 +46,20 @@ export default function ClinicPrefsConfigPage() {
   const setStorePreferences = useClinicPreferencesStore((s) => s.setPreferences);
 
   const [config, setConfig] = React.useState<ClinicPreferences>(DEFAULT_CLINIC_PREFERENCES);
-  const [initial, setInitial] = React.useState<ClinicPreferences>(DEFAULT_CLINIC_PREFERENCES);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [isSaving, setIsSaving] = React.useState(false);
+  // Se relee del backend en vez de tomar el store: esta pantalla es la que
+  // edita el dato, así que parte siempre del valor persistido.
+  const {
+    data: initial,
+    setData: setInitial,
+    isLoading,
+    isRefreshing,
+    error: loadError,
+    reload,
+  } = useDataLoader((signal) => fetchClinicPreferences({ signal }), DEFAULT_CLINIC_PREFERENCES);
 
   React.useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        // Se relee del backend en vez de tomar el store: esta pantalla es la que
-        // edita el dato, así que parte siempre del valor persistido.
-        const loaded = await fetchClinicPreferences();
-        if (cancelled) return;
-        setConfig(loaded);
-        setInitial(loaded);
-      } catch (error) {
-        console.error('Failed to load the clinic preferences:', error);
-        if (!cancelled) toast({ variant: 'destructive', title: t('loadError') });
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [t, toast]);
+    setConfig(initial);
+  }, [initial]);
 
   const isDirty = JSON.stringify(config) !== JSON.stringify(initial);
 
@@ -74,27 +68,27 @@ export default function ClinicPrefsConfigPage() {
   // El porcentaje por defecto no puede superar el tope: si lo hiciera, cada
   // línea nacería ya inválida.
   const defaultOverMax = config.default_discount_pct > config.max_discount_pct;
-  const canSave = canUpdate && isDirty && !isSaving && !defaultOverMax;
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      await updateClinicPreferences(config);
-      setInitial(config);
-      // El resto de la app lee del store, no de esta página: sin esto el cambio
-      // no se vería en las pantallas de venta hasta el próximo login.
-      setStorePreferences(config);
-      toast({ title: t('saved') });
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: t('saveError'),
-        description: error instanceof Error ? error.message : undefined,
-      });
-    } finally {
-      setIsSaving(false);
+  const save = useAsyncAction(
+    async (values: ClinicPreferences) => {
+      await updateClinicPreferences(values, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
+      return values;
+    },
+    {
+      onSuccess: (values) => {
+        setInitial(values);
+        // El resto de la app lee del store, no de esta página: sin esto el cambio
+        // no se vería en las pantallas de venta hasta el próximo login.
+        setStorePreferences(values);
+        toast({ title: t('saved') });
+      },
+      // El guardado pudo aplicarse antes del timeout: se relee para mostrar el estado real.
+      onError: (error) => { if (isTimeoutError(error)) reload(); },
+      errorTitle: t('saveError'),
     }
-  };
+  );
+  const isBusy = save.isPending || isRefreshing;
+  const canSave = canUpdate && isDirty && !isBusy && !defaultOverMax;
+  const canEdit = canUpdate && !isBusy;
 
   if (isLoading) {
     return (
@@ -103,6 +97,26 @@ export default function ClinicPrefsConfigPage() {
         {[0, 1].map((i) => (
           <Skeleton key={i} className="h-32 w-full rounded-xl" />
         ))}
+      </div>
+    );
+  }
+
+  // Si la carga falla no se muestran los valores por defecto como si fueran los guardados:
+  // guardarlos pisaría la configuración real de la clínica.
+  if (loadError) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <PageHeader icon={<SlidersHorizontal className="h-5 w-5" />} title={t('title')} description={t('description')} />
+        <Alert variant="destructive" className="m-1">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>{t('loadError')}</AlertTitle>
+          <AlertDescription className="flex flex-wrap items-center gap-3">
+            <span>{loadError}</span>
+            <Button size="sm" variant="outline" onClick={() => reload()} loading={isRefreshing}>
+              {tCommon('retry')}
+            </Button>
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
@@ -116,8 +130,8 @@ export default function ClinicPrefsConfigPage() {
           description={t('description')}
           actions={
             canUpdate ? (
-              <Button onClick={handleSave} disabled={!canSave} className="gap-1.5">
-                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              <Button onClick={() => save.run(config)} disabled={!canSave} loading={save.isPending} className="gap-1.5">
+                <Save className="h-4 w-4" />
                 {t('save')}
               </Button>
             ) : null
@@ -139,7 +153,7 @@ export default function ClinicPrefsConfigPage() {
                 control={
                   <Switch
                     checked={config.discounts_enabled}
-                    disabled={!canUpdate}
+                    disabled={!canEdit}
                     onCheckedChange={(v) => patch({ discounts_enabled: v })}
                   />
                 }
@@ -155,7 +169,7 @@ export default function ClinicPrefsConfigPage() {
                     </div>
                     <RadioGroup
                       value={config.discount_scope}
-                      disabled={!canUpdate}
+                      disabled={!canEdit}
                       onValueChange={(v) => patch({ discount_scope: v as DiscountScope })}
                       className="gap-3"
                     >
@@ -186,7 +200,7 @@ export default function ClinicPrefsConfigPage() {
                         max={100}
                         step="0.01"
                         value={config.default_discount_pct}
-                        disabled={!canUpdate}
+                        disabled={!canEdit}
                         onChange={(e) => patch({ default_discount_pct: clampPct(e.target.value) })}
                       />
                       <p className="text-xs text-muted-foreground">{t('discounts.defaultPct.hint')}</p>
@@ -205,7 +219,7 @@ export default function ClinicPrefsConfigPage() {
                         max={100}
                         step="0.01"
                         value={config.max_discount_pct}
-                        disabled={!canUpdate}
+                        disabled={!canEdit}
                         onChange={(e) => patch({ max_discount_pct: clampPct(e.target.value) })}
                       />
                       <p className="text-xs text-muted-foreground">{t('discounts.maxPct.hint')}</p>
@@ -240,7 +254,7 @@ export default function ClinicPrefsConfigPage() {
                 control={
                   <Switch
                     checked={config.identity_document_required}
-                    disabled={!canUpdate}
+                    disabled={!canEdit}
                     onCheckedChange={(v) => patch({ identity_document_required: v })}
                   />
                 }

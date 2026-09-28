@@ -6,6 +6,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
   Dialog,
+  DialogCancelButton,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -16,10 +17,12 @@ import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { API_ROUTES } from '@/constants/routes';
+import { useAsyncAction } from '@/hooks/use-async-action';
+import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
 import { Service } from '@/lib/types';
 import { formatServicePrice } from '@/lib/utils';
-import { api } from '@/services/api';
+import { api, isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { getPurchaseServices, getSalesServices } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
@@ -70,11 +73,11 @@ const getColumns = (t: (key: string) => string): ColumnDef<Service>[] => [
   },
 ];
 
-async function getServicesForUser(userId: string, t: any, isSalesUser: boolean): Promise<Service[]> {
+// Throws on failure: an empty list here would make the next "assign" (a full replace) wipe the real assignments.
+async function getServicesForUser(userId: string, t: any, isSalesUser: boolean, signal?: AbortSignal): Promise<Service[]> {
   if (!userId) return [];
-  try {
-    const data = await api.get(API_ROUTES.USER_SERVICES, { user_id: userId, is_sales: String(isSalesUser) });
-    const userServicesData = Array.isArray(data) ? data : (data.user_services || data.data || data.result || []);
+    const data = await api.get(API_ROUTES.USER_SERVICES, { user_id: userId, is_sales: String(isSalesUser) }, undefined, { signal });
+    const userServicesData = Array.isArray(data) ? data : (data?.user_services || data?.data || data?.result || []);
 
     if (userServicesData.length === 0 || (userServicesData.length === 1 && Object.keys(userServicesData[0]).length === 0)) {
       return [];
@@ -92,24 +95,20 @@ async function getServicesForUser(userId: string, t: any, isSalesUser: boolean):
     }));
     // Filter client-side when the backend returns is_sales in the response
     return mapped.filter((s: { is_sales?: boolean }) => s.is_sales === undefined || s.is_sales === isSalesUser);
-  } catch (error) {
-    console.error("Failed to fetch user services:", error);
-    return [];
-  }
 }
 
 async function getAllServices(isSalesUser: boolean): Promise<Service[]> {
-  try {
     const result = isSalesUser ? await getSalesServices({ limit: 100 }) : await getPurchaseServices({ limit: 100 });
     return result.items.map((service: any) => ({ id: String(service.id), name: service.name, category: service.category, price: service.price, currency: service.currency || getClinicCurrency(), duration_minutes: service.duration_minutes, is_active: service.is_active, is_sales: service.is_sales as boolean | undefined }));
-  } catch (error) {
-    console.error("Failed to fetch all services:", error);
-    return [];
-  }
 }
 
 async function assignServicesToUser(userId: string, services: UserServiceAssignment[]): Promise<any> {
-  return await api.patch(API_ROUTES.USER_SERVICES_ASSIGN, { user_id: userId, services: services });
+  const response = await api.patch(API_ROUTES.USER_SERVICES_ASSIGN, { user_id: userId, services: services }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
+  const first = Array.isArray(response) ? response[0] : response;
+  if (first?.error || (first?.code && Number(first.code) >= 400)) {
+    throw new Error(first?.message || (typeof first?.error === 'string' ? first.error : '') || 'Failed to assign services');
+  }
+  return response;
 }
 
 interface UserServicesProps {
@@ -119,55 +118,59 @@ interface UserServicesProps {
 
 export function UserServices({ userId, isSalesUser }: UserServicesProps) {
   const t = useTranslations();
-  const [userServices, setUserServices] = React.useState<Service[]>([]);
   const [allServices, setAllServices] = React.useState<Service[]>([]);
-  const [isLoading, setIsLoading] = React.useState(true);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [selectedServices, setSelectedServices] = React.useState<UserServiceAssignment[]>([]);
   const { toast } = useToast();
   const columns = React.useMemo(() => getColumns(t), [t]);
 
-  const loadUserServices = React.useCallback(async () => {
-    if (!userId) return;
-    setIsLoading(true);
-    const fetchedUserServices = await getServicesForUser(userId, t, isSalesUser);
-    setUserServices(fetchedUserServices);
-    setIsLoading(false);
-  }, [userId, t, isSalesUser]);
+  // Switching users quickly can't show another user's services: only the latest load writes.
+  const {
+    data: userServices,
+    isLoading,
+    isRefreshing,
+    error: loadError,
+    reload: loadUserServices,
+  } = useDataLoader(
+    (signal) => getServicesForUser(userId, t, isSalesUser, signal),
+    [] as Service[],
+    [userId, isSalesUser]
+  );
 
-  React.useEffect(() => {
-    loadUserServices();
-  }, [loadUserServices]);
-
-  const handleAddService = async () => {
-    const services = await getAllServices(isSalesUser);
-    setAllServices(services);
-    const assignedServices: UserServiceAssignment[] = userServices.map(service => ({
-      service_id: service.id,
-      is_active: service.is_active,
-      duration_minutes: service.duration_minutes,
-    }));
-    setSelectedServices(assignedServices);
-    setIsDialogOpen(true);
-  };
-
-  const handleAssignServices = async () => {
-    try {
-      await assignServicesToUser(userId, selectedServices);
-      toast({
-        title: t('UserServices.toast.success'),
-        description: t('UserServices.toast.servicesAssigned'),
-      });
-      setIsDialogOpen(false);
-      loadUserServices();
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: t('UserServices.toast.error'),
-        description: error instanceof Error ? error.message : t('UserServices.toast.servicesAssignFailed'),
-      });
+  // Opening the dialog fetches the catalog; a failed fetch must not open an empty picker.
+  const openAssignDialog = useAsyncAction(
+    () => getAllServices(isSalesUser),
+    {
+      onSuccess: (services) => {
+        setAllServices(services);
+        const assignedServices: UserServiceAssignment[] = userServices.map(service => ({
+          service_id: service.id,
+          is_active: service.is_active,
+          duration_minutes: service.duration_minutes,
+        }));
+        setSelectedServices(assignedServices);
+        setIsDialogOpen(true);
+      },
+      errorTitle: t('Common.loadError'),
     }
-  };
+  );
+
+  const assign = useAsyncAction(
+    () => assignServicesToUser(userId, selectedServices),
+    {
+      onSuccess: async () => {
+        toast({
+          title: t('UserServices.toast.success'),
+          description: t('UserServices.toast.servicesAssigned'),
+        });
+        await loadUserServices();
+        setIsDialogOpen(false);
+      },
+      // The assignment may have been applied before the timeout: show the real state.
+      onError: (error) => { if (isTimeoutError(error)) loadUserServices(); },
+      errorTitle: t('UserServices.toast.servicesAssignFailed'),
+    }
+  );
 
   const handleServiceSelection = (serviceId: string, checked: boolean | 'indeterminate') => {
     setSelectedServices(prev => {
@@ -223,8 +226,11 @@ export function UserServices({ userId, isSalesUser }: UserServicesProps) {
         data={userServices}
         filterColumnId='name'
         filterPlaceholder={t('ServicesPage.filterPlaceholder')}
-        onCreate={handleAddService}
+        onCreate={loadError || openAssignDialog.isPending ? undefined : () => openAssignDialog.run()}
         createButtonLabel={t('UserServices.addServices')}
+        onRefresh={loadUserServices}
+        isRefreshing={isRefreshing || openAssignDialog.isPending}
+        loadError={loadError}
         columnTranslations={{
           name: t('ServicesColumns.name'),
           category: t('ServicesColumns.category'),
@@ -233,13 +239,20 @@ export function UserServices({ userId, isSalesUser }: UserServicesProps) {
           is_active: t('UserRoles.columns.status'),
         }}
       />
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog
+        open={isDialogOpen}
+        onOpenChange={(open) => {
+          if (!open && assign.isPending) return;
+          setIsDialogOpen(open);
+        }}
+      >
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>{t('UserServices.dialog.title')}</DialogTitle>
             <DialogDescription>{t('UserServices.dialog.description')}</DialogDescription>
           </DialogHeader>
-          <div className="py-4 px-6">
+          {/* Native fieldset disables every control while the request is in flight */}
+          <fieldset disabled={assign.isPending} className="min-w-0 py-4 px-6">
             <div className="flex justify-between items-center mb-4">
               <Label>{t('UserServices.dialog.availableServices')}</Label>
               <div className="flex gap-2">
@@ -289,10 +302,10 @@ export function UserServices({ userId, isSalesUser }: UserServicesProps) {
                 })}
               </div>
             </ScrollArea>
-          </div>
+          </fieldset>
           <DialogFooter>
-            <Button onClick={handleAssignServices}>{t('UserServices.dialog.assign')}</Button>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>{t('UserServices.dialog.cancel')}</Button>
+            <Button onClick={() => assign.run()} loading={assign.isPending}>{t('UserServices.dialog.assign')}</Button>
+            <DialogCancelButton disabled={assign.isPending}>{t('UserServices.dialog.cancel')}</DialogCancelButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

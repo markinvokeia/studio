@@ -3,7 +3,7 @@
 
 import { ColumnDef } from '@tanstack/react-table';
 import Image from 'next/image';
-import { Pencil, ToggleLeft } from 'lucide-react';
+import { Loader2, Pencil, ToggleLeft } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -11,7 +11,12 @@ import type { User } from '@/lib/types';
 import { useTranslations } from 'next-intl';
 import React from 'react';
 
-export const getColumns = (t: (key: string) => string, onToggleActivate: (user: User) => void, onEdit: (user: User) => void): ColumnDef<User>[] => [
+export const getColumns = (
+  t: (key: string) => string,
+  onToggleActivate: (user: User) => void,
+  onEdit: (user: User) => void,
+  isTogglePending: (userId: string) => boolean = () => false,
+): ColumnDef<User>[] => [
   {
     id: 'select',
     header: () => null,
@@ -76,14 +81,21 @@ export const getColumns = (t: (key: string) => string, onToggleActivate: (user: 
     cell: function Cell({ row }) {
       const t = useTranslations('DoctorsPage.DoctorColumns');
       const user = row.original;
+      const togglePending = isTogglePending(user.id);
       return (
         <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
           <button type="button" className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" onClick={() => onEdit(user)}>
             <Pencil className="h-3.5 w-3.5" />
             <span className="text-[9px] font-medium leading-tight">{t('edit')}</span>
           </button>
-          <button type="button" className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" onClick={() => onToggleActivate(user)}>
-            <ToggleLeft className="h-3.5 w-3.5" />
+          <button
+            type="button"
+            className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:pointer-events-none disabled:opacity-50"
+            onClick={() => onToggleActivate(user)}
+            disabled={togglePending}
+            aria-busy={togglePending || undefined}
+          >
+            {togglePending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ToggleLeft className="h-3.5 w-3.5" />}
             <span className="text-[9px] font-medium leading-tight">{user.is_active ? t('deactivate') : t('activate')}</span>
           </button>
         </div>
@@ -93,10 +105,10 @@ export const getColumns = (t: (key: string) => string, onToggleActivate: (user: 
 ];
 
 
-export function DoctorsColumnsWrapper({ onToggleActivate, onEdit }: { onToggleActivate: (user: User) => void; onEdit: (user: User) => void; }) {
+export function DoctorsColumnsWrapper({ onToggleActivate, onEdit, isTogglePending }: { onToggleActivate: (user: User) => void; onEdit: (user: User) => void; isTogglePending?: (userId: string) => boolean; }) {
   const t = useTranslations('DoctorsPage.DoctorColumns');
   const columns = React.useMemo(() => {
-    return getColumns(t, onToggleActivate, onEdit);
-  }, [t, onToggleActivate, onEdit]);
+    return getColumns(t, onToggleActivate, onEdit, isTogglePending);
+  }, [t, onToggleActivate, onEdit, isTogglePending]);
   return columns;
 }

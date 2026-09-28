@@ -11,6 +11,7 @@ import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useDataLoader } from '@/hooks/use-data-loader';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { ErrorLog } from '@/lib/types';
 import api from '@/services/api';
@@ -24,12 +25,12 @@ type GetErrorLogsResponse = {
     total: number;
 };
 
-async function getErrorLogs(pagination: PaginationState): Promise<GetErrorLogsResponse> {
+async function getErrorLogs(pagination: PaginationState, signal?: AbortSignal): Promise<GetErrorLogsResponse> {
     try {
         const responseData = await api.get(API_ROUTES.SYSTEM.ERROR_LOGS, {
             page: (pagination.pageIndex + 1).toString(),
             limit: pagination.pageSize.toString(),
-        });
+        }, undefined, { signal });
         const data = Array.isArray(responseData) && responseData.length > 0 ? responseData[0] : responseData;
         const logsData = Array.isArray(data.data) ? data.data : (data.error_logs || data.data || data.result || []);
         const total = data.total || (Array.isArray(data) ? data.length : 0);
@@ -44,7 +45,8 @@ async function getErrorLogs(pagination: PaginationState): Promise<GetErrorLogsRe
         return { errorLogs: mappedLogs, total };
     } catch (error) {
         console.error("Failed to fetch error logs:", error);
-        return { errorLogs: [], total: 0 };
+        // Rethrown: a failed load must show an error, not an empty log.
+        throw error;
     }
 }
 
@@ -62,9 +64,6 @@ export default function ErrorLogPage() {
     const canViewList = hasPermission(SYSTEM_PERMISSIONS.ERROR_LOG_VIEW_LIST);
     const isNarrow = useViewportNarrow();
 
-    const [data, setData] = React.useState<ErrorLog[]>([]);
-    const [logCount, setLogCount] = React.useState(0);
-    const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({ id: false });
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
@@ -85,15 +84,19 @@ export default function ErrorLogPage() {
         { accessorKey: 'user_id', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.userId')} /> },
     ], [t]);
 
-    const loadLogs = React.useCallback(async () => {
-        setIsRefreshing(true);
-        const { errorLogs, total } = await getErrorLogs(pagination);
-        setData(errorLogs);
-        setLogCount(total);
-        setIsRefreshing(false);
-    }, [pagination]);
-
-    React.useEffect(() => { loadLogs(); }, [loadLogs]);
+    // Only the latest page request may write the table (fast paging can't show an older page).
+    const {
+        data: { errorLogs: data, total: logCount },
+        isLoading,
+        isRefreshing,
+        error: loadError,
+        reload: loadLogs,
+    } = useDataLoader(
+        (signal) => getErrorLogs(pagination, signal),
+        { errorLogs: [] as ErrorLog[], total: 0 },
+        [pagination.pageIndex, pagination.pageSize],
+        { enabled: canViewList }
+    );
 
     const handleRowSelection = (rows: ErrorLog[]) => {
         setSelectedLog(rows[0] ?? null);
@@ -124,6 +127,8 @@ export default function ErrorLogPage() {
                         filterPlaceholder={t('filterPlaceholder')}
                         onRefresh={loadLogs}
                         isRefreshing={isRefreshing}
+                        isLoading={isLoading}
+                        loadError={loadError}
                         isNarrow={isNarrow || !!selectedLog}
                         renderCard={(row: ErrorLog, _isSelected: boolean) => (
                             <DataCard isSelected={_isSelected}

@@ -2996,7 +2996,19 @@
       "title": "Acciones",
       "edit": "Editar",
       "print": "Imprimir",
-      "sendEmail": "Enviar Correo"
+      "sendEmail": "Enviar Correo",
+      "confirm": "Confirmar",
+      "confirmSuccess": "Factura confirmada",
+      "confirmError": "Error al confirmar la factura",
+      "printError": "Error al descargar la factura",
+      "emailSuccess": "Factura enviada por email",
+      "emailError": "Error al enviar la factura",
+      "paymentSuccess": "Pago registrado correctamente",
+      "paymentError": "Error al registrar el pago",
+      "registerPayment": "Registrar pago",
+      "paymentDialogDescription": "Ingrese los detalles del pago de la factura {docNo}",
+      "cancel": "Cancelar",
+      "register": "Registrar"
     },
     "confirmation": {
       "confirm": "Confirmar",
@@ -3052,6 +3064,17 @@
     },
     "notes": {
       "noNotes": "No hay notas."
+    },
+    "fields": {
+      "amount": "Monto",
+      "paymentMethod": "Método de pago",
+      "reference": "Referencia",
+      "referencePlaceholder": "Número de referencia"
+    },
+    "paymentMethods": {
+      "cash": "Efectivo",
+      "card": "Tarjeta",
+      "transfer": "Transferencia"
     }
   },
   "CashierPage": {
@@ -4050,22 +4073,22 @@
     },
     "deleteDialog": {
       "title": "Eliminar Horario",
-      "description": "¿Está seguro de que desea eliminar este horario? Esta acción no se puede deshacer.",
+      "description": "¿Está seguro de que desea eliminar el horario {schedule}? Esta acción no se puede deshacer.",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
     },
     "toast": {
       "editSuccessDescription": "Los detalles han sido actualizados satisfactoriamente",
-      "editSuccessTitle": "Operación exitosa",
+      "editSuccessTitle": "Horario actualizado",
       "successDescription": "Los detalles han sido actualizados satisfactoriamente",
       "successTitle": "Operación exitosa",
       "deleteSuccessDescription": "Registro eliminado satisfactoriamente",
-      "deleteSuccessTitle": "Eliminado Satisfactoriamente",
-      "errorDesc": "Hubo un error y los detalles no han sido actualizados satisfactoriamente",
-      "errorTitle": "Error Actualizando",
-      "createSuccessTitle": "Operación exitosa",
-      "genericError": "Hubo un error y los detalles no han sido actualizados satisfactoriamente",
-      "deleteErrorDescription": "Registro eliminado satisfactoriamente"
+      "deleteSuccessTitle": "Horario eliminado",
+      "errorDesc": "No se pudieron guardar los cambios del horario.",
+      "errorTitle": "Error",
+      "createSuccessTitle": "Horario creado",
+      "genericError": "No se pudo guardar el horario.",
+      "deleteErrorDescription": "No se pudo eliminar el horario."
     },
     "sede": {
       "general": "General",
@@ -4140,7 +4163,7 @@
     },
     "deleteDialog": {
       "title": "Eliminar Horario de Excepción",
-      "description": "¿Está seguro de que desea eliminar este horario de excepción? Esta acción no se puede deshacer.",
+      "description": "¿Está seguro de que desea eliminar el horario de excepción del {date}? Esta acción no se puede deshacer.",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
     },
@@ -4326,7 +4349,8 @@
       "count": "{count} con acceso",
       "save": "Guardar accesos",
       "saved": "Accesos actualizados",
-      "saveError": "No se pudieron guardar los accesos"
+      "saveError": "No se pudieron guardar los accesos",
+      "partialSaveError": "Se aplicaron {done} de {total} cambios antes del error. Se muestra el estado actual guardado; revíselo y vuelva a intentarlo."
     }
   },
   "UserLogsPage": {
@@ -4400,7 +4424,7 @@
     },
     "deleteDialog": {
       "title": "Eliminar Disponibilidad",
-      "description": "¿Está seguro que desea eliminar esta disponibilidad? Esta acción no se puede deshacer.",
+      "description": "¿Está seguro que desea eliminar la disponibilidad de {doctor} ({schedule})? Esta acción no se puede deshacer.",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
     },
@@ -4466,7 +4490,7 @@
     },
     "deleteDialog": {
       "title": "Eliminar Excepción",
-      "description": "¿Está seguro de que desea eliminar esta excepción? Esta acción no se puede deshacer.",
+      "description": "¿Está seguro de que desea eliminar la excepción de {doctor} del {date}? Esta acción no se puede deshacer.",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
     },
@@ -4645,6 +4669,7 @@
     "initialPasswordSentTitle": "Correo enviado",
     "initialPasswordSentDescription": "Se ha enviado un correo con el enlace para restablecer la contraseña.",
     "initialPasswordError": "Ocurrió un error inesperado. Intente de nuevo.",
+    "initialPasswordPartialError": "El usuario se creó, pero no se pudo enviar el correo para establecer la contraseña. Puede reenviarlo desde el panel de detalles con \"Restablecer Contraseña\".",
     "toggleStatus": {
       "successTitle": "Éxito",
       "activatedDescription": "El usuario {name} ha sido activado.",
@@ -4927,7 +4952,8 @@
       "keyRequired": "La clave es obligatoria.",
       "valueRequired": "El valor es obligatorio.",
       "dataTypeRequired": "El tipo de dato es obligatorio."
-    }
+    },
+    "noAccess": "No tiene acceso para ver esta sección."
   },
   "AuditLog": {
     "title": "Registro de Auditoría",
@@ -4959,7 +4985,8 @@
       "INSERT": "Creación",
       "UPDATE": "Actualización",
       "DELETE": "Eliminación"
-    }
+    },
+    "noAccess": "No tiene acceso para ver esta sección."
   },
   "AccessLogPage": {
     "title": "Registro de Acceso",
@@ -4979,7 +5006,8 @@
       "openMenu": "Abrir Menú",
       "yes": "Sí",
       "no": "No"
-    }
+    },
+    "noAccess": "No tiene acceso para ver esta sección."
   },
   "ErrorLogPage": {
     "title": "Registro de Errores",
@@ -4995,7 +5023,8 @@
       "viewDetails": "Ver detalles",
       "id": "ID",
       "openMenu": "Abrir Menú"
-    }
+    },
+    "noAccess": "No tiene acceso para ver esta sección."
   },
   "ClinicHistoryPrint": {
     "title": "Historia Clínica",
@@ -6182,7 +6211,8 @@
       "deleteSuccessDescription": "La regla \"{name}\" ha sido eliminada.",
       "testSuccessTitle": "Prueba Iniciada",
       "testSuccessDescription": "La prueba de la regla \"{name}\" ha sido iniciada.",
-      "testErrorDescription": "Error al ejecutar la prueba de la regla."
+      "testErrorDescription": "Error al ejecutar la prueba de la regla.",
+      "deleteErrorDescription": "No se pudo eliminar la regla."
     },
     "validation": {
       "categoryRequired": "La categoría es obligatoria.",
@@ -6198,7 +6228,8 @@
       "medium": "Media",
       "high": "Alta",
       "critical": "Crítica"
-    }
+    },
+    "noAccess": "No tiene acceso para ver esta sección."
   },
   "CommunicationTemplatesPage": {
     "title": "Plantillas de Comunicación",
@@ -6321,7 +6352,8 @@
         "name": "Nombre"
       },
       "badRequest": "Error de validación. Por favor verifique los datos ingresados."
-    }
+    },
+    "noAccess": "No tiene acceso para ver esta sección."
   },
   "MedicalInstructionTemplatesPage": {
     "title": "Plantillas de Indicaciones Médicas",
@@ -6491,7 +6523,8 @@
       "errorDetails": "Detalles de Error",
       "noErrors": "No hay detalles de error disponibles",
       "status": "Estado"
-    }
+    },
+    "noAccess": "No tiene acceso para ver esta sección."
   },
   "AlertsConfigPage": {
     "title": "Configuración del Sistema de Alertas",
@@ -6508,7 +6541,12 @@
       "runNowSuccessTitle": "Programador Ejecutado",
       "runNowSuccessDescription": "El programador de alertas se ha ejecutado correctamente.",
       "runNowErrorTitle": "Error al Ejecutar",
-      "runNowErrorDescription": "Ocurrió un error al ejecutar el programador. Por favor, inténtelo nuevamente."
+      "runNowErrorDescription": "Ocurrió un error al ejecutar el programador. Por favor, inténtelo nuevamente.",
+      "runNowConfirm": {
+        "title": "¿Ejecutar el programador ahora?",
+        "description": "Se evaluarán todas las reglas activas y se generarán alertas; las que tengan acciones automáticas enviarán emails o mensajes a los pacientes. Esta acción no se puede deshacer.",
+        "cancel": "Cancelar"
+      }
     },
     "email": {
       "title": "Configuración de Correo Electrónico",
@@ -6545,7 +6583,8 @@
       "saveSuccessDescription": "Sus cambios de configuración se han guardado.",
       "saveErrorTitle": "Error al Guardar",
       "saveErrorDescription": "Ocurrió un error al guardar los cambios. Por favor, inténtelo nuevamente."
-    }
+    },
+    "loadError": "No se pudo cargar la configuración de alertas"
   },
   "WhatsAppAgentConfigPage": {
     "title": "Agente de WhatsApp",
@@ -6593,7 +6632,8 @@
       "loadError": "No se pudo cargar la configuración del agente.",
       "saveSuccess": "La configuración del agente de WhatsApp se guardó correctamente.",
       "saveError": "No se pudo guardar la configuración. Intente nuevamente.",
-      "validationError": "Revise los rangos horarios: la hora de inicio debe ser menor que la de fin."
+      "validationError": "Revise los rangos horarios: la hora de inicio debe ser menor que la de fin.",
+      "partialSaveError": "Se guardó la activación del agente, pero no el horario de atención. Revise los cambios y vuelva a guardar."
     }
   },
   "SequencesPage": {
@@ -6636,7 +6676,7 @@
     },
     "deleteDialog": {
       "title": "Eliminar Secuencia",
-      "description": "¿Está seguro de que desea eliminar esta secuencia? Esta acción no se puede deshacer.",
+      "description": "¿Está seguro de que desea eliminar la secuencia \"{name}\"? Esta acción no se puede deshacer.",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
     },
@@ -7182,6 +7222,15 @@
         "alert": "Alerta",
         "treatment": "Tratamiento",
         "cash": "Caja"
+      },
+      "loadError": "No se pudieron cargar las plantillas",
+      "resetError": "No se pudo restaurar la plantilla",
+      "unsavedChanges": "Cambios sin guardar",
+      "textMode": "Texto",
+      "resetConfirm": {
+        "title": "¿Restaurar la plantilla predeterminada?",
+        "description": "Se eliminará la versión personalizada de \"{name}\" (incluidos los cambios sin guardar) y se volverá a usar la predeterminada. Esta acción no se puede deshacer.",
+        "cancel": "Cancelar"
       }
     }
   },
@@ -7214,7 +7263,10 @@
     "loading": "Cargando...",
     "errorTitle": "Algo salió mal",
     "genericError": "No se pudo completar la acción. Inténtalo de nuevo.",
-    "timeoutError": "El servidor tardó demasiado en responder. Es posible que el cambio se haya guardado: actualiza antes de volver a intentarlo."
+    "timeoutError": "El servidor tardó demasiado en responder. Es posible que el cambio se haya guardado: actualiza antes de volver a intentarlo.",
+    "loadError": "No se pudieron cargar los datos.",
+    "retry": "Reintentar",
+    "unsavedChangesConfirm": "Tienes cambios sin guardar. ¿Descartarlos?"
   },
   "ImportPage": {
     "title": "Importar Datos",
@@ -7287,7 +7339,8 @@
       "error": "Error",
       "importValid": "Importar solo los válidos",
       "fixCsv": "Corregir CSV y volver a subir",
-      "noErrors": "¡Todos los registros son válidos!"
+      "noErrors": "¡Todos los registros son válidos!",
+      "importing": "Importando..."
     },
     "result": {
       "inserted": "Insertados",
@@ -7302,6 +7355,13 @@
       "back": "Anterior",
       "next": "Siguiente",
       "import": "Importar",
+      "cancel": "Cancelar"
+    },
+    "importError": "No se pudo completar la importación",
+    "importTimeout": "El servidor tardó demasiado en responder y la importación pudo haberse procesado. No vuelva a importar el archivo: revise los registros antes de intentarlo de nuevo.",
+    "confirm": {
+      "title": "¿Importar {count} registros?",
+      "description": "Se crearán o actualizarán {count} registros de {type} a partir de «{file}». La importación no se puede deshacer desde el sistema.",
       "cancel": "Cancelar"
     }
   },
@@ -8602,7 +8662,16 @@
       "aiAccess": "Acceso IA",
       "notes": "Notas",
       "generate": "Generar Licencia",
-      "generating": "Generando..."
+      "generating": "Generando...",
+      "generateSuccess": "Licencia generada y activada",
+      "generateError": "No se pudo generar la licencia",
+      "subscriptionPartialError": "La licencia se guardó y ya está activa, pero no se pudo registrar la suscripción. No genere otra: registre la suscripción manualmente o contacte a soporte.",
+      "loadError": "No se pudo cargar la licencia actual",
+      "generateConfirm": {
+        "title": "¿Generar y activar una nueva licencia?",
+        "description": "La nueva licencia ({type}, {start} → {end}) reemplazará a la actual de inmediato y sus límites se aplicarán a todos los usuarios. Esta acción no se puede deshacer.",
+        "cancel": "Cancelar"
+      }
     },
     "enforcement": {
       "limitReachedTitle": "Límite de licencia alcanzado",
@@ -9026,7 +9095,12 @@
       "revertStatusError": "No se pudo revertir ese estado",
       "revertAll": "Revertir todo a General",
       "revertAllSuccess": "El calendario vuelve a usar la matriz general",
-      "revertAllError": "No se pudo revertir la configuración de ese calendario"
+      "revertAllError": "No se pudo revertir la configuración de ese calendario",
+      "revertAllConfirm": {
+        "title": "¿Volver a la matriz general?",
+        "description": "Se borrarán todas las personalizaciones de \"{name}\" y volverá a usar la matriz general. Esta acción no se puede deshacer.",
+        "confirm": "Revertir todo"
+      }
     },
     "calendarMode": {
       "always": {

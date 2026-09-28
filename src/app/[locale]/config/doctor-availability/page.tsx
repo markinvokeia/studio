@@ -2,10 +2,10 @@
 'use client';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
@@ -27,12 +27,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { API_ROUTES } from '@/constants/routes';
+import { useAsyncAction } from '@/hooks/use-async-action';
+import { useDataLoader } from '@/hooks/use-data-loader';
+import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { getErrorMessage } from '@/lib/error-utils';
 import { AvailabilityRule, User } from '@/lib/types';
 import { cn, formatDate, formatDisplayDate } from '@/lib/utils';
-import { api } from '@/services/api';
+import { api, isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { format } from 'date-fns';
@@ -86,35 +89,25 @@ type GetAvailabilityResponse = {
     total: number;
 };
 
-async function getAvailabilityRules(pagination: PaginationState, searchQuery: string): Promise<GetAvailabilityResponse> {
-    try {
-        const responseData = await api.get(API_ROUTES.AVAILABILITY_RULES_SEARCH, {
-            page: (pagination.pageIndex + 1).toString(),
-            limit: pagination.pageSize.toString(),
-            search: searchQuery,
-        });
-        const data = Array.isArray(responseData) && responseData.length > 0 ? responseData[0] : responseData;
-        const rulesData = data.data || [];
-        const total = Number(data.total) || 0;
-        return {
-            rules: rulesData.map((rule: any) => ({ ...rule, id: String(rule.id) })),
-            total
-        };
-    } catch (error) {
-        console.error("Failed to fetch availability rules:", error);
-        return { rules: [], total: 0 };
-    }
+async function getAvailabilityRules(pagination: PaginationState, searchQuery: string, signal?: AbortSignal): Promise<GetAvailabilityResponse> {
+    const responseData = await api.get(API_ROUTES.AVAILABILITY_RULES_SEARCH, {
+        page: (pagination.pageIndex + 1).toString(),
+        limit: pagination.pageSize.toString(),
+        search: searchQuery,
+    }, undefined, { signal });
+    const data = Array.isArray(responseData) && responseData.length > 0 ? responseData[0] : responseData;
+    const rulesData = data?.data || [];
+    const total = Number(data?.total) || 0;
+    return {
+        rules: rulesData.map((rule: any) => ({ ...rule, id: String(rule.id) })),
+        total
+    };
 }
 
-async function getDoctors(): Promise<User[]> {
-    try {
-        const data = await api.get(API_ROUTES.USERS_DOCTORS);
-        const doctorsData = Array.isArray(data) ? data : (data.doctors || data.data || []);
-        return doctorsData.map((doc: any) => ({ ...doc, id: String(doc.id) }));
-    } catch (error) {
-        console.error("Failed to fetch doctors:", error);
-        return [];
-    }
+async function getDoctors(signal?: AbortSignal): Promise<User[]> {
+    const data = await api.get(API_ROUTES.USERS_DOCTORS, undefined, undefined, { signal });
+    const doctorsData = Array.isArray(data) ? data : (data?.doctors || data?.data || []);
+    return doctorsData.map((doc: any) => ({ ...doc, id: String(doc.id) }));
 }
 
 async function upsertAvailabilityRule(ruleData: AvailabilityFormValues) {
@@ -122,7 +115,7 @@ async function upsertAvailabilityRule(ruleData: AvailabilityFormValues) {
         ...ruleData,
         day_of_week: ruleData.day_of_week ? Number(ruleData.day_of_week) : null,
         day_of_month: ruleData.day_of_month ? Number(ruleData.day_of_month) : null,
-    });
+    }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
     if (responseData.error || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
         const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message);
         throw new Error(message);
@@ -131,7 +124,7 @@ async function upsertAvailabilityRule(ruleData: AvailabilityFormValues) {
 }
 
 async function deleteAvailabilityRule(id: string) {
-    const responseData = await api.delete(API_ROUTES.AVAILABILITY_RULES_DELETE, { id });
+    const responseData = await api.delete(API_ROUTES.AVAILABILITY_RULES_DELETE, { id }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
     if (responseData.error || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
         const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message);
         throw new Error(message);
@@ -141,12 +134,9 @@ async function deleteAvailabilityRule(id: string) {
 
 export default function DoctorAvailabilityPage() {
     const t = useTranslations('DoctorAvailabilityPage');
+    const tCommon = useTranslations('Common');
     const { toast } = useToast();
     const isNarrow = useViewportNarrow();
-    const [rules, setRules] = React.useState<AvailabilityRule[]>([]);
-    const [doctors, setDoctors] = React.useState<User[]>([]);
-    const [ruleCount, setRuleCount] = React.useState(0);
-    const [isRefreshing, setIsRefreshing] = React.useState(false);
 
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
     const [editingRule, setEditingRule] = React.useState<AvailabilityRule | null>(null);
@@ -176,27 +166,32 @@ export default function DoctorAvailabilityPage() {
         }
     }, [watchedRecurrence, form]);
 
-    const loadRules = React.useCallback(async () => {
-        setIsRefreshing(true);
-        const searchQuery = (columnFilters.find(f => f.id === 'user_name')?.value as string) || '';
-        const { rules, total } = await getAvailabilityRules(pagination, searchQuery);
-        setRules(rules);
-        setRuleCount(total);
-        setIsRefreshing(false);
-    }, [pagination, columnFilters]);
+    const searchQuery = (columnFilters.find(f => f.id === 'user_name')?.value as string) || '';
+    const debouncedSearch = useDebounce(searchQuery, 500);
+
+    // Only the latest page/search request may write the table: a slow "ju" can't overwrite "juan".
+    const {
+        data: { rules, total: ruleCount },
+        isLoading,
+        isRefreshing,
+        error: loadError,
+        reload: loadRules,
+    } = useDataLoader(
+        (signal) => getAvailabilityRules(pagination, debouncedSearch, signal),
+        { rules: [] as AvailabilityRule[], total: 0 },
+        [pagination.pageIndex, pagination.pageSize, debouncedSearch]
+    );
 
     React.useEffect(() => {
         setPagination((prev) => ({ ...prev, pageIndex: 0 }));
     }, [columnFilters]);
 
-    React.useEffect(() => {
-        const debounce = setTimeout(() => { loadRules(); }, 500);
-        return () => clearTimeout(debounce);
-    }, [loadRules]);
+    const { data: doctors, error: doctorsError, reload: loadDoctors } = useDataLoader(getDoctors, [] as User[], [], { enabled: isDialogOpen });
 
+    // Keep the detail panel in sync with the refreshed list (e.g. after editing it).
     React.useEffect(() => {
-        if (isDialogOpen) getDoctors().then(setDoctors);
-    }, [isDialogOpen]);
+        setSelectedRule((current) => (current ? rules.find((rule) => rule.id === current.id) ?? current : current));
+    }, [rules]);
 
     const handleCreate = () => {
         setEditingRule(null);
@@ -234,34 +229,51 @@ export default function DoctorAvailabilityPage() {
         setIsDeleteDialogOpen(true);
     };
 
-    const confirmDelete = async () => {
-        if (!deletingRule) return;
-        try {
-            await deleteAvailabilityRule(deletingRule.id);
-            toast({ title: t('toast.deleteTitle'), description: t('toast.deleteDescription') });
-            setIsDeleteDialogOpen(false);
-            setDeletingRule(null);
-            if (selectedRule?.id === deletingRule.id) {
-                setSelectedRule(null);
-                setRowSelection({});
-            }
-            loadRules();
-        } catch (error) {
-            toast({ variant: 'destructive', title: t('toast.errorTitle'), description: getErrorMessage(error) });
+    const remove = useAsyncAction(
+        async (rule: AvailabilityRule) => {
+            await deleteAvailabilityRule(rule.id);
+            return rule;
+        },
+        {
+            onSuccess: async (rule) => {
+                toast({ title: t('toast.deleteTitle'), description: t('toast.deleteDescription') });
+                setIsDeleteDialogOpen(false);
+                setDeletingRule(null);
+                if (selectedRule?.id === rule.id) {
+                    setSelectedRule(null);
+                    setRowSelection({});
+                }
+                await loadRules();
+            },
+            onError: (error) => { if (isTimeoutError(error)) loadRules(); },
+            errorTitle: t('toast.deleteError'),
         }
-    };
+    );
 
-    const onSubmit = async (values: AvailabilityFormValues) => {
-        setSubmissionError(null);
-        try {
+    const save = useAsyncAction(
+        async (values: AvailabilityFormValues) => {
+            setSubmissionError(null);
             await upsertAvailabilityRule(values);
-            toast({ title: editingRule ? t('toast.editTitle') : t('toast.createTitle'), description: t('toast.successDescription') });
-            setIsDialogOpen(false);
-            loadRules();
-        } catch (error) {
-            setSubmissionError(getErrorMessage(error));
+            return values;
+        },
+        {
+            onSuccess: async (values) => {
+                toast({ title: values.id ? t('toast.editTitle') : t('toast.createTitle'), description: t('toast.successDescription') });
+                await loadRules();
+                setIsDialogOpen(false);
+            },
+            onError: (error) => {
+                if (isTimeoutError(error)) {
+                    // The rule may have been saved anyway: refresh so the user can check before retrying.
+                    setSubmissionError(tCommon('timeoutError'));
+                    loadRules();
+                    return;
+                }
+                setSubmissionError(getErrorMessage(error) || t('toast.saveError'));
+            },
+            showErrorToast: false,
         }
-    };
+    );
 
     const handleRowSelection = (rows: AvailabilityRule[]) => {
         setSelectedRule(rows[0] ?? null);
@@ -335,6 +347,8 @@ export default function DoctorAvailabilityPage() {
                     onCreate={handleCreate}
                     onRefresh={loadRules}
                     isRefreshing={isRefreshing}
+                    isLoading={isLoading}
+                    loadError={loadError}
                     isNarrow={isNarrow || !!selectedRule}
                     renderCard={(row: AvailabilityRule, _isSelected: boolean) => (
                         <DataCard isSelected={_isSelected}
@@ -367,7 +381,7 @@ export default function DoctorAvailabilityPage() {
                         <Button size="sm" variant="outline" onClick={() => handleEdit(selectedRule)}>
                             <Pencil className="h-4 w-4 mr-1" />{t('dialog.edit')}
                         </Button>
-                        <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => handleDelete(selectedRule)}>
+                        <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" aria-label={t('deleteDialog.confirm')} onClick={() => handleDelete(selectedRule)}>
                             <Trash2 className="h-4 w-4" />
                         </Button>
                     </div>
@@ -431,14 +445,22 @@ export default function DoctorAvailabilityPage() {
                 leftPanelDefaultSize={50}
                 rightPanelDefaultSize={50}
             />
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent confirmOnClose isDirty={form.formState.isDirty}>
+            <Dialog
+                open={isDialogOpen}
+                onOpenChange={(open) => {
+                    if (!open && save.isPending) return;
+                    setIsDialogOpen(open);
+                }}
+            >
+                <DialogContent confirmOnClose isDirty={form.formState.isDirty && !save.isPending}>
                     <DialogHeader>
                         <DialogTitle>{editingRule ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+                        <form onSubmit={form.handleSubmit(save.run)} className="flex flex-col flex-1 overflow-hidden">
                             <DialogBody className="space-y-4 py-4 px-6">
+                                {/* Native fieldset disables every control while the request is in flight */}
+                                <fieldset disabled={save.isPending} className="min-w-0 space-y-4">
                                 {submissionError && (
                                     <Alert variant="destructive">
                                         <AlertTriangle className="h-4 w-4" />
@@ -465,7 +487,14 @@ export default function DoctorAvailabilityPage() {
                                                     <Command>
                                                         <CommandInput placeholder={t('dialog.searchDoctor')} />
                                                         <CommandList>
-                                                            <CommandEmpty>{t('dialog.noDoctorFound')}</CommandEmpty>
+                                                            <CommandEmpty>
+                                                                {doctorsError ? (
+                                                                    <span className="flex flex-col items-center gap-2">
+                                                                        {tCommon('loadError')}
+                                                                        <Button type="button" size="sm" variant="outline" className="h-7" onClick={() => loadDoctors()}>{tCommon('retry')}</Button>
+                                                                    </span>
+                                                                ) : t('dialog.noDoctorFound')}
+                                                            </CommandEmpty>
                                                             <CommandGroup>
                                                                 {doctors.map((doctor) => (
                                                                     <CommandItem
@@ -555,27 +584,29 @@ export default function DoctorAvailabilityPage() {
                                     <FormField control={form.control} name="start_date" render={({ field }) => (<FormItem><FormLabel>{t('dialog.startDate')}</FormLabel><FormControl><DatePickerInput value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
                                     <FormField control={form.control} name="end_date" render={({ field }) => (<FormItem><FormLabel>{t('dialog.endDate')}</FormLabel><FormControl><DatePickerInput value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
                                 </div>
+                                </fieldset>
                             </DialogBody>
                             <DialogFooter>
-                                <Button type="submit">{editingRule ? t('dialog.save') : t('dialog.create')}</Button>
-                                <DialogCancelButton>{t('dialog.cancel')}</DialogCancelButton>
+                                <Button type="submit" loading={save.isPending}>{editingRule ? t('dialog.save') : t('dialog.create')}</Button>
+                                <DialogCancelButton disabled={save.isPending}>{t('dialog.cancel')}</DialogCancelButton>
                             </DialogFooter>
                         </form>
                     </Form>
                 </DialogContent>
             </Dialog>
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
-                        <AlertDialogDescription>{t('deleteDialog.description')}</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
-                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <ConfirmActionDialog
+                open={isDeleteDialogOpen}
+                onOpenChange={setIsDeleteDialogOpen}
+                title={t('deleteDialog.title')}
+                description={t('deleteDialog.description', {
+                    doctor: deletingRule?.user_name || deletingRule?.user_id || '',
+                    schedule: deletingRule ? `${t(`dialog.${deletingRule.recurrence}`)} ${deletingRule.start_time}–${deletingRule.end_time}` : '',
+                })}
+                cancelLabel={t('deleteDialog.cancel')}
+                confirmLabel={t('deleteDialog.confirm')}
+                onConfirm={() => { if (deletingRule) remove.run(deletingRule); }}
+                isPending={remove.isPending}
+            />
         </div>
     );
 }

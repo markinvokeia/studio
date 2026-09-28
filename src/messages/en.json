@@ -4073,22 +4073,22 @@
     },
     "deleteDialog": {
       "title": "Delete Schedule",
-      "description": "Are you sure you want to delete this schedule? This action cannot be undone.",
+      "description": "Are you sure you want to delete the schedule {schedule}? This action cannot be undone.",
       "cancel": "Cancel",
       "confirm": "Delete"
     },
     "toast": {
       "editSuccessDescription": "Details have been updated successfully",
-      "editSuccessTitle": "Successfully Updated",
+      "editSuccessTitle": "Schedule updated",
       "successDescription": "Details have been updated successfully",
       "successTitle": "Successfully Updated",
       "deleteSuccessDescription": "Details have been deleted successfully",
-      "deleteSuccessTitle": "Successfully Deleted",
-      "errorDesc": "An error occurs and details have been updated successfully",
-      "errorTitle": "Error Updating",
-      "createSuccessTitle": "Successfully Updated",
-      "genericError": "An error occurs and details have been updated successfully",
-      "deleteErrorDescription": "Details have been deleted successfully"
+      "deleteSuccessTitle": "Schedule deleted",
+      "errorDesc": "The schedule changes could not be saved.",
+      "errorTitle": "Error",
+      "createSuccessTitle": "Schedule created",
+      "genericError": "The schedule could not be saved.",
+      "deleteErrorDescription": "The schedule could not be deleted."
     },
     "sede": {
       "general": "General",
@@ -4163,7 +4163,7 @@
     },
     "deleteDialog": {
       "title": "Delete Exception Schedule",
-      "description": "Are you sure you want to delete this exception schedule? This action cannot be undone.",
+      "description": "Are you sure you want to delete the exception schedule of {date}? This action cannot be undone.",
       "cancel": "Cancel",
       "confirm": "Delete"
     },
@@ -4349,7 +4349,8 @@
       "count": "{count} with access",
       "save": "Save access",
       "saved": "Access updated",
-      "saveError": "Failed to save access"
+      "saveError": "Failed to save access",
+      "partialSaveError": "{done} of {total} changes were applied before the error. The current saved state is shown; review it and try again."
     }
   },
   "UserLogsPage": {
@@ -4423,7 +4424,7 @@
     },
     "deleteDialog": {
       "title": "Delete Availability",
-      "description": "Are you sure you want to delete this availability? This action cannot be undone.",
+      "description": "Are you sure you want to delete the availability of {doctor} ({schedule})? This action cannot be undone.",
       "cancel": "Cancel",
       "confirm": "Delete"
     },
@@ -4489,7 +4490,7 @@
     },
     "deleteDialog": {
       "title": "Delete Exception",
-      "description": "Are you sure you want to delete this exception? This action cannot be undone.",
+      "description": "Are you sure you want to delete the exception for {doctor} on {date}? This action cannot be undone.",
       "cancel": "Cancel",
       "confirm": "Delete"
     },
@@ -4668,6 +4669,7 @@
     "initialPasswordSentTitle": "Email sent",
     "initialPasswordSentDescription": "An email with the password reset link has been sent.",
     "initialPasswordError": "An unexpected error occurred. Please try again.",
+    "initialPasswordPartialError": "The user was created, but the email to set the password couldn't be sent. You can resend it from the details panel with \"Reset Password\".",
     "toggleStatus": {
       "successTitle": "Success",
       "activatedDescription": "User {name} has been activated.",
@@ -4950,7 +4952,8 @@
       "keyRequired": "Key is required.",
       "valueRequired": "Value is required.",
       "dataTypeRequired": "Data type is required."
-    }
+    },
+    "noAccess": "You don't have access to view this section."
   },
   "AuditLog": {
     "title": "Audit Log",
@@ -4982,7 +4985,8 @@
       "INSERT": "Create",
       "UPDATE": "Update",
       "DELETE": "Delete"
-    }
+    },
+    "noAccess": "You don't have access to view this section."
   },
   "AccessLogPage": {
     "title": "Access Log",
@@ -5002,7 +5006,8 @@
       "openMenu": "Open Menu",
       "yes": "Yes",
       "no": "No"
-    }
+    },
+    "noAccess": "You don't have access to view this section."
   },
   "ErrorLogPage": {
     "title": "Error Log",
@@ -5018,7 +5023,8 @@
       "viewDetails": "View details",
       "id": "ID",
       "openMenu": "Open Menu"
-    }
+    },
+    "noAccess": "You don't have access to view this section."
   },
   "ClinicHistoryPrint": {
     "title": "Clinical History",
@@ -6205,7 +6211,8 @@
       "deleteSuccessDescription": "Rule \"{name}\" has been deleted.",
       "testSuccessTitle": "Test Started",
       "testSuccessDescription": "Test for rule \"{name}\" has been started.",
-      "testErrorDescription": "Error executing the rule test."
+      "testErrorDescription": "Error executing the rule test.",
+      "deleteErrorDescription": "Could not delete the rule."
     },
     "validation": {
       "categoryRequired": "Category is required.",
@@ -6221,7 +6228,8 @@
       "medium": "Medium",
       "high": "High",
       "critical": "Critical"
-    }
+    },
+    "noAccess": "You don't have access to view this section."
   },
   "CommunicationTemplatesPage": {
     "title": "Communication Templates",
@@ -6344,7 +6352,8 @@
         "name": "Name"
       },
       "badRequest": "Validation error. Please check the entered data."
-    }
+    },
+    "noAccess": "You don't have access to view this section."
   },
   "MedicalInstructionTemplatesPage": {
     "title": "Medical Instruction Templates",
@@ -6495,7 +6504,8 @@
       "errorsCount": "Errors",
       "duration": "Duration",
       "openMenu": "Open menu",
-      "viewDetails": "View Details"
+      "viewDetails": "View Details",
+      "rulesProcessed": "Rules Processed"
     },
     "detailDialog": {
       "title": "Execution Details",
@@ -6513,7 +6523,8 @@
       "errorDetails": "Error Details",
       "noErrors": "No error details available",
       "status": "Status"
-    }
+    },
+    "noAccess": "You don't have access to view this section."
   },
   "AlertsConfigPage": {
     "title": "Alerts System Configuration",
@@ -6530,7 +6541,12 @@
       "runNowSuccessTitle": "Scheduler Executed",
       "runNowSuccessDescription": "The alert scheduler has been executed successfully.",
       "runNowErrorTitle": "Execution Error",
-      "runNowErrorDescription": "An error occurred while executing the scheduler. Please try again."
+      "runNowErrorDescription": "An error occurred while executing the scheduler. Please try again.",
+      "runNowConfirm": {
+        "title": "Run the scheduler now?",
+        "description": "All active rules will be evaluated and alerts will be generated; those with automatic actions will send emails or messages to patients. This action cannot be undone.",
+        "cancel": "Cancel"
+      }
     },
     "email": {
       "title": "Email Configuration",
@@ -6567,7 +6583,8 @@
       "saveSuccessDescription": "Your configuration changes have been saved.",
       "saveErrorTitle": "Save Error",
       "saveErrorDescription": "An error occurred while saving changes. Please try again."
-    }
+    },
+    "loadError": "The alert configuration could not be loaded"
   },
   "WhatsAppAgentConfigPage": {
     "title": "WhatsApp Agent",
@@ -6615,7 +6632,8 @@
       "loadError": "Could not load the agent configuration.",
       "saveSuccess": "The WhatsApp agent configuration was saved successfully.",
       "saveError": "Could not save the configuration. Please try again.",
-      "validationError": "Check the time ranges: the start time must be earlier than the end time."
+      "validationError": "Check the time ranges: the start time must be earlier than the end time.",
+      "partialSaveError": "The agent on/off setting was saved, but the business hours were not. Review your changes and save again."
     }
   },
   "SequencesPage": {
@@ -6658,7 +6676,7 @@
     },
     "deleteDialog": {
       "title": "Delete Sequence",
-      "description": "Are you sure you want to delete this sequence? This action cannot be undone.",
+      "description": "Are you sure you want to delete the sequence \"{name}\"? This action cannot be undone.",
       "cancel": "Cancel",
       "confirm": "Delete"
     },
@@ -7204,6 +7222,15 @@
         "alert": "Alert",
         "treatment": "Treatment",
         "cash": "Cash"
+      },
+      "loadError": "The templates could not be loaded",
+      "resetError": "The template could not be restored",
+      "unsavedChanges": "Unsaved changes",
+      "textMode": "Text",
+      "resetConfirm": {
+        "title": "Restore the default template?",
+        "description": "The customized version of \"{name}\" (including unsaved changes) will be deleted and the default one will be used again. This action cannot be undone.",
+        "cancel": "Cancel"
       }
     }
   },
@@ -7236,7 +7263,10 @@
     "loading": "Loading...",
     "errorTitle": "Something went wrong",
     "genericError": "The action could not be completed. Please try again.",
-    "timeoutError": "The server took too long to respond. The change may have been saved — refresh before trying again."
+    "timeoutError": "The server took too long to respond. The change may have been saved — refresh before trying again.",
+    "loadError": "The data could not be loaded.",
+    "retry": "Retry",
+    "unsavedChangesConfirm": "You have unsaved changes. Discard them?"
   },
   "ImportPage": {
     "title": "Import Data",
@@ -7309,7 +7339,8 @@
       "error": "Error",
       "importValid": "Import only valid records",
       "fixCsv": "Fix CSV and re-upload",
-      "noErrors": "All records are valid!"
+      "noErrors": "All records are valid!",
+      "importing": "Importing..."
     },
     "result": {
       "inserted": "Inserted",
@@ -7324,6 +7355,13 @@
       "back": "Back",
       "next": "Next",
       "import": "Import",
+      "cancel": "Cancel"
+    },
+    "importError": "The import could not be completed",
+    "importTimeout": "The server took too long to respond and the import may have been processed. Do not import the file again: check the records before retrying.",
+    "confirm": {
+      "title": "Import {count} records?",
+      "description": "{count} {type} records will be created or updated from “{file}”. The import cannot be undone from the system.",
       "cancel": "Cancel"
     }
   },
@@ -8624,7 +8662,16 @@
       "aiAccess": "AI Access",
       "notes": "Notes",
       "generate": "Generate License",
-      "generating": "Generating..."
+      "generating": "Generating...",
+      "generateSuccess": "License generated and activated",
+      "generateError": "The license could not be generated",
+      "subscriptionPartialError": "The license was saved and is already active, but the subscription could not be registered. Do not generate another one: register the subscription manually or contact support.",
+      "loadError": "The current license could not be loaded",
+      "generateConfirm": {
+        "title": "Generate and activate a new license?",
+        "description": "The new license ({type}, {start} → {end}) will replace the current one immediately and its limits will apply to every user. This action cannot be undone.",
+        "cancel": "Cancel"
+      }
     },
     "enforcement": {
       "limitReachedTitle": "License limit reached",
@@ -9048,7 +9095,12 @@
       "revertStatusError": "We couldn't revert that status",
       "revertAll": "Revert all to General",
       "revertAllSuccess": "The calendar is back to using the general matrix",
-      "revertAllError": "We couldn't revert that calendar's configuration"
+      "revertAllError": "We couldn't revert that calendar's configuration",
+      "revertAllConfirm": {
+        "title": "Revert to the general matrix?",
+        "description": "All the customizations of \"{name}\" will be deleted and it will use the general matrix again. This can't be undone.",
+        "confirm": "Revert all"
+      }
     },
     "calendarMode": {
       "always": {

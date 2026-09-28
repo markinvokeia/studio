@@ -6,17 +6,21 @@ import { format } from 'date-fns';
 import {
   Code2, Eye, FileText, Loader2, Maximize2, Minimize2,
   RefreshCw, Receipt, FileCheck, CreditCard, Wallet, Save, BookOpen,
-  Mail, MessageSquare,
+  Mail, MessageSquare, AlertTriangle,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { api } from '@/services/api';
+import { api, isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
+import { useKeyedAsyncAction } from '@/hooks/use-async-action';
+import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
@@ -171,10 +175,89 @@ function substituteWhatsappForPreview(text: string, clinicName: string, clinicPh
   return text.replace(/\{\{(\w+)\}\}/g, (_, key: string) => v[key] ?? `[${key}]`);
 }
 
+// ── Loading / persistence helpers ─────────────────────────────────────────────
+
+type TemplateBodies = {
+  doc: Partial<Record<PrintDocumentType, string>>;
+  email: Partial<Record<EmailTemplateType, string>>;
+  subjects: Partial<Record<EmailTemplateType, string>>;
+  whatsapp: Partial<Record<WhatsappTemplateType, string>>;
+  ids: Partial<Record<EmailTemplateType | WhatsappTemplateType, string>>;
+};
+
+const EMPTY_TEMPLATES: TemplateBodies = { doc: {}, email: {}, subjects: {}, whatsapp: {}, ids: {} };
+
+/**
+ * Throws when either list fails: showing the compiled defaults as if they were the saved templates
+ * would let the user overwrite (or duplicate, without the record id) the clinic's real templates.
+ */
+async function fetchAllTemplates(signal: AbortSignal): Promise<TemplateBodies> {
+  const [docRaw, commRaw] = await Promise.all([
+    api.get(API_ROUTES.PRINT_TEMPLATES, undefined, undefined, { signal }),
+    api.get(API_ROUTES.SYSTEM.COMMUNICATION_TEMPLATES, undefined, undefined, { signal }),
+  ]);
+
+  const doc: TemplateBodies['doc'] = {};
+  (Array.isArray(docRaw) ? docRaw as DocPrintTemplate[] : [])
+    .forEach((tpl) => { doc[tpl.template_type] = tpl.template_html; });
+
+  const comms: CommunicationTemplate[] = Array.isArray(commRaw) ? commRaw : [];
+  const email: TemplateBodies['email'] = {};
+  const subjects: TemplateBodies['subjects'] = {};
+  const whatsapp: TemplateBodies['whatsapp'] = {};
+  const ids: TemplateBodies['ids'] = {};
+
+  const codeToEmail    = Object.fromEntries(Object.entries(EMAIL_CODE_MAP).map(([k, v]) => [v, k as EmailTemplateType]));
+  const codeToWhatsapp = Object.fromEntries(Object.entries(WHATSAPP_CODE_MAP).map(([k, v]) => [v, k as WhatsappTemplateType]));
+
+  comms.forEach((tpl) => {
+    const emailType = codeToEmail[tpl.code];
+    if (emailType) {
+      email[emailType] = isPlainText(emailType) ? (tpl.body_text || tpl.body_html || '') : (tpl.body_html || '');
+      subjects[emailType] = tpl.subject || '';
+      if (tpl.id) ids[emailType] = tpl.id;
+    }
+    const waType = codeToWhatsapp[tpl.code];
+    if (waType) {
+      whatsapp[waType] = tpl.body_text || tpl.body_html || '';
+      if (tpl.id) ids[waType] = tpl.id;
+    }
+  });
+
+  return { doc, email, subjects, whatsapp, ids };
+}
+
+/** Takes the server values, but keeps every entry the user changed since the last known saved state. */
+function mergeKeepingEdits<K extends string>(
+  current: Partial<Record<K, string>>,
+  previousSaved: Partial<Record<K, string>>,
+  server: Partial<Record<K, string>>,
+): Partial<Record<K, string>> {
+  const next = { ...server };
+  (Object.keys(current) as K[]).forEach((key) => {
+    if (current[key] !== previousSaved[key]) next[key] = current[key];
+  });
+  return next;
+}
+
+/** n8n answers some failures with a 2xx body carrying the error. */
+function throwIfBackendError(response: unknown) {
+  const first = (Array.isArray(response) ? response[0] : response) as { error?: unknown; code?: number; message?: string } | undefined;
+  if (first?.error || (first?.code && Number(first.code) >= 400)) {
+    throw new Error(first?.message || (typeof first?.error === 'string' ? first.error : '') || 'Request failed');
+  }
+}
+
+/** Deleting a template that was never customized is not an error for "restore default". */
+const isNotFound = (error: unknown) => (error as { status?: number } | null)?.status === 404;
+
+const MUTATION_OPTIONS = { timeoutMs: REQUEST_TIMEOUT_MS.mutation };
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function TemplatesPage() {
   const t = useTranslations('Config.Templates');
+  const tCommon = useTranslations('Common');
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
   const { resolvedTheme } = useTheme();
@@ -191,9 +274,7 @@ export default function TemplatesPage() {
   const [whatsappTemplates, setWhatsappTemplates] = React.useState<Partial<Record<WhatsappTemplateType, string>>>({});
   const [commIds, setCommIds] = React.useState<Partial<Record<EmailTemplateType | WhatsappTemplateType, string>>>({});
 
-  const [isLoading, setIsLoading]           = React.useState(true);
-  const [saving, setSaving]                 = React.useState<AllTemplateType | null>(null);
-  const [resetting, setResetting]           = React.useState<AllTemplateType | null>(null);
+  const [resetTarget, setResetTarget]       = React.useState<AllTemplateType | null>(null);
   const [mobileView, setMobileView]         = React.useState<'code' | 'preview'>('code');
   const [editorExpanded, setEditorExpanded] = React.useState(false);
   const [previewContent, setPreviewContent] = React.useState('');
@@ -235,53 +316,63 @@ export default function TemplatesPage() {
   }, [activeType, docTemplates, emailTemplates, whatsappTemplates, clinic]);
 
   // ── Load templates ─────────────────────────────────────────────────────────
-  React.useEffect(() => {
-    const loadAll = async () => {
-      try {
-        // Document templates
-        const docRaw = await api.get(API_ROUTES.PRINT_TEMPLATES).catch(() => []);
-        const loaded: Partial<Record<PrintDocumentType, string>> = {};
-        (Array.isArray(docRaw) ? docRaw as DocPrintTemplate[] : [])
-          .forEach((tpl) => { loaded[tpl.template_type] = tpl.template_html; });
-        setDocTemplates(loaded);
+  const { data: server, isLoading, isRefreshing, error: loadError, reload } = useDataLoader(fetchAllTemplates, EMPTY_TEMPLATES);
 
-        // Email + SMS templates (communication templates)
-        const commRaw = await api.get(API_ROUTES.SYSTEM.COMMUNICATION_TEMPLATES).catch(() => []);
-        const comms: CommunicationTemplate[] = Array.isArray(commRaw) ? commRaw : [];
-
-        const loadedEmail:    Partial<Record<EmailTemplateType, string>>    = {};
-        const loadedSubj:     Partial<Record<EmailTemplateType, string>>    = {};
-
-        const loadedWhatsapp: Partial<Record<WhatsappTemplateType, string>> = {};
-        const ids: Partial<Record<EmailTemplateType | WhatsappTemplateType, string>> = {};
-
-        const codeToEmail    = Object.fromEntries(Object.entries(EMAIL_CODE_MAP).map(([k, v]) => [v, k as EmailTemplateType]));
-        const codeToWhatsapp = Object.fromEntries(Object.entries(WHATSAPP_CODE_MAP).map(([k, v]) => [v, k as WhatsappTemplateType]));
-
-        comms.forEach((tpl) => {
-          const emailType = codeToEmail[tpl.code];
-          if (emailType) {
-            loadedEmail[emailType] = isPlainText(emailType) ? (tpl.body_text || tpl.body_html || '') : (tpl.body_html || '');
-            loadedSubj[emailType]  = tpl.subject || '';
-            if (tpl.id) ids[emailType] = tpl.id;
-          }
-          const waType = codeToWhatsapp[tpl.code];
-          if (waType) {
-            loadedWhatsapp[waType] = tpl.body_text || tpl.body_html || '';
-            if (tpl.id) ids[waType] = tpl.id;
-          }
-        });
-
-        setEmailTemplates(loadedEmail);
-        setEmailSubjects(loadedSubj);
-        setWhatsappTemplates(loadedWhatsapp);
-        setCommIds(ids);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadAll();
+  // Last state known to be persisted: the baseline for "unsaved changes".
+  const [saved, setSaved] = React.useState<TemplateBodies>(EMPTY_TEMPLATES);
+  const savedRef = React.useRef<TemplateBodies>(EMPTY_TEMPLATES);
+  const updateSaved = React.useCallback((update: (prev: TemplateBodies) => TemplateBodies) => {
+    savedRef.current = update(savedRef.current);
+    setSaved(savedRef.current);
   }, []);
+
+  // A (re)load never discards what the user is editing: only untouched templates take the server value.
+  React.useEffect(() => {
+    const previousSaved = savedRef.current;
+    setDocTemplates((cur) => mergeKeepingEdits(cur, previousSaved.doc, server.doc));
+    setEmailTemplates((cur) => mergeKeepingEdits(cur, previousSaved.email, server.email));
+    setEmailSubjects((cur) => mergeKeepingEdits(cur, previousSaved.subjects, server.subjects));
+    setWhatsappTemplates((cur) => mergeKeepingEdits(cur, previousSaved.whatsapp, server.whatsapp));
+    setCommIds(server.ids);
+    updateSaved(() => server);
+  }, [server, updateSaved]);
+
+  function getSavedBody(type: AllTemplateType): string {
+    const section = getSectionOf(type);
+    if (section === 'document') return saved.doc[type as PrintDocumentType] ?? PRINT_TEMPLATE_DEFAULTS[type as PrintDocumentType];
+    if (section === 'email')    return saved.email[type as EmailTemplateType] ?? EMAIL_TEMPLATE_DEFAULTS[type as EmailTemplateType].body;
+    return saved.whatsapp[type as WhatsappTemplateType] ?? WHATSAPP_TEMPLATE_DEFAULTS[type as WhatsappTemplateType];
+  }
+
+  function isTypeDirty(type: AllTemplateType): boolean {
+    if (getCurrentBody(type) !== getSavedBody(type)) return true;
+    if (getSectionOf(type) !== 'email') return false;
+    const eType = type as EmailTemplateType;
+    const fallback = EMAIL_TEMPLATE_DEFAULTS[eType].subject;
+    return (emailSubjects[eType] ?? fallback) !== (saved.subjects[eType] ?? fallback);
+  }
+
+  const hasUnsavedChanges = SECTION_GROUPS.some((g) => g.items.some((i) => isTypeDirty(i.type)));
+
+  // Leaving the page (reload, close tab) with unsaved template edits asks first.
+  React.useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  /** Print store = saved document templates (never other types' unsaved edits). */
+  const syncPrintStore = (docs: TemplateBodies['doc']) => {
+    setCustomTemplates(DOC_ITEMS.map((tt) => ({
+      id: '', clinic_id: '', template_type: tt.type as PrintDocumentType,
+      template_html: docs[tt.type as PrintDocumentType] ?? PRINT_TEMPLATE_DEFAULTS[tt.type as PrintDocumentType],
+      is_active: true, createdAt: '', updatedAt: '',
+    })));
+  };
 
   // ── Cursor insertion ───────────────────────────────────────────────────────
   function insertAtCursor(text: string) {
@@ -321,89 +412,118 @@ export default function TemplatesPage() {
   }
 
   // ── Save ───────────────────────────────────────────────────────────────────
-  async function handleSave(type: AllTemplateType) {
-    if (!canEdit) return;
-    setSaving(type);
-    try {
+  // Locked per template type: a double click can't upsert twice (and, for a template without id yet,
+  // create two records with the same code); other types stay saveable meanwhile.
+  const save = useKeyedAsyncAction(
+    async (type: AllTemplateType) => {
       const section = getSectionOf(type);
 
       if (section === 'document') {
         const html = docTemplates[type as PrintDocumentType] ?? PRINT_TEMPLATE_DEFAULTS[type as PrintDocumentType];
-        await api.post(API_ROUTES.PRINT_TEMPLATES_UPSERT, { template_type: type, template_html: html, is_active: true });
-        setCustomTemplates(DOC_ITEMS.map((tt) => ({
-          id: '', clinic_id: '', template_type: tt.type as PrintDocumentType,
-          template_html: docTemplates[tt.type as PrintDocumentType] ?? PRINT_TEMPLATE_DEFAULTS[tt.type as PrintDocumentType],
-          is_active: true, createdAt: '', updatedAt: '',
-        })));
-      } else if (section === 'email') {
+        const res = await api.post(API_ROUTES.PRINT_TEMPLATES_UPSERT, { template_type: type, template_html: html, is_active: true }, undefined, undefined, MUTATION_OPTIONS);
+        throwIfBackendError(res);
+        return { type, body: html, subject: undefined, id: undefined };
+      }
+      if (section === 'email') {
         const eType   = type as EmailTemplateType;
         const body    = emailTemplates[eType] ?? EMAIL_TEMPLATE_DEFAULTS[eType].body;
         const subject = emailSubjects[eType]  ?? EMAIL_TEMPLATE_DEFAULTS[eType].subject;
         const payload = isPlainText(eType)
           ? { type: 'EMAIL' as const, subject, body_text: body }
           : { type: 'EMAIL' as const, subject, body_html: body };
-        const saved = await api.post(API_ROUTES.SYSTEM.COMMUNICATION_TEMPLATES, {
+        const res = await api.post(API_ROUTES.SYSTEM.COMMUNICATION_TEMPLATES, {
           ...(commIds[eType] ? { id: commIds[eType] } : {}),
           code: EMAIL_CODE_MAP[eType],
           name: t(SECTION_GROUPS[1].items.find((i) => i.type === eType)!.labelKey as any),
           is_active: true, ...payload,
-        });
-        if (saved?.id) setCommIds((prev) => ({ ...prev, [eType]: saved.id }));
-      } else {
-        const waType = type as WhatsappTemplateType;
-        const body   = whatsappTemplates[waType] ?? WHATSAPP_TEMPLATE_DEFAULTS[waType];
-        const saved  = await api.post(API_ROUTES.SYSTEM.COMMUNICATION_TEMPLATES, {
-          ...(commIds[waType] ? { id: commIds[waType] } : {}),
-          code: WHATSAPP_CODE_MAP[waType], name: t(SECTION_GROUPS[2].items.find((i) => i.type === waType)!.labelKey as any),
-          type: 'WHATSAPP', body_text: body, is_active: true,
-        });
-        if (saved?.id) setCommIds((prev) => ({ ...prev, [waType]: saved.id }));
+        }, undefined, undefined, MUTATION_OPTIONS);
+        throwIfBackendError(res);
+        return { type, body, subject, id: res?.id as string | undefined };
       }
-
-      invalidateCommTemplatesCache();
-      toast({ title: t('saveSuccess') });
-    } catch {
-      toast({ title: t('saveError'), variant: 'destructive' });
-    } finally {
-      setSaving(null);
+      const waType = type as WhatsappTemplateType;
+      const body   = whatsappTemplates[waType] ?? WHATSAPP_TEMPLATE_DEFAULTS[waType];
+      const res    = await api.post(API_ROUTES.SYSTEM.COMMUNICATION_TEMPLATES, {
+        ...(commIds[waType] ? { id: commIds[waType] } : {}),
+        code: WHATSAPP_CODE_MAP[waType], name: t(SECTION_GROUPS[2].items.find((i) => i.type === waType)!.labelKey as any),
+        type: 'WHATSAPP', body_text: body, is_active: true,
+      }, undefined, undefined, MUTATION_OPTIONS);
+      throwIfBackendError(res);
+      return { type, body, subject: undefined, id: res?.id as string | undefined };
+    },
+    {
+      onSuccess: ({ type, body, subject, id }) => {
+        const section = getSectionOf(type);
+        if (section === 'document') {
+          updateSaved((prev) => ({ ...prev, doc: { ...prev.doc, [type]: body } }));
+          syncPrintStore({ ...savedRef.current.doc });
+        } else if (section === 'email') {
+          updateSaved((prev) => ({ ...prev, email: { ...prev.email, [type]: body }, subjects: { ...prev.subjects, [type]: subject ?? '' } }));
+        } else {
+          updateSaved((prev) => ({ ...prev, whatsapp: { ...prev.whatsapp, [type]: body } }));
+        }
+        if (id) setCommIds((prev) => ({ ...prev, [type]: id }));
+        invalidateCommTemplatesCache();
+        toast({ title: t('saveSuccess'), description: t(SECTION_GROUPS.flatMap((g) => g.items).find((i) => i.type === type)!.labelKey as any) });
+      },
+      // The upsert may have been applied before the timeout: reload (keeps unsaved edits) so a retry
+      // updates the record instead of creating a second one.
+      onError: (error) => { if (isTimeoutError(error)) reload(); },
+      errorTitle: t('saveError'),
     }
-  }
+  );
 
   // ── Reset ──────────────────────────────────────────────────────────────────
-  async function handleReset(type: AllTemplateType) {
-    if (!canEdit) return;
-    setResetting(type);
-    try {
+  const reset = useKeyedAsyncAction(
+    async (type: AllTemplateType) => {
       const section = getSectionOf(type);
-
-      if (section === 'document') {
-        try { await api.delete(API_ROUTES.PRINT_TEMPLATES_DELETE, { template_type: type }); } catch { /* not saved yet */ }
-        const defaultHtml = PRINT_TEMPLATE_DEFAULTS[type as PrintDocumentType];
-        setDocTemplates((prev) => ({ ...prev, [type]: defaultHtml }));
-        editorRefs.current[type as PrintDocumentType]?.setValue(defaultHtml);
-      } else if (section === 'email') {
-        const eType = type as EmailTemplateType;
-        const id = commIds[eType];
-        if (id) try { await api.delete(API_ROUTES.SYSTEM.COMMUNICATION_TEMPLATES, { id }); } catch { /* ok */ }
-        const defaults = EMAIL_TEMPLATE_DEFAULTS[eType];
-        setEmailTemplates((prev) => ({ ...prev, [eType]: defaults.body }));
-        setEmailSubjects((prev) => ({ ...prev, [eType]: defaults.subject }));
-        setCommIds((prev) => { const n = { ...prev }; delete n[eType]; return n; });
-        if (!isPlainText(eType)) editorRefs.current[eType]?.setValue(defaults.body);
-      } else {
-        const waType = type as WhatsappTemplateType;
-        const id = commIds[waType];
-        if (id) try { await api.delete(API_ROUTES.SYSTEM.COMMUNICATION_TEMPLATES, { id }); } catch { /* ok */ }
-        setWhatsappTemplates((prev) => ({ ...prev, [waType]: WHATSAPP_TEMPLATE_DEFAULTS[waType] }));
-        setCommIds((prev) => { const n = { ...prev }; delete n[waType]; return n; });
+      try {
+        if (section === 'document') {
+          await api.delete(API_ROUTES.PRINT_TEMPLATES_DELETE, { template_type: type }, undefined, undefined, MUTATION_OPTIONS);
+        } else {
+          const id = commIds[type as EmailTemplateType | WhatsappTemplateType];
+          if (id) await api.delete(API_ROUTES.SYSTEM.COMMUNICATION_TEMPLATES, { id }, undefined, undefined, MUTATION_OPTIONS);
+        }
+      } catch (error) {
+        if (!isNotFound(error)) throw error;
       }
-
-      invalidateCommTemplatesCache();
-      toast({ title: t('resetSuccess') });
-    } finally {
-      setResetting(null);
+      return type;
+    },
+    {
+      onSuccess: (type) => {
+        const section = getSectionOf(type);
+        if (section === 'document') {
+          const defaultHtml = PRINT_TEMPLATE_DEFAULTS[type as PrintDocumentType];
+          setDocTemplates((prev) => ({ ...prev, [type]: defaultHtml }));
+          updateSaved((prev) => { const doc = { ...prev.doc }; delete doc[type as PrintDocumentType]; return { ...prev, doc }; });
+          syncPrintStore({ ...savedRef.current.doc });
+          editorRefs.current[type as PrintDocumentType]?.setValue(defaultHtml);
+        } else if (section === 'email') {
+          const eType = type as EmailTemplateType;
+          const defaults = EMAIL_TEMPLATE_DEFAULTS[eType];
+          setEmailTemplates((prev) => ({ ...prev, [eType]: defaults.body }));
+          setEmailSubjects((prev) => ({ ...prev, [eType]: defaults.subject }));
+          updateSaved((prev) => {
+            const email = { ...prev.email }; delete email[eType];
+            const subjects = { ...prev.subjects }; delete subjects[eType];
+            return { ...prev, email, subjects };
+          });
+          if (!isPlainText(eType)) editorRefs.current[eType]?.setValue(defaults.body);
+        } else {
+          const waType = type as WhatsappTemplateType;
+          setWhatsappTemplates((prev) => ({ ...prev, [waType]: WHATSAPP_TEMPLATE_DEFAULTS[waType] }));
+          updateSaved((prev) => { const whatsapp = { ...prev.whatsapp }; delete whatsapp[waType]; return { ...prev, whatsapp }; });
+        }
+        if (section !== 'document') {
+          setCommIds((prev) => { const n = { ...prev }; delete n[type as EmailTemplateType | WhatsappTemplateType]; return n; });
+        }
+        invalidateCommTemplatesCache();
+        setResetTarget(null);
+        toast({ title: t('resetSuccess') });
+      },
+      onError: (error) => { if (isTimeoutError(error)) reload(); },
+      errorTitle: t('resetError'),
     }
-  }
+  );
 
   // ── Variable list for active type ──────────────────────────────────────────
   const variables = activeSection === 'document'
@@ -427,6 +547,26 @@ export default function TemplatesPage() {
       </div>
     );
   }
+
+  if (loadError) {
+    return (
+      <div className="p-4">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>{t('loadError')}</AlertTitle>
+          <AlertDescription className="flex flex-wrap items-center gap-3">
+            <span>{loadError}</span>
+            <Button size="sm" variant="outline" onClick={() => reload()} loading={isRefreshing}>
+              {tCommon('retry')}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  const isActiveBusy = save.isPending(activeType) || reset.isPending(activeType);
+  const resetTargetLabel = resetTarget ? t(SECTION_GROUPS.flatMap((g) => g.items).find((i) => i.type === resetTarget)!.labelKey as any) : '';
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -462,6 +602,9 @@ export default function TemplatesPage() {
                     )}
                     <Icon className="h-3.5 w-3.5 shrink-0" />
                     <span className="truncate text-xs">{t(labelKey as any)}</span>
+                    {isTypeDirty(type) && (
+                      <span className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" title={t('unsavedChanges')} aria-label={t('unsavedChanges')} />
+                    )}
                   </button>
                 );
               })}
@@ -548,7 +691,7 @@ export default function TemplatesPage() {
                 mobileView === 'code' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}
             >
               {isPlainText(activeType) ? <MessageSquare className="h-3 w-3" /> : <Code2 className="h-3 w-3" />}
-              {isPlainText(activeType) ? 'Texto' : 'HTML'}
+              {isPlainText(activeType) ? t('textMode') : 'HTML'}
             </button>
             <button
               type="button"
@@ -556,7 +699,7 @@ export default function TemplatesPage() {
               className={cn('flex items-center gap-1 px-2.5 py-1.5 border-l transition-colors',
                 mobileView === 'preview' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}
             >
-              <Eye className="h-3 w-3" /> Vista
+              <Eye className="h-3 w-3" /> {t('preview')}
             </button>
           </div>
 
@@ -564,12 +707,26 @@ export default function TemplatesPage() {
 
           {canEdit && (
             <>
-              <Button onClick={() => handleSave(activeType)} disabled={saving === activeType} size="sm" className="h-8 gap-1.5">
-                {saving === activeType ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              <Button
+                onClick={() => save.run(activeType, activeType)}
+                disabled={isActiveBusy}
+                aria-busy={save.isPending(activeType) || undefined}
+                size="sm"
+                className="h-8 gap-1.5"
+                aria-label={t('save')}
+              >
+                {save.isPending(activeType) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                 <span className="hidden sm:inline">{t('save')}</span>
               </Button>
-              <Button variant="outline" onClick={() => handleReset(activeType)} disabled={resetting === activeType} size="sm" className="h-8 gap-1.5">
-                {resetting === activeType ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+              <Button
+                variant="outline"
+                onClick={() => setResetTarget(activeType)}
+                disabled={isActiveBusy}
+                size="sm"
+                className="h-8 gap-1.5"
+                aria-label={t('resetDefault')}
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">{t('resetDefault')}</span>
               </Button>
             </>
@@ -668,6 +825,17 @@ export default function TemplatesPage() {
 
         </div>
       </div>
+
+      <ConfirmActionDialog
+        open={resetTarget !== null}
+        onOpenChange={(open) => { if (!open) setResetTarget(null); }}
+        title={t('resetConfirm.title')}
+        description={t('resetConfirm.description', { name: resetTargetLabel })}
+        cancelLabel={t('resetConfirm.cancel')}
+        confirmLabel={t('resetDefault')}
+        onConfirm={() => { if (resetTarget) reset.run(resetTarget, resetTarget); }}
+        isPending={resetTarget !== null && reset.isPending(resetTarget)}
+      />
     </div>
   );
 }

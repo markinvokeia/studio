@@ -8,11 +8,14 @@ import { StepPreview } from '@/components/import/steps/StepPreview';
 import { StepMapColumns, buildAutoMapping, ColumnMapping } from '@/components/import/steps/StepMapColumns';
 import { StepValidate, validateData, ValidationResult, parseAnyDate } from '@/components/import/steps/StepValidate';
 import { StepResult, ImportResult } from '@/components/import/steps/StepResult';
-import { api } from '@/services/api';
+import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
+import { api, isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
+import { useAsyncAction } from '@/hooks/use-async-action';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
+import { getErrorMessage } from '@/lib/error-utils';
 import { cn } from '@/lib/utils';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -106,7 +109,7 @@ export function ImportWizard() {
   const [columnMapping, setColumnMapping] = useState<ColumnMapping>({});
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
-  const [isImporting, setIsImporting] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
   const canExecuteImport = hasPermission(SYSTEM_PERMISSIONS.IMPORT_DATA_EXECUTE);
@@ -171,10 +174,10 @@ export function ImportWizard() {
     setCurrentStep((s) => Math.max(s - 1, 0));
   }, []);
 
-  const handleImportValid = useCallback(async () => {
-    if (!parsedData || !schema || !validationResult) return;
-    setIsImporting(true);
-    try {
+  // Ref-locked: a double click must never send the whole file twice.
+  const importAction = useAsyncAction(
+    async () => {
+      if (!parsedData || !schema || !validationResult) return null;
       const reverseMapping: Record<string, string> = {};
       Object.entries(columnMapping).forEach(([csvHeader, fieldKey]) => {
         if (fieldKey) reverseMapping[fieldKey] = csvHeader;
@@ -197,29 +200,37 @@ export function ImportWizard() {
         return record;
       });
 
-      const response = await api.post(API_ROUTES.SYSTEM.DATA_IMPORT, {
+      return api.post(API_ROUTES.SYSTEM.DATA_IMPORT, {
         entity: schema.type,
         records,
-      });
-
-      setImportResult({
-        inserted: response.inserted ?? 0,
-        updated: response.updated ?? 0,
-        skipped: response.skipped ?? 0,
-        errors: response.errors ?? 0,
-        error_details: response.error_details ?? [],
-      });
-      setCurrentStep(5);
-    } catch {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'No se pudo completar la importación. Intente nuevamente.',
-      });
-    } finally {
-      setIsImporting(false);
+      }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.longRunning });
+    },
+    {
+      onSuccess: (response) => {
+        if (!response) return;
+        setIsConfirmOpen(false);
+        setImportResult({
+          inserted: response.inserted ?? 0,
+          updated: response.updated ?? 0,
+          skipped: response.skipped ?? 0,
+          errors: response.errors ?? 0,
+          error_details: response.error_details ?? [],
+        });
+        setCurrentStep(5);
+      },
+      onError: (error) => {
+        setIsConfirmOpen(false);
+        toast({
+          variant: 'destructive',
+          title: t('importError'),
+          // After a timeout the backend may still have imported everything: a blind retry would duplicate it.
+          description: isTimeoutError(error) ? t('importTimeout') : getErrorMessage(error),
+        });
+      },
+      showErrorToast: false,
     }
-  }, [parsedData, schema, validationResult, columnMapping, toast]);
+  );
+  const isImporting = importAction.isPending;
 
   const handleFixCsv = useCallback(() => {
     setCurrentStep(1);
@@ -345,7 +356,7 @@ export function ImportWizard() {
         {currentStep === 4 && validationResult && (
           <StepValidate
             result={validationResult}
-            onImportValid={handleImportValid}
+            onImportValid={() => setIsConfirmOpen(true)}
             onFixCsv={handleFixCsv}
             isImporting={isImporting}
             canExecute={canExecuteImport}
@@ -382,7 +393,7 @@ export function ImportWizard() {
               <button
                 type="button"
                 onClick={handleBack}
-                disabled={currentStep === 0}
+                disabled={currentStep === 0 || isImporting}
                 className="flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-md border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -408,6 +419,22 @@ export function ImportWizard() {
           )}
         </div>
       </div>
+
+      <ConfirmActionDialog
+        open={isConfirmOpen}
+        onOpenChange={setIsConfirmOpen}
+        title={t('confirm.title', { count: validationResult?.valid ?? 0 })}
+        description={t('confirm.description', {
+          count: validationResult?.valid ?? 0,
+          type: selectedLabel ?? '',
+          file: uploadedFile?.name ?? '',
+        })}
+        cancelLabel={t('confirm.cancel')}
+        confirmLabel={t('nav.import')}
+        onConfirm={() => importAction.run()}
+        isPending={isImporting}
+        destructive={false}
+      />
     </div>
   );
 }

@@ -1,7 +1,9 @@
 'use client';
 
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -16,15 +18,18 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { LICENSING_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
+import { useAsyncAction } from '@/hooks/use-async-action';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
+import { getErrorMessage } from '@/lib/error-utils';
 import { getLicenseKey, getMasterSec } from '@/lib/runtime-config';
 import type { AiAccessLevel, CreateLicenseInput, LicensePayload, SubscriptionType } from '@/lib/types';
-import { api } from '@/services/api';
+import { api, isAbortError, isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { useLicenseStore } from '@/stores/license-store';
 import { decryptLicense } from '@/lib/license-crypto';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
+  AlertTriangle,
   CheckCircle,
   ClipboardCopy,
   KeyRound,
@@ -126,8 +131,16 @@ function CurrentLicenseCard({ license, daysLeft }: { license: LicensePayload; da
   );
 }
 
+/** The license key is already saved (and active) but the subscription record failed. */
+class SubscriptionPartialError extends Error {
+  constructor(readonly licenseKey: string, readonly cause: unknown) {
+    super(getErrorMessage(cause));
+  }
+}
+
 export default function LicensesPage() {
   const t = useTranslations('License');
+  const tCommon = useTranslations('Common');
   const { hasPermission } = usePermissions();
   const { toast } = useToast();
   const { license, licenseKey, daysLeft, loadLicense, generateLicense } = useLicenseStore();
@@ -141,10 +154,13 @@ export default function LicensesPage() {
 
   // Step 2: license loading
   const [isFetchingLicense, setIsFetchingLicense] = React.useState(false);
+  // A network/server failure is not "no license": generating from the defaults could lower the limits.
+  const [fetchError, setFetchError] = React.useState<string | null>(null);
+  const [fetchAttempt, setFetchAttempt] = React.useState(0);
 
   // Step 3: form state
   const [generatedKey, setGeneratedKey] = React.useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = React.useState(false);
+  const [pendingInput, setPendingInput] = React.useState<LicenseFormValues | null>(null);
   const [copied, setCopied] = React.useState(false);
 
   const canGenerate = hasPermission(LICENSING_PERMISSIONS.GENERATE);
@@ -152,20 +168,25 @@ export default function LicensesPage() {
   // Once unlocked, fetch the license from backend and load it into the store
   React.useEffect(() => {
     if (!isUnlocked || !licenseSecret) return;
+    const controller = new AbortController();
     async function fetchLicense() {
       setIsFetchingLicense(true);
+      setFetchError(null);
       try {
-        const data = await api.get(API_ROUTES.LICENSE.GET);
+        const data = await api.get(API_ROUTES.LICENSE.GET, undefined, undefined, { signal: controller.signal });
         const blob: string | null = data?.license_key ?? null;
         if (blob) await loadLicense(blob, licenseSecret);
-      } catch {
-        // No license stored yet — not an error
+      } catch (error) {
+        // 404 = no license stored yet, which is not an error.
+        if (isAbortError(error) || (error as { status?: number } | null)?.status === 404) return;
+        setFetchError(getErrorMessage(error) || tCommon('loadError'));
       } finally {
-        setIsFetchingLicense(false);
+        if (!controller.signal.aborted) setIsFetchingLicense(false);
       }
     }
     fetchLicense();
-  }, [isUnlocked, licenseSecret, loadLicense]);
+    return () => controller.abort();
+  }, [isUnlocked, licenseSecret, loadLicense, fetchAttempt, tCommon]);
 
   const form = useForm<LicenseFormValues>({
     resolver: zodResolver(licenseFormSchema),
@@ -214,49 +235,71 @@ export default function LicensesPage() {
     setIsUnlocked(true);
   }
 
-  async function onSubmit(data: LicenseFormValues) {
-    setIsGenerating(true);
-    try {
+  // The whole sequence runs under one lock: a double click can't generate (and activate) two licenses.
+  const generate = useAsyncAction(
+    async (data: LicenseFormValues) => {
       const input: CreateLicenseInput = data;
       const newKey = await generateLicense(input, licenseSecret);
 
       let newPayload: LicensePayload | null = null;
       try {
         newPayload = await decryptLicense(newKey, licenseSecret);
-      } catch { /* ignore */ }
+      } catch { /* the subscription record is optional metadata; the license itself is valid */ }
 
-      await api.post(API_ROUTES.LICENSE.SAVE, { license_key: newKey });
+      await api.post(API_ROUTES.LICENSE.SAVE, { license_key: newKey }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
 
       if (newPayload) {
-        await api.post(API_ROUTES.SUBSCRIPTIONS.CREATE, {
-          license_id: newPayload.licenseId,
-          subscription_type: newPayload.subscriptionType,
-          start_date: newPayload.startDate,
-          end_date: newPayload.endDate,
-          max_doctors: newPayload.maxDoctors,
-          max_receptionists: newPayload.maxReceptionists,
-          max_admins: newPayload.maxAdmins,
-          max_super_admins: newPayload.maxSuperAdmins,
-          max_monthly_new_patients: newPayload.maxMonthlyNewPatients,
-          ai_access: newPayload.aiAccess,
-          notes: newPayload.notes,
-          issued_at: newPayload.issuedAt,
-        });
+        try {
+          await api.post(API_ROUTES.SUBSCRIPTIONS.CREATE, {
+            license_id: newPayload.licenseId,
+            subscription_type: newPayload.subscriptionType,
+            start_date: newPayload.startDate,
+            end_date: newPayload.endDate,
+            max_doctors: newPayload.maxDoctors,
+            max_receptionists: newPayload.maxReceptionists,
+            max_admins: newPayload.maxAdmins,
+            max_super_admins: newPayload.maxSuperAdmins,
+            max_monthly_new_patients: newPayload.maxMonthlyNewPatients,
+            ai_access: newPayload.aiAccess,
+            notes: newPayload.notes,
+            issued_at: newPayload.issuedAt,
+          }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
+        } catch (error) {
+          throw new SubscriptionPartialError(newKey, error);
+        }
       }
 
-      await loadLicense(newKey, licenseSecret);
-      setGeneratedKey(newKey);
-      toast({ title: '¡Licencia generada exitosamente!' });
-    } catch (err) {
-      console.error(err);
-      toast({
-        title: 'Error al generar la licencia',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsGenerating(false);
+      return newKey;
+    },
+    {
+      onSuccess: async (newKey) => {
+        await loadLicense(newKey, licenseSecret);
+        setGeneratedKey(newKey);
+        setPendingInput(null);
+        toast({ title: t('management.generateSuccess') });
+      },
+      onError: async (error) => {
+        setPendingInput(null);
+        if (error instanceof SubscriptionPartialError) {
+          // The license is saved and active: show it, and say exactly what is missing so nobody generates another.
+          await loadLicense(error.licenseKey, licenseSecret);
+          setGeneratedKey(error.licenseKey);
+          toast({ variant: 'destructive', title: t('management.generateError'), description: t('management.subscriptionPartialError') });
+          return;
+        }
+        if (isTimeoutError(error)) {
+          // The key may have been saved anyway: reload what the backend has before offering a retry.
+          setFetchAttempt((n) => n + 1);
+        }
+        toast({
+          variant: 'destructive',
+          title: t('management.generateError'),
+          description: isTimeoutError(error) ? tCommon('timeoutError') : getErrorMessage(error),
+        });
+      },
+      showErrorToast: false,
     }
-  }
+  );
 
   async function copyToClipboard() {
     if (!generatedKey) return;
@@ -309,6 +352,18 @@ export default function LicensesPage() {
         </div>
       ) : (
         <>
+          {fetchError && !isFetchingLicense && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>{t('management.loadError')}</AlertTitle>
+              <AlertDescription className="flex flex-wrap items-center gap-3">
+                <span>{fetchError}</span>
+                <Button size="sm" variant="outline" onClick={() => setFetchAttempt((n) => n + 1)}>
+                  {tCommon('retry')}
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
           {isFetchingLicense ? (
             <Card>
               <CardContent className="pt-6 flex items-center gap-2 text-sm text-muted-foreground">
@@ -318,7 +373,7 @@ export default function LicensesPage() {
             </Card>
           ) : license ? (
             <CurrentLicenseCard license={license} daysLeft={daysLeft} />
-          ) : (
+          ) : fetchError ? null : (
             <Card>
               <CardContent className="pt-6">
                 <p className="text-sm text-muted-foreground text-center">{t('management.noLicense')}</p>
@@ -326,7 +381,7 @@ export default function LicensesPage() {
             </Card>
           )}
 
-          {canGenerate && !isFetchingLicense && (
+          {canGenerate && !isFetchingLicense && !fetchError && (
             <Card>
               <CardHeader>
                 <CardTitle>{t('management.generateNew')}</CardTitle>
@@ -336,7 +391,9 @@ export default function LicensesPage() {
               </CardHeader>
               <CardContent>
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <form onSubmit={form.handleSubmit((values) => setPendingInput(values))} className="space-y-6">
+                    {/* Native fieldset disables every control while the request is in flight */}
+                    <fieldset disabled={generate.isPending} className="min-w-0 space-y-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
@@ -454,9 +511,9 @@ export default function LicensesPage() {
                       />
                     </div>
 
-                    <Button type="submit" disabled={isGenerating}>
-                      {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      {isGenerating ? t('management.generating') : t('management.generate')}
+                    </fieldset>
+                    <Button type="submit" loading={generate.isPending}>
+                      {generate.isPending ? t('management.generating') : t('management.generate')}
                     </Button>
                   </form>
                 </Form>
@@ -510,6 +567,21 @@ export default function LicensesPage() {
         </>
       )}
       </div>
+
+      <ConfirmActionDialog
+        open={pendingInput !== null}
+        onOpenChange={(open) => { if (!open) setPendingInput(null); }}
+        title={t('management.generateConfirm.title')}
+        description={pendingInput ? t('management.generateConfirm.description', {
+          type: SUBSCRIPTION_TYPE_LABELS[pendingInput.subscriptionType],
+          start: pendingInput.startDate,
+          end: pendingInput.endDate,
+        }) : ''}
+        cancelLabel={t('management.generateConfirm.cancel')}
+        confirmLabel={t('management.generate')}
+        onConfirm={() => { if (pendingInput) generate.run(pendingInput); }}
+        isPending={generate.isPending}
+      />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { API_ROUTES } from '@/constants/routes';
 import type { ClinicPreferences } from '@/lib/types';
-import { api } from '@/services/api';
+import { api, type ApiRequestOptions } from '@/services/api';
 
 /**
  * Preferencias de Configuración → Preferencias de Clínica.
@@ -26,8 +26,8 @@ function toPct(value: unknown, fallback: number): number {
   return Math.min(100, Math.max(0, n));
 }
 
-export async function fetchClinicPreferences(): Promise<ClinicPreferences> {
-  const data = await api.get(API_ROUTES.CLINIC_PREFERENCES.GET);
+export async function fetchClinicPreferences(options?: ApiRequestOptions): Promise<ClinicPreferences> {
+  const data = await api.get(API_ROUTES.CLINIC_PREFERENCES.GET, undefined, undefined, options);
   const raw = Array.isArray(data) ? (data[0]?.json ?? data[0]) : (data?.json ?? data);
 
   if (!raw) return DEFAULT_CLINIC_PREFERENCES;
@@ -41,14 +41,14 @@ export async function fetchClinicPreferences(): Promise<ClinicPreferences> {
   };
 }
 
-export async function updateClinicPreferences(prefs: ClinicPreferences): Promise<void> {
+export async function updateClinicPreferences(prefs: ClinicPreferences, options?: ApiRequestOptions): Promise<void> {
   const response = await api.post(API_ROUTES.CLINIC_PREFERENCES.UPSERT, {
     discounts_enabled: prefs.discounts_enabled,
     discount_scope: prefs.discount_scope,
     default_discount_pct: prefs.default_discount_pct,
     max_discount_pct: prefs.max_discount_pct,
     identity_document_required: prefs.identity_document_required,
-  });
+  }, undefined, undefined, options);
 
   const result = Array.isArray(response) ? response[0] : response;
   if (result?.error || (result?.code && result.code >= 400)) {

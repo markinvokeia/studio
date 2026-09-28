@@ -1,11 +1,11 @@
 'use client';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -18,14 +18,17 @@ import { VerticalTabStrip } from '@/components/ui/vertical-tab-strip';
 import { CalendarAccessTab } from '@/components/calendar/calendar-access-tab';
 import { API_ROUTES } from '@/constants/routes';
 import { BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
+import { useAsyncAction } from '@/hooks/use-async-action';
+import { useDataLoader } from '@/hooks/use-data-loader';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
+import { getErrorMessage } from '@/lib/error-utils';
 import { Calendar as CalendarType, Sede } from '@/lib/types';
-import { api } from '@/services/api';
+import { api, isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, Calendar, Check, ChevronsUpDown, Info, Loader2, Pencil, Trash2, Users } from 'lucide-react';
+import { AlertTriangle, Calendar, Check, ChevronsUpDown, Info, Pencil, Trash2, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -45,23 +48,27 @@ const calendarFormSchema = (t: (key: string) => string) => z.object({
 
 type CalendarFormValues = z.infer<ReturnType<typeof calendarFormSchema>>;
 
-async function getCalendars(): Promise<CalendarType[]> {
-    try {
-        const data = await api.get(API_ROUTES.CALENDARS);
-        const calendarsData = Array.isArray(data) ? data : (data.calendars || data.data || data.result || []);
-        return calendarsData.map((apiCalendar: any) => ({
-            id: String(apiCalendar.id),
-            name: apiCalendar.name,
-            google_calendar_id: apiCalendar.google_calendar_id,
-            is_active: apiCalendar.is_active,
-            color: apiCalendar.color,
-            sede_id: apiCalendar.sede_id ? String(apiCalendar.sede_id) : undefined,
-            sede_name: apiCalendar.sede_name || undefined,
-        }));
-    } catch (error) {
-        console.error("Failed to fetch calendars:", error);
-        return [];
-    }
+async function getCalendars(signal?: AbortSignal): Promise<CalendarType[]> {
+    const data = await api.get(API_ROUTES.CALENDARS, undefined, undefined, { signal });
+    const calendarsData = Array.isArray(data) ? data : (data?.calendars || data?.data || data?.result || []);
+    return calendarsData.map((apiCalendar: any) => ({
+        id: String(apiCalendar.id),
+        name: apiCalendar.name,
+        google_calendar_id: apiCalendar.google_calendar_id,
+        is_active: apiCalendar.is_active,
+        color: apiCalendar.color,
+        sede_id: apiCalendar.sede_id ? String(apiCalendar.sede_id) : undefined,
+        sede_name: apiCalendar.sede_name || undefined,
+    }));
+}
+
+async function getActiveSedes(signal?: AbortSignal): Promise<Sede[]> {
+    const data = await api.get(API_ROUTES.SEDES, { page: '1', limit: '200' }, undefined, { signal });
+    const raw = Array.isArray(data) ? data : (data?.sedes || data?.data || []);
+    return raw.filter((s: any) => s.is_active !== false).map((s: any) => ({
+        id: String(s.id), clinic_id: String(s.clinic_id), name: s.name || '',
+        is_active: s.is_active !== undefined ? s.is_active : true,
+    }));
 }
 
 async function upsertCalendar(calendarData: CalendarFormValues) {
@@ -73,7 +80,7 @@ async function upsertCalendar(calendarData: CalendarFormValues) {
         sede_id: calendarData.sede_id ? Number(calendarData.sede_id) : null,
     };
     if (calendarData.id) payload.id = Number(calendarData.id);
-    const responseData = await api.post(API_ROUTES.CALENDARS_UPSERT, payload);
+    const responseData = await api.post(API_ROUTES.CALENDARS_UPSERT, payload, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
     const backendError = getBackendErrorMessage(responseData, 'Failed to save calendar');
     if (backendError) {
         throw new Error(backendError);
@@ -82,7 +89,7 @@ async function upsertCalendar(calendarData: CalendarFormValues) {
 }
 
 async function deleteCalendar(id: string) {
-    const responseData = await api.delete(API_ROUTES.CALENDARS_DELETE, { id });
+    const responseData = await api.delete(API_ROUTES.CALENDARS_DELETE, { id }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
     const backendError = getBackendErrorMessage(responseData, 'Failed to delete calendar');
     if (backendError) {
         throw new Error(backendError);
@@ -128,52 +135,38 @@ export default function CalendarsPage() {
     const tValidation = useTranslations('CalendarsPage.validation');
     const tGeneral = useTranslations('General');
     const tTabs = useTranslations('CalendarsPage.tabs');
+    const tCommon = useTranslations('Common');
     const { toast } = useToast();
     const { hasPermission } = usePermissions();
     const canManageAccess = hasPermission(BUSINESS_CONFIG_PERMISSIONS.CALENDARS_MANAGE_USERS);
     const isNarrow = useViewportNarrow();
     const [activeTab, setActiveTab] = React.useState<'details' | 'access'>('details');
 
-    const [calendars, setCalendars] = React.useState<CalendarType[]>([]);
-    const [isRefreshing, setIsRefreshing] = React.useState(false);
+    const { data: calendars, isLoading, isRefreshing, error: loadError, reload: loadCalendars } = useDataLoader(getCalendars, [] as CalendarType[]);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedCalendar, setSelectedCalendar] = React.useState<CalendarType | null>(null);
     const [isEditing, setIsEditing] = React.useState(false);
-    const [isSaving, setIsSaving] = React.useState(false);
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [deletingCalendar, setDeletingCalendar] = React.useState<CalendarType | null>(null);
 
-    const [sedes, setSedes] = React.useState<Sede[]>([]);
+    // Sede is required: if its list fails to load, say so in the picker instead of showing an empty list.
+    const { data: sedes, error: sedesError } = useDataLoader(getActiveSedes, [] as Sede[]);
     const [isSedeOpen, setIsSedeOpen] = React.useState(false);
-
-    React.useEffect(() => {
-        api.get(API_ROUTES.SEDES, { page: '1', limit: '200' }).then((data: any) => {
-            const raw = Array.isArray(data) ? data : (data.sedes || data.data || []);
-            setSedes(raw.filter((s: any) => s.is_active !== false).map((s: any) => ({
-                id: String(s.id), clinic_id: String(s.clinic_id), name: s.name || '',
-                is_active: s.is_active !== undefined ? s.is_active : true,
-            })));
-        }).catch(() => setSedes([]));
-    }, []);
 
     const form = useForm<CalendarFormValues>({
         resolver: zodResolver(calendarFormSchema(tValidation)),
         defaultValues: { name: '', google_calendar_id: '', color: '#ffffff', is_active: true, sede_id: '' },
     });
 
-    const loadCalendars = React.useCallback(async () => {
-        setIsRefreshing(true);
-        const fetched = await getCalendars();
-        setCalendars(fetched);
-        setIsRefreshing(false);
-    }, []);
-
-    React.useEffect(() => { loadCalendars(); }, [loadCalendars]);
-
     const handleRowSelection = (rows: CalendarType[]) => {
         const calendar = rows[0] ?? null;
+        // Don't drop an in-flight save or unsaved edits by clicking another row.
+        if (save.isPending || (isEditing && form.formState.isDirty && !window.confirm(tCommon('unsavedChangesConfirm')))) {
+            setRowSelection(selectedCalendar ? { [selectedCalendar.id]: true } : {});
+            return;
+        }
         setSelectedCalendar(calendar);
         setActiveTab('details');
         setSubmissionError(null);
@@ -199,6 +192,8 @@ export default function CalendarsPage() {
     };
 
     const handleBack = () => {
+        if (save.isPending) return;
+        if (isEditing && form.formState.isDirty && !window.confirm(tCommon('unsavedChangesConfirm'))) return;
         if (isEditing && selectedCalendar) {
             setIsEditing(false);
             form.reset({ ...selectedCalendar, color: selectedCalendar.color || '#ffffff', sede_id: selectedCalendar.sede_id || '' });
@@ -207,38 +202,61 @@ export default function CalendarsPage() {
         }
     };
 
-    const onSubmit = async (values: CalendarFormValues) => {
-        setSubmissionError(null);
-        setIsSaving(true);
-        try {
+    const save = useAsyncAction(
+        async (values: CalendarFormValues) => {
+            setSubmissionError(null);
             await upsertCalendar(values);
-            toast({ title: selectedCalendar ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle') });
-            await loadCalendars();
-            setIsEditing(false);
-            if (!values.id) {
-                setIsCreateDialogOpen(false);
-                handleClose();
-            }
-        } catch (error) {
-            setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
-        } finally {
-            setIsSaving(false);
+            return values;
+        },
+        {
+            onSuccess: async (values) => {
+                toast({
+                    title: values.id ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle'),
+                    description: t('toast.successDescription', { name: values.name }),
+                });
+                const fresh = await loadCalendars();
+                setIsEditing(false);
+                if (!values.id) {
+                    setIsCreateDialogOpen(false);
+                    handleClose();
+                    return;
+                }
+                const updated = fresh?.find((c) => c.id === values.id);
+                if (updated) {
+                    setSelectedCalendar(updated);
+                    form.reset({ ...updated, google_calendar_id: updated.google_calendar_id || '', color: updated.color || '#ffffff', sede_id: updated.sede_id || '' });
+                }
+            },
+            onError: (error) => {
+                if (isTimeoutError(error)) {
+                    // The calendar may have been saved anyway: refresh so the user can check before retrying.
+                    setSubmissionError(tCommon('timeoutError'));
+                    loadCalendars();
+                    return;
+                }
+                setSubmissionError(getErrorMessage(error) || t('toast.genericError'));
+            },
+            showErrorToast: false,
         }
-    };
+    );
 
-    const confirmDelete = async () => {
-        if (!deletingCalendar) return;
-        try {
-            await deleteCalendar(deletingCalendar.id);
-            toast({ title: t('toast.deleteSuccessTitle') });
-            setIsDeleteDialogOpen(false);
-            setDeletingCalendar(null);
-            handleClose();
-            loadCalendars();
-        } catch (error) {
-            toast({ variant: 'destructive', title: t('toast.errorTitle'), description: t('toast.deleteErrorDescription') });
+    const remove = useAsyncAction(
+        async (calendar: CalendarType) => {
+            await deleteCalendar(calendar.id);
+            return calendar;
+        },
+        {
+            onSuccess: async (calendar) => {
+                toast({ title: t('toast.deleteSuccessTitle'), description: t('toast.deleteSuccessDescription', { name: calendar.name }) });
+                setIsDeleteDialogOpen(false);
+                setDeletingCalendar(null);
+                handleClose();
+                await loadCalendars();
+            },
+            onError: (error) => { if (isTimeoutError(error)) loadCalendars(); },
+            errorTitle: t('toast.deleteErrorDescription'),
         }
-    };
+    );
 
     const columns: ColumnDef<CalendarType>[] = [
         { accessorKey: 'name', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} /> },
@@ -280,6 +298,8 @@ export default function CalendarsPage() {
                     onCreate={handleCreate}
                     onRefresh={loadCalendars}
                     isRefreshing={isRefreshing}
+                    isLoading={isLoading}
+                    loadError={loadError}
                     enableSingleRowSelection
                     rowSelection={rowSelection}
                     setRowSelection={setRowSelection}
@@ -323,7 +343,7 @@ export default function CalendarsPage() {
                             </Button>
                         )}
                         {selectedCalendar && !isEditing && activeTab === 'details' && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" onClick={() => { setDeletingCalendar(selectedCalendar); setIsDeleteDialogOpen(true); }}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" aria-label={t('deleteDialog.delete')} onClick={() => { setDeletingCalendar(selectedCalendar); setIsDeleteDialogOpen(true); }}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         )}
@@ -353,7 +373,7 @@ export default function CalendarsPage() {
                     <CalendarAccessTab calendarId={selectedCalendar.id} canManage={canManageAccess} />
                 ) : (
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(save.run)} className="space-y-4">
                         {submissionError && (
                             <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />
@@ -364,14 +384,14 @@ export default function CalendarsPage() {
                         <FormField control={form.control} name="name" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>{t('dialog.name')}</FormLabel>
-                                <FormControl><Input {...field} disabled={!isEditing} placeholder={t('dialog.namePlaceholder')} /></FormControl>
+                                <FormControl><Input {...field} disabled={!isEditing || save.isPending} placeholder={t('dialog.namePlaceholder')} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )} />
                         <FormField control={form.control} name="google_calendar_id" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>{t('dialog.googleCalendarId')}</FormLabel>
-                                <FormControl><Input type="email" {...field} disabled={!isEditing} placeholder={t('dialog.googleCalendarIdPlaceholder')} /></FormControl>
+                                <FormControl><Input type="email" {...field} disabled={!isEditing || save.isPending} placeholder={t('dialog.googleCalendarIdPlaceholder')} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )} />
@@ -380,8 +400,8 @@ export default function CalendarsPage() {
                                 <FormLabel>{t('dialog.color')}</FormLabel>
                                 <FormControl>
                                     <div className="flex items-center gap-2">
-                                        <Input type="color" className="p-1 h-10 w-14" {...field} disabled={!isEditing} />
-                                        <Input placeholder="#FFFFFF" {...field} disabled={!isEditing} />
+                                        <Input type="color" className="p-1 h-10 w-14" {...field} disabled={!isEditing || save.isPending} />
+                                        <Input placeholder="#FFFFFF" {...field} disabled={!isEditing || save.isPending} />
                                     </div>
                                 </FormControl>
                                 <FormMessage />
@@ -400,7 +420,7 @@ export default function CalendarsPage() {
                                                 role="combobox"
                                                 aria-required="true"
                                                 aria-invalid={!!fieldState.error}
-                                                disabled={!isEditing}
+                                                disabled={!isEditing || save.isPending}
                                                 className={cn(
                                                     'w-full justify-between font-normal',
                                                     !field.value && 'text-muted-foreground',
@@ -416,7 +436,7 @@ export default function CalendarsPage() {
                                         <Command>
                                             <CommandInput placeholder={t('dialog.searchSede')} />
                                             <CommandList>
-                                                <CommandEmpty>{tGeneral('noResults')}</CommandEmpty>
+                                                <CommandEmpty>{sedesError ? tCommon('loadError') : tGeneral('noResults')}</CommandEmpty>
                                                 <CommandGroup>
                                                     {sedes.map(sede => (
                                                         <CommandItem key={sede.id} value={sede.name} onSelect={() => { field.onChange(sede.id); setIsSedeOpen(false); }}>
@@ -434,17 +454,16 @@ export default function CalendarsPage() {
                         )} />
                         <FormField control={form.control} name="is_active" render={({ field }) => (
                             <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-lg border p-3">
-                                <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!isEditing} /></FormControl>
+                                <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!isEditing || save.isPending} /></FormControl>
                                 <FormLabel className="font-normal">{t('dialog.active')}</FormLabel>
                             </FormItem>
                         )} />
                         {isEditing && (
                             <div className="flex gap-2 pt-2">
-                                <Button type="button" variant="outline" onClick={() => { setIsEditing(false); if (selectedCalendar) form.reset({ ...selectedCalendar, color: selectedCalendar.color || '#ffffff', sede_id: selectedCalendar.sede_id || '' }); else handleClose(); }} disabled={isSaving}>
+                                <Button type="button" variant="outline" onClick={() => { setIsEditing(false); setSubmissionError(null); if (selectedCalendar) form.reset({ ...selectedCalendar, google_calendar_id: selectedCalendar.google_calendar_id || '', color: selectedCalendar.color || '#ffffff', sede_id: selectedCalendar.sede_id || '' }); else handleClose(); }} disabled={save.isPending}>
                                     {t('dialog.cancel')}
                                 </Button>
-                                <Button type="submit" disabled={isSaving}>
-                                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                <Button type="submit" loading={save.isPending}>
                                     {selectedCalendar ? t('dialog.save') : t('dialog.create')}
                                 </Button>
                             </div>
@@ -466,21 +485,20 @@ export default function CalendarsPage() {
                 leftPanelDefaultSize={40}
                 rightPanelDefaultSize={60}
             />
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
-                        <AlertDialogDescription>{t('deleteDialog.description', { name: deletingCalendar?.name })}</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.delete')}</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <ConfirmActionDialog
+                open={isDeleteDialogOpen}
+                onOpenChange={setIsDeleteDialogOpen}
+                title={t('deleteDialog.title')}
+                description={t('deleteDialog.description', { name: deletingCalendar?.name })}
+                cancelLabel={t('deleteDialog.cancel')}
+                confirmLabel={t('deleteDialog.delete')}
+                onConfirm={() => { if (deletingCalendar) remove.run(deletingCalendar); }}
+                isPending={remove.isPending}
+            />
             <Dialog
                 open={isCreateDialogOpen}
                 onOpenChange={(open) => {
+                    if (!open && save.isPending) return;
                     setIsCreateDialogOpen(open);
                     if (!open) {
                         setIsEditing(false);
@@ -489,13 +507,15 @@ export default function CalendarsPage() {
                     }
                 }}
             >
-                <DialogContent maxWidth="lg" confirmOnClose isDirty={form.formState.isDirty}>
+                <DialogContent maxWidth="lg" confirmOnClose isDirty={form.formState.isDirty && !save.isPending}>
                     <DialogHeader>
                         <DialogTitle>{t('dialog.createTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col min-h-0">
+                        <form onSubmit={form.handleSubmit(save.run)} className="flex flex-col min-h-0">
                             <DialogBody className="space-y-4 px-6 py-4">
+                                {/* Native fieldset disables every control while the request is in flight */}
+                                <fieldset disabled={save.isPending} className="min-w-0 space-y-4">
                                 {submissionError && (
                                     <Alert variant="destructive">
                                         <AlertTriangle className="h-4 w-4" />
@@ -557,7 +577,7 @@ export default function CalendarsPage() {
                                                 <Command>
                                                     <CommandInput placeholder={t('dialog.searchSede')} />
                                                     <CommandList>
-                                                        <CommandEmpty>{tGeneral('noResults')}</CommandEmpty>
+                                                        <CommandEmpty>{sedesError ? tCommon('loadError') : tGeneral('noResults')}</CommandEmpty>
                                                         <CommandGroup>
                                                             {sedes.map(sede => (
                                                                 <CommandItem key={sede.id} value={sede.name} onSelect={() => { field.onChange(sede.id); setIsSedeOpen(false); }}>
@@ -579,13 +599,13 @@ export default function CalendarsPage() {
                                         <FormLabel className="font-normal">{t('dialog.active')}</FormLabel>
                                     </FormItem>
                                 )} />
+                                </fieldset>
                             </DialogBody>
                             <DialogFooter>
-                                <DialogCancelButton disabled={isSaving}>
+                                <DialogCancelButton disabled={save.isPending}>
                                     {t('dialog.cancel')}
                                 </DialogCancelButton>
-                                <Button type="submit" disabled={isSaving}>
-                                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                <Button type="submit" loading={save.isPending}>
                                     {t('dialog.create')}
                                 </Button>
                             </DialogFooter>

@@ -1,11 +1,11 @@
 'use client';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -17,14 +17,18 @@ import { Textarea } from '@/components/ui/textarea';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
+import { useAsyncAction } from '@/hooks/use-async-action';
+import { useDataLoader } from '@/hooks/use-data-loader';
+import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
+import { getErrorMessage } from '@/lib/error-utils';
 import { MutualSociety } from '@/lib/types';
-import api from '@/services/api';
+import api, { isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, Handshake, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { AlertTriangle, Handshake, Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -42,14 +46,13 @@ type MutualSocietyFormValues = z.infer<ReturnType<typeof mutualSocietyFormSchema
 
 type MutualSocietyResponse = { mutualSocieties: MutualSociety[]; total: number };
 
-async function getMutualSocieties(pagination: PaginationState, searchQuery: string): Promise<MutualSocietyResponse> {
-    try {
+async function getMutualSocieties(pagination: PaginationState, searchQuery: string, signal?: AbortSignal): Promise<MutualSocietyResponse> {
         const searchValue = searchQuery.length >= 3 ? searchQuery : '';
         const data = await api.get(API_ROUTES.MUTUAL_SOCIETIES, {
             search: searchValue,
             page: (pagination.pageIndex + 1).toString(),
             limit: pagination.pageSize.toString(),
-        });
+        }, undefined, { signal });
 
         let mutualSocietiesData: any[] = [];
         let total = 0;
@@ -85,14 +88,10 @@ async function getMutualSocieties(pagination: PaginationState, searchQuery: stri
             .filter((m: MutualSociety) => m.id !== undefined && m.id !== null);
 
         return { mutualSocieties, total };
-    } catch (error) {
-        console.error("Failed to fetch mutual societies:", error);
-        return { mutualSocieties: [], total: 0 };
-    }
 }
 
 async function upsertMutualSociety(mutualSocietyData: MutualSocietyFormValues) {
-    const responseData = await api.post(API_ROUTES.MUTUAL_SOCIETIES_UPSERT, mutualSocietyData);
+    const responseData = await api.post(API_ROUTES.MUTUAL_SOCIETIES_UPSERT, mutualSocietyData, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         throw new Error(responseData[0]?.message || 'Failed to save mutual society');
     }
@@ -100,7 +99,7 @@ async function upsertMutualSociety(mutualSocietyData: MutualSocietyFormValues) {
 }
 
 async function deleteMutualSociety(id: string) {
-    const responseData = await api.delete(API_ROUTES.MUTUAL_SOCIETIES_DELETE, { id });
+    const responseData = await api.delete(API_ROUTES.MUTUAL_SOCIETIES_DELETE, { id }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         throw new Error(responseData[0]?.message || 'Failed to delete mutual society');
     }
@@ -110,6 +109,7 @@ async function deleteMutualSociety(id: string) {
 export default function MutualSocietiesPage() {
     const t = useTranslations('MutualSocietiesPage');
     const tColumns = useTranslations('MutualSocietiesColumns');
+    const tCommon = useTranslations('Common');
     const { toast } = useToast();
     const { hasPermission } = usePermissions();
     const isNarrow = useViewportNarrow();
@@ -118,15 +118,11 @@ export default function MutualSocietiesPage() {
     const canUpdate = hasPermission(BUSINESS_CONFIG_PERMISSIONS.MUTUAL_SOC_UPDATE);
     const canDelete = hasPermission(BUSINESS_CONFIG_PERMISSIONS.MUTUAL_SOC_DELETE);
 
-    const [mutualSocieties, setMutualSocieties] = React.useState<MutualSociety[]>([]);
-    const [totalItems, setTotalItems] = React.useState(0);
-    const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedMutualSociety, setSelectedMutualSociety] = React.useState<MutualSociety | null>(null);
     const [isEditing, setIsEditing] = React.useState(false);
-    const [isSaving, setIsSaving] = React.useState(false);
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
@@ -137,19 +133,21 @@ export default function MutualSocietiesPage() {
         defaultValues: { name: '', description: '', code: '', is_active: true },
     });
 
-    const loadMutualSocieties = React.useCallback(async () => {
-        setIsRefreshing(true);
-        const searchQuery = (columnFilters.find(f => f.id === 'name')?.value as string) || '';
-        const { mutualSocieties: fetched, total } = await getMutualSocieties(pagination, searchQuery);
-        setMutualSocieties(fetched);
-        setTotalItems(total);
-        setIsRefreshing(false);
-    }, [pagination, columnFilters]);
+    const searchQuery = (columnFilters.find(f => f.id === 'name')?.value as string) || '';
+    const debouncedSearch = useDebounce(searchQuery, 500);
 
-    React.useEffect(() => {
-        const debounce = setTimeout(() => { loadMutualSocieties(); }, 500);
-        return () => clearTimeout(debounce);
-    }, [loadMutualSocieties]);
+    // Only the latest page/search request may write the table: a slow "ju" can't overwrite "juan".
+    const {
+        data: { mutualSocieties, total: totalItems },
+        isLoading,
+        isRefreshing,
+        error: loadError,
+        reload: loadMutualSocieties,
+    } = useDataLoader(
+        (signal) => getMutualSocieties(pagination, debouncedSearch, signal),
+        { mutualSocieties: [] as MutualSociety[], total: 0 },
+        [pagination.pageIndex, pagination.pageSize, debouncedSearch]
+    );
 
     React.useEffect(() => {
         setPagination(prev => ({ ...prev, pageIndex: 0 }));
@@ -157,6 +155,11 @@ export default function MutualSocietiesPage() {
 
     const handleRowSelection = (rows: MutualSociety[]) => {
         const society = rows[0] ?? null;
+        // Don't drop an in-flight save or unsaved edits by clicking another row.
+        if (save.isPending || (isEditing && form.formState.isDirty && !window.confirm(tCommon('unsavedChangesConfirm')))) {
+            setRowSelection(selectedMutualSociety ? { [String(selectedMutualSociety.id)]: true } : {});
+            return;
+        }
         setSelectedMutualSociety(society);
         setSubmissionError(null);
         if (society) {
@@ -181,6 +184,8 @@ export default function MutualSocietiesPage() {
     };
 
     const handleBack = () => {
+        if (save.isPending) return;
+        if (isEditing && form.formState.isDirty && !window.confirm(tCommon('unsavedChangesConfirm'))) return;
         if (isEditing && selectedMutualSociety) {
             setIsEditing(false);
             form.reset({ id: selectedMutualSociety.id, name: selectedMutualSociety.name, description: selectedMutualSociety.description || '', code: selectedMutualSociety.code, is_active: selectedMutualSociety.is_active });
@@ -189,38 +194,55 @@ export default function MutualSocietiesPage() {
         }
     };
 
-    const onSubmit = async (values: MutualSocietyFormValues) => {
-        setSubmissionError(null);
-        setIsSaving(true);
-        try {
+    const save = useAsyncAction(
+        async (values: MutualSocietyFormValues) => {
+            setSubmissionError(null);
             await upsertMutualSociety(values);
-            toast({ title: selectedMutualSociety ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle') });
-            await loadMutualSocieties();
-            setIsEditing(false);
-            if (!values.id) {
-                setIsCreateDialogOpen(false);
-                handleClose();
-            }
-        } catch (error) {
-            setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
-        } finally {
-            setIsSaving(false);
+            return values;
+        },
+        {
+            onSuccess: async (values) => {
+                toast({ title: values.id ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle') });
+                const fresh = await loadMutualSocieties();
+                setIsEditing(false);
+                if (!values.id) {
+                    setIsCreateDialogOpen(false);
+                    handleClose();
+                    return;
+                }
+                const updated = fresh?.mutualSocieties.find((m) => String(m.id) === String(values.id));
+                if (updated) {
+                    setSelectedMutualSociety(updated);
+                    form.reset({ id: updated.id, name: updated.name, description: updated.description || '', code: updated.code, is_active: updated.is_active });
+                }
+            },
+            onError: (error) => {
+                if (isTimeoutError(error)) {
+                    // The record may have been saved anyway: refresh so the user can check before retrying.
+                    setSubmissionError(tCommon('timeoutError'));
+                    loadMutualSocieties();
+                    return;
+                }
+                setSubmissionError(getErrorMessage(error) || t('toast.genericError'));
+            },
+            showErrorToast: false,
         }
-    };
+    );
 
-    const confirmDelete = async () => {
-        if (!deletingMutualSociety) return;
-        try {
-            await deleteMutualSociety(String(deletingMutualSociety.id));
-            toast({ title: t('toast.deleteSuccessTitle') });
-            setIsDeleteDialogOpen(false);
-            setDeletingMutualSociety(null);
-            handleClose();
-            loadMutualSocieties();
-        } catch (error) {
-            toast({ variant: 'destructive', title: t('toast.errorTitle'), description: error instanceof Error ? error.message : t('toast.deleteErrorDescription') });
+    const remove = useAsyncAction(
+        (society: MutualSociety) => deleteMutualSociety(String(society.id)),
+        {
+            onSuccess: async () => {
+                toast({ title: t('toast.deleteSuccessTitle') });
+                setIsDeleteDialogOpen(false);
+                setDeletingMutualSociety(null);
+                handleClose();
+                await loadMutualSocieties();
+            },
+            onError: (error) => { if (isTimeoutError(error)) loadMutualSocieties(); },
+            errorTitle: t('toast.deleteErrorDescription'),
         }
-    };
+    );
 
     const columns: ColumnDef<MutualSociety>[] = [
         { accessorKey: 'name', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('name')} /> },
@@ -254,6 +276,8 @@ export default function MutualSocietiesPage() {
                     onCreate={canCreate ? handleCreate : undefined}
                     onRefresh={loadMutualSocieties}
                     isRefreshing={isRefreshing}
+                    isLoading={isLoading}
+                    loadError={loadError}
                     enableSingleRowSelection
                     rowSelection={rowSelection}
                     setRowSelection={setRowSelection}
@@ -305,7 +329,7 @@ export default function MutualSocietiesPage() {
                                 </Button>
                             )}
                             {canDelete && (
-                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" onClick={() => { setDeletingMutualSociety(selectedMutualSociety); setIsDeleteDialogOpen(true); }}>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" aria-label={t('deleteDialog.confirm')} onClick={() => { setDeletingMutualSociety(selectedMutualSociety); setIsDeleteDialogOpen(true); }}>
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
                             )}
@@ -315,7 +339,7 @@ export default function MutualSocietiesPage() {
             </CardHeader>
             <Separator />
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
+                <form onSubmit={form.handleSubmit(save.run)} className="flex-1 flex flex-col min-h-0">
                     <CardContent className="flex-1 overflow-auto p-4 space-y-4">
                         {submissionError && (
                             <Alert variant="destructive">
@@ -324,6 +348,8 @@ export default function MutualSocietiesPage() {
                                 <AlertDescription>{submissionError}</AlertDescription>
                             </Alert>
                         )}
+                        {/* Native fieldset disables every control while the request is in flight */}
+                        <fieldset disabled={save.isPending} className="min-w-0 space-y-4">
                         <FormField control={form.control} name="name" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>{t('createDialog.name')}</FormLabel>
@@ -351,14 +377,14 @@ export default function MutualSocietiesPage() {
                                 <FormLabel className="font-normal">{t('createDialog.isActive')}</FormLabel>
                             </FormItem>
                         )} />
+                        </fieldset>
                     </CardContent>
                     {isEditing && (
                         <div className="flex-none border-t bg-card px-4 py-3 flex gap-2">
-                            <Button type="submit" disabled={isSaving}>
-                                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            <Button type="submit" loading={save.isPending}>
                                 {selectedMutualSociety ? t('createDialog.editSave') : t('createDialog.save')}
                             </Button>
-                            <Button type="button" variant="outline" disabled={isSaving} onClick={() => {
+                            <Button type="button" variant="outline" disabled={save.isPending} onClick={() => {
                                 setIsEditing(false);
                                 setSubmissionError(null);
                                 if (selectedMutualSociety) {
@@ -386,21 +412,20 @@ export default function MutualSocietiesPage() {
                 leftPanelDefaultSize={40}
                 rightPanelDefaultSize={60}
             />
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
-                        <AlertDialogDescription>{t('deleteDialog.description', { name: deletingMutualSociety?.name })}</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <ConfirmActionDialog
+                open={isDeleteDialogOpen}
+                onOpenChange={setIsDeleteDialogOpen}
+                title={t('deleteDialog.title')}
+                description={t('deleteDialog.description', { name: deletingMutualSociety?.name })}
+                cancelLabel={t('deleteDialog.cancel')}
+                confirmLabel={t('deleteDialog.confirm')}
+                onConfirm={() => { if (deletingMutualSociety) remove.run(deletingMutualSociety); }}
+                isPending={remove.isPending}
+            />
             <Dialog
                 open={isCreateDialogOpen}
                 onOpenChange={(open) => {
+                    if (!open && save.isPending) return;
                     setIsCreateDialogOpen(open);
                     if (!open) {
                         setIsEditing(false);
@@ -409,13 +434,13 @@ export default function MutualSocietiesPage() {
                     }
                 }}
             >
-                <DialogContent maxWidth="lg" confirmOnClose isDirty={form.formState.isDirty}>
+                <DialogContent maxWidth="lg" confirmOnClose isDirty={form.formState.isDirty && !save.isPending}>
                     <DialogHeader>
                         <DialogTitle>{t('createDialog.title')}</DialogTitle>
                         <DialogDescription>{t('createDialog.description')}</DialogDescription>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col min-h-0">
+                        <form onSubmit={form.handleSubmit(save.run)} className="flex flex-col min-h-0">
                             <DialogBody className="space-y-4 px-6 py-4">
                                 {submissionError && (
                                     <Alert variant="destructive">
@@ -424,6 +449,8 @@ export default function MutualSocietiesPage() {
                                         <AlertDescription>{submissionError}</AlertDescription>
                                     </Alert>
                                 )}
+                                {/* Native fieldset disables every control while the request is in flight */}
+                                <fieldset disabled={save.isPending} className="min-w-0 space-y-4">
                                 <FormField control={form.control} name="name" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>{t('createDialog.name')}</FormLabel>
@@ -451,13 +478,13 @@ export default function MutualSocietiesPage() {
                                         <FormLabel className="font-normal">{t('createDialog.isActive')}</FormLabel>
                                     </FormItem>
                                 )} />
+                                </fieldset>
                             </DialogBody>
                             <DialogFooter>
-                                <DialogCancelButton disabled={isSaving}>
+                                <DialogCancelButton disabled={save.isPending}>
                                     {t('createDialog.cancel')}
                                 </DialogCancelButton>
-                                <Button type="submit" disabled={isSaving}>
-                                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                <Button type="submit" loading={save.isPending}>
                                     {t('createDialog.save')}
                                 </Button>
                             </DialogFooter>

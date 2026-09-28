@@ -14,10 +14,14 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ViewModeToggle } from '@/components/ui/view-mode-toggle';
 import { useTableViewMode } from '@/hooks/use-table-view-mode';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
+import { useAsyncAction, useKeyedAsyncAction } from '@/hooks/use-async-action';
+import { useDataLoader } from '@/hooks/use-data-loader';
+import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
 import { API_ROUTES } from '@/constants/routes';
+import { getErrorMessage } from '@/lib/error-utils';
 import { cn } from '@/lib/utils';
-import { api } from '@/services/api';
+import { api, isAbortError, isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 
 interface PatientGroupPatientsTabProps {
     groupId: string;
@@ -75,6 +79,7 @@ async function fetchGroupPatients(
     groupId: string,
     pagination: PaginationState,
     search: string,
+    signal?: AbortSignal,
 ): Promise<{ rows: PatientRow[]; total: number }> {
     try {
         const { list, total } = parseList(await api.get(API_ROUTES.PATIENT_GROUP_PATIENTS, {
@@ -82,15 +87,16 @@ async function fetchGroupPatients(
             page: (pagination.pageIndex + 1).toString(),
             limit: pagination.pageSize.toString(),
             search,
-        }));
+        }, undefined, { signal }));
         return { rows: list.map(mapPatient).filter((p) => p.id), total: total || list.length };
     } catch (error) {
         console.error('Failed to fetch group patients:', error);
-        return { rows: [], total: 0 };
+        // Rethrown so the tab shows a load error instead of an empty group.
+        throw error;
     }
 }
 
-async function searchPatients(search: string): Promise<PatientRow[]> {
+async function searchPatients(search: string, signal?: AbortSignal): Promise<PatientRow[]> {
     try {
         const { list } = parseList(await api.get(API_ROUTES.USERS, {
             filter_type: 'PACIENTE',
@@ -99,11 +105,11 @@ async function searchPatients(search: string): Promise<PatientRow[]> {
             limit: '20',
             only_debtors: 'false',
             only_active: 'true',
-        }));
+        }, undefined, { signal }));
         return list.map(mapPatient).filter((p) => p.id);
     } catch (error) {
         console.error('Failed to search patients:', error);
-        return [];
+        throw error;
     }
 }
 
@@ -118,12 +124,8 @@ export function PatientGroupPatientsTab({ groupId, canManage }: PatientGroupPati
     const isNarrow = viewportNarrow || useListView;
     const viewToggleEl = showToggle ? <ViewModeToggle value={viewMode} onChange={setViewMode} /> : undefined;
 
-    const [rows, setRows] = React.useState<PatientRow[]>([]);
-    const [total, setTotal] = React.useState(0);
-    const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-    const [removingId, setRemovingId] = React.useState<string | null>(null);
 
     // Add popover
     const [isAddOpen, setAddOpen] = React.useState(false);
@@ -132,44 +134,55 @@ export function PatientGroupPatientsTab({ groupId, canManage }: PatientGroupPati
     const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
     const [known, setKnown] = React.useState<Map<string, string>>(new Map());
     const [isSearching, setIsSearching] = React.useState(false);
-    const [isSaving, setIsSaving] = React.useState(false);
+    const [searchError, setSearchError] = React.useState<string | null>(null);
 
-    const loadData = React.useCallback(async () => {
-        setIsRefreshing(true);
-        const search = (columnFilters.find((f) => f.id === 'name')?.value as string) || '';
-        const { rows: fetched, total: t2 } = await fetchGroupPatients(groupId, pagination, search);
-        setRows(fetched);
-        setTotal(t2);
-        setIsRefreshing(false);
-    }, [groupId, pagination, columnFilters]);
+    const tableSearch = (columnFilters.find((f) => f.id === 'name')?.value as string) || '';
+    const debouncedTableSearch = useDebounce(tableSearch, 400);
 
-    React.useEffect(() => {
-        const debounce = setTimeout(() => { loadData(); }, 400);
-        return () => clearTimeout(debounce);
-    }, [loadData]);
+    // Only the latest page/search request may write the table: a slow "ju" can't overwrite "juan".
+    const {
+        data: { rows, total },
+        isLoading,
+        isRefreshing,
+        error: loadError,
+        reload: loadData,
+    } = useDataLoader(
+        (signal) => fetchGroupPatients(groupId, pagination, debouncedTableSearch, signal),
+        { rows: [] as PatientRow[], total: 0 },
+        [groupId, pagination.pageIndex, pagination.pageSize, debouncedTableSearch]
+    );
 
     React.useEffect(() => {
         setPagination((prev) => ({ ...prev, pageIndex: 0 }));
     }, [columnFilters]);
 
     // Debounced patient search inside the add popover
+    // A slower, older response can't overwrite the results of the latest query.
     React.useEffect(() => {
         if (!isAddOpen) return;
+        const controller = new AbortController();
         const handler = setTimeout(async () => {
             setIsSearching(true);
+            setSearchError(null);
             try {
-                const found = await searchPatients(searchQuery.trim());
+                const found = await searchPatients(searchQuery.trim(), controller.signal);
+                if (controller.signal.aborted) return;
                 setResults(found);
                 setKnown((prev) => {
                     const next = new Map(prev);
                     found.forEach((p) => next.set(p.id, p.name));
                     return next;
                 });
+            } catch (error) {
+                if (!controller.signal.aborted && !isAbortError(error)) setSearchError(getErrorMessage(error));
             } finally {
-                setIsSearching(false);
+                if (!controller.signal.aborted) setIsSearching(false);
             }
         }, 300);
-        return () => clearTimeout(handler);
+        return () => {
+            clearTimeout(handler);
+            controller.abort();
+        };
     }, [searchQuery, isAddOpen]);
 
     const toggleSelect = (id: string) => {
@@ -178,36 +191,39 @@ export function PatientGroupPatientsTab({ groupId, canManage }: PatientGroupPati
         );
     };
 
-    const handleAdd = async () => {
-        if (selectedIds.length === 0) return;
-        setIsSaving(true);
-        try {
-            await api.post(API_ROUTES.PATIENT_GROUP_ASSIGN, { group_id: groupId, user_ids: selectedIds });
-            toast({ title: t('added', { count: selectedIds.length }) });
-            setSelectedIds([]);
-            setSearchQuery('');
-            setResults([]);
-            setAddOpen(false);
-            await loadData();
-        } catch (error) {
-            toast({ variant: 'destructive', title: t('addError'), description: error instanceof Error ? error.message : undefined });
-        } finally {
-            setIsSaving(false);
+    const add = useAsyncAction(
+        async (ids: string[]) => {
+            await api.post(API_ROUTES.PATIENT_GROUP_ASSIGN, { group_id: groupId, user_ids: ids }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
+            return ids.length;
+        },
+        {
+            onSuccess: async (count) => {
+                toast({ title: t('added', { count }) });
+                setSelectedIds([]);
+                setSearchQuery('');
+                setResults([]);
+                setAddOpen(false);
+                await loadData();
+            },
+            onError: (error) => { if (isTimeoutError(error)) loadData(); },
+            errorTitle: t('addError'),
         }
-    };
+    );
 
-    const handleRemove = async (id: string) => {
-        setRemovingId(id);
-        try {
-            await api.post(API_ROUTES.PATIENT_GROUP_REMOVE, { group_id: groupId, user_ids: [id] });
-            toast({ title: t('removed') });
-            await loadData();
-        } catch (error) {
-            toast({ variant: 'destructive', title: t('removeError'), description: error instanceof Error ? error.message : undefined });
-        } finally {
-            setRemovingId(null);
+    // Per row: removing one entry doesn't block the others.
+    const remove = useKeyedAsyncAction(
+        (id: string) => api.post(API_ROUTES.PATIENT_GROUP_REMOVE, { group_id: groupId, user_ids: [id] }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation }),
+        {
+            onSuccess: async () => {
+                toast({ title: t('removed') });
+                await loadData();
+            },
+            onError: (error) => { if (isTimeoutError(error)) loadData(); },
+            errorTitle: t('removeError'),
         }
-    };
+    );
+
+    const handleRemove = (id: string) => { remove.run(id, id); };
 
     const columns: ColumnDef<PatientRow>[] = [
         { accessorKey: 'name', header: t('col_name') },
@@ -224,10 +240,10 @@ export function PatientGroupPatientsTab({ groupId, canManage }: PatientGroupPati
                         size="icon"
                         className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
                         onClick={() => handleRemove(row.original.id)}
-                        disabled={removingId === row.original.id}
+                        disabled={remove.isPending(row.original.id)}
                         aria-label={t('remove')}
                     >
-                        {removingId === row.original.id
+                        {remove.isPending(row.original.id)
                             ? <Loader2 className="h-4 w-4 animate-spin" />
                             : <Trash2 className="h-4 w-4" />}
                     </Button>
@@ -237,7 +253,15 @@ export function PatientGroupPatientsTab({ groupId, canManage }: PatientGroupPati
     ];
 
     const addPopoverEl = canManage ? (
-        <Popover open={isAddOpen} onOpenChange={(open) => { setAddOpen(open); if (!open) { setSelectedIds([]); setSearchQuery(''); setResults([]); } }}>
+        <Popover
+            open={isAddOpen}
+            onOpenChange={(open) => {
+                // Don't close (and drop the selection) while the assignment is in flight.
+                if (!open && add.isPending) return;
+                setAddOpen(open);
+                if (!open) { setSelectedIds([]); setSearchQuery(''); setResults([]); setSearchError(null); }
+            }}
+        >
             <PopoverTrigger asChild>
                 <Button size="sm" className="gap-1.5">
                     <Plus className="h-4 w-4" />
@@ -254,7 +278,7 @@ export function PatientGroupPatientsTab({ groupId, canManage }: PatientGroupPati
                             </div>
                         ) : (
                             <>
-                                <CommandEmpty>{t('noResults')}</CommandEmpty>
+                                <CommandEmpty>{searchError ? <span className="text-destructive">{searchError}</span> : t('noResults')}</CommandEmpty>
                                 <CommandGroup>
                                     {results.map((p) => (
                                         <CommandItem key={p.id} value={p.id} onSelect={() => toggleSelect(p.id)}>
@@ -292,11 +316,10 @@ export function PatientGroupPatientsTab({ groupId, canManage }: PatientGroupPati
                 <div className="flex items-center justify-between gap-2 border-t p-2">
                     <span className="text-xs text-muted-foreground">{t('count', { count: selectedIds.length })}</span>
                     <div className="flex items-center gap-2">
-                        <Button size="sm" variant="outline" onClick={() => setAddOpen(false)} disabled={isSaving}>
+                        <Button size="sm" variant="outline" onClick={() => setAddOpen(false)} disabled={add.isPending}>
                             {t('addCancel')}
                         </Button>
-                        <Button size="sm" onClick={handleAdd} disabled={isSaving || selectedIds.length === 0}>
-                            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        <Button size="sm" onClick={() => add.run(selectedIds)} disabled={selectedIds.length === 0} loading={add.isPending}>
                             {t('addConfirm')}
                         </Button>
                     </div>
@@ -313,6 +336,8 @@ export function PatientGroupPatientsTab({ groupId, canManage }: PatientGroupPati
                 filterPlaceholder={t('filterPlaceholder')}
                 onRefresh={loadData}
                 isRefreshing={isRefreshing}
+                isLoading={isLoading}
+                loadError={loadError}
                 isNarrow={isNarrow}
                 renderCard={(row: PatientRow) => (
                     <DataCard
@@ -325,10 +350,10 @@ export function PatientGroupPatientsTab({ groupId, canManage }: PatientGroupPati
                                 size="icon"
                                 className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
                                 onClick={() => handleRemove(row.id)}
-                                disabled={removingId === row.id}
+                                disabled={remove.isPending(row.id)}
                                 aria-label={t('remove')}
                             >
-                                {removingId === row.id
+                                {remove.isPending(row.id)
                                     ? <Loader2 className="h-4 w-4 animate-spin" />
                                     : <Trash2 className="h-4 w-4" />}
                             </Button>

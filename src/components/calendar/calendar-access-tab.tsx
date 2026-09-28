@@ -1,17 +1,20 @@
 'use client';
 
 import * as React from 'react';
-import { Check, ChevronsUpDown, Loader2, Stethoscope, X } from 'lucide-react';
+import { AlertTriangle, Check, ChevronsUpDown, Loader2, Stethoscope, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useAsyncAction } from '@/hooks/use-async-action';
+import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
 import { API_ROUTES } from '@/constants/routes';
 import { cn } from '@/lib/utils';
-import { api } from '@/services/api';
+import { api, isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import type { User as UserType } from '@/lib/types';
 
 interface CalendarAccessTabProps {
@@ -19,9 +22,8 @@ interface CalendarAccessTabProps {
     canManage: boolean;
 }
 
-async function getDoctors(): Promise<UserType[]> {
-    try {
-        const data = await api.get(API_ROUTES.USERS, { filter_type: 'DOCTOR' });
+async function getDoctors(signal?: AbortSignal): Promise<UserType[]> {
+        const data = await api.get(API_ROUTES.USERS, { filter_type: 'DOCTOR' }, undefined, { signal });
         let doctorsData: any[] = [];
         if (Array.isArray(data) && data.length > 0) {
             const first = data[0];
@@ -34,49 +36,42 @@ async function getDoctors(): Promise<UserType[]> {
         return doctorsData
             .filter((d: any) => d.is_active !== false)
             .map((d: any) => ({ ...d, id: String(d.id) } as UserType));
-    } catch (error) {
-        console.error('Failed to fetch doctors:', error);
-        return [];
-    }
 }
 
-async function getCalendarUserIds(calendarId: string): Promise<string[]> {
-    try {
-        const data = await api.get(API_ROUTES.CALENDAR_USERS_SEARCH, { calendar_source_id: calendarId });
+async function getCalendarUserIds(calendarId: string, signal?: AbortSignal): Promise<string[]> {
+        const data = await api.get(API_ROUTES.CALENDAR_USERS_SEARCH, { calendar_source_id: calendarId }, undefined, { signal });
         const raw = Array.isArray(data) ? data : (data?.calendar_users || data?.data || []);
         return raw.map((item: any) => String(item.user_id ?? item.id)).filter(Boolean);
-    } catch (error) {
-        console.error('Failed to fetch calendar users:', error);
-        return [];
-    }
 }
 
 export function CalendarAccessTab({ calendarId, canManage }: CalendarAccessTabProps) {
     const t = useTranslations('CalendarsPage.access');
+    const tCommon = useTranslations('Common');
     const { toast } = useToast();
 
-    const [doctors, setDoctors] = React.useState<UserType[]>([]);
     const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
-    const [initialIds, setInitialIds] = React.useState<string[]>([]);
-    const [isLoading, setIsLoading] = React.useState(true);
-    const [isSaving, setIsSaving] = React.useState(false);
     const [isPopoverOpen, setPopoverOpen] = React.useState(false);
 
+    // Switching calendars quickly can't show another calendar's users: only the latest load writes.
+    const {
+        data: { doctors, userIds: initialIds },
+        setData,
+        isLoading,
+        isRefreshing,
+        error: loadError,
+        reload,
+    } = useDataLoader(
+        async (signal) => {
+            const [doctorList, userIds] = await Promise.all([getDoctors(signal), getCalendarUserIds(calendarId, signal)]);
+            return { doctors: doctorList, userIds };
+        },
+        { doctors: [] as UserType[], userIds: [] as string[] },
+        [calendarId]
+    );
+
     React.useEffect(() => {
-        let cancelled = false;
-        setIsLoading(true);
-        Promise.all([getDoctors(), getCalendarUserIds(calendarId)])
-            .then(([doctorList, userIds]) => {
-                if (cancelled) return;
-                setDoctors(doctorList);
-                setSelectedIds(userIds);
-                setInitialIds(userIds);
-            })
-            .finally(() => {
-                if (!cancelled) setIsLoading(false);
-            });
-        return () => { cancelled = true; };
-    }, [calendarId]);
+        setSelectedIds(initialIds);
+    }, [initialIds]);
 
     const isDirty = React.useMemo(() => {
         if (selectedIds.length !== initialIds.length) return true;
@@ -95,31 +90,50 @@ export function CalendarAccessTab({ calendarId, canManage }: CalendarAccessTabPr
         [doctors, selectedIds],
     );
 
-    const handleSave = async () => {
-        setIsSaving(true);
-        try {
+    const save = useAsyncAction(
+        async (userIds: string[]) => {
             const responseData = await api.post(API_ROUTES.CALENDAR_USERS_UPSERT, {
                 calendar_source_id: Number(calendarId),
-                user_ids: selectedIds,
-            });
+                user_ids: userIds,
+            }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
             const error = Array.isArray(responseData)
                 ? responseData.find((item: any) => item?.error)
                 : (responseData as any)?.error;
             if (error) throw new Error(typeof error === 'string' ? error : t('saveError'));
-            setInitialIds(selectedIds);
-            toast({ title: t('saved') });
-        } catch (error) {
-            toast({ variant: 'destructive', title: t('saveError'), description: error instanceof Error ? error.message : undefined });
-        } finally {
-            setIsSaving(false);
+            return userIds;
+        },
+        {
+            onSuccess: (userIds) => {
+                setData((prev) => ({ ...prev, userIds }));
+                toast({ title: t('saved') });
+            },
+            // The change may have been applied before the timeout: show the real assignments.
+            onError: (error) => { if (isTimeoutError(error)) reload(); },
+            errorTitle: t('saveError'),
         }
-    };
+    );
 
     if (isLoading) {
         return (
             <div className="flex items-center justify-center py-10 text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin" />
             </div>
+        );
+    }
+
+    if (loadError) {
+        // Showing an empty selection here would let a save wipe the real assignments.
+        return (
+            <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>{tCommon('loadError')}</AlertTitle>
+                <AlertDescription className="flex flex-wrap items-center gap-3">
+                    <span>{loadError}</span>
+                    <Button size="sm" variant="outline" onClick={() => reload()} loading={isRefreshing}>
+                        {tCommon('retry')}
+                    </Button>
+                </AlertDescription>
+            </Alert>
         );
     }
 
@@ -135,7 +149,7 @@ export function CalendarAccessTab({ calendarId, canManage }: CalendarAccessTabPr
                     <Button
                         variant="outline"
                         role="combobox"
-                        disabled={!canManage}
+                        disabled={!canManage || save.isPending}
                         className="w-full justify-between font-normal"
                     >
                         <span className="truncate">
@@ -175,6 +189,7 @@ export function CalendarAccessTab({ calendarId, canManage }: CalendarAccessTabPr
                             {canManage && (
                                 <button
                                     type="button"
+                                    disabled={save.isPending}
                                     onClick={() => toggleDoctor(doctor.id)}
                                     className="ml-0.5 rounded-full p-0.5 hover:bg-muted-foreground/20"
                                     aria-label={doctor.name}
@@ -191,8 +206,7 @@ export function CalendarAccessTab({ calendarId, canManage }: CalendarAccessTabPr
 
             {canManage && (
                 <div className="flex justify-end pt-2">
-                    <Button onClick={handleSave} disabled={isSaving || !isDirty}>
-                        {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <Button onClick={() => save.run(selectedIds)} disabled={!isDirty} loading={save.isPending}>
                         {t('save')}
                     </Button>
                 </div>

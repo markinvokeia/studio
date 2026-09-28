@@ -1,5 +1,6 @@
 'use client';
 
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -8,11 +9,13 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
+import { useAsyncAction } from '@/hooks/use-async-action';
+import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { SystemConfiguration } from '@/lib/types';
-import api from '@/services/api';
-import { BotMessageSquare, Loader2, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import api, { isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
+import { AlertTriangle, BotMessageSquare, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import * as z from 'zod';
@@ -114,16 +117,51 @@ function rulesFromSchedule(schedule: unknown): Rule[] {
     return [...byRanges.values()];
 }
 
-async function getConfigs(): Promise<SystemConfiguration[]> {
-    try {
-        const data = await api.get(API_ROUTES.SYSTEM.CONFIGS);
-        const list = Array.isArray(data) ? data : (data?.configs || data?.data || data?.result || []);
-        return list as SystemConfiguration[];
-    } catch (error) {
-        console.error('Failed to fetch configurations:', error);
-        return [];
-    }
+// Throws on failure: without the stored records' ids, saving would create duplicate config keys.
+async function getConfigs(signal?: AbortSignal): Promise<SystemConfiguration[]> {
+    const data = await api.get(API_ROUTES.SYSTEM.CONFIGS, undefined, undefined, { signal });
+    const list = Array.isArray(data) ? data : (data?.configs || data?.data || data?.result || []);
+    return list as SystemConfiguration[];
 }
+
+type AgentConfigIds = { agentEnabled?: string; businessHours?: string };
+
+function extractIds(configs: SystemConfiguration[]): AgentConfigIds {
+    const agentCfg = configs.find((c) => c.key === AGENT_ENABLED_KEY);
+    const hoursCfg = configs.find((c) => c.key === BUSINESS_HOURS_KEY);
+    return {
+        agentEnabled: agentCfg ? String(agentCfg.id) : undefined,
+        businessHours: hoursCfg ? String(hoursCfg.id) : undefined,
+    };
+}
+
+function parseAgentConfig(configs: SystemConfiguration[]) {
+    const agentCfg = configs.find((c) => c.key === AGENT_ENABLED_KEY);
+    const hoursCfg = configs.find((c) => c.key === BUSINESS_HOURS_KEY);
+    let businessHours: BusinessHours = DEFAULT_BUSINESS_HOURS;
+    if (hoursCfg?.value) {
+        try {
+            const parsed = JSON.parse(hoursCfg.value);
+            const rules = Array.isArray(parsed?.rules) ? normalizeRules(parsed.rules) : rulesFromSchedule(parsed?.schedule);
+            businessHours = {
+                enabled: parsed?.enabled !== false,
+                timezone: typeof parsed?.timezone === 'string' && parsed.timezone ? parsed.timezone : 'America/Montevideo',
+                rules: rules.length > 0 ? rules : DEFAULT_BUSINESS_HOURS.rules,
+                off_hours_reply: typeof parsed?.off_hours_reply === 'string' ? parsed.off_hours_reply : '',
+            };
+        } catch {
+            businessHours = DEFAULT_BUSINESS_HOURS;
+        }
+    }
+    return {
+        ids: extractIds(configs),
+        agentEnabled: agentCfg ? agentCfg.value !== 'false' : true,
+        businessHours,
+    };
+}
+
+/** A save that failed after the first of its two upserts was already applied. */
+class PartialSaveError extends Error {}
 
 async function upsertConfig(payload: {
     id?: string;
@@ -133,7 +171,7 @@ async function upsertConfig(payload: {
     data_type: SystemConfiguration['data_type'];
     is_public: boolean;
 }) {
-    const response = await api.post(API_ROUTES.SYSTEM.CONFIGS_UPSERT, payload);
+    const response = await api.post(API_ROUTES.SYSTEM.CONFIGS_UPSERT, payload, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
     if (Array.isArray(response) && response[0]?.code >= 400) {
         throw new Error(response[0]?.message || 'Failed to save configuration');
     }
@@ -142,54 +180,40 @@ async function upsertConfig(payload: {
 
 export default function WhatsAppAgentConfigPage() {
     const t = useTranslations('WhatsAppAgentConfigPage');
+    const tCommon = useTranslations('Common');
     const { toast } = useToast();
     const { hasPermission } = usePermissions();
     const canUpdate = hasPermission(SYSTEM_PERMISSIONS.WHATSAPP_AGENT_CONFIG_UPDATE);
 
-    const [isLoading, setIsLoading] = React.useState(true);
-    const [isSaving, setIsSaving] = React.useState(false);
     const [agentEnabled, setAgentEnabled] = React.useState(true);
     const [businessHours, setBusinessHours] = React.useState<BusinessHours>(DEFAULT_BUSINESS_HOURS);
-    const idsRef = React.useRef<{ agentEnabled?: string; businessHours?: string }>({});
+    const idsRef = React.useRef<AgentConfigIds>({});
 
-    const loadData = React.useCallback(async () => {
-        setIsLoading(true);
-        try {
-            const configs = await getConfigs();
-            const agentCfg = configs.find((c) => c.key === AGENT_ENABLED_KEY);
-            const hoursCfg = configs.find((c) => c.key === BUSINESS_HOURS_KEY);
-            idsRef.current = {
-                agentEnabled: agentCfg ? String(agentCfg.id) : undefined,
-                businessHours: hoursCfg ? String(hoursCfg.id) : undefined,
-            };
-            setAgentEnabled(agentCfg ? agentCfg.value !== 'false' : true);
-            if (hoursCfg?.value) {
-                try {
-                    const parsed = JSON.parse(hoursCfg.value);
-                    const rules = Array.isArray(parsed?.rules) ? normalizeRules(parsed.rules) : rulesFromSchedule(parsed?.schedule);
-                    setBusinessHours({
-                        enabled: parsed?.enabled !== false,
-                        timezone: typeof parsed?.timezone === 'string' && parsed.timezone ? parsed.timezone : 'America/Montevideo',
-                        rules: rules.length > 0 ? rules : DEFAULT_BUSINESS_HOURS.rules,
-                        off_hours_reply: typeof parsed?.off_hours_reply === 'string' ? parsed.off_hours_reply : '',
-                    });
-                } catch {
-                    setBusinessHours(DEFAULT_BUSINESS_HOURS);
-                }
-            } else {
-                setBusinessHours(DEFAULT_BUSINESS_HOURS);
-            }
-        } catch (error) {
-            console.error('Failed to load WhatsApp agent config:', error);
-            toast({ variant: 'destructive', title: t('toast.errorTitle'), description: t('toast.loadError') });
-        } finally {
-            setIsLoading(false);
-        }
-    }, [t, toast]);
+    const {
+        data: loaded,
+        isLoading,
+        isRefreshing,
+        error: loadError,
+        reload: loadData,
+    } = useDataLoader(
+        async (signal) => parseAgentConfig(await getConfigs(signal)),
+        { ids: {} as AgentConfigIds, agentEnabled: true, businessHours: DEFAULT_BUSINESS_HOURS }
+    );
 
     React.useEffect(() => {
-        loadData();
-    }, [loadData]);
+        idsRef.current = loaded.ids;
+        setAgentEnabled(loaded.agentEnabled);
+        setBusinessHours(loaded.businessHours);
+    }, [loaded]);
+
+    /** Best-effort: after a failed/partial save, learn the ids of any record just created so a retry updates it. */
+    const refreshIds = async () => {
+        try {
+            idsRef.current = extractIds(await getConfigs());
+        } catch {
+            // Keep the known ids; the error the user sees is the save error.
+        }
+    };
 
     const mutateRule = (ruleIndex: number, fn: (rule: Rule) => Rule) => {
         setBusinessHours((prev) => ({
@@ -238,39 +262,56 @@ export default function WhatsAppAgentConfigPage() {
         setBusinessHours((prev) => ({ ...prev, rules: prev.rules.filter((_, i) => i !== ruleIndex) }));
     };
 
-    const handleSave = async () => {
-        const parsed = businessHoursSchema.safeParse(businessHours);
-        if (!parsed.success) {
-            toast({ variant: 'destructive', title: t('toast.errorTitle'), description: t('toast.validationError') });
-            return;
-        }
-        setIsSaving(true);
-        try {
+    // Both upserts run under one lock; if the second fails, the message says what was already saved.
+    const save = useAsyncAction(
+        async (values: { agentEnabled: boolean; hours: BusinessHours }) => {
+            const parsed = businessHoursSchema.safeParse(values.hours);
+            if (!parsed.success) {
+                toast({ variant: 'destructive', title: t('toast.errorTitle'), description: t('toast.validationError') });
+                return false;
+            }
             await upsertConfig({
                 id: idsRef.current.agentEnabled,
                 key: AGENT_ENABLED_KEY,
-                value: agentEnabled ? 'true' : 'false',
+                value: values.agentEnabled ? 'true' : 'false',
                 data_type: 'boolean',
                 description: 'Habilita el agente conversacional de WhatsApp.',
                 is_public: false,
             });
-            await upsertConfig({
-                id: idsRef.current.businessHours,
-                key: BUSINESS_HOURS_KEY,
-                value: JSON.stringify(parsed.data),
-                data_type: 'json',
-                description: 'Ventana horaria en la que el agente de WhatsApp responde consultas.',
-                is_public: false,
-            });
-            toast({ title: t('toast.successTitle'), description: t('toast.saveSuccess') });
-            loadData();
-        } catch (error) {
-            console.error('Failed to save WhatsApp agent config:', error);
-            toast({ variant: 'destructive', title: t('toast.errorTitle'), description: t('toast.saveError') });
-        } finally {
-            setIsSaving(false);
+            try {
+                await upsertConfig({
+                    id: idsRef.current.businessHours,
+                    key: BUSINESS_HOURS_KEY,
+                    value: JSON.stringify(parsed.data),
+                    data_type: 'json',
+                    description: 'Ventana horaria en la que el agente de WhatsApp responde consultas.',
+                    is_public: false,
+                });
+            } catch (error) {
+                if (isTimeoutError(error)) throw error;
+                throw new PartialSaveError(t('toast.partialSaveError'));
+            }
+            return true;
+        },
+        {
+            onSuccess: async (saved) => {
+                if (!saved) return;
+                toast({ title: t('toast.successTitle'), description: t('toast.saveSuccess') });
+                await loadData();
+            },
+            onError: (error) => {
+                refreshIds();
+                toast({
+                    variant: 'destructive',
+                    title: t('toast.errorTitle'),
+                    description: error instanceof PartialSaveError
+                        ? error.message
+                        : isTimeoutError(error) ? tCommon('timeoutError') : t('toast.saveError'),
+                });
+            },
+            showErrorToast: false,
         }
-    };
+    );
 
     if (isLoading) {
         return (
@@ -280,8 +321,26 @@ export default function WhatsAppAgentConfigPage() {
         );
     }
 
+    // Showing the defaults after a failed load would let a save overwrite the real configuration.
+    if (loadError) {
+        return (
+            <div className="flex-1 p-1">
+                <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>{t('toast.loadError')}</AlertTitle>
+                    <AlertDescription className="flex flex-wrap items-center gap-3">
+                        <span>{loadError}</span>
+                        <Button size="sm" variant="outline" onClick={() => loadData()} loading={isRefreshing}>
+                            {tCommon('retry')}
+                        </Button>
+                    </AlertDescription>
+                </Alert>
+            </div>
+        );
+    }
+
     return (
-        <div className="flex-1 overflow-y-auto space-y-6 p-1">
+        <fieldset disabled={save.isPending} className="flex-1 min-w-0 overflow-y-auto space-y-6 p-1">
             <Card className="shadow-sm border-0">
                 <CardHeader className="p-4">
                     <div className="flex items-start gap-3">
@@ -486,12 +545,11 @@ export default function WhatsAppAgentConfigPage() {
 
             <div className="flex justify-end">
                 {canUpdate && (
-                    <Button onClick={handleSave} disabled={isSaving}>
-                        {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    <Button onClick={() => save.run({ agentEnabled, hours: businessHours })} loading={save.isPending}>
                         {t('saveChanges')}
                     </Button>
                 )}
             </div>
-        </div>
+        </fieldset>
     );
 }

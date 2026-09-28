@@ -1,6 +1,6 @@
 import { API_ROUTES } from '@/constants/routes';
 import type { PatientPortalConfig } from '@/lib/types';
-import { api } from '@/services/api';
+import { api, type ApiRequestOptions } from '@/services/api';
 
 /**
  * Ajustes de Configuración → Portal del Paciente.
@@ -22,8 +22,8 @@ export const DEFAULT_PATIENT_PORTAL_CONFIG: PatientPortalConfig = {
   welcome_message: '',
 };
 
-export async function fetchPatientPortalConfig(): Promise<PatientPortalConfig> {
-  const data = await api.get(API_ROUTES.PATIENT_AUTH.PUBLIC_CLINIC);
+export async function fetchPatientPortalConfig(options?: ApiRequestOptions): Promise<PatientPortalConfig> {
+  const data = await api.get(API_ROUTES.PATIENT_AUTH.PUBLIC_CLINIC, undefined, undefined, options);
   const raw = Array.isArray(data) ? (data[0]?.json ?? data[0]) : (data?.json ?? data);
 
   if (!raw) return DEFAULT_PATIENT_PORTAL_CONFIG;
@@ -37,7 +37,7 @@ export async function fetchPatientPortalConfig(): Promise<PatientPortalConfig> {
   };
 }
 
-export async function updatePatientPortalConfig(config: PatientPortalConfig): Promise<void> {
+export async function updatePatientPortalConfig(config: PatientPortalConfig, options?: ApiRequestOptions): Promise<void> {
   const response = await api.post(API_ROUTES.PATIENT_PORTAL_CONFIG, {
     patient_portal_enabled: config.patient_portal_enabled,
     online_booking_enabled: config.online_booking_enabled,
@@ -46,7 +46,7 @@ export async function updatePatientPortalConfig(config: PatientPortalConfig): Pr
     // (video genérico de Invoke IA y copy traducido).
     welcome_video_url: config.welcome_video_url.trim() || null,
     welcome_message: config.welcome_message.trim() || null,
-  });
+  }, undefined, undefined, options);
 
   const result = Array.isArray(response) ? response[0] : response;
   if (result?.error || (result?.code && result.code >= 400)) {

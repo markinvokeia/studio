@@ -2,11 +2,11 @@
 'use client';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -18,14 +18,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
+import { useAsyncAction } from '@/hooks/use-async-action';
+import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
+import { getErrorMessage } from '@/lib/error-utils';
 import { SystemConfiguration } from '@/lib/types';
-import api from '@/services/api';
+import api, { isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, Loader2, Pencil, Settings, Trash2 } from 'lucide-react';
+import { AlertTriangle, Pencil, Settings, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -42,10 +45,9 @@ const configFormSchema = (t: (key: string) => string) => z.object({
 
 type ConfigFormValues = z.infer<ReturnType<typeof configFormSchema>>;
 
-async function getConfigs(): Promise<SystemConfiguration[]> {
-    try {
-        const data = await api.get(API_ROUTES.SYSTEM.CONFIGS);
-        const configsData = Array.isArray(data) ? data : (data.configs || data.data || data.result || []);
+async function getConfigs(signal?: AbortSignal): Promise<SystemConfiguration[]> {
+        const data = await api.get(API_ROUTES.SYSTEM.CONFIGS, undefined, undefined, { signal });
+        const configsData = Array.isArray(data) ? data : (data?.configs || data?.data || data?.result || []);
         return configsData.map((apiConfig: any) => ({
             id: String(apiConfig.id),
             key: apiConfig.key,
@@ -55,14 +57,10 @@ async function getConfigs(): Promise<SystemConfiguration[]> {
             description: apiConfig.description,
             is_public: apiConfig.is_public,
         }));
-    } catch (error) {
-        console.error("Failed to fetch configurations:", error);
-        return [];
-    }
 }
 
 async function upsertConfig(configData: ConfigFormValues) {
-    const responseData = await api.post(API_ROUTES.SYSTEM.CONFIGS_UPSERT, configData);
+    const responseData = await api.post(API_ROUTES.SYSTEM.CONFIGS_UPSERT, configData, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         throw new Error(responseData[0]?.message || 'Failed to save configuration');
     }
@@ -70,7 +68,7 @@ async function upsertConfig(configData: ConfigFormValues) {
 }
 
 async function deleteConfig(id: string) {
-    const responseData = await api.delete(API_ROUTES.SYSTEM.CONFIGS_DELETE, { id });
+    const responseData = await api.delete(API_ROUTES.SYSTEM.CONFIGS_DELETE, { id }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         throw new Error(responseData[0]?.message || 'Failed to delete configuration');
     }
@@ -79,6 +77,7 @@ async function deleteConfig(id: string) {
 
 export default function SystemConfigPage() {
     const t = useTranslations('ConfigurationsPage');
+    const tCommon = useTranslations('Common');
     const { toast } = useToast();
     const { hasPermission } = usePermissions();
 
@@ -88,12 +87,9 @@ export default function SystemConfigPage() {
     const canDelete = hasPermission(SYSTEM_PERMISSIONS.SYS_CONFIG_DELETE);
     const isNarrow = useViewportNarrow();
 
-    const [configs, setConfigs] = React.useState<SystemConfiguration[]>([]);
-    const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedConfig, setSelectedConfig] = React.useState<SystemConfiguration | null>(null);
     const [isEditing, setIsEditing] = React.useState(false);
-    const [isSaving, setIsSaving] = React.useState(false);
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [deletingConfig, setDeletingConfig] = React.useState<SystemConfiguration | null>(null);
@@ -102,17 +98,17 @@ export default function SystemConfigPage() {
         resolver: zodResolver(configFormSchema(t)),
     });
 
-    const loadConfigs = React.useCallback(async () => {
-        setIsRefreshing(true);
-        const fetchedConfigs = await getConfigs();
-        setConfigs(fetchedConfigs);
-        setIsRefreshing(false);
-    }, []);
-
-    React.useEffect(() => { loadConfigs(); }, [loadConfigs]);
+    const { data: configs, isLoading, isRefreshing, error: loadError, reload: loadConfigs } = useDataLoader(
+        getConfigs, [] as SystemConfiguration[], [], { enabled: canViewList }
+    );
 
     const handleRowSelection = (rows: SystemConfiguration[]) => {
         const config = rows[0] ?? null;
+        // Don't drop an in-flight save or unsaved edits by clicking another row.
+        if (save.isPending || (isEditing && form.formState.isDirty && !window.confirm(tCommon('unsavedChangesConfirm')))) {
+            setRowSelection(selectedConfig ? { [selectedConfig.id]: true } : {});
+            return;
+        }
         setSelectedConfig(config);
         setIsEditing(false);
         setSubmissionError(null);
@@ -122,6 +118,8 @@ export default function SystemConfigPage() {
     };
 
     const handleCreate = () => {
+        if (save.isPending) return;
+        if (isEditing && form.formState.isDirty && !window.confirm(tCommon('unsavedChangesConfirm'))) return;
         setSelectedConfig(null);
         setRowSelection({});
         setIsEditing(true);
@@ -136,6 +134,8 @@ export default function SystemConfigPage() {
     };
 
     const handleBack = () => {
+        if (save.isPending) return;
+        if (isEditing && form.formState.isDirty && !window.confirm(tCommon('unsavedChangesConfirm'))) return;
         if (isEditing && selectedConfig) {
             setIsEditing(false);
             form.reset({ id: selectedConfig.id, key: selectedConfig.key, value: selectedConfig.value, description: selectedConfig.description, data_type: selectedConfig.data_type, is_public: selectedConfig.is_public });
@@ -144,35 +144,57 @@ export default function SystemConfigPage() {
         }
     };
 
-    const onSubmit = async (values: ConfigFormValues) => {
-        setSubmissionError(null);
-        setIsSaving(true);
-        try {
+    const save = useAsyncAction(
+        async (values: ConfigFormValues) => {
+            setSubmissionError(null);
             await upsertConfig(values);
-            toast({ title: selectedConfig ? t('toast.editTitle') : t('toast.createTitle'), description: t('toast.successDescription', { key: values.key }) });
-            await loadConfigs();
-            setIsEditing(false);
-            if (!values.id) handleClose();
-        } catch (error) {
-            setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
-        } finally {
-            setIsSaving(false);
+            return values;
+        },
+        {
+            onSuccess: async (values) => {
+                toast({ title: values.id ? t('toast.editTitle') : t('toast.createTitle'), description: t('toast.successDescription', { key: values.key }) });
+                const fresh = await loadConfigs();
+                setIsEditing(false);
+                if (!values.id) {
+                    handleClose();
+                    return;
+                }
+                const updated = fresh?.find((c) => c.id === values.id);
+                if (updated) {
+                    setSelectedConfig(updated);
+                    form.reset({ id: updated.id, key: updated.key, value: updated.value, description: updated.description, data_type: updated.data_type, is_public: updated.is_public });
+                }
+            },
+            onError: (error) => {
+                if (isTimeoutError(error)) {
+                    // The configuration may have been saved anyway: refresh so the user can check before retrying.
+                    setSubmissionError(tCommon('timeoutError'));
+                    loadConfigs();
+                    return;
+                }
+                setSubmissionError(getErrorMessage(error) || t('toast.genericError'));
+            },
+            showErrorToast: false,
         }
-    };
+    );
 
-    const confirmDelete = async () => {
-        if (!deletingConfig) return;
-        try {
-            await deleteConfig(deletingConfig.id);
-            toast({ title: t('toast.deleteTitle'), description: t('toast.deleteDescription', { key: deletingConfig.key }) });
-            setIsDeleteDialogOpen(false);
-            setDeletingConfig(null);
-            handleClose();
-            loadConfigs();
-        } catch (error) {
-            toast({ variant: 'destructive', title: t('toast.errorTitle'), description: error instanceof Error ? error.message : t('toast.deleteError') });
+    const remove = useAsyncAction(
+        async (config: SystemConfiguration) => {
+            await deleteConfig(config.id);
+            return config;
+        },
+        {
+            onSuccess: async (config) => {
+                toast({ title: t('toast.deleteTitle'), description: t('toast.deleteDescription', { key: config.key }) });
+                setIsDeleteDialogOpen(false);
+                setDeletingConfig(null);
+                handleClose();
+                await loadConfigs();
+            },
+            onError: (error) => { if (isTimeoutError(error)) loadConfigs(); },
+            errorTitle: t('toast.deleteError'),
         }
-    };
+    );
 
     const columns: ColumnDef<SystemConfiguration>[] = [
         { accessorKey: 'key', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.key')} /> },
@@ -212,6 +234,8 @@ export default function SystemConfigPage() {
                         onCreate={canCreate ? handleCreate : undefined}
                         onRefresh={loadConfigs}
                         isRefreshing={isRefreshing}
+                        isLoading={isLoading}
+                        loadError={loadError}
                         isNarrow={isNarrow || !!selectedConfig}
                         renderCard={(row: SystemConfiguration, _isSelected: boolean) => (
                             <DataCard isSelected={_isSelected}
@@ -254,6 +278,7 @@ export default function SystemConfigPage() {
                         )}
                         {selectedConfig && !isEditing && canDelete && (
                             <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
+                                aria-label={t('deleteDialog.confirm')}
                                 onClick={() => { setDeletingConfig(selectedConfig); setIsDeleteDialogOpen(true); }}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
@@ -272,7 +297,7 @@ export default function SystemConfigPage() {
             <Separator />
             <CardContent className="flex-1 overflow-auto p-4">
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(save.run)} className="space-y-4">
                         {submissionError && (
                             <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />
@@ -280,6 +305,8 @@ export default function SystemConfigPage() {
                                 <AlertDescription>{submissionError}</AlertDescription>
                             </Alert>
                         )}
+                        {/* Native fieldset disables every control while the request is in flight */}
+                        <fieldset disabled={save.isPending} className="min-w-0 space-y-4">
                         <FormField control={form.control} name="key" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>{t('dialog.key')}</FormLabel>
@@ -325,20 +352,21 @@ export default function SystemConfigPage() {
                                 </div>
                             </FormItem>
                         )} />
+                        </fieldset>
                         {isEditing && (
                             <div className="flex gap-2 pt-2">
                                 <Button type="button" variant="outline"
                                     onClick={() => {
                                         setIsEditing(false);
+                                        setSubmissionError(null);
                                         if (selectedConfig) form.reset({ id: selectedConfig.id, key: selectedConfig.key, value: selectedConfig.value, description: selectedConfig.description, data_type: selectedConfig.data_type, is_public: selectedConfig.is_public });
                                         else handleClose();
                                     }}
-                                    disabled={isSaving}
+                                    disabled={save.isPending}
                                 >
                                     {t('dialog.cancel')}
                                 </Button>
-                                <Button type="submit" disabled={isSaving}>
-                                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                <Button type="submit" loading={save.isPending}>
                                     {selectedConfig ? t('dialog.save') : t('dialog.create')}
                                 </Button>
                             </div>
@@ -359,18 +387,16 @@ export default function SystemConfigPage() {
                 leftPanelDefaultSize={40}
                 rightPanelDefaultSize={60}
             />
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
-                        <AlertDialogDescription>{t('deleteDialog.description', { key: deletingConfig?.key })}</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
-                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <ConfirmActionDialog
+                open={isDeleteDialogOpen}
+                onOpenChange={setIsDeleteDialogOpen}
+                title={t('deleteDialog.title')}
+                description={t('deleteDialog.description', { key: deletingConfig?.key })}
+                cancelLabel={t('deleteDialog.cancel')}
+                confirmLabel={t('deleteDialog.confirm')}
+                onConfirm={() => { if (deletingConfig) remove.run(deletingConfig); }}
+                isPending={remove.isPending}
+            />
         </div>
     );
 }

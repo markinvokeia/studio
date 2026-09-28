@@ -1,11 +1,11 @@
 'use client';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -17,15 +17,19 @@ import { Textarea } from '@/components/ui/textarea';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
+import { useAsyncAction } from '@/hooks/use-async-action';
+import { useDataLoader } from '@/hooks/use-data-loader';
+import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
+import { getErrorMessage } from '@/lib/error-utils';
 import { AlertCategory, NotificationCategory } from '@/lib/types';
-import { api } from '@/services/api';
+import { api, isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, RowSelectionState } from '@tanstack/react-table';
 import * as LucideIcons from 'lucide-react';
-import { AlertTriangle, Layers, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { AlertTriangle, Layers, Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -55,22 +59,20 @@ interface PaginatedResponse<T> {
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 100;
 
-async function getCategories(search?: string, is_active?: boolean, page: number = DEFAULT_PAGE, limit: number = DEFAULT_LIMIT, internalCategories: NotificationCategory[] = []): Promise<PaginatedResponse<AlertCategory>> {
+async function getCategories(search?: string, is_active?: boolean, page: number = DEFAULT_PAGE, limit: number = DEFAULT_LIMIT, signal?: AbortSignal): Promise<PaginatedResponse<AlertCategory>> {
     try {
         const query: Record<string, string> = { page: page.toString(), limit: limit.toString() };
         if (search) query.search = search;
         if (is_active !== undefined) query.is_active = is_active.toString();
-        const response = await api.get(API_ROUTES.SYSTEM.ALERT_CATEGORIES, query);
-        if (response.length === 1 && Object.keys(response[0]).length === 0) {
+        const response = await api.get(API_ROUTES.SYSTEM.ALERT_CATEGORIES, query, undefined, { signal });
+        if (!Array.isArray(response) || (response.length === 1 && Object.keys(response[0]).length === 0)) {
             return { data: [], total: 0, page, limit };
         }
-        const categoryMap = new Map(internalCategories.map(cat => [cat.slug, cat.name]));
         return {
             data: response.map((cat: any) => ({
                 ...cat,
                 rules_count: cat.rules_count || 0,
                 internal_category_id: cat.notification_category_slug || undefined,
-                internal_category_name: cat.notification_category_slug ? categoryMap.get(cat.notification_category_slug) : undefined
             })),
             total: response.length,
             page,
@@ -84,7 +86,7 @@ async function getCategories(search?: string, is_active?: boolean, page: number 
 
 async function upsertCategory(category: Partial<CategoryFormValues>): Promise<AlertCategory> {
     try {
-        const response = await api.post(API_ROUTES.SYSTEM.ALERT_CATEGORY, category);
+        const response = await api.post(API_ROUTES.SYSTEM.ALERT_CATEGORY, category, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
         if (Array.isArray(response) && response.length > 0) {
             const firstItem = response[0];
             if (firstItem && (firstItem.code >= 400 || firstItem.error)) {
@@ -105,16 +107,20 @@ async function upsertCategory(category: Partial<CategoryFormValues>): Promise<Al
 
 async function deleteCategory(id: string): Promise<void> {
     try {
-        await api.delete(API_ROUTES.SYSTEM.ALERT_CATEGORY, { id });
+        const response = await api.delete(API_ROUTES.SYSTEM.ALERT_CATEGORY, { id }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
+        const first = Array.isArray(response) ? response[0] : response;
+        if (first?.error || (first?.code && Number(first.code) >= 400)) {
+            throw new Error(first?.message || (typeof first?.error === 'string' ? first.error : '') || 'Failed to delete category');
+        }
     } catch (error) {
         console.error('Failed to delete alert category:', error);
         throw error;
     }
 }
 
-async function getInternalCategories(): Promise<NotificationCategory[]> {
+async function getInternalCategories(signal?: AbortSignal): Promise<NotificationCategory[]> {
     try {
-        const response = await api.get(API_ROUTES.SYSTEM.NOTIFICATION_CATEGORIES);
+        const response = await api.get(API_ROUTES.SYSTEM.NOTIFICATION_CATEGORIES, undefined, undefined, { signal });
         return Array.isArray(response) ? response : [];
     } catch (error) {
         console.error('Failed to fetch internal categories:', error);
@@ -125,6 +131,7 @@ async function getInternalCategories(): Promise<NotificationCategory[]> {
 export default function AlertCategoriesPage() {
     const t = useTranslations('AlertCategoriesPage');
     const tValidation = useTranslations('AlertCategoriesPage.validation');
+    const tCommon = useTranslations('Common');
     const { toast } = useToast();
     const { hasPermission } = usePermissions();
 
@@ -134,47 +141,49 @@ export default function AlertCategoriesPage() {
     const canDelete = hasPermission(SYSTEM_PERMISSIONS.ALERT_CATEGORIES_DELETE);
     const isNarrow = useViewportNarrow();
 
-    const [categories, setCategories] = React.useState<AlertCategory[]>([]);
-    const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [currentPage, setCurrentPage] = React.useState(DEFAULT_PAGE);
     const [pageSize, setPageSize] = React.useState(DEFAULT_LIMIT);
-    const [total, setTotal] = React.useState(0);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedCategory, setSelectedCategory] = React.useState<AlertCategory | null>(null);
     const [isEditing, setIsEditing] = React.useState(false);
-    const [isSaving, setIsSaving] = React.useState(false);
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [deletingCategory, setDeletingCategory] = React.useState<AlertCategory | null>(null);
-    const [internalCategories, setInternalCategories] = React.useState<NotificationCategory[]>([]);
 
     const form = useForm<CategoryFormValues>({
         resolver: zodResolver(categoryFormSchema(tValidation)),
     });
 
-    const loadCategories = React.useCallback(async (filters: ColumnFiltersState, page: number = DEFAULT_PAGE, limit: number = DEFAULT_LIMIT) => {
-        setIsRefreshing(true);
-        try {
-            const searchFilter = filters.find(f => f.id === 'name');
-            const searchValue = searchFilter?.value as string || undefined;
-            const isActiveFilterObj = filters.find(f => f.id === 'is_active');
-            const isActiveValue = isActiveFilterObj?.value as boolean | undefined;
-            const result = await getCategories(searchValue, isActiveValue, page, limit, internalCategories);
-            setCategories(result.data);
-            setTotal(result.total);
-            setCurrentPage(result.page);
-            setPageSize(result.limit);
-        } catch (error) {
-            toast({ variant: 'destructive', title: t('toast.errorTitle'), description: t('toast.loadErrorDescription') });
-        } finally {
-            setIsRefreshing(false);
-        }
-    }, [t, toast, internalCategories]);
+    // Only the internal-category select options: on failure the select just offers "none".
+    const { data: internalCategories } = useDataLoader(getInternalCategories, [] as NotificationCategory[]);
 
-    React.useEffect(() => { loadCategories(columnFilters, currentPage, pageSize); }, [loadCategories, columnFilters, currentPage, pageSize]);
-    React.useEffect(() => { getInternalCategories().then(setInternalCategories); }, []);
-    React.useEffect(() => { loadCategories(columnFilters, currentPage, pageSize); }, [internalCategories]);
+    const searchValue = (columnFilters.find(f => f.id === 'name')?.value as string) || undefined;
+    const debouncedSearch = useDebounce(searchValue, 400);
+    const isActiveValue = columnFilters.find(f => f.id === 'is_active')?.value as boolean | undefined;
+
+    // One request per filter/page change (it used to fire twice on mount), and only the latest may
+    // write the table; a failed load shows an error instead of an empty list.
+    const {
+        data: { data: rawCategories, total },
+        isLoading,
+        isRefreshing,
+        error: loadError,
+        reload: reloadCategories,
+    } = useDataLoader(
+        (signal) => getCategories(debouncedSearch, isActiveValue, currentPage, pageSize, signal),
+        { data: [] as AlertCategory[], total: 0, page: DEFAULT_PAGE, limit: DEFAULT_LIMIT },
+        [debouncedSearch, isActiveValue, currentPage, pageSize],
+        { enabled: canViewList }
+    );
+
+    const categories = React.useMemo(() => {
+        const categoryMap = new Map(internalCategories.map(cat => [cat.slug, cat.name]));
+        return rawCategories.map((cat) => ({
+            ...cat,
+            internal_category_name: cat.internal_category_id ? categoryMap.get(cat.internal_category_id) : undefined,
+        }));
+    }, [rawCategories, internalCategories]);
 
     const handleColumnFiltersChange = React.useCallback((filters: ColumnFiltersState | ((prev: ColumnFiltersState) => ColumnFiltersState)) => {
         setColumnFilters(filters);
@@ -183,6 +192,11 @@ export default function AlertCategoriesPage() {
 
     const handleRowSelection = (rows: AlertCategory[]) => {
         const category = rows[0] ?? null;
+        // Don't drop an in-flight save or unsaved edits by clicking another row.
+        if (save.isPending || (isEditing && form.formState.isDirty && !window.confirm(tCommon('unsavedChangesConfirm')))) {
+            setRowSelection(selectedCategory ? { [String(selectedCategory.id)]: true } : {});
+            return;
+        }
         setSelectedCategory(category);
         setIsEditing(false);
         setSubmissionError(null);
@@ -192,6 +206,8 @@ export default function AlertCategoriesPage() {
     };
 
     const handleCreate = () => {
+        if (save.isPending) return;
+        if (isEditing && form.formState.isDirty && !window.confirm(tCommon('unsavedChangesConfirm'))) return;
         setSelectedCategory(null);
         setRowSelection({});
         setIsEditing(true);
@@ -206,6 +222,8 @@ export default function AlertCategoriesPage() {
     };
 
     const handleBack = () => {
+        if (save.isPending) return;
+        if (isEditing && form.formState.isDirty && !window.confirm(tCommon('unsavedChangesConfirm'))) return;
         if (isEditing && selectedCategory) {
             setIsEditing(false);
             form.reset({ ...selectedCategory, sort_order: selectedCategory.sort_order || 0, internal_category_id: selectedCategory.internal_category_id || undefined });
@@ -214,35 +232,57 @@ export default function AlertCategoriesPage() {
         }
     };
 
-    const onSubmit = async (values: CategoryFormValues) => {
-        setSubmissionError(null);
-        setIsSaving(true);
-        try {
+    const save = useAsyncAction(
+        async (values: CategoryFormValues) => {
+            setSubmissionError(null);
             await upsertCategory(values);
-            toast({ title: selectedCategory ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle'), description: t('toast.successDescription', { name: values.name }) });
-            await loadCategories(columnFilters, currentPage, pageSize);
-            setIsEditing(false);
-            if (!values.id) handleClose();
-        } catch (error) {
-            setSubmissionError(t('toast.submitErrorDescription'));
-        } finally {
-            setIsSaving(false);
+            return values;
+        },
+        {
+            onSuccess: async (values) => {
+                toast({ title: values.id ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle'), description: t('toast.successDescription', { name: values.name }) });
+                const fresh = await reloadCategories();
+                setIsEditing(false);
+                if (!values.id) {
+                    handleClose();
+                    return;
+                }
+                const updated = fresh?.data.find((c) => String(c.id) === String(values.id));
+                if (updated) {
+                    setSelectedCategory(updated);
+                    form.reset({ ...updated, sort_order: updated.sort_order || 0, internal_category_id: updated.internal_category_id || undefined });
+                }
+            },
+            onError: (error) => {
+                if (isTimeoutError(error)) {
+                    // The category may have been saved anyway: refresh so the user can check before retrying.
+                    setSubmissionError(tCommon('timeoutError'));
+                    reloadCategories();
+                    return;
+                }
+                setSubmissionError(getErrorMessage(error) || t('toast.submitErrorDescription'));
+            },
+            showErrorToast: false,
         }
-    };
+    );
 
-    const confirmDelete = async () => {
-        if (!deletingCategory) return;
-        try {
-            await deleteCategory(deletingCategory.id);
-            toast({ title: t('toast.deleteSuccessTitle'), description: t('toast.deleteSuccessDescription', { name: deletingCategory.name }) });
-            setIsDeleteDialogOpen(false);
-            setDeletingCategory(null);
-            handleClose();
-            loadCategories(columnFilters, currentPage, pageSize);
-        } catch (error) {
-            toast({ variant: 'destructive', title: t('toast.deleteErrorTitle'), description: t('toast.deleteErrorDescription') });
+    const remove = useAsyncAction(
+        async (category: AlertCategory) => {
+            await deleteCategory(String(category.id));
+            return category;
+        },
+        {
+            onSuccess: async (category) => {
+                toast({ title: t('toast.deleteSuccessTitle'), description: t('toast.deleteSuccessDescription', { name: category.name }) });
+                setIsDeleteDialogOpen(false);
+                setDeletingCategory(null);
+                handleClose();
+                await reloadCategories();
+            },
+            onError: (error) => { if (isTimeoutError(error)) reloadCategories(); },
+            errorTitle: t('toast.deleteErrorTitle'),
         }
-    };
+    );
 
     const pagination = { pageIndex: currentPage - 1, pageSize };
     const onPaginationChange = (updater: any) => {
@@ -297,8 +337,10 @@ export default function AlertCategoriesPage() {
                     filterColumnId="name"
                     filterPlaceholder={t('filterPlaceholder')}
                     onCreate={canCreate ? handleCreate : undefined}
-                    onRefresh={() => loadCategories(columnFilters, currentPage, pageSize)}
+                    onRefresh={reloadCategories}
                     isRefreshing={isRefreshing}
+                    isLoading={isLoading}
+                    loadError={loadError}
                     isNarrow={isNarrow || !!selectedCategory}
                     renderCard={(row: AlertCategory, _isSelected: boolean) => (
                         <DataCard isSelected={_isSelected}
@@ -346,6 +388,7 @@ export default function AlertCategoriesPage() {
                         )}
                         {selectedCategory && !isEditing && canDelete && (
                             <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
+                                aria-label={t('deleteDialog.confirm')}
                                 onClick={() => {
                                     if (selectedCategory.rules_count && selectedCategory.rules_count > 0) {
                                         toast({ variant: 'destructive', title: t('toast.deleteErrorTitle'), description: t('toast.deleteErrorHasRules') });
@@ -370,7 +413,7 @@ export default function AlertCategoriesPage() {
             <Separator />
             <CardContent className="flex-1 overflow-auto p-4">
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(save.run)} className="space-y-4">
                         {submissionError && (
                             <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />
@@ -378,6 +421,8 @@ export default function AlertCategoriesPage() {
                                 <AlertDescription>{submissionError}</AlertDescription>
                             </Alert>
                         )}
+                        {/* Native fieldset disables every control while the request is in flight */}
+                        <fieldset disabled={save.isPending} className="min-w-0 space-y-4">
                         <FormField control={form.control} name="code" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>{t('dialog.code')}</FormLabel>
@@ -457,20 +502,21 @@ export default function AlertCategoriesPage() {
                                 <FormLabel className="font-normal">{t('dialog.isActive')}</FormLabel>
                             </FormItem>
                         )} />
+                        </fieldset>
                         {isEditing && (
                             <div className="flex gap-2 pt-2">
                                 <Button type="button" variant="outline"
                                     onClick={() => {
                                         setIsEditing(false);
+                                        setSubmissionError(null);
                                         if (selectedCategory) form.reset({ ...selectedCategory, sort_order: selectedCategory.sort_order || 0, internal_category_id: selectedCategory.internal_category_id || undefined });
                                         else handleClose();
                                     }}
-                                    disabled={isSaving}
+                                    disabled={save.isPending}
                                 >
                                     {t('dialog.cancel')}
                                 </Button>
-                                <Button type="submit" disabled={isSaving}>
-                                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                <Button type="submit" loading={save.isPending}>
                                     {selectedCategory ? t('dialog.save') : t('dialog.create')}
                                 </Button>
                             </div>
@@ -491,18 +537,16 @@ export default function AlertCategoriesPage() {
                 leftPanelDefaultSize={40}
                 rightPanelDefaultSize={60}
             />
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
-                        <AlertDialogDescription>{t('deleteDialog.description', { name: deletingCategory?.name })}</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
-                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <ConfirmActionDialog
+                open={isDeleteDialogOpen}
+                onOpenChange={setIsDeleteDialogOpen}
+                title={t('deleteDialog.title')}
+                description={t('deleteDialog.description', { name: deletingCategory?.name })}
+                cancelLabel={t('deleteDialog.cancel')}
+                confirmLabel={t('deleteDialog.confirm')}
+                onConfirm={() => { if (deletingCategory) remove.run(deletingCategory); }}
+                isPending={remove.isPending}
+            />
         </div>
     );
 }

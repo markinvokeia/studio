@@ -2,7 +2,7 @@ import { DEFAULT_STATUS_DISPLAY } from '@/constants/appointment-status';
 import { API_ROUTES } from '@/constants/routes';
 import { mergeStatusMatrix } from '@/lib/appointment-status-display';
 import type { AppointmentStatus, CalendarStatusDisplayRow } from '@/lib/types';
-import { api } from '@/services/api';
+import { api, type ApiRequestOptions } from '@/services/api';
 
 /**
  * Configuración → Colores de calendario. Fila por `(calendar_id, status)`:
@@ -32,8 +32,8 @@ function toRow(raw: any): CalendarStatusDisplayRow | null {
   };
 }
 
-export async function fetchStatusDisplayRows(): Promise<CalendarStatusDisplayRow[]> {
-  const data = await api.get(API_ROUTES.CALENDAR_STATUS_DISPLAY.SEARCH);
+export async function fetchStatusDisplayRows(options?: ApiRequestOptions): Promise<CalendarStatusDisplayRow[]> {
+  const data = await api.get(API_ROUTES.CALENDAR_STATUS_DISPLAY.SEARCH, undefined, undefined, options);
   return unwrapRows(data)
     .map(toRow)
     .filter((row): row is CalendarStatusDisplayRow => row !== null);
@@ -44,7 +44,7 @@ export async function fetchStatusDisplayRows(): Promise<CalendarStatusDisplayRow
  * (10·N filas) son ambos una sola petición. Un flujo de a una fila haría
  * 10·N requests al replicar — ver §2 del plan.
  */
-export async function upsertStatusDisplayRows(rows: CalendarStatusDisplayRow[]): Promise<void> {
+export async function upsertStatusDisplayRows(rows: CalendarStatusDisplayRow[], options?: ApiRequestOptions): Promise<void> {
   const response = await api.post(API_ROUTES.CALENDAR_STATUS_DISPLAY.UPSERT, {
     rows: rows.map((row) => ({
       calendar_id: row.calendar_id,
@@ -53,7 +53,7 @@ export async function upsertStatusDisplayRows(rows: CalendarStatusDisplayRow[]):
       calendar_mode: row.calendarMode,
       badge_style: row.badgeStyle,
     })),
-  });
+  }, undefined, undefined, options);
 
   const result = Array.isArray(response) ? response[0] : response;
   if (result?.error || (result?.code && result.code >= 400)) {
@@ -66,11 +66,11 @@ export async function upsertStatusDisplayRows(rows: CalendarStatusDisplayRow[]):
  * general"). Con `status`: borra solo esa fila, para que ese estado puntual
  * vuelva a heredar de la matriz general sin tocar el resto del override.
  */
-export async function deleteCalendarOverride(calendarId: string, status?: AppointmentStatus): Promise<void> {
+export async function deleteCalendarOverride(calendarId: string, status?: AppointmentStatus, options?: ApiRequestOptions): Promise<void> {
   const response = await api.post(API_ROUTES.CALENDAR_STATUS_DISPLAY.DELETE, {
     calendar_id: calendarId,
     ...(status ? { status } : {}),
-  });
+  }, undefined, undefined, options);
 
   const result = Array.isArray(response) ? response[0] : response;
   if (result?.error || (result?.code && result.code >= 400)) {

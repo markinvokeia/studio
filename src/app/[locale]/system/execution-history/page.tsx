@@ -9,6 +9,8 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { Separator } from '@/components/ui/separator';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
+import { API_ROUTES } from '@/constants/routes';
+import { useDataLoader } from '@/hooks/use-data-loader';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { AlertScheduleRun } from '@/lib/types';
@@ -25,22 +27,30 @@ export default function ExecutionHistoryPage() {
   const { hasPermission } = usePermissions();
   const canViewList = hasPermission(SYSTEM_PERMISSIONS.ALERT_EXECUTIONS_VIEW_LIST);
   const isNarrow = useViewportNarrow();
-  const [runs, setRuns] = React.useState<AlertScheduleRun[]>([]);
-  const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [selectedRun, setSelectedRun] = React.useState<AlertScheduleRun | null>(null);
 
-  const fetchRuns = async (page: number, limit: number) => {
-    try {
-      const response = await api.get('/system/alert-execution-history', { page: page.toString(), limit: limit.toString() });
-      setRuns(response);
-    } catch (error) {
-      console.error('Failed to fetch execution history:', error);
-    }
-  };
-
-  React.useEffect(() => { fetchRuns(1, 10); }, []);
+  // Only the latest page request may write the table; a failed load shows an error, not "no runs".
+  // (The first load used to request 10 rows while the table showed pages of 25.)
+  const {
+    data: runs,
+    isLoading,
+    isRefreshing,
+    error: loadError,
+    reload: onRefresh,
+  } = useDataLoader(
+    async (signal) => {
+      const response = await api.get(API_ROUTES.SYSTEM.ALERT_EXECUTION_HISTORY, {
+        page: (pagination.pageIndex + 1).toString(),
+        limit: pagination.pageSize.toString(),
+      }, undefined, { signal });
+      return (Array.isArray(response) ? response : []) as AlertScheduleRun[];
+    },
+    [] as AlertScheduleRun[],
+    [pagination.pageIndex, pagination.pageSize],
+    { enabled: canViewList }
+  );
 
   const handleRowSelection = (rows: AlertScheduleRun[]) => {
     setSelectedRun(rows[0] ?? null);
@@ -51,20 +61,7 @@ export default function ExecutionHistoryPage() {
     setRowSelection({});
   };
 
-  const onPaginationChange: React.Dispatch<React.SetStateAction<typeof pagination>> = (updater) => {
-    const newPagination = typeof updater === 'function' ? updater(pagination) : updater;
-    setPagination(newPagination);
-    fetchRuns(newPagination.pageIndex + 1, newPagination.pageSize);
-  };
-
-  const onRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      await fetchRuns(pagination.pageIndex + 1, pagination.pageSize);
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
+  const onPaginationChange = setPagination;
 
   const columns: ColumnDef<AlertScheduleRun>[] = React.useMemo(() => [
     {
@@ -107,6 +104,8 @@ export default function ExecutionHistoryPage() {
             filterPlaceholder={t('filterPlaceholder')}
             onRefresh={onRefresh}
             isRefreshing={isRefreshing}
+            isLoading={isLoading}
+            loadError={loadError}
             isNarrow={isNarrow || !!selectedRun}
             renderCard={(row: AlertScheduleRun, _isSelected: boolean) => (
               <DataCard isSelected={_isSelected}

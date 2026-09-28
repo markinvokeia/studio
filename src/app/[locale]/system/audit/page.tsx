@@ -15,6 +15,7 @@ import { DateRangePresets } from '@/components/reports/date-range-presets';
 import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useDataLoader } from '@/hooks/use-data-loader';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { AuditLog } from '@/lib/types';
 import { formatUtcDateTime } from '@/lib/utils';
@@ -58,7 +59,8 @@ const OPERATION_BADGE_VARIANT: Record<string, 'success' | 'secondary' | 'destruc
 async function getAuditLogs(
     pagination: PaginationState,
     filters: AuditLogFilters,
-    sorting: SortingState
+    sorting: SortingState,
+    signal?: AbortSignal
 ): Promise<GetAuditLogsResponse> {
     try {
         const params: Record<string, string> = {
@@ -75,7 +77,7 @@ async function getAuditLogs(
             params.sort_order = sorting[0].desc ? 'desc' : 'asc';
         }
 
-        const responseData = await api.get(API_ROUTES.SYSTEM.AUDIT_LOGS, params);
+        const responseData = await api.get(API_ROUTES.SYSTEM.AUDIT_LOGS, params, undefined, { signal });
         const data = Array.isArray(responseData) && responseData.length > 0 ? responseData[0] : responseData;
         const logsData = Array.isArray(data.data) ? data.data : (data.audit_logs || data.data || data.result || []);
         const total = data.total || (Array.isArray(data) ? data.length : 0);
@@ -93,13 +95,14 @@ async function getAuditLogs(
         return { auditLogs: mappedLogs, total };
     } catch (error) {
         console.error("Failed to fetch audit logs:", error);
-        return { auditLogs: [], total: 0 };
+        // Rethrown: a failed load must show an error, not "no changes".
+        throw error;
     }
 }
 
-async function getAuditEntities(): Promise<string[]> {
+async function getAuditEntities(signal?: AbortSignal): Promise<string[]> {
     try {
-        const responseData = await api.get(API_ROUTES.SYSTEM.AUDIT_LOG_ENTITIES);
+        const responseData = await api.get(API_ROUTES.SYSTEM.AUDIT_LOG_ENTITIES, undefined, undefined, { signal });
         // This endpoint returns the rows straight from the SELECT (no {data,total} wrapper),
         // so — unlike getAuditLogs — the array itself already *is* the row list.
         const rows = Array.isArray(responseData) ? responseData : (responseData?.data || responseData?.entities || []);
@@ -124,22 +127,17 @@ export default function AuditLogPage() {
     const canViewList = hasPermission(SYSTEM_PERMISSIONS.AUDIT_LOG_VIEW_LIST);
     const isNarrow = useViewportNarrow();
 
-    const [data, setData] = React.useState<AuditLog[]>([]);
-    const [logCount, setLogCount] = React.useState(0);
-    const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
     const [sorting, setSorting] = React.useState<SortingState>([{ id: 'changed_at', desc: true }]);
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({ id: false });
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedLog, setSelectedLog] = React.useState<AuditLog | null>(null);
     const [filters, setFilters] = React.useState<AuditLogFilters>(EMPTY_FILTERS);
-    const [entities, setEntities] = React.useState<string[]>([]);
 
     const hasActiveFilters = filters.tableName !== 'all' || filters.operation !== 'all' || !!filters.changedBy || !!filters.dateRange;
 
-    React.useEffect(() => {
-        getAuditEntities().then(setEntities);
-    }, []);
+    // Only the entity filter options: on failure the filter just offers "all".
+    const { data: entities } = useDataLoader(getAuditEntities, [] as string[]);
 
     const operationLabel = React.useCallback((operation: string) => {
         return OPERATIONS.includes(operation as typeof OPERATIONS[number])
@@ -172,15 +170,19 @@ export default function AuditLogPage() {
         },
     ], [t, operationLabel]);
 
-    const loadLogs = React.useCallback(async () => {
-        setIsRefreshing(true);
-        const { auditLogs, total } = await getAuditLogs(pagination, filters, sorting);
-        setData(auditLogs);
-        setLogCount(total);
-        setIsRefreshing(false);
-    }, [pagination, filters, sorting]);
-
-    React.useEffect(() => { loadLogs(); }, [loadLogs]);
+    // Changing filters/sorting/page quickly can't show an older result: only the latest request writes.
+    const {
+        data: { auditLogs: data, total: logCount },
+        isLoading,
+        isRefreshing,
+        error: loadError,
+        reload: loadLogs,
+    } = useDataLoader(
+        (signal) => getAuditLogs(pagination, filters, sorting, signal),
+        { auditLogs: [] as AuditLog[], total: 0 },
+        [pagination.pageIndex, pagination.pageSize, filters, sorting],
+        { enabled: canViewList }
+    );
 
     const handleRowSelection = (rows: AuditLog[]) => {
         setSelectedLog(rows[0] ?? null);
@@ -273,6 +275,8 @@ export default function AuditLogPage() {
                             filterPlaceholder={t('filterPlaceholder')}
                             onRefresh={loadLogs}
                             isRefreshing={isRefreshing}
+                            isLoading={isLoading}
+                            loadError={loadError}
                             isNarrow={isNarrow || !!selectedLog}
                             renderCard={(row: AuditLog, _isSelected: boolean) => (
                                 <DataCard isSelected={_isSelected}

@@ -11,6 +11,7 @@ import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useDataLoader } from '@/hooks/use-data-loader';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { AccessLog } from '@/lib/types';
 import api from '@/services/api';
@@ -24,12 +25,12 @@ type GetAccessLogsResponse = {
     total: number;
 };
 
-async function getAccessLogs(pagination: PaginationState): Promise<GetAccessLogsResponse> {
+async function getAccessLogs(pagination: PaginationState, signal?: AbortSignal): Promise<GetAccessLogsResponse> {
     try {
         const responseData = await api.get(API_ROUTES.SYSTEM.ACCESS_LOGS, {
             page: (pagination.pageIndex + 1).toString(),
             limit: pagination.pageSize.toString(),
-        });
+        }, undefined, { signal });
         const data = Array.isArray(responseData) && responseData.length > 0 ? responseData[0] : responseData;
         const logsData = Array.isArray(data.data) ? data.data : (data.access_logs || data.data || data.result || []);
         const total = data.total || (Array.isArray(data) ? data.length : 0);
@@ -46,7 +47,8 @@ async function getAccessLogs(pagination: PaginationState): Promise<GetAccessLogs
         return { accessLogs: mappedLogs, total };
     } catch (error) {
         console.error("Failed to fetch access logs:", error);
-        return { accessLogs: [], total: 0 };
+        // Rethrown: a failed load must show an error, not an empty log.
+        throw error;
     }
 }
 
@@ -56,9 +58,6 @@ export default function AccessLogPage() {
     const canViewList = hasPermission(SYSTEM_PERMISSIONS.ACCESS_LOG_VIEW_LIST);
     const isNarrow = useViewportNarrow();
 
-    const [data, setData] = React.useState<AccessLog[]>([]);
-    const [logCount, setLogCount] = React.useState(0);
-    const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({ id: false, ip_address: false });
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
@@ -82,15 +81,19 @@ export default function AccessLogPage() {
         { accessorKey: 'channel', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.channel')} /> },
     ];
 
-    const loadLogs = React.useCallback(async () => {
-        setIsRefreshing(true);
-        const { accessLogs, total } = await getAccessLogs(pagination);
-        setData(accessLogs);
-        setLogCount(total);
-        setIsRefreshing(false);
-    }, [pagination]);
-
-    React.useEffect(() => { loadLogs(); }, [loadLogs]);
+    // Only the latest page request may write the table (fast paging can't show an older page).
+    const {
+        data: { accessLogs: data, total: logCount },
+        isLoading,
+        isRefreshing,
+        error: loadError,
+        reload: loadLogs,
+    } = useDataLoader(
+        (signal) => getAccessLogs(pagination, signal),
+        { accessLogs: [] as AccessLog[], total: 0 },
+        [pagination.pageIndex, pagination.pageSize],
+        { enabled: canViewList }
+    );
 
     const handleRowSelection = (rows: AccessLog[]) => {
         setSelectedLog(rows[0] ?? null);
@@ -121,6 +124,8 @@ export default function AccessLogPage() {
                         filterPlaceholder={t('filterPlaceholder')}
                         onRefresh={loadLogs}
                         isRefreshing={isRefreshing}
+                        isLoading={isLoading}
+                        loadError={loadError}
                         isNarrow={isNarrow || !!selectedLog}
                         renderCard={(row: AccessLog, _isSelected: boolean) => (
                             <DataCard isSelected={_isSelected}

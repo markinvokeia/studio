@@ -7,9 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { API_ROUTES } from '@/constants/routes';
+import { useAsyncAction } from '@/hooks/use-async-action';
+import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
 import { GlobalNotificationSetting, NotificationCategory, NotificationPlatform } from '@/lib/types';
-import { api } from '@/services/api';
+import { api, isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, Mail, MessageSquare, Phone, RefreshCw, Mails } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -20,38 +22,25 @@ import * as z from 'zod';
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 100;
 
-async function getPlatforms(): Promise<NotificationPlatform[]> {
-    try {
-        const response = await api.get(API_ROUTES.SYSTEM.NOTIFICATION_PLATFORMS);
-        return Array.isArray(response) ? response : [];
-    } catch (error) {
-        console.error('Failed to fetch platforms:', error);
-        return [];
-    }
+// These throw on failure: a matrix built from a failed load shows every channel disabled, and
+// saving it (the endpoint replaces the whole set) would switch off every notification.
+async function getPlatforms(signal?: AbortSignal): Promise<NotificationPlatform[]> {
+    const response = await api.get(API_ROUTES.SYSTEM.NOTIFICATION_PLATFORMS, undefined, undefined, { signal });
+    return Array.isArray(response) ? response : [];
 }
 
-async function getCategories(): Promise<NotificationCategory[]> {
-    try {
-        const response = await api.get(API_ROUTES.SYSTEM.NOTIFICATION_CATEGORIES);
-        return Array.isArray(response) ? response : [];
-    } catch (error) {
-        console.error('Failed to fetch categories:', error);
-        return [];
-    }
+async function getCategories(signal?: AbortSignal): Promise<NotificationCategory[]> {
+    const response = await api.get(API_ROUTES.SYSTEM.NOTIFICATION_CATEGORIES, undefined, undefined, { signal });
+    return Array.isArray(response) ? response : [];
 }
 
-async function getSettings(): Promise<GlobalNotificationSetting[]> {
-    try {
-        const response = await api.get(API_ROUTES.SYSTEM.NOTIFICATION_SETTINGS);
-        return Array.isArray(response) ? response : [];
-    } catch (error) {
-        console.error('Failed to fetch settings:', error);
-        return [];
-    }
+async function getSettings(signal?: AbortSignal): Promise<GlobalNotificationSetting[]> {
+    const response = await api.get(API_ROUTES.SYSTEM.NOTIFICATION_SETTINGS, undefined, undefined, { signal });
+    return Array.isArray(response) ? response : [];
 }
 
 async function saveSettings(settings: GlobalNotificationSetting[]): Promise<void> {
-    await api.post(API_ROUTES.SYSTEM.NOTIFICATION_SETTINGS_UPSERT, { settings });
+    await api.post(API_ROUTES.SYSTEM.NOTIFICATION_SETTINGS_UPSERT, { settings }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
 }
 
 const platformIcons: Record<string, React.ComponentType<any>> = {
@@ -62,25 +51,26 @@ const platformIcons: Record<string, React.ComponentType<any>> = {
 
 export default function NotificationSettingsPage() {
     const t = useTranslations('NotificationSettingsPage');
+    const tCommon = useTranslations('Common');
     const { toast } = useToast();
-    const [platforms, setPlatforms] = React.useState<NotificationPlatform[]>([]);
-    const [categories, setCategories] = React.useState<NotificationCategory[]>([]);
     const [settings, setSettings] = React.useState<GlobalNotificationSetting[]>([]);
-    const [isLoading, setIsLoading] = React.useState(true);
-    const [isSaving, setIsSaving] = React.useState(false);
     const [globalEnabled, setGlobalEnabled] = React.useState(true);
 
-    const loadData = React.useCallback(async () => {
-        setIsLoading(true);
-        try {
+    // Refetches (after saving) keep the matrix on screen instead of swapping it for a spinner.
+    const {
+        data: { platforms, categories, combinations },
+        isLoading,
+        isRefreshing,
+        error: loadError,
+        reload: loadData,
+    } = useDataLoader(
+        async (signal) => {
             const [platformsData, categoriesData, settingsData] = await Promise.all([
-                getPlatforms(),
-                getCategories(),
-                getSettings(),
+                getPlatforms(signal),
+                getCategories(signal),
+                getSettings(signal),
             ]);
             const activePlatforms = platformsData.filter((p: NotificationPlatform) => p.is_active);
-            setPlatforms(activePlatforms);
-            setCategories(categoriesData);
             
             // Initialize settings with all platform × category combinations
             const allCombinations: GlobalNotificationSetting[] = [];
@@ -98,27 +88,18 @@ export default function NotificationSettingsPage() {
                     });
                 });
             });
-            setSettings(allCombinations);
-            
-            // Check if all settings are enabled
-            const allEnabled = allCombinations.every((s: GlobalNotificationSetting) => s.is_enabled);
-            const anyEnabled = allCombinations.some((s: GlobalNotificationSetting) => s.is_enabled);
-            setGlobalEnabled(anyEnabled ? allEnabled : true);
-        } catch (error) {
-            console.error('Failed to load data:', error);
-            toast({
-                variant: 'destructive',
-                title: t('toast.errorTitle'),
-                description: t('toast.loadErrorDescription'),
-            });
-        } finally {
-            setIsLoading(false);
-        }
-    }, [t, toast]);
+            return { platforms: activePlatforms, categories: categoriesData, combinations: allCombinations };
+        },
+        { platforms: [] as NotificationPlatform[], categories: [] as NotificationCategory[], combinations: [] as GlobalNotificationSetting[] }
+    );
 
     React.useEffect(() => {
-        loadData();
-    }, [loadData]);
+        setSettings(combinations);
+        // Check if all settings are enabled
+        const allEnabled = combinations.every((s: GlobalNotificationSetting) => s.is_enabled);
+        const anyEnabled = combinations.some((s: GlobalNotificationSetting) => s.is_enabled);
+        setGlobalEnabled(anyEnabled ? allEnabled : true);
+    }, [combinations]);
 
     const isSettingEnabled = (channelSlug: string, categorySlug: string): boolean => {
         const setting = settings.find(
@@ -220,26 +201,22 @@ export default function NotificationSettingsPage() {
         });
     };
 
-    const handleSave = async () => {
-        setIsSaving(true);
-        try {
-            await saveSettings(settings);
-            toast({
-                title: t('toast.successTitle'),
-                description: t('toast.saveSuccessDescription'),
-            });
-            loadData();
-        } catch (error) {
-            console.error('Failed to save settings:', error);
-            toast({
-                variant: 'destructive',
-                title: t('toast.errorTitle'),
-                description: t('toast.saveErrorDescription'),
-            });
-        } finally {
-            setIsSaving(false);
+    const save = useAsyncAction(
+        () => saveSettings(settings),
+        {
+            onSuccess: async () => {
+                toast({
+                    title: t('toast.successTitle'),
+                    description: t('toast.saveSuccessDescription'),
+                });
+                await loadData();
+            },
+            // The change may have been applied before the timeout: show the real state.
+            onError: (error) => { if (isTimeoutError(error)) loadData(); },
+            errorTitle: t('toast.saveErrorDescription'),
         }
-    };
+    );
+    const isBusy = save.isPending || isRefreshing;
 
     const getCategoryEnabled = (categorySlug: string): boolean => {
         const categorySettings = settings.filter(s => s.category_slug === categorySlug);
@@ -264,6 +241,23 @@ export default function NotificationSettingsPage() {
         return (
             <div className="flex-1 flex flex-col min-h-0 items-center justify-center">
                 <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+        );
+    }
+
+    if (loadError) {
+        return (
+            <div className="flex-1 p-1">
+                <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>{t('toast.loadErrorDescription')}</AlertTitle>
+                    <AlertDescription className="flex flex-wrap items-center gap-3">
+                        <span>{loadError}</span>
+                        <Button size="sm" variant="outline" onClick={() => loadData()} loading={isRefreshing}>
+                            {tCommon('retry')}
+                        </Button>
+                    </AlertDescription>
+                </Alert>
             </div>
         );
     }
@@ -296,6 +290,8 @@ export default function NotificationSettingsPage() {
                         <Button
                             variant={globalEnabled ? 'default' : 'outline'}
                             onClick={handleGlobalToggle}
+                            disabled={isBusy}
+                            aria-pressed={globalEnabled}
                         >
                             {globalEnabled ? t('masterSwitch.enabled') : t('masterSwitch.disabled')}
                         </Button>
@@ -331,6 +327,7 @@ export default function NotificationSettingsPage() {
                                                 <Checkbox
                                                     checked={getCategoryEnabled(category.slug)}
                                                     onCheckedChange={() => handleCategoryToggle(category.slug)}
+                                                    disabled={isBusy}
                                                 />
                                                 <div>
                                                     <p className="font-bold text-foreground text-sm">{category.name}</p>
@@ -347,7 +344,7 @@ export default function NotificationSettingsPage() {
                                                 <Checkbox
                                                     checked={getCellEnabled(platform.platform_name, category.slug)}
                                                     onCheckedChange={() => handleToggle(platform.platform_name, category.slug)}
-                                                    disabled={!globalEnabled}
+                                                    disabled={!globalEnabled || isBusy}
                                                 />
                                             </td>
                                         ))}
@@ -368,6 +365,7 @@ export default function NotificationSettingsPage() {
                                                         }
                                                     });
                                                 }}
+                                                disabled={isBusy}
                                             />
                                             <span>{t('table.allPlatforms')}</span>
                                         </div>
@@ -379,7 +377,7 @@ export default function NotificationSettingsPage() {
                                                 <Checkbox
                                                     checked={getPlatformEnabled(platform.platform_name)}
                                                     onCheckedChange={() => handlePlatformToggle(platform.platform_name)}
-                                                    disabled={!globalEnabled}
+                                                    disabled={!globalEnabled || isBusy}
                                                 />
                                             </td>
                                         );
@@ -390,8 +388,8 @@ export default function NotificationSettingsPage() {
                     </div>
 
                     <div className="flex justify-end mt-6">
-                        <Button onClick={handleSave} disabled={isSaving} className="font-bold uppercase tracking-wider">
-                            {isSaving ? t('saving') : t('save')}
+                        <Button onClick={() => save.run()} disabled={isRefreshing} loading={save.isPending} className="font-bold uppercase tracking-wider">
+                            {t('save')}
                         </Button>
                     </div>
                 </CardContent>

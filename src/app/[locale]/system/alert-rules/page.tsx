@@ -1,11 +1,11 @@
 'use client';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
@@ -25,12 +25,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
+import { useAsyncAction, useKeyedAsyncAction } from '@/hooks/use-async-action';
+import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
+import { getErrorMessage } from '@/lib/error-utils';
 import { AlertCategory, AlertRule } from '@/lib/types';
 import { DataCard } from '@/components/ui/data-card';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
-import { api } from '@/services/api';
+import { api, isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef } from '@tanstack/react-table';
 import { Separator } from '@/components/ui/separator';
@@ -65,9 +68,17 @@ const ruleFormSchema = (t: (key: string) => string) => z.object({
 
 type RuleFormValues = z.infer<ReturnType<typeof ruleFormSchema>>;
 
-async function getRules(): Promise<{ data: AlertRule[], total: number, page: number, limit: number }> {
+/** n8n answers some failures with a 2xx body carrying the error. */
+function throwIfBackendError(response: any, fallback: string) {
+    const first = Array.isArray(response) ? response[0] : response;
+    if (first?.error || (first?.code && Number(first.code) >= 400)) {
+        throw new Error(first?.message || (typeof first?.error === 'string' ? first.error : '') || fallback);
+    }
+}
+
+async function getRules(signal?: AbortSignal): Promise<{ data: AlertRule[], total: number, page: number, limit: number }> {
     try {
-        const response = await api.get(API_ROUTES.SYSTEM.ALERT_RULES, { search: '', page: '1', limit: '100', is_active: 'true' });
+        const response = await api.get(API_ROUTES.SYSTEM.ALERT_RULES, { search: '', page: '1', limit: '100', is_active: 'true' }, undefined, { signal });
         const filteredData = Array.isArray(response) ? response.filter(item => Object.keys(item).length > 0) : [];
         return {
             data: filteredData,
@@ -77,7 +88,8 @@ async function getRules(): Promise<{ data: AlertRule[], total: number, page: num
         };
     } catch (error) {
         console.error('Error fetching rules:', error);
-        return { data: [], total: 0, page: 1, limit: 100 };
+        // Rethrown: a failed load must show an error, not "no rules".
+        throw error;
     }
 }
 
@@ -150,6 +162,7 @@ async function getWhatsAppTemplates(): Promise<any[]> {
 export default function AlertRulesPage() {
     const t = useTranslations('AlertRulesPage');
     const tValidation = useTranslations('AlertRulesPage.validation');
+    const tCommon = useTranslations('Common');
     const { toast } = useToast();
     const { hasPermission } = usePermissions();
 
@@ -159,30 +172,62 @@ export default function AlertRulesPage() {
     const canDelete = hasPermission(SYSTEM_PERMISSIONS.ALERT_RULES_DELETE);
     const isNarrow = useViewportNarrow();
 
-    const [rules, setRules] = React.useState<AlertRule[]>([]);
-    const [categories, setCategories] = React.useState<AlertCategory[]>([]);
-    const [tablesAndColumns, setTablesAndColumns] = React.useState<Record<string, { name: string, type: string, is_nullable: string }[]>>({});
     const [selectedTable, setSelectedTable] = React.useState<string>('');
-    const [emailTemplates, setEmailTemplates] = React.useState<any[]>([]);
-    const [smsTemplates, setSmsTemplates] = React.useState<any[]>([]);
-    const [whatsappTemplates, setWhatsappTemplates] = React.useState<any[]>([]);
     const [conditions, setConditions] = React.useState<Array<{ id: string, column: string, operator: string, value: string, logic?: 'AND' | 'OR' }>>([]);
     const [displayFields, setDisplayFields] = React.useState<Array<{ id: string, label: string, source_column: string, type: string }>>([]);
-    const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
     const [editingRule, setEditingRule] = React.useState<AlertRule | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [deletingRule, setDeletingRule] = React.useState<AlertRule | null>(null);
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
-    const [isSubmitting, setIsSubmitting] = React.useState(false);
-    const [isDeleting, setIsDeleting] = React.useState(false);
-    const [isTesting, setIsTesting] = React.useState(false);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedRule, setSelectedRule] = React.useState<AlertRule | null>(null);
 
     const form = useForm<RuleFormValues>({
         resolver: zodResolver(ruleFormSchema(tValidation)),
     });
+
+    const {
+        data: { rules, categories, tablesAndColumns, emailTemplates, smsTemplates, whatsappTemplates },
+        isLoading,
+        isRefreshing,
+        error: loadError,
+        reload: loadData,
+    } = useDataLoader(
+        async (signal) => {
+            const [fetchedRules, fetchedCategories, fetchedTables, fetchedEmailTemplates, fetchedSmsTemplates, fetchedWhatsappTemplates] = await Promise.all([
+                getRules(signal),
+                getCategories(),
+                getTablesAndColumns(),
+                getEmailTemplates(),
+                getSmsTemplates(),
+                getWhatsAppTemplates()
+            ]);
+            const mappedRules = fetchedRules.data.map(rule => ({
+                ...rule,
+                table_id_field: (rule as any).condition_config?.table_id_field?.name || '',
+                user_id_field: (rule as any).condition_config?.user_id_field || null,
+            }));
+            return {
+                rules: mappedRules as AlertRule[],
+                categories: fetchedCategories.data as AlertCategory[],
+                tablesAndColumns: fetchedTables,
+                emailTemplates: fetchedEmailTemplates,
+                smsTemplates: fetchedSmsTemplates,
+                whatsappTemplates: fetchedWhatsappTemplates,
+            };
+        },
+        {
+            rules: [] as AlertRule[],
+            categories: [] as AlertCategory[],
+            tablesAndColumns: {} as Record<string, { name: string, type: string, is_nullable: string }[]>,
+            emailTemplates: [] as any[],
+            smsTemplates: [] as any[],
+            whatsappTemplates: [] as any[],
+        },
+        [],
+        { enabled: canViewList }
+    );
 
     const getColumnType = (columnName: string): string | undefined => {
         const tableCols = tablesAndColumns[selectedTable] || [];
@@ -264,38 +309,6 @@ export default function AlertRulesPage() {
         return baseOperators;
     };
 
-    const loadData = React.useCallback(async () => {
-        setIsRefreshing(true);
-        try {
-            const [fetchedRules, fetchedCategories, fetchedTables, fetchedEmailTemplates, fetchedSmsTemplates, fetchedWhatsappTemplates] = await Promise.all([
-                getRules(),
-                getCategories(),
-                getTablesAndColumns(),
-                getEmailTemplates(),
-                getSmsTemplates(),
-                getWhatsAppTemplates()
-            ]);
-            const mappedRules = fetchedRules.data.map(rule => ({
-                ...rule,
-                table_id_field: (rule as any).condition_config?.table_id_field?.name || '',
-                user_id_field: (rule as any).condition_config?.user_id_field || null,
-            }));
-            setRules(mappedRules);
-            setCategories(fetchedCategories.data);
-            setTablesAndColumns(fetchedTables);
-            setEmailTemplates(fetchedEmailTemplates);
-            setSmsTemplates(fetchedSmsTemplates);
-            setWhatsappTemplates(fetchedWhatsappTemplates);
-        } catch (error) {
-            console.error('Error loading data:', error);
-        } finally {
-            setIsRefreshing(false);
-        }
-    }, []);
-
-    React.useEffect(() => {
-        loadData();
-    }, [loadData]);
 
     React.useEffect(() => {
         if (selectedTable) {
@@ -382,40 +395,47 @@ export default function AlertRulesPage() {
         setIsDialogOpen(true);
     };
 
-    const confirmDelete = async () => {
-        if (!deletingRule) return;
-        setIsDeleting(true);
-        try {
-            await api.delete(API_ROUTES.SYSTEM.ALERT_RULES, { id: deletingRule.id });
-            toast({ title: t('toast.deleteSuccessTitle'), description: t('toast.deleteSuccessDescription', { name: deletingRule.name }) });
-            setIsDeleteDialogOpen(false);
-            setDeletingRule(null);
-            loadData();
-        } catch (error) {
-            console.error('Error deleting rule:', error);
-            toast({ title: t('toast.errorTitle'), description: t('toast.deleteErrorDescription'), variant: 'destructive' });
-        } finally {
-            setIsDeleting(false);
+    const remove = useAsyncAction(
+        async (rule: AlertRule) => {
+            const response = await api.delete(API_ROUTES.SYSTEM.ALERT_RULES, { id: rule.id }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
+            throwIfBackendError(response, t('toast.deleteErrorDescription'));
+            return rule;
+        },
+        {
+            onSuccess: async (rule) => {
+                toast({ title: t('toast.deleteSuccessTitle'), description: t('toast.deleteSuccessDescription', { name: rule.name }) });
+                setIsDeleteDialogOpen(false);
+                setDeletingRule(null);
+                if (selectedRule && String(selectedRule.id) === String(rule.id)) {
+                    setSelectedRule(null);
+                    setRowSelection({});
+                }
+                await loadData();
+            },
+            onError: (error) => { if (isTimeoutError(error)) loadData(); },
+            errorTitle: t('toast.deleteErrorDescription'),
         }
-    };
+    );
 
-    const handleTest = async (rule: AlertRule) => {
-        setIsTesting(true);
-        try {
-            await api.post(API_ROUTES.SYSTEM.ALERT_RULES_TEST, { id: rule.id });
-            toast({ title: t('toast.testSuccessTitle'), description: t('toast.testSuccessDescription', { name: rule.name }) });
-        } catch (error) {
-            console.error('Error testing rule:', error);
-            toast({ title: t('toast.errorTitle'), description: t('toast.testErrorDescription'), variant: 'destructive' });
-        } finally {
-            setIsTesting(false);
+    // Per rule: testing one rule doesn't block testing another, but the same one can't run twice at once.
+    const testRule = useKeyedAsyncAction(
+        async (rule: AlertRule) => {
+            const response = await api.post(API_ROUTES.SYSTEM.ALERT_RULES_TEST, { id: rule.id }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.longRunning });
+            throwIfBackendError(response, t('toast.testErrorDescription'));
+            return rule;
+        },
+        {
+            onSuccess: (rule) => {
+                toast({ title: t('toast.testSuccessTitle'), description: t('toast.testSuccessDescription', { name: rule.name }) });
+            },
+            errorTitle: t('toast.testErrorDescription'),
         }
-    };
+    );
+    const handleTest = (rule: AlertRule) => { testRule.run(String(rule.id), rule); };
 
-    const onSubmit = async (values: RuleFormValues) => {
-        setSubmissionError(null);
-        setIsSubmitting(true);
-        try {
+    const save = useAsyncAction(
+        async (values: RuleFormValues) => {
+            setSubmissionError(null);
             const cleanedConditions = conditions.map((cond, index) => {
                 const { id, ...cleanCond } = cond;
                 if (index === 0) {
@@ -449,16 +469,28 @@ export default function AlertRulesPage() {
             if (editingRule) {
                 (data as any).id = parseInt(editingRule.id);
             }
-            await api.post(API_ROUTES.SYSTEM.ALERT_RULES, data);
-            toast({ title: editingRule ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle'), description: t('toast.successDescription', { name: values.name }) });
-            setIsDialogOpen(false);
-            loadData();
-        } catch (error) {
-            setSubmissionError(error instanceof Error ? error.message : 'An error occurred');
-        } finally {
-            setIsSubmitting(false);
+            const response = await api.post(API_ROUTES.SYSTEM.ALERT_RULES, data, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
+            throwIfBackendError(response, t('toast.errorTitle'));
+            return { values, isEdit: !!editingRule };
+        },
+        {
+            onSuccess: async ({ values, isEdit }) => {
+                toast({ title: isEdit ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle'), description: t('toast.successDescription', { name: values.name }) });
+                await loadData();
+                setIsDialogOpen(false);
+            },
+            onError: (error) => {
+                if (isTimeoutError(error)) {
+                    // The rule may have been saved anyway: refresh so the user can check before retrying.
+                    setSubmissionError(tCommon('timeoutError'));
+                    loadData();
+                    return;
+                }
+                setSubmissionError(getErrorMessage(error) || tCommon('genericError'));
+            },
+            showErrorToast: false,
         }
-    };
+    );
 
     React.useEffect(() => {
         if (selectedRule) {
@@ -508,10 +540,13 @@ export default function AlertRulesPage() {
             cell: ({ row }) => {
                 const rule = row.original;
                 return (
+                    // The menu is portaled but still a React child of the row: without this, clicks on
+                    // the trigger or its items bubble up and also toggle the row selection.
+                    <div onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
+                            <Button variant="ghost" className="h-8 w-8 p-0" aria-busy={testRule.isPending(String(rule.id)) || undefined}>
+                                <span className="sr-only">{t('columns.actions')}</span>
                                 <MoreHorizontal className="h-4 w-4" />
                             </Button>
                         </DropdownMenuTrigger>
@@ -519,10 +554,11 @@ export default function AlertRulesPage() {
                             <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
                             {canUpdate && <DropdownMenuItem onClick={() => handleEdit(rule)}>{t('columns.edit')}</DropdownMenuItem>}
                             {canCreate && <DropdownMenuItem onClick={() => handleDuplicate(rule)}>{t('columns.duplicate')}</DropdownMenuItem>}
-                            {canUpdate && <DropdownMenuItem onClick={() => handleTest(rule)} disabled={isTesting}>{t('columns.test')}</DropdownMenuItem>}
+                            {canUpdate && <DropdownMenuItem onClick={() => handleTest(rule)} disabled={testRule.isPending(String(rule.id))}>{t('columns.test')}</DropdownMenuItem>}
                             {canDelete && <DropdownMenuItem onClick={() => { setDeletingRule(rule); setIsDeleteDialogOpen(true); }} className="text-destructive">{t('columns.delete')}</DropdownMenuItem>}
                         </DropdownMenuContent>
                     </DropdownMenu>
+                    </div>
                 );
             },
         },
@@ -549,6 +585,8 @@ export default function AlertRulesPage() {
                         onCreate={canCreate ? handleCreate : undefined}
                         onRefresh={loadData}
                         isRefreshing={isRefreshing}
+                        isLoading={isLoading}
+                        loadError={loadError}
                         isNarrow={isNarrow || !!selectedRule}
                         renderCard={(row: AlertRule, _isSelected: boolean) => (
                             <DataCard isSelected={_isSelected}
@@ -589,7 +627,7 @@ export default function AlertRulesPage() {
                                 </Button>
                             )}
                             {canDelete && (
-                                <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => { setDeletingRule(selectedRule); setIsDeleteDialogOpen(true); }}>
+                                <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" aria-label={t('columns.delete')} onClick={() => { setDeletingRule(selectedRule); setIsDeleteDialogOpen(true); }}>
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
                             )}
@@ -660,13 +698,22 @@ export default function AlertRulesPage() {
                 />
             </div>
 
-            <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) setSubmissionError(null); }}>
-                <DialogContent maxWidth="6xl" className="flex max-h-[90vh] w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] flex-col p-0" confirmOnClose isDirty={form.formState.isDirty}>
+            <Dialog
+                open={isDialogOpen}
+                onOpenChange={(open) => {
+                    if (!open && save.isPending) return;
+                    setIsDialogOpen(open);
+                    if (!open) setSubmissionError(null);
+                }}
+            >
+                <DialogContent maxWidth="6xl" className="flex max-h-[90vh] w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] flex-col p-0" confirmOnClose isDirty={form.formState.isDirty && !save.isPending}>
                     <DialogHeader>
                         <DialogTitle>{editingRule ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 overflow-y-auto space-y-5 px-4 py-4 sm:px-6">
+                        <form id="alert-rule-form" onSubmit={form.handleSubmit(save.run)} className="flex-1 overflow-y-auto space-y-5 px-4 py-4 sm:px-6">
+                            {/* Native fieldset disables every control while the request is in flight */}
+                            <fieldset disabled={save.isPending} className="min-w-0 space-y-5">
                             {submissionError && (
                                 <Alert variant="destructive">
                                     <AlertTriangle className="h-4 w-4" />
@@ -1118,27 +1165,26 @@ export default function AlertRulesPage() {
                                     </FormItem>
                                 )} />
                             </div>
+                            </fieldset>
                         </form>
                     </Form>
                     <DialogFooter className="border-t px-4 py-3 sm:px-6">
-                        <Button className="w-full sm:w-auto" disabled={isSubmitting} onClick={form.handleSubmit(onSubmit)}>{isSubmitting ? t('dialog.saving') : (editingRule ? t('dialog.save') : t('dialog.create'))}</Button>
-                        <DialogCancelButton className="w-full sm:w-auto" disabled={isSubmitting}>{t('dialog.cancel')}</DialogCancelButton>
+                        <Button type="submit" form="alert-rule-form" className="w-full sm:w-auto" loading={save.isPending}>{editingRule ? t('dialog.save') : t('dialog.create')}</Button>
+                        <DialogCancelButton className="w-full sm:w-auto" disabled={save.isPending}>{t('dialog.cancel')}</DialogCancelButton>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
-                        <AlertDialogDescription>{t('deleteDialog.description', { name: deletingRule?.name })}</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogAction onClick={confirmDelete} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">{isDeleting ? t('deleteDialog.deleting') : t('deleteDialog.confirm')}</AlertDialogAction>
-                        <AlertDialogCancel disabled={isDeleting}>{t('deleteDialog.cancel')}</AlertDialogCancel>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <ConfirmActionDialog
+                open={isDeleteDialogOpen}
+                onOpenChange={setIsDeleteDialogOpen}
+                title={t('deleteDialog.title')}
+                description={t('deleteDialog.description', { name: deletingRule?.name })}
+                cancelLabel={t('deleteDialog.cancel')}
+                confirmLabel={remove.isPending ? t('deleteDialog.deleting') : t('deleteDialog.confirm')}
+                onConfirm={() => { if (deletingRule) remove.run(deletingRule); }}
+                isPending={remove.isPending}
+            />
         </>
     );
 }

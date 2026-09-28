@@ -2,16 +2,18 @@
 
 import * as React from 'react';
 
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 
 import { SignaturePadDialog } from '@/components/users/signature-pad-dialog';
 
 import { API_ROUTES } from '@/constants/routes';
+import { useAsyncAction } from '@/hooks/use-async-action';
 import { useToast } from '@/hooks/use-toast';
-import api from '@/services/api';
+import { getErrorMessage } from '@/lib/error-utils';
+import api, { isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 
 import { Loader2, PenLine, Signature, Trash2, Upload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -40,13 +42,15 @@ interface SignatureUploaderProps {
  */
 export function SignatureUploader({ userId, canManage = false, className, onSignatureChange }: SignatureUploaderProps) {
     const t = useTranslations('SignatureUploader');
+    const tCommon = useTranslations('Common');
     const { toast } = useToast();
 
     const [currentUrl, setCurrentUrl] = React.useState<string | null>(null);
     const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
     const [file, setFile] = React.useState<File | null>(null);
     const [isLoading, setIsLoading] = React.useState(true);
-    const [isSaving, setIsSaving] = React.useState(false);
+    // A failed fetch is not "no signature": offering to upload/delete over an unknown state would mislead.
+    const [loadFailed, setLoadFailed] = React.useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
     const [isPadOpen, setIsPadOpen] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
@@ -55,11 +59,14 @@ export function SignatureUploader({ userId, canManage = false, className, onSign
     const loadSignature = React.useCallback(async () => {
         if (!userId) return;
         setIsLoading(true);
+        setLoadFailed(false);
         let objectUrl: string | null = null;
         try {
             const blob = await api.getBlob(API_ROUTES.USER_SIGNATURE, { user_id: userId }) as unknown as Blob;
             objectUrl = blob?.size > 0 ? URL.createObjectURL(blob) : null;
-        } catch {
+        } catch (err) {
+            // 404 = the user has no signature yet; anything else is a real load failure.
+            if ((err as { status?: number } | null)?.status !== 404) setLoadFailed(true);
             objectUrl = null;
         }
         // Libera el object URL anterior antes de reemplazarlo.
@@ -110,48 +117,58 @@ export function SignatureUploader({ userId, canManage = false, className, onSign
         reader.readAsDataURL(selected);
     };
 
-    const handleSave = async () => {
-        if (!file) return;
-        setIsSaving(true);
-        setError(null);
-        try {
+    const save = useAsyncAction(
+        async (selected: File) => {
+            setError(null);
             const formData = new FormData();
             formData.append('user_id', userId);
-            formData.append('data', file);
-            const response = await api.post(API_ROUTES.USER_SIGNATURE_UPLOAD, formData);
+            formData.append('data', selected);
+            const response = await api.post(API_ROUTES.USER_SIGNATURE_UPLOAD, formData, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
             if (Array.isArray(response) && response[0]?.code >= 400) {
                 throw new Error(response[0]?.message || t('errors.generic'));
             }
-            toast({ title: t('toast.saved') });
-            resetSelection();
-            await loadSignature();
-            onSignatureChange?.();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : t('errors.generic'));
-        } finally {
-            setIsSaving(false);
+        },
+        {
+            onSuccess: async () => {
+                toast({ title: t('toast.saved') });
+                resetSelection();
+                await loadSignature();
+                onSignatureChange?.();
+            },
+            onError: (err) => {
+                if (isTimeoutError(err)) {
+                    // The upload may have finished anyway: show what is stored now.
+                    setError(tCommon('timeoutError'));
+                    loadSignature();
+                    return;
+                }
+                setError(getErrorMessage(err) || t('errors.generic'));
+            },
+            showErrorToast: false,
         }
-    };
+    );
 
-    const handleDelete = async () => {
-        setIsSaving(true);
-        try {
-            await api.delete(API_ROUTES.USER_SIGNATURE_DELETE, { user_id: userId });
-            toast({ title: t('toast.deleted') });
-            setIsDeleteOpen(false);
-            resetSelection();
-            await loadSignature();
-            onSignatureChange?.();
-        } catch (err) {
-            toast({
-                title: t('errors.generic'),
-                description: err instanceof Error ? err.message : '',
-                variant: 'destructive',
-            });
-        } finally {
-            setIsSaving(false);
+    const remove = useAsyncAction(
+        async () => {
+            const response = await api.delete(API_ROUTES.USER_SIGNATURE_DELETE, { user_id: userId }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
+            if (Array.isArray(response) && response[0]?.code >= 400) {
+                throw new Error(response[0]?.message || t('errors.generic'));
+            }
+        },
+        {
+            onSuccess: async () => {
+                toast({ title: t('toast.deleted') });
+                setIsDeleteOpen(false);
+                resetSelection();
+                await loadSignature();
+                onSignatureChange?.();
+            },
+            onError: (err) => { if (isTimeoutError(err)) loadSignature(); },
+            errorTitle: t('errors.generic'),
         }
-    };
+    );
+
+    const isSaving = save.isPending || remove.isPending;
 
     const shownUrl = previewUrl || currentUrl;
 
@@ -172,6 +189,13 @@ export function SignatureUploader({ userId, canManage = false, className, onSign
                         <div className="flex h-24 w-full items-center justify-center rounded-md border border-dashed bg-muted/30 p-2 sm:w-56">
                             {isLoading ? (
                                 <Skeleton className="h-full w-full" />
+                            ) : loadFailed && !previewUrl ? (
+                                <div className="flex flex-col items-center gap-1 text-center text-destructive" role="alert">
+                                    <span className="text-xs">{tCommon('loadError')}</span>
+                                    <Button type="button" size="sm" variant="outline" className="h-6 px-2 text-xs" onClick={() => loadSignature()}>
+                                        {tCommon('retry')}
+                                    </Button>
+                                </div>
                             ) : shownUrl ? (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img src={shownUrl} alt={t('alt')} className="h-full w-full object-contain" />
@@ -185,8 +209,14 @@ export function SignatureUploader({ userId, canManage = false, className, onSign
 
                         {canManage && (
                             <div className="flex flex-wrap gap-2">
-                                <Button type="button" size="sm" onClick={handleSave} disabled={!file || isSaving}>
-                                    {isSaving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Upload className="mr-1.5 h-3.5 w-3.5" />}
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={() => { if (file) save.run(file); }}
+                                    disabled={!file || isSaving}
+                                    aria-busy={save.isPending || undefined}
+                                >
+                                    {save.isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Upload className="mr-1.5 h-3.5 w-3.5" />}
                                     {t('save')}
                                 </Button>
                                 {file && (
@@ -238,20 +268,16 @@ export function SignatureUploader({ userId, canManage = false, className, onSign
 
             <SignaturePadDialog open={isPadOpen} onOpenChange={setIsPadOpen} onConfirm={handleDrawn} />
 
-            <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
-                        <AlertDialogDescription>{t('deleteDialog.description')}</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
-                            {t('deleteDialog.confirm')}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <ConfirmActionDialog
+                open={isDeleteOpen}
+                onOpenChange={setIsDeleteOpen}
+                title={t('deleteDialog.title')}
+                description={t('deleteDialog.description')}
+                cancelLabel={t('deleteDialog.cancel')}
+                confirmLabel={t('deleteDialog.confirm')}
+                onConfirm={() => remove.run()}
+                isPending={remove.isPending}
+            />
         </div>
     );
 }

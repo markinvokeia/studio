@@ -1,12 +1,14 @@
 'use client';
 
 import * as React from 'react';
-import { Loader2, Palette, RotateCcw, Save, Share2, Undo2 } from 'lucide-react';
+import { AlertTriangle, Palette, RotateCcw, Save, Share2, Undo2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
+import { Dialog, DialogBody, DialogCancelButton, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { PageHeader } from '@/components/ui/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,6 +18,8 @@ import { StatusDisplayMatrix } from '@/components/calendar/status-display-matrix
 
 import { APPOINTMENT_STATUSES, DEFAULT_STATUS_DISPLAY } from '@/constants/appointment-status';
 import { CALENDAR_DISPLAY_PERMISSIONS } from '@/constants/permissions';
+import { useAsyncAction, useKeyedAsyncAction } from '@/hooks/use-async-action';
+import { useDataLoader } from '@/hooks/use-data-loader';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { mergeStatusMatrix } from '@/lib/appointment-status-display';
@@ -32,6 +36,7 @@ import {
   upsertStatusDisplayRows,
 } from '@/services/calendar-status-display';
 import { fetchAppointmentCalendars } from '@/services/appointments';
+import { REQUEST_TIMEOUT_MS, isTimeoutError } from '@/services/api';
 import { useCalendarStatusDisplayStore } from '@/stores/calendar-status-display-store';
 import { cn } from '@/lib/utils';
 
@@ -62,42 +67,41 @@ function sameDisplay(a: AppointmentStatusDisplay, b: AppointmentStatusDisplay): 
  */
 export default function CalendarColorsConfigPage() {
   const t = useTranslations('CalendarColorsPage');
+  const tCommon = useTranslations('Common');
   const { hasPermission } = usePermissions();
   const canUpdate = hasPermission(CALENDAR_DISPLAY_PERMISSIONS.UPDATE);
   const { toast } = useToast();
   const setStoreRows = useCalendarStatusDisplayStore((s) => s.setRows);
 
-  const [rows, setRows] = React.useState<CalendarStatusDisplayRow[]>([]);
-  const [calendars, setCalendars] = React.useState<Calendar[]>([]);
   const [scope, setScope] = React.useState<Scope>(GENERAL_SCOPE);
   const [matrix, setMatrix] = React.useState<AppointmentStatusDisplayMatrix>(DEFAULT_STATUS_DISPLAY);
   const [initialMatrix, setInitialMatrix] = React.useState<AppointmentStatusDisplayMatrix>(DEFAULT_STATUS_DISPLAY);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [isSaving, setIsSaving] = React.useState(false);
-  const [isRevertingAll, setIsRevertingAll] = React.useState(false);
-  const [revertingStatus, setRevertingStatus] = React.useState<AppointmentStatus | null>(null);
   const [replicateOpen, setReplicateOpen] = React.useState(false);
+  const [revertAllOpen, setRevertAllOpen] = React.useState(false);
 
-  const load = React.useCallback(async () => {
-    setIsLoading(true);
-    try {
+  const {
+    data: { rows, calendars },
+    setData,
+    isLoading,
+    isRefreshing,
+    error: loadError,
+    reload: load,
+  } = useDataLoader(
+    async (signal) => {
       const [fetchedRows, fetchedCalendars] = await Promise.all([
-        fetchStatusDisplayRows(),
+        fetchStatusDisplayRows({ signal }),
         fetchAppointmentCalendars(),
       ]);
-      setRows(fetchedRows);
-      setCalendars(fetchedCalendars);
-    } catch (error) {
-      console.error('Failed to load the calendar status display matrix:', error);
-      toast({ variant: 'destructive', title: t('loadError') });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [t, toast]);
+      return { rows: fetchedRows, calendars: fetchedCalendars };
+    },
+    { rows: [] as CalendarStatusDisplayRow[], calendars: [] as Calendar[] }
+  );
 
-  React.useEffect(() => {
-    load();
-  }, [load]);
+  /** Aplica el resultado de una mutación a la vista y al store que lee el calendario. */
+  const commitRows = React.useCallback((nextRows: CalendarStatusDisplayRow[]) => {
+    setData((prev) => ({ ...prev, rows: nextRows }));
+    setStoreRows(nextRows);
+  }, [setData, setStoreRows]);
 
   const generalMatrix = React.useMemo(
     () => mergeStatusMatrix(DEFAULT_STATUS_DISPLAY, rows.filter((r) => r.calendar_id === null)),
@@ -126,116 +130,112 @@ export default function CalendarColorsConfigPage() {
   }, [scope, rows, generalMatrix]);
 
   const isDirty = JSON.stringify(matrix) !== JSON.stringify(initialMatrix);
-  const canSave = canUpdate && isDirty && !isSaving;
-  const isBusy = isSaving || isRevertingAll || revertingStatus !== null;
+
+  // Tras un timeout la escritura pudo aplicarse igual: se relee para mostrar el estado real.
+  const reloadOnTimeout = (error: unknown) => { if (isTimeoutError(error)) load(); };
+  const mutationOptions = { timeoutMs: REQUEST_TIMEOUT_MS.mutation };
+
+  const save = useAsyncAction(
+    async () => {
+      if (scope === GENERAL_SCOPE) {
+        const generalRows = rowsFromMatrix(matrix, null);
+        await upsertStatusDisplayRows(generalRows, mutationOptions);
+        return [...rows.filter((r) => r.calendar_id !== null), ...generalRows];
+      }
+      const changedStatuses = APPOINTMENT_STATUSES.filter(
+        (status) => !sameDisplay(matrix[status], initialMatrix[status]),
+      );
+      if (changedStatuses.length === 0) return null;
+      const changedRows = rowsFromMatrix(matrix, scope, changedStatuses);
+      await upsertStatusDisplayRows(changedRows, mutationOptions);
+      return [
+        ...rows.filter((r) => !(r.calendar_id === scope && changedStatuses.includes(r.status))),
+        ...changedRows,
+      ];
+    },
+    {
+      onSuccess: (nextRows) => {
+        if (!nextRows) return;
+        commitRows(nextRows);
+        toast({ title: t('saved') });
+      },
+      onError: reloadOnTimeout,
+      errorTitle: t('saveError'),
+    }
+  );
+
+  const revertStatus = useKeyedAsyncAction(
+    async (calendarId: string, status: AppointmentStatus) => {
+      await deleteCalendarOverride(calendarId, status, mutationOptions);
+      return { calendarId, status };
+    },
+    {
+      onSuccess: ({ calendarId, status }) => {
+        commitRows(rows.filter((r) => !(r.calendar_id === calendarId && r.status === status)));
+        toast({ title: t('scope.revertStatusSuccess') });
+      },
+      onError: reloadOnTimeout,
+      errorTitle: t('scope.revertStatusError'),
+    }
+  );
+
+  const revertAll = useAsyncAction(
+    async (calendarId: string) => {
+      await deleteCalendarOverride(calendarId, undefined, mutationOptions);
+      return calendarId;
+    },
+    {
+      onSuccess: (calendarId) => {
+        commitRows(rows.filter((r) => r.calendar_id !== calendarId));
+        setRevertAllOpen(false);
+        toast({ title: t('scope.revertAllSuccess') });
+      },
+      onError: reloadOnTimeout,
+      errorTitle: t('scope.revertAllError'),
+    }
+  );
+
+  const replicate = useAsyncAction(
+    async (calendarIds: string[]) => {
+      const replicated = calendarIds.flatMap((calendarId) => rowsFromMatrix(matrix, calendarId));
+      await upsertStatusDisplayRows(replicated, mutationOptions);
+      return [
+        ...rows.filter((r) => r.calendar_id === null || !calendarIds.includes(r.calendar_id)),
+        ...replicated,
+      ];
+    },
+    {
+      onSuccess: (nextRows) => {
+        commitRows(nextRows);
+        toast({ title: t('replicateDialog.success') });
+        setReplicateOpen(false);
+      },
+      onError: reloadOnTimeout,
+      errorTitle: t('replicateDialog.error'),
+    }
+  );
+
+  const isBusy = save.isPending || revertAll.isPending || revertStatus.hasPending || replicate.isPending || isRefreshing;
+  const canSave = canUpdate && isDirty && !isBusy;
 
   const handleChange = (status: AppointmentStatus, patch: Partial<AppointmentStatusDisplay>) => {
     setMatrix((m) => ({ ...m, [status]: { ...m[status], ...patch } }));
   };
 
   const handleScopeChange = (next: string) => {
+    // Cambiar de alcance a mitad de un guardado aplicaría el resultado sobre el tab equivocado.
+    if (isBusy) return;
     if (isDirty && !window.confirm(t('unsavedChangesConfirm'))) return;
     setScope(next);
-  };
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      if (scope === GENERAL_SCOPE) {
-        const generalRows = rowsFromMatrix(matrix, null);
-        await upsertStatusDisplayRows(generalRows);
-        const nextRows = [...rows.filter((r) => r.calendar_id !== null), ...generalRows];
-        setRows(nextRows);
-        setStoreRows(nextRows);
-      } else {
-        const changedStatuses = APPOINTMENT_STATUSES.filter(
-          (status) => !sameDisplay(matrix[status], initialMatrix[status]),
-        );
-        if (changedStatuses.length === 0) return;
-        const changedRows = rowsFromMatrix(matrix, scope, changedStatuses);
-        await upsertStatusDisplayRows(changedRows);
-        const nextRows = [
-          ...rows.filter((r) => !(r.calendar_id === scope && changedStatuses.includes(r.status))),
-          ...changedRows,
-        ];
-        setRows(nextRows);
-        setStoreRows(nextRows);
-      }
-      toast({ title: t('saved') });
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: t('saveError'),
-        description: error instanceof Error ? error.message : undefined,
-      });
-    } finally {
-      setIsSaving(false);
-    }
   };
 
   const handleRestoreDefaults = () => {
     setMatrix(DEFAULT_STATUS_DISPLAY);
   };
 
-  const handleRevertStatus = async (status: AppointmentStatus) => {
+  const handleRevertStatus = (status: AppointmentStatus) => {
     if (scope === GENERAL_SCOPE) return;
-    setRevertingStatus(status);
-    try {
-      await deleteCalendarOverride(scope, status);
-      const nextRows = rows.filter((r) => !(r.calendar_id === scope && r.status === status));
-      setRows(nextRows);
-      setStoreRows(nextRows);
-      toast({ title: t('scope.revertStatusSuccess') });
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: t('scope.revertStatusError'),
-        description: error instanceof Error ? error.message : undefined,
-      });
-    } finally {
-      setRevertingStatus(null);
-    }
-  };
-
-  const handleRevertAll = async () => {
-    if (scope === GENERAL_SCOPE) return;
-    setIsRevertingAll(true);
-    try {
-      await deleteCalendarOverride(scope);
-      const nextRows = rows.filter((r) => r.calendar_id !== scope);
-      setRows(nextRows);
-      setStoreRows(nextRows);
-      toast({ title: t('scope.revertAllSuccess') });
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: t('scope.revertAllError'),
-        description: error instanceof Error ? error.message : undefined,
-      });
-    } finally {
-      setIsRevertingAll(false);
-    }
-  };
-
-  const handleReplicate = async (calendarIds: string[]) => {
-    try {
-      const replicated = calendarIds.flatMap((calendarId) => rowsFromMatrix(matrix, calendarId));
-      await upsertStatusDisplayRows(replicated);
-      const nextRows = [
-        ...rows.filter((r) => r.calendar_id === null || !calendarIds.includes(r.calendar_id)),
-        ...replicated,
-      ];
-      setRows(nextRows);
-      setStoreRows(nextRows);
-      toast({ title: t('replicateDialog.success') });
-      setReplicateOpen(false);
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: t('replicateDialog.error'),
-        description: error instanceof Error ? error.message : undefined,
-      });
-    }
+    revertStatus.run(status, scope, status);
   };
 
   if (isLoading) {
@@ -246,6 +246,27 @@ export default function CalendarColorsConfigPage() {
       </div>
     );
   }
+
+  // Si la carga falla no se muestra la matriz por defecto: guardarla pisaría la configuración real.
+  if (loadError) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <PageHeader icon={<Palette className="h-5 w-5" />} title={t('title')} description={t('description')} />
+        <Alert variant="destructive" className="m-1">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>{t('loadError')}</AlertTitle>
+          <AlertDescription className="flex flex-wrap items-center gap-3">
+            <span>{loadError}</span>
+            <Button size="sm" variant="outline" onClick={() => load()} loading={isRefreshing}>
+              {tCommon('retry')}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  const scopeCalendarName = calendars.find((c) => c.id === scope)?.name ?? '';
 
   const replicateTargets = calendars.filter((c) => c.id !== scope);
 
@@ -266,11 +287,11 @@ export default function CalendarColorsConfigPage() {
               ) : (
                 <Button
                   variant="outline"
-                  onClick={handleRevertAll}
+                  onClick={() => setRevertAllOpen(true)}
                   disabled={!canUpdate || isBusy || !calendarHasOverride(scope)}
                   className="gap-1.5"
                 >
-                  {isRevertingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Undo2 className="h-4 w-4" />}
+                  <Undo2 className="h-4 w-4" />
                   {t('scope.revertAll')}
                 </Button>
               )}
@@ -283,8 +304,8 @@ export default function CalendarColorsConfigPage() {
                 <Share2 className="h-4 w-4" />
                 {t('replicateDialog.trigger')}
               </Button>
-              <Button onClick={handleSave} disabled={!canSave} className="gap-1.5">
-                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              <Button onClick={() => save.run()} disabled={!canSave} loading={save.isPending} className="gap-1.5">
+                <Save className="h-4 w-4" />
                 {t('save')}
               </Button>
             </div>
@@ -336,7 +357,19 @@ export default function CalendarColorsConfigPage() {
         open={replicateOpen}
         onOpenChange={setReplicateOpen}
         calendars={replicateTargets}
-        onConfirm={handleReplicate}
+        onConfirm={replicate.run}
+        isPending={replicate.isPending}
+      />
+
+      <ConfirmActionDialog
+        open={revertAllOpen}
+        onOpenChange={setRevertAllOpen}
+        title={t('scope.revertAllConfirm.title')}
+        description={t('scope.revertAllConfirm.description', { name: scopeCalendarName })}
+        cancelLabel={t('replicateDialog.cancel')}
+        confirmLabel={t('scope.revertAllConfirm.confirm')}
+        onConfirm={() => { if (scope !== GENERAL_SCOPE) revertAll.run(scope); }}
+        isPending={revertAll.isPending}
       />
     </div>
   );
@@ -347,15 +380,16 @@ function ReplicateDialog({
   onOpenChange,
   calendars,
   onConfirm,
+  isPending,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   calendars: Calendar[];
-  onConfirm: (calendarIds: string[]) => Promise<void>;
+  onConfirm: (calendarIds: string[]) => void;
+  isPending: boolean;
 }) {
   const t = useTranslations('CalendarColorsPage');
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   React.useEffect(() => {
     if (open) setSelected(new Set());
@@ -376,18 +410,20 @@ function ReplicateDialog({
     setSelected(allSelected ? new Set() : new Set(calendars.map((c) => c.id)));
   };
 
-  const handleConfirm = async () => {
+  const handleConfirm = () => {
     if (selected.size === 0) return;
-    setIsSubmitting(true);
-    try {
-      await onConfirm(Array.from(selected));
-    } finally {
-      setIsSubmitting(false);
-    }
+    onConfirm(Array.from(selected));
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        // No se cierra a mitad de la copia: reabrir y confirmar de nuevo la duplicaría.
+        if (!next && isPending) return;
+        onOpenChange(next);
+      }}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('replicateDialog.title')}</DialogTitle>
@@ -424,11 +460,10 @@ function ReplicateDialog({
         </DialogBody>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+          <DialogCancelButton disabled={isPending}>
             {t('replicateDialog.cancel')}
-          </Button>
-          <Button onClick={handleConfirm} disabled={selected.size === 0 || isSubmitting} className="gap-1.5">
-            {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+          </DialogCancelButton>
+          <Button onClick={handleConfirm} disabled={selected.size === 0} loading={isPending} className="gap-1.5">
             {t('replicateDialog.confirm')}
           </Button>
         </DialogFooter>

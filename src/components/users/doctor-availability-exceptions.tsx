@@ -1,9 +1,9 @@
 'use client';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
@@ -19,11 +19,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { API_ROUTES } from '@/constants/routes';
+import { useAsyncAction } from '@/hooks/use-async-action';
+import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/lib/error-utils';
 import { AvailabilityException } from '@/lib/types';
 import { formatDate, formatDisplayDate } from '@/lib/utils';
-import { api } from '@/services/api';
+import { api, isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { format, parseISO } from 'date-fns';
 import { AlertTriangle, Pencil, Plus, Trash2, UserX } from 'lucide-react';
@@ -43,27 +45,23 @@ const exceptionFormSchema = (t: (key: string) => string) => z.object({
 
 type ExceptionFormValues = z.infer<ReturnType<typeof exceptionFormSchema>>;
 
-async function getExceptionsForUser(userId: string): Promise<AvailabilityException[]> {
-    try {
-        const responseData = await api.get(API_ROUTES.AVAILABILITY_EXCEPTIONS_SEARCH, {
-            page: '1',
-            limit: '100',
-            user_id: userId,
-        });
-        const data = Array.isArray(responseData) && responseData.length > 0 ? responseData[0] : responseData;
-        const exceptionsData = data.data || [];
-        return exceptionsData.map((ex: any) => ({
-            ...ex,
-            id: String(ex.id),
-            exception_date: formatDate(ex.exception_date),
-        }));
-    } catch {
-        return [];
-    }
+async function getExceptionsForUser(userId: string, signal?: AbortSignal): Promise<AvailabilityException[]> {
+    const responseData = await api.get(API_ROUTES.AVAILABILITY_EXCEPTIONS_SEARCH, {
+        page: '1',
+        limit: '100',
+        user_id: userId,
+    }, undefined, { signal });
+    const data = Array.isArray(responseData) && responseData.length > 0 ? responseData[0] : responseData;
+    const exceptionsData = data?.data || [];
+    return exceptionsData.map((ex: any) => ({
+        ...ex,
+        id: String(ex.id),
+        exception_date: formatDate(ex.exception_date),
+    }));
 }
 
 async function upsertException(data: ExceptionFormValues) {
-    const responseData = await api.post(API_ROUTES.AVAILABILITY_EXCEPTIONS_UPSERT, data);
+    const responseData = await api.post(API_ROUTES.AVAILABILITY_EXCEPTIONS_UPSERT, data, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400 || responseData.error) {
         const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message);
         throw new Error(message);
@@ -72,7 +70,7 @@ async function upsertException(data: ExceptionFormValues) {
 }
 
 async function deleteException(id: string) {
-    const responseData = await api.delete(API_ROUTES.AVAILABILITY_EXCEPTIONS_DELETE, { id });
+    const responseData = await api.delete(API_ROUTES.AVAILABILITY_EXCEPTIONS_DELETE, { id }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400 || responseData.error) {
         const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message);
         throw new Error(message);
@@ -83,10 +81,17 @@ async function deleteException(id: string) {
 export function DoctorAvailabilityExceptions({ userId }: { userId: string }) {
     const t = useTranslations('DoctorAvailabilityExceptionsPage');
     const tColumns = useTranslations('DoctorAvailabilityExceptionsPage.columns');
+    const tCommon = useTranslations('Common');
     const { toast } = useToast();
 
-    const [exceptions, setExceptions] = React.useState<AvailabilityException[]>([]);
-    const [isLoading, setIsLoading] = React.useState(true);
+    // Switching doctors quickly can't show another doctor's exceptions: only the latest load writes.
+    const {
+        data: exceptions,
+        isLoading,
+        isRefreshing,
+        error: loadError,
+        reload: loadExceptions,
+    } = useDataLoader((signal) => getExceptionsForUser(userId, signal), [] as AvailabilityException[], [userId]);
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
     const [editingException, setEditingException] = React.useState<AvailabilityException | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
@@ -98,16 +103,6 @@ export function DoctorAvailabilityExceptions({ userId }: { userId: string }) {
         resolver: zodResolver(exceptionFormSchema(tValidation)),
     });
 
-    const loadExceptions = React.useCallback(async () => {
-        setIsLoading(true);
-        const data = await getExceptionsForUser(userId);
-        setExceptions(data);
-        setIsLoading(false);
-    }, [userId]);
-
-    React.useEffect(() => {
-        loadExceptions();
-    }, [loadExceptions]);
 
     const handleCreate = () => {
         setEditingException(null);
@@ -141,30 +136,44 @@ export function DoctorAvailabilityExceptions({ userId }: { userId: string }) {
         setIsDeleteDialogOpen(true);
     };
 
-    const confirmDelete = async () => {
-        if (!deletingException) return;
-        try {
-            await deleteException(deletingException.id);
-            toast({ title: t('toast.deleteTitle'), description: t('toast.deleteDescription') });
-            setIsDeleteDialogOpen(false);
-            setDeletingException(null);
-            loadExceptions();
-        } catch (error) {
-            toast({ variant: 'destructive', title: t('toast.errorTitle'), description: getErrorMessage(error) });
+    const remove = useAsyncAction(
+        (ex: AvailabilityException) => deleteException(ex.id),
+        {
+            onSuccess: async () => {
+                toast({ title: t('toast.deleteTitle'), description: t('toast.deleteDescription') });
+                setIsDeleteDialogOpen(false);
+                setDeletingException(null);
+                await loadExceptions();
+            },
+            onError: (error) => { if (isTimeoutError(error)) loadExceptions(); },
+            errorTitle: t('toast.deleteError'),
         }
-    };
+    );
 
-    const onSubmit = async (values: ExceptionFormValues) => {
-        setSubmissionError(null);
-        try {
+    const save = useAsyncAction(
+        async (values: ExceptionFormValues) => {
+            setSubmissionError(null);
             await upsertException(values);
-            toast({ title: editingException ? t('toast.editTitle') : t('toast.createTitle'), description: t('toast.successDescription') });
-            setIsDialogOpen(false);
-            loadExceptions();
-        } catch (error) {
-            setSubmissionError(getErrorMessage(error));
+            return values;
+        },
+        {
+            onSuccess: async (values) => {
+                toast({ title: values.id ? t('toast.editTitle') : t('toast.createTitle'), description: t('toast.successDescription') });
+                await loadExceptions();
+                setIsDialogOpen(false);
+            },
+            onError: (error) => {
+                if (isTimeoutError(error)) {
+                    // The exception may have been saved anyway: refresh so the user can check before retrying.
+                    setSubmissionError(tCommon('timeoutError'));
+                    loadExceptions();
+                    return;
+                }
+                setSubmissionError(getErrorMessage(error) || t('toast.saveError'));
+            },
+            showErrorToast: false,
         }
-    };
+    );
 
     if (isLoading) {
         return (
@@ -173,6 +182,22 @@ export function DoctorAvailabilityExceptions({ userId }: { userId: string }) {
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
             </div>
+        );
+    }
+
+    if (loadError) {
+        // An empty list here would hide the real rules and invite duplicates: show the error instead.
+        return (
+            <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>{tCommon('loadError')}</AlertTitle>
+                <AlertDescription className="flex flex-wrap items-center gap-3">
+                    <span>{loadError}</span>
+                    <Button size="sm" variant="outline" onClick={() => loadExceptions()} loading={isRefreshing}>
+                        {tCommon('retry')}
+                    </Button>
+                </AlertDescription>
+            </Alert>
         );
     }
 
@@ -207,10 +232,10 @@ export function DoctorAvailabilityExceptions({ userId }: { userId: string }) {
                                 )}
                             </div>
                             <div className="flex gap-1 flex-none">
-                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleEdit(ex)}>
+                                <Button size="icon" variant="ghost" className="h-8 w-8" aria-label={t('dialog.editTitle')} onClick={() => handleEdit(ex)}>
                                     <Pencil className="h-3.5 w-3.5" />
                                 </Button>
-                                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(ex)}>
+                                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" aria-label={t('deleteDialog.confirm')} onClick={() => handleDelete(ex)}>
                                     <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
                             </div>
@@ -219,13 +244,19 @@ export function DoctorAvailabilityExceptions({ userId }: { userId: string }) {
                 </div>
             )}
 
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent confirmOnClose isDirty={form.formState.isDirty}>
+            <Dialog
+                open={isDialogOpen}
+                onOpenChange={(open) => {
+                    if (!open && save.isPending) return;
+                    setIsDialogOpen(open);
+                }}
+            >
+                <DialogContent confirmOnClose isDirty={form.formState.isDirty && !save.isPending}>
                     <DialogHeader>
                         <DialogTitle>{editingException ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+                        <form onSubmit={form.handleSubmit(save.run)} className="flex flex-col flex-1 overflow-hidden">
                             <DialogBody className="space-y-4 py-4 px-6">
                                 {submissionError && (
                                     <Alert variant="destructive">
@@ -234,6 +265,8 @@ export function DoctorAvailabilityExceptions({ userId }: { userId: string }) {
                                         <AlertDescription>{submissionError}</AlertDescription>
                                     </Alert>
                                 )}
+                                {/* Native fieldset disables every control while the request is in flight */}
+                                <fieldset disabled={save.isPending} className="min-w-0 space-y-4">
                                 <FormField control={form.control} name="exception_date" render={({ field }) => (
                                     <FormItem><FormLabel>{t('dialog.date')}</FormLabel><FormControl><DatePickerInput value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>
                                 )} />
@@ -253,28 +286,30 @@ export function DoctorAvailabilityExceptions({ userId }: { userId: string }) {
                                     <FormField control={form.control} name="start_time" render={({ field }) => (<FormItem><FormLabel>{t('dialog.startTime')}</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                     <FormField control={form.control} name="end_time" render={({ field }) => (<FormItem><FormLabel>{t('dialog.endTime')}</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                 </div>
+                                </fieldset>
                             </DialogBody>
                             <DialogFooter>
-                                <Button type="submit">{editingException ? t('dialog.save') : t('dialog.create')}</Button>
-                                <DialogCancelButton variant="outline">{t('dialog.cancel')}</DialogCancelButton>
+                                <Button type="submit" loading={save.isPending}>{editingException ? t('dialog.save') : t('dialog.create')}</Button>
+                                <DialogCancelButton variant="outline" disabled={save.isPending}>{t('dialog.cancel')}</DialogCancelButton>
                             </DialogFooter>
                         </form>
                     </Form>
                 </DialogContent>
             </Dialog>
 
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
-                        <AlertDialogDescription>{t('deleteDialog.description')}</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
-                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <ConfirmActionDialog
+                open={isDeleteDialogOpen}
+                onOpenChange={setIsDeleteDialogOpen}
+                title={t('deleteDialog.title')}
+                description={t('deleteDialog.description', {
+                    doctor: deletingException?.user_name || '',
+                    date: deletingException ? formatDisplayDate(deletingException.exception_date) : '',
+                })}
+                cancelLabel={t('deleteDialog.cancel')}
+                confirmLabel={t('deleteDialog.confirm')}
+                onConfirm={() => { if (deletingException) remove.run(deletingException); }}
+                isPending={remove.isPending}
+            />
         </div>
     );
 }

@@ -1,5 +1,5 @@
 import { API_ROUTES } from '@/constants/routes';
-import api from '@/services/api';
+import api, { type ApiRequestOptions } from '@/services/api';
 
 export function extractCreatedUserId(response: unknown): string | null {
   const responseRecord = response as {
@@ -19,6 +19,6 @@ export function extractCreatedUserId(response: unknown): string | null {
   return userId === undefined || userId === null ? null : String(userId);
 }
 
-export async function sendFirstTimePasswordToken(userId: string): Promise<void> {
-  await api.post(API_ROUTES.SYSTEM.API_AUTH_FIRST_TIME_PASSWORD_TOKEN, { user_id: userId });
+export async function sendFirstTimePasswordToken(userId: string, options?: ApiRequestOptions): Promise<void> {
+  await api.post(API_ROUTES.SYSTEM.API_AUTH_FIRST_TIME_PASSWORD_TOKEN, { user_id: userId }, undefined, undefined, options);
 }

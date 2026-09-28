@@ -1,10 +1,10 @@
 'use client';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableAdvancedToolbar } from '@/components/ui/data-table-advanced-toolbar';
@@ -20,15 +20,18 @@ import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
+import { useAsyncAction } from '@/hooks/use-async-action';
+import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
+import { getErrorMessage } from '@/lib/error-utils';
 import { ClinicException } from '@/lib/types';
 import { formatHolidayDate, formatDate } from '@/lib/utils';
-import api from '@/services/api';
+import api, { isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, CalendarOff, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { AlertTriangle, CalendarOff, Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -84,10 +87,9 @@ const holidayFormSchema = (t: (key: string) => string) => z.object({
 
 type HolidayFormValues = z.infer<ReturnType<typeof holidayFormSchema>>;
 
-async function getHolidays(): Promise<ClinicException[]> {
-    try {
-        const data = await api.get(API_ROUTES.EXCEPTIONS);
-        const holidaysData = Array.isArray(data) ? data : (data.exceptions || data.data || data.result || []);
+async function getHolidays(signal?: AbortSignal): Promise<ClinicException[]> {
+        const data = await api.get(API_ROUTES.EXCEPTIONS, undefined, undefined, { signal });
+        const holidaysData = Array.isArray(data) ? data : (data?.exceptions || data?.data || data?.result || []);
         return holidaysData.map((apiHoliday: any) => ({
             id: apiHoliday.id ? String(apiHoliday.id) : `ex_${Math.random().toString(36).substr(2, 9)}`,
             // Keep an ISO (yyyy-MM-dd) date; format only at display time.
@@ -107,10 +109,6 @@ async function getHolidays(): Promise<ClinicException[]> {
             biweekly_reference_date: apiHoliday.biweekly_reference_date ? formatDate(apiHoliday.biweekly_reference_date) : undefined,
             end_date: apiHoliday.end_date ? formatDate(apiHoliday.end_date) : undefined,
         }));
-    } catch (error) {
-        console.error("Failed to fetch holidays:", error);
-        return [];
-    }
 }
 
 function mapHolidayToFormValues(holiday: ClinicException): HolidayFormValues {
@@ -146,7 +144,7 @@ async function upsertHoliday(holidayData: HolidayFormValues) {
         biweekly_reference_date: holidayData.biweekly_reference_date || null,
         end_date: holidayData.end_date || null,
     };
-    const responseData = await api.post(API_ROUTES.HOLIDAYS_UPSERT, payload);
+    const responseData = await api.post(API_ROUTES.HOLIDAYS_UPSERT, payload, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
     if (responseData && typeof responseData === 'object' && responseData.error === true) {
         throw new Error(responseData.message || 'Failed to save holiday');
     }
@@ -157,7 +155,7 @@ async function upsertHoliday(holidayData: HolidayFormValues) {
 }
 
 async function deleteHoliday(id: string) {
-    const responseData = await api.delete(API_ROUTES.HOLIDAYS_DELETE, { id });
+    const responseData = await api.delete(API_ROUTES.HOLIDAYS_DELETE, { id }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         throw new Error(responseData[0]?.message || 'Failed to delete holiday');
     }
@@ -168,6 +166,7 @@ export default function HolidaysPage() {
     const t = useTranslations('HolidaysPage');
     const tNav = useTranslations('Navigation');
     const tValidation = useTranslations('HolidaysPage.validation');
+    const tCommon = useTranslations('Common');
     const { toast } = useToast();
     const { hasPermission } = usePermissions();
     const { sedes } = useAuth();
@@ -177,13 +176,11 @@ export default function HolidaysPage() {
     const canUpdate = hasPermission(BUSINESS_CONFIG_PERMISSIONS.HOLIDAYS_UPDATE);
     const canDelete = hasPermission(BUSINESS_CONFIG_PERMISSIONS.HOLIDAYS_DELETE);
 
-    const [holidays, setHolidays] = React.useState<ClinicException[]>([]);
-    const [isRefreshing, setIsRefreshing] = React.useState(false);
+    const { data: holidays, isLoading, isRefreshing, error: loadError, reload: loadHolidays } = useDataLoader(getHolidays, [] as ClinicException[]);
     const [searchQuery, setSearchQuery] = React.useState('');
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedHoliday, setSelectedHoliday] = React.useState<ClinicException | null>(null);
     const [isEditing, setIsEditing] = React.useState(false);
-    const [isSaving, setIsSaving] = React.useState(false);
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
@@ -210,14 +207,6 @@ export default function HolidaysPage() {
         }
     }, [watchedRecurrence, form]);
 
-    const loadHolidays = React.useCallback(async () => {
-        setIsRefreshing(true);
-        const fetched = await getHolidays();
-        setHolidays(fetched);
-        setIsRefreshing(false);
-    }, []);
-
-    React.useEffect(() => { loadHolidays(); }, [loadHolidays]);
 
     const filteredHolidays = React.useMemo(() => {
         if (!searchQuery) return holidays;
@@ -228,6 +217,11 @@ export default function HolidaysPage() {
 
     const handleRowSelection = (rows: ClinicException[]) => {
         const holiday = rows[0] ?? null;
+        // Don't drop an in-flight save or unsaved edits by clicking another row.
+        if (save.isPending || (isEditing && form.formState.isDirty && !window.confirm(tCommon('unsavedChangesConfirm')))) {
+            setRowSelection(selectedHoliday ? { [selectedHoliday.id]: true } : {});
+            return;
+        }
         setSelectedHoliday(holiday);
         setSubmissionError(null);
         if (holiday) {
@@ -252,6 +246,8 @@ export default function HolidaysPage() {
     };
 
     const handleBack = () => {
+        if (save.isPending) return;
+        if (isEditing && form.formState.isDirty && !window.confirm(tCommon('unsavedChangesConfirm'))) return;
         if (isEditing && selectedHoliday) {
             setIsEditing(false);
             form.reset(mapHolidayToFormValues(selectedHoliday));
@@ -260,38 +256,52 @@ export default function HolidaysPage() {
         }
     };
 
-    const onSubmit = async (values: HolidayFormValues) => {
-        setSubmissionError(null);
-        setIsSaving(true);
-        try {
+    const save = useAsyncAction(
+        async (values: HolidayFormValues) => {
+            setSubmissionError(null);
             await upsertHoliday(values);
-            toast({ title: selectedHoliday ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle') });
-            await loadHolidays();
-            setIsEditing(false);
-            if (!values.id) {
-                setIsCreateDialogOpen(false);
-                handleClose();
-            }
-        } catch (error) {
-            setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
-        } finally {
-            setIsSaving(false);
+            return values;
+        },
+        {
+            onSuccess: async (values) => {
+                toast({ title: values.id ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle'), description: t('toast.successDescription') });
+                const fresh = await loadHolidays();
+                setIsEditing(false);
+                if (!values.id) {
+                    setIsCreateDialogOpen(false);
+                    handleClose();
+                    return;
+                }
+                const updated = fresh?.find((h) => h.id === values.id);
+                if (updated) { setSelectedHoliday(updated); form.reset(mapHolidayToFormValues(updated)); }
+            },
+            onError: (error) => {
+                if (isTimeoutError(error)) {
+                    // The exception may have been saved anyway: refresh so the user can check before retrying.
+                    setSubmissionError(tCommon('timeoutError'));
+                    loadHolidays();
+                    return;
+                }
+                setSubmissionError(getErrorMessage(error) || t('toast.genericError'));
+            },
+            showErrorToast: false,
         }
-    };
+    );
 
-    const confirmDelete = async () => {
-        if (!deletingHoliday) return;
-        try {
-            await deleteHoliday(deletingHoliday.id);
-            toast({ title: t('toast.deleteSuccessTitle') });
-            setIsDeleteDialogOpen(false);
-            setDeletingHoliday(null);
-            handleClose();
-            loadHolidays();
-        } catch (error) {
-            toast({ variant: 'destructive', title: t('toast.errorTitle'), description: t('toast.deleteErrorDescription') });
+    const remove = useAsyncAction(
+        (holiday: ClinicException) => deleteHoliday(holiday.id),
+        {
+            onSuccess: async () => {
+                toast({ title: t('toast.deleteSuccessTitle'), description: t('toast.deleteSuccessDescription') });
+                setIsDeleteDialogOpen(false);
+                setDeletingHoliday(null);
+                handleClose();
+                await loadHolidays();
+            },
+            onError: (error) => { if (isTimeoutError(error)) loadHolidays(); },
+            errorTitle: t('toast.deleteErrorDescription'),
         }
-    };
+    );
 
     // Nombre de la sede de una excepción; sin sede aplica a toda la clínica.
     const sedeLabel = React.useCallback((sedeId?: string, sedeName?: string) => {
@@ -360,6 +370,10 @@ export default function HolidaysPage() {
                 <DataTable
                     columns={columns}
                     data={filteredHolidays}
+                    isLoading={isLoading}
+                    loadError={loadError}
+                    onRefresh={loadHolidays}
+                    isRefreshing={isRefreshing}
                     columnTranslations={columnTranslations}
                     enableSingleRowSelection
                     rowSelection={rowSelection}
@@ -410,7 +424,7 @@ export default function HolidaysPage() {
                             </Button>
                         )}
                         {selectedHoliday && !isEditing && canDelete && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" onClick={() => { setDeletingHoliday(selectedHoliday); setIsDeleteDialogOpen(true); }}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" aria-label={t('deleteDialog.confirm')} onClick={() => { setDeletingHoliday(selectedHoliday); setIsDeleteDialogOpen(true); }}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         )}
@@ -427,7 +441,7 @@ export default function HolidaysPage() {
             <Separator />
             <CardContent className="flex-1 overflow-auto p-4">
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(save.run)} className="space-y-4">
                         {submissionError && (
                             <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />
@@ -435,6 +449,8 @@ export default function HolidaysPage() {
                                 <AlertDescription>{submissionError}</AlertDescription>
                             </Alert>
                         )}
+                        {/* Native fieldset disables every control while the request is in flight */}
+                        <fieldset disabled={save.isPending} className="min-w-0 space-y-4">
                         <FormField control={form.control} name="date" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>{t('createDialog.date')}</FormLabel>
@@ -558,13 +574,13 @@ export default function HolidaysPage() {
                                 <FormMessage />
                             </FormItem>
                         )} />
+                        </fieldset>
                         {isEditing && (
                             <div className="flex gap-2 pt-2">
-                                <Button type="button" variant="outline" onClick={() => { setIsEditing(false); if (selectedHoliday) form.reset(mapHolidayToFormValues(selectedHoliday)); else handleClose(); }} disabled={isSaving}>
+                                <Button type="button" variant="outline" onClick={() => { setIsEditing(false); setSubmissionError(null); if (selectedHoliday) form.reset(mapHolidayToFormValues(selectedHoliday)); else handleClose(); }} disabled={save.isPending}>
                                     {t('createDialog.cancel')}
                                 </Button>
-                                <Button type="submit" disabled={isSaving}>
-                                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                <Button type="submit" loading={save.isPending}>
                                     {selectedHoliday ? t('createDialog.editSave') : t('createDialog.save')}
                                 </Button>
                             </div>
@@ -585,21 +601,20 @@ export default function HolidaysPage() {
                 leftPanelDefaultSize={40}
                 rightPanelDefaultSize={60}
             />
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
-                        <AlertDialogDescription>{t('deleteDialog.description')}</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <ConfirmActionDialog
+                open={isDeleteDialogOpen}
+                onOpenChange={setIsDeleteDialogOpen}
+                title={t('deleteDialog.title')}
+                description={t('deleteDialog.description', { date: deletingHoliday ? formatHolidayDate(deletingHoliday.date) : '' })}
+                cancelLabel={t('deleteDialog.cancel')}
+                confirmLabel={t('deleteDialog.confirm')}
+                onConfirm={() => { if (deletingHoliday) remove.run(deletingHoliday); }}
+                isPending={remove.isPending}
+            />
             <Dialog
                 open={isCreateDialogOpen}
                 onOpenChange={(open) => {
+                    if (!open && save.isPending) return;
                     setIsCreateDialogOpen(open);
                     if (!open) {
                         setIsEditing(false);
@@ -608,12 +623,12 @@ export default function HolidaysPage() {
                     }
                 }}
             >
-                <DialogContent maxWidth="lg" confirmOnClose isDirty={form.formState.isDirty}>
+                <DialogContent maxWidth="lg" confirmOnClose isDirty={form.formState.isDirty && !save.isPending}>
                     <DialogHeader>
                         <DialogTitle>{t('createDialog.title')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col min-h-0">
+                        <form onSubmit={form.handleSubmit(save.run)} className="flex flex-col min-h-0">
                             <DialogBody className="space-y-4 px-6 py-4">
                                 {submissionError && (
                                     <Alert variant="destructive">
@@ -622,6 +637,8 @@ export default function HolidaysPage() {
                                         <AlertDescription>{submissionError}</AlertDescription>
                                     </Alert>
                                 )}
+                                {/* Native fieldset disables every control while the request is in flight */}
+                                <fieldset disabled={save.isPending} className="min-w-0 space-y-4">
                                 <FormField control={form.control} name="date" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>{t('createDialog.date')}</FormLabel>
@@ -742,13 +759,13 @@ export default function HolidaysPage() {
                                         <FormMessage />
                                     </FormItem>
                                 )} />
+                                </fieldset>
                             </DialogBody>
                             <DialogFooter>
-                                <DialogCancelButton disabled={isSaving}>
+                                <DialogCancelButton disabled={save.isPending}>
                                     {t('createDialog.cancel')}
                                 </DialogCancelButton>
-                                <Button type="submit" disabled={isSaving}>
-                                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                <Button type="submit" loading={save.isPending}>
                                     {t('createDialog.save')}
                                 </Button>
                             </DialogFooter>

@@ -1,11 +1,11 @@
 'use client';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -17,14 +17,17 @@ import { Separator } from '@/components/ui/separator';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
+import { useAsyncAction } from '@/hooks/use-async-action';
+import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
+import { getErrorMessage } from '@/lib/error-utils';
 import { Clinic, Sede } from '@/lib/types';
-import api from '@/services/api';
+import api, { isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, Building2, Loader2, MapPin, Pencil, Trash2 } from 'lucide-react';
+import { AlertTriangle, Building2, MapPin, Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -44,34 +47,27 @@ const sedeFormSchema = (t: (key: string) => string) => z.object({
 
 type SedeFormValues = z.infer<ReturnType<typeof sedeFormSchema>>;
 
-async function getSedes(): Promise<Sede[]> {
-    try {
-        const data = await api.get(API_ROUTES.SEDES, { page: '1', limit: '200' });
-        const raw = Array.isArray(data) ? data : (data.sedes || data.data || data.result || []);
-        return raw.map((s: any) => ({
-            id: String(s.id),
-            clinic_id: String(s.clinic_id),
-            name: s.name || '',
-            address: s.address || undefined,
-            phone: s.phone || undefined,
-            email: s.email || undefined,
-            is_active: s.is_active !== undefined ? s.is_active : true,
-            created_at: s.created_at,
-            updated_at: s.updated_at,
-        }));
-    } catch {
-        return [];
-    }
+async function getSedes(signal?: AbortSignal): Promise<Sede[]> {
+    const data = await api.get(API_ROUTES.SEDES, { page: '1', limit: '200' }, undefined, { signal });
+    const raw = Array.isArray(data) ? data : (data?.sedes || data?.data || data?.result || []);
+    return raw.map((s: any) => ({
+        id: String(s.id),
+        clinic_id: String(s.clinic_id),
+        name: s.name || '',
+        address: s.address || undefined,
+        phone: s.phone || undefined,
+        email: s.email || undefined,
+        is_active: s.is_active !== undefined ? s.is_active : true,
+        created_at: s.created_at,
+        updated_at: s.updated_at,
+    }));
 }
 
 async function getClinicId(): Promise<string> {
-    try {
-        const data = await api.get(API_ROUTES.CLINIC);
-        const clinic: Clinic = Array.isArray(data) ? data[0] : data;
-        return String(clinic.id);
-    } catch {
-        return '';
-    }
+    const data = await api.get(API_ROUTES.CLINIC);
+    const clinic: Clinic | undefined = Array.isArray(data) ? data[0] : data;
+    if (!clinic?.id) throw new Error('Clinic not found');
+    return String(clinic.id);
 }
 
 async function upsertSede(sedeData: SedeFormValues & { clinic_id: string }) {
@@ -84,7 +80,7 @@ async function upsertSede(sedeData: SedeFormValues & { clinic_id: string }) {
         is_active: sedeData.is_active,
     };
     if (sedeData.id) payload.id = Number(sedeData.id);
-    const responseData = await api.post(API_ROUTES.SEDE_UPSERT, payload);
+    const responseData = await api.post(API_ROUTES.SEDE_UPSERT, payload, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         throw new Error(responseData[0]?.message || 'Failed to save sede');
     }
@@ -92,7 +88,7 @@ async function upsertSede(sedeData: SedeFormValues & { clinic_id: string }) {
 }
 
 async function deleteSede(id: string) {
-    const responseData = await api.delete(API_ROUTES.SEDE_DELETE, { id: Number(id) });
+    const responseData = await api.delete(API_ROUTES.SEDE_DELETE, { id: Number(id) }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         throw new Error(responseData[0]?.message || 'Failed to delete sede');
     }
@@ -109,13 +105,12 @@ export default function SedesPage() {
     const canUpdate = hasPermission(BUSINESS_CONFIG_PERMISSIONS.SEDES_UPDATE);
     const canDelete = hasPermission(BUSINESS_CONFIG_PERMISSIONS.SEDES_DELETE);
 
-    const [sedes, setSedes] = React.useState<Sede[]>([]);
-    const [clinicId, setClinicId] = React.useState('');
-    const [isRefreshing, setIsRefreshing] = React.useState(false);
+    const { data: sedes, isLoading, isRefreshing, error: loadError, reload: loadSedes } = useDataLoader(getSedes, [] as Sede[]);
+    // Resolved on the first save: a failed lookup surfaces as a save error instead of sending clinic_id 0.
+    const clinicIdRef = React.useRef('');
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedSede, setSelectedSede] = React.useState<Sede | null>(null);
     const [isEditing, setIsEditing] = React.useState(false);
-    const [isSaving, setIsSaving] = React.useState(false);
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
@@ -125,18 +120,6 @@ export default function SedesPage() {
         resolver: zodResolver(sedeFormSchema(t)),
         defaultValues: { name: '', address: '', phone: '', email: '', is_active: true },
     });
-
-    const loadSedes = React.useCallback(async () => {
-        setIsRefreshing(true);
-        const fetched = await getSedes();
-        setSedes(fetched);
-        setIsRefreshing(false);
-    }, []);
-
-    React.useEffect(() => {
-        loadSedes();
-        getClinicId().then(setClinicId);
-    }, [loadSedes]);
 
     const resetForm = (sede?: Sede) => {
         form.reset({
@@ -151,6 +134,11 @@ export default function SedesPage() {
 
     const handleRowSelection = (rows: Sede[]) => {
         const sede = rows[0] ?? null;
+        // Don't drop an in-flight save or unsaved edits by clicking another row.
+        if (save.isPending || (isEditing && form.formState.isDirty && !window.confirm(t('Common.unsavedChangesConfirm')))) {
+            setRowSelection(selectedSede ? { [selectedSede.id]: true } : {});
+            return;
+        }
         setSelectedSede(sede);
         setSubmissionError(null);
         setIsEditing(false);
@@ -173,6 +161,8 @@ export default function SedesPage() {
     };
 
     const handleBack = () => {
+        if (save.isPending) return;
+        if (isEditing && form.formState.isDirty && !window.confirm(t('Common.unsavedChangesConfirm'))) return;
         if (isEditing && selectedSede) {
             setIsEditing(false);
             resetForm(selectedSede);
@@ -181,38 +171,53 @@ export default function SedesPage() {
         }
     };
 
-    const onSubmit = async (values: SedeFormValues) => {
-        setSubmissionError(null);
-        setIsSaving(true);
-        try {
-            await upsertSede({ ...values, clinic_id: clinicId });
-            toast({ title: selectedSede ? t('SedesPage.toast.editSuccess') : t('SedesPage.toast.createSuccess') });
-            await loadSedes();
-            setIsEditing(false);
-            if (!values.id) {
-                setIsCreateDialogOpen(false);
-                handleClose();
-            }
-        } catch (error) {
-            setSubmissionError(error instanceof Error ? error.message : t('SedesPage.toast.genericError'));
-        } finally {
-            setIsSaving(false);
+    const save = useAsyncAction(
+        async (values: SedeFormValues) => {
+            setSubmissionError(null);
+            if (!clinicIdRef.current) clinicIdRef.current = await getClinicId();
+            await upsertSede({ ...values, clinic_id: clinicIdRef.current });
+            return values;
+        },
+        {
+            onSuccess: async (values) => {
+                toast({ title: values.id ? t('SedesPage.toast.editSuccess') : t('SedesPage.toast.createSuccess') });
+                const fresh = await loadSedes();
+                setIsEditing(false);
+                if (!values.id) {
+                    setIsCreateDialogOpen(false);
+                    handleClose();
+                    return;
+                }
+                const updated = fresh?.find((s) => s.id === values.id);
+                if (updated) { setSelectedSede(updated); resetForm(updated); }
+            },
+            onError: (error) => {
+                if (isTimeoutError(error)) {
+                    // The sede may have been saved anyway: refresh so the user can check before retrying.
+                    setSubmissionError(t('Common.timeoutError'));
+                    loadSedes();
+                    return;
+                }
+                setSubmissionError(getErrorMessage(error) || t('SedesPage.toast.genericError'));
+            },
+            showErrorToast: false,
         }
-    };
+    );
 
-    const confirmDelete = async () => {
-        if (!deletingSede) return;
-        try {
-            await deleteSede(deletingSede.id);
-            toast({ title: t('SedesPage.toast.deleteSuccess') });
-            setIsDeleteDialogOpen(false);
-            setDeletingSede(null);
-            handleClose();
-            loadSedes();
-        } catch {
-            toast({ variant: 'destructive', title: t('SedesPage.toast.errorTitle'), description: t('SedesPage.toast.deleteError') });
+    const remove = useAsyncAction(
+        (sede: Sede) => deleteSede(sede.id),
+        {
+            onSuccess: async () => {
+                toast({ title: t('SedesPage.toast.deleteSuccess') });
+                setIsDeleteDialogOpen(false);
+                setDeletingSede(null);
+                handleClose();
+                await loadSedes();
+            },
+            onError: (error) => { if (isTimeoutError(error)) loadSedes(); },
+            errorTitle: t('SedesPage.toast.deleteError'),
         }
-    };
+    );
 
     const columns: ColumnDef<Sede>[] = [
         { accessorKey: 'name', header: ({ column }) => <DataTableColumnHeader column={column} title={t('SedesPage.columns.name')} /> },
@@ -310,6 +315,8 @@ export default function SedesPage() {
                     onCreate={canCreate ? handleCreate : undefined}
                     onRefresh={loadSedes}
                     isRefreshing={isRefreshing}
+                    isLoading={isLoading}
+                    loadError={loadError}
                     enableSingleRowSelection
                     rowSelection={rowSelection}
                     setRowSelection={setRowSelection}
@@ -347,7 +354,7 @@ export default function SedesPage() {
                             </Button>
                         )}
                         {selectedSede && !isEditing && canDelete && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" onClick={() => { setDeletingSede(selectedSede); setIsDeleteDialogOpen(true); }}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" aria-label={t('SedesPage.deleteDialog.delete')} onClick={() => { setDeletingSede(selectedSede); setIsDeleteDialogOpen(true); }}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         )}
@@ -369,15 +376,14 @@ export default function SedesPage() {
             <Separator />
             <CardContent className="flex-1 overflow-auto p-4">
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                        {sedeForm(!isEditing)}
+                    <form onSubmit={form.handleSubmit(save.run)} className="space-y-4">
+                        {sedeForm(!isEditing || save.isPending)}
                         {isEditing && (
                             <div className="flex gap-2 pt-2">
-                                <Button type="button" variant="outline" onClick={() => { setIsEditing(false); if (selectedSede) resetForm(selectedSede); else handleClose(); }} disabled={isSaving}>
+                                <Button type="button" variant="outline" onClick={() => { setIsEditing(false); setSubmissionError(null); if (selectedSede) resetForm(selectedSede); else handleClose(); }} disabled={save.isPending}>
                                     {t('SedesPage.form.cancel')}
                                 </Button>
-                                <Button type="submit" disabled={isSaving}>
-                                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                <Button type="submit" loading={save.isPending}>
                                     {t('SedesPage.form.save')}
                                 </Button>
                             </div>
@@ -399,40 +405,36 @@ export default function SedesPage() {
                 rightPanelDefaultSize={60}
             />
 
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>{t('SedesPage.deleteDialog.title')}</AlertDialogTitle>
-                        <AlertDialogDescription>{t('SedesPage.deleteDialog.description', { name: deletingSede?.name })}</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>{t('SedesPage.deleteDialog.cancel')}</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
-                            {t('SedesPage.deleteDialog.delete')}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <ConfirmActionDialog
+                open={isDeleteDialogOpen}
+                onOpenChange={setIsDeleteDialogOpen}
+                title={t('SedesPage.deleteDialog.title')}
+                description={t('SedesPage.deleteDialog.description', { name: deletingSede?.name })}
+                cancelLabel={t('SedesPage.deleteDialog.cancel')}
+                confirmLabel={t('SedesPage.deleteDialog.delete')}
+                onConfirm={() => { if (deletingSede) remove.run(deletingSede); }}
+                isPending={remove.isPending}
+            />
 
             <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
+                if (!open && save.isPending) return;
                 setIsCreateDialogOpen(open);
                 if (!open) { setIsEditing(false); setSubmissionError(null); form.reset({ name: '', address: '', phone: '', email: '', is_active: true }); }
             }}>
-                <DialogContent maxWidth="lg" confirmOnClose isDirty={form.formState.isDirty}>
+                <DialogContent maxWidth="lg" confirmOnClose isDirty={form.formState.isDirty && !save.isPending}>
                     <DialogHeader>
                         <DialogTitle>{t('SedesPage.form.createTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col min-h-0">
+                        <form onSubmit={form.handleSubmit(save.run)} className="flex flex-col min-h-0">
                             <DialogBody className="space-y-4 px-6 py-4">
-                                {sedeForm(false)}
+                                {sedeForm(save.isPending)}
                             </DialogBody>
                             <DialogFooter>
-                                <DialogCancelButton disabled={isSaving}>
+                                <DialogCancelButton disabled={save.isPending}>
                                     {t('SedesPage.form.cancel')}
                                 </DialogCancelButton>
-                                <Button type="submit" disabled={isSaving}>
-                                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                <Button type="submit" loading={save.isPending}>
                                     {t('SedesPage.form.create')}
                                 </Button>
                             </DialogFooter>

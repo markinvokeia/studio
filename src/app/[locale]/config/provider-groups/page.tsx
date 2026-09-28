@@ -1,11 +1,11 @@
 'use client';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -19,14 +19,18 @@ import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { ProviderGroupProvidersTab } from '@/components/providers/provider-group-providers-tab';
 import { BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
+import { useAsyncAction } from '@/hooks/use-async-action';
+import { useDataLoader } from '@/hooks/use-data-loader';
+import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
+import { getErrorMessage } from '@/lib/error-utils';
 import { ProviderGroup } from '@/lib/types';
-import api from '@/services/api';
+import api, { isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, Boxes, Loader2, Trash2 } from 'lucide-react';
+import { AlertTriangle, Boxes, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -43,14 +47,13 @@ type ProviderGroupFormValues = z.infer<ReturnType<typeof providerGroupFormSchema
 
 type ProviderGroupResponse = { providerGroups: ProviderGroup[]; total: number };
 
-async function getProviderGroups(pagination: PaginationState, searchQuery: string): Promise<ProviderGroupResponse> {
-    try {
+async function getProviderGroups(pagination: PaginationState, searchQuery: string, signal?: AbortSignal): Promise<ProviderGroupResponse> {
         const searchValue = searchQuery.length >= 3 ? searchQuery : '';
         const data = await api.get(API_ROUTES.PROVIDER_GROUPS, {
             search: searchValue,
             page: (pagination.pageIndex + 1).toString(),
             limit: pagination.pageSize.toString(),
-        });
+        }, undefined, { signal });
 
         let providerGroupsData: any[] = [];
         let total = 0;
@@ -86,14 +89,10 @@ async function getProviderGroups(pagination: PaginationState, searchQuery: strin
             .filter((g: ProviderGroup) => g.id !== undefined && g.id !== null);
 
         return { providerGroups, total };
-    } catch (error) {
-        console.error("Failed to fetch provider groups:", error);
-        return { providerGroups: [], total: 0 };
-    }
 }
 
 async function upsertProviderGroup(providerGroupData: ProviderGroupFormValues) {
-    const responseData = await api.post(API_ROUTES.PROVIDER_GROUP_UPSERT, providerGroupData);
+    const responseData = await api.post(API_ROUTES.PROVIDER_GROUP_UPSERT, providerGroupData, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         throw new Error(responseData[0]?.message || 'Failed to save provider group');
     }
@@ -101,7 +100,7 @@ async function upsertProviderGroup(providerGroupData: ProviderGroupFormValues) {
 }
 
 async function deleteProviderGroup(id: string) {
-    const responseData = await api.delete(API_ROUTES.PROVIDER_GROUP_DELETE, { id });
+    const responseData = await api.delete(API_ROUTES.PROVIDER_GROUP_DELETE, { id }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         throw new Error(responseData[0]?.message || 'Failed to delete provider group');
     }
@@ -111,6 +110,7 @@ async function deleteProviderGroup(id: string) {
 export default function ProviderGroupsPage() {
     const t = useTranslations('ProviderGroupsPage');
     const tColumns = useTranslations('ProviderGroupsColumns');
+    const tCommon = useTranslations('Common');
     const { toast } = useToast();
     const { hasPermission } = usePermissions();
     const isNarrow = useViewportNarrow();
@@ -119,15 +119,11 @@ export default function ProviderGroupsPage() {
     const canUpdate = hasPermission(BUSINESS_CONFIG_PERMISSIONS.PROVIDER_GROUPS_UPDATE);
     const canDelete = hasPermission(BUSINESS_CONFIG_PERMISSIONS.PROVIDER_GROUPS_DELETE);
 
-    const [providerGroups, setProviderGroups] = React.useState<ProviderGroup[]>([]);
-    const [totalItems, setTotalItems] = React.useState(0);
-    const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedProviderGroup, setSelectedProviderGroup] = React.useState<ProviderGroup | null>(null);
     const [isEditing, setIsEditing] = React.useState(false);
-    const [isSaving, setIsSaving] = React.useState(false);
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
@@ -147,19 +143,21 @@ export default function ProviderGroupsPage() {
 
     const emptyFormValues: ProviderGroupFormValues = { name: '', description: '', is_active: true };
 
-    const loadProviderGroups = React.useCallback(async () => {
-        setIsRefreshing(true);
-        const searchQuery = (columnFilters.find(f => f.id === 'name')?.value as string) || '';
-        const { providerGroups: fetched, total } = await getProviderGroups(pagination, searchQuery);
-        setProviderGroups(fetched);
-        setTotalItems(total);
-        setIsRefreshing(false);
-    }, [pagination, columnFilters]);
+    const searchQuery = (columnFilters.find(f => f.id === 'name')?.value as string) || '';
+    const debouncedSearch = useDebounce(searchQuery, 500);
 
-    React.useEffect(() => {
-        const debounce = setTimeout(() => { loadProviderGroups(); }, 500);
-        return () => clearTimeout(debounce);
-    }, [loadProviderGroups]);
+    // Only the latest page/search request may write the table: a slow "ju" can't overwrite "juan".
+    const {
+        data: { providerGroups, total: totalItems },
+        isLoading,
+        isRefreshing,
+        error: loadError,
+        reload: loadProviderGroups,
+    } = useDataLoader(
+        (signal) => getProviderGroups(pagination, debouncedSearch, signal),
+        { providerGroups: [] as ProviderGroup[], total: 0 },
+        [pagination.pageIndex, pagination.pageSize, debouncedSearch]
+    );
 
     React.useEffect(() => {
         setPagination(prev => ({ ...prev, pageIndex: 0 }));
@@ -167,6 +165,11 @@ export default function ProviderGroupsPage() {
 
     const handleRowSelection = (rows: ProviderGroup[]) => {
         const group = rows[0] ?? null;
+        // Don't drop an in-flight save or unsaved edits by clicking another row.
+        if (save.isPending || (form.formState.isDirty && !window.confirm(tCommon('unsavedChangesConfirm')))) {
+            setRowSelection(selectedProviderGroup ? { [String(selectedProviderGroup.id)]: true } : {});
+            return;
+        }
         setSelectedProviderGroup(group);
         setSubmissionError(null);
         if (group) {
@@ -191,44 +194,58 @@ export default function ProviderGroupsPage() {
     };
 
     const handleBack = () => {
+        if (save.isPending) return;
+        if (selectedProviderGroup && form.formState.isDirty && !window.confirm(tCommon('unsavedChangesConfirm'))) return;
         handleClose();
     };
 
-    const onSubmit = async (values: ProviderGroupFormValues) => {
-        setSubmissionError(null);
-        setIsSaving(true);
-        try {
+    const save = useAsyncAction(
+        async (values: ProviderGroupFormValues) => {
+            setSubmissionError(null);
             await upsertProviderGroup(values);
-            toast({ title: selectedProviderGroup ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle') });
-            await loadProviderGroups();
-            if (!values.id) {
-                setIsEditing(false);
-                setIsCreateDialogOpen(false);
-                handleClose();
-            } else if (selectedProviderGroup) {
-                // Keep the detail panel in edit mode; sync the header with the saved values.
+            return values;
+        },
+        {
+            onSuccess: async (values) => {
+                toast({ title: values.id ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle') });
+                await loadProviderGroups();
+                if (!values.id) {
+                    setIsEditing(false);
+                    setIsCreateDialogOpen(false);
+                    handleClose();
+                    return;
+                }
+                // Keep the detail panel in edit mode; sync the header and the dirty baseline with the saved values.
                 setSelectedProviderGroup(prev => (prev ? { ...prev, ...values } : prev));
-            }
-        } catch (error) {
-            setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
-        } finally {
-            setIsSaving(false);
+                form.reset(values);
+            },
+            onError: (error) => {
+                if (isTimeoutError(error)) {
+                    // The group may have been saved anyway: refresh so the user can check before retrying.
+                    setSubmissionError(tCommon('timeoutError'));
+                    loadProviderGroups();
+                    return;
+                }
+                setSubmissionError(getErrorMessage(error) || t('toast.genericError'));
+            },
+            showErrorToast: false,
         }
-    };
+    );
 
-    const confirmDelete = async () => {
-        if (!deletingProviderGroup) return;
-        try {
-            await deleteProviderGroup(String(deletingProviderGroup.id));
-            toast({ title: t('toast.deleteSuccessTitle') });
-            setIsDeleteDialogOpen(false);
-            setDeletingProviderGroup(null);
-            handleClose();
-            loadProviderGroups();
-        } catch (error) {
-            toast({ variant: 'destructive', title: t('toast.errorTitle'), description: error instanceof Error ? error.message : t('toast.deleteErrorDescription') });
+    const remove = useAsyncAction(
+        (group: ProviderGroup) => deleteProviderGroup(String(group.id)),
+        {
+            onSuccess: async () => {
+                toast({ title: t('toast.deleteSuccessTitle') });
+                setIsDeleteDialogOpen(false);
+                setDeletingProviderGroup(null);
+                handleClose();
+                await loadProviderGroups();
+            },
+            onError: (error) => { if (isTimeoutError(error)) loadProviderGroups(); },
+            errorTitle: t('toast.deleteErrorDescription'),
         }
-    };
+    );
 
     const columns: ColumnDef<ProviderGroup>[] = [
         { accessorKey: 'name', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('name')} /> },
@@ -262,6 +279,8 @@ export default function ProviderGroupsPage() {
                     onCreate={canCreate ? handleCreate : undefined}
                     onRefresh={loadProviderGroups}
                     isRefreshing={isRefreshing}
+                    isLoading={isLoading}
+                    loadError={loadError}
                     enableSingleRowSelection
                     rowSelection={rowSelection}
                     setRowSelection={setRowSelection}
@@ -306,7 +325,7 @@ export default function ProviderGroupsPage() {
                     </div>
                     {selectedProviderGroup && canDelete && (
                         <div className="flex gap-1 flex-none">
-                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" onClick={() => { setDeletingProviderGroup(selectedProviderGroup); setIsDeleteDialogOpen(true); }}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" aria-label={t('deleteDialog.confirm')} onClick={() => { setDeletingProviderGroup(selectedProviderGroup); setIsDeleteDialogOpen(true); }}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         </div>
@@ -321,7 +340,7 @@ export default function ProviderGroupsPage() {
                 </TabsList>
                 <TabsContent value="info" className="mt-0 min-h-0 flex-1 flex-col data-[state=active]:flex">
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
+                <form onSubmit={form.handleSubmit(save.run)} className="flex-1 flex flex-col min-h-0">
                     <CardContent className="flex-1 overflow-auto p-4 space-y-4">
                         {submissionError && (
                             <Alert variant="destructive">
@@ -330,6 +349,8 @@ export default function ProviderGroupsPage() {
                                 <AlertDescription>{submissionError}</AlertDescription>
                             </Alert>
                         )}
+                        {/* Native fieldset disables every control while the request is in flight */}
+                        <fieldset disabled={save.isPending} className="min-w-0 space-y-4">
                         <FormField control={form.control} name="name" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>{t('createDialog.name')}</FormLabel>
@@ -350,14 +371,14 @@ export default function ProviderGroupsPage() {
                                 <FormLabel className="font-normal">{t('createDialog.isActive')}</FormLabel>
                             </FormItem>
                         )} />
+                        </fieldset>
                     </CardContent>
                     {isEditing && (
                         <div className="flex-none border-t bg-card px-4 py-3 flex gap-2">
-                            <Button type="submit" disabled={isSaving}>
-                                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            <Button type="submit" loading={save.isPending}>
                                 {selectedProviderGroup ? t('createDialog.editSave') : t('createDialog.save')}
                             </Button>
-                            <Button type="button" variant="outline" disabled={isSaving || !form.formState.isDirty} onClick={() => {
+                            <Button type="button" variant="outline" disabled={save.isPending || !form.formState.isDirty} onClick={() => {
                                 setSubmissionError(null);
                                 if (selectedProviderGroup) {
                                     form.reset(groupToFormValues(selectedProviderGroup));
@@ -389,21 +410,20 @@ export default function ProviderGroupsPage() {
                 leftPanelDefaultSize={40}
                 rightPanelDefaultSize={60}
             />
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
-                        <AlertDialogDescription>{t('deleteDialog.description', { name: deletingProviderGroup?.name })}</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <ConfirmActionDialog
+                open={isDeleteDialogOpen}
+                onOpenChange={setIsDeleteDialogOpen}
+                title={t('deleteDialog.title')}
+                description={t('deleteDialog.description', { name: deletingProviderGroup?.name })}
+                cancelLabel={t('deleteDialog.cancel')}
+                confirmLabel={t('deleteDialog.confirm')}
+                onConfirm={() => { if (deletingProviderGroup) remove.run(deletingProviderGroup); }}
+                isPending={remove.isPending}
+            />
             <Dialog
                 open={isCreateDialogOpen}
                 onOpenChange={(open) => {
+                    if (!open && save.isPending) return;
                     setIsCreateDialogOpen(open);
                     if (!open) {
                         setIsEditing(false);
@@ -412,13 +432,13 @@ export default function ProviderGroupsPage() {
                     }
                 }}
             >
-                <DialogContent maxWidth="lg" confirmOnClose isDirty={form.formState.isDirty}>
+                <DialogContent maxWidth="lg" confirmOnClose isDirty={form.formState.isDirty && !save.isPending}>
                     <DialogHeader>
                         <DialogTitle>{t('createDialog.title')}</DialogTitle>
                         <DialogDescription>{t('createDialog.description')}</DialogDescription>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col min-h-0">
+                        <form onSubmit={form.handleSubmit(save.run)} className="flex flex-col min-h-0">
                             <DialogBody className="space-y-4 px-6 py-4">
                                 {submissionError && (
                                     <Alert variant="destructive">
@@ -427,6 +447,8 @@ export default function ProviderGroupsPage() {
                                         <AlertDescription>{submissionError}</AlertDescription>
                                     </Alert>
                                 )}
+                                {/* Native fieldset disables every control while the request is in flight */}
+                                <fieldset disabled={save.isPending} className="min-w-0 space-y-4">
                                 <FormField control={form.control} name="name" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>{t('createDialog.name')}</FormLabel>
@@ -447,13 +469,13 @@ export default function ProviderGroupsPage() {
                                         <FormLabel className="font-normal">{t('createDialog.isActive')}</FormLabel>
                                     </FormItem>
                                 )} />
+                                </fieldset>
                             </DialogBody>
                             <DialogFooter>
-                                <DialogCancelButton disabled={isSaving}>
+                                <DialogCancelButton disabled={save.isPending}>
                                     {t('createDialog.cancel')}
                                 </DialogCancelButton>
-                                <Button type="submit" disabled={isSaving}>
-                                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                <Button type="submit" loading={save.isPending}>
                                     {t('createDialog.save')}
                                 </Button>
                             </DialogFooter>

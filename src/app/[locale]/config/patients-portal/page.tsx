@@ -1,10 +1,11 @@
 'use client';
 
-import { CalendarCheck, Download, ExternalLink, HelpCircle, Loader2, MessageSquareText, Save, Video } from 'lucide-react';
+import { AlertTriangle, CalendarCheck, Download, ExternalLink, HelpCircle, MessageSquareText, Save, Video } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { QRCodeCanvas } from 'qrcode.react';
 import * as React from 'react';
 
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -21,8 +22,11 @@ import { WelcomeVideo } from '@/components/patient-portal/welcome-video';
 import { PATIENT_PORTAL_CONFIG_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { getWebhookBaseUrl } from '@/lib/runtime-config';
+import { useAsyncAction } from '@/hooks/use-async-action';
+import { useDataLoader } from '@/hooks/use-data-loader';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
+import { REQUEST_TIMEOUT_MS, isTimeoutError } from '@/services/api';
 import type { PatientPortalConfig } from '@/lib/types';
 import {
   DEFAULT_PATIENT_PORTAL_CONFIG,
@@ -39,35 +43,25 @@ import {
  */
 export default function PatientsPortalConfigPage() {
   const t = useTranslations('PatientPortalConfigPage');
+  const tCommon = useTranslations('Common');
   const locale = useLocale();
   const { hasPermission } = usePermissions();
   const canUpdate = hasPermission(PATIENT_PORTAL_CONFIG_PERMISSIONS.UPDATE);
   const { toast } = useToast();
 
   const [config, setConfig] = React.useState<PatientPortalConfig>(DEFAULT_PATIENT_PORTAL_CONFIG);
-  const [initial, setInitial] = React.useState<PatientPortalConfig>(DEFAULT_PATIENT_PORTAL_CONFIG);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [isSaving, setIsSaving] = React.useState(false);
+  const {
+    data: initial,
+    setData: setInitial,
+    isLoading,
+    isRefreshing,
+    error: loadError,
+    reload,
+  } = useDataLoader((signal) => fetchPatientPortalConfig({ signal }), DEFAULT_PATIENT_PORTAL_CONFIG);
 
   React.useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const loaded = await fetchPatientPortalConfig();
-        if (cancelled) return;
-        setConfig(loaded);
-        setInitial(loaded);
-      } catch (error) {
-        console.error('Failed to load the patient portal config:', error);
-        if (!cancelled) toast({ variant: 'destructive', title: t('loadError') });
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [t, toast]);
+    setConfig(initial);
+  }, [initial]);
 
   /**
    * URL pública del portal, sobre el origen desde el que se está navegando.
@@ -100,22 +94,22 @@ export default function PatientsPortalConfigPage() {
 
   const patch = (values: Partial<PatientPortalConfig>) => setConfig((c) => ({ ...c, ...values }));
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      await updatePatientPortalConfig(config);
-      setInitial(config);
-      toast({ title: t('saved') });
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: t('saveError'),
-        description: error instanceof Error ? error.message : undefined,
-      });
-    } finally {
-      setIsSaving(false);
+  const save = useAsyncAction(
+    async (values: PatientPortalConfig) => {
+      await updatePatientPortalConfig(values, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
+      return values;
+    },
+    {
+      onSuccess: (values) => {
+        setInitial(values);
+        toast({ title: t('saved') });
+      },
+      // El guardado pudo aplicarse antes del timeout: se relee para mostrar el estado real.
+      onError: (error) => { if (isTimeoutError(error)) reload(); },
+      errorTitle: t('saveError'),
     }
-  };
+  );
+  const canEdit = canUpdate && !save.isPending && !isRefreshing;
 
   if (isLoading) {
     return (
@@ -124,6 +118,26 @@ export default function PatientsPortalConfigPage() {
         {[0, 1, 2].map((i) => (
           <Skeleton key={i} className="h-24 w-full rounded-xl" />
         ))}
+      </div>
+    );
+  }
+
+  // Si la carga falla no se muestran los valores por defecto como si fueran los guardados:
+  // guardarlos cerraría el portal o borraría el mensaje de bienvenida real.
+  if (loadError) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <PageHeader icon={<CalendarCheck className="h-5 w-5" />} title={t('title')} description={t('description')} />
+        <Alert variant="destructive" className="m-1">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>{t('loadError')}</AlertTitle>
+          <AlertDescription className="flex flex-wrap items-center gap-3">
+            <span>{loadError}</span>
+            <Button size="sm" variant="outline" onClick={() => reload()} loading={isRefreshing}>
+              {tCommon('retry')}
+            </Button>
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
@@ -137,8 +151,8 @@ export default function PatientsPortalConfigPage() {
           description={t('description')}
           actions={
             canUpdate ? (
-              <Button onClick={handleSave} disabled={!isDirty || isSaving} className="gap-1.5">
-                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              <Button onClick={() => save.run(config)} disabled={!isDirty || isRefreshing} loading={save.isPending} className="gap-1.5">
+                <Save className="h-4 w-4" />
                 {t('save')}
               </Button>
             ) : null
@@ -157,7 +171,7 @@ export default function PatientsPortalConfigPage() {
                 control={
                   <Switch
                     checked={config.patient_portal_enabled}
-                    disabled={!canUpdate}
+                    disabled={!canEdit}
                     onCheckedChange={(v) => patch({ patient_portal_enabled: v })}
                   />
                 }
@@ -170,7 +184,7 @@ export default function PatientsPortalConfigPage() {
                 control={
                   <Switch
                     checked={config.online_booking_enabled}
-                    disabled={!canUpdate || !config.patient_portal_enabled}
+                    disabled={!canEdit || !config.patient_portal_enabled}
                     onCheckedChange={(v) =>
                       // Sin reserva online no tiene sentido el modo "sólo citas".
                       patch({ online_booking_enabled: v, appointments_only: v ? config.appointments_only : false })
@@ -186,7 +200,7 @@ export default function PatientsPortalConfigPage() {
                 control={
                   <Switch
                     checked={config.appointments_only}
-                    disabled={!canUpdate || !config.patient_portal_enabled || !config.online_booking_enabled}
+                    disabled={!canEdit || !config.patient_portal_enabled || !config.online_booking_enabled}
                     onCheckedChange={(v) => patch({ appointments_only: v })}
                   />
                 }
@@ -267,7 +281,7 @@ export default function PatientsPortalConfigPage() {
                 <Input
                   id="welcome-video"
                   value={config.welcome_video_url}
-                  disabled={!canUpdate}
+                  disabled={!canEdit}
                   placeholder={t('fields.video.placeholder')}
                   onChange={(e) => patch({ welcome_video_url: e.target.value })}
                 />
@@ -298,7 +312,7 @@ export default function PatientsPortalConfigPage() {
                   rows={3}
                   className="resize-none"
                   value={config.welcome_message}
-                  disabled={!canUpdate}
+                  disabled={!canEdit}
                   placeholder={t('fields.message.placeholder')}
                   onChange={(e) => patch({ welcome_message: e.target.value })}
                 />

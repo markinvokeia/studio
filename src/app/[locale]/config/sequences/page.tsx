@@ -1,10 +1,10 @@
 'use client';
 
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -19,13 +19,16 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { API_ROUTES } from '@/constants/routes';
+import { useAsyncAction } from '@/hooks/use-async-action';
+import { useDataLoader } from '@/hooks/use-data-loader';
+import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
-import { handleApiErrorEnhanced } from '@/lib/error-utils';
+import { getErrorMessage, handleApiErrorEnhanced } from '@/lib/error-utils';
 import { SEQUENCE_VARIABLES, previewPattern, validatePattern } from '@/lib/sequence-utils';
 import { Sequence } from '@/lib/types';
-import api from '@/services/api';
+import api, { isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Check, Filter, List, Pencil, PlusCircle, RefreshCw, Search, Trash2, X } from 'lucide-react';
+import { AlertTriangle, Check, Filter, List, Pencil, PlusCircle, RefreshCw, Search, Trash2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import * as React from 'react';
@@ -72,8 +75,7 @@ async function getSequences(params?: {
   active_only?: boolean;
   start_date?: string | null;
   end_date?: string | null;
-}): Promise<{ sequences: Sequence[]; total: number }> {
-  try {
+}, signal?: AbortSignal): Promise<{ sequences: Sequence[]; total: number }> {
     const queryParams: Record<string, any> = {};
 
     if (params?.page !== undefined) queryParams.page = params.page;
@@ -83,11 +85,11 @@ async function getSequences(params?: {
     if (params?.start_date !== null && params?.start_date !== undefined) queryParams.start_date = params.start_date;
     if (params?.end_date !== null && params?.end_date !== undefined) queryParams.end_date = params.end_date;
 
-    const data = await api.get(API_ROUTES.CONFIG.SEQUENCES, queryParams);
+    const data = await api.get(API_ROUTES.CONFIG.SEQUENCES, queryParams, undefined, { signal });
 
     // Handle paginated response
-    const sequencesData = Array.isArray(data) ? data : (data.sequences || data.data || data.result || []);
-    const total = data.total || data.total_count || sequencesData.length;
+    const sequencesData = Array.isArray(data) ? data : (data?.sequences || data?.data || data?.result || []);
+    const total = data?.total || data?.total_count || sequencesData.length;
 
     // Filter out empty objects and map valid sequences
     const sequences = sequencesData
@@ -113,14 +115,10 @@ async function getSequences(params?: {
       }));
 
     return { sequences, total };
-  } catch (error) {
-    console.error("Failed to fetch sequences:", error);
-    return { sequences: [], total: 0 };
-  }
 }
 
 async function upsertSequence(sequenceData: SequenceFormValues) {
-  const responseData = await api.post(API_ROUTES.CONFIG.SEQUENCES_UPSERT, sequenceData);
+  const responseData = await api.post(API_ROUTES.CONFIG.SEQUENCES_UPSERT, sequenceData, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
 
   // Use enhanced error detection
   handleApiErrorEnhanced(responseData);
@@ -129,7 +127,7 @@ async function upsertSequence(sequenceData: SequenceFormValues) {
 }
 
 async function deleteSequence(id: number) {
-  const responseData = await api.delete(API_ROUTES.CONFIG.SEQUENCES_DELETE, { id });
+  const responseData = await api.delete(API_ROUTES.CONFIG.SEQUENCES_DELETE, { id }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
 
   // Handle various error response formats
   if (responseData && typeof responseData === 'object') {
@@ -169,11 +167,10 @@ async function deleteSequence(id: number) {
 export default function SequencesPage() {
   const t = useTranslations('SequencesPage');
   const tValidation = useTranslations('SequencesPage.validation');
+  const tCommon = useTranslations('Common');
   const { toast } = useToast();
   const isNarrow = useViewportNarrow();
-  const [sequences, setSequences] = React.useState<Sequence[]>([]);
-  const [total, setTotal] = React.useState(0);
-  const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const [submissionError, setSubmissionError] = React.useState<string | null>(null);
   const [pagination, setPagination] = React.useState({
     pageIndex: 0,
     pageSize: 25,
@@ -210,24 +207,32 @@ export default function SequencesPage() {
     },
   });
 
-  const loadSequences = React.useCallback(async () => {
-    setIsRefreshing(true);
-    const result = await getSequences({
+  const debouncedSearchTerm = useDebounce(searchTerm, 400);
+
+  // Typing fires one request per pause, and only the latest request may write the table.
+  const {
+    data: { sequences, total },
+    isLoading,
+    isRefreshing,
+    error: loadError,
+    reload: loadSequences,
+  } = useDataLoader(
+    (signal) => getSequences({
       page: pagination.pageIndex + 1, // API uses 1-based pagination
       limit: pagination.pageSize,
-      search_term: searchTerm || undefined,
+      search_term: debouncedSearchTerm || undefined,
       active_only: activeOnly,
       start_date: dateRange.start_date,
       end_date: dateRange.end_date,
-    });
-    setSequences(result.sequences);
-    setTotal(result.total);
-    setIsRefreshing(false);
-  }, [pagination, searchTerm, activeOnly, dateRange]);
+    }, signal),
+    { sequences: [] as Sequence[], total: 0 },
+    [pagination.pageIndex, pagination.pageSize, debouncedSearchTerm, activeOnly, dateRange.start_date, dateRange.end_date]
+  );
 
+  // Keep the detail panel in sync with the refreshed list (e.g. after editing it).
   React.useEffect(() => {
-    loadSequences();
-  }, [loadSequences]);
+    setSelectedSequence((current) => (current ? sequences.find((s) => s.id === current.id) ?? current : current));
+  }, [sequences]);
 
   const handleCreate = () => {
     setEditingSequence(null);
@@ -239,6 +244,7 @@ export default function SequencesPage() {
       reset_period: 'never',
       is_active: true
     });
+    setSubmissionError(null);
     setIsDialogOpen(true);
   };
 
@@ -253,6 +259,7 @@ export default function SequencesPage() {
       reset_period: sequence.reset_period || 'never',
       is_active: sequence.is_active ?? true,
     });
+    setSubmissionError(null);
     setIsDialogOpen(true);
   };
 
@@ -270,48 +277,57 @@ export default function SequencesPage() {
     setRowSelection({});
   };
 
-  const confirmDelete = async () => {
-    if (!deletingSequence) return;
-    try {
-      await deleteSequence(deletingSequence.id);
-      toast({
-        title: t('toast.deleteSuccessTitle'),
-        description: t('toast.deleteSuccessDescription'),
-      });
-      setIsDeleteDialogOpen(false);
-      setDeletingSequence(null);
-      if (selectedSequence?.id === deletingSequence.id) {
-        setSelectedSequence(null);
-        setRowSelection({});
-      }
-      loadSequences();
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: t('toast.errorTitle'),
-        description: t('toast.deleteErrorDescription'),
-      });
+  const remove = useAsyncAction(
+    async (sequence: Sequence) => {
+      await deleteSequence(sequence.id);
+      return sequence;
+    },
+    {
+      onSuccess: async (sequence) => {
+        toast({
+          title: t('toast.deleteSuccessTitle'),
+          description: t('toast.deleteSuccessDescription'),
+        });
+        setIsDeleteDialogOpen(false);
+        setDeletingSequence(null);
+        if (selectedSequence?.id === sequence.id) {
+          setSelectedSequence(null);
+          setRowSelection({});
+        }
+        await loadSequences();
+      },
+      onError: (error) => { if (isTimeoutError(error)) loadSequences(); },
+      errorTitle: t('toast.deleteErrorDescription'),
     }
-  };
+  );
 
-  const onSubmit = async (values: SequenceFormValues) => {
-    try {
+  const save = useAsyncAction(
+    async (values: SequenceFormValues) => {
+      setSubmissionError(null);
       await upsertSequence(values);
-      toast({
-        title: editingSequence ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle'),
-        description: t('toast.successDescription'),
-      });
-      setIsDialogOpen(false);
-      loadSequences();
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : t('toast.genericError');
-      toast({
-        variant: 'destructive',
-        title: t('toast.errorTitle'),
-        description: errorMessage,
-      });
+      return values;
+    },
+    {
+      onSuccess: async (values) => {
+        toast({
+          title: values.id ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle'),
+          description: t('toast.successDescription'),
+        });
+        await loadSequences();
+        setIsDialogOpen(false);
+      },
+      onError: (error) => {
+        if (isTimeoutError(error)) {
+          // The sequence may have been saved anyway: refresh so the user can check before retrying.
+          setSubmissionError(tCommon('timeoutError'));
+          loadSequences();
+          return;
+        }
+        setSubmissionError(getErrorMessage(error) || t('toast.genericError'));
+      },
+      showErrorToast: false,
     }
-  };
+  );
 
   const addToPattern = (variable: string) => {
     const currentPattern = form.getValues('pattern');
@@ -357,6 +373,8 @@ export default function SequencesPage() {
             onCreate={handleCreate}
             onRefresh={loadSequences}
             isRefreshing={isRefreshing}
+            isLoading={isLoading}
+            loadError={loadError}
             manualPagination={true}
             pageCount={Math.ceil(total / pagination.pageSize)}
             rowCount={total}
@@ -379,9 +397,9 @@ export default function SequencesPage() {
                         variant="ghost"
                         onClick={() => setSearchTerm('')}
                         className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 hover:bg-transparent text-muted-foreground hover:text-foreground mr-1"
+                        aria-label={t('filters.searchTermPlaceholder')}
                       >
                         <X className="h-4 w-4" />
-                        <span className="sr-only">Clear</span>
                       </Button>
                     )}
                   </div>
@@ -440,7 +458,7 @@ export default function SequencesPage() {
 
                       {/* Apply Filters Button */}
                       <DropdownMenuItem asChild>
-                        <Button onClick={loadSequences} className="w-full" size="sm">
+                        <Button onClick={() => loadSequences()} className="w-full" size="sm" disabled={isRefreshing}>
                           {t('filters.applyFilters')}
                         </Button>
                       </DropdownMenuItem>
@@ -459,7 +477,7 @@ export default function SequencesPage() {
                     variant="outline"
                     size="icon"
                     className="h-9 w-9"
-                    onClick={loadSequences}
+                    onClick={() => loadSequences()}
                     disabled={isRefreshing}
                   >
                     <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -508,7 +526,7 @@ export default function SequencesPage() {
             <Button size="sm" variant="outline" onClick={() => handleEdit(selectedSequence)}>
               <Pencil className="h-4 w-4 mr-1" />Editar
             </Button>
-            <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => handleDelete(selectedSequence)}>
+            <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" aria-label={t('deleteDialog.confirm')} onClick={() => handleDelete(selectedSequence)}>
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
@@ -571,8 +589,14 @@ export default function SequencesPage() {
         rightPanelDefaultSize={50}
       />
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl" confirmOnClose isDirty={form.formState.isDirty}>
+      <Dialog
+        open={isDialogOpen}
+        onOpenChange={(open) => {
+          if (!open && save.isPending) return;
+          setIsDialogOpen(open);
+        }}
+      >
+        <DialogContent className="max-w-2xl" confirmOnClose isDirty={form.formState.isDirty && !save.isPending}>
           <DialogHeader>
             <DialogTitle>{editingSequence ? t('createDialog.editTitle') : t('createDialog.title')}</DialogTitle>
             <DialogDescription>
@@ -580,8 +604,17 @@ export default function SequencesPage() {
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+            <form onSubmit={form.handleSubmit(save.run)} className="flex flex-col flex-1 overflow-hidden">
               <DialogBody className="space-y-4 py-4 px-6">
+                {submissionError && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
+                    <AlertDescription>{submissionError}</AlertDescription>
+                  </Alert>
+                )}
+                {/* Native fieldset disables every control while the request is in flight */}
+                <fieldset disabled={save.isPending} className="min-w-0 space-y-4">
 
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
@@ -742,13 +775,14 @@ export default function SequencesPage() {
                     </FormItem>
                   )}
                 />
+                </fieldset>
               </DialogBody>
 
               <DialogFooter>
-                <Button type="submit">
+                <Button type="submit" loading={save.isPending}>
                   {editingSequence ? t('createDialog.editSave') : t('createDialog.save')}
                 </Button>
-                <DialogCancelButton>
+                <DialogCancelButton disabled={save.isPending}>
                   {t('createDialog.cancel')}
                 </DialogCancelButton>
               </DialogFooter>
@@ -757,22 +791,16 @@ export default function SequencesPage() {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('deleteDialog.description')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
-              {t('deleteDialog.confirm')}
-            </AlertDialogAction>
-            <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmActionDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title={t('deleteDialog.title')}
+        description={t('deleteDialog.description', { name: deletingSequence?.name ?? '' })}
+        cancelLabel={t('deleteDialog.cancel')}
+        confirmLabel={t('deleteDialog.confirm')}
+        onConfirm={() => { if (deletingSequence) remove.run(deletingSequence); }}
+        isPending={remove.isPending}
+      />
     </div>
   );
 }

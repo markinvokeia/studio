@@ -1,11 +1,11 @@
 'use client';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -22,14 +22,18 @@ import { PatientGroupPatientsTab } from '@/components/patients/patient-group-pat
 import { PatientGroupServicesTab } from '@/components/patients/patient-group-services-tab';
 import { BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
+import { useAsyncAction } from '@/hooks/use-async-action';
+import { useDataLoader } from '@/hooks/use-data-loader';
+import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
+import { getErrorMessage } from '@/lib/error-utils';
 import { PatientGroup } from '@/lib/types';
-import api from '@/services/api';
+import api, { isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, Loader2, Trash2, UsersRound } from 'lucide-react';
+import { AlertTriangle, Trash2, UsersRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -53,15 +57,14 @@ type PatientGroupResponse = { patientGroups: PatientGroup[]; total: number };
 
 type DoctorOption = { id: string; name: string };
 
-async function getDoctors(): Promise<DoctorOption[]> {
-    try {
+async function getDoctors(signal?: AbortSignal): Promise<DoctorOption[]> {
         const data = await api.get(API_ROUTES.USERS, {
             page: '1',
             limit: '500',
             search: '',
             filter_type: 'DOCTOR',
             only_active: 'true',
-        });
+        }, undefined, { signal });
 
         let usersData: any[] = [];
         if (Array.isArray(data) && data.length > 0) {
@@ -80,20 +83,15 @@ async function getDoctors(): Promise<DoctorOption[]> {
         return usersData
             .map((u: any) => ({ id: String(u.id), name: u.name || '' }))
             .filter((d: DoctorOption) => d.id && d.id !== 'undefined');
-    } catch (error) {
-        console.error('Failed to fetch doctors:', error);
-        return [];
-    }
 }
 
-async function getPatientGroups(pagination: PaginationState, searchQuery: string): Promise<PatientGroupResponse> {
-    try {
+async function getPatientGroups(pagination: PaginationState, searchQuery: string, signal?: AbortSignal): Promise<PatientGroupResponse> {
         const searchValue = searchQuery.length >= 3 ? searchQuery : '';
         const data = await api.get(API_ROUTES.PATIENT_GROUPS, {
             search: searchValue,
             page: (pagination.pageIndex + 1).toString(),
             limit: pagination.pageSize.toString(),
-        });
+        }, undefined, { signal });
 
         let patientGroupsData: any[] = [];
         let total = 0;
@@ -131,14 +129,10 @@ async function getPatientGroups(pagination: PaginationState, searchQuery: string
             .filter((g: PatientGroup) => g.id !== undefined && g.id !== null);
 
         return { patientGroups, total };
-    } catch (error) {
-        console.error("Failed to fetch patient groups:", error);
-        return { patientGroups: [], total: 0 };
-    }
 }
 
 async function upsertPatientGroup(patientGroupData: PatientGroupFormValues) {
-    const responseData = await api.post(API_ROUTES.PATIENT_GROUP_UPSERT, patientGroupData);
+    const responseData = await api.post(API_ROUTES.PATIENT_GROUP_UPSERT, patientGroupData, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         throw new Error(responseData[0]?.message || 'Failed to save patient group');
     }
@@ -146,7 +140,7 @@ async function upsertPatientGroup(patientGroupData: PatientGroupFormValues) {
 }
 
 async function deletePatientGroup(id: string) {
-    const responseData = await api.delete(API_ROUTES.PATIENT_GROUP_DELETE, { id });
+    const responseData = await api.delete(API_ROUTES.PATIENT_GROUP_DELETE, { id }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         throw new Error(responseData[0]?.message || 'Failed to delete patient group');
     }
@@ -156,6 +150,7 @@ async function deletePatientGroup(id: string) {
 export default function PatientGroupsPage() {
     const t = useTranslations('PatientGroupsPage');
     const tColumns = useTranslations('PatientGroupsColumns');
+    const tCommon = useTranslations('Common');
     const { toast } = useToast();
     const { hasPermission } = usePermissions();
     const isNarrow = useViewportNarrow();
@@ -164,21 +159,17 @@ export default function PatientGroupsPage() {
     const canUpdate = hasPermission(BUSINESS_CONFIG_PERMISSIONS.PATIENT_GROUPS_UPDATE);
     const canDelete = hasPermission(BUSINESS_CONFIG_PERMISSIONS.PATIENT_GROUPS_DELETE);
 
-    const [patientGroups, setPatientGroups] = React.useState<PatientGroup[]>([]);
-    const [totalItems, setTotalItems] = React.useState(0);
-    const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedPatientGroup, setSelectedPatientGroup] = React.useState<PatientGroup | null>(null);
     const [isEditing, setIsEditing] = React.useState(false);
-    const [isSaving, setIsSaving] = React.useState(false);
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [deletingPatientGroup, setDeletingPatientGroup] = React.useState<PatientGroup | null>(null);
 
-    const [doctors, setDoctors] = React.useState<DoctorOption[]>([]);
+    const { data: doctors, error: doctorsError } = useDataLoader(getDoctors, [] as DoctorOption[]);
 
     const form = useForm<PatientGroupFormValues>({
         resolver: zodResolver(patientGroupFormSchema(t)),
@@ -187,9 +178,6 @@ export default function PatientGroupsPage() {
 
     const isDoctor = form.watch('is_doctor');
 
-    React.useEffect(() => {
-        getDoctors().then(setDoctors);
-    }, []);
 
     const groupToFormValues = React.useCallback((group: PatientGroup): PatientGroupFormValues => ({
         id: group.id,
@@ -202,19 +190,21 @@ export default function PatientGroupsPage() {
 
     const emptyFormValues: PatientGroupFormValues = { name: '', description: '', is_active: true, is_doctor: false, user_id: null };
 
-    const loadPatientGroups = React.useCallback(async () => {
-        setIsRefreshing(true);
-        const searchQuery = (columnFilters.find(f => f.id === 'name')?.value as string) || '';
-        const { patientGroups: fetched, total } = await getPatientGroups(pagination, searchQuery);
-        setPatientGroups(fetched);
-        setTotalItems(total);
-        setIsRefreshing(false);
-    }, [pagination, columnFilters]);
+    const searchQuery = (columnFilters.find(f => f.id === 'name')?.value as string) || '';
+    const debouncedSearch = useDebounce(searchQuery, 500);
 
-    React.useEffect(() => {
-        const debounce = setTimeout(() => { loadPatientGroups(); }, 500);
-        return () => clearTimeout(debounce);
-    }, [loadPatientGroups]);
+    // Only the latest page/search request may write the table: a slow "ju" can't overwrite "juan".
+    const {
+        data: { patientGroups, total: totalItems },
+        isLoading,
+        isRefreshing,
+        error: loadError,
+        reload: loadPatientGroups,
+    } = useDataLoader(
+        (signal) => getPatientGroups(pagination, debouncedSearch, signal),
+        { patientGroups: [] as PatientGroup[], total: 0 },
+        [pagination.pageIndex, pagination.pageSize, debouncedSearch]
+    );
 
     React.useEffect(() => {
         setPagination(prev => ({ ...prev, pageIndex: 0 }));
@@ -222,6 +212,11 @@ export default function PatientGroupsPage() {
 
     const handleRowSelection = (rows: PatientGroup[]) => {
         const group = rows[0] ?? null;
+        // Don't drop an in-flight save or unsaved edits by clicking another row.
+        if (save.isPending || (form.formState.isDirty && !window.confirm(tCommon('unsavedChangesConfirm')))) {
+            setRowSelection(selectedPatientGroup ? { [String(selectedPatientGroup.id)]: true } : {});
+            return;
+        }
         setSelectedPatientGroup(group);
         setSubmissionError(null);
         if (group) {
@@ -246,45 +241,59 @@ export default function PatientGroupsPage() {
     };
 
     const handleBack = () => {
+        if (save.isPending) return;
+        if (selectedPatientGroup && form.formState.isDirty && !window.confirm(tCommon('unsavedChangesConfirm'))) return;
         handleClose();
     };
 
-    const onSubmit = async (values: PatientGroupFormValues) => {
-        setSubmissionError(null);
-        setIsSaving(true);
-        try {
+    const save = useAsyncAction(
+        async (values: PatientGroupFormValues) => {
+            setSubmissionError(null);
             const payload = { ...values, user_id: values.is_doctor ? values.user_id ?? null : null };
             await upsertPatientGroup(payload);
-            toast({ title: selectedPatientGroup ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle') });
-            await loadPatientGroups();
-            if (!values.id) {
-                setIsEditing(false);
-                setIsCreateDialogOpen(false);
-                handleClose();
-            } else if (selectedPatientGroup) {
-                // Keep the detail panel in edit mode; sync the header with the saved values.
+            return payload;
+        },
+        {
+            onSuccess: async (payload) => {
+                toast({ title: payload.id ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle') });
+                await loadPatientGroups();
+                if (!payload.id) {
+                    setIsEditing(false);
+                    setIsCreateDialogOpen(false);
+                    handleClose();
+                    return;
+                }
+                // Keep the detail panel in edit mode; sync the header and the dirty baseline with the saved values.
                 setSelectedPatientGroup(prev => (prev ? { ...prev, ...payload } : prev));
-            }
-        } catch (error) {
-            setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
-        } finally {
-            setIsSaving(false);
+                form.reset(payload);
+            },
+            onError: (error) => {
+                if (isTimeoutError(error)) {
+                    // The group may have been saved anyway: refresh so the user can check before retrying.
+                    setSubmissionError(tCommon('timeoutError'));
+                    loadPatientGroups();
+                    return;
+                }
+                setSubmissionError(getErrorMessage(error) || t('toast.genericError'));
+            },
+            showErrorToast: false,
         }
-    };
+    );
 
-    const confirmDelete = async () => {
-        if (!deletingPatientGroup) return;
-        try {
-            await deletePatientGroup(String(deletingPatientGroup.id));
-            toast({ title: t('toast.deleteSuccessTitle') });
-            setIsDeleteDialogOpen(false);
-            setDeletingPatientGroup(null);
-            handleClose();
-            loadPatientGroups();
-        } catch (error) {
-            toast({ variant: 'destructive', title: t('toast.errorTitle'), description: error instanceof Error ? error.message : t('toast.deleteErrorDescription') });
+    const remove = useAsyncAction(
+        (group: PatientGroup) => deletePatientGroup(String(group.id)),
+        {
+            onSuccess: async () => {
+                toast({ title: t('toast.deleteSuccessTitle') });
+                setIsDeleteDialogOpen(false);
+                setDeletingPatientGroup(null);
+                handleClose();
+                await loadPatientGroups();
+            },
+            onError: (error) => { if (isTimeoutError(error)) loadPatientGroups(); },
+            errorTitle: t('toast.deleteErrorDescription'),
         }
-    };
+    );
 
     const columns: ColumnDef<PatientGroup>[] = [
         { accessorKey: 'name', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('name')} /> },
@@ -319,6 +328,8 @@ export default function PatientGroupsPage() {
                     primaryActions={<PatientGroupsExportAllButton />}
                     onRefresh={loadPatientGroups}
                     isRefreshing={isRefreshing}
+                    isLoading={isLoading}
+                    loadError={loadError}
                     enableSingleRowSelection
                     rowSelection={rowSelection}
                     setRowSelection={setRowSelection}
@@ -365,7 +376,7 @@ export default function PatientGroupsPage() {
                         <div className="flex items-center gap-1 flex-none">
                             <PatientGroupExportButton group={{ id: String(selectedPatientGroup.id), name: selectedPatientGroup.name }} />
                             {canDelete && (
-                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" onClick={() => { setDeletingPatientGroup(selectedPatientGroup); setIsDeleteDialogOpen(true); }}>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" aria-label={t('deleteDialog.confirm')} onClick={() => { setDeletingPatientGroup(selectedPatientGroup); setIsDeleteDialogOpen(true); }}>
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
                             )}
@@ -382,7 +393,7 @@ export default function PatientGroupsPage() {
                 </TabsList>
                 <TabsContent value="info" className="mt-0 min-h-0 flex-1 flex-col data-[state=active]:flex">
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
+                <form onSubmit={form.handleSubmit(save.run)} className="flex-1 flex flex-col min-h-0">
                     <CardContent className="flex-1 overflow-auto p-4 space-y-4">
                         {submissionError && (
                             <Alert variant="destructive">
@@ -391,6 +402,8 @@ export default function PatientGroupsPage() {
                                 <AlertDescription>{submissionError}</AlertDescription>
                             </Alert>
                         )}
+                        {/* Native fieldset disables every control while the request is in flight */}
+                        <fieldset disabled={save.isPending} className="min-w-0 space-y-4">
                         <FormField control={form.control} name="name" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>{t('createDialog.name')}</FormLabel>
@@ -434,18 +447,19 @@ export default function PatientGroupsPage() {
                                             ))}
                                         </SelectContent>
                                     </Select>
+                                    {doctorsError && <p className="text-xs text-destructive">{tCommon('loadError')}</p>}
                                     <FormMessage />
                                 </FormItem>
                             )} />
                         )}
+                        </fieldset>
                     </CardContent>
                     {isEditing && (
                         <div className="flex-none border-t bg-card px-4 py-3 flex gap-2">
-                            <Button type="submit" disabled={isSaving}>
-                                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            <Button type="submit" loading={save.isPending}>
                                 {selectedPatientGroup ? t('createDialog.editSave') : t('createDialog.save')}
                             </Button>
-                            <Button type="button" variant="outline" disabled={isSaving || !form.formState.isDirty} onClick={() => {
+                            <Button type="button" variant="outline" disabled={save.isPending || !form.formState.isDirty} onClick={() => {
                                 setSubmissionError(null);
                                 if (selectedPatientGroup) {
                                     form.reset(groupToFormValues(selectedPatientGroup));
@@ -482,21 +496,20 @@ export default function PatientGroupsPage() {
                 leftPanelDefaultSize={40}
                 rightPanelDefaultSize={60}
             />
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
-                        <AlertDialogDescription>{t('deleteDialog.description', { name: deletingPatientGroup?.name })}</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <ConfirmActionDialog
+                open={isDeleteDialogOpen}
+                onOpenChange={setIsDeleteDialogOpen}
+                title={t('deleteDialog.title')}
+                description={t('deleteDialog.description', { name: deletingPatientGroup?.name })}
+                cancelLabel={t('deleteDialog.cancel')}
+                confirmLabel={t('deleteDialog.confirm')}
+                onConfirm={() => { if (deletingPatientGroup) remove.run(deletingPatientGroup); }}
+                isPending={remove.isPending}
+            />
             <Dialog
                 open={isCreateDialogOpen}
                 onOpenChange={(open) => {
+                    if (!open && save.isPending) return;
                     setIsCreateDialogOpen(open);
                     if (!open) {
                         setIsEditing(false);
@@ -505,13 +518,13 @@ export default function PatientGroupsPage() {
                     }
                 }}
             >
-                <DialogContent maxWidth="lg" confirmOnClose isDirty={form.formState.isDirty}>
+                <DialogContent maxWidth="lg" confirmOnClose isDirty={form.formState.isDirty && !save.isPending}>
                     <DialogHeader>
                         <DialogTitle>{t('createDialog.title')}</DialogTitle>
                         <DialogDescription>{t('createDialog.description')}</DialogDescription>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col min-h-0">
+                        <form onSubmit={form.handleSubmit(save.run)} className="flex flex-col min-h-0">
                             <DialogBody className="space-y-4 px-6 py-4">
                                 {submissionError && (
                                     <Alert variant="destructive">
@@ -520,6 +533,8 @@ export default function PatientGroupsPage() {
                                         <AlertDescription>{submissionError}</AlertDescription>
                                     </Alert>
                                 )}
+                                {/* Native fieldset disables every control while the request is in flight */}
+                                <fieldset disabled={save.isPending} className="min-w-0 space-y-4">
                                 <FormField control={form.control} name="name" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>{t('createDialog.name')}</FormLabel>
@@ -563,17 +578,18 @@ export default function PatientGroupsPage() {
                                                     ))}
                                                 </SelectContent>
                                             </Select>
+                                            {doctorsError && <p className="text-xs text-destructive">{tCommon('loadError')}</p>}
                                             <FormMessage />
                                         </FormItem>
                                     )} />
                                 )}
+                                </fieldset>
                             </DialogBody>
                             <DialogFooter>
-                                <DialogCancelButton disabled={isSaving}>
+                                <DialogCancelButton disabled={save.isPending}>
                                     {t('createDialog.cancel')}
                                 </DialogCancelButton>
-                                <Button type="submit" disabled={isSaving}>
-                                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                <Button type="submit" loading={save.isPending}>
                                     {t('createDialog.save')}
                                 </Button>
                             </DialogFooter>

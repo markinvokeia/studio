@@ -2,14 +2,18 @@
 
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
-import { Bell, BellRing, CalendarClock, Columns3, Receipt, Rows3 } from 'lucide-react';
+import { AlertTriangle, Bell, BellRing, CalendarClock, Columns3, Loader2, Receipt, Rows3 } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
 
 import { CalendarSettingsForm } from '@/components/calendar/calendar-settings-form';
 import { UserCommunicationPreferences } from '@/components/users/user-communication-preferences';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/notifications-context';
 import { API_ROUTES } from '@/constants/routes';
-import { api } from '@/services/api';
+import { useKeyedAsyncAction } from '@/hooks/use-async-action';
+import { getErrorMessage } from '@/lib/error-utils';
+import { api, isAbortError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { cn } from '@/lib/utils';
 import type { DoctorAlertStyle, PatientFinanceView, Sede, User, UserPreferences, UserPreferencesResponse } from '@/lib/types';
 
@@ -40,6 +44,7 @@ function SectionHeading({ icon: Icon, label }: { icon: React.ComponentType<{ cla
  */
 export function UserPreferencesTab({ user, showFinanceView = false, showAlertStyle = false, sedes = [] }: UserPreferencesTabProps) {
   const t = useTranslations('PreferencesPage');
+  const tCommon = useTranslations('Common');
   const { user: authUser } = useAuth();
   // Editing our own alert style? Route through the shared notifications context
   // (the same source NotificationsProvider reads from) instead of local state,
@@ -50,10 +55,14 @@ export function UserPreferencesTab({ user, showFinanceView = false, showAlertSty
   const [financeView, setFinanceViewState] = React.useState<PatientFinanceView>('unified');
   const [alertStyleState, setAlertStyleState] = React.useState<DoctorAlertStyle>('modal');
   const [isLoading, setIsLoading] = React.useState(showFinanceView || showAlertStyle);
+  // A failed load leaves the toggles disabled: showing the defaults as if they were stored and
+  // letting a click save them would silently overwrite the user's real preference.
+  const [loadError, setLoadError] = React.useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = React.useState(0);
 
   React.useEffect(() => {
     if (!showFinanceView && !showAlertStyle) return;
-    let isMounted = true;
+    const controller = new AbortController();
 
     // Switching to another user: fall back to defaults until this user's own
     // preferences arrive. Otherwise a user with nothing stored keeps showing
@@ -61,10 +70,10 @@ export function UserPreferencesTab({ user, showFinanceView = false, showAlertSty
     setFinanceViewState('unified');
     setAlertStyleState('modal');
     setIsLoading(true);
+    setLoadError(null);
 
-    api.get(API_ROUTES.USER_PREFERENCES, { user_id: user.id })
+    api.get(API_ROUTES.USER_PREFERENCES, { user_id: user.id }, undefined, { signal: controller.signal })
       .then((res: unknown) => {
-        if (!isMounted) return;
         const prefs = (res as UserPreferencesResponse | null)?.preferences;
         if (prefs?.finance_view === 'unified' || prefs?.finance_view === 'tabs') {
           setFinanceViewState(prefs.finance_view);
@@ -73,23 +82,34 @@ export function UserPreferencesTab({ user, showFinanceView = false, showAlertSty
           setAlertStyleState(prefs.alert_style);
         }
       })
-      .catch(() => {})
+      .catch((error) => {
+        if (!isAbortError(error)) setLoadError(getErrorMessage(error) || tCommon('loadError'));
+      })
       .finally(() => {
-        if (isMounted) setIsLoading(false);
+        if (!controller.signal.aborted) setIsLoading(false);
       });
 
-    return () => {
-      isMounted = false;
-    };
-  }, [user.id, showFinanceView, showAlertStyle, isSelf]);
+    return () => controller.abort();
+  }, [user.id, showFinanceView, showAlertStyle, isSelf, loadAttempt, tCommon]);
 
-  const savePreferences = (updates: UserPreferences) => {
-    api.post(API_ROUTES.USER_PREFERENCES, { ...updates, user_id: user.id }).catch(() => {});
-  };
+  // Optimistic toggle with rollback: on failure the control goes back to the stored value.
+  const savePreference = useKeyedAsyncAction(
+    async (updates: UserPreferences, rollback: () => void) => {
+      try {
+        await api.post(API_ROUTES.USER_PREFERENCES, { ...updates, user_id: user.id }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
+      } catch (error) {
+        rollback();
+        throw error;
+      }
+    },
+    { errorTitle: tCommon('errorTitle') }
+  );
 
   const setFinanceView = (view: PatientFinanceView) => {
+    if (view === financeView) return;
+    const previous = financeView;
     setFinanceViewState(view);
-    savePreferences({ finance_view: view });
+    savePreference.run('finance_view', { finance_view: view }, () => setFinanceViewState(previous));
   };
 
   const alertStyle = isSelf ? notificationsCtx.alertStyle : alertStyleState;
@@ -99,9 +119,21 @@ export function UserPreferencesTab({ user, showFinanceView = false, showAlertSty
       notificationsCtx.setAlertStyle(style);
       return;
     }
+    if (style === alertStyleState) return;
+    const previous = alertStyleState;
     setAlertStyleState(style);
-    savePreferences({ alert_style: style });
+    savePreference.run('alert_style', { alert_style: style }, () => setAlertStyleState(previous));
   };
+
+  const loadErrorNotice = loadError ? (
+    <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-destructive" role="alert">
+      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+      <span>{tCommon('loadError')}</span>
+      <Button type="button" size="sm" variant="outline" className="h-6 px-2 text-xs" onClick={() => setLoadAttempt((n) => n + 1)}>
+        {tCommon('retry')}
+      </Button>
+    </div>
+  ) : null;
 
   return (
     <div className="space-y-5 divide-y divide-border/50">
@@ -114,12 +146,14 @@ export function UserPreferencesTab({ user, showFinanceView = false, showAlertSty
         <div className="pt-5">
           <SectionHeading icon={Receipt} label={t('financeViewSection')} />
           <p className="text-xs text-muted-foreground mb-2">{t('financeViewDescription')}</p>
+          {loadErrorNotice}
           <div className="flex gap-2">
             {(['tabs', 'unified'] as PatientFinanceView[]).map((view) => (
               <button
                 key={view}
                 type="button"
-                disabled={isLoading}
+                disabled={isLoading || !!loadError || savePreference.isPending('finance_view')}
+                aria-pressed={financeView === view}
                 onClick={() => setFinanceView(view)}
                 className={cn(
                   'flex flex-1 flex-col items-center gap-1.5 rounded-lg border px-3 py-2.5 text-xs font-medium transition-all',
@@ -128,7 +162,9 @@ export function UserPreferencesTab({ user, showFinanceView = false, showAlertSty
                     : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/40 hover:text-foreground',
                 )}
               >
-                {view === 'unified' ? <Rows3 className="h-4 w-4" /> : <Columns3 className="h-4 w-4" />}
+                {savePreference.isPending('finance_view') && financeView === view
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : view === 'unified' ? <Rows3 className="h-4 w-4" /> : <Columns3 className="h-4 w-4" />}
                 {t(`financeView.${view}` as any)}
               </button>
             ))}
@@ -140,12 +176,14 @@ export function UserPreferencesTab({ user, showFinanceView = false, showAlertSty
         <div className="pt-5">
           <SectionHeading icon={BellRing} label={t('workspaceSection')} />
           <p className="text-xs text-muted-foreground mb-2">{t('alertStyleDescription')}</p>
+          {!showFinanceView && !isSelf && loadErrorNotice}
           <div className="flex gap-2">
             {(['modal', 'toast'] as DoctorAlertStyle[]).map((style) => (
               <button
                 key={style}
                 type="button"
-                disabled={isLoading}
+                disabled={isLoading || (!isSelf && !!loadError) || savePreference.isPending('alert_style')}
+                aria-pressed={alertStyle === style}
                 onClick={() => setAlertStyle(style)}
                 className={cn(
                   'flex flex-1 flex-col items-center gap-1.5 rounded-lg border px-3 py-2.5 text-xs font-medium transition-all',
@@ -154,7 +192,9 @@ export function UserPreferencesTab({ user, showFinanceView = false, showAlertSty
                     : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/40 hover:text-foreground',
                 )}
               >
-                {style === 'modal' ? <BellRing className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
+                {savePreference.isPending('alert_style') && alertStyle === style
+                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                  : style === 'modal' ? <BellRing className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
                 {t(`alertStyle.${style}` as any)}
               </button>
             ))}

@@ -33,8 +33,9 @@ import { DataTableToolbar } from './data-table-toolbar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTranslations } from 'next-intl';
 
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { AlertTriangle, ArrowUp, ArrowDown, ArrowUpDown, RefreshCw } from 'lucide-react';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -101,6 +102,39 @@ interface DataTableProps<TData, TValue> {
    *  outside react-table's row model, so it's unaffected by sorting/filtering/pagination
    *  and always sits at the true end of the table (e.g. a running-balance summary row). */
   footerRow?: React.ReactNode;
+  /**
+   * Message of the last failed load. With no rows it replaces the "no results" message (a failed
+   * load is not an empty list); with rows it shows as a banner above the stale data. The retry
+   * button calls `onRefresh`.
+   */
+  loadError?: string | null;
+}
+
+function LoadErrorMessage({ message, onRetry, isRetrying, compact }: { message: string; onRetry?: () => void; isRetrying?: boolean; compact?: boolean }) {
+  const t = useTranslations('Common');
+  return (
+    <div
+      role="alert"
+      className={cn(
+        'flex items-center gap-3 text-sm text-destructive',
+        compact ? 'rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2' : 'flex-col justify-center py-8 text-center'
+      )}
+    >
+      <div className="flex items-center gap-2 min-w-0">
+        <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
+        <span className="min-w-0">
+          <span className="font-medium">{t('loadError')}</span>
+          {message && message !== t('loadError') && <span className="text-muted-foreground"> {message}</span>}
+        </span>
+      </div>
+      {onRetry && (
+        <Button type="button" variant="outline" size="sm" className={cn('h-7 gap-1.5', compact && 'ml-auto shrink-0')} onClick={onRetry} loading={isRetrying}>
+          {!isRetrying && <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />}
+          {t('retry')}
+        </Button>
+      )}
+    </div>
+  );
 }
 
 export function DataTable<TData, TValue>({
@@ -147,6 +181,7 @@ export function DataTable<TData, TValue>({
   viewControls,
   initialPageSize = 25,
   footerRow,
+  loadError,
 }: DataTableProps<TData, TValue>) {
   const t = useTranslations('General');
   const showCardList = Boolean(isNarrow && renderCard);
@@ -319,6 +354,11 @@ export function DataTable<TData, TValue>({
           </div>
         )}
       </div>
+      {loadError && !isLoading && data.length > 0 && (
+        <div className="print:hidden">
+          <LoadErrorMessage message={loadError} onRetry={onRefresh} isRetrying={isRefreshing} compact />
+        </div>
+      )}
       {showCardList ? (
         <div data-testid="card-list" className={cn("flex flex-col gap-2 overflow-auto flex-1 min-h-0 px-1 py-1", cardListClassName)}>
           {isLoading ? (
@@ -343,6 +383,8 @@ export function DataTable<TData, TValue>({
                 {renderCard!(row.original, row.getIsSelected())}
               </div>
             ))
+          ) : loadError && data.length === 0 ? (
+            <LoadErrorMessage message={loadError} onRetry={onRefresh} isRetrying={isRefreshing} />
           ) : (
             <div className="py-8 text-center text-sm text-muted-foreground">{t('noResults')}</div>
           )}
@@ -422,7 +464,9 @@ export function DataTable<TData, TValue>({
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  {t('noResults')}
+                  {loadError && data.length === 0
+                    ? <LoadErrorMessage message={loadError} onRetry={onRefresh} isRetrying={isRefreshing} />
+                    : t('noResults')}
                 </TableCell>
               </TableRow>
             )}

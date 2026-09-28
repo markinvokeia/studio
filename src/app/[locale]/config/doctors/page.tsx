@@ -33,11 +33,15 @@ import { SignatureUploader } from '@/components/users/signature-uploader';
 import { SYSTEM_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
 import { DoctorCalendarsTab } from '@/components/calendar/doctor-calendars-tab';
 import { API_ROUTES } from '@/constants/routes';
+import { useAsyncAction, useKeyedAsyncAction } from '@/hooks/use-async-action';
+import { useDataLoader } from '@/hooks/use-data-loader';
+import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
+import { getErrorMessage } from '@/lib/error-utils';
 import { Calendar, Sede, User, UserRole } from '@/lib/types';
 import { DEFAULT_PHONE_COUNTRY } from '@/lib/countries';
-import api from '@/services/api';
+import api, { isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { useLicenseStore } from '@/stores/license-store';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
@@ -92,15 +96,14 @@ type GetUsersResponse = {
   total: number;
 };
 
-async function getUsers(pagination: PaginationState, searchQuery: string, onlyActive: boolean): Promise<GetUsersResponse> {
-  try {
+async function getUsers(pagination: PaginationState, searchQuery: string, onlyActive: boolean, signal?: AbortSignal): Promise<GetUsersResponse> {
     const responseData = await api.get(API_ROUTES.USERS, {
       page: (pagination.pageIndex + 1).toString(),
       limit: pagination.pageSize.toString(),
       search: searchQuery,
       filter_type: "DOCTOR",
       only_active: String(onlyActive),
-    });
+    }, undefined, { signal });
 
     let usersData = [];
     let total = 0;
@@ -135,11 +138,18 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyAc
     }));
 
     return { users: mappedUsers, total: total };
+}
 
-  } catch (error) {
-    console.error("Failed to fetch users:", error);
-    return { users: [], total: 0 };
-  }
+async function getActiveCalendars(signal?: AbortSignal): Promise<Calendar[]> {
+  const data = await api.get(API_ROUTES.CALENDARS, undefined, undefined, { signal });
+  const raw = Array.isArray(data) ? data : (data?.calendars || data?.data || []);
+  return raw.filter((c: any) => c.is_active !== false).map((c: any) => ({
+    id: String(c.id),
+    name: c.name || '',
+    google_calendar_id: c.google_calendar_id,
+    is_active: c.is_active !== undefined ? c.is_active : true,
+    color: c.color,
+  }));
 }
 
 async function upsertUser(userData: DoctorFormValues) {
@@ -152,9 +162,9 @@ async function upsertUser(userData: DoctorFormValues) {
     // (responde/actualiza la sede del usuario del JWT), así que mandarle un user_id ajeno
     // terminaba cambiándole la sede activa al admin que estaba editando.
     active_sede_id: active_sede_id ? Number(active_sede_id) : null,
-  });
+  }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
 
-  if (responseData.error && (responseData.error.error || responseData.code > 200)) {
+  if (responseData?.error && (responseData.error.error || responseData.code > 200)) {
     const error = new Error('API Error') as any;
     error.status = responseData.code || 500;
     error.data = responseData;
@@ -181,9 +191,10 @@ async function getRolesForUser(userId: string): Promise<UserRole[]> {
   }
 }
 
-function DoctorsTableNarrow({ columns, users, selectedUser, onRowSelectionChange, onCreate, onRefresh, isRefreshing, rowSelection, setRowSelection, userCount, pagination, setPagination, columnFilters, setColumnFilters, filtersOptionList, handleClearFilters, t }: {
+function DoctorsTableNarrow({ columns, users, selectedUser, onRowSelectionChange, onCreate, onRefresh, isRefreshing, isLoading, loadError, rowSelection, setRowSelection, userCount, pagination, setPagination, columnFilters, setColumnFilters, filtersOptionList, handleClearFilters, t }: {
   columns: any[]; users: any[]; selectedUser: any;
   onRowSelectionChange: (rows: any[]) => void; onCreate: () => void; onRefresh: () => void; isRefreshing: boolean;
+  isLoading: boolean; loadError: string | null;
   rowSelection: RowSelectionState; setRowSelection: React.Dispatch<React.SetStateAction<RowSelectionState>>;
   userCount: number; pagination: PaginationState; setPagination: React.Dispatch<React.SetStateAction<PaginationState>>;
   columnFilters: ColumnFiltersState; setColumnFilters: React.Dispatch<React.SetStateAction<ColumnFiltersState>>;
@@ -203,6 +214,8 @@ function DoctorsTableNarrow({ columns, users, selectedUser, onRowSelectionChange
       onCreate={onCreate}
       onRefresh={onRefresh}
       isRefreshing={isRefreshing}
+      isLoading={isLoading}
+      loadError={loadError}
       rowSelection={rowSelection}
       setRowSelection={setRowSelection}
       pageCount={Math.ceil(userCount / pagination.pageSize)}
@@ -267,19 +280,15 @@ export default function DoctorsPage() {
 
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
-  const [users, setUsers] = React.useState<User[]>([]);
-  const [userCount, setUserCount] = React.useState(0);
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
   const [detailError, setDetailError] = React.useState<string | null>(null);
-  const [isSavingDetail, setIsSavingDetail] = React.useState(false);
 
   const canSetInitialPassword = hasPermission(SYSTEM_PERMISSIONS.USERS_SET_INITIAL_PASSWORD);
   const hasPasswordPermission = useCheckFirstPassword(selectedUser, canSetInitialPassword);
   const canUpdateDoctor = hasPermission(BUSINESS_CONFIG_PERMISSIONS.DOCTORS_UPDATE);
 
-  const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
@@ -287,23 +296,13 @@ export default function DoctorsPage() {
   });
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [showOnlyActive, setShowOnlyActive] = React.useState(true);
-  const [calendars, setCalendars] = React.useState<Calendar[]>([]);
   const [sedes, setSedes] = React.useState<Sede[]>([]);
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
   const [isDetailCalendarOpen, setIsDetailCalendarOpen] = React.useState(false);
 
-  React.useEffect(() => {
-    api.get(API_ROUTES.CALENDARS).then((data: any) => {
-      const raw = Array.isArray(data) ? data : (data.calendars || data.data || []);
-      setCalendars(raw.filter((c: any) => c.is_active !== false).map((c: any) => ({
-        id: String(c.id),
-        name: c.name || '',
-        google_calendar_id: c.google_calendar_id,
-        is_active: c.is_active !== undefined ? c.is_active : true,
-        color: c.color,
-      })));
-    }).catch(() => setCalendars([]));
-  }, []);
+  const { data: calendars, error: calendarsError } = useDataLoader(getActiveCalendars, [] as Calendar[]);
+  // In the calendar pickers, a failed load must not look like "no calendars".
+  const calendarsEmptyLabel = calendarsError ? t('Common.loadError') : t('General.noResults');
 
   React.useEffect(() => {
     api.get(API_ROUTES.SEDES, { page: '1', limit: '200' }).then((data: any) => {
@@ -340,44 +339,54 @@ export default function DoctorsPage() {
     },
   });
 
-  const loadUsers = React.useCallback(async () => {
-    setIsRefreshing(true);
-    const searchQuery = (columnFilters.find(f => f.id === 'email')?.value as string) || '';
-    const { users: fetchedUsers, total } = await getUsers(pagination, searchQuery, showOnlyActive);
-    setUsers(fetchedUsers);
-    setUserCount(total);
-    setIsRefreshing(false);
-  }, [pagination, columnFilters, showOnlyActive]);
+  const searchQuery = (columnFilters.find(f => f.id === 'email')?.value as string) || '';
+  const debouncedSearch = useDebounce(searchQuery, 500);
 
-  React.useEffect(() => {
-    const debounce = setTimeout(() => {
-      loadUsers();
-    }, 500);
-    return () => clearTimeout(debounce);
-  }, [loadUsers]);
+  // Only the latest page/search/filter request may write the table: a slow "ju" can't overwrite "juan".
+  const {
+    data: { users, total: userCount },
+    setData: setUsersData,
+    isLoading,
+    isRefreshing,
+    error: loadError,
+    reload: loadUsers,
+  } = useDataLoader(
+    (signal) => getUsers(pagination, debouncedSearch, showOnlyActive, signal),
+    { users: [] as User[], total: 0 },
+    [pagination.pageIndex, pagination.pageSize, debouncedSearch, showOnlyActive]
+  );
 
-  const handleToggleActivate = async (user: User) => {
-    try {
-      await api.put(API_ROUTES.USERS_ACTIVATE, {
-        user_id: user.id,
-        is_active: !user.is_active,
-      });
-
-      toast({
-        title: !user.is_active ? t('DoctorsPage.createDialog.SuccessActivate') : t('DoctorsPage.createDialog.SuccessDeactivate'),
-        description: !user.is_active ? t('DoctorsPage.createDialog.SuccessActivateDescription', { name: user.name }) : t('DoctorsPage.createDialog.SuccessDeactivateDescription', { name: user.name }),
-      });
-
-      loadUsers();
-    } catch (error) {
-      toast({
-        variant: !user.is_active ? 'default' : 'destructive',
-        title: !user.is_active ? t('DoctorsPage.createDialog.ErrorActivate') : t('DoctorsPage.createDialog.ErrorDeactivate'),
-        description: !user.is_active ? t('DoctorsPage.createDialog.ErrorActivateDescription') : t('DoctorsPage.createDialog.ErrorDeactivateDescription'),
-      });
-      console.error(error);
+  const toggleActivate = useKeyedAsyncAction(
+    async (user: User) => {
+      try {
+        await api.put(API_ROUTES.USERS_ACTIVATE, {
+          user_id: user.id,
+          is_active: !user.is_active,
+        }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
+      } catch (error) {
+        if (isTimeoutError(error)) throw error;
+        throw new Error(!user.is_active ? t('DoctorsPage.createDialog.ErrorActivateDescription') : t('DoctorsPage.createDialog.ErrorDeactivateDescription'));
+      }
+      return user;
+    },
+    {
+      onSuccess: async (user) => {
+        toast({
+          title: !user.is_active ? t('DoctorsPage.createDialog.SuccessActivate') : t('DoctorsPage.createDialog.SuccessDeactivate'),
+          description: !user.is_active ? t('DoctorsPage.createDialog.SuccessActivateDescription', { name: user.name }) : t('DoctorsPage.createDialog.SuccessDeactivateDescription', { name: user.name }),
+        });
+        await loadUsers();
+      },
+      onError: (error) => {
+        if (isTimeoutError(error)) loadUsers();
+      },
     }
-  };
+  );
+
+  const runToggleActivate = toggleActivate.run;
+  const handleToggleActivate = React.useCallback((user: User) => {
+    runToggleActivate(user.id, user);
+  }, [runToggleActivate]);
 
   const handleCreate = () => {
     const { canAddUserByRole, license } = useLicenseStore.getState();
@@ -407,10 +416,17 @@ export default function DoctorsPage() {
   const userColumns = DoctorsColumnsWrapper({
     onToggleActivate: handleToggleActivate,
     onEdit: () => {},
+    isTogglePending: toggleActivate.isPending,
   });
 
   const handleRowSelectionChange = (selectedRows: User[]) => {
     const user = selectedRows.length > 0 ? selectedRows[0] : null;
+    if (user?.id === selectedUser?.id) return;
+    // Don't drop an in-flight save or unsaved edits of the current doctor by clicking another row.
+    if (saveDetail.isPending || (detailForm.formState.isDirty && !window.confirm(t('Common.unsavedChangesConfirm')))) {
+      setRowSelection(selectedUser ? { [selectedUser.id]: true } : {});
+      return;
+    }
     setSelectedUser(user);
     if (user) {
       detailForm.reset({
@@ -429,17 +445,19 @@ export default function DoctorsPage() {
   };
 
 
-  const handleSendInitialPassword = async () => {
-    if (!selectedUser || !canSetInitialPassword) return;
-    try {
-      await sendFirstTimePasswordToken(selectedUser.id);
-      toast({ title: t('SystemUsersPage.initialPasswordSentTitle'), description: t('SystemUsersPage.initialPasswordSentDescription') });
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : t('SystemUsersPage.initialPasswordError') });
+  const sendInitialPassword = useAsyncAction(
+    async (userId: string) => sendFirstTimePasswordToken(userId, { timeoutMs: REQUEST_TIMEOUT_MS.mutation }),
+    {
+      onSuccess: () => {
+        toast({ title: t('SystemUsersPage.initialPasswordSentTitle'), description: t('SystemUsersPage.initialPasswordSentDescription') });
+      },
+      errorTitle: t('SystemUsersPage.initialPasswordError'),
     }
-  };
+  );
 
   const handleCloseDetails = () => {
+    if (saveDetail.isPending) return;
+    if (detailForm.formState.isDirty && !window.confirm(t('Common.unsavedChangesConfirm'))) return;
     setSelectedUser(null);
     setRowSelection({});
   };
@@ -459,106 +477,107 @@ export default function DoctorsPage() {
     setColumnFilters([]);
   };
 
-  const onDetailSubmit = async (data: DoctorFormValues) => {
-    setDetailError(null);
-    detailForm.clearErrors();
-    setIsSavingDetail(true);
-    try {
-      await upsertUser(data);
-      toast({
-        title: t('DoctorsPage.createDialog.editSuccessTitle'),
-        description: t('DoctorsPage.createDialog.editSuccessDescription'),
-      });
-      const updated: User = {
-        ...selectedUser!,
-        name: data.name,
-        email: data.email || '',
-        phone_number: data.phone || '',
-        identity_document: data.identity_document || '',
-        is_active: data.is_active,
-        color: data.color || '',
-        calendar_source_id: data.calendar_source_id || undefined,
-        active_sede_id: data.active_sede_id || null,
-      };
-      setSelectedUser(updated);
-      setUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
-    } catch (error: any) {
-      const errorData = error.data?.error || (Array.isArray(error.data) && error.data[0]?.error);
-      if (errorData?.code === 'unique_conflict' && errorData?.conflictedFields) {
-        const fields = errorData.conflictedFields.map((f: string) => t(`DoctorsPage.createDialog.validation.fields.${f}`)).join(', ');
-        setDetailError(t('DoctorsPage.createDialog.validation.uniqueConflict', { fields }));
-      } else if ((error.status === 400 || error.status === 409) && errorData?.errors) {
-        const errors = Array.isArray(errorData.errors) ? errorData.errors : [];
-        if (errors.length > 0) {
-          errors.forEach((err: { field: any; message: string }) => {
-            if (err.field) {
-              detailForm.setError(err.field as keyof DoctorFormValues, {
-                type: 'manual',
-                message: err.message,
-              });
-            }
-          });
-        } else {
-          setDetailError(errorData?.message || t('DoctorsPage.createDialog.validation.genericError'));
-        }
-      } else if (error.status >= 500) {
-        setDetailError(t('DoctorsPage.createDialog.validation.serverError'));
+  /** Maps an upsert failure to inline form errors (field errors when the backend names them). */
+  const reportUpsertError = (error: any, targetForm: typeof form, setError: (message: string | null) => void) => {
+    if (isTimeoutError(error)) {
+      // The doctor may have been saved anyway: refresh so the user can check before retrying.
+      setError(t('Common.timeoutError'));
+      loadUsers();
+      return;
+    }
+    const errorData = error.data?.error || (Array.isArray(error.data) && error.data[0]?.error);
+    if (errorData?.code === 'unique_conflict' && errorData?.conflictedFields) {
+      const fields = errorData.conflictedFields.map((f: string) => t(`DoctorsPage.createDialog.validation.fields.${f}`)).join(', ');
+      setError(t('DoctorsPage.createDialog.validation.uniqueConflict', { fields }));
+    } else if ((error.status === 400 || error.status === 409) && errorData?.errors) {
+      const errors = Array.isArray(errorData.errors) ? errorData.errors : [];
+      if (errors.length > 0) {
+        errors.forEach((err: { field: any; message: string }) => {
+          if (err.field) {
+            targetForm.setError(err.field as keyof DoctorFormValues, {
+              type: 'manual',
+              message: err.message,
+            });
+          }
+        });
       } else {
-        setDetailError(errorData?.message || (error instanceof Error ? error.message : t('DoctorsPage.createDialog.validation.genericError')));
+        setError(errorData?.message || t('DoctorsPage.createDialog.validation.genericError'));
       }
-    } finally {
-      setIsSavingDetail(false);
+    } else if (error.status >= 500) {
+      setError(t('DoctorsPage.createDialog.validation.serverError'));
+    } else {
+      const errorMessage = typeof error.data === 'string' ? error.data : errorData?.message || getErrorMessage(error) || t('DoctorsPage.createDialog.validation.genericError');
+      setError(errorMessage);
     }
   };
 
-  const onSubmit = async (data: DoctorFormValues) => {
-    setSubmissionError(null);
-    form.clearErrors();
+  const saveDetail = useAsyncAction(
+    async (data: DoctorFormValues) => {
+      setDetailError(null);
+      detailForm.clearErrors();
+      await upsertUser(data);
+      return data;
+    },
+    {
+      onSuccess: (data) => {
+        toast({
+          title: t('DoctorsPage.createDialog.editSuccessTitle'),
+          description: t('DoctorsPage.createDialog.editSuccessDescription'),
+        });
+        const updated: User = {
+          ...selectedUser!,
+          name: data.name,
+          email: data.email || '',
+          phone_number: data.phone || '',
+          identity_document: data.identity_document || '',
+          is_active: data.is_active,
+          color: data.color || '',
+          calendar_source_id: data.calendar_source_id || undefined,
+          active_sede_id: data.active_sede_id || null,
+        };
+        setSelectedUser(updated);
+        setUsersData(prev => ({ ...prev, users: prev.users.map(u => u.id === updated.id ? updated : u) }));
+        // The saved values become the new baseline for the unsaved-changes guard.
+        detailForm.reset(data);
+      },
+      onError: (error) => reportUpsertError(error, detailForm, setDetailError),
+      showErrorToast: false,
+    }
+  );
 
-    try {
+  const create = useAsyncAction(
+    async (data: DoctorFormValues) => {
+      setSubmissionError(null);
+      form.clearErrors();
       const response = await upsertUser(data);
       const newUserId = extractCreatedUserId(response);
+      let passwordEmailSent = true;
       if (newUserId) {
         try {
-          await sendFirstTimePasswordToken(newUserId);
+          await sendFirstTimePasswordToken(newUserId, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
         } catch {
-          // User was created successfully; the initial password email can be retried from the detail panel.
+          passwordEmailSent = false;
         }
       }
-      toast({
-        title: t('DoctorsPage.createDialog.createSuccessTitle'),
-        description: t('DoctorsPage.createDialog.createSuccessDescription'),
-      });
-      setIsDialogOpen(false);
-      loadUsers();
-
-    } catch (error: any) {
-      const errorData = error.data?.error || (Array.isArray(error.data) && error.data[0]?.error);
-      if (errorData?.code === 'unique_conflict' && errorData?.conflictedFields) {
-        const fields = errorData.conflictedFields.map((f: string) => t(`DoctorsPage.createDialog.validation.fields.${f}`)).join(', ');
-        setSubmissionError(t('DoctorsPage.createDialog.validation.uniqueConflict', { fields }));
-      } else if ((error.status === 400 || error.status === 409) && errorData?.errors) {
-        const errors = Array.isArray(errorData.errors) ? errorData.errors : [];
-        if (errors.length > 0) {
-          errors.forEach((err: { field: any; message: string }) => {
-            if (err.field) {
-              form.setError(err.field as keyof DoctorFormValues, {
-                type: 'manual',
-                message: err.message,
-              });
-            }
-          });
-        } else {
-          setSubmissionError(errorData?.message || t('DoctorsPage.createDialog.validation.genericError'));
+      return { passwordEmailSent };
+    },
+    {
+      onSuccess: async ({ passwordEmailSent }) => {
+        toast({
+          title: t('DoctorsPage.createDialog.createSuccessTitle'),
+          description: t('DoctorsPage.createDialog.createSuccessDescription'),
+        });
+        if (!passwordEmailSent) {
+          // The doctor exists: say what did not happen instead of a generic error that invites a retry.
+          toast({ variant: 'destructive', title: t('Common.errorTitle'), description: t('SystemUsersPage.initialPasswordPartialError') });
         }
-      } else if (error.status >= 500) {
-        setSubmissionError(t('DoctorsPage.createDialog.validation.serverError'));
-      } else {
-        const errorMessage = typeof error.data === 'string' ? error.data : errorData?.message || (error instanceof Error ? error.message : t('DoctorsPage.createDialog.validation.genericError'));
-        setSubmissionError(errorMessage);
-      }
+        await loadUsers();
+        setIsDialogOpen(false);
+      },
+      onError: (error) => reportUpsertError(error, form, setSubmissionError),
+      showErrorToast: false,
     }
-  };
+  );
 
   const [activeTab, setActiveTab] = React.useState('details');
 
@@ -574,7 +593,7 @@ export default function DoctorsPage() {
       setColumnFilters([{ id: 'email', value: v }]);
     },
     items: users,
-    isLoading: isRefreshing,
+    isLoading: isRefreshing || isLoading,
     onAutoSelect: (user) => handleRowSelectionChange([user]),
     setRowSelection,
     onTabChange: (id) => setActiveTab(id),
@@ -608,6 +627,8 @@ export default function DoctorsPage() {
                 onCreate={handleCreate}
                 onRefresh={loadUsers}
                 isRefreshing={isRefreshing}
+                isLoading={isLoading}
+                loadError={loadError}
                 rowSelection={rowSelection}
                 setRowSelection={setRowSelection}
                 userCount={userCount}
@@ -631,8 +652,13 @@ export default function DoctorsPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   {hasPasswordPermission && (
-                    <Button variant="outline" size="sm" onClick={handleSendInitialPassword}>
-                      <KeyRound className="mr-2 h-4 w-4" />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => { if (canSetInitialPassword) sendInitialPassword.run(selectedUser.id); }}
+                      loading={sendInitialPassword.isPending}
+                    >
+                      {!sendInitialPassword.isPending && <KeyRound className="mr-2 h-4 w-4" />}
                       {t('SystemUsersPage.setInitialPassword')}
                     </Button>
                   )}
@@ -659,7 +685,7 @@ export default function DoctorsPage() {
                 <div className="flex-1 overflow-auto px-4 py-4">
                   {activeTab === 'details' && (
                     <Form {...detailForm}>
-                      <form onSubmit={detailForm.handleSubmit(onDetailSubmit)} className="space-y-4">
+                      <form onSubmit={detailForm.handleSubmit(saveDetail.run)} className="space-y-4">
                         {detailError && (
                           <Alert variant="destructive">
                             <AlertTriangle className="h-4 w-4" />
@@ -667,6 +693,8 @@ export default function DoctorsPage() {
                             <AlertDescription>{detailError}</AlertDescription>
                           </Alert>
                         )}
+                        {/* Native fieldset disables every control while the request is in flight */}
+                        <fieldset disabled={saveDetail.isPending} className="min-w-0 space-y-4">
                         <FormField control={detailForm.control} name="name" render={({ field }) => (
                           <FormItem><FormLabel>{t('DoctorsPage.createDialog.name')}</FormLabel><FormControl><Input placeholder={t('DoctorsPage.createDialog.namePlaceholder')} {...field} /></FormControl><FormMessage /></FormItem>
                         )} />
@@ -705,7 +733,7 @@ export default function DoctorsPage() {
                                 <Command>
                                   <CommandInput placeholder={t('DoctorsPage.createDialog.searchCalendarPlaceholder')} />
                                   <CommandList>
-                                    <CommandEmpty>{t('General.noResults')}</CommandEmpty>
+                                    <CommandEmpty>{calendarsEmptyLabel}</CommandEmpty>
                                     <CommandGroup>
                                       <CommandItem value="" onSelect={() => { field.onChange(''); setIsDetailCalendarOpen(false); }}>
                                         <Check className={cn('mr-2 h-4 w-4', !field.value ? 'opacity-100' : 'opacity-0')} />
@@ -745,9 +773,10 @@ export default function DoctorsPage() {
                             <FormLabel>{t('DoctorsPage.createDialog.isActive')}</FormLabel>
                           </FormItem>
                         )} />
+                        </fieldset>
                         <div className="flex gap-2 pt-2">
-                          <Button type="submit" disabled={isSavingDetail}>
-                            {isSavingDetail ? t('DoctorsPage.createDialog.editSave') + '...' : t('DoctorsPage.createDialog.editSave')}
+                          <Button type="submit" loading={saveDetail.isPending}>
+                            {t('DoctorsPage.createDialog.editSave')}
                           </Button>
                         </div>
                       </form>
@@ -781,14 +810,20 @@ export default function DoctorsPage() {
         }
       />
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent confirmOnClose isDirty={form.formState.isDirty}>
+      <Dialog
+        open={isDialogOpen}
+        onOpenChange={(open) => {
+          if (!open && create.isPending) return;
+          setIsDialogOpen(open);
+        }}
+      >
+        <DialogContent confirmOnClose isDirty={form.formState.isDirty && !create.isPending}>
           <DialogHeader>
             <DialogTitle>{t('DoctorsPage.createDialog.createTitle')}</DialogTitle>
             <DialogDescription>{t('DoctorsPage.createDialog.createDescription')}</DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+            <form onSubmit={form.handleSubmit(create.run)} className="flex flex-col flex-1 overflow-hidden">
               <DialogBody className="space-y-4 px-6 py-4">
                 {submissionError && (
                   <Alert variant="destructive">
@@ -797,6 +832,8 @@ export default function DoctorsPage() {
                     <AlertDescription>{submissionError}</AlertDescription>
                   </Alert>
                 )}
+                {/* Native fieldset disables every control while the request is in flight */}
+                <fieldset disabled={create.isPending} className="min-w-0 space-y-4">
                 <FormField
                   control={form.control}
                   name="name"
@@ -890,7 +927,7 @@ export default function DoctorsPage() {
                           <Command>
                             <CommandInput placeholder={t('DoctorsPage.createDialog.searchCalendarPlaceholder')} />
                             <CommandList>
-                              <CommandEmpty>{t('General.noResults')}</CommandEmpty>
+                              <CommandEmpty>{calendarsEmptyLabel}</CommandEmpty>
                               <CommandGroup>
                                 <CommandItem value="" onSelect={() => { field.onChange(''); setIsCalendarOpen(false); }}>
                                   <Check className={cn('mr-2 h-4 w-4', !field.value ? 'opacity-100' : 'opacity-0')} />
@@ -941,10 +978,11 @@ export default function DoctorsPage() {
                     </FormItem>
                   )}
                 />
+                </fieldset>
               </DialogBody>
               <DialogFooter>
-                <Button type="submit">{t('DoctorsPage.createDialog.save')}</Button>
-                <DialogCancelButton>{t('DoctorsPage.createDialog.cancel')}</DialogCancelButton>
+                <Button type="submit" loading={create.isPending}>{t('DoctorsPage.createDialog.save')}</Button>
+                <DialogCancelButton disabled={create.isPending}>{t('DoctorsPage.createDialog.cancel')}</DialogCancelButton>
               </DialogFooter>
             </form>
           </Form>
