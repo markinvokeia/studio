@@ -238,6 +238,16 @@ export const API_ROUTES = {
         UPSERT: '/calendar_status_display/upsert',
         DELETE: '/calendar_status_display/delete',
     },
+    /**
+     * Configuración → Colores de calendario → Origen del color. Qué niveles de la
+     * cadena (servicio, doctor, calendario) cuentan al pintar una cita, general
+     * (calendar_id null) u override por calendario.
+     */
+    CALENDAR_COLOR_SOURCE: {
+        SEARCH: '/calendar_color_source/search',
+        UPSERT: '/calendar_color_source/upsert',
+        DELETE: '/calendar_color_source/delete',
+    },
     ORDERS: '/orders',
     PERMISSIONS: '/permissions',
     PERMISSION_USERS: '/permission_users',

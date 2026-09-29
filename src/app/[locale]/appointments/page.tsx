@@ -64,7 +64,7 @@ import { BUSINESS_CONFIG_PERMISSIONS, PATIENTS_PERMISSIONS, PATIENT_FINANCIAL_VI
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
-import { Appointment, AppointmentBulkFilterParams, AppointmentColorSource, AppointmentDatePreset, AppointmentStatus, Calendar as CalendarType, CalendarItemScope, CalendarItemType, CalendarReminder, CalendarSettings, ClinicSchedule, ClinicException, Invoice, Order, PatientSession, Quote, QuoteItem, ResponsibleContact, Sede, Service, SessionPreloadedService, User as UserType } from '@/lib/types';
+import { Appointment, AppointmentBulkFilterParams, AppointmentDatePreset, AppointmentStatus, Calendar as CalendarType, CalendarColorSources, CalendarItemScope, CalendarItemType, CalendarReminder, CalendarSettings, ClinicSchedule, ClinicException, Invoice, Order, PatientSession, Quote, QuoteItem, ResponsibleContact, Sede, Service, SessionPreloadedService, User as UserType } from '@/lib/types';
 import { getEffectiveAppointmentContact, normalizeResponsibleContact, patchAppointmentsForPatient } from '@/lib/appointment-contact';
 import { getDependantContactInfo } from '@/components/patients/patient-form-utils';
 import { getDateFnsLocale } from '@/lib/locale';
@@ -107,6 +107,8 @@ import { canReschedule, normalizeAppointmentStatus, normalizeCancellationReason 
 import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
 import { resolveEventStatusColors, resolveStatusDisplay } from '@/lib/appointment-status-display';
 import { useCalendarStatusDisplayStore } from '@/stores/calendar-status-display-store';
+import { getOwnAppointmentColor, resolveAppointmentColor } from '@/lib/appointment-color';
+import { resolveColorSources, useCalendarColorSourceStore } from '@/stores/calendar-color-source-store';
 import { useAppointmentReschedule } from '@/hooks/use-appointment-reschedule';
 import { CancellationNoteDialog } from '@/components/appointments/CancellationNoteDialog';
 import { getAppointmentColumns } from './columns';
@@ -154,7 +156,6 @@ interface InlineAppointmentDraftState {
      *  en el resto se autogenera a partir de paciente + tratamientos. */
     summary: string;
     color?: string;
-    colorTouched?: boolean;
     /** Set when the inline card is editing an existing appointment (vs creating). */
     editing?: Appointment | null;
     /** When true, saving reschedules instead of updating the original appointment. */
@@ -288,11 +289,6 @@ function getGoogleCalendarColorHex(value?: string | null): string | undefined {
     return colorId ? colorMap.get(colorId) : value || undefined;
 }
 
-function getInitialDraftColor(calendar?: CalendarType | null): { color?: string } {
-    const color = getGoogleCalendarColorId(calendar?.color);
-    return color ? { color } : {};
-}
-
 /**
  * Parses the `date` carried by the "schedule next appointment" notification
  * deep-link. Accepts 'yyyy-MM-dd' and full ISO strings (the trailing Z is
@@ -403,12 +399,6 @@ const SETTINGS_VIEW_MAP: Record<string, CalendarView> = {
     agenda: 'schedule',
 };
 
-const isWhite = (color: string | null | undefined) => {
-    if (!color) return true;
-    const n = color.toLowerCase().replace(/\s/g, '');
-    return n === '#ffffff' || n === '#fff' || n === 'white' || n === 'rgb(255,255,255)' || n === 'rgba(255,255,255,1)' || n === 'hsl(0,0%,100%)';
-};
-
 
 /** Mínimo de caracteres para disparar la búsqueda global de citas. */
 const SEARCH_MIN_CHARS = 2;
@@ -422,7 +412,8 @@ async function getAppointments(
     calendars: CalendarType[],
     services: Service[],
     doctors: UserType[],
-    t: (key: string) => string
+    t: (key: string) => string,
+    colorSourcesFor?: (calendarId: string) => CalendarColorSources,
 ): Promise<Appointment[]> {
     if (!isValid(startDate) || !isValid(endDate)) {
         console.error("Invalid start or end date provided to getAppointments");
@@ -456,7 +447,7 @@ async function getAppointments(
         }
 
         return appointmentsData
-            .map((apiAppt: any) => mapApiAppointmentRow(apiAppt, calendars, services, doctors, t))
+            .map((apiAppt: any) => mapApiAppointmentRow(apiAppt, calendars, services, doctors, t, colorSourcesFor))
             .filter((apt): apt is Appointment => apt !== null);
     } catch (error) {
         console.error("Failed to fetch appointments:", error);
@@ -478,6 +469,7 @@ function mapApiAppointmentRow(
     services: Service[],
     doctors: UserType[],
     t: (key: string) => string,
+    colorSourcesFor?: (calendarId: string) => CalendarColorSources,
 ): Appointment | null {
             // Handle both structure where start is an object or a direct string
             const startNode = apiAppt.start_time || apiAppt.start;
@@ -511,27 +503,22 @@ function mapApiAppointmentRow(
             );
 
             const appointmentColorId = getGoogleCalendarColorId(apiAppt.color) || '';
-            let finalColor = appointmentColorId ? colorMap.get(appointmentColorId) : apiAppt.color;
-            // De qué nivel de la cadena salió el color. El calendario lo necesita para
-            // distinguir un color asignado a la cita de uno heredado.
-            let colorSource: AppointmentColorSource = 'appointment';
+            const rawOwnColor = appointmentColorId ? colorMap.get(appointmentColorId) : apiAppt.color;
+            // Un valor que no es hex/hsl (p. ej. un id de paleta desconocido) no es un color usable.
+            const ownColor = typeof rawOwnColor === 'string' && (rawOwnColor.startsWith('#') || rawOwnColor.startsWith('hsl'))
+                ? rawOwnColor
+                : undefined;
 
-            // Fallback algorithm: Appointment Color Tag > Service Color > Doctor Color > Calendar Color
-            // We skip white colors (255, 255, 255) as they are considered "no color"
-            if (!finalColor || (typeof finalColor === 'string' && !finalColor.startsWith('#') && !finalColor.startsWith('hsl'))) {
-                const tagColor = appointmentColorId ? colorMap.get(appointmentColorId) : undefined;
-                const sColor = service?.color;
-                const dColor = doctor?.color;
-                const cColor = getGoogleCalendarColorHex(calendar?.color);
-
-                // Mismo orden y mismas exclusiones de blanco que antes; lo único que se
-                // agrega es anotar cuál de los cuatro ganó.
-                if (!isWhite(tagColor) && tagColor) { finalColor = tagColor; colorSource = 'appointment'; }
-                else if (!isWhite(sColor) && sColor) { finalColor = sColor; colorSource = 'service'; }
-                else if (!isWhite(dColor) && dColor) { finalColor = dColor; colorSource = 'doctor'; }
-                else if (!isWhite(cColor) && cColor) { finalColor = cColor; colorSource = 'calendar'; }
-                else { finalColor = undefined; colorSource = 'none'; }
-            }
+            // Cadena: color propio > servicio > doctor > calendario. Los niveles que la
+            // clínica (o este calendario) desactivó en Colores de Calendario se saltan;
+            // `colorSource` anota cuál ganó para distinguir asignado de heredado.
+            const { color: finalColor, colorSource } = resolveAppointmentColor({
+                ownColor,
+                serviceColor: service?.color,
+                doctorColor: doctor?.color,
+                calendarColor: getGoogleCalendarColorHex(calendar?.color),
+                sources: colorSourcesFor?.(calendarSourceId),
+            });
 
             const patientId = apiAppt.patient_id || apiAppt.patientId || apiAppt.patientid || apiAppt.user_id || apiAppt.userid;
             const patientName = apiAppt.patient_name || apiAppt.patientName || apiAppt.patientname || apiAppt.user_name || apiAppt.username || (apiAppt.attendees && apiAppt.attendees.length > 0 ? apiAppt.attendees.map((a: any) => a.email).join(', ') : 'N/A');
@@ -1012,6 +999,14 @@ export default function AppointmentsPage() {
     // calendario se veía en el calendario de citas por este motivo.
     const { matrix: statusDisplayMatrix } = useAppointmentStatusDisplay();
     const statusDisplayByCalendar = useCalendarStatusDisplayStore((s) => s.byCalendar);
+    // Niveles de la cadena de color que cuentan (general + override por calendario).
+    // Cambiar la función invalida `loadAppointments`, así que la agenda se repinta sola.
+    const generalColorSources = useCalendarColorSourceStore((s) => s.general);
+    const colorSourcesByCalendar = useCalendarColorSourceStore((s) => s.byCalendar);
+    const colorSourcesFor = React.useCallback(
+        (calendarId: string) => resolveColorSources(generalColorSources, colorSourcesByCalendar, calendarId),
+        [generalColorSources, colorSourcesByCalendar],
+    );
 
     // ── Calendar display mode (invoke | custom) ──────────────────────────────
     // In 'custom' mode a single agenda is shown at a time, chosen from the
@@ -1461,7 +1456,6 @@ export default function AppointmentsPage() {
                 calendar,
                 notes: '',
                 summary: '',
-                ...getInitialDraftColor(calendar),
             }));
             return;
         }
@@ -1621,7 +1615,8 @@ export default function AppointmentsPage() {
             const calendar = inlineDraft.calendar ?? undefined;
             const patient = inlineDraft.patient;
             const svcNames = inlineDraft.services.map((s) => s.name).join(', ');
-            const draftColor = inlineDraft.colorTouched ? inlineDraft.color : inlineDraft.color || getGoogleCalendarColorId(calendar?.color);
+            // Solo el color que el usuario eligió: el del calendario se hereda por la cadena, no se copia a la cita.
+            const draftColor = inlineDraft.color;
             const editing = inlineDraft.editing ?? null;
             const isImported = editing?.imported_from_google === true;
             // En las citas importadas el summary es el título del evento y lo maneja el
@@ -1789,13 +1784,9 @@ export default function AppointmentsPage() {
                 onStartTimeChange={(h, m) => setInlineDraft((d) => (d ? { ...d, date: set(d.date, { hours: h, minutes: m, seconds: 0, milliseconds: 0 }) } : d))}
                 color={inlineDraft.color}
                 colorOptions={GOOGLE_CALENDAR_COLORS.map((color) => ({ id: color.id, hex: color.hex, label: color.id }))}
-                onColorChange={(color) => setInlineDraft((d) => (d ? { ...d, color: color || undefined, colorTouched: true } : d))}
+                onColorChange={(color) => setInlineDraft((d) => (d ? { ...d, color: color || undefined } : d))}
                 calendar={inlineDraft.calendar}
-                onCalendarChange={(c) => setInlineDraft((d) => {
-                    if (!d) return d;
-                    const nextColor = d.colorTouched ? {} : getInitialDraftColor(c);
-                    return { ...d, calendar: c, ...nextColor };
-                })}
+                onCalendarChange={(c) => setInlineDraft((d) => (d ? { ...d, calendar: c } : d))}
                 calendarOptions={calendars}
                 doctor={inlineDraft.doctor}
                 onDoctorChange={(doc) => setInlineDraft((d) => (d ? { ...d, doctor: doc } : d))}
@@ -1881,7 +1872,7 @@ export default function AppointmentsPage() {
             const draftCalendarId = context?.groupBy === 'calendar' ? context.value : customCalendarId;
             const draftCalendar = draftCalendarId ? (calendars.find((c) => String(c.id) === String(draftCalendarId)) ?? null) : null;
             const draftContext = context ?? (draftCalendarId ? { groupBy: 'calendar' as const, value: String(draftCalendarId) } : undefined);
-            setInlineDraft(createInlineDraftState({ date, context: draftContext, durationMin: slotDuration, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '', summary: '', ...getInitialDraftColor(draftCalendar) }));
+            setInlineDraft(createInlineDraftState({ date, context: draftContext, durationMin: slotDuration, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '', summary: '' }));
             return;
         }
         prepareSlot(date, context);
@@ -1939,8 +1930,8 @@ export default function AppointmentsPage() {
             // El mapper rellena el summary con el placeholder "Ninguno" cuando la cita
             // no trae uno; en el campo eso tiene que verse vacío.
             summary: appointment.summary && appointment.summary !== t('createDialog.none') ? appointment.summary : '',
-            color: appointment.colorId || getGoogleCalendarColorId(appointment.color),
-            colorTouched: true,
+            // Solo el color propio: el resuelto (heredado) convertiría la herencia en etiqueta al guardar.
+            color: getOwnAppointmentColor(appointment),
             editing: appointment,
             rescheduling,
         }));
@@ -2204,7 +2195,7 @@ export default function AppointmentsPage() {
                 });
                 if (reqId !== searchReqIdRef.current) return;
                 const mapped = rows
-                    .map((row) => mapApiAppointmentRow(row, calendars, services, doctors, t))
+                    .map((row) => mapApiAppointmentRow(row, calendars, services, doctors, t, colorSourcesFor))
                     .filter((a): a is Appointment => a !== null);
                 setSearchResults(mapped);
                 setSearchError(false);
@@ -2222,7 +2213,7 @@ export default function AppointmentsPage() {
             }
         }, SEARCH_DEBOUNCE_MS);
         return () => clearTimeout(handle);
-    }, [searchActive, searchQuery, searchCalendarIds, calendars, services, doctors, t, searchRetryNonce]);
+    }, [searchActive, searchQuery, searchCalendarIds, calendars, services, doctors, t, colorSourcesFor, searchRetryNonce]);
 
     // El chip colapsado es solo para mobile: en desktop el panel siempre se muestra.
     React.useEffect(() => {
@@ -3125,7 +3116,7 @@ export default function AppointmentsPage() {
         setIsRefreshing(true);
         try {
             const [fetchedAppointments, fetchedReminders] = await Promise.all([
-                getAppointments(fetchCalendarIds, fetchRange.start, fetchRange.end, calendars, services, doctors, t),
+                getAppointments(fetchCalendarIds, fetchRange.start, fetchRange.end, calendars, services, doctors, t, colorSourcesFor),
                 getReminders(fetchRange.start, fetchRange.end, user?.id),
             ]);
             if (requestId !== loadAppointmentsRequestIdRef.current) return;
@@ -3140,7 +3131,7 @@ export default function AppointmentsPage() {
         } finally {
             if (requestId === loadAppointmentsRequestIdRef.current) setIsRefreshing(false);
         }
-    }, [fetchCalendarIds, fetchRange, calendars, services, doctors, t, user?.id]);
+    }, [fetchCalendarIds, fetchRange, calendars, services, doctors, t, colorSourcesFor, user?.id]);
 
     const forceRefresh = React.useCallback(() => {
         loadAppointments();
@@ -3209,7 +3200,7 @@ export default function AppointmentsPage() {
                 continue;
             }
 
-            const mapped = mapApiAppointmentRow(normalizePatchRow(ev), calendars, services, doctors, t);
+            const mapped = mapApiAppointmentRow(normalizePatchRow(ev), calendars, services, doctors, t, colorSourcesFor);
             if (!mapped) {
                 if (debug) console.debug('[calendar-patch] mapApiAppointmentRow devolvió null → recarga', ev);
                 needFullRefresh = true;
@@ -3242,7 +3233,7 @@ export default function AppointmentsPage() {
         }
         if (debug) console.debug('[calendar-patch] resultado', { changed, needFullRefresh, total: list.length });
         if (needFullRefresh) forceRefresh();
-    }, [isDataLoading, calendars, services, doctors, t, fetchRange, fetchCalendarIds, forceRefresh]);
+    }, [isDataLoading, calendars, services, doctors, t, colorSourcesFor, fetchRange, fetchCalendarIds, forceRefresh]);
 
     const applyCalendarPatchRef = React.useRef(applyCalendarPatch);
     React.useEffect(() => { applyCalendarPatchRef.current = applyCalendarPatch; }, [applyCalendarPatch]);
@@ -3482,7 +3473,6 @@ export default function AppointmentsPage() {
             summary: '',
             quoteId: data.quoteId,
             notifId: data.notifId,
-            ...getInitialDraftColor(calendar),
         }));
     }, [services, doctors, calendars, slotDuration]);
 
@@ -4140,7 +4130,7 @@ export default function AppointmentsPage() {
             const draftCalendarId = context?.groupBy === 'calendar' ? context.value : customCalendarId;
             const draftCalendar = draftCalendarId ? (calendars.find((c) => String(c.id) === String(draftCalendarId)) ?? null) : null;
             const draftContext = context ?? (draftCalendarId ? { groupBy: 'calendar' as const, value: String(draftCalendarId) } : undefined);
-            setInlineDraft(createInlineDraftState({ date: gap.start, context: draftContext, durationMin: slotDuration, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '', summary: '', ...getInitialDraftColor(draftCalendar) }));
+            setInlineDraft(createInlineDraftState({ date: gap.start, context: draftContext, durationMin: slotDuration, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '', summary: '' }));
             setGapsActive(false);
             setSelectedGap(null);
             return;

@@ -9076,6 +9076,38 @@
     "readOnlyNotice": "Read-only: you don't have permission to change the calendar colors.",
     "restoreDefaults": "Restore defaults",
     "unsavedChangesConfirm": "You have unsaved changes in this view. Discard them and switch calendars?",
+    "colorSource": {
+      "title": "Color source",
+      "description": "Choose which levels are considered when an appointment is colored. The chain goes from the most specific to the most general: appointment color > service > doctor > calendar. Turn off a level to skip it.",
+      "save": "Save color source",
+      "saved": "Color source saved",
+      "saveError": "We couldn't save the color source",
+      "revert": "Use General",
+      "revertSuccess": "The calendar now uses the general color source",
+      "revertError": "We couldn't revert the color source",
+      "alwaysActive": "Always active",
+      "levels": {
+        "appointment": {
+          "label": "Appointment color tag",
+          "help": "The color a user picks on the appointment itself. It always wins."
+        },
+        "service": {
+          "label": "Service color",
+          "help": "Use the color of the appointment's service."
+        },
+        "doctor": {
+          "label": "Doctor color",
+          "help": "Use the color of the assigned doctor."
+        },
+        "calendar": {
+          "label": "Calendar color",
+          "help": "Use the color of the calendar (room) the appointment belongs to."
+        }
+      },
+      "allOffWarning": "With every level off, appointments without their own color tag have no color and use the default look.",
+      "customizedHint": "This calendar has its own color source, which replaces the General one.",
+      "inheritedHint": "This calendar inherits the General color source. Saving creates its own configuration."
+    },
     "table": {
       "status": "Status",
       "scope": "Scope",

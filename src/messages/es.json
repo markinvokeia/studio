@@ -9076,6 +9076,38 @@
     "readOnlyNotice": "Solo lectura: no tenés permiso para modificar los colores de calendario.",
     "restoreDefaults": "Restaurar por defecto",
     "unsavedChangesConfirm": "Tenés cambios sin guardar en esta vista. ¿Descartarlos y cambiar de calendario?",
+    "colorSource": {
+      "title": "Origen del color",
+      "description": "Elige qué niveles se tienen en cuenta al pintar una cita. La cadena va de lo más específico a lo más general: color de la cita > servicio > doctor > calendario. Desactiva un nivel para saltarlo.",
+      "save": "Guardar origen del color",
+      "saved": "Origen del color guardado",
+      "saveError": "No pudimos guardar el origen del color",
+      "revert": "Usar General",
+      "revertSuccess": "El calendario vuelve a usar el origen de color general",
+      "revertError": "No pudimos revertir el origen del color",
+      "alwaysActive": "Siempre activo",
+      "levels": {
+        "appointment": {
+          "label": "Etiqueta de color de la cita",
+          "help": "El color que un usuario elige en la propia cita. Siempre gana."
+        },
+        "service": {
+          "label": "Color del servicio",
+          "help": "Usar el color del servicio de la cita."
+        },
+        "doctor": {
+          "label": "Color del doctor",
+          "help": "Usar el color del doctor asignado."
+        },
+        "calendar": {
+          "label": "Color del calendario",
+          "help": "Usar el color del calendario (consultorio) al que pertenece la cita."
+        }
+      },
+      "allOffWarning": "Con todos los niveles desactivados, las citas sin etiqueta de color propia quedan sin color y usan el aspecto por defecto.",
+      "customizedHint": "Este calendario tiene su propio origen de color, que reemplaza al General.",
+      "inheritedHint": "Este calendario hereda el origen de color General. Al guardar se crea su propia configuración."
+    },
     "table": {
       "status": "Estado",
       "scope": "Alcance",

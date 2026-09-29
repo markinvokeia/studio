@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import { Can } from '@/components/auth/Can';
+import { ColorSourceSettings } from '@/components/calendar/color-source-settings';
 import { StatusDisplayMatrix } from '@/components/calendar/status-display-matrix';
 
 import { APPOINTMENT_STATUSES, DEFAULT_STATUS_DISPLAY } from '@/constants/appointment-status';
@@ -22,14 +23,22 @@ import { useAsyncAction, useKeyedAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
+import { DEFAULT_COLOR_SOURCES } from '@/lib/appointment-color';
 import { mergeStatusMatrix } from '@/lib/appointment-status-display';
 import type {
   AppointmentStatus,
   AppointmentStatusDisplay,
   AppointmentStatusDisplayMatrix,
   Calendar,
+  CalendarColorSourceRow,
+  CalendarColorSources,
   CalendarStatusDisplayRow,
 } from '@/lib/types';
+import {
+  deleteColorSourceOverride,
+  fetchColorSourceRows,
+  upsertColorSourceRow,
+} from '@/services/calendar-color-source';
 import {
   deleteCalendarOverride,
   fetchStatusDisplayRows,
@@ -37,6 +46,7 @@ import {
 } from '@/services/calendar-status-display';
 import { fetchAppointmentCalendars } from '@/services/appointments';
 import { REQUEST_TIMEOUT_MS, isTimeoutError } from '@/services/api';
+import { useCalendarColorSourceStore } from '@/stores/calendar-color-source-store';
 import { useCalendarStatusDisplayStore } from '@/stores/calendar-status-display-store';
 import { cn } from '@/lib/utils';
 
@@ -72,15 +82,18 @@ export default function CalendarColorsConfigPage() {
   const canUpdate = hasPermission(CALENDAR_DISPLAY_PERMISSIONS.UPDATE);
   const { toast } = useToast();
   const setStoreRows = useCalendarStatusDisplayStore((s) => s.setRows);
+  const setStoreColorSourceRows = useCalendarColorSourceStore((s) => s.setRows);
 
   const [scope, setScope] = React.useState<Scope>(GENERAL_SCOPE);
   const [matrix, setMatrix] = React.useState<AppointmentStatusDisplayMatrix>(DEFAULT_STATUS_DISPLAY);
   const [initialMatrix, setInitialMatrix] = React.useState<AppointmentStatusDisplayMatrix>(DEFAULT_STATUS_DISPLAY);
+  const [sources, setSources] = React.useState<CalendarColorSources>(DEFAULT_COLOR_SOURCES);
+  const [initialSources, setInitialSources] = React.useState<CalendarColorSources>(DEFAULT_COLOR_SOURCES);
   const [replicateOpen, setReplicateOpen] = React.useState(false);
   const [revertAllOpen, setRevertAllOpen] = React.useState(false);
 
   const {
-    data: { rows, calendars },
+    data: { rows, colorRows, calendars },
     setData,
     isLoading,
     isRefreshing,
@@ -88,13 +101,14 @@ export default function CalendarColorsConfigPage() {
     reload: load,
   } = useDataLoader(
     async (signal) => {
-      const [fetchedRows, fetchedCalendars] = await Promise.all([
+      const [fetchedRows, fetchedColorRows, fetchedCalendars] = await Promise.all([
         fetchStatusDisplayRows({ signal }),
+        fetchColorSourceRows({ signal }),
         fetchAppointmentCalendars(),
       ]);
-      return { rows: fetchedRows, calendars: fetchedCalendars };
+      return { rows: fetchedRows, colorRows: fetchedColorRows, calendars: fetchedCalendars };
     },
-    { rows: [] as CalendarStatusDisplayRow[], calendars: [] as Calendar[] }
+    { rows: [] as CalendarStatusDisplayRow[], colorRows: [] as CalendarColorSourceRow[], calendars: [] as Calendar[] }
   );
 
   /** Aplica el resultado de una mutación a la vista y al store que lee el calendario. */
@@ -129,7 +143,34 @@ export default function CalendarColorsConfigPage() {
     setInitialMatrix(next);
   }, [scope, rows, generalMatrix]);
 
-  const isDirty = JSON.stringify(matrix) !== JSON.stringify(initialMatrix);
+  /** Aplica el resultado de una mutación de "Origen del color" a la vista y al store. */
+  const commitColorRows = React.useCallback((nextRows: CalendarColorSourceRow[]) => {
+    setData((prev) => ({ ...prev, colorRows: nextRows }));
+    setStoreColorSourceRows(nextRows);
+  }, [setData, setStoreColorSourceRows]);
+
+  const generalSources = React.useMemo<CalendarColorSources>(() => {
+    const row = colorRows.find((r) => r.calendar_id === null);
+    return row ? { service: row.service, doctor: row.doctor, calendar: row.calendar } : DEFAULT_COLOR_SOURCES;
+  }, [colorRows]);
+
+  const scopeColorRow = React.useMemo(
+    () => (scope === GENERAL_SCOPE ? undefined : colorRows.find((r) => r.calendar_id === scope)),
+    [colorRows, scope],
+  );
+
+  // Igual que la matriz: el override de un calendario reemplaza a la general por completo.
+  React.useEffect(() => {
+    const next: CalendarColorSources = scopeColorRow
+      ? { service: scopeColorRow.service, doctor: scopeColorRow.doctor, calendar: scopeColorRow.calendar }
+      : generalSources;
+    setSources(next);
+    setInitialSources(next);
+  }, [scopeColorRow, generalSources]);
+
+  const isMatrixDirty = JSON.stringify(matrix) !== JSON.stringify(initialMatrix);
+  const isSourcesDirty = JSON.stringify(sources) !== JSON.stringify(initialSources);
+  const isDirty = isMatrixDirty || isSourcesDirty;
 
   // Tras un timeout la escritura pudo aplicarse igual: se relee para mostrar el estado real.
   const reloadOnTimeout = (error: unknown) => { if (isTimeoutError(error)) load(); };
@@ -215,8 +256,42 @@ export default function CalendarColorsConfigPage() {
     }
   );
 
-  const isBusy = save.isPending || revertAll.isPending || revertStatus.hasPending || replicate.isPending || isRefreshing;
-  const canSave = canUpdate && isDirty && !isBusy;
+  const saveSources = useAsyncAction(
+    async () => {
+      const calendarId = scope === GENERAL_SCOPE ? null : scope;
+      await upsertColorSourceRow(calendarId, sources, mutationOptions);
+      return [
+        ...colorRows.filter((r) => r.calendar_id !== calendarId),
+        { calendar_id: calendarId, ...sources },
+      ] as CalendarColorSourceRow[];
+    },
+    {
+      onSuccess: (nextRows) => {
+        commitColorRows(nextRows);
+        toast({ title: t('colorSource.saved') });
+      },
+      onError: reloadOnTimeout,
+      errorTitle: t('colorSource.saveError'),
+    }
+  );
+
+  const revertSources = useAsyncAction(
+    async (calendarId: string) => {
+      await deleteColorSourceOverride(calendarId, mutationOptions);
+      return calendarId;
+    },
+    {
+      onSuccess: (calendarId) => {
+        commitColorRows(colorRows.filter((r) => r.calendar_id !== calendarId));
+        toast({ title: t('colorSource.revertSuccess') });
+      },
+      onError: reloadOnTimeout,
+      errorTitle: t('colorSource.revertError'),
+    }
+  );
+
+  const isBusy = save.isPending || saveSources.isPending || revertSources.isPending || revertAll.isPending || revertStatus.hasPending || replicate.isPending || isRefreshing;
+  const canSave = canUpdate && isMatrixDirty && !isBusy;
 
   const handleChange = (status: AppointmentStatus, patch: Partial<AppointmentStatusDisplay>) => {
     setMatrix((m) => ({ ...m, [status]: { ...m[status], ...patch } }));
@@ -340,6 +415,18 @@ export default function CalendarColorsConfigPage() {
         <p className="px-1 text-xs text-muted-foreground">
           {scope === GENERAL_SCOPE ? t('scope.generalHint') : t('scope.calendarHint')}
         </p>
+
+        <ColorSourceSettings
+          value={sources}
+          onChange={setSources}
+          disabled={!canUpdate || isBusy}
+          isDirty={isSourcesDirty}
+          isSaving={saveSources.isPending}
+          onSave={() => saveSources.run()}
+          hasOverride={scope === GENERAL_SCOPE ? undefined : Boolean(scopeColorRow)}
+          onRevert={scope === GENERAL_SCOPE ? undefined : () => revertSources.run(scope)}
+          isReverting={revertSources.isPending}
+        />
 
         <StatusDisplayMatrix
           statuses={APPOINTMENT_STATUSES}

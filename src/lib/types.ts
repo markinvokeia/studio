@@ -667,6 +667,19 @@ export type CancellationReason =
 export type AppointmentColorSource = 'appointment' | 'service' | 'doctor' | 'calendar' | 'none';
 
 /**
+ * Niveles heredables de la cadena de color de una cita (Configuración → Colores
+ * de calendario → Origen del color). El color propio de la cita no se
+ * configura: es una elección explícita del usuario y siempre gana.
+ */
+export type InheritedColorLevel = 'service' | 'doctor' | 'calendar';
+export type CalendarColorSources = Record<InheritedColorLevel, boolean>;
+
+/** `calendar_id: null` es la configuración general de la clínica. */
+export type CalendarColorSourceRow = CalendarColorSources & {
+  calendar_id: string | null;
+};
+
+/**
  * Matriz de colores de estado configurable por cliente (Configuración → Colores
  * de calendario). `calendarMode` gobierna cuándo el estado pinta la card del
  * calendario; `badgeStyle` gobierna el resto de la app (badges, chips, notifs).
