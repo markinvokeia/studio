@@ -1,0 +1,318 @@
+{
+  "name": "Clinic Preferences — Upsert",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- La clínica se resuelve igual que en `clinic/patient-portal-config`: una sola\n-- instalación, una sola clínica activa. No se depende de un claim del JWT.\nSELECT cp.id,\n       cp.clinic_id,\n       cp.discounts_enabled,\n       cp.discount_scope,\n       cp.default_discount_pct,\n       cp.max_discount_pct,\n       cp.identity_document_required\nFROM public.clinic_preferences cp\nWHERE cp.clinic_id = (SELECT id FROM public.clinic WHERE is_active IS NOT FALSE ORDER BY id LIMIT 1)\nLIMIT 1",
+        "options": {}
+      },
+      "id": "86178dd4-9b7f-42dd-8cf0-8ddba778023f",
+      "name": "Buscar Preferencias",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -80,
+        -192
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const row = $input.first()?.json;\n\nif (row && row.error) {\n  return [\n    {\n      json: {\n        statusCode: 500,\n        body: {\n          message: \"No se pudieron leer las preferencias de la clínica.\",\n        },\n      },\n    },\n  ];\n}\n\n// Sin fila todavía (clínica recién creada, o el script 068 aún no corrió):\n// se devuelven los valores por defecto en lugar de un 404. El frontend no\n// distingue los dos casos y así nunca queda sin configuración.\nif (!row || !row.id) {\n  return [\n    {\n      json: {\n        statusCode: 200,\n        body: {\n          discounts_enabled: false,\n          discount_scope: \"line\",\n          default_discount_pct: 0,\n          max_discount_pct: 100,\n          identity_document_required: false,\n        },\n      },\n    },\n  ];\n}\n\nreturn [\n  {\n    json: {\n      statusCode: 200,\n      body: {\n        discounts_enabled: row.discounts_enabled === true,\n        discount_scope: row.discount_scope === \"total\" ? \"total\" : \"line\",\n        default_discount_pct: Number(row.default_discount_pct ?? 0),\n        max_discount_pct: Number(row.max_discount_pct ?? 100),\n        identity_document_required: row.identity_document_required === true,\n      },\n    },\n  },\n];\n"
+      },
+      "id": "1953fdae-175a-4055-aeb9-9ad6511b3061",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        144,
+        -192
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      },
+      "id": "9231086f-7fd6-4ff4-baf9-4c6f25e66bae",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        368,
+        -192
+      ]
+    },
+    {
+      "parameters": {
+        "path": "clinic/preferences",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "37074c8f-619f-4e41-8c58-d4f1a9109539",
+      "name": "GET /clinic/preferences",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -304,
+        -192
+      ],
+      "webhookId": "39aed54a-02bb-4eaf-bb99-3e7a3d0091e0",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Política de descuentos + obligatoriedad del documento de identidad. Nada de\n// nombre, RUT ni datos fiscales: eso vive en Datos de la Clínica.\nconst body = $input.first().json.body ?? $input.first().json ?? {};\n\nconst asBool = (v) => v === true || v === \"true\";\nconst asPct = (v, fallback) => {\n  const n = Number(v);\n  if (!Number.isFinite(n)) return fallback;\n  // Se acota en el servidor además de en el formulario: el CHECK de la tabla\n  // rechazaría el INSERT y el usuario vería un 500 sin explicación.\n  return Math.min(100, Math.max(0, Math.round(n * 100) / 100));\n};\n\nreturn [\n  {\n    json: {\n      discounts_enabled: asBool(body.discounts_enabled),\n      discount_scope: body.discount_scope === \"total\" ? \"total\" : \"line\",\n      default_discount_pct: asPct(body.default_discount_pct, 0),\n      max_discount_pct: asPct(body.max_discount_pct, 100),\n      identity_document_required: asBool(body.identity_document_required),\n    },\n  },\n];\n"
+      },
+      "id": "5023bd2b-7fd5-4506-9b96-9850b1da3df6",
+      "name": "Validar Campos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- INSERT … ON CONFLICT: la fila puede no existir si la clínica se creó después\n-- de correr el script 068.\nINSERT INTO public.clinic_preferences (\n    clinic_id, discounts_enabled, discount_scope, default_discount_pct, max_discount_pct, identity_document_required\n)\nSELECT (SELECT id FROM public.clinic WHERE is_active IS NOT FALSE ORDER BY id LIMIT 1),\n       $1, $2, $3, $4, $5\nON CONFLICT (clinic_id) DO UPDATE\n    SET discounts_enabled    = EXCLUDED.discounts_enabled,\n        discount_scope       = EXCLUDED.discount_scope,\n        default_discount_pct = EXCLUDED.default_discount_pct,\n        max_discount_pct     = EXCLUDED.max_discount_pct,\n        identity_document_required = EXCLUDED.identity_document_required\nRETURNING id,\n          discounts_enabled,\n          discount_scope,\n          default_discount_pct,\n          max_discount_pct,\n          identity_document_required",
+        "options": {
+          "queryReplacement": "={{ [ $json.discounts_enabled, $json.discount_scope, $json.default_discount_pct, $json.max_discount_pct, $json.identity_document_required ] }}"
+        }
+      },
+      "id": "12437e93-a16e-4221-82d1-ca7845525175",
+      "name": "Guardar Preferencias",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        144,
+        32
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst row = $input.first()?.json;\n\nif (!row || row.error || !row.id) {\n  return [{ json: { statusCode: 500, body: { message: 'No se pudieron guardar las preferencias de la clínica.' } } }];\n}\n\nreturn [{ json: { statusCode: 200, body: {\n  success: true,\n  discounts_enabled:    row.discounts_enabled === true,\n  discount_scope:       row.discount_scope === 'total' ? 'total' : 'line',\n  default_discount_pct: Number(row.default_discount_pct ?? 0),\n  max_discount_pct:     Number(row.max_discount_pct ?? 100),\n  identity_document_required: row.identity_document_required === true\n} } }];\n"
+      },
+      "id": "8a9c1e89-31c0-4449-ad41-52412d6a89fe",
+      "name": "Formatear Respuesta1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        368,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      },
+      "id": "0f6ba766-00a5-43fc-a3f2-45ee0a7d2eb6",
+      "name": "Responder1",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        576,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "clinic/preferences/upsert",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b5caaca4-675b-4c39-b418-8848ca2edf35",
+      "name": "POST /clinic/preferences/upsert",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -304,
+        32
+      ],
+      "webhookId": "c864527a-70b5-4e07-b43f-d73e266aac03",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "POST /clinic/preferences/upsert": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
+            "content-length": "133",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3ODc5NDg1MTd9.5h5aW4lPlX4CAwyo86aHTd9rFUR2BbeBse8ywXfBKOI",
+            "cache-control": "no-cache",
+            "content-type": "application/json",
+            "origin": "http://localhost:3000",
+            "pragma": "no-cache",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/",
+            "sec-ch-ua": "\"Brave\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "sec-gpc": "1",
+            "x-forwarded-for": "187.7.185.111",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "d4e738525fe6",
+            "x-real-ip": "187.7.185.111"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "discounts_enabled": true,
+            "discount_scope": "line",
+            "default_discount_pct": 10,
+            "max_discount_pct": 100,
+            "identity_document_required": true
+          },
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/clinic/preferences/upsert",
+          "executionMode": "production"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Buscar Preferencias": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET /clinic/preferences": {
+      "main": [
+        [
+          {
+            "node": "Buscar Preferencias",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Campos": {
+      "main": [
+        [
+          {
+            "node": "Guardar Preferencias",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar Preferencias": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta1": {
+      "main": [
+        [
+          {
+            "node": "Responder1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /clinic/preferences/upsert": {
+      "main": [
+        [
+          {
+            "node": "Validar Campos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "c5596b7e-7fb6-430a-9134-eed6f8608f78",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
+  },
+  "nodeGroups": [],
+  "id": "NeYzJlDorjOJ1YuJ",
+  "tags": []
+}

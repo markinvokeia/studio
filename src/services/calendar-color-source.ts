@@ -1,6 +1,6 @@
 import { API_ROUTES } from '@/constants/routes';
-import { DEFAULT_COLOR_SOURCES } from '@/lib/appointment-color';
-import type { CalendarColorSourceRow, CalendarColorSources } from '@/lib/types';
+import { CALENDAR_VIEW_HIGHLIGHTS, DEFAULT_COLOR_SETTINGS, DEFAULT_COLOR_SOURCES } from '@/lib/appointment-color';
+import type { CalendarColorSettings, CalendarColorSourceRow, CalendarViewHighlight } from '@/lib/types';
 import { api, type ApiRequestOptions } from '@/services/api';
 
 /**
@@ -21,6 +21,10 @@ function unwrapRows(data: unknown): unknown[] {
 
 const toFlag = (value: unknown, fallback: boolean): boolean => (typeof value === 'boolean' ? value : fallback);
 
+/** Filas viejas o un backend sin la columna todavía: sin resaltado. */
+const toHighlight = (value: unknown): CalendarViewHighlight =>
+  (CALENDAR_VIEW_HIGHLIGHTS as readonly unknown[]).includes(value) ? (value as CalendarViewHighlight) : DEFAULT_COLOR_SETTINGS.highlight;
+
 function toRow(raw: any): CalendarColorSourceRow | null {
   // Una respuesta vacía de n8n llega como `{success: true}` sin las columnas: no es una fila.
   if (!raw || typeof raw !== 'object' || !('use_service' in raw || 'use_doctor' in raw || 'use_calendar' in raw)) return null;
@@ -29,6 +33,7 @@ function toRow(raw: any): CalendarColorSourceRow | null {
     service: toFlag(raw.use_service, DEFAULT_COLOR_SOURCES.service),
     doctor: toFlag(raw.use_doctor, DEFAULT_COLOR_SOURCES.doctor),
     calendar: toFlag(raw.use_calendar, DEFAULT_COLOR_SOURCES.calendar),
+    highlight: toHighlight(raw.view_highlight),
   };
 }
 
@@ -42,14 +47,15 @@ export async function fetchColorSourceRows(options?: ApiRequestOptions): Promise
 /** Guarda una fila (general u override de un calendario). */
 export async function upsertColorSourceRow(
   calendarId: string | null,
-  sources: CalendarColorSources,
+  settings: CalendarColorSettings,
   options?: ApiRequestOptions,
 ): Promise<void> {
   const response = await api.post(API_ROUTES.CALENDAR_COLOR_SOURCE.UPSERT, {
     calendar_id: calendarId,
-    use_service: sources.service,
-    use_doctor: sources.doctor,
-    use_calendar: sources.calendar,
+    use_service: settings.service,
+    use_doctor: settings.doctor,
+    use_calendar: settings.calendar,
+    view_highlight: settings.highlight,
   }, undefined, undefined, options);
 
   const result = Array.isArray(response) ? response[0] : response;

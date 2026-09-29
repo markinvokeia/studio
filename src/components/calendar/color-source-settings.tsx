@@ -5,18 +5,20 @@ import { Save, Undo2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 
 import { Can } from '@/components/auth/Can';
 
 import { CALENDAR_DISPLAY_PERMISSIONS } from '@/constants/permissions';
-import type { CalendarColorSources, InheritedColorLevel } from '@/lib/types';
+import { CALENDAR_VIEW_HIGHLIGHTS } from '@/lib/appointment-color';
+import type { CalendarColorSettings, CalendarViewHighlight, InheritedColorLevel } from '@/lib/types';
 
 const LEVELS: InheritedColorLevel[] = ['service', 'doctor', 'calendar'];
 
 interface ColorSourceSettingsProps {
-  value: CalendarColorSources;
-  onChange: (next: CalendarColorSources) => void;
+  value: CalendarColorSettings;
+  onChange: (next: CalendarColorSettings) => void;
   /** Sin permiso de edición, o con una operación en curso. */
   disabled: boolean;
   isDirty: boolean;
@@ -104,6 +106,33 @@ export function ColorSourceSettings({
       </ul>
 
       {allOff && <p className="text-xs text-amber-600 dark:text-amber-400">{t('allOffWarning')}</p>}
+
+      {/* Resaltado de la vista: reutiliza el color del calendario para que, con un
+          calendario por sede, se distinga de un vistazo en cuál se está. */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border px-3 py-2.5">
+        <div className="min-w-0 max-w-xl">
+          <label htmlFor="color-highlight" className="cursor-pointer text-sm font-medium">
+            {t('highlight.label')}
+          </label>
+          <p className="text-xs leading-relaxed text-muted-foreground">{t('highlight.help')}</p>
+        </div>
+        <Select
+          value={value.highlight}
+          disabled={disabled}
+          onValueChange={(highlight) => onChange({ ...value, highlight: highlight as CalendarViewHighlight })}
+        >
+          <SelectTrigger id="color-highlight" className="h-9 w-48 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {CALENDAR_VIEW_HIGHLIGHTS.map((option) => (
+              <SelectItem key={option} value={option}>
+                {t(`highlight.options.${option}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       {hasOverride !== undefined && (
         <p className="text-xs text-muted-foreground">{hasOverride ? t('customizedHint') : t('inheritedHint')}</p>
       )}

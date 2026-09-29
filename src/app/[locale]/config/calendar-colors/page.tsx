@@ -23,7 +23,7 @@ import { useAsyncAction, useKeyedAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
-import { DEFAULT_COLOR_SOURCES } from '@/lib/appointment-color';
+import { DEFAULT_COLOR_SETTINGS } from '@/lib/appointment-color';
 import { mergeStatusMatrix } from '@/lib/appointment-status-display';
 import type {
   AppointmentStatus,
@@ -31,7 +31,7 @@ import type {
   AppointmentStatusDisplayMatrix,
   Calendar,
   CalendarColorSourceRow,
-  CalendarColorSources,
+  CalendarColorSettings,
   CalendarStatusDisplayRow,
 } from '@/lib/types';
 import {
@@ -87,8 +87,8 @@ export default function CalendarColorsConfigPage() {
   const [scope, setScope] = React.useState<Scope>(GENERAL_SCOPE);
   const [matrix, setMatrix] = React.useState<AppointmentStatusDisplayMatrix>(DEFAULT_STATUS_DISPLAY);
   const [initialMatrix, setInitialMatrix] = React.useState<AppointmentStatusDisplayMatrix>(DEFAULT_STATUS_DISPLAY);
-  const [sources, setSources] = React.useState<CalendarColorSources>(DEFAULT_COLOR_SOURCES);
-  const [initialSources, setInitialSources] = React.useState<CalendarColorSources>(DEFAULT_COLOR_SOURCES);
+  const [sources, setSources] = React.useState<CalendarColorSettings>(DEFAULT_COLOR_SETTINGS);
+  const [initialSources, setInitialSources] = React.useState<CalendarColorSettings>(DEFAULT_COLOR_SETTINGS);
   const [replicateOpen, setReplicateOpen] = React.useState(false);
   const [revertAllOpen, setRevertAllOpen] = React.useState(false);
 
@@ -149,9 +149,11 @@ export default function CalendarColorsConfigPage() {
     setStoreColorSourceRows(nextRows);
   }, [setData, setStoreColorSourceRows]);
 
-  const generalSources = React.useMemo<CalendarColorSources>(() => {
+  const generalSources = React.useMemo<CalendarColorSettings>(() => {
     const row = colorRows.find((r) => r.calendar_id === null);
-    return row ? { service: row.service, doctor: row.doctor, calendar: row.calendar } : DEFAULT_COLOR_SOURCES;
+    return row
+      ? { service: row.service, doctor: row.doctor, calendar: row.calendar, highlight: row.highlight }
+      : DEFAULT_COLOR_SETTINGS;
   }, [colorRows]);
 
   const scopeColorRow = React.useMemo(
@@ -161,8 +163,8 @@ export default function CalendarColorsConfigPage() {
 
   // Igual que la matriz: el override de un calendario reemplaza a la general por completo.
   React.useEffect(() => {
-    const next: CalendarColorSources = scopeColorRow
-      ? { service: scopeColorRow.service, doctor: scopeColorRow.doctor, calendar: scopeColorRow.calendar }
+    const next: CalendarColorSettings = scopeColorRow
+      ? { service: scopeColorRow.service, doctor: scopeColorRow.doctor, calendar: scopeColorRow.calendar, highlight: scopeColorRow.highlight }
       : generalSources;
     setSources(next);
     setInitialSources(next);

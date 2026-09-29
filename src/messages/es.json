@@ -9104,6 +9104,16 @@
           "help": "Usar el color del calendario (consultorio) al que pertenece la cita."
         }
       },
+      "highlight": {
+        "label": "Resaltar la vista con el color del calendario",
+        "help": "Cuando hay un único calendario en pantalla, su color se refleja en la vista del calendario para distinguir de un vistazo entre sedes (un calendario por sede). \"Franja superior\" y \"Marco y etiqueta\" solo marcan los bordes; \"Toda la vista\" tiñe casi todo (marco, panel de agendas, encabezado y grilla) y deja solo la barra de navegación con el tema normal. Usa el color definido en Configuración → Calendarios.",
+        "options": {
+          "off": "Desactivado",
+          "subtle": "Franja superior",
+          "strong": "Marco y etiqueta",
+          "full": "Toda la vista"
+        }
+      },
       "allOffWarning": "Con todos los niveles desactivados, las citas sin etiqueta de color propia quedan sin color y usan el aspecto por defecto.",
       "customizedHint": "Este calendario tiene su propio origen de color, que reemplaza al General.",
       "inheritedHint": "Este calendario hereda el origen de color General. Al guardar se crea su propia configuración."

@@ -82,6 +82,7 @@ import { AlertTriangle, BellRing, BookOpenText, Building2, Calendar as CalendarI
 import { useTranslations, useLocale } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
+import { useTheme } from 'next-themes';
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
 import { AppointmentPanel } from '@/components/appointments/AppointmentPanel';
 import { AppointmentHistorySheet } from '@/components/appointments/AppointmentHistorySheet';
@@ -107,7 +108,7 @@ import { canReschedule, normalizeAppointmentStatus, normalizeCancellationReason 
 import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
 import { resolveEventStatusColors, resolveStatusDisplay } from '@/lib/appointment-status-display';
 import { useCalendarStatusDisplayStore } from '@/stores/calendar-status-display-store';
-import { getOwnAppointmentColor, resolveAppointmentColor } from '@/lib/appointment-color';
+import { buildCalendarTintVars, darkenColor, getOwnAppointmentColor, getReadableTextColor, isWhiteColor, resolveAppointmentColor } from '@/lib/appointment-color';
 import { resolveColorSources, useCalendarColorSourceStore } from '@/stores/calendar-color-source-store';
 import { useAppointmentReschedule } from '@/hooks/use-appointment-reschedule';
 import { CancellationNoteDialog } from '@/components/appointments/CancellationNoteDialog';
@@ -1039,6 +1040,8 @@ export default function AppointmentsPage() {
         });
     }, []);
     const isCustomMode = calendarMode === 'custom';
+    // `resolvedTheme` es 'dark' solo con el tema Oscuro; decide el tono del teñido de la vista.
+    const { resolvedTheme } = useTheme();
     const firstVisibleCalendarId = React.useMemo(
         () => calendars.find((calendar) => selectedCalendarIds.includes(calendar.id))?.id ?? null,
         [calendars, selectedCalendarIds],
@@ -1058,6 +1061,41 @@ export default function AppointmentsPage() {
         () => (isCustomMode && activeCalendarId ? [activeCalendarId] : selectedCalendarIds),
         [isCustomMode, activeCalendarId, selectedCalendarIds],
     );
+    // Resaltado de la vista con el color del calendario que se está viendo, para
+    // distinguir de un vistazo entre sedes (un calendario por sede). Se configura en
+    // Configuración → Colores de calendario (general u override por calendario). Solo
+    // aplica con un único calendario visible: con varios no hay una sede/color que mostrar.
+    const calendarHighlight = React.useMemo(() => {
+        const visibleIds = isCustomMode && activeCalendarId ? [activeCalendarId] : selectedCalendarIds;
+        if (visibleIds.length !== 1) return null;
+        const { highlight } = resolveColorSources(generalColorSources, colorSourcesByCalendar, visibleIds[0]);
+        if (highlight === 'off') return null;
+        const calendar = calendars.find((c) => c.id === visibleIds[0]);
+        if (!calendar?.color || isWhiteColor(calendar.color)) return null;
+        return {
+            mode: highlight,
+            color: calendar.color,
+            textColor: getReadableTextColor(calendar.color),
+            label: calendar.sede_name || calendar.name,
+            // Modo "toda la vista": superficies teñidas con el color del calendario. Se
+            // redefinen sobre el contenedor, así que la barra de navegación (fuera de él),
+            // los diálogos y los popovers (portados al body) conservan el tema normal.
+            tintVars: highlight === 'full' ? buildCalendarTintVars(calendar.color, resolvedTheme === 'dark') : null,
+            // Fondo del layout (detrás de todo): un poco más oscuro que el color del calendario.
+            // El marco que rodea a la vista conserva el color original, así los dos se distinguen.
+            backdropColor: darkenColor(calendar.color, 0.7),
+        };
+    }, [isCustomMode, activeCalendarId, selectedCalendarIds, generalColorSources, colorSourcesByCalendar, calendars, resolvedTheme]);
+    // En "toda la vista" el fondo del layout (el de PrivateRoute, fuera de esta página) también
+    // toma el color del calendario: se publica como `--page-tint` en <html> y se retira al
+    // salir del modo o de la página. La barra de navegación tiene su propio fondo y no cambia.
+    const pageTint = calendarHighlight?.tintVars ? calendarHighlight.backdropColor : null;
+    React.useEffect(() => {
+        if (!pageTint) return;
+        const root = document.documentElement;
+        root.style.setProperty('--page-tint', pageTint);
+        return () => { root.style.removeProperty('--page-tint'); };
+    }, [pageTint]);
     // Refresco en vivo: cuando otro usuario crea/edita/reprograma/reasigna/cambia
     // color/cancela una cita, el backend publica `calendar_changed` con la fila de
     // la cita y este hook lo reemite como `clinic:calendar:patch` (lote de filas).
@@ -5148,7 +5186,12 @@ export default function AppointmentsPage() {
                         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                     </div>
                 ) : (
-                    <div className="flex h-full">
+                    <div
+                        className={cn('flex h-full', calendarHighlight?.tintVars && 'gap-2 rounded-xl p-2')}
+                        style={calendarHighlight?.tintVars
+                            ? { backgroundColor: calendarHighlight.color, ...(calendarHighlight.tintVars as React.CSSProperties) }
+                            : undefined}
+                    >
                         {isCustomMode && agendasPanelOpen && (
                             <CalendarAgendasPanel
                                 sedeGroups={calendarSedeGroups.sedeGroups}
@@ -5165,6 +5208,25 @@ export default function AppointmentsPage() {
                             />
                         )}
                         <div className={cn('relative h-full min-w-0 flex-1', isCustomMode && agendasPanelOpen && '[&_.calendar-container]:rounded-l-none')}>
+                        {calendarHighlight && calendarHighlight.mode !== 'full' && (
+                            <>
+                                <div
+                                    aria-hidden
+                                    className={cn('pointer-events-none absolute inset-0 z-30', calendarHighlight.mode === 'strong' ? 'border-[3px]' : 'border-t-4')}
+                                    style={{ borderColor: calendarHighlight.color }}
+                                />
+                                {calendarHighlight.mode === 'strong' && (
+                                    // Abajo a la izquierda: arriba están los controles del encabezado.
+                                    <div
+                                        aria-hidden
+                                        className="pointer-events-none absolute bottom-[3px] left-3 z-30 max-w-[60%] truncate rounded-t-md px-2 py-0.5 text-[11px] font-semibold shadow-sm"
+                                        style={{ backgroundColor: calendarHighlight.color, color: calendarHighlight.textColor }}
+                                    >
+                                        {calendarHighlight.label}
+                                    </div>
+                                )}
+                            </>
+                        )}
                         {gapsActive && (
                             <CalendarGapsPanel
                                 gaps={calendarGaps}

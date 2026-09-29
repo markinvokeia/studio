@@ -9104,6 +9104,16 @@
           "help": "Use the color of the calendar (room) the appointment belongs to."
         }
       },
+      "highlight": {
+        "label": "Highlight the view with the calendar color",
+        "help": "When a single calendar is on screen, its color is reflected on the calendar view so you can tell branches apart at a glance (one calendar per branch). \"Top stripe\" and \"Frame and label\" only mark the edges; \"Whole view\" tints almost everything (frame, agendas panel, header and grid) and leaves only the navigation bar with the normal theme. It uses the color set in Settings → Calendars.",
+        "options": {
+          "off": "Off",
+          "subtle": "Top stripe",
+          "strong": "Frame and label",
+          "full": "Whole view"
+        }
+      },
       "allOffWarning": "With every level off, appointments without their own color tag have no color and use the default look.",
       "customizedHint": "This calendar has its own color source, which replaces the General one.",
       "inheritedHint": "This calendar inherits the General color source. Saving creates its own configuration."

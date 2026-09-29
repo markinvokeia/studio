@@ -674,8 +674,22 @@ export type AppointmentColorSource = 'appointment' | 'service' | 'doctor' | 'cal
 export type InheritedColorLevel = 'service' | 'doctor' | 'calendar';
 export type CalendarColorSources = Record<InheritedColorLevel, boolean>;
 
+/**
+ * Cuánto refleja la vista del calendario el color del calendario que se está
+ * viendo, para distinguir de un vistazo entre sedes (un calendario por sede).
+ * off = nada, subtle = franja superior, strong = marco + etiqueta, full = toda la
+ * vista teñida (marco, panel de agendas, encabezado y grilla; solo la barra de
+ * navegación queda con el tema normal).
+ */
+export type CalendarViewHighlight = 'off' | 'subtle' | 'strong' | 'full';
+
+/** Lo que se configura por alcance en Colores de calendario → Origen del color. */
+export type CalendarColorSettings = CalendarColorSources & {
+  highlight: CalendarViewHighlight;
+};
+
 /** `calendar_id: null` es la configuración general de la clínica. */
-export type CalendarColorSourceRow = CalendarColorSources & {
+export type CalendarColorSourceRow = CalendarColorSettings & {
   calendar_id: string | null;
 };
 
