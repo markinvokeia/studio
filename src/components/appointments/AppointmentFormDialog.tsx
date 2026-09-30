@@ -53,12 +53,10 @@ import { AlertTriangle, CalendarDays, Check, ChevronsUpDown, ClipboardList, Cloc
 import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
 import { usePatientView } from '@/stores/patient-view-store';
 import { usePermissions } from '@/hooks/usePermissions';
-import { PATIENT_FINANCIAL_VIEW_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
+import { BUSINESS_CONFIG_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
-import { BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
-import { usePermissions } from '@/hooks/usePermissions';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 interface WorkflowStep {
@@ -192,7 +190,6 @@ export function AppointmentFormDialog({
      *
      * La salida es "Cancelar operación" en el aviso, que es explícita.
      */
-    const { hasPermission } = usePermissions();
     const canAssignTechnician = hasPermission(BUSINESS_CONFIG_PERMISSIONS.APPOINTMENT_ASSIGN_TECHNICIAN);
 
     const isStudyOrderLocked = !!studyOrderContext;
