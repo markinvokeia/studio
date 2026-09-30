@@ -1,0 +1,313 @@
+{
+  "name": "Study Orders - WhatsApp File",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "study-orders/whatsapp-intakes/file",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "wa-file-wh",
+      "name": "Webhook",
+      "webhookId": "study-orders-wa-file",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const userId = $json.jwtPayload?.userId;\nif (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];\nconst q = $json.query || {};\nconst intakeId = (q.intake_id || '').toString().trim();\nconst fileId = parseInt(q.id, 10);\nif (!/^[0-9a-f-]{36}$/i.test(intakeId) || !Number.isFinite(fileId)) {\n  return [{ json: { __error: true, __code: 400, __message: 'intake_id e id son requeridos' } }];\n}\nreturn [{ json: { user_id: String(userId), intake_id: intakeId, file_id: fileId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        0
+      ],
+      "id": "wa-file-validate",
+      "name": "Validar Datos"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "wa-file-ok",
+              "leftValue": "={{ !$json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        520,
+        0
+      ],
+      "id": "wa-file-gate",
+      "name": "Datos OK?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- $1 userId (token)  $2 id del intake  $3 id del adjunto.\n-- Archivo + intake + permiso, los tres a la vez.\nSELECT a.drive_file_id, a.file_name, a.mime_type\n  FROM public.attachments a\n WHERE a.id = $3::int\n   AND a.source_name = 'whatsapp_order_intake'\n   AND a.source_id = $2\n   AND EXISTS (\n       SELECT 1\n         FROM public.user_roles ur\n         JOIN public.role_permissions rp ON rp.role_id = ur.role_id\n         JOIN public.permissions p       ON p.id = rp.permission_id\n        WHERE ur.user_id = $1::uuid\n          AND ur.is_active IS NOT FALSE\n          AND p.code = 'STUDY_ORDERS_VIEW_ALL');",
+        "options": {
+          "queryReplacement": "={{ [ $json.user_id, $json.intake_id, $json.file_id ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        780,
+        0
+      ],
+      "id": "wa-file-load",
+      "name": "Buscar Archivo",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "wa-file-found",
+              "leftValue": "={{ !!$json.drive_file_id }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1040,
+        0
+      ],
+      "id": "wa-file-found",
+      "name": "Encontrado?"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.drive_file_id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1300,
+        -80
+      ],
+      "id": "wa-file-download",
+      "name": "Descargar de Drive",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "k3vQaAkau21se8nC",
+          "name": "Google Drive account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "binary",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1560,
+        -80
+      ],
+      "id": "wa-file-ok",
+      "name": "Responder Archivo"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ code: 404, message: \"Archivo no encontrado o sin permiso\" }) }}",
+        "options": {
+          "responseCode": 404
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1300,
+        100
+      ],
+      "id": "wa-file-404",
+      "name": "Responder 404"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ code: $json.__code || 400, message: $json.__message || \"Solicitud inválida\" }) }}",
+        "options": {
+          "responseCode": "={{ $json.__code || 400 }}"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        780,
+        200
+      ],
+      "id": "wa-file-err",
+      "name": "Responder Error"
+    },
+    {
+      "parameters": {
+        "width": 560,
+        "height": 200,
+        "color": 4,
+        "content": "## GET /study-orders/whatsapp-intakes/file (generado)\n\nOriginal (foto o PDF) de una orden recibida por WhatsApp, para verlo en Invoke.\n\n**Query:** `intake_id`, `id` (attachments.id). Requiere STUDY_ORDERS_VIEW_ALL.\n\nNo editar a mano: `scripts/n8n/generate-study-order-file-workflow.mjs`."
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -260
+      ],
+      "id": "wa-file-note",
+      "name": "Notas"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Datos": {
+      "main": [
+        [
+          {
+            "node": "Datos OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Datos OK?": {
+      "main": [
+        [
+          {
+            "node": "Buscar Archivo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Archivo": {
+      "main": [
+        [
+          {
+            "node": "Encontrado?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Encontrado?": {
+      "main": [
+        [
+          {
+            "node": "Descargar de Drive",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder 404",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar de Drive": {
+      "main": [
+        [
+          {
+            "node": "Responder Archivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}

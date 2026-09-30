@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { WhatsappOrdersSettingsCard } from '@/components/system/whatsapp-orders-settings-card';
 import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAsyncAction } from '@/hooks/use-async-action';
@@ -542,6 +543,8 @@ export default function WhatsAppAgentConfigPage() {
                     )}
                 </CardContent>
             </Card>
+
+            <WhatsappOrdersSettingsCard canUpdate={canUpdate} />
 
             <div className="flex justify-end">
                 {canUpdate && (

@@ -1,0 +1,3023 @@
+{
+  "name": "WhatsApp - Order Agent Tools",
+  "nodes": [
+    {
+      "parameters": {
+        "width": 420,
+        "height": 60,
+        "content": "### 1 · agent-tools/order-get-intake",
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        -70
+      ],
+      "id": "oa-note-1",
+      "name": "Nota 1"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agent-tools/order-get-intake",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "id": "oa-2",
+      "name": "GetIntake: Webhook",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_AGENT_TOOLS_HEADER_AUTH_ID",
+          "name": "WhatsApp Agent Tools Header Auth"
+        }
+      },
+      "webhookId": "oa-agent-tools-order-get-intake"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = $json.body || {};\nconst phone = '+' + String(b.phone || '').replace(/\\D/g, '');\nif (phone.length < 9) return [{ json: { __fail: { error_code: 'bad_phone', message: 'Falta el teléfono.' } } }];\nreturn [{ json: { phone } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        0
+      ],
+      "id": "oa-3",
+      "name": "GetIntake: Parse"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "GetIntake: Phone OK?-c1",
+              "leftValue": "={{ !$json.__fail }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        760,
+        0
+      ],
+      "id": "oa-4",
+      "name": "GetIntake: Phone OK?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- $1 = teléfono. La orden en curso de ese número (una sola por teléfono).\nSELECT i.id::text AS id, i.phone, i.status, i.validation, i.slots_offered,\n       i.study_order_id::text AS study_order_id, i.patient_id::text AS patient_id,\n       i.chosen_sede_id, i.booking_attempts,\n       (SELECT o.order_number FROM study_orders o WHERE o.id = i.study_order_id) AS order_number\n  FROM whatsapp_order_intakes i\n WHERE i.phone = $1\n   AND i.status IN ('extracting', 'needs_input', 'awaiting_confirmation', 'order_created')\n   AND i.expires_at > now()\n ORDER BY i.created_at DESC\n LIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ [ $json.phone ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1020,
+        0
+      ],
+      "id": "oa-5",
+      "name": "GetIntake: Load",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "function summarize(v, status, orderNumber) {\n  v = v || {};\n  const r = v.resolved || null;\n  const questions = (v.questions || []).map((q, i) => ({ number: i + 1, code: q.code, text: q.hint }));\n  const NEXT = { extracting: 'wait', needs_input: 'answer_questions', awaiting_confirmation: 'ask_sede_date_time', order_created: 'book_slot' };\n  return {\n    has_intake: true,\n    status,\n    next_step: questions.length ? 'answer_questions' : (NEXT[status] || 'none'),\n    order_number: orderNumber || null,\n    patient: v.patient ? { name: v.patient.name, document: v.patient.document, will_be_registered: v.patient.status === 'register' } : null,\n    studies: r ? r.items.map((i) => ({ name: i.service_name, duration_minutes: i.duration_minutes })) : [],\n    total_duration_minutes: r ? r.total_duration_minutes : null,\n    referring_doctor_as_written: r ? r.referring_doctor_name : null,\n    questions,\n    already_has_open_order: v.duplicate_of ? v.duplicate_of.order_number : null,\n    warnings: (v.warnings || []).map((w) => w.code),\n  };\n}\nconst row = $input.first().json || {};\nif (!row.id) return [{ json: { has_intake: false, message: 'No hay una orden de estudio en curso para este número.' } }];\nreturn [{ json: summarize(row.validation, row.status, row.order_number) }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        0
+      ],
+      "id": "oa-6",
+      "name": "GetIntake: Format"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1540,
+        0
+      ],
+      "id": "oa-7",
+      "name": "GetIntake: Respond"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, ...$json.__fail }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1020,
+        0
+      ],
+      "id": "oa-8",
+      "name": "GetIntake: Respond Fail"
+    },
+    {
+      "parameters": {
+        "width": 420,
+        "height": 60,
+        "content": "### 2 · agent-tools/order-answer",
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        350
+      ],
+      "id": "oa-note-2",
+      "name": "Nota 2"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agent-tools/order-answer",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        420
+      ],
+      "id": "oa-10",
+      "name": "Answer: Webhook",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_AGENT_TOOLS_HEADER_AUTH_ID",
+          "name": "WhatsApp Agent Tools Header Auth"
+        }
+      },
+      "webhookId": "oa-agent-tools-order-answer"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = $json.body || {};\nconst phone = '+' + String(b.phone || '').replace(/\\D/g, '');\nif (phone.length < 9) return [{ json: { __fail: { error_code: 'bad_phone', message: 'Falta el teléfono.' } } }];\nconst n = parseInt(b.question_number, 10);\nconst answer = String(b.answer || '').trim().slice(0, 200);\nif (!Number.isFinite(n) || n < 1) return [{ json: { __fail: { error_code: 'bad_question', message: 'Falta el número de la pregunta que se está respondiendo.' } } }];\nif (!answer) return [{ json: { __fail: { error_code: 'empty_answer', message: 'Falta la respuesta del usuario.' } } }];\nreturn [{ json: { phone, n, answer } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        420
+      ],
+      "id": "oa-11",
+      "name": "Answer: Parse"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "Answer: Input OK?-c1",
+              "leftValue": "={{ !$json.__fail }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        760,
+        420
+      ],
+      "id": "oa-12",
+      "name": "Answer: Input OK?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- $1 = teléfono. La orden en curso de ese número (una sola por teléfono).\nSELECT i.id::text AS id, i.phone, i.status, i.validation, i.slots_offered,\n       i.study_order_id::text AS study_order_id, i.patient_id::text AS patient_id,\n       i.chosen_sede_id, i.booking_attempts,\n       (SELECT o.order_number FROM study_orders o WHERE o.id = i.study_order_id) AS order_number\n  FROM whatsapp_order_intakes i\n WHERE i.phone = $1\n   AND i.status IN ('extracting', 'needs_input', 'awaiting_confirmation', 'order_created')\n   AND i.expires_at > now()\n ORDER BY i.created_at DESC\n LIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ [ $json.phone ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1020,
+        420
+      ],
+      "id": "oa-13",
+      "name": "Answer: Load",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Traduce la respuesta del usuario a lo que entiende el validador. Las preguntas se identifican por\n// su número; el modelo nunca maneja ids de servicio.\nconst inp = $('Answer: Parse').first().json;\nconst row = $input.first().json || {};\nif (!row.id) return [{ json: { __fail: { error_code: 'no_intake', message: 'No hay una orden en curso.' } } }];\nconst q = ((row.validation && row.validation.questions) || [])[inp.n - 1];\nif (!q) return [{ json: { __fail: { error_code: 'bad_question', message: 'Esa pregunta no existe: llamá a get_order_intake.' } } }];\nconst a = inp.answer;\n// Sin \b: en JavaScript la \"í\" de \"sí\" no es carácter de palabra y no marcaría el límite.\nconst yes = /^\\s*(s[ií]|sip|claro|correcto|exacto|as[ií] es|ok|dale|confirmo|esta bien|está bien)(?![a-záéíóúñ])/i.test(a);\nconst no = /^\\s*(no|nop|incorrecto|no es|no est[aá])(?![a-záéíóúñ])/i.test(a);\nconst answers = { confirmed: [], removed: [], overrides: {} };\nswitch (q.code) {\n  case 'confirm_line':\n    if (yes) answers.confirmed.push(q.external_id);\n    else if (no) answers.removed.push(q.external_id);\n    else return [{ json: { __fail: { error_code: 'need_yes_no', message: 'Respondé sí o no: ¿ese estudio está en la orden?' } } }];\n    break;\n  case 'missing_patient_document':\n  case 'invalid_patient_document':\n    answers.overrides.patient_document = a;\n    break;\n  case 'missing_patient_name':\n    answers.overrides.patient_name = a;\n    break;\n  case 'confirm_patient':\n    if (!yes) return [{ json: { __fail: { error_code: 'needs_human', message: 'El usuario no confirma sus datos: derivá a recepción con handoff_order.' } } }];\n    break;\n  default:\n    return [{ json: { __fail: { error_code: 'not_answerable', message: 'Esa pregunta se resuelve enviando de nuevo la foto o el PDF de la orden.' } } }];\n}\nreturn [{ json: { intake_id: row.id, phone: inp.phone, answers: JSON.stringify(answers) } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        420
+      ],
+      "id": "oa-14",
+      "name": "Answer: Build Answers"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "Answer: Mapped OK?-c1",
+              "leftValue": "={{ !$json.__fail }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1540,
+        420
+      ],
+      "id": "oa-15",
+      "name": "Answer: Mapped OK?"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_STUDY_ORDER_INTAKE_WORKFLOW_ID",
+          "mode": "list",
+          "cachedResultName": "WhatsApp - Study Order Intake"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "intake_id": "={{ $json.intake_id }}",
+            "mode": "revalidate",
+            "answers": "={{ $json.answers }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "intake_id",
+              "displayName": "intake_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "mode",
+              "displayName": "mode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "answers",
+              "displayName": "answers",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1800,
+        420
+      ],
+      "id": "oa-16",
+      "name": "Answer: Run Intake Subflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "function summarize(v, status, orderNumber) {\n  v = v || {};\n  const r = v.resolved || null;\n  const questions = (v.questions || []).map((q, i) => ({ number: i + 1, code: q.code, text: q.hint }));\n  const NEXT = { extracting: 'wait', needs_input: 'answer_questions', awaiting_confirmation: 'ask_sede_date_time', order_created: 'book_slot' };\n  return {\n    has_intake: true,\n    status,\n    next_step: questions.length ? 'answer_questions' : (NEXT[status] || 'none'),\n    order_number: orderNumber || null,\n    patient: v.patient ? { name: v.patient.name, document: v.patient.document, will_be_registered: v.patient.status === 'register' } : null,\n    studies: r ? r.items.map((i) => ({ name: i.service_name, duration_minutes: i.duration_minutes })) : [],\n    total_duration_minutes: r ? r.total_duration_minutes : null,\n    referring_doctor_as_written: r ? r.referring_doctor_name : null,\n    questions,\n    already_has_open_order: v.duplicate_of ? v.duplicate_of.order_number : null,\n    warnings: (v.warnings || []).map((w) => w.code),\n  };\n}\nconst phone = $('Answer: Parse').first().json.phone;\nconst r = $input.first().json || {};\nif (r.outcome === 'handoff') {\n  return [{ json: { outcome: 'handoff', phone, reason_code: r.handoff_reason, detail: r.handoff_detail || '' } }];\n}\nconst v = { questions: r.questions, resolved: r.resolved, patient: r.patient, warnings: r.warnings, duplicate_of: r.duplicate_of };\nreturn [{ json: { outcome: r.outcome, phone, summary: summarize(v, r.status, null) } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2060,
+        420
+      ],
+      "id": "oa-17",
+      "name": "Answer: Format"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "Answer: Handoff?-c1",
+              "leftValue": "={{ $json.outcome === 'handoff' }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2320,
+        420
+      ],
+      "id": "oa-18",
+      "name": "Answer: Handoff?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.N8N_URL || 'https://n8n-project-n8n.7ig1i3.easypanel.host' }}/webhook/agent-tools/order-handoff",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ phone: $json.phone, reason_code: $json.reason_code, detail: $json.detail }) }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2580,
+        420
+      ],
+      "id": "oa-19",
+      "name": "Answer: Call Handoff",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_AGENT_TOOLS_HEADER_AUTH_ID",
+          "name": "WhatsApp Agent Tools Header Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { ok: true, outcome: 'handoff', message: 'La orden pasa a revisión de una persona del equipo. Avisale al usuario y no sigas con la orden.' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2840,
+        420
+      ],
+      "id": "oa-20",
+      "name": "Answer: Handoff Result"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, ...$json.summary, outcome: $json.outcome }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2580,
+        420
+      ],
+      "id": "oa-21",
+      "name": "Answer: Respond"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3100,
+        420
+      ],
+      "id": "oa-22",
+      "name": "Answer: Respond Handoff"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, ...$json.__fail }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1020,
+        420
+      ],
+      "id": "oa-23",
+      "name": "Answer: Respond Fail"
+    },
+    {
+      "parameters": {
+        "width": 420,
+        "height": 60,
+        "content": "### 3 · agent-tools/order-list-sedes",
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        770
+      ],
+      "id": "oa-note-3",
+      "name": "Nota 3"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agent-tools/order-list-sedes",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        840
+      ],
+      "id": "oa-25",
+      "name": "Sedes: Webhook",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_AGENT_TOOLS_HEADER_AUTH_ID",
+          "name": "WhatsApp Agent Tools Header Auth"
+        }
+      },
+      "webhookId": "oa-agent-tools-order-list-sedes"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = $json.body || {};\nconst phone = '+' + String(b.phone || '').replace(/\\D/g, '');\nif (phone.length < 9) return [{ json: { __fail: { error_code: 'bad_phone', message: 'Falta el teléfono.' } } }];\nreturn [{ json: { phone } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        840
+      ],
+      "id": "oa-26",
+      "name": "Sedes: Parse"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "Sedes: Phone OK?-c1",
+              "leftValue": "={{ !$json.__fail }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        760,
+        840
+      ],
+      "id": "oa-27",
+      "name": "Sedes: Phone OK?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- $1 = teléfono. Orden en curso + sedes con horario de atención y calendarios activos\n-- (y elegibles: system_configurations.whatsapp_orders_calendar_ids, vacío = todos).\nWITH cfg AS (\n  SELECT COALESCE((SELECT value FROM system_configurations WHERE key = 'whatsapp_orders_calendar_ids'), '') AS ids\n),\nintake AS (\n  SELECT i.id::text AS id, i.status, i.validation\n    FROM whatsapp_order_intakes i\n   WHERE i.phone = $1 AND i.status IN ('awaiting_confirmation', 'order_created') AND i.expires_at > now()\n   ORDER BY i.created_at DESC LIMIT 1\n)\nSELECT (SELECT id FROM intake) AS intake_id,\n       (SELECT status FROM intake) AS status,\n       (SELECT (validation -> 'resolved' ->> 'total_duration_minutes')::int FROM intake) AS duration,\n       (SELECT coalesce(json_agg(json_build_object('id', s.id, 'name', s.name, 'address', s.address) ORDER BY s.id), '[]'::json)\n          FROM sedes s\n         WHERE s.is_active\n           AND EXISTS (SELECT 1 FROM clinic_schedules cs WHERE cs.sede_id = s.id)\n           AND EXISTS (SELECT 1 FROM calendar_sources c, cfg\n                        WHERE c.sede_id = s.id AND c.is_active\n                          AND (cfg.ids = '' OR c.id = ANY (string_to_array(cfg.ids, ',')::bigint[])))) AS sedes;",
+        "options": {
+          "queryReplacement": "={{ [ $json.phone ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1020,
+        840
+      ],
+      "id": "oa-28",
+      "name": "Sedes: Load",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const row = $input.first().json || {};\nif (!row.intake_id) return [{ json: { __fail: { error_code: 'not_ready', message: 'No hay una orden lista para agendar (primero hay que resolver las preguntas pendientes de get_order_intake).' } } }];\nconst sedes = (row.sedes || []).map((s, i) => ({ n: i + 1, id: s.id, name: s.name, address: s.address || null }));\nif (sedes.length === 0) return [{ json: { __fail: { error_code: 'no_sedes', message: 'No hay sedes con agenda disponible para órdenes.' } } }];\nreturn [{ json: { intake_id: row.intake_id, sedes, duration: row.duration } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        840
+      ],
+      "id": "oa-29",
+      "name": "Sedes: Number"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "Sedes: Ready?-c1",
+              "leftValue": "={{ !$json.__fail }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1540,
+        840
+      ],
+      "id": "oa-30",
+      "name": "Sedes: Ready?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Guarda la lista ofrecida: \"la 2\" se resuelve contra esto, no contra ids que maneje el modelo.\nUPDATE whatsapp_order_intakes\n   SET slots_offered = jsonb_build_object('sedes', $2::jsonb, 'slots', '[]'::jsonb, 'chosen_sede_id', NULL)\n WHERE id = $1::uuid\nRETURNING id::text AS id;",
+        "options": {
+          "queryReplacement": "={{ [ $json.intake_id, JSON.stringify($json.sedes) ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1800,
+        840
+      ],
+      "id": "oa-31",
+      "name": "Sedes: Save Offered",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $('Sedes: Number').first().json;\nreturn [{ json: { ok: true, total_duration_minutes: r.duration,\n  sedes: r.sedes.map((s) => ({ number: s.n, name: s.name, address: s.address })),\n  hint: 'Mostrale las sedes numeradas con su dirección. Que elija la que quiera o la que le quede más cerca; después llamá a list_order_slots.' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2060,
+        840
+      ],
+      "id": "oa-32",
+      "name": "Sedes: Format"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2320,
+        840
+      ],
+      "id": "oa-33",
+      "name": "Sedes: Respond"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, ...$json.__fail }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1020,
+        840
+      ],
+      "id": "oa-34",
+      "name": "Sedes: Respond Fail"
+    },
+    {
+      "parameters": {
+        "width": 420,
+        "height": 60,
+        "content": "### 4 · agent-tools/order-list-slots",
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        1190
+      ],
+      "id": "oa-note-4",
+      "name": "Nota 4"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agent-tools/order-list-slots",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        1260
+      ],
+      "id": "oa-36",
+      "name": "Slots: Webhook",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_AGENT_TOOLS_HEADER_AUTH_ID",
+          "name": "WhatsApp Agent Tools Header Auth"
+        }
+      },
+      "webhookId": "oa-agent-tools-order-list-slots"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = $json.body || {};\nconst phone = '+' + String(b.phone || '').replace(/\\D/g, '');\nif (phone.length < 9) return [{ json: { __fail: { error_code: 'bad_phone', message: 'Falta el teléfono.' } } }];\nconst n = parseInt(b.sede_number, 10);\nif (!Number.isFinite(n) || n < 1) return [{ json: { __fail: { error_code: 'bad_sede', message: 'Falta el número de la sede elegida (list_order_sedes).' } } }];\nconst date = String(b.desired_date || '').trim();\nconst time = String(b.desired_time || '').trim();\nif (date && !/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) return [{ json: { __fail: { error_code: 'bad_date', message: 'La fecha debe ser AAAA-MM-DD.' } } }];\nif (time && !/^\\d{2}:\\d{2}$/.test(time)) return [{ json: { __fail: { error_code: 'bad_time', message: 'La hora debe ser HH:mm.' } } }];\nreturn [{ json: { phone, n, date: date || null, time: time || null } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        1260
+      ],
+      "id": "oa-37",
+      "name": "Slots: Parse"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "Slots: Input OK?-c1",
+              "leftValue": "={{ !$json.__fail }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        760,
+        1260
+      ],
+      "id": "oa-38",
+      "name": "Slots: Input OK?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- $1 = teléfono. La orden en curso de ese número (una sola por teléfono).\nSELECT i.id::text AS id, i.phone, i.status, i.validation, i.slots_offered,\n       i.study_order_id::text AS study_order_id, i.patient_id::text AS patient_id,\n       i.chosen_sede_id, i.booking_attempts,\n       (SELECT o.order_number FROM study_orders o WHERE o.id = i.study_order_id) AS order_number\n  FROM whatsapp_order_intakes i\n WHERE i.phone = $1\n   AND i.status IN ('extracting', 'needs_input', 'awaiting_confirmation', 'order_created')\n   AND i.expires_at > now()\n ORDER BY i.created_at DESC\n LIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ [ $json.phone ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1020,
+        1260
+      ],
+      "id": "oa-39",
+      "name": "Slots: Load Intake",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const inp = $('Slots: Parse').first().json;\nconst row = $input.first().json || {};\nif (!row.id || !['awaiting_confirmation', 'order_created'].includes(row.status)) {\n  return [{ json: { __fail: { error_code: 'not_ready', message: 'No hay una orden lista para agendar.' } } }];\n}\nconst sede = ((row.slots_offered && row.slots_offered.sedes) || []).find((s) => s.n === inp.n);\nif (!sede) return [{ json: { __fail: { error_code: 'bad_sede', message: 'Esa sede no está en la lista ofrecida: llamá a list_order_sedes.' } } }];\nconst duration = Number(row.validation && row.validation.resolved && row.validation.resolved.total_duration_minutes);\nif (!duration) return [{ json: { __fail: { error_code: 'no_duration', message: 'La orden no tiene duración calculada.' } } }];\nreturn [{ json: { intake_id: row.id, sede, duration, date: inp.date, time: inp.time } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        1260
+      ],
+      "id": "oa-40",
+      "name": "Slots: Resolve Sede"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "Slots: Sede OK?-c1",
+              "leftValue": "={{ !$json.__fail }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1540,
+        1260
+      ],
+      "id": "oa-41",
+      "name": "Slots: Sede OK?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- $1 = sede. Horario de atención, calendarios elegibles y citas vigentes (16 días).\n-- Las horas van como texto en hora de pared de Montevideo, sin zona.\nWITH cfg AS (\n  SELECT COALESCE((SELECT value FROM system_configurations WHERE key = 'whatsapp_orders_calendar_ids'), '') AS ids\n),\ncals AS (\n  SELECT c.id FROM calendar_sources c, cfg\n   WHERE c.sede_id = $1::int AND c.is_active\n     AND (cfg.ids = '' OR c.id = ANY (string_to_array(cfg.ids, ',')::bigint[]))\n),\nnowl AS (SELECT (now() AT TIME ZONE 'America/Montevideo') AS t)\nSELECT to_char((SELECT t FROM nowl), 'YYYY-MM-DD\"T\"HH24:MI:SS') AS now_local,\n       (SELECT coalesce(json_agg(json_build_object('day_of_week', cs.day_of_week,\n                'start_time', to_char(cs.start_time, 'HH24:MI'), 'end_time', to_char(cs.end_time, 'HH24:MI'))), '[]'::json)\n          FROM clinic_schedules cs WHERE cs.sede_id = $1::int) AS schedules,\n       (SELECT coalesce(json_agg(json_build_object('id', id)), '[]'::json) FROM cals) AS calendars,\n       (SELECT coalesce(json_agg(json_build_object('calendar_source_id', a.calendar_source_id,\n                'start', to_char(a.start_datetime, 'YYYY-MM-DD\"T\"HH24:MI:SS'),\n                'end', to_char(a.end_datetime, 'YYYY-MM-DD\"T\"HH24:MI:SS'))), '[]'::json)\n          FROM appointments a\n         WHERE a.calendar_source_id IN (SELECT id FROM cals)\n           AND a.end_datetime > (SELECT t FROM nowl)\n           AND a.start_datetime < (SELECT t FROM nowl) + interval '16 days'\n           AND a.status NOT IN ('canceled', 'cancelled', 'deleted')) AS appointments;",
+        "options": {
+          "queryReplacement": "={{ [ $json.sede.id ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1800,
+        1260
+      ],
+      "id": "oa-42",
+      "name": "Slots: Load Calendar Data",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst pad = (n) => String(n).padStart(2, '0');\n\n/** 'AAAA-MM-DDTHH:mm[:ss]' → minutos absolutos desde 1970 (hora de pared, sin zona). */\nfunction toMinutes(local) {\n    const m = /^(\\d{4})-(\\d{2})-(\\d{2})[T ](\\d{2}):(\\d{2})/.exec(String(local));\n    if (!m) return NaN;\n    return Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5])) / 60000;\n}\n\nfunction fromMinutes(min) {\n    const d = new Date(min * 60000);\n    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:00`;\n}\n\nconst timeToMin = (t) => {\n    const m = /^(\\d{1,2}):(\\d{2})/.exec(String(t));\n    return m ? Number(m[1]) * 60 + Number(m[2]) : NaN;\n};\n\n/** Une ventanas solapadas o repetidas del mismo día: [[540,780],[540,780],[900,1140]] → [[540,780],[900,1140]]. */\nfunction mergeWindows(windows) {\n    const sorted = windows.filter((w) => w[0] < w[1]).sort((a, b) => a[0] - b[0]);\n    const out = [];\n    for (const w of sorted) {\n        const last = out[out.length - 1];\n        if (last && w[0] <= last[1]) last[1] = Math.max(last[1], w[1]);\n        else out.push([w[0], w[1]]);\n    }\n    return out;\n}\n\n/**\n * @param {object} p\n * @param {string} p.now              Ahora en hora local: 'AAAA-MM-DDTHH:mm:ss'.\n * @param {Array}  p.schedules        clinic_schedules de la sede: [{day_of_week (0=domingo), start_time, end_time}].\n * @param {Array}  p.calendars        calendarios activos elegibles de la sede: [{id}].\n * @param {Array}  p.appointments     citas no canceladas de esos calendarios: [{calendar_source_id, start, end}] (hora local).\n * @param {number} p.durationMinutes  Duración total de los estudios.\n * @param {number} [p.stepMinutes=30] Paso de la grilla de inicios.\n * @param {number} [p.leadHours=4]    Antelación mínima. NO bajar de 3: el validador de public-book compara la hora local\n *                                    contra el reloj del servidor de n8n (UTC) y rechazaría como \"pasado\" un hueco más cercano.\n * @param {number} [p.horizonDays=14] Hasta cuántos días hacia adelante se busca.\n * @param {string} [p.fromDate]       'AAAA-MM-DD': no buscar antes de este día.\n * @param {string} [p.toDate]         'AAAA-MM-DD': no buscar después de este día.\n * @returns {Array<{date:string,time:string,start:string,end:string,calendar_source_id:number}>} ordenados por inicio.\n */\nfunction computeSlots(p) {\n    const duration = Number(p.durationMinutes);\n    if (!Number.isFinite(duration) || duration <= 0) return [];\n    const step = Number(p.stepMinutes) > 0 ? Number(p.stepMinutes) : 30;\n    const lead = (Number.isFinite(Number(p.leadHours)) ? Number(p.leadHours) : 4) * 60;\n    const horizon = Number.isFinite(Number(p.horizonDays)) ? Number(p.horizonDays) : 14;\n\n    const nowMin = toMinutes(p.now);\n    if (!Number.isFinite(nowMin)) return [];\n    const earliest = nowMin + lead;\n    const dayStart0 = Math.floor(nowMin / 1440) * 1440;\n    const fromMin = p.fromDate ? toMinutes(`${p.fromDate}T00:00`) : dayStart0;\n    const toMin = p.toDate ? toMinutes(`${p.toDate}T00:00`) + 1440 : dayStart0 + (horizon + 1) * 1440;\n\n    const calendars = (p.calendars || []).map((c) => Number(c.id)).filter(Number.isFinite).sort((a, b) => a - b);\n    if (calendars.length === 0) return [];\n\n    // Ocupación por calendario, en minutos.\n    const busy = new Map(calendars.map((id) => [id, []]));\n    for (const a of p.appointments || []) {\n        const id = Number(a.calendar_source_id);\n        if (!busy.has(id)) continue;\n        const s = toMinutes(a.start);\n        const e = toMinutes(a.end);\n        if (Number.isFinite(s) && Number.isFinite(e) && e > s) busy.get(id).push([s, e]);\n    }\n\n    const byDow = new Map();\n    for (const row of p.schedules || []) {\n        const dow = Number(row.day_of_week);\n        const w = [timeToMin(row.start_time), timeToMin(row.end_time)];\n        if (!Number.isFinite(dow) || !Number.isFinite(w[0]) || !Number.isFinite(w[1])) continue;\n        byDow.set(dow, [...(byDow.get(dow) || []), w]);\n    }\n    for (const [dow, ws] of byDow) byDow.set(dow, mergeWindows(ws));\n\n    const slots = [];\n    for (let day = Math.max(dayStart0, Math.floor(fromMin / 1440) * 1440); day < Math.min(toMin, dayStart0 + (horizon + 1) * 1440); day += 1440) {\n        const dow = new Date(day * 60000).getUTCDay();\n        for (const [ws, we] of byDow.get(dow) || []) {\n            for (let start = day + ws; start + duration <= day + we; start += step) {\n                if (start < earliest) continue;\n                const end = start + duration;\n                const free = calendars.find((id) => !busy.get(id).some(([bs, be]) => bs < end && be > start));\n                if (free === undefined) continue;\n                const startTxt = fromMinutes(start);\n                slots.push({\n                    date: startTxt.slice(0, 10),\n                    time: startTxt.slice(11, 16),\n                    start: startTxt,\n                    end: fromMinutes(end),\n                    calendar_source_id: free,\n                });\n            }\n        }\n    }\n    return slots.sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0));\n}\n\n/**\n * Elige pocas opciones para ofrecerle al usuario (no 40 horarios por WhatsApp).\n *  - con fecha y hora deseadas: los más cercanos a esa hora ese día, o los del día más próximo si no hay;\n *  - con fecha: hasta `limit` repartidos a lo largo del día;\n *  - sin nada: los primeros horarios de los próximos días (máximo 2 por día).\n */\nfunction pickSlots(slots, { desiredDate = null, desiredTime = null, limit = 6 } = {}) {\n    if (slots.length === 0) return [];\n    const spread = (list, n) => {\n        if (list.length <= n) return list;\n        const out = [];\n        for (let i = 0; i < n; i++) out.push(list[Math.round((i * (list.length - 1)) / (n - 1))]);\n        return [...new Set(out)];\n    };\n\n    if (desiredDate) {\n        const day = slots.filter((s) => s.date === desiredDate);\n        if (day.length > 0) {\n            if (desiredTime) {\n                const want = timeToMin(desiredTime);\n                const nearest = [...day].sort((a, b) => Math.abs(timeToMin(a.time) - want) - Math.abs(timeToMin(b.time) - want)).slice(0, limit);\n                return nearest.sort((a, b) => (a.start < b.start ? -1 : 1));\n            }\n            return spread(day, limit);\n        }\n        // Ese día no hay lugar: se ofrece lo más próximo.\n        const after = slots.filter((s) => s.date > desiredDate);\n        return pickSlots(after.length ? after : slots, { limit });\n    }\n\n    const perDay = new Map();\n    const out = [];\n    for (const s of slots) {\n        const n = perDay.get(s.date) || 0;\n        if (n >= 2) continue;\n        perDay.set(s.date, n + 1);\n        out.push(s);\n        if (out.length >= limit) break;\n    }\n    return out;\n}\n\n\nconst WEEKDAYS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];\nconst weekday = (date) => WEEKDAYS[new Date(date + 'T12:00:00Z').getUTCDay()];\nconst ctx = $('Slots: Resolve Sede').first().json;\nconst d = $input.first().json || {};\nconst all = computeSlots({\n  now: d.now_local, schedules: d.schedules || [], calendars: d.calendars || [],\n  appointments: d.appointments || [], durationMinutes: ctx.duration, leadHours: 4, horizonDays: 14,\n});\nconst picked = pickSlots(all, { desiredDate: ctx.date, desiredTime: ctx.time, limit: 6 })\n  .map((s, i) => ({ n: i + 1, ...s }));\nreturn [{ json: { intake_id: ctx.intake_id, sede: ctx.sede, duration: ctx.duration, slots: picked,\n  shown: picked.map((s) => ({ number: s.n, date: s.date, weekday: weekday(s.date), time: s.time })) } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2060,
+        1260
+      ],
+      "id": "oa-43",
+      "name": "Slots: Compute"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE whatsapp_order_intakes\n   SET chosen_sede_id = $2::int,\n       slots_offered = coalesce(slots_offered, '{}'::jsonb)\n                       || jsonb_build_object('slots', $3::jsonb, 'chosen_sede_id', $2::int)\n WHERE id = $1::uuid\nRETURNING id::text AS id;",
+        "options": {
+          "queryReplacement": "={{ [ $json.intake_id, $json.sede.id, JSON.stringify($json.slots) ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2320,
+        1260
+      ],
+      "id": "oa-44",
+      "name": "Slots: Save Offered",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $('Slots: Compute').first().json;\nif (r.slots.length === 0) {\n  return [{ json: { ok: true, sede: r.sede.name, slots: [], hint: 'No hay horarios libres en esta sede en los próximos 14 días para la duración de la orden. Ofrecele otra sede o derivá a una persona.' } }];\n}\nreturn [{ json: { ok: true, sede: r.sede.name, sede_address: r.sede.address, duration_minutes: r.duration, slots: r.shown,\n  hint: 'Mostrale los horarios numerados. Cuando elija uno, llamá a confirm_order_and_book con su número.' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2580,
+        1260
+      ],
+      "id": "oa-45",
+      "name": "Slots: Format"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2840,
+        1260
+      ],
+      "id": "oa-46",
+      "name": "Slots: Respond"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, ...$json.__fail }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1020,
+        1260
+      ],
+      "id": "oa-47",
+      "name": "Slots: Respond Fail"
+    },
+    {
+      "parameters": {
+        "width": 420,
+        "height": 60,
+        "content": "### 5 · agent-tools/order-confirm-and-book",
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        1610
+      ],
+      "id": "oa-note-5",
+      "name": "Nota 5"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agent-tools/order-confirm-and-book",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        1680
+      ],
+      "id": "oa-49",
+      "name": "Book: Webhook",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_AGENT_TOOLS_HEADER_AUTH_ID",
+          "name": "WhatsApp Agent Tools Header Auth"
+        }
+      },
+      "webhookId": "oa-agent-tools-order-confirm-and-book"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = $json.body || {};\nconst phone = '+' + String(b.phone || '').replace(/\\D/g, '');\nif (phone.length < 9) return [{ json: { __fail: { error_code: 'bad_phone', message: 'Falta el teléfono.' } } }];\nconst n = parseInt(b.slot_number, 10);\nif (!Number.isFinite(n) || n < 1) return [{ json: { __fail: { error_code: 'bad_slot', message: 'Falta el número del horario elegido (list_order_slots).' } } }];\nreturn [{ json: { phone, n } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        1680
+      ],
+      "id": "oa-50",
+      "name": "Book: Parse"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "Book: Input OK?-c1",
+              "leftValue": "={{ !$json.__fail }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        760,
+        1680
+      ],
+      "id": "oa-51",
+      "name": "Book: Input OK?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Estado para reservar (más el nombre y la dirección de la sede elegida).\nSELECT i.id::text AS id, i.phone, i.status, i.validation, i.slots_offered,\n       i.study_order_id::text AS study_order_id, i.patient_id::text AS patient_id,\n       i.chosen_sede_id, i.booking_attempts,\n       (SELECT o.order_number FROM study_orders o WHERE o.id = i.study_order_id) AS order_number\n  FROM whatsapp_order_intakes i\n WHERE i.phone = $1\n   AND i.status IN ('extracting', 'needs_input', 'awaiting_confirmation', 'order_created')\n   AND i.expires_at > now()\n ORDER BY i.created_at DESC\n LIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ [ $json.phone ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1020,
+        1680
+      ],
+      "id": "oa-52",
+      "name": "Book: Load",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const inp = $('Book: Parse').first().json;\nconst row = $input.first().json || {};\nconst fail = (error_code, message, bump = false) => [{ json: { __fail: { error_code, message, bump } } }];\nif (!row.id) return fail('no_intake', 'No hay una orden en curso.');\nif (!['awaiting_confirmation', 'order_created'].includes(row.status)) return fail('not_ready', 'La orden todavía tiene preguntas pendientes (get_order_intake).');\nif ((row.booking_attempts || 0) >= 2) return fail('too_many_failures', 'Ya falló dos veces: derivá a una persona con handoff_order (motivo booking_failed).');\nconst v = row.validation || {};\nif (!v.resolved || !v.patient) return fail('not_ready', 'La orden no está validada.');\nconst slot = ((row.slots_offered && row.slots_offered.slots) || []).find((s) => s.n === inp.n);\nif (!slot) return fail('bad_slot', 'Ese horario no está en la lista ofrecida: llamá a list_order_slots de nuevo.');\nconst sede = ((row.slots_offered && row.slots_offered.sedes) || []).find((s) => s.id === row.slots_offered.chosen_sede_id);\nconst p = v.patient;\n// Tipo de documento: cédula uruguaya si el dígito verificador cierra; pasaporte; si no, cédula extranjera.\nconst doc = String(p.document || '');\nfunction uy(d) {\n  if (!/^\\d{7,8}$/.test(d)) return false;\n  const body = d.slice(0, -1).padStart(7, '0'); const w = [2, 9, 8, 7, 6, 3, 4];\n  return (10 - (body.split('').reduce((a, c, i) => a + Number(c) * w[i], 0) % 10)) % 10 === Number(d.slice(-1));\n}\nconst docType = p.document_type === 'passport' ? 'pasaporte_ext' : (uy(doc) ? 'cedula_uy' : 'cedula_ext');\nreturn [{ json: {\n  intake_id: row.id, phone: row.phone, study_order_id: row.study_order_id || '', order_number: row.order_number || null,\n  patient: { ...p, document_type: docType }, resolved: v.resolved, slot, sede: sede || null,\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        1680
+      ],
+      "id": "oa-53",
+      "name": "Book: Check State"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "Book: State OK?-c1",
+              "leftValue": "={{ !$json.__fail }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1540,
+        1680
+      ],
+      "id": "oa-54",
+      "name": "Book: State OK?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Idempotente: si el paciente ya existe no inserta; si hay que asociarle el teléfono o la cédula, se hace\n-- sólo donde estaban vacíos. $1 tipo, $2 id, $3 nombre, $4 teléfono, $5 cédula, $6 tipo de documento,\n-- $7 asociar teléfono, $8 guardar cédula.\nWITH input AS (\n  SELECT $1::text AS kind, NULLIF($2, '')::uuid AS pid, $3::text AS name, $4::text AS phone,\n         NULLIF($5, '') AS doc, $6::text AS doc_type, $7::boolean AS attach_phone, $8::boolean AS set_doc\n),\nins AS (\n  INSERT INTO users (name, phone_number, identity_document, identity_document_type, is_active)\n  SELECT name, phone, doc, doc_type, true FROM input WHERE kind = 'register' AND pid IS NULL\n  RETURNING id\n),\nrole AS (\n  INSERT INTO user_roles (user_id, role_id)\n  SELECT ins.id, r.id FROM ins, roles r WHERE r.name = 'paciente'\n  ON CONFLICT (user_id, role_id) DO NOTHING\n  RETURNING user_id\n),\nupd AS (\n  UPDATE users u\n     SET phone_number = COALESCE(NULLIF(u.phone_number, ''), i.phone),\n         identity_document = CASE WHEN i.set_doc THEN COALESCE(NULLIF(u.identity_document, ''), i.doc) ELSE u.identity_document END\n    FROM input i\n   WHERE u.id = i.pid AND (i.attach_phone OR i.set_doc)\n  RETURNING u.id\n)\nSELECT COALESCE((SELECT pid FROM input), (SELECT id FROM ins))::text AS patient_id,\n       (SELECT count(*) FROM role) AS role_rows,\n       (SELECT count(*) FROM upd) AS updated;",
+        "options": {
+          "queryReplacement": "={{ [ $json.patient.status, $json.patient.patient_id || '', $json.patient.name, $json.phone, $json.patient.document || '', $json.patient.document_type, !!$json.patient.attach_phone, !!$json.patient.set_document ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1800,
+        1680
+      ],
+      "id": "oa-55",
+      "name": "Book: Ensure Patient",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $('Book: Check State').first().json;\nconst r = $input.first().json || {};\nif (!r.patient_id) return [{ json: { __fail: { error_code: 'patient_error', message: 'No se pudo registrar al paciente.', bump: true } } }];\nreturn [{ json: { ...ctx, patient_id: r.patient_id } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2060,
+        1680
+      ],
+      "id": "oa-56",
+      "name": "Book: Patient Ready"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "Book: Patient OK?-c1",
+              "leftValue": "={{ !$json.__fail }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2320,
+        1680
+      ],
+      "id": "oa-57",
+      "name": "Book: Patient OK?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "Book: Order Exists?-c1",
+              "leftValue": "={{ !!$json.study_order_id }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2580,
+        1680
+      ],
+      "id": "oa-58",
+      "name": "Book: Order Exists?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const c = $input.first().json;\nconst r = c.resolved;\nconst body = {\n  patient_id: c.patient_id,\n  patient_name: c.patient.name,\n  patient_document: c.patient.document || '',\n  patient_phone: c.phone,\n  regions: r.regions, section_modifiers: r.section_modifiers, texts: r.texts,\n  delivery_methods: r.delivery_methods, clinical_notes: r.clinical_notes || '',\n  preferred_sede_id: c.sede ? String(c.sede.id) : '',\n  items: r.items.map((i) => ({ service_id: String(i.service_id), service_name: i.service_name, section_code: i.section_code,\n    sort_order: i.sort_order, quantity: 1, modifiers: i.modifiers, notes: i.notes || '' })),\n  // La orden de WhatsApp no se vincula a ningún doctor: el del papel queda como texto.\n  without_doctor: true, source: 'whatsapp',\n  referring_doctor_name: r.referring_doctor_name || '', source_intake_id: c.intake_id,\n};\nreturn [{ json: { ...c, order_body: body } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2840,
+        1680
+      ],
+      "id": "oa-59",
+      "name": "Book: Build Order Payload"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.N8N_URL || 'https://n8n-project-n8n.7ig1i3.easypanel.host' }}/webhook/study-orders/upsert",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.order_body) }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3100,
+        1680
+      ],
+      "id": "oa-60",
+      "name": "Book: Upsert Order",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_AGENT_SERVICE_JWT_ID",
+          "name": "Invoke Agent Service JWT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const c = $('Book: Build Order Payload').first().json;\nconst r = $input.first().json || {};\nconst id = r.data && r.data.id;\nif (!id) return [{ json: { __fail: { error_code: 'order_create_failed', message: 'No se pudo crear la orden: ' + (r.message || 'error desconocido'), bump: true } } }];\nreturn [{ json: { ...c, new_order_id: id } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3360,
+        1680
+      ],
+      "id": "oa-61",
+      "name": "Book: Check Upsert"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "Book: Upsert OK?-c1",
+              "leftValue": "={{ !$json.__fail }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3620,
+        1680
+      ],
+      "id": "oa-62",
+      "name": "Book: Upsert OK?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.N8N_URL || 'https://n8n-project-n8n.7ig1i3.easypanel.host' }}/webhook/study-orders/submit",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ id: $json.new_order_id }) }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3880,
+        1680
+      ],
+      "id": "oa-63",
+      "name": "Book: Submit Order",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_AGENT_SERVICE_JWT_ID",
+          "name": "Invoke Agent Service JWT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const c = $('Book: Check Upsert').first().json;\nconst r = $input.first().json || {};\nif (!(r.data && r.data.id)) return [{ json: { __fail: { error_code: 'order_submit_failed', message: 'No se pudo enviar la orden: ' + (r.message || 'error desconocido'), bump: true } } }];\nreturn [{ json: { ...c, order_number: r.data.order_number || c.order_number } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4140,
+        1680
+      ],
+      "id": "oa-64",
+      "name": "Book: Check Submit"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "Book: Submit OK?-c1",
+              "leftValue": "={{ !$json.__fail }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        4400,
+        1680
+      ],
+      "id": "oa-65",
+      "name": "Book: Submit OK?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE whatsapp_order_intakes\n   SET study_order_id = $2::uuid, patient_id = $3::uuid, status = 'order_created', chosen_sede_id = $4::int\n WHERE id = $1::uuid\nRETURNING study_order_id::text AS study_order_id,\n          (SELECT order_number FROM study_orders WHERE id = $2::uuid) AS order_number;",
+        "options": {
+          "queryReplacement": "={{ [ $json.intake_id, $json.new_order_id, $json.patient_id, $json.sede ? $json.sede.id : null ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        4660,
+        1680
+      ],
+      "id": "oa-66",
+      "name": "Book: Save Order",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Une las dos ramas (orden nueva / orden ya creada en un intento anterior).\nlet ctx;\ntry { ctx = $('Book: Check Submit').first().json; } catch (e) { ctx = null; }\nconst saved = $input.first().json || {};\nif (ctx && ctx.new_order_id) {\n  return [{ json: { ...ctx, study_order_id: ctx.new_order_id, order_number: saved.order_number || ctx.order_number } }];\n}\nreturn [{ json: $('Book: Patient Ready').first().json }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4920,
+        1680
+      ],
+      "id": "oa-67",
+      "name": "Book: Order Ready"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Justo antes de reservar: el horario sigue libre y sigue siendo futuro.\n-- (public-book también lo valida, pero no elimina la carrera: ver docs, Fase 0.)\nSELECT NOT EXISTS (\n         SELECT 1 FROM appointments a\n          WHERE a.calendar_source_id = $1::bigint\n            AND a.start_datetime < $3::timestamp AND a.end_datetime > $2::timestamp\n            AND a.status NOT IN ('canceled', 'cancelled', 'deleted')) AS free;",
+        "options": {
+          "queryReplacement": "={{ [ $json.slot.calendar_source_id, $json.slot.start, $json.slot.end ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        5180,
+        1680
+      ],
+      "id": "oa-68",
+      "name": "Book: Recheck Slot",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const c = $('Book: Order Ready').first().json;\nconst r = $input.first().json || {};\nif (r.free !== true) return [{ json: { __fail: { error_code: 'slot_taken', message: 'Ese horario se ocupó justo antes de confirmarlo. Llamá a list_order_slots y ofrecele otros (la orden ya está creada, no se duplica).', bump: false } } }];\nreturn [{ json: c }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5440,
+        1680
+      ],
+      "id": "oa-69",
+      "name": "Book: Check Slot"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "Book: Slot Free?-c1",
+              "leftValue": "={{ !$json.__fail }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        5700,
+        1680
+      ],
+      "id": "oa-70",
+      "name": "Book: Slot Free?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.N8N_URL || 'https://n8n-project-n8n.7ig1i3.easypanel.host' }}/webhook/study-orders/booking-token",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ order_id: $json.study_order_id, days_valid: 2, max_uses: 1 }) }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5960,
+        1680
+      ],
+      "id": "oa-71",
+      "name": "Book: Booking Token",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_AGENT_SERVICE_JWT_ID",
+          "name": "Invoke Agent Service JWT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const c = $('Book: Check Slot').first().json;\nconst r = $input.first().json || {};\nconst token = r.data && r.data.token;\nif (!token) return [{ json: { __fail: { error_code: 'token_failed', message: 'No se pudo preparar la reserva: ' + (r.message || 'error desconocido'), bump: true } } }];\nreturn [{ json: { ...c, booking_token: token } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6220,
+        1680
+      ],
+      "id": "oa-72",
+      "name": "Book: Check Token"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "Book: Token OK?-c1",
+              "leftValue": "={{ !$json.__fail }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        6480,
+        1680
+      ],
+      "id": "oa-73",
+      "name": "Book: Token OK?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.N8N_URL || 'https://n8n-project-n8n.7ig1i3.easypanel.host' }}/webhook/study-orders/public-book_noauth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ token: $json.booking_token, calendar_source_id: String($json.slot.calendar_source_id), start: $json.slot.start, end: $json.slot.end, summary: 'Estudios' }) }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        6740,
+        1680
+      ],
+      "id": "oa-74",
+      "name": "Book: Public Book"
+    },
+    {
+      "parameters": {
+        "jsCode": "const c = $('Book: Check Token').first().json;\nconst r = $input.first().json || {};\nconst apptId = r.data && r.data.appointment_id;\nif (!apptId) return [{ json: { __fail: { error_code: 'booking_failed', message: 'No se pudo reservar: ' + (r.message || 'el horario ya no está disponible') + '. Probá con otro horario.', bump: true } } }];\nreturn [{ json: { ...c, appointment_id: apptId, order_number: (r.data && r.data.order_number) || c.order_number } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7000,
+        1680
+      ],
+      "id": "oa-75",
+      "name": "Book: Check Booking"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "Book: Booked OK?-c1",
+              "leftValue": "={{ !$json.__fail }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        7260,
+        1680
+      ],
+      "id": "oa-76",
+      "name": "Book: Booked OK?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE whatsapp_order_intakes\n   SET status = 'booked', appointment_id = $2::int, booking_attempts = 0\n WHERE id = $1::uuid\nRETURNING id::text AS id;",
+        "options": {
+          "queryReplacement": "={{ [ $json.intake_id, $json.appointment_id ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        7520,
+        1680
+      ],
+      "id": "oa-77",
+      "name": "Book: Save Booking",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const WEEKDAYS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];\nconst weekday = (date) => WEEKDAYS[new Date(date + 'T12:00:00Z').getUTCDay()];\nconst c = $('Book: Check Booking').first().json;\nreturn [{ json: { ok: true, booked: true, order_number: c.order_number,\n  date: c.slot.date, weekday: weekday(c.slot.date), time: c.slot.time, duration_minutes: c.resolved.total_duration_minutes,\n  sede: c.sede ? c.sede.name : null, sede_address: c.sede ? c.sede.address : null,\n  studies: c.resolved.items.map((i) => i.service_name),\n  hint: 'Confirmale al usuario el número de orden, los estudios, el día, la hora y la sede con su dirección.' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7780,
+        1680
+      ],
+      "id": "oa-78",
+      "name": "Book: Format"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        8040,
+        1680
+      ],
+      "id": "oa-79",
+      "name": "Book: Respond"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "Book: Count Attempt?-c1",
+              "leftValue": "={{ !!$json.__fail.bump }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1800,
+        1940
+      ],
+      "id": "oa-80",
+      "name": "Book: Count Attempt?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE whatsapp_order_intakes SET booking_attempts = booking_attempts + 1\n WHERE phone = $1 AND status IN ('extracting', 'needs_input', 'awaiting_confirmation', 'order_created')\nRETURNING booking_attempts;",
+        "options": {
+          "queryReplacement": "={{ [ $('Book: Parse').first().json.phone ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2060,
+        1940
+      ],
+      "id": "oa-81",
+      "name": "Book: Bump Attempts",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const f = $('Book: Count Attempt?').first().json.__fail;\nconst n = ($input.first().json || {}).booking_attempts || 0;\nreturn [{ json: { __fail: { ...f, attempts: n, message: f.message + (n >= 2 ? ' Ya son dos fallas seguidas: derivá a una persona con handoff_order (motivo booking_failed).' : '') } } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2320,
+        1940
+      ],
+      "id": "oa-82",
+      "name": "Book: Attach Attempts"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, ...$json.__fail }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2580,
+        1940
+      ],
+      "id": "oa-83",
+      "name": "Book: Respond Fail"
+    },
+    {
+      "parameters": {
+        "width": 420,
+        "height": 60,
+        "content": "### 6 · agent-tools/order-handoff",
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        2030
+      ],
+      "id": "oa-note-6",
+      "name": "Nota 6"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agent-tools/order-handoff",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        2100
+      ],
+      "id": "oa-85",
+      "name": "Handoff: Webhook",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_AGENT_TOOLS_HEADER_AUTH_ID",
+          "name": "WhatsApp Agent Tools Header Auth"
+        }
+      },
+      "webhookId": "oa-agent-tools-order-handoff"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = $json.body || {};\nconst phone = '+' + String(b.phone || '').replace(/\\D/g, '');\nif (phone.length < 9) return [{ json: { __fail: { error_code: 'bad_phone', message: 'Falta el teléfono.' } } }];\nconst ALLOWED = ['service_not_found', 'unreadable', 'low_confidence', 'patient_mismatch', 'booking_failed', 'user_request', 'system_error'];\nconst reason = ALLOWED.includes(b.reason_code) ? b.reason_code : 'user_request';\nreturn [{ json: { phone, reason, detail: String(b.detail || '').trim().slice(0, 300) } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        2100
+      ],
+      "id": "oa-86",
+      "name": "Handoff: Parse"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "Handoff: Input OK?-c1",
+              "leftValue": "={{ !$json.__fail }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        760,
+        2100
+      ],
+      "id": "oa-87",
+      "name": "Handoff: Input OK?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- $1 teléfono, $2 motivo, $3 detalle. Marca el intake como derivado (si hay uno en curso) y trae\n-- el primer original para que recepción lo abra desde el aviso.\nWITH upd AS (\n  UPDATE whatsapp_order_intakes\n     SET status = 'handed_off', handoff_reason = $2, handoff_detail = NULLIF($3, '')\n   WHERE phone = $1 AND status IN ('extracting', 'needs_input', 'awaiting_confirmation', 'order_created')\n  RETURNING id, validation\n)\nSELECT (SELECT id::text FROM upd) AS intake_id,\n       (SELECT validation -> 'patient' ->> 'name' FROM upd) AS patient_name,\n       (SELECT a.web_view_link FROM attachments a, upd\n         WHERE a.source_name = 'whatsapp_order_intake' AND a.source_id = upd.id::text\n         ORDER BY a.id LIMIT 1) AS first_file,\n       (SELECT min(u.id::text) FROM users u\n         WHERE u.phone_number = $1 AND COALESCE(u.is_active, true) HAVING count(*) = 1) AS patient_id;",
+        "options": {
+          "queryReplacement": "={{ [ $json.phone, $json.reason, $json.detail ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1020,
+        2100
+      ],
+      "id": "oa-88",
+      "name": "Handoff: Mark Intake",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const inp = $('Handoff: Parse').first().json;\nconst r = $input.first().json || {};\nconst LABEL = { service_not_found: 'estudio que no figura en el sistema', unreadable: 'orden ilegible o con datos faltantes',\n  low_confidence: 'lectura dudosa', patient_mismatch: 'paciente distinto de quien escribe', booking_failed: 'no se pudo agendar',\n  user_request: 'el usuario pidió hablar con una persona', system_error: 'error del sistema' };\nconst reason = ('Orden de estudio: ' + (LABEL[inp.reason] || inp.reason) + (inp.detail ? ' — ' + inp.detail : '')\n  + (r.first_file ? ' | Original: ' + r.first_file : '')).slice(0, 490);\nreturn [{ json: { phone: inp.phone, patient_id: r.patient_id || '', patient_name: r.patient_name || '',\n  last_message: inp.detail || LABEL[inp.reason] || '', reason } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        2100
+      ],
+      "id": "oa-89",
+      "name": "Handoff: Build Request"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.N8N_URL || 'https://n8n-project-n8n.7ig1i3.easypanel.host' }}/webhook/agent-tools/handoff",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        2100
+      ],
+      "id": "oa-90",
+      "name": "Handoff: Call Existing Handoff",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_AGENT_TOOLS_HEADER_AUTH_ID",
+          "name": "WhatsApp Agent Tools Header Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { ok: true, handed_off: true } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1800,
+        2100
+      ],
+      "id": "oa-91",
+      "name": "Handoff: Format"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2060,
+        2100
+      ],
+      "id": "oa-92",
+      "name": "Handoff: Respond"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, ...$json.__fail }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1020,
+        2100
+      ],
+      "id": "oa-93",
+      "name": "Handoff: Respond Fail"
+    }
+  ],
+  "connections": {
+    "GetIntake: Webhook": {
+      "main": [
+        [
+          {
+            "node": "GetIntake: Parse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetIntake: Parse": {
+      "main": [
+        [
+          {
+            "node": "GetIntake: Phone OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetIntake: Phone OK?": {
+      "main": [
+        [
+          {
+            "node": "GetIntake: Load",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GetIntake: Respond Fail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetIntake: Load": {
+      "main": [
+        [
+          {
+            "node": "GetIntake: Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetIntake: Format": {
+      "main": [
+        [
+          {
+            "node": "GetIntake: Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Answer: Webhook": {
+      "main": [
+        [
+          {
+            "node": "Answer: Parse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Answer: Parse": {
+      "main": [
+        [
+          {
+            "node": "Answer: Input OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Answer: Input OK?": {
+      "main": [
+        [
+          {
+            "node": "Answer: Load",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Answer: Respond Fail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Answer: Load": {
+      "main": [
+        [
+          {
+            "node": "Answer: Build Answers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Answer: Build Answers": {
+      "main": [
+        [
+          {
+            "node": "Answer: Mapped OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Answer: Mapped OK?": {
+      "main": [
+        [
+          {
+            "node": "Answer: Run Intake Subflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Answer: Respond Fail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Answer: Run Intake Subflow": {
+      "main": [
+        [
+          {
+            "node": "Answer: Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Answer: Format": {
+      "main": [
+        [
+          {
+            "node": "Answer: Handoff?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Answer: Handoff?": {
+      "main": [
+        [
+          {
+            "node": "Answer: Call Handoff",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Answer: Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Answer: Call Handoff": {
+      "main": [
+        [
+          {
+            "node": "Answer: Handoff Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Answer: Handoff Result": {
+      "main": [
+        [
+          {
+            "node": "Answer: Respond Handoff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sedes: Webhook": {
+      "main": [
+        [
+          {
+            "node": "Sedes: Parse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sedes: Parse": {
+      "main": [
+        [
+          {
+            "node": "Sedes: Phone OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sedes: Phone OK?": {
+      "main": [
+        [
+          {
+            "node": "Sedes: Load",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sedes: Respond Fail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sedes: Load": {
+      "main": [
+        [
+          {
+            "node": "Sedes: Number",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sedes: Number": {
+      "main": [
+        [
+          {
+            "node": "Sedes: Ready?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sedes: Ready?": {
+      "main": [
+        [
+          {
+            "node": "Sedes: Save Offered",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sedes: Respond Fail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sedes: Save Offered": {
+      "main": [
+        [
+          {
+            "node": "Sedes: Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sedes: Format": {
+      "main": [
+        [
+          {
+            "node": "Sedes: Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slots: Webhook": {
+      "main": [
+        [
+          {
+            "node": "Slots: Parse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slots: Parse": {
+      "main": [
+        [
+          {
+            "node": "Slots: Input OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slots: Input OK?": {
+      "main": [
+        [
+          {
+            "node": "Slots: Load Intake",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slots: Respond Fail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slots: Load Intake": {
+      "main": [
+        [
+          {
+            "node": "Slots: Resolve Sede",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slots: Resolve Sede": {
+      "main": [
+        [
+          {
+            "node": "Slots: Sede OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slots: Sede OK?": {
+      "main": [
+        [
+          {
+            "node": "Slots: Load Calendar Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slots: Respond Fail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slots: Load Calendar Data": {
+      "main": [
+        [
+          {
+            "node": "Slots: Compute",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slots: Compute": {
+      "main": [
+        [
+          {
+            "node": "Slots: Save Offered",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slots: Save Offered": {
+      "main": [
+        [
+          {
+            "node": "Slots: Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slots: Format": {
+      "main": [
+        [
+          {
+            "node": "Slots: Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Webhook": {
+      "main": [
+        [
+          {
+            "node": "Book: Parse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Parse": {
+      "main": [
+        [
+          {
+            "node": "Book: Input OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Input OK?": {
+      "main": [
+        [
+          {
+            "node": "Book: Load",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Book: Respond Fail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Load": {
+      "main": [
+        [
+          {
+            "node": "Book: Check State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Check State": {
+      "main": [
+        [
+          {
+            "node": "Book: State OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: State OK?": {
+      "main": [
+        [
+          {
+            "node": "Book: Ensure Patient",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Book: Count Attempt?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Ensure Patient": {
+      "main": [
+        [
+          {
+            "node": "Book: Patient Ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Patient Ready": {
+      "main": [
+        [
+          {
+            "node": "Book: Patient OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Patient OK?": {
+      "main": [
+        [
+          {
+            "node": "Book: Order Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Book: Count Attempt?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Order Exists?": {
+      "main": [
+        [
+          {
+            "node": "Book: Order Ready",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Book: Build Order Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Build Order Payload": {
+      "main": [
+        [
+          {
+            "node": "Book: Upsert Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Upsert Order": {
+      "main": [
+        [
+          {
+            "node": "Book: Check Upsert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Check Upsert": {
+      "main": [
+        [
+          {
+            "node": "Book: Upsert OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Upsert OK?": {
+      "main": [
+        [
+          {
+            "node": "Book: Submit Order",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Book: Count Attempt?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Submit Order": {
+      "main": [
+        [
+          {
+            "node": "Book: Check Submit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Check Submit": {
+      "main": [
+        [
+          {
+            "node": "Book: Submit OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Submit OK?": {
+      "main": [
+        [
+          {
+            "node": "Book: Save Order",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Book: Count Attempt?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Save Order": {
+      "main": [
+        [
+          {
+            "node": "Book: Order Ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Order Ready": {
+      "main": [
+        [
+          {
+            "node": "Book: Recheck Slot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Recheck Slot": {
+      "main": [
+        [
+          {
+            "node": "Book: Check Slot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Check Slot": {
+      "main": [
+        [
+          {
+            "node": "Book: Slot Free?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Slot Free?": {
+      "main": [
+        [
+          {
+            "node": "Book: Booking Token",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Book: Count Attempt?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Booking Token": {
+      "main": [
+        [
+          {
+            "node": "Book: Check Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Check Token": {
+      "main": [
+        [
+          {
+            "node": "Book: Token OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Token OK?": {
+      "main": [
+        [
+          {
+            "node": "Book: Public Book",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Book: Count Attempt?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Public Book": {
+      "main": [
+        [
+          {
+            "node": "Book: Check Booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Check Booking": {
+      "main": [
+        [
+          {
+            "node": "Book: Booked OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Booked OK?": {
+      "main": [
+        [
+          {
+            "node": "Book: Save Booking",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Book: Count Attempt?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Save Booking": {
+      "main": [
+        [
+          {
+            "node": "Book: Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Format": {
+      "main": [
+        [
+          {
+            "node": "Book: Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Count Attempt?": {
+      "main": [
+        [
+          {
+            "node": "Book: Bump Attempts",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Book: Respond Fail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Bump Attempts": {
+      "main": [
+        [
+          {
+            "node": "Book: Attach Attempts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Attach Attempts": {
+      "main": [
+        [
+          {
+            "node": "Book: Respond Fail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handoff: Webhook": {
+      "main": [
+        [
+          {
+            "node": "Handoff: Parse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handoff: Parse": {
+      "main": [
+        [
+          {
+            "node": "Handoff: Input OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handoff: Input OK?": {
+      "main": [
+        [
+          {
+            "node": "Handoff: Mark Intake",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Handoff: Respond Fail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handoff: Mark Intake": {
+      "main": [
+        [
+          {
+            "node": "Handoff: Build Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handoff: Build Request": {
+      "main": [
+        [
+          {
+            "node": "Handoff: Call Existing Handoff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handoff: Call Existing Handoff": {
+      "main": [
+        [
+          {
+            "node": "Handoff: Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handoff: Format": {
+      "main": [
+        [
+          {
+            "node": "Handoff: Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}
