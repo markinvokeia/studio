@@ -57,7 +57,7 @@ import * as z from 'zod';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { DoctorsColumnsWrapper } from './columns';
+import { DoctorsColumnsWrapper } from '@/components/config/staff-directory-columns';
 import { useDeepLink } from '@/hooks/use-deep-link';
 import { extractCreatedUserId, sendFirstTimePasswordToken } from '@/services/users';
 import { useCheckFirstPassword } from '@/hooks/use-check-first-password';

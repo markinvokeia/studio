@@ -1220,7 +1220,9 @@
       "appointmentMoved": "Cita movida",
       "appointmentMovedDesc": "Nuevo horario: {date} · {time}",
       "appointmentResized": "Duración actualizada",
-      "appointmentResizedDesc": "{start} – {end} ({minutes} min)"
+      "appointmentResizedDesc": "{start} – {end} ({minutes} min)",
+      "pendingSessionTitle": "Sesión pendiente",
+      "pendingSessionDesc": "Completá la sesión clínica antes de cerrar."
     },
     "inlineCreate": {
       "title": "Nueva cita",
@@ -1465,8 +1467,7 @@
         "cancellation_reason": "Motivo de cancelación",
         "cancellation_note": "Detalle de cancelación"
       }
-    }
-    "deleteCancel": "Cancelar",
+    },
     "assignTechnician": "Asignar técnico",
     "changeTechnician": "Cambiar técnico",
     "noTechnician": "Sin técnico asignado",
