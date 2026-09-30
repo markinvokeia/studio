@@ -2,11 +2,12 @@
 
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
+import { DuplicateContactDialog, UniqueConflictDialog } from '@/components/patients/duplicate-contact-dialog';
 import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { API_ROUTES } from '@/constants/routes';
-import { User } from '@/lib/types';
+import { DuplicateContactOwners, UniqueConflict, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { Check, ChevronsUpDown, Loader2, Plus } from 'lucide-react';
@@ -52,6 +53,10 @@ export function UserSelector({
     const [createPhone, setCreatePhone] = React.useState('');
     const [createEmail, setCreateEmail] = React.useState('');
     const [createError, setCreateError] = React.useState<string | null>(null);
+    // Otro paciente ya usa este teléfono/correo: se pide confirmación antes de crear.
+    const [duplicateOwners, setDuplicateOwners] = React.useState<DuplicateContactOwners | null>(null);
+    // Dato que no se puede repetir: modal en vez de texto inline.
+    const [uniqueConflict, setUniqueConflict] = React.useState<UniqueConflict | null>(null);
     const searchQueryRef = React.useRef(searchQuery);
     const lastOpenCreateTokenRef = React.useRef(openCreateToken);
 
@@ -77,6 +82,8 @@ export function UserSelector({
     }, [openCreateToken, onRequestCreate]);
 
     const handleOpenChange = (nextOpen: boolean) => {
+        // La advertencia de contacto repetido se abre encima: no perder lo tecleado.
+        if (!nextOpen && (duplicateOwners || uniqueConflict)) return;
         if (!nextOpen) {
             setIsCreating(false);
             setCreateName('');
@@ -160,13 +167,7 @@ export function UserSelector({
         setIsCreating(true);
     };
 
-    const buildConflictMessage = (conflictedFields: string[], label: string): string => {
-        const fieldLabels: Record<string, string> = { email: 'email', phone: 'teléfono', phone_number: 'teléfono' };
-        const names = Array.from(new Set(conflictedFields.map(f => fieldLabels[f] || f)));
-        return `Ya existe un ${label} con ese ${names.join(' y ')}.`;
-    };
-
-    const handleCreateUser = async () => {
+    const handleCreateUser = async (confirmDuplicates = false) => {
         const name = createName.trim();
         if (!name) return;
         setIsSaving(true);
@@ -179,11 +180,16 @@ export function UserSelector({
                 filter_type: filterType,
                 is_sales: isSales,
                 is_active: true,
+                ...(confirmDuplicates ? { confirm_duplicates: true } : {}),
             });
 
             const errPayload = responseData?.error;
+            if (errPayload?.code === 'duplicate_contact' && errPayload.owners) {
+                setDuplicateOwners(errPayload.owners);
+                return;
+            }
             if (errPayload?.code === 'unique_conflict') {
-                setCreateError(buildConflictMessage(errPayload.conflictedFields ?? [], entityLabel));
+                setUniqueConflict({ conflictedFields: errPayload.conflictedFields ?? [], owners: errPayload.owners ?? {} });
                 return;
             }
             if (errPayload) {
@@ -216,8 +222,10 @@ export function UserSelector({
             if (created) handleSelect(created);
         } catch (err: any) {
             const errPayload = err?.response?.error || err?.data?.error || err?.error;
-            if (errPayload?.code === 'unique_conflict') {
-                setCreateError(buildConflictMessage(errPayload.conflictedFields ?? [], entityLabel));
+            if (errPayload?.code === 'duplicate_contact' && errPayload.owners) {
+                setDuplicateOwners(errPayload.owners);
+            } else if (errPayload?.code === 'unique_conflict') {
+                setUniqueConflict({ conflictedFields: errPayload.conflictedFields ?? [], owners: errPayload.owners ?? {} });
             } else {
                 setCreateError('Revisá que la información ingresada sea válida.');
             }
@@ -229,6 +237,7 @@ export function UserSelector({
     const entityLabel = filterType === 'PROVEEDOR' ? 'proveedor' : 'paciente';
 
     return (
+        <>
         <Popover open={open} onOpenChange={handleOpenChange}>
             <PopoverTrigger asChild>
                 <Button
@@ -317,7 +326,7 @@ export function UserSelector({
                                                     <Button
                                                         size="sm"
                                                         className="bg-green-600 hover:bg-green-700 text-white shrink-0"
-                                                        onClick={handleCreateUser}
+                                                        onClick={() => void handleCreateUser()}
                                                         disabled={isSaving || !createName.trim()}
                                                         type="button"
                                                     >
@@ -344,6 +353,16 @@ export function UserSelector({
                 </Command>
             </PopoverContent>
         </Popover>
+        <DuplicateContactDialog
+            owners={duplicateOwners}
+            onCancel={() => setDuplicateOwners(null)}
+            onConfirm={() => {
+                setDuplicateOwners(null);
+                void handleCreateUser(true);
+            }}
+        />
+        <UniqueConflictDialog conflict={uniqueConflict} onClose={() => setUniqueConflict(null)} />
+        </>
     );
 }
 

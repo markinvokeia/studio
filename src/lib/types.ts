@@ -3180,7 +3180,32 @@ export type ClinicPreferences = {
   max_discount_pct: number;
   /** TRUE ⇒ el formulario de pacientes exige un documento de identidad no vacío. */
   identity_document_required: boolean;
+  /**
+   * TRUE ⇒ un paciente puede compartir teléfono con otro: el alta solo
+   * advierte de quién lo tiene y pide confirmación. FALSE ⇒ se bloquea. El
+   * correo siempre es único.
+   */
+  allow_duplicate_phone: boolean;
 };
+
+/** Ficha que ya usa el correo/teléfono que se intenta guardar (respuesta de `/users/upsert`). */
+export interface DuplicateContactOwner {
+  id: string;
+  name: string;
+  is_active: boolean;
+  /** Documento de identidad (o RUT) para distinguir homónimos y familiares. */
+  document?: string | null;
+  birth_date?: string | null;
+}
+
+/** Dueños del contacto repetido, por campo. */
+export type DuplicateContactOwners = Partial<Record<'email' | 'phone', DuplicateContactOwner[]>>;
+
+/** `unique_conflict` de `/users/upsert`: campos que no se pueden repetir y, si se sabe, quién los tiene. */
+export interface UniqueConflict {
+  conflictedFields: string[];
+  owners: DuplicateContactOwners;
+}
 
 /** Ajustes de Configuración → Portal del Paciente. */
 export type PatientPortalConfig = {

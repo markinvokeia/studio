@@ -9064,7 +9064,44 @@
         "label": "Exigir documento de identidad",
         "help": "Con esto encendido, el formulario de pacientes no deja guardar sin un documento de identidad. Apagado (por defecto), el documento puede quedar vacío."
       }
+    },
+    "duplicateContact": {
+      "sectionTitle": "Teléfono de pacientes",
+      "allow": {
+        "label": "Permitir teléfonos repetidos",
+        "help": "Apagado (por defecto): no se puede registrar un paciente con un teléfono que ya tiene otro, y el mensaje indica quién lo tiene. Encendido, se permite (por ejemplo, familiares que comparten teléfono), pero antes se avisa de quién lo tiene y hay que confirmar. El correo nunca puede repetirse.",
+        "notice": "Los doctores, operadores y proveedores siguen sin poder repetir teléfono, y el correo y el documento de identidad tampoco. Cuando dos fichas comparten teléfono, el portal del paciente y WhatsApp usan la más antigua que esté activa."
+      },
+      "warning": {
+        "title": "Antes de activar esta opción",
+        "description": "Cuando dos fichas comparten teléfono, el sistema no puede distinguirlas si la persona se identifica solo con el número:",
+        "whatsapp": "WhatsApp: el asistente atenderá a la ficha activa más antigua con ese teléfono, aunque quien escriba sea otra persona.",
+        "portal": "Portal del paciente: quien inicie sesión con ese teléfono entrará a la ficha activa más antigua.",
+        "footer": "El correo, el documento de identidad y los usuarios del sistema siguen siendo únicos. Puede desactivarla cuando quiera; las fichas que ya comparten teléfono se conservan.",
+        "cancel": "Cancelar",
+        "confirm": "Entiendo, activar"
+      }
     }
+  },
+  "DuplicateContact": {
+    "title": "Este teléfono ya está registrado",
+    "description": "Otro paciente ya usa este número de teléfono. Verifique que no sea la misma persona antes de guardar.",
+    "fields": {
+      "phone": "Teléfono",
+      "email": "Correo",
+      "identity_document": "Documento de identidad"
+    },
+    "usedBy": "{field} ya registrado a nombre de:",
+    "inactive": "Inactivo",
+    "document": "Doc.: {value}",
+    "birthDate": "Nac.: {value}",
+    "hint": "Si es la misma persona, cancele y abra su ficha existente. Si es un familiar que comparte el teléfono, puede guardar de todos modos.",
+    "cancel": "Revisar datos",
+    "confirm": "Guardar de todos modos",
+    "conflictTitle": "No se puede guardar",
+    "conflictDescription": "Estos datos ya existen y no pueden repetirse. Revise si la persona ya está registrada.",
+    "conflictNoOwner": "{field} ya está registrado.",
+    "understood": "Entendido"
   },
   "CalendarColorsPage": {
     "title": "Colores de Calendario",

@@ -17,6 +17,7 @@ export const DEFAULT_CLINIC_PREFERENCES: ClinicPreferences = {
   default_discount_pct: 0,
   max_discount_pct: 100,
   identity_document_required: false,
+  allow_duplicate_phone: false,
 };
 
 /** Acota un porcentaje al rango que acepta el CHECK de la tabla. */
@@ -38,6 +39,7 @@ export async function fetchClinicPreferences(options?: ApiRequestOptions): Promi
     default_discount_pct: toPct(raw.default_discount_pct, 0),
     max_discount_pct: toPct(raw.max_discount_pct, 100),
     identity_document_required: raw.identity_document_required === true,
+    allow_duplicate_phone: raw.allow_duplicate_phone === true,
   };
 }
 
@@ -48,6 +50,7 @@ export async function updateClinicPreferences(prefs: ClinicPreferences, options?
     default_discount_pct: prefs.default_discount_pct,
     max_discount_pct: prefs.max_discount_pct,
     identity_document_required: prefs.identity_document_required,
+    allow_duplicate_phone: prefs.allow_duplicate_phone,
   }, undefined, undefined, options);
 
   const result = Array.isArray(response) ? response[0] : response;

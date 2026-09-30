@@ -48,9 +48,13 @@ import {
 import { PatientDetailHeader } from '@/components/patients/patient-detail-header';
 import { PatientInfoTab, ResponsibleContactField } from '@/components/patients/patient-info-tab';
 import { PatientActionsMenu } from '@/components/patients/patient-actions-menu';
+import { DuplicateContactDialog, UniqueConflictDialog } from '@/components/patients/duplicate-contact-dialog';
 import {
   getDependantContactInfo,
+  getDuplicateContactWarning,
   getMutualSocietiesList,
+  getUniqueConflict,
+  getUpsertErrorPayload,
   resolveUserUpsertError,
   upsertUser,
   userFormSchema,
@@ -84,7 +88,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useFinanceViewPreference } from '@/hooks/use-finance-view-preference';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
-import { Appointment, Calendar as CalendarType, PatientDischarge, Service, SessionPrefillData, User, UserRole, MutualSociety } from '@/lib/types';
+import { Appointment, Calendar as CalendarType, DuplicateContactOwners, PatientDischarge, Service, SessionPrefillData, UniqueConflict, User, UserRole, MutualSociety } from '@/lib/types';
 import { getSalesServices, getUsersServicesBatch } from '@/services/services';
 import { cn, formatDisplayDate } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -431,6 +435,10 @@ export default function UsersPage() {
   const { user: currentUser } = useAuth();
   const { hasPermission, hasAnyPermission } = usePermissions();
   const identityDocumentRequired = useClinicPreferencesStore((s) => s.preferences.identity_document_required);
+  // Otro paciente ya usa este teléfono/correo: se pide confirmación antes de guardar.
+  const [duplicateWarning, setDuplicateWarning] = React.useState<{ owners: DuplicateContactOwners; data: UserFormValues } | null>(null);
+  // Dato que no se puede repetir: modal en vez de texto inline, que no se ve con el form scrolleado.
+  const [uniqueConflict, setUniqueConflict] = React.useState<UniqueConflict | null>(null);
   const [financeView] = useFinanceViewPreference(currentUser?.id);
   const { toast } = useToast();
   const { open: openBillingWizard } = useBillingWizard();
@@ -1115,12 +1123,12 @@ export default function UsersPage() {
     setRowSelection({});
   };
 
-  const onSubmit = async (data: UserFormValues) => {
+  const onSubmit = async (data: UserFormValues, confirmDuplicates = false) => {
     setSubmissionError(null);
     form.clearErrors();
 
     try {
-      const savedData = await upsertUser(data);
+      const savedData = await upsertUser(data, { confirmDuplicates });
       const isEditing = !!editingUser;
       const savedUserId = data.id || savedData?.id || savedData?.user_id;
       if (data.mutual_society_id && data.mutual_society_id !== 'none' && savedUserId) {
@@ -1170,10 +1178,13 @@ export default function UsersPage() {
       }
 
     } catch (error: any) {
-      const errorData = error.data?.error || (Array.isArray(error.data) && error.data[0]?.error);
-      if (errorData?.code === 'unique_conflict' && errorData?.conflictedFields) {
-        const fields = errorData.conflictedFields.map((f: string) => t(`UsersPage.createDialog.validation.fields.${f}`)).join(', ');
-        setSubmissionError(t('UsersPage.createDialog.validation.uniqueConflict', { fields }));
+      const errorData = getUpsertErrorPayload(error);
+      const duplicateOwners = getDuplicateContactWarning(error);
+      const conflict = getUniqueConflict(errorData);
+      if (duplicateOwners) {
+        setDuplicateWarning({ owners: duplicateOwners, data });
+      } else if (conflict) {
+        setUniqueConflict(conflict);
       } else if ((error.status === 400 || error.status === 409) && errorData?.errors) {
         const errors = Array.isArray(errorData.errors) ? errorData.errors : [];
         if (errors.length > 0) {
@@ -1571,6 +1582,17 @@ export default function UsersPage() {
         />
       </div>
 
+      <DuplicateContactDialog
+        owners={duplicateWarning?.owners ?? null}
+        onCancel={() => setDuplicateWarning(null)}
+        onConfirm={() => {
+          const pending = duplicateWarning;
+          setDuplicateWarning(null);
+          if (pending) void onSubmit(pending.data, true);
+        }}
+      />
+      <UniqueConflictDialog conflict={uniqueConflict} onClose={() => setUniqueConflict(null)} />
+
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent confirmOnClose isDirty={form.formState.isDirty}>
           <DialogHeader>
@@ -1578,7 +1600,7 @@ export default function UsersPage() {
             <DialogDescription>{editingUser ? t('UsersPage.createDialog.editDescription') : t('UsersPage.createDialog.createDescription')}</DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+            <form onSubmit={form.handleSubmit((data) => onSubmit(data))} className="flex flex-col flex-1 overflow-hidden">
               <DialogBody className="space-y-4 px-6 py-4">
                 {submissionError && (
                   <Alert variant="destructive">

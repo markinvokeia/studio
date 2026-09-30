@@ -1,5 +1,8 @@
 'use client';
 
+import { UniqueConflictDialog } from '@/components/patients/duplicate-contact-dialog';
+import { getUniqueConflict } from '@/components/patients/patient-form-utils';
+import type { UniqueConflict } from '@/lib/types';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { DataCard } from '@/components/ui/data-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -351,6 +354,8 @@ export default function ProvidersPage() {
 
 function ProvidersPageContent() {
   const t = useTranslations();
+  // Dato que no se puede repetir: modal en vez de texto inline, que no se ve con el form scrolleado.
+  const [uniqueConflict, setUniqueConflict] = React.useState<UniqueConflict | null>(null);
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
   const isViewportNarrow = useViewportNarrow();
@@ -641,9 +646,9 @@ function ProvidersPageContent() {
       setProviders(prev => prev.map(p => p.id === updated.id ? updated : p));
     } catch (error: any) {
       const errorData = error.data?.error || (Array.isArray(error.data) && error.data[0]?.error);
-      if (errorData?.code === 'unique_conflict' && errorData?.conflictedFields) {
-        const fields = errorData.conflictedFields.map((f: string) => t(`ProvidersPage.createDialog.validation.fields.${f}`)).join(', ');
-        setDetailError(t('ProvidersPage.createDialog.validation.uniqueConflict', { fields }));
+      const conflict = getUniqueConflict(errorData);
+      if (conflict) {
+        setUniqueConflict(conflict);
       } else if ((error.status === 400 || error.status === 409) && errorData?.errors) {
         const errors = Array.isArray(errorData.errors) ? errorData.errors : [];
         if (errors.length > 0) {
@@ -694,9 +699,9 @@ function ProvidersPageContent() {
 
     } catch (error: any) {
       const errorData = error.data?.error || (Array.isArray(error.data) && error.data[0]?.error);
-      if (errorData?.code === 'unique_conflict' && errorData?.conflictedFields) {
-        const fields = errorData.conflictedFields.map((f: string) => t(`ProvidersPage.createDialog.validation.fields.${f}`)).join(', ');
-        setSubmissionError(t('ProvidersPage.createDialog.validation.uniqueConflict', { fields }));
+      const conflict = getUniqueConflict(errorData);
+      if (conflict) {
+        setUniqueConflict(conflict);
       } else if ((error.status === 400 || error.status === 409) && errorData?.errors) {
         const errors = Array.isArray(errorData.errors) ? errorData.errors : [];
         if (errors.length > 0) {
@@ -750,6 +755,7 @@ function ProvidersPageContent() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      <UniqueConflictDialog conflict={uniqueConflict} onClose={() => setUniqueConflict(null)} />
       <TwoPanelLayout
         minLeftSize={20}
         isRightPanelOpen={!!selectedProvider && canViewDetail}

@@ -19,6 +19,7 @@ import { PhoneInput } from '@/components/ui/phone-input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { DuplicateContactDialog, UniqueConflictDialog } from '@/components/patients/duplicate-contact-dialog';
 import { PatientFormDialogShell } from '@/components/patients/patient-form-dialog-shell';
 import { PatientGroupsField, savePatientGroups } from '@/components/patients/patient-groups-field';
 import { useReadOnly } from '@/components/patient-portal/read-only-context';
@@ -28,12 +29,15 @@ import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import { cn } from '@/lib/utils';
 import { IDENTITY_DOCUMENT_TYPES } from '@/lib/identity-document';
 import { useClinicPreferencesStore } from '@/stores/clinic-preferences-store';
-import type { MutualSociety, User } from '@/lib/types';
+import type { DuplicateContactOwners, MutualSociety, UniqueConflict, User } from '@/lib/types';
 import {
   fetchPatientById,
   findPatientByName,
   getDependantContactInfo,
+  getDuplicateContactWarning,
   getMutualSocietiesList,
+  getUniqueConflict,
+  getUpsertErrorPayload,
   resolveUserUpsertError,
   searchGuardianPatients,
   upsertUser,
@@ -288,6 +292,10 @@ export function PatientInfoTab({
   const [groupsDirty, setGroupsDirty] = React.useState(false);
   // Create mode: groups picked before the patient exists, assigned right after the upsert.
   const [pendingGroupIds, setPendingGroupIds] = React.useState<string[]>([]);
+  // Otro paciente ya usa este teléfono/correo: se pide confirmación antes de guardar.
+  const [duplicateWarning, setDuplicateWarning] = React.useState<{ owners: DuplicateContactOwners; data: UserFormValues } | null>(null);
+  // Dato que no se puede repetir: modal en vez de texto inline, que no se ve con el form scrolleado.
+  const [uniqueConflict, setUniqueConflict] = React.useState<UniqueConflict | null>(null);
 
   const identityDocumentRequired = useClinicPreferencesStore((s) => s.preferences.identity_document_required);
   const infoForm = useForm<UserFormValues>({
@@ -371,12 +379,12 @@ export function PatientInfoTab({
     return () => { cancelled = true; };
   }, [user]);
 
-  const handleSave = async (data: UserFormValues) => {
+  const handleSave = async (data: UserFormValues, confirmDuplicates = false) => {
     setIsSaving(true);
     setSaveError(null);
     try {
       if (isCreateMode) {
-        await upsertUser({ ...data, id: undefined });
+        await upsertUser({ ...data, id: undefined }, { confirmDuplicates });
         toast({ title: t('UsersPage.createDialog.createSuccessTitle'), description: t('UsersPage.createDialog.createSuccessDescription') });
         // The upsert response doesn't return the record — resolve the new id by name.
         const created = await findPatientByName(data.name);
@@ -405,7 +413,7 @@ export function PatientInfoTab({
         });
         return;
       }
-      await upsertUser(data);
+      await upsertUser(data, { confirmDuplicates });
       toast({ title: t('UsersPage.createDialog.editSuccessTitle'), description: t('UsersPage.createDialog.editSuccessDescription') });
       const updated: User = {
         ...(user as User),
@@ -430,10 +438,12 @@ export function PatientInfoTab({
       infoForm.reset(data);
       onSaved?.(updated);
     } catch (e: any) {
-      const errorData = e?.data?.error || (Array.isArray(e?.data) && e.data[0]?.error);
-      if (errorData?.code === 'unique_conflict' && errorData?.conflictedFields) {
-        const fields = errorData.conflictedFields.map((f: string) => t(`UsersPage.createDialog.validation.fields.${f}`)).join(', ');
-        setSaveError(t('UsersPage.createDialog.validation.uniqueConflict', { fields }));
+      const duplicateOwners = getDuplicateContactWarning(e);
+      const conflict = getUniqueConflict(getUpsertErrorPayload(e));
+      if (duplicateOwners) {
+        setDuplicateWarning({ owners: duplicateOwners, data });
+      } else if (conflict) {
+        setUniqueConflict(conflict);
       } else {
         setSaveError(
           resolveUserUpsertError(e, t)
@@ -459,7 +469,7 @@ export function PatientInfoTab({
           save footer sits right below them — hugging the form when it's short,
           pinned to the bottom edge when the form overflows. No content shows
           through the footer. */}
-      <form onSubmit={infoForm.handleSubmit(handleSave)} className="flex max-h-full min-h-0 flex-col">
+      <form onSubmit={infoForm.handleSubmit((data) => handleSave(data))} className="flex max-h-full min-h-0 flex-col">
         {/* El scroll va en este div y no en el `fieldset`: Chrome no hace scrollable
             la caja de un fieldset —renderiza su contenido en una caja anónima—, así
             que con `overflow-y-auto` sobre el fieldset la rueda no hacía nada y su
@@ -664,6 +674,16 @@ export function PatientInfoTab({
           </div>
         )}
       </form>
+      <DuplicateContactDialog
+        owners={duplicateWarning?.owners ?? null}
+        onCancel={() => setDuplicateWarning(null)}
+        onConfirm={() => {
+          const pending = duplicateWarning;
+          setDuplicateWarning(null);
+          if (pending) void handleSave(pending.data, true);
+        }}
+      />
+      <UniqueConflictDialog conflict={uniqueConflict} onClose={() => setUniqueConflict(null)} />
     </Form>
   );
 }

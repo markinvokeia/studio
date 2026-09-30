@@ -5,7 +5,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
 import { DEFAULT_PHONE_COUNTRY } from '@/lib/countries';
 import { IDENTITY_DOCUMENT_TYPES, isValidIdentityDocument } from '@/lib/identity-document';
-import type { MutualSociety, User } from '@/lib/types';
+import type { DuplicateContactOwners, MutualSociety, UniqueConflict, User } from '@/lib/types';
 
 // ── Patient form schema ──────────────────────────────────────────────────────
 export const userFormSchema = (t: (key: string) => string, options?: { identityDocumentRequired?: boolean }) => {
@@ -84,7 +84,7 @@ export type DependantContactInfo = {
 };
 
 // ── Data helpers ─────────────────────────────────────────────────────────────
-export async function upsertUser(userData: UserFormValues) {
+export async function upsertUser(userData: UserFormValues, options?: { confirmDuplicates?: boolean }) {
   const payload = {
     ...userData,
     mutual_society_id: userData.mutual_society_id && userData.mutual_society_id !== 'none'
@@ -95,6 +95,8 @@ export async function upsertUser(userData: UserFormValues) {
     sex: userData.sex || null,
     filter_type: 'PACIENTE',
     is_sales: true,
+    // Segundo envío tras la advertencia de contacto repetido (`duplicate_contact`).
+    ...(options?.confirmDuplicates ? { confirm_duplicates: true } : {}),
   };
   const responseData = await api.post(API_ROUTES.USERS_UPSERT, payload);
 
@@ -106,6 +108,32 @@ export async function upsertUser(userData: UserFormValues) {
   }
 
   return responseData;
+}
+
+/** Cuerpo `error` que devuelve `/users/upsert` (n8n lo envía como objeto o dentro de un array). */
+export function getUpsertErrorPayload(error: any): any {
+  return error?.data?.error || (Array.isArray(error?.data) && error.data[0]?.error) || undefined;
+}
+
+/**
+ * Con `clinic_preferences.allow_duplicate_phone` activo, el backend no guarda un
+ * teléfono ya usado por otro paciente: responde `duplicate_contact` con los
+ * dueños para que recepción confirme. Devuelve esos dueños, o `null` si el error es otro.
+ */
+export function getDuplicateContactWarning(error: any): DuplicateContactOwners | null {
+  const payload = getUpsertErrorPayload(error);
+  if (payload?.code !== 'duplicate_contact' || !payload.owners) return null;
+  return payload.owners as DuplicateContactOwners;
+}
+
+/**
+ * Datos de un `unique_conflict` (campos repetidos y quién los tiene) para mostrarlos en un
+ * modal, o `null` si el error es otro. Un texto inline pasa desapercibido cuando el formulario
+ * está scrolleado hacia abajo.
+ */
+export function getUniqueConflict(payload: any): UniqueConflict | null {
+  if (payload?.code !== 'unique_conflict' || !Array.isArray(payload.conflictedFields)) return null;
+  return { conflictedFields: payload.conflictedFields, owners: payload.owners ?? {} };
 }
 
 /**

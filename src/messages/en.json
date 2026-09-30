@@ -9064,7 +9064,44 @@
         "label": "Require identity document",
         "help": "When on, the patient form won't save without an identity document. Off by default, the document can be left empty."
       }
+    },
+    "duplicateContact": {
+      "sectionTitle": "Patient phone",
+      "allow": {
+        "label": "Allow repeated phone numbers",
+        "help": "Off by default: a patient can't be registered with a phone number another patient already has, and the message says who has it. When on, it's allowed (e.g. relatives sharing a phone), but staff are first told who has it and must confirm. Emails can never be repeated.",
+        "notice": "Doctors, operators and providers still can't repeat a phone, and neither can the email or the identity document. When two records share a phone, the patient portal and WhatsApp use the oldest active one."
+      },
+      "warning": {
+        "title": "Before turning this on",
+        "description": "When two records share a phone, the system can't tell them apart if the person identifies themselves only by the number:",
+        "whatsapp": "WhatsApp: the assistant will serve the oldest active record with that phone, even if someone else is writing.",
+        "portal": "Patient portal: whoever signs in with that phone will get into the oldest active record.",
+        "footer": "Emails, identity documents and system users stay unique. You can turn this off at any time; records already sharing a phone are kept.",
+        "cancel": "Cancel",
+        "confirm": "I understand, turn on"
+      }
     }
+  },
+  "DuplicateContact": {
+    "title": "This phone is already registered",
+    "description": "Another patient already uses this phone number. Make sure it isn't the same person before saving.",
+    "fields": {
+      "phone": "Phone",
+      "email": "Email",
+      "identity_document": "Identity document"
+    },
+    "usedBy": "{field} already registered to:",
+    "inactive": "Inactive",
+    "document": "ID: {value}",
+    "birthDate": "Born: {value}",
+    "hint": "If it's the same person, cancel and open their existing record. If it's a relative sharing the phone, you can save anyway.",
+    "cancel": "Review details",
+    "confirm": "Save anyway",
+    "conflictTitle": "Can't save yet",
+    "conflictDescription": "This information already exists and can't be repeated. Check whether the person is already registered.",
+    "conflictNoOwner": "{field} is already registered.",
+    "understood": "Understood"
   },
   "CalendarColorsPage": {
     "title": "Calendar Colors",

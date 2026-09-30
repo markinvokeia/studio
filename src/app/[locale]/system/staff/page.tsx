@@ -1,5 +1,8 @@
 'use client';
 
+import { UniqueConflictDialog } from '@/components/patients/duplicate-contact-dialog';
+import { getUniqueConflict } from '@/components/patients/patient-form-utils';
+import type { UniqueConflict } from '@/lib/types';
 import { TwoPanelLayout, useNarrowMode } from '@/components/layout/two-panel-layout';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataCard } from '@/components/ui/data-card';
@@ -404,6 +407,8 @@ export default function StaffPage() {
   const router = useRouter();
   const locale = useLocale();
   const tCommon = useTranslations('Common');
+  // Dato que no se puede repetir: modal en vez de texto inline, que no se ve con el form scrolleado.
+  const [uniqueConflict, setUniqueConflict] = React.useState<UniqueConflict | null>(null);
   const { toast } = useToast();
 
   // List state
@@ -725,18 +730,9 @@ export default function StaffPage() {
     } catch (error: any) {
       const errorData =
         error.data?.error || (Array.isArray(error.data) && error.data[0]?.error);
-      if (
-        errorData?.code === 'unique_conflict' &&
-        errorData?.conflictedFields
-      ) {
-        const fields = errorData.conflictedFields
-          .map((f: string) =>
-            t(`SystemUsersPage.createDialog.validation.fields.${f}`),
-          )
-          .join(', ');
-        setSubmissionError(
-          t('SystemUsersPage.createDialog.validation.uniqueConflict', { fields }),
-        );
+      const conflict = getUniqueConflict(errorData);
+      if (conflict) {
+        setUniqueConflict(conflict);
       } else if (
         (error.status === 400 || error.status === 409) &&
         errorData?.errors
@@ -810,15 +806,9 @@ export default function StaffPage() {
     } catch (error: any) {
       const errorData =
         error.data?.error || (Array.isArray(error.data) && error.data[0]?.error);
-      if (errorData?.code === 'unique_conflict' && errorData?.conflictedFields) {
-        const fields = errorData.conflictedFields
-          .map((f: string) =>
-            t(`SystemUsersPage.createDialog.validation.fields.${f}`),
-          )
-          .join(', ');
-        setDetailError(
-          t('SystemUsersPage.createDialog.validation.uniqueConflict', { fields }),
-        );
+      const conflict = getUniqueConflict(errorData);
+      if (conflict) {
+        setUniqueConflict(conflict);
       } else if (
         (error.status === 400 || error.status === 409) &&
         errorData?.errors
@@ -902,6 +892,7 @@ export default function StaffPage() {
 
   return (
     <>
+      <UniqueConflictDialog conflict={uniqueConflict} onClose={() => setUniqueConflict(null)} />
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         <TwoPanelLayout
           isRightPanelOpen={!!selectedUser}

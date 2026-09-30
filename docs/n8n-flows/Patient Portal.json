@@ -1,5 +1,5 @@
 {
-  "name": "Patient Portal — Appointment Notify",
+  "name": "Patient Portal",
   "nodes": [
     {
       "parameters": {
@@ -17,7 +17,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- Además de resolver al paciente, informa si tiene citas futuras: eso es lo\n-- que decide si se le pide OTP (tiene algo que consultar) o si se lo manda\n-- directo a reservar. Ver docs/patient-portal.md §3.\n--\n-- OJO con el nombre de la columna: en `appointments` la fecha de inicio es\n-- `start_datetime`, NO `start_time`.\nSELECT\n    u.id,\n    u.name,\n    u.email,\n    EXISTS (\n      SELECT 1\n      FROM public.appointments a\n      WHERE a.patient_id = u.id\n        AND a.start_datetime >= (NOW() AT TIME ZONE 'America/Montevideo')\n        AND lower(coalesce(a.status, '')) NOT IN ('cancelled', 'canceled', 'no_show')\n    ) AS has_upcoming_appointments\nFROM public.users u\nWHERE u.is_active = TRUE\n  AND (\n        lower(u.email) = $1\n     OR regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') = $2\n     OR regexp_replace(coalesce(u.alternative_phone, ''), '\\D', '', 'g') = $2\n     OR u.identity_document = $2\n  )\nLIMIT 1",
+        "query": "-- Además de resolver al paciente, informa si tiene citas futuras: eso es lo\n-- que decide si se le pide OTP (tiene algo que consultar) o si se lo manda\n-- directo a reservar. Ver docs/patient-portal.md §3.\n--\n-- OJO con el nombre de la columna: en `appointments` la fecha de inicio es\n-- `start_datetime`, NO `start_time`.\nSELECT\n    u.id,\n    u.name,\n    u.email,\n    EXISTS (\n      SELECT 1\n      FROM public.appointments a\n      WHERE a.patient_id = u.id\n        AND a.start_datetime >= (NOW() AT TIME ZONE 'America/Montevideo')\n        AND lower(coalesce(a.status, '')) NOT IN ('cancelled', 'canceled', 'no_show')\n    ) AS has_upcoming_appointments\nFROM public.users u\nWHERE u.is_active = TRUE\n  AND (\n        lower(u.email) = $1\n     OR regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') = $2\n     OR regexp_replace(coalesce(u.alternative_phone, ''), '\\D', '', 'g') = $2\n     OR u.identity_document = $2\n  )\n-- El teléfono ya no es único (allow_duplicate_phone): resultado determinista.\nORDER BY u.is_portal_user DESC, u.created_at ASC\nLIMIT 1",
         "options": {
           "queryReplacement": "={{ [ $json.email_candidate, $json.digits_candidate ] }}"
         }
@@ -68,222 +68,6 @@
       "position": [
         416,
         -208
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "\n// Valida el payload mínimo de auto-registro: nombre, teléfono y email.\nconst body = $input.first().json.body || $input.first().json || {};\n\nconst name  = String(body.name || '').trim();\nconst phone = String(body.phone || '').trim();\nconst email = String(body.email || '').trim().toLowerCase();\n\n// El teléfono es opcional: sirve para que la clínica pueda contactarlo, pero\n// no bloquea el registro. El email sí es obligatorio: es la credencial del\n// paciente y a donde llega el código de acceso.\nif (!name || !email) {\n  return [{ json: { __respond: true, statusCode: 400,\n                    body: { message: 'Nombre y email son obligatorios.' } } }];\n}\n\nreturn [{ json: {\n  name, email,\n  phone: phone || null,\n  identity_document: String(body.identity_document || '').replace(/\\D/g, '') || null,\n  birth_date: String(body.birth_date || '').trim() || null,\n  address: String(body.address || '').trim() || null,\n  // '__no_match__' evita que un teléfono vacío colisione con filas sin teléfono.\n  phone_digits: phone ? phone.replace(/\\D/g, '') : '__no_match__',\n} }];\n"
-      },
-      "id": "918001d3-7e3b-4a8e-9126-6a10c3c355b7",
-      "name": "Validar Datos",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        -608,
-        128
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "SELECT\n    bool_or(lower(email) = $1) AS email_taken,\n    bool_or(regexp_replace(coalesce(phone_number, ''), '\\D', '', 'g') = $2) AS phone_taken,\n    bool_or($3 IS NOT NULL AND identity_document = $3) AS document_taken\nFROM public.users",
-        "options": {
-          "queryReplacement": "={{ [ $json.email, $json.phone_digits, $json.identity_document ] }}"
-        }
-      },
-      "id": "0abc8af7-2a44-4ffb-a936-0277152a780e",
-      "name": "Buscar Conflictos",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.5,
-      "position": [
-        -432,
-        128
-      ],
-      "alwaysOutputData": true,
-      "credentials": {
-        "postgres": {
-          "id": "6b7Sjdnppbfve8ka",
-          "name": "Postgres account"
-        }
-      },
-      "continueOnFail": true
-    },
-    {
-      "parameters": {
-        "jsCode": "\n// El frontend ya sabe leer este formato de conflicto (ver patient-form-utils.ts).\nconst row = $input.first().json || {};\nconst conflicted = [];\nif (row.email_taken)    conflicted.push('email');\nif (row.phone_taken)    conflicted.push('phone');\nif (row.document_taken) conflicted.push('identity_document');\n\nif (conflicted.length) {\n  return [{ json: { __respond: true, statusCode: 409, body: {\n    error: { code: 'unique_conflict', conflictedFields: conflicted },\n    message: 'Ya existe una cuenta con esos datos.',\n  } } }];\n}\n\nreturn [{ json: { ...$('Validar Datos').first().json, __respond: false } }];\n"
-      },
-      "id": "a2422af7-820e-4938-856c-31296cf1c22f",
-      "name": "Evaluar Conflictos",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        -256,
-        128
-      ]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose",
-            "version": 1
-          },
-          "conditions": [
-            {
-              "id": "ok",
-              "operator": {
-                "type": "boolean",
-                "operation": "false"
-              },
-              "leftValue": "={{ $json.__respond }}",
-              "rightValue": ""
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {
-          "looseTypeValidation": true
-        }
-      },
-      "id": "0ab93cdc-0b01-466a-8357-983085fd674e",
-      "name": "¿Sin Conflictos?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [
-        -64,
-        128
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "INSERT INTO public.users\n    (name, email, phone_number, identity_document, birthday, address,\n     is_active, is_sales, is_portal_user)\nVALUES ($1, $2, $3, $4, NULLIF($5, '')::date, $6, TRUE, TRUE, FALSE)\nRETURNING id, name, email",
-        "options": {
-          "queryReplacement": "={{ [ $json.name, $json.email, $json.phone, $json.identity_document, $json.birth_date, $json.address ] }}"
-        }
-      },
-      "id": "1a4b04dd-592a-48b3-9cb7-b455e40c9495",
-      "name": "Crear Usuario",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.5,
-      "position": [
-        112,
-        48
-      ],
-      "alwaysOutputData": true,
-      "credentials": {
-        "postgres": {
-          "id": "6b7Sjdnppbfve8ka",
-          "name": "Postgres account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "INSERT INTO public.user_roles (user_id, role_id, is_active)\n  values($1, 1, true)\nON CONFLICT (user_id, role_id) DO UPDATE SET is_active = TRUE\nRETURNING user_id",
-        "options": {
-          "queryReplacement": "={{ [ $json.id ] }}"
-        }
-      },
-      "id": "0e91e5c1-6d7f-4498-8987-c99620441f0e",
-      "name": "Asignar Rol Paciente",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.5,
-      "position": [
-        304,
-        48
-      ],
-      "alwaysOutputData": true,
-      "credentials": {
-        "postgres": {
-          "id": "6b7Sjdnppbfve8ka",
-          "name": "Postgres account"
-        }
-      },
-      "continueOnFail": true
-    },
-    {
-      "parameters": {
-        "jsCode": "function maskEmail(email) {\n  if (!email) return null;\n  const [user, domain] = String(email).split('@');\n  if (!domain) return null;\n  const head = user.slice(0, 1);\n  const tail = user.length > 1 ? user.slice(-1) : '';\n  return `${head}***${tail}@${domain}`;\n}\n\n// Genera y persiste el código para el usuario recién creado.\nconst created = $('Crear Usuario').first().json;\nlet code;\ndo {\n  code = String(Math.floor(100000 + Math.random() * 900000));\n} while (/^(\\d)\\1{5}$/.test(code));\n\nreturn [{ json: {\n  user_id: created.id,\n  user_name: created.name,\n  target_email: created.email,\n  code,\n  masked_email: maskEmail(created.email),\n} }];\n"
-      },
-      "id": "55e0caba-8dac-4f9c-acb6-636132fefd7e",
-      "name": "Generar Código",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        496,
-        48
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "UPDATE public.users SET\n    login_code            = encode(digest($2 || id::text, 'sha256'), 'hex'),\n    login_code_expires_at = NOW() + interval '10 minutes',\n    login_code_attempts   = 0,\n    login_code_sent_at    = NOW()\nWHERE id = $1::uuid\nRETURNING id",
-        "options": {
-          "queryReplacement": "={{ [ $json.user_id, $json.code ] }}"
-        }
-      },
-      "id": "7e0df20a-7a97-4ae7-9539-c2d36f285852",
-      "name": "Guardar Código",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.5,
-      "position": [
-        672,
-        48
-      ],
-      "alwaysOutputData": true,
-      "credentials": {
-        "postgres": {
-          "id": "6b7Sjdnppbfve8ka",
-          "name": "Postgres account"
-        }
-      },
-      "continueOnFail": true
-    },
-    {
-      "parameters": {
-        "jsCode": "return [{ json: { statusCode: $json.statusCode, body: $json.body } }];"
-      },
-      "id": "df97127f-cdde-44b3-a19a-ee2257ae751e",
-      "name": "Formatear Error",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        112,
-        256
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "\nconst ctx = $('Generar Código').first().json;\nreturn [{ json: { statusCode: 200, body: {\n  created: true,\n  user_id: ctx.user_id,\n  sent: true,\n  masked_email: ctx.masked_email,\n  expires_in: 600,\n} } }];\n"
-      },
-      "id": "4b2d8673-5ab7-4d46-98be-db74cff3b715",
-      "name": "Formatear Respuesta1",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1040,
-        48
-      ]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ $json.body }}",
-        "options": {
-          "responseCode": "={{ $json.statusCode }}"
-        }
-      },
-      "id": "4ab98419-f1f8-4ade-88d8-918a355b09aa",
-      "name": "Responder1",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [
-        1216,
-        128
       ]
     },
     {
@@ -350,7 +134,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT id, name, email, phone_number, identity_document,\n       login_code, login_code_expires_at, login_code_attempts, login_code_sent_at,\n       is_portal_user, created_at\nFROM public.users\nWHERE is_active = TRUE\n  AND (\n        lower(email) = $1\n     OR regexp_replace(coalesce(phone_number, ''), '\\D', '', 'g') = $2\n     OR regexp_replace(coalesce(alternative_phone, ''), '\\D', '', 'g') = $2\n     OR identity_document = $2\n  )\nLIMIT 1",
+        "query": "SELECT id, name, email, phone_number, identity_document,\n       login_code, login_code_expires_at, login_code_attempts, login_code_sent_at,\n       is_portal_user, created_at\nFROM public.users\nWHERE is_active = TRUE\n  AND (\n        lower(email) = $1\n     OR regexp_replace(coalesce(phone_number, ''), '\\D', '', 'g') = $2\n     OR regexp_replace(coalesce(alternative_phone, ''), '\\D', '', 'g') = $2\n     OR identity_document = $2\n  )\n-- El teléfono ya no es único (allow_duplicate_phone): resultado determinista.\nORDER BY is_portal_user DESC, created_at ASC\nLIMIT 1",
         "options": {
           "queryReplacement": "={{ [ $json.email_candidate, $json.digits_candidate ] }}"
         }
@@ -509,46 +293,6 @@
         -208
       ],
       "webhookId": "52b382e1-a798-4fff-a54e-a27921a243d6"
-    },
-    {
-      "parameters": {
-        "httpMethod": "POST",
-        "path": "api/auth/patient/register",
-        "responseMode": "responseNode",
-        "options": {}
-      },
-      "id": "fcd732a0-aa17-476e-abc5-a38bf0cfdbb6",
-      "name": "POST api/auth/patient/register",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2,
-      "position": [
-        -784,
-        128
-      ],
-      "webhookId": "60b4920a-9634-4403-a3db-9a44893d5b26"
-    },
-    {
-      "parameters": {
-        "sendTo": "={{ $('Generar Código').first().json.target_email }}",
-        "subject": "=Tu código de acceso: {{ $('Generar Código').first().json.code }}",
-        "message": "=<div style=\"font-family:system-ui,-apple-system,sans-serif;max-width:480px;margin:0 auto;padding:24px\"><h2 style=\"margin:0 0 8px\">Hola {{ $('Generar Código').first().json.user_name }}</h2><p style=\"color:#555;margin:0 0 24px\">Este es tu código para entrar a tu portal de paciente:</p><p style=\"font-size:32px;font-weight:700;letter-spacing:8px;text-align:center;margin:0 0 24px\">{{ $('Generar Código').first().json.code }}</p><p style=\"color:#777;font-size:13px;margin:0\">El código vence en 10 minutos. Si no fuiste vos quien lo pidió, ignorá este mensaje.</p></div>",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.gmail",
-      "typeVersion": 2.2,
-      "position": [
-        864,
-        48
-      ],
-      "id": "aea86a0f-9892-4c48-9c35-5fccf3906e6b",
-      "name": "Enviar email",
-      "webhookId": "5579adc4-d0f1-4b05-993e-d63cfee5bd41",
-      "credentials": {
-        "gmailOAuth2": {
-          "id": "NUeedDpjoyikxk43",
-          "name": "Gmail account 2"
-        }
-      }
     },
     {
       "parameters": {
@@ -747,7 +491,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT id, name, email, phone_number, identity_document,\n       login_code, login_code_expires_at, login_code_attempts, login_code_sent_at,\n       is_portal_user, created_at\nFROM public.users\nWHERE is_active = TRUE\n  AND (\n        lower(email) = $1\n     OR regexp_replace(coalesce(phone_number, ''), '\\D', '', 'g') = $2\n     OR regexp_replace(coalesce(alternative_phone, ''), '\\D', '', 'g') = $2\n     OR identity_document = $2\n  )\nLIMIT 1",
+        "query": "SELECT id, name, email, phone_number, identity_document,\n       login_code, login_code_expires_at, login_code_attempts, login_code_sent_at,\n       is_portal_user, created_at\nFROM public.users\nWHERE is_active = TRUE\n  AND (\n        lower(email) = $1\n     OR regexp_replace(coalesce(phone_number, ''), '\\D', '', 'g') = $2\n     OR regexp_replace(coalesce(alternative_phone, ''), '\\D', '', 'g') = $2\n     OR identity_document = $2\n  )\n-- El teléfono ya no es único (allow_duplicate_phone): resultado determinista.\nORDER BY is_portal_user DESC, created_at ASC\nLIMIT 1",
         "options": {
           "queryReplacement": "={{ [ $json.email_candidate, $json.digits_candidate ] }}"
         }
@@ -1362,186 +1106,313 @@
       },
       "continueOnFail": true,
       "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Generar Código').first().json.target_email }}",
+        "subject": "=Tu código de acceso: {{ $('Generar Código').first().json.code }}",
+        "message": "=<div style=\"font-family:system-ui,-apple-system,sans-serif;max-width:480px;margin:0 auto;padding:24px\"><h2 style=\"margin:0 0 8px\">Hola {{ $('Generar Código').first().json.user_name }}</h2><p style=\"color:#555;margin:0 0 24px\">Este es tu código para entrar a tu portal de paciente:</p><p style=\"font-size:32px;font-weight:700;letter-spacing:8px;text-align:center;margin:0 0 24px\">{{ $('Generar Código').first().json.code }}</p><p style=\"color:#777;font-size:13px;margin:0\">El código vence en 10 minutos. Si no fuiste vos quien lo pidió, ignorá este mensaje.</p></div>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1008,
+        -16
+      ],
+      "id": "aea86a0f-9892-4c48-9c35-5fccf3906e6b",
+      "name": "Enviar email",
+      "webhookId": "5579adc4-d0f1-4b05-993e-d63cfee5bd41",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "NUeedDpjoyikxk43",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Valida el payload mínimo de auto-registro: nombre, teléfono y email.\nconst body = $input.first().json.body || $input.first().json || {};\n\nconst name  = String(body.name || '').trim();\nconst phone = String(body.phone || '').trim();\nconst email = String(body.email || '').trim().toLowerCase();\n\n// El teléfono es opcional: sirve para que la clínica pueda contactarlo, pero\n// no bloquea el registro. El email sí es obligatorio: es la credencial del\n// paciente y a donde llega el código de acceso.\nif (!name || !email) {\n  return [{ json: { __respond: true, statusCode: 400,\n                    body: { message: 'Nombre y email son obligatorios.' } } }];\n}\n\nreturn [{ json: {\n  name, email,\n  phone: phone || null,\n  identity_document: String(body.identity_document || '').replace(/\\D/g, '') || null,\n  birth_date: String(body.birth_date || '').trim() || null,\n  address: String(body.address || '').trim() || null,\n  // '__no_match__' evita que un teléfono vacío colisione con filas sin teléfono.\n  phone_digits: phone ? phone.replace(/\\D/g, '') : '__no_match__',\n  // Modo \"sólo citas\": el paciente no verifica nada, mandarle un código\n  // sería un correo inútil. Lo pide el frontend con skip_code.\n  skip_code: body.skip_code === true || body.skip_code === 'true',\n} }];\n"
+      },
+      "id": "456027ec-4d2c-42ef-9d8b-d2c44229d863",
+      "name": "Validar Datos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -640,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    bool_or(lower(email) = $1) AS email_taken,\n    bool_or(regexp_replace(coalesce(phone_number, ''), '\\D', '', 'g') = $2) AS phone_taken,\n    bool_or($3 IS NOT NULL AND identity_document = $3) AS document_taken\nFROM public.users",
+        "options": {
+          "queryReplacement": "={{ [ $json.email, $json.phone_digits, $json.identity_document ] }}   "
+        }
+      },
+      "id": "a371b672-909f-434a-baf1-beac94dfb4e6",
+      "name": "Buscar Conflictos",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -464,
+        128
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// El frontend ya sabe leer este formato de conflicto (ver patient-form-utils.ts).\nconst row = $input.first().json || {};\nconst conflicted = [];\nif (row.email_taken)    conflicted.push('email');\nif (row.phone_taken)    conflicted.push('phone');\nif (row.document_taken) conflicted.push('identity_document');\n\nif (conflicted.length) {\n  return [{ json: { __respond: true, statusCode: 409, body: {\n    error: { code: 'unique_conflict', conflictedFields: conflicted },\n    message: 'Ya existe una cuenta con esos datos.',\n  } } }];\n}\n\nreturn [{ json: { ...$('Validar Datos').first().json, __respond: false } }];\n"
+      },
+      "id": "67b2da08-2c49-4dfd-af01-39a3fcbf0be9",
+      "name": "Evaluar Conflictos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -288,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "ok",
+              "operator": {
+                "type": "boolean",
+                "operation": "false"
+              },
+              "leftValue": "={{ $json.__respond }}",
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "looseTypeValidation": true
+        }
+      },
+      "id": "74ba59dc-1f57-4f1d-a5fa-ba29c5e94bb1",
+      "name": "¿Sin Conflictos?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -112,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.users\n    (name, email, phone_number, identity_document, birthday, address,\n     is_active, is_sales, is_portal_user)\nVALUES ($1, $2, $3, $4, NULLIF($5, '')::date, $6, TRUE, TRUE, FALSE)\nRETURNING id, name, email",
+        "options": {
+          "queryReplacement": "={{ [ $json.name, $json.email, $json.phone, $json.identity_document, $json.birth_date, $json.address ] }}      "
+        }
+      },
+      "id": "9fb4dfb1-949e-4b9d-b392-2328301a2c90",
+      "name": "Crear Usuario",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        80,
+        48
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.user_roles (user_id, role_id, is_active)\nVALUES ($1::uuid, 1, true)\nON CONFLICT (user_id, role_id) DO UPDATE SET is_active = TRUE\nRETURNING user_id",
+        "options": {
+          "queryReplacement": "={{ [ $json.id ] }}"
+        }
+      },
+      "id": "5ab076da-d303-4687-9b31-1dc39fd701fb",
+      "name": "Asignar Rol Paciente",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        256,
+        48
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "function maskEmail(email) {\n  if (!email) return null;\n  const [user, domain] = String(email).split('@');\n  if (!domain) return null;\n  const head = user.slice(0, 1);\n  const tail = user.length > 1 ? user.slice(-1) : '';\n  return `${head}***${tail}@${domain}`;\n}\n\n// Genera y persiste el código para el usuario recién creado.\nconst created = $('Crear Usuario').first().json;\nlet code;\ndo {\n  code = String(Math.floor(100000 + Math.random() * 900000));\n} while (/^(\\d)\\1{5}$/.test(code));\n\nreturn [{ json: {\n  user_id: created.id,\n  user_name: created.name,\n  target_email: created.email,\n  code,\n  masked_email: maskEmail(created.email),\n} }];\n"
+      },
+      "id": "207d5a1b-87c8-4257-8362-1875968bfc75",
+      "name": "Generar Código",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        656,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE public.users SET\n    login_code            = encode(digest($2 || id::text, 'sha256'), 'hex'),\n    login_code_expires_at = NOW() + interval '10 minutes',\n    login_code_attempts   = 0,\n    login_code_sent_at    = NOW()\nWHERE id = $1::uuid\nRETURNING id",
+        "options": {
+          "queryReplacement": "={{ [ $json.user_id, $json.code ] }}"
+        }
+      },
+      "id": "d730e0eb-7b36-4486-904b-b5688dcab645",
+      "name": "Guardar Código",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        832,
+        -16
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { statusCode: $json.statusCode, body: $json.body } }];"
+      },
+      "id": "2df9fe72-bf0f-44ae-bafb-581d4ba1093f",
+      "name": "Formatear Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "send",
+              "operator": {
+                "type": "boolean",
+                "operation": "false"
+              },
+              "leftValue": "={{ $('Validar Datos').first().json.skip_code }}",
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "looseTypeValidation": true
+        }
+      },
+      "id": "19750dc2-7432-44d4-951f-05bd0ba982c9",
+      "name": "¿Enviar Código?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        432,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Usuario creado, sin código: en modo \"sólo citas\" el paciente pasa directo a\n// la agenda y nunca va a verificar su correo.\nconst created = $('Crear Usuario').first().json;\nreturn [{ json: { statusCode: 200, body: {\n  created: true,\n  user_id: created.id,\n  name: created.name,\n  email: created.email,\n  sent: false,\n  masked_email: null,\n} } }];\n"
+      },
+      "id": "41684b55-97a4-4857-90d1-cc343e8c476c",
+      "name": "Responder Sin Código",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        704,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "api/auth/patient/register",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a8989420-c974-49d9-81f4-b59d30e3a1a8",
+      "name": "Webhook1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -832,
+        128
+      ],
+      "webhookId": "0ec1f22e-ea4d-46aa-a412-57e29756e2dd"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst ctx = $('Generar Código').first().json;\nreturn [{ json: { statusCode: 200, body: {\n  created: true,\n  user_id: ctx.user_id,\n  sent: true,\n  masked_email: ctx.masked_email,\n  expires_in: 600,\n} } }];\n"
+      },
+      "id": "d34d0871-a4fb-411d-8ba8-91f32fd60173",
+      "name": "Formatear Respuesta1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1184,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      },
+      "id": "4765073b-83bd-4f3a-8e70-f4bca1ae951c",
+      "name": "Responder1",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1456,
+        128
+      ]
     }
   ],
-  "pinData": {
-    "GET api/public/clinic": [
-      {
-        "json": {
-          "headers": {
-            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
-            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
-            "accept": "application/json",
-            "accept-encoding": "gzip, deflate, br, zstd",
-            "accept-language": "en-US,en;q=0.9",
-            "cache-control": "no-cache",
-            "origin": "http://localhost:3000",
-            "pragma": "no-cache",
-            "priority": "u=1, i",
-            "referer": "http://localhost:3000/es/patient-login",
-            "sec-ch-ua": "\"Not;A=Brand\";v=\"8\", \"Chromium\";v=\"150\", \"Google Chrome\";v=\"150\"",
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": "\"macOS\"",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "cross-site",
-            "x-forwarded-for": "179.25.73.232",
-            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
-            "x-forwarded-port": "443",
-            "x-forwarded-proto": "https",
-            "x-forwarded-server": "d4e738525fe6",
-            "x-real-ip": "179.25.73.232"
-          },
-          "params": {},
-          "query": {},
-          "body": {},
-          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/public/clinic",
-          "executionMode": "production"
-        },
-        "pairedItem": {
-          "item": 0
-        }
-      }
-    ],
-    "POST api/auth/patient/send-code": [
-      {
-        "json": {
-          "headers": {
-            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
-            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
-            "content-length": "35",
-            "accept": "application/json",
-            "accept-encoding": "gzip, deflate, br, zstd",
-            "accept-language": "en-US,en;q=0.9",
-            "cache-control": "no-cache",
-            "content-type": "application/json",
-            "origin": "http://localhost:3000",
-            "pragma": "no-cache",
-            "priority": "u=1, i",
-            "referer": "http://localhost:3000/es/patient-login",
-            "sec-ch-ua": "\"Not;A=Brand\";v=\"8\", \"Chromium\";v=\"150\", \"Google Chrome\";v=\"150\"",
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": "\"macOS\"",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "cross-site",
-            "x-forwarded-for": "179.25.73.232",
-            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
-            "x-forwarded-port": "443",
-            "x-forwarded-proto": "https",
-            "x-forwarded-server": "d4e738525fe6",
-            "x-real-ip": "179.25.73.232"
-          },
-          "params": {},
-          "query": {},
-          "body": {
-            "identifier": "markmm82@gmail.com"
-          },
-          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/auth/patient/send-code",
-          "executionMode": "production"
-        },
-        "pairedItem": {
-          "item": 0
-        }
-      }
-    ],
-    "POST api/auth/patient/register": [
-      {
-        "json": {
-          "headers": {
-            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
-            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
-            "content-length": "51",
-            "accept": "application/json",
-            "accept-encoding": "gzip, deflate, br, zstd",
-            "accept-language": "en-US,en;q=0.9",
-            "cache-control": "no-cache",
-            "content-type": "application/json",
-            "origin": "http://localhost:3000",
-            "pragma": "no-cache",
-            "priority": "u=1, i",
-            "referer": "http://localhost:3000/es/patient-login",
-            "sec-ch-ua": "\"Not;A=Brand\";v=\"8\", \"Chromium\";v=\"150\", \"Google Chrome\";v=\"150\"",
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": "\"macOS\"",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "cross-site",
-            "x-forwarded-for": "186.54.118.150",
-            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
-            "x-forwarded-port": "443",
-            "x-forwarded-proto": "https",
-            "x-forwarded-server": "d4e738525fe6",
-            "x-real-ip": "186.54.118.150"
-          },
-          "params": {},
-          "query": {},
-          "body": {
-            "name": "Mark Molina",
-            "email": "markmm82@gmail.com"
-          },
-          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/auth/patient/register",
-          "executionMode": "production"
-        },
-        "pairedItem": {
-          "item": 0
-        }
-      }
-    ],
-    "POST /appointment-notify": [
-      {
-        "json": {
-          "headers": {
-            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
-            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
-            "content-length": "327",
-            "accept": "application/json",
-            "accept-encoding": "gzip, deflate, br, zstd",
-            "accept-language": "en-US,en;q=0.9",
-            "cache-control": "no-cache",
-            "content-type": "application/json",
-            "origin": "http://localhost:3000",
-            "pragma": "no-cache",
-            "priority": "u=1, i",
-            "referer": "http://localhost:3000/es/patient-login",
-            "sec-ch-ua": "\"Not;A=Brand\";v=\"8\", \"Chromium\";v=\"150\", \"Google Chrome\";v=\"150\"",
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": "\"macOS\"",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "cross-site",
-            "x-forwarded-for": "179.26.77.31",
-            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
-            "x-forwarded-port": "443",
-            "x-forwarded-proto": "https",
-            "x-forwarded-server": "d4e738525fe6",
-            "x-real-ip": "179.26.77.31"
-          },
-          "params": {},
-          "query": {},
-          "body": {
-            "event": "booked",
-            "appointment_id": null,
-            "patient_id": "06f85fd6-8fe4-4566-895f-dc8877c535bc",
-            "patient_name": "Mark Molina",
-            "patient_email": "",
-            "date": "2026-08-13",
-            "time": "17:30",
-            "doctor_name": "Dr. Romano Roses",
-            "sede_name": "Clínica Salud Dental Total",
-            "reason": "Me duele mucho la muela",
-            "previous_date": null,
-            "previous_time": null
-          },
-          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/public/appointment-notify",
-          "executionMode": "production"
-        },
-        "pairedItem": {
-          "item": 0
-        }
-      }
-    ]
-  },
+  "pinData": {},
   "connections": {
     "Normalizar Identificador": {
       "main": [
@@ -1570,123 +1441,6 @@
         [
           {
             "node": "Responder",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Validar Datos": {
-      "main": [
-        [
-          {
-            "node": "Buscar Conflictos",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Buscar Conflictos": {
-      "main": [
-        [
-          {
-            "node": "Evaluar Conflictos",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Evaluar Conflictos": {
-      "main": [
-        [
-          {
-            "node": "¿Sin Conflictos?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "¿Sin Conflictos?": {
-      "main": [
-        [
-          {
-            "node": "Crear Usuario",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Formatear Error",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Crear Usuario": {
-      "main": [
-        [
-          {
-            "node": "Asignar Rol Paciente",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Asignar Rol Paciente": {
-      "main": [
-        [
-          {
-            "node": "Generar Código",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Generar Código": {
-      "main": [
-        [
-          {
-            "node": "Guardar Código",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Guardar Código": {
-      "main": [
-        [
-          {
-            "node": "Enviar email",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Formatear Error": {
-      "main": [
-        [
-          {
-            "node": "Responder1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Formatear Respuesta1": {
-      "main": [
-        [
-          {
-            "node": "Responder1",
             "type": "main",
             "index": 0
           }
@@ -1804,28 +1558,6 @@
         [
           {
             "node": "Normalizar Identificador",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "POST api/auth/patient/register": {
-      "main": [
-        [
-          {
-            "node": "Validar Datos",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Enviar email": {
-      "main": [
-        [
-          {
-            "node": "Formatear Respuesta1",
             "type": "main",
             "index": 0
           }
@@ -2261,6 +1993,174 @@
           }
         ]
       ]
+    },
+    "Enviar email": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Datos": {
+      "main": [
+        [
+          {
+            "node": "Buscar Conflictos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Conflictos": {
+      "main": [
+        [
+          {
+            "node": "Evaluar Conflictos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluar Conflictos": {
+      "main": [
+        [
+          {
+            "node": "¿Sin Conflictos?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Sin Conflictos?": {
+      "main": [
+        [
+          {
+            "node": "Crear Usuario",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Formatear Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear Usuario": {
+      "main": [
+        [
+          {
+            "node": "Asignar Rol Paciente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Asignar Rol Paciente": {
+      "main": [
+        [
+          {
+            "node": "¿Enviar Código?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generar Código": {
+      "main": [
+        [
+          {
+            "node": "Guardar Código",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar Código": {
+      "main": [
+        [
+          {
+            "node": "Enviar email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Error": {
+      "main": [
+        [
+          {
+            "node": "Responder1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Enviar Código?": {
+      "main": [
+        [
+          {
+            "node": "Generar Código",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Sin Código",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Responder Sin Código": {
+      "main": [
+        [
+          {
+            "node": "Responder1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Validar Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta1": {
+      "main": [
+        [
+          {
+            "node": "Responder1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
@@ -2269,8 +2169,9 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "c016b76d-8ffb-4456-b5f5-083679f3f676",
+  "versionId": "5b141ebd-961f-4480-b1c9-4eef2126d80e",
   "meta": {
+    "templateCredsSetupCompleted": true,
     "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
   },
   "nodeGroups": [],

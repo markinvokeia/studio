@@ -1796,7 +1796,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT id::text AS id, name, phone_number\nFROM users\nWHERE phone_number = $1\nLIMIT 1;",
+        "query": "SELECT id::text AS id, name, phone_number\nFROM users\n-- El teléfono ya no es único (allow_duplicate_phone): se toma la ficha activa más antigua.\nWHERE phone_number = $1\nORDER BY is_active DESC, created_at ASC\nLIMIT 1;",
         "options": {
           "queryReplacement": "={{ [ $('Filter & Extract Inbound Message').item.json.from_phone ] }}"
         }
@@ -3497,7 +3497,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "WITH ins AS (\n  INSERT INTO users (name, phone_number, email, is_active, is_sales)\n  SELECT $1, $2, NULLIF($3, ''), true, true\n  WHERE NOT EXISTS (SELECT 1 FROM users WHERE phone_number = $2)\n  RETURNING id, name, phone_number, email, true AS created\n)\nSELECT id::text AS id, name, phone_number, email, created\nFROM ins\nUNION ALL\nSELECT u.id::text AS id, u.name, u.phone_number, u.email, false AS created\nFROM users u\nWHERE u.phone_number = $2\n  AND NOT EXISTS (SELECT 1 FROM ins)\nLIMIT 1;",
+        "query": "WITH ins AS (\n  INSERT INTO users (name, phone_number, email, is_active, is_sales)\n  SELECT $1, $2, NULLIF($3, ''), true, true\n  WHERE NOT EXISTS (SELECT 1 FROM users WHERE phone_number = $2)\n  RETURNING id, name, phone_number, email, true AS created\n)\nSELECT id::text AS id, name, phone_number, email, created\nFROM ins\nUNION ALL\n-- El teléfono ya no es único (allow_duplicate_phone): se toma la ficha activa más antigua.\n(SELECT u.id::text AS id, u.name, u.phone_number, u.email, false AS created\n FROM users u\n WHERE u.phone_number = $2\n   AND NOT EXISTS (SELECT 1 FROM ins)\n ORDER BY u.is_active DESC, u.created_at ASC\n LIMIT 1)\nLIMIT 1;",
         "options": {
           "queryReplacement": "={{ [ $json.name, $json.phone_number, $json.email ] }}"
         }

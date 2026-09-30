@@ -1,10 +1,19 @@
 'use client';
 
-import { AlertTriangle, FileText, HelpCircle, Percent, Save, SlidersHorizontal } from 'lucide-react';
+import { AlertTriangle, Copy, FileText, HelpCircle, Percent, Save, SlidersHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -46,6 +55,8 @@ export default function ClinicPrefsConfigPage() {
   const setStorePreferences = useClinicPreferencesStore((s) => s.setPreferences);
 
   const [config, setConfig] = React.useState<ClinicPreferences>(DEFAULT_CLINIC_PREFERENCES);
+  // Activar teléfonos repetidos exige leer antes el riesgo (WhatsApp y portal eligen una ficha).
+  const [confirmDuplicatePhoneOpen, setConfirmDuplicatePhoneOpen] = React.useState(false);
   // Se relee del backend en vez de tomar el store: esta pantalla es la que
   // edita el dato, así que parte siempre del valor persistido.
   const {
@@ -261,6 +272,65 @@ export default function ClinicPrefsConfigPage() {
               />
             </CardContent>
           </Card>
+
+          {/* ── Contacto de pacientes ──────────────────────────────────── */}
+          <Card>
+            <CardContent className="space-y-5 p-5">
+              <div className="flex items-center gap-2">
+                <Copy className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <h2 className="text-sm font-semibold">{t('duplicateContact.sectionTitle')}</h2>
+              </div>
+
+              <SettingRow
+                label={t('duplicateContact.allow.label')}
+                help={t('duplicateContact.allow.help')}
+                control={
+                  <Switch
+                    checked={config.allow_duplicate_phone}
+                    disabled={!canEdit}
+                    onCheckedChange={(v) => (v ? setConfirmDuplicatePhoneOpen(true) : patch({ allow_duplicate_phone: false }))}
+                  />
+                }
+              />
+
+              {config.allow_duplicate_phone && (
+                <p className="rounded-xl bg-primary/5 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+                  {t('duplicateContact.allow.notice')}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          <AlertDialog open={confirmDuplicatePhoneOpen} onOpenChange={setConfirmDuplicatePhoneOpen}>
+            <AlertDialogContent className="max-w-md">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 shrink-0 text-amber-500" />
+                  {t('duplicateContact.warning.title')}
+                </AlertDialogTitle>
+                <AlertDialogDescription>{t('duplicateContact.warning.description')}</AlertDialogDescription>
+              </AlertDialogHeader>
+              <div className="space-y-3 px-6 py-3 text-sm">
+                <ul className="list-disc space-y-2 pl-5">
+                  <li>{t('duplicateContact.warning.whatsapp')}</li>
+                  <li>{t('duplicateContact.warning.portal')}</li>
+                </ul>
+                <p className="text-xs leading-relaxed text-muted-foreground">{t('duplicateContact.warning.footer')}</p>
+              </div>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{t('duplicateContact.warning.cancel')}</AlertDialogCancel>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    patch({ allow_duplicate_phone: true });
+                    setConfirmDuplicatePhoneOpen(false);
+                  }}
+                >
+                  {t('duplicateContact.warning.confirm')}
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           {!canUpdate && <p className="px-1 text-xs text-muted-foreground">{t('readOnlyNotice')}</p>}
         </div>
