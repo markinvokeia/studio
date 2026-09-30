@@ -614,6 +614,11 @@
     "studyOrderActionTake": "Tomar",
     "studyOrderActionTaken": "Tomada",
     "studyOrderActionCancel": "Anular",
+    "studyOrderReceivedWhatsapp": "Recibida por WhatsApp",
+    "studyOrderSubmittedChange_cancelled": "La orden fue anulada",
+    "studyOrderSubmittedChange_patient_booked": "El paciente agendó por su cuenta",
+    "handoffOrderDetail": "Orden de estudio",
+    "handoffOrderAction": "Ver derivaciones de WhatsApp",
     "studyOrderActionView": "Ver la orden",
     "studyOrderTakenTitle": "Orden tomada",
     "studyOrderTakeError": "No se pudo tomar la orden",
@@ -9581,6 +9586,41 @@
     "cancel": "Cancelar",
     "use": "Usar esta firma"
   },
+  "WhatsAppOrdersSettings": {
+    "title": "Órdenes de estudio por WhatsApp",
+    "description": "Permite que el asistente lea la orden que el paciente manda como foto o PDF, lo registre y agende la cita. Lo que no pueda resolver lo deriva a una persona.",
+    "enable": "Activar órdenes de estudio por WhatsApp",
+    "enableDescription": "Mientras esté apagado, el asistente ignora las fotos y PDF como siempre. Se recomienda activarlo solo después de probar con la lista de teléfonos del modo de prueba.",
+    "visionModel": "Modelo de lectura",
+    "visionModelHelp": "Modelo de OpenAI que lee la orden. Debe admitir imágenes y PDF.",
+    "minConfidence": "Confianza mínima",
+    "minConfidenceHelp": "De 0,5 a 1. Por debajo, el asistente le pide al paciente que confirme esa línea.",
+    "calendarIds": "Calendarios para órdenes",
+    "calendarIdsPlaceholder": "Todos los calendarios activos",
+    "calendarIdsHelp": "Ids de calendario separados por comas donde se pueden agendar órdenes. Vacío significa cualquier calendario activo de la sede elegida.",
+    "ttlHours": "Horas antes de abandonar una orden",
+    "ttlHoursHelp": "Una orden sin actividad durante este tiempo deja de estar en curso.",
+    "save": "Guardar ajustes de órdenes",
+    "descriptions": {
+      "enabled": "Habilita las órdenes de estudio recibidas como foto o PDF por WhatsApp.",
+      "minConfidence": "Confianza mínima (0 a 1) para aceptar una línea de la orden sin consultar al paciente.",
+      "visionModel": "Modelo de OpenAI que lee las órdenes de estudio (imágenes y PDF).",
+      "calendarIds": "Ids de calendarios donde el asistente puede agendar órdenes de estudio. Vacío = cualquier calendario activo de la sede elegida.",
+      "ttlHours": "Horas de inactividad tras las cuales una orden en curso se marca como abandonada."
+    },
+    "errors": {
+      "confidence": "Ingrese un número entre 0,5 y 1.",
+      "ttl": "Ingrese un número entero de horas entre 1 y 168.",
+      "model": "Para activar las órdenes hace falta un modelo de lectura.",
+      "calendars": "Use ids de calendario separados por comas, por ejemplo 3,7,12."
+    },
+    "toast": {
+      "successTitle": "Ajustes guardados",
+      "saveSuccess": "Se actualizaron los ajustes de órdenes de estudio.",
+      "errorTitle": "No se pudieron guardar los ajustes de órdenes",
+      "loadError": "No se pudieron cargar los ajustes de órdenes de estudio"
+    }
+  },
   "StudyOrdersPage": {
     "titleMine": "Mis Órdenes",
     "titleClinic": "Órdenes de Estudio",
@@ -9627,7 +9667,8 @@
       "patient": "Paciente",
       "link": "Link",
       "activity": "Actividad",
-      "sessions": "Sesión"
+      "sessions": "Sesión",
+      "original": "Original"
     },
     "form": {
       "title": "Nueva orden de estudio",
@@ -9807,7 +9848,79 @@
       "attachments": "{count, plural, =1 {1 adjunto} other {# adjuntos}}",
       "openAttachment": "Abrir archivo"
     },
-    "referredByShort": "derivado por {doctor}"
+    "referredByShort": "derivado por {doctor}",
+    "whatsapp": {
+      "badge": "WhatsApp",
+      "viewOrders": "Órdenes",
+      "viewHandoffs": "Derivadas de WhatsApp",
+      "handoffsTitle": "Órdenes derivadas desde WhatsApp",
+      "handoffsDescription": "El asistente no pudo terminar estas órdenes por su cuenta. Revisá el original y creá la orden a mano o contactá al paciente.",
+      "statusPending": "Pendientes",
+      "statusResolved": "Resueltas",
+      "statusAll": "Todas",
+      "empty": "No hay derivaciones pendientes.",
+      "emptyResolved": "No hay derivaciones resueltas.",
+      "loadError": "No se pudieron cargar las derivaciones.",
+      "retry": "Reintentar",
+      "refresh": "Actualizar",
+      "receivedAt": "Recibida el {date}",
+      "phone": "Teléfono",
+      "patient": "Paciente",
+      "document": "Documento",
+      "sender": "Escribió",
+      "doctorAsWritten": "Doctor en la orden",
+      "doctorNotLinked": "solo como figura en el papel, sin vincular a un usuario",
+      "studiesRead": "Estudios leídos",
+      "noStudies": "No se pudo leer ningún estudio.",
+      "unmatched": "No figuran en el sistema",
+      "detail": "Detalle",
+      "originals": "Archivos originales",
+      "noFiles": "No se guardó ningún archivo.",
+      "fileLoadError": "No se pudo cargar este archivo.",
+      "openFile": "Abrir",
+      "viewOrder": "Ver la orden {number}",
+      "resolve": "Marcar como resuelta",
+      "resolvedBy": "Resuelta por {name} el {date}",
+      "resolvedOn": "Resuelta el {date}",
+      "resolutionNote": "Nota: {note}",
+      "resolveDialog": {
+        "title": "Marcar la derivación como resuelta",
+        "description": "{patient}: esto solo cierra la derivación. Los archivos originales y lo que leyó el asistente quedan registrados.",
+        "noteLabel": "Nota (opcional)",
+        "notePlaceholder": "Ej. orden creada, paciente contactado por teléfono",
+        "cancel": "Cancelar",
+        "confirm": "Marcar como resuelta"
+      },
+      "toast": {
+        "resolvedTitle": "Derivación resuelta",
+        "errorTitle": "No se pudo resolver la derivación"
+      },
+      "reason": {
+        "service_not_found": "Estudio que no figura en el sistema",
+        "unreadable": "Orden ilegible o incompleta",
+        "low_confidence": "Lectura dudosa",
+        "patient_mismatch": "Paciente distinto de quien escribe",
+        "booking_failed": "No se pudo agendar",
+        "user_request": "Pidió hablar con una persona",
+        "system_error": "Error del sistema"
+      },
+      "original": {
+        "receivedVia": "Recibida por WhatsApp el {date}",
+        "from": "Enviada desde {phone}",
+        "readByAssistant": "Lo que leyó el asistente",
+        "doctorAsWritten": "Doctor en la orden en papel (sin vincular)",
+        "warningsTitle": "Advertencias de la revisión",
+        "noWarnings": "La revisión no encontró advertencias.",
+        "model": "Modelo de lectura: {model}"
+      },
+      "warning": {
+        "no_signature": "Sin firma visible",
+        "old_order": "Orden antigua",
+        "unplaced_details": "Detalles que no encajaron en el formulario",
+        "unreadable_fields": "Campos que no se pudieron leer",
+        "modifier_without_service": "Opción sin su estudio"
+      }
+    }
   },
   "StudyOrderBooking": {
     "greeting": "Hola {name}",

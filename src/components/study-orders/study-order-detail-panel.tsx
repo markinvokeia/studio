@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Activity, CalendarClock, CalendarDays, CalendarPlus, FileText, Inbox, Link2, Pencil, Printer, Send, Stethoscope, Trash2, User, UserRoundX, X, XCircle } from 'lucide-react';
+import { Activity, CalendarClock, CalendarDays, CalendarPlus, FileText, Inbox, Link2, MessageCircle, Pencil, Printer, Send, Stethoscope, Trash2, User, UserRoundX, X, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +22,8 @@ import {
     type StudyOrderSummarySection,
 } from './study-order-summary';
 import { StudyOrderTimeline } from './study-order-timeline';
+import { StudyOrderWhatsappTab } from './study-order-whatsapp-tab';
+import { WhatsappSourceBadge } from './whatsapp-source-badge';
 
 import { STUDY_ORDERS_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -114,6 +116,8 @@ export function StudyOrderDetailPanel({
         return () => { cancelled = true; };
     }, [orderId, refreshKey, reloadKey]);
 
+    const hasOriginals = !!order?.whatsapp && hasPermission(STUDY_ORDERS_PERMISSIONS.VIEW_ALL);
+
     const tabs = React.useMemo<VerticalTab[]>(
         () => [
             { id: 'order', icon: FileText, label: t('tabs.order') },
@@ -131,9 +135,15 @@ export function StudyOrderDetailPanel({
             ...(hasPermission(STUDY_ORDERS_PERMISSIONS.SHARE_LINK)
                 ? [{ id: 'link', icon: Link2, label: t('tabs.link') }]
                 : []),
+            // Solo órdenes que entraron por WhatsApp: los originales y lo que leyó el
+            // asistente. Los archivos se piden con VIEW_ALL, así que sin ese permiso
+            // la pestaña no tendría nada que mostrar.
+            ...(hasOriginals
+                ? [{ id: 'original', icon: MessageCircle, label: t('tabs.original') }]
+                : []),
             { id: 'activity', icon: Activity, label: t('tabs.activity') },
         ],
-        [t, scope, hasPermission],
+        [t, scope, hasPermission, hasOriginals],
     );
 
     /** Agrupa las líneas por sección, respetando el orden del formulario. */
@@ -313,6 +323,7 @@ export function StudyOrderDetailPanel({
                             />
                         </p>
                         <StudyOrderStatusBadge status={deriveBoardStatus(order)} />
+                        <WhatsappSourceBadge source={order.source} />
                     </div>
                 </div>
                 {/* En mobile la botonera cae debajo del número; en escritorio va a la derecha. */}
@@ -389,6 +400,8 @@ export function StudyOrderDetailPanel({
                 {activeTab === 'link' && (
                     <StudyOrderBookingLinkTab order={order} />
                 )}
+
+                {activeTab === 'original' && hasOriginals && <StudyOrderWhatsappTab order={order} />}
 
                 {activeTab === 'activity' && <StudyOrderTimeline events={order.events ?? []} />}
             </CardContent>
@@ -572,7 +585,15 @@ function OrderTab({ order }: { order: StudyOrder }) {
             clinicalNotes={order.clinical_notes}
             header={
                 <dl className="mt-3 grid grid-cols-2 gap-3 border-t pt-3">
-                    <Field label={t('columns.doctor')} value={order.doctor_name} />
+                    <Field
+                        label={t('columns.doctor')}
+                        // Las órdenes de WhatsApp no se vinculan a un doctor: se muestra el
+                        // nombre del papel, aclarando que es solo referencia.
+                        value={order.doctor_name
+                            ?? (order.referring_doctor_name
+                                ? `${order.referring_doctor_name} (${t('whatsapp.doctorNotLinked')})`
+                                : null)}
+                    />
                     <Field label={t('form.preferredSede')} value={order.preferred_sede_name} />
                 </dl>
             }

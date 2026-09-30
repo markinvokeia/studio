@@ -107,6 +107,7 @@ args AS (
            coalesce(NULLIF(f ->> 'board_status', ''), 'all')    AS board_status,
            coalesce(f ->> 'search', '')                         AS search,
            NULLIF(f ->> 'sede_id', '')                          AS sede_id,
+           coalesce(f ->> 'source', '')                         AS source,
            NULLIF(f ->> 'patient_id', '')                       AS patient_id,
            coalesce((f ->> 'sla_hours')::numeric, 48)           AS sla_hours,
            NULLIF(f ->> 'date_from', '')                        AS date_from,
@@ -119,6 +120,8 @@ args AS (
 base AS (
     SELECT b.*,
            d.name  AS doctor_name,
+           so.source,
+           so.referring_doctor_name,
            se.name AS preferred_sede_name,
            (b.has_past_due_appointment
             OR (b.board_status IN ('new', 'unscheduled', 'partially_scheduled')
@@ -129,6 +132,7 @@ base AS (
       FROM public.v_study_orders_board b
       CROSS JOIN args a
       LEFT JOIN public.users d  ON d.id  = b.doctor_id
+      LEFT JOIN public.study_orders so ON so.id = b.id
       LEFT JOIN public.sedes se ON se.id = b.preferred_sede_id
      WHERE
        -- Autorización: sólo con VIEW_ALL se ve la bandeja completa. Pedir
@@ -151,6 +155,8 @@ base AS (
                           OR b.patient_document LIKE a.search || '%'
                           OR lower(b.order_number) LIKE lower(a.search) || '%')
        AND (a.sede_id IS NULL OR b.preferred_sede_id = a.sede_id::int)
+       -- so.source y no b.source: b es la vista del tablero, que no tiene esa columna.
+       AND (a.source = '' OR so.source = a.source)
        -- Órdenes de un paciente concreto: lo usa el selector del diálogo de cita.
        AND (a.patient_id IS NULL OR b.patient_id = a.patient_id::uuid)
        AND (a.date_from IS NULL OR b.submitted_at >= a.date_from::timestamp)
@@ -163,6 +169,7 @@ SELECT (SELECT count(*) FROM base) AS total,
                         b.patient_id::text, b.patient_name, b.patient_document, b.patient_phone,
                         b.status, b.board_status, b.items_total, b.items_scheduled, b.items_completed,
                         b.items_summary, b.is_overdue, b.hours_since_submitted,
+                        b.source, b.referring_doctor_name,
                         b.preferred_sede_id::text, b.preferred_sede_name,
                         b.submitted_at, b.acknowledged_at, b.completed_at, b.created_at
                    FROM base b CROSS JOIN args a
@@ -188,6 +195,25 @@ SELECT row_to_json(o) AS data
            so.clinical_notes, so.preferred_sede_id::text, se.name AS preferred_sede_name,
            so.submitted_at, so.acknowledged_at, so.completed_at, so.cancelled_at,
            so.cancellation_reason, so.created_at, so.updated_at,
+           so.source, so.referring_doctor_name, so.source_intake_id::text,
+           -- Orden que entro por WhatsApp: los originales (fotos o PDF) y lo que el asistente
+           -- leyo de ellos, para poder comprobar que no hubo errores de lectura.
+           (SELECT json_build_object(
+                     'intake_id', wi.id::text,
+                     'phone', wi.phone,
+                     'received_at', wi.created_at,
+                     'warnings', coalesce(wi.validation -> 'warnings', '[]'::jsonb),
+                     'extraction_meta', wi.extraction_meta,
+                     'files', coalesce((
+                         SELECT json_agg(json_build_object(
+                                  'id', at.id::text, 'file_name', at.file_name, 'mime_type', at.mime_type,
+                                  'web_view_link', at.web_view_link, 'thumbnail_link', at.thumbnail_link,
+                                  'created_at', at.created_at) ORDER BY at.id)
+                           FROM public.attachments at
+                          WHERE at.source_name = 'whatsapp_order_intake' AND at.source_id = wi.id::text
+                     ), '[]'::json))
+              FROM public.whatsapp_order_intakes wi
+             WHERE wi.id = so.source_intake_id) AS whatsapp,
            coalesce((
              SELECT json_agg(json_build_object(
                       'id', i.id::text, 'study_order_id', i.study_order_id::text,
@@ -314,11 +340,17 @@ p AS (
 ),
 resolved AS (
     -- El doctor sólo puede salir del body con CREATE_FOR_DOCTOR; si no, es el
-    -- sujeto del token.
+    -- sujeto del token. Con ese mismo permiso, without_doctor deja la orden SIN
+    -- doctor derivador (el agente de WhatsApp: el doctor es opcional y el del
+    -- papel sólo se guarda como texto). Sin el permiso el indicador se ignora,
+    -- para que nadie pueda esconder quién creó una orden.
     SELECT CASE
              WHEN (SELECT can_create_for_doctor FROM perms)
               AND coalesce((SELECT body ->> 'doctor_id' FROM p), '') <> ''
              THEN (SELECT body ->> 'doctor_id' FROM p)::uuid
+             WHEN (SELECT can_create_for_doctor FROM perms)
+              AND coalesce((SELECT body ->> 'without_doctor' FROM p), '') IN ('true', 't', '1')
+             THEN NULL::uuid
              ELSE $1::uuid
            END AS doctor_id
 ),
@@ -335,6 +367,14 @@ vals AS (
            coalesce(body -> 'delivery_methods', '[]'::jsonb)  AS delivery_methods,
            NULLIF(body ->> 'clinical_notes', '')    AS clinical_notes,
            NULLIF(body ->> 'preferred_sede_id', '') AS preferred_sede_id,
+           -- source, referring_doctor_name y source_intake_id los manda sólo el
+           -- agente; sin CREATE_FOR_DOCTOR se ignoran y la orden es del portal.
+           CASE WHEN (SELECT can_create_for_doctor FROM perms)
+                 AND body ->> 'source' = 'whatsapp' THEN 'whatsapp' ELSE 'portal' END AS source,
+           CASE WHEN (SELECT can_create_for_doctor FROM perms)
+                THEN NULLIF(body ->> 'referring_doctor_name', '') END AS referring_doctor_name,
+           CASE WHEN (SELECT can_create_for_doctor FROM perms)
+                THEN NULLIF(body ->> 'source_intake_id', '') END AS source_intake_id,
            coalesce(body -> 'items', '[]'::jsonb)   AS items
       FROM p
 ),
@@ -350,7 +390,8 @@ updated AS (
            texts             = v.texts,
            delivery_methods  = v.delivery_methods,
            clinical_notes    = v.clinical_notes,
-           preferred_sede_id = v.preferred_sede_id::int
+           preferred_sede_id = v.preferred_sede_id::int,
+           referring_doctor_name = coalesce(v.referring_doctor_name, so.referring_doctor_name)
       FROM vals v
      WHERE v.id IS NOT NULL
        AND so.id = v.id::uuid
@@ -362,11 +403,13 @@ inserted AS (
     INSERT INTO public.study_orders
            (doctor_id, patient_id, patient_name, patient_document, patient_email,
             patient_phone, regions, section_modifiers, texts, delivery_methods,
-            clinical_notes, preferred_sede_id, created_by)
+            clinical_notes, preferred_sede_id, created_by,
+            source, referring_doctor_name, source_intake_id)
     SELECT (SELECT doctor_id FROM resolved), v.patient_id::uuid, v.patient_name,
            v.patient_document, v.patient_email, v.patient_phone, v.regions,
            v.section_modifiers, v.texts, v.delivery_methods, v.clinical_notes,
-           v.preferred_sede_id::int, $1::uuid
+           v.preferred_sede_id::int, $1::uuid,
+           v.source, v.referring_doctor_name, v.source_intake_id::uuid
       FROM vals v
      WHERE v.id IS NULL
     RETURNING id
@@ -506,6 +549,8 @@ const ORDER_METADATA = `
        jsonb_build_object(
            'order_id',      so.id::text,
            'order_number',  so.order_number,
+           'source',        so.source,
+           'referring_doctor_name', so.referring_doctor_name,
            'patient_id',    so.patient_id::text,
            'patient_name',  so.patient_name,
            'doctor_id',     so.doctor_id::text,
@@ -934,6 +979,19 @@ ins AS (
        AND v.calendar_source_id IS NOT NULL
        AND EXISTS (SELECT 1 FROM public.calendar_sources cs
                     WHERE cs.id = v.calendar_source_id AND cs.is_active)
+       -- Un calendario = una agenda: no se reserva encima de otra cita. Mismo
+       -- criterio de ocupación que Agent_Availability2 (cualquier cita no
+       -- cancelada en la ventana). Sin esto, el link público y el agente de
+       -- WhatsApp podían superponer citas. Acota la carrera pero no la elimina
+       -- (la sentencia ve una foto previa a su propio INSERT): quien reserva
+       -- debe rechequear la disponibilidad justo antes.
+       AND NOT EXISTS (
+           SELECT 1 FROM public.appointments x
+            WHERE x.calendar_source_id = v.calendar_source_id
+              AND x.start_datetime < v.ends_at
+              AND x.end_datetime   > v.starts_at
+              AND x.status NOT IN ('canceled', 'cancelled', 'deleted')
+       )
     RETURNING id, study_order_id
 ),
 svc AS (
@@ -1174,3 +1232,76 @@ SELECT a.id::text            AS appointment_id,
    AND a.id = ANY (
        SELECT (jsonb_array_elements_text(coalesce(b.body -> 'appointment_ids', '[]'::jsonb)))::int
    );`;
+
+export const WHATSAPP_INTAKES_SQL = `
+-- $1 userId (token)  $2 filtros como JSON { status: 'pending' | 'resolved' | 'all', limit, offset }
+--
+-- Ordenes de estudio que el agente de WhatsApp derivo a una persona (whatsapp_order_intakes en
+-- handed_off). No tienen orden en Invoke: por eso no salen en la bandeja y necesitan su propia lista.
+-- Solo con STUDY_ORDERS_VIEW_ALL. Trae lo necesario para resolver sin salir de la pantalla: el motivo,
+-- lo que el asistente alcanzo a leer, y los originales.
+WITH ${PERMS_CTE},
+q AS (SELECT $2::jsonb AS f),
+args AS (
+    SELECT coalesce(NULLIF(f ->> 'status', ''), 'pending') AS st,
+           coalesce((f ->> 'limit')::int, 25)              AS lim,
+           coalesce((f ->> 'offset')::int, 0)              AS off
+      FROM q
+),
+base AS (
+    SELECT i.*
+      FROM public.whatsapp_order_intakes i CROSS JOIN args a
+     WHERE coalesce((SELECT can_view_all FROM perms), false)
+       AND i.status = 'handed_off'
+       AND CASE a.st WHEN 'pending'  THEN i.resolved_at IS NULL
+                     WHEN 'resolved' THEN i.resolved_at IS NOT NULL
+                     ELSE true END
+)
+SELECT (SELECT count(*) FROM base) AS total,
+       coalesce((
+         SELECT json_agg(row_to_json(x))
+           FROM (SELECT b.id::text, b.phone, b.handoff_reason, b.handoff_detail, b.created_at,
+                        b.resolved_at, ru.name AS resolved_by_name, b.resolution_note,
+                        coalesce(b.validation -> 'patient' ->> 'name', b.extraction -> 'patient' ->> 'name') AS patient_name,
+                        coalesce(b.validation -> 'patient' ->> 'document', b.extraction -> 'patient' ->> 'document') AS patient_document,
+                        b.extraction -> 'doctor' ->> 'name' AS doctor_as_written,
+                        (SELECT u.name FROM public.users u WHERE u.id = b.sender_user_id) AS sender_name,
+                        coalesce((
+                          SELECT json_agg(coalesce(s.name, e ->> 'external_id'))
+                            FROM jsonb_array_elements(coalesce(b.extraction -> 'items', '[]'::jsonb)) e
+                            LEFT JOIN public.service_catalog s
+                              ON coalesce(s.external_id, 'id:' || s.id) = e ->> 'external_id'
+                        ), '[]'::json) AS studies,
+                        coalesce(b.extraction -> 'unmatched_text_lines', '[]'::jsonb) AS unmatched_lines,
+                        b.study_order_id::text,
+                        (SELECT o.order_number FROM public.study_orders o WHERE o.id = b.study_order_id) AS order_number,
+                        coalesce((
+                          SELECT json_agg(json_build_object(
+                                   'id', at.id::text, 'file_name', at.file_name, 'mime_type', at.mime_type,
+                                   'web_view_link', at.web_view_link, 'thumbnail_link', at.thumbnail_link)
+                                 ORDER BY at.id)
+                            FROM public.attachments at
+                           WHERE at.source_name = 'whatsapp_order_intake' AND at.source_id = b.id::text
+                        ), '[]'::json) AS files
+                   FROM base b
+                   LEFT JOIN public.users ru ON ru.id = b.resolved_by
+                  ORDER BY b.created_at DESC
+                  LIMIT (SELECT lim FROM args) OFFSET (SELECT off FROM args)) x
+       ), '[]'::json) AS items;`;
+
+export const RESOLVE_INTAKE_SQL = `
+-- $1 userId (token)  $2 payload { id, note }
+-- Marca como resuelta una derivacion: recepcion ya se ocupo (creo la orden a mano o hablo con el
+-- paciente). Sin STUDY_ORDERS_ACKNOWLEDGE no hace nada. No toca el resto del intake: los originales
+-- y la extraccion quedan intactos para auditoria.
+WITH ${PERMS_CTE},
+p AS (SELECT $2::jsonb AS body)
+UPDATE public.whatsapp_order_intakes i
+   SET resolved_at = ${NOW},
+       resolved_by = $1::uuid,
+       resolution_note = NULLIF(left((SELECT body ->> 'note' FROM p), 500), '')
+ WHERE i.id = (SELECT body ->> 'id' FROM p)::uuid
+   AND i.status = 'handed_off'
+   AND i.resolved_at IS NULL
+   AND coalesce((SELECT can_acknowledge FROM perms), false)
+RETURNING i.id::text, i.resolved_at;`;

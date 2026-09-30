@@ -9,6 +9,7 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { createSelectColumn } from '@/components/ui/table-select-column';
 
 import { StudyOrderStatusBadge } from '@/components/study-orders/study-order-status-badge';
+import { WhatsappSourceBadge } from '@/components/study-orders/whatsapp-source-badge';
 
 import { formatDisplayDate } from '@/lib/utils';
 import type { StudyOrderListItem } from '@/lib/types';
@@ -112,7 +113,10 @@ export const StudyOrderColumnsWrapper = ({
             header: ({ column }) => <DataTableColumnHeader column={column} title={t('orderNumber')} />,
             cell: ({ row }) => (
                 <div className="min-w-0 leading-snug">
-                    <div className="truncate font-mono text-xs tabular-nums">{row.original.order_number}</div>
+                    <div className="flex min-w-0 items-center gap-1.5">
+                        <span className="truncate font-mono text-xs tabular-nums">{row.original.order_number}</span>
+                        <WhatsappSourceBadge source={row.original.source} />
+                    </div>
                     <div className="truncate text-[11px] text-muted-foreground">
                         {row.original.submitted_at ? formatDisplayDate(row.original.submitted_at) : '—'}
                     </div>

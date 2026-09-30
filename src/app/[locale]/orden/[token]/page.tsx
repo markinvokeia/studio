@@ -148,12 +148,14 @@ export default function StudyOrderBookingPage() {
         if (step !== 'slot' || !selectedSede) return;
         let cancelled = false;
         setIsLoadingSlots(true);
-        void fetchPatientDaySlots(selectedDate, schedules, undefined, selectedSede.calendarIds, 'public')
+        // La disponibilidad se consulta con la duración total de los estudios: con la
+        // grilla de 30 min por defecto se ofrecían huecos donde el turno no entra.
+        void fetchPatientDaySlots(selectedDate, schedules, durationMin, selectedSede.calendarIds, 'public')
             .then((fetched) => { if (!cancelled) setSlots(fetched); })
             .catch(() => { if (!cancelled) setSlots([]); })
             .finally(() => { if (!cancelled) setIsLoadingSlots(false); });
         return () => { cancelled = true; };
-    }, [step, selectedDate, schedules, selectedSede]);
+    }, [step, selectedDate, schedules, selectedSede, durationMin]);
 
     const days = React.useMemo(
         () => Array.from({ length: DAYS_PER_PAGE }, (_, i) => addDays(today, pageStart + i)),

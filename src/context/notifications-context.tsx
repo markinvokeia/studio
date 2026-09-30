@@ -214,6 +214,8 @@ function normalizeBackendNotification(n: BackendNotification): UnifiedNotificati
         itemsSummary: String(m.items_summary ?? ''),
         itemsTotal: Number(m.items_total ?? 0),
         sedeName: m.sede_name ?? null,
+        source: m.source ?? null,
+        change: String(m.change ?? ''),
         acknowledged: readActionsTaken(id).length > 0,
       } satisfies StudyOrderSubmittedNotification;
 

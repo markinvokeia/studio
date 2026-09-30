@@ -854,11 +854,20 @@ function WhatsappHandoffCard({ notification }: { notification: WhatsappHandoffRe
   const t = useTranslations('Notifications');
   const locale = useLocale();
   const router = useRouter();
-  const { patientId, patientName, phone, lastMessage, createdAt } = notification;
+  const { patientId, patientName, phone, lastMessage, createdAt, reason } = notification;
+  // El asistente deriva las órdenes de estudio que no pudo resolver con este mismo aviso; el motivo
+  // empieza por "Orden de estudio". El link del original va al final, tras " | Original: ".
+  const isStudyOrder = typeof reason === 'string' && reason.startsWith('Orden de estudio');
+  const orderReason = isStudyOrder ? reason.split(' | Original:')[0] : '';
 
   const handleView = () => {
     closePanel();
     router.push(`/${locale}/patients?q=${encodeURIComponent(patientName || phone)}`);
+  };
+
+  const handleViewOrders = () => {
+    closePanel();
+    router.push(`/${locale}/study-orders?view=whatsapp`);
   };
 
   return (
@@ -883,13 +892,34 @@ function WhatsappHandoffCard({ notification }: { notification: WhatsappHandoffRe
             </p>
           )}
 
-          {lastMessage && (
+          {isStudyOrder && (
+            <div className="mt-2 rounded-lg bg-muted/40 px-3 py-2">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                {t('handoffOrderDetail')}
+              </p>
+              <p className="mt-0.5 text-[11px] text-foreground line-clamp-4">{orderReason}</p>
+            </div>
+          )}
+
+          {!isStudyOrder && lastMessage && (
             <div className="mt-2 rounded-lg bg-muted/40 px-3 py-2">
               <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                 {t('handoffLastMessage')}
               </p>
               <p className="mt-0.5 text-[11px] text-foreground line-clamp-3">{lastMessage}</p>
             </div>
+          )}
+
+          {isStudyOrder && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3 h-7 w-full justify-start gap-2 text-[11px]"
+              onClick={handleViewOrders}
+            >
+              <ClipboardList className="h-3.5 w-3.5 text-green-600" />
+              {t('handoffOrderAction')}
+            </Button>
           )}
 
           {patientId && (
@@ -971,8 +1001,15 @@ function StudyOrderSubmittedCard({ notification }: { notification: StudyOrderSub
             <RelativeTime iso={notification.createdAt} />
           </div>
           <p className="mt-0.5 text-[11px] text-muted-foreground">
-            {t('studyOrderSubmittedBy', { doctor: notification.doctorName || '—' })}
+            {notification.source === 'whatsapp'
+              ? t('studyOrderReceivedWhatsapp')
+              : t('studyOrderSubmittedBy', { doctor: notification.doctorName || '—' })}
           </p>
+          {(notification.change === 'cancelled' || notification.change === 'patient_booked') && (
+            <p className="mt-0.5 text-[11px] font-medium text-foreground">
+              {t(`studyOrderSubmittedChange_${notification.change}`)}
+            </p>
+          )}
           <p className="mt-1 text-[11px] text-muted-foreground truncate">
             <span className="font-mono">{notification.orderNumber}</span>
             {notification.itemsSummary ? ` · ${notification.itemsSummary}` : ''}

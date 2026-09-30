@@ -27,13 +27,16 @@ import {
     BY_APPOINTMENT_SQL, LINK_APPOINTMENT_SQL, LIST_SQL, NOTIFY_DOCTOR_SQL, NOTIFY_RECEPTION_SQL, OPTIONS_SQL,
     APPOINTMENT_TECHNICIANS_SQL, ASSIGN_TECHNICIAN_SQL, BOOKING_TOKEN_SQL, LOG_EVENT_SQL, TECHNICIAN_TASKS_SQL, PUBLIC_BOOK_SQL, PUBLIC_DETAIL_SQL, RECONCILE_SQL,
     RECOMPUTE_SQL, RESCHEDULE_SQL, SUBMIT_SQL, UPSERT_SQL,
+    RESOLVE_INTAKE_SQL, WHATSAPP_INTAKES_SQL,
 } from './study-orders-sql.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const OUT_DIR = join(ROOT, 'n8n-workflows');
 
 const JWT_CREDENTIAL = { jwtAuth: { id: 'C6sB1r7ab5H5EmJj', name: 'JWT Auth account' } };
-const PG_CREDENTIAL  = { postgres: { id: 'POSTGRES_CREDENTIAL_ID', name: 'Postgres' } };
+// Credencial real de la instancia (la misma que usan Whats App.json y Attachements CRUD): importados así, los
+// flujos quedan listos sin tener que elegirla nodo por nodo.
+const PG_CREDENTIAL  = { postgres: { id: '6b7Sjdnppbfve8ka', name: 'Postgres account' } };
 
 /**
  * Nodo webhook. `authentication: jwtAuth` hace que n8n verifique la firma.
@@ -198,6 +201,7 @@ const filters = {
   board_status: q.board_status || 'all',
   search: (q.q || '').trim(),
   sede_id: q.sede_id || '',
+  source: q.source === 'whatsapp' ? 'whatsapp' : '',
   patient_id: q.patient_id || '',
   sla_hours: Number(q.sla_hours) > 0 ? Number(q.sla_hours) : 48,
   date_from: q.date_from || '',
@@ -275,6 +279,11 @@ const str = (v) => (v ?? '').toString().trim();
 const payload = {
   id: str(b.id),
   doctor_id: str(b.doctor_id),
+  // true ⇒ la orden queda SIN doctor derivador (sólo con CREATE_FOR_DOCTOR).
+  without_doctor: b.without_doctor === true || b.without_doctor === 'true',
+  source: str(b.source),
+  referring_doctor_name: str(b.referring_doctor_name),
+  source_intake_id: str(b.source_intake_id),
   patient_id: str(b.patient_id),
   patient_name: name,
   patient_document: str(b.patient_document),
@@ -1042,6 +1051,59 @@ function reconcileWorkflow() {
 
 // ── Ensamblado ───────────────────────────────────────────────────────────────
 mkdirSync(OUT_DIR, { recursive: true });
+
+// ── 20. GET /study-orders/whatsapp-intakes ───────────────────────────────────
+workflows.push({
+    file: 'study-orders-whatsapp-intakes.json',
+    name: 'Study Orders - WhatsApp Intakes',
+    sticky: `## GET /study-orders/whatsapp-intakes\n\nÓrdenes que el agente de WhatsApp **derivó a una persona**. No tienen orden en Invoke, por eso no salen en la bandeja.\n\n**Query:** \`status\` = pending (default) | resolved | all, \`page\`, \`limit\`.\n\nSolo con STUDY_ORDERS_VIEW_ALL. Devuelve el motivo, lo que el asistente alcanzó a leer y los originales (fotos o PDF).`,
+    method: 'GET',
+    path: 'study-orders/whatsapp-intakes',
+    id: 'wa-intakes',
+    validate: `
+const userId = $json.jwtPayload?.userId;
+if (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];
+const q = $json.query || {};
+const page = Math.max(1, parseInt(q.page, 10) || 1);
+const limit = Math.min(100, Math.max(1, parseInt(q.limit, 10) || 25));
+const status = ['pending', 'resolved', 'all'].includes(q.status) ? q.status : 'pending';
+const filters = { status, limit, offset: (page - 1) * limit };
+return [{ json: { user_id: String(userId), filters: JSON.stringify(filters), page, limit } }];`.trim(),
+    sql: WHATSAPP_INTAKES_SQL,
+    replacement: '={{ [ $json.user_id, $json.filters ] }}',
+    format: formatCode(`
+const row = rows[0] ?? { total: 0, items: [] };
+const input = $('Validar Datos').first().json;
+return [{ json: {
+  __data: row.items ?? [],
+  __meta: { total: Number(row.total ?? 0), page: input.page, limit: input.limit },
+} }];`),
+});
+
+// ── 21. POST /study-orders/whatsapp-intakes/resolve ──────────────────────────
+workflows.push({
+    file: 'study-orders-whatsapp-intake-resolve.json',
+    name: 'Study Orders - WhatsApp Intake Resolve',
+    sticky: `## POST /study-orders/whatsapp-intakes/resolve\n\nRecepción marca como resuelta una derivación de WhatsApp.\n\n**Body:** \`{ "id": "uuid", "note": "opcional" }\`\n\nRequiere STUDY_ORDERS_ACKNOWLEDGE. **409** si ya estaba resuelta, no está derivada o no hay permiso. No modifica los originales ni la extracción.`,
+    method: 'POST',
+    path: 'study-orders/whatsapp-intakes/resolve',
+    id: 'wa-resolve',
+    validate: `
+const userId = $json.jwtPayload?.userId;
+if (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];
+const b = $json.body || {};
+const id = (b.id || '').toString().trim();
+if (!id) return [{ json: { __error: true, __code: 400, __message: 'id es requerido' } }];
+return [{ json: { user_id: String(userId), payload: JSON.stringify({ id, note: (b.note || '').toString().slice(0, 500) }) } }];`.trim(),
+    sql: RESOLVE_INTAKE_SQL,
+    replacement: '={{ [ $json.user_id, $json.payload ] }}',
+    format: formatCode(`
+if (!rows.length || !rows[0].id) {
+  return [{ json: { __error: true, __code: 409,
+    __message: 'No se pudo marcar como resuelta: ya estaba resuelta, no está derivada o no tenés permiso' } }];
+}
+return [{ json: { __data: rows[0], __message: 'Derivación resuelta' } }];`),
+});
 
 for (const wf of workflows) {
     const nodes = [

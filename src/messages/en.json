@@ -614,6 +614,11 @@
     "studyOrderActionTake": "Take",
     "studyOrderActionTaken": "Taken",
     "studyOrderActionCancel": "Cancel",
+    "studyOrderReceivedWhatsapp": "Received by WhatsApp",
+    "studyOrderSubmittedChange_cancelled": "The order was cancelled",
+    "studyOrderSubmittedChange_patient_booked": "The patient booked on their own",
+    "handoffOrderDetail": "Study order",
+    "handoffOrderAction": "View WhatsApp referrals",
     "studyOrderActionView": "View order",
     "studyOrderTakenTitle": "Order taken",
     "studyOrderTakeError": "The order could not be taken",
@@ -9581,6 +9586,41 @@
     "cancel": "Cancel",
     "use": "Use this signature"
   },
+  "WhatsAppOrdersSettings": {
+    "title": "Study orders by WhatsApp",
+    "description": "Lets the assistant read the order a patient sends as a photo or PDF, register them, and book the appointment. What it cannot resolve is referred to a person.",
+    "enable": "Enable study orders by WhatsApp",
+    "enableDescription": "While off, the assistant ignores photos and PDFs as before. Turn it on only after testing with the test-mode phone list.",
+    "visionModel": "Reading model",
+    "visionModelHelp": "OpenAI model that reads the order. It must accept images and PDFs.",
+    "minConfidence": "Minimum confidence",
+    "minConfidenceHelp": "From 0.5 to 1. Below this, the assistant asks the patient to confirm that line.",
+    "calendarIds": "Calendars for orders",
+    "calendarIdsPlaceholder": "All active calendars",
+    "calendarIdsHelp": "Calendar ids separated by commas where orders may be booked. Empty means any active calendar of the chosen branch.",
+    "ttlHours": "Hours before an order is abandoned",
+    "ttlHoursHelp": "An order with no activity for this long stops being in progress.",
+    "save": "Save order settings",
+    "descriptions": {
+      "enabled": "Enables study orders received as photo or PDF by WhatsApp.",
+      "minConfidence": "Minimum confidence (0 to 1) to accept an order line without asking the patient.",
+      "visionModel": "OpenAI model that reads study orders (images and PDFs).",
+      "calendarIds": "Calendar ids where the assistant may book study orders. Empty means any active calendar of the chosen branch.",
+      "ttlHours": "Hours of inactivity after which an order in progress is marked as abandoned."
+    },
+    "errors": {
+      "confidence": "Enter a number between 0.5 and 1.",
+      "ttl": "Enter a whole number of hours between 1 and 168.",
+      "model": "A reading model is required to enable orders.",
+      "calendars": "Use calendar ids separated by commas, for example 3,7,12."
+    },
+    "toast": {
+      "successTitle": "Settings saved",
+      "saveSuccess": "The study order settings were updated.",
+      "errorTitle": "Could not save the order settings",
+      "loadError": "Could not load the study order settings"
+    }
+  },
   "StudyOrdersPage": {
     "titleMine": "My Orders",
     "titleClinic": "Study Orders",
@@ -9627,7 +9667,8 @@
       "patient": "Patient",
       "link": "Link",
       "activity": "Activity",
-      "sessions": "Session"
+      "sessions": "Session",
+      "original": "Original"
     },
     "form": {
       "title": "New study order",
@@ -9807,7 +9848,79 @@
       "attachments": "{count, plural, =1 {1 attachment} other {# attachments}}",
       "openAttachment": "Open file"
     },
-    "referredByShort": "referred by {doctor}"
+    "referredByShort": "referred by {doctor}",
+    "whatsapp": {
+      "badge": "WhatsApp",
+      "viewOrders": "Orders",
+      "viewHandoffs": "WhatsApp referrals",
+      "handoffsTitle": "Orders referred from WhatsApp",
+      "handoffsDescription": "The assistant could not finish these orders on its own. Check the original and create the order by hand or contact the patient.",
+      "statusPending": "Pending",
+      "statusResolved": "Resolved",
+      "statusAll": "All",
+      "empty": "There are no pending referrals.",
+      "emptyResolved": "There are no resolved referrals.",
+      "loadError": "Could not load the referrals.",
+      "retry": "Retry",
+      "refresh": "Refresh",
+      "receivedAt": "Received {date}",
+      "phone": "Phone",
+      "patient": "Patient",
+      "document": "ID",
+      "sender": "Wrote",
+      "doctorAsWritten": "Doctor on the order",
+      "doctorNotLinked": "only as written, not linked to a user",
+      "studiesRead": "Studies read",
+      "noStudies": "No studies could be read.",
+      "unmatched": "Not in the system",
+      "detail": "Detail",
+      "originals": "Original files",
+      "noFiles": "No files were saved.",
+      "fileLoadError": "Could not load this file.",
+      "openFile": "Open",
+      "viewOrder": "View order {number}",
+      "resolve": "Mark as resolved",
+      "resolvedBy": "Resolved by {name} on {date}",
+      "resolvedOn": "Resolved on {date}",
+      "resolutionNote": "Note: {note}",
+      "resolveDialog": {
+        "title": "Mark referral as resolved",
+        "description": "{patient}: this only closes the referral. The original files and what the assistant read stay on record.",
+        "noteLabel": "Note (optional)",
+        "notePlaceholder": "E.g. order created, patient called back",
+        "cancel": "Cancel",
+        "confirm": "Mark as resolved"
+      },
+      "toast": {
+        "resolvedTitle": "Referral resolved",
+        "errorTitle": "Could not resolve the referral"
+      },
+      "reason": {
+        "service_not_found": "Study not in the system",
+        "unreadable": "Unreadable or incomplete order",
+        "low_confidence": "Doubtful reading",
+        "patient_mismatch": "Patient differs from sender",
+        "booking_failed": "Could not book",
+        "user_request": "Asked for a person",
+        "system_error": "System error"
+      },
+      "original": {
+        "receivedVia": "Received via WhatsApp on {date}",
+        "from": "Sent from {phone}",
+        "readByAssistant": "What the assistant read",
+        "doctorAsWritten": "Doctor on the paper order (not linked)",
+        "warningsTitle": "Review warnings",
+        "noWarnings": "The review found no warnings.",
+        "model": "Reading model: {model}"
+      },
+      "warning": {
+        "no_signature": "No visible signature",
+        "old_order": "Old order",
+        "unplaced_details": "Details that did not fit the form",
+        "unreadable_fields": "Fields that could not be read",
+        "modifier_without_service": "Option without its study"
+      }
+    }
   },
   "StudyOrderBooking": {
     "greeting": "Hi {name}",

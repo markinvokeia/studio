@@ -578,6 +578,11 @@ export const API_ROUTES = {
         LINK_APPOINTMENT: '/study-orders/link-appointment',
         BY_APPOINTMENT:   '/study-orders/by-appointment',
         BOOKING_TOKEN: '/study-orders/booking-token',
+        /** Órdenes que el agente de WhatsApp derivó a una persona (STUDY_ORDERS_VIEW_ALL). */
+        WHATSAPP_INTAKES:        '/study-orders/whatsapp-intakes',
+        WHATSAPP_INTAKE_RESOLVE: '/study-orders/whatsapp-intakes/resolve',
+        /** Original (foto o PDF) recibido por WhatsApp: GET ?intake_id=&id= devuelve el archivo. */
+        WHATSAPP_INTAKE_FILE:    '/study-orders/whatsapp-intakes/file',
         /** Públicos: el paciente llega con el token del link, sin sesión. */
         PUBLIC_DETAIL: '/study-orders/public_noauth',
         PUBLIC_BOOK:   '/study-orders/public-book_noauth',

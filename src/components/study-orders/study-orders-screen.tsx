@@ -6,6 +6,8 @@ import { ClipboardList, Pencil } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataCard } from '@/components/ui/data-card';
@@ -19,6 +21,8 @@ import { StudyOrderRescheduleDialog } from './study-order-reschedule-dialog';
 import { StudyOrderWizard } from './study-order-wizard';
 import { referralLabel } from './study-order-referral-line';
 import { StudyOrderStatusBadge } from './study-order-status-badge';
+import { WhatsappIntakesPanel } from './whatsapp-intakes-panel';
+import { WhatsappSourceBadge } from './whatsapp-source-badge';
 
 import { STUDY_ORDERS_PERMISSIONS } from '@/constants/permissions';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -34,6 +38,7 @@ import {
     deleteStudyOrder,
     getStudyOrder,
     getStudyOrders,
+    getWhatsappIntakes,
     submitStudyOrder,
     type StudyOrderScope,
 } from '@/services/study-orders';
@@ -177,12 +182,15 @@ function StudyOrdersTableWithCards({
                         t('itemsCountShort', { count: order.items_total }),
                     ].filter(Boolean).join(' · ')}
                     badge={
-                        <StudyOrderStatusBadge
-                            status={order.board_status}
-                            isOverdue={order.is_overdue}
-                            itemsScheduled={order.items_scheduled}
-                            itemsTotal={order.items_total}
-                        />
+                        <span className="flex items-center gap-1.5">
+                            <WhatsappSourceBadge source={order.source} />
+                            <StudyOrderStatusBadge
+                                status={order.board_status}
+                                isOverdue={order.is_overdue}
+                                itemsScheduled={order.items_scheduled}
+                                itemsTotal={order.items_total}
+                            />
+                        </span>
                     }
                     showArrow
                     onClick={() => onRowSelect([order])}
@@ -228,6 +236,24 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
     // Mis Órdenes las órdenes son propias y el derivador puede anular las que
     // todavía no fueron tomadas — ese corte lo aplican la fila y el panel.
     const canCancel = !isClinic || hasPermission(STUDY_ORDERS_PERMISSIONS.CANCEL);
+
+    // Derivaciones del asistente de WhatsApp: solo las ve quien puede ver toda la bandeja.
+    const canViewHandoffs = isClinic && hasPermission(STUDY_ORDERS_PERMISSIONS.VIEW_ALL);
+    // `?view=whatsapp` lo usa el aviso de derivación para abrir directo esta pestaña.
+    const [view, setView] = React.useState<'orders' | 'whatsapp'>(
+        searchParams.get('view') === 'whatsapp' ? 'whatsapp' : 'orders',
+    );
+    const [pendingHandoffs, setPendingHandoffs] = React.useState(0);
+
+    React.useEffect(() => {
+        if (!canViewHandoffs) return;
+        let cancelled = false;
+        // Un fallo acá solo deja el contador en 0: la lista real muestra su propio error.
+        void getWhatsappIntakes({ status: 'pending', limit: 1 })
+            .then(({ total: count }) => { if (!cancelled) setPendingHandoffs(count); })
+            .catch(() => undefined);
+        return () => { cancelled = true; };
+    }, [canViewHandoffs]);
 
     const [orders, setOrders] = React.useState<StudyOrderListItem[]>([]);
     const [total, setTotal] = React.useState(0);
@@ -463,6 +489,35 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
 
     return (
         <div className="flex flex-1 flex-col overflow-hidden">
+            {canViewHandoffs && (
+                <div className="flex items-center gap-1 px-1 pb-2" role="group" aria-label={t('titleClinic')}>
+                    <Button
+                        type="button" size="sm"
+                        variant={view === 'orders' ? 'secondary' : 'ghost'}
+                        aria-pressed={view === 'orders'}
+                        onClick={() => setView('orders')}
+                    >
+                        {t('whatsapp.viewOrders')}
+                    </Button>
+                    <Button
+                        type="button" size="sm"
+                        variant={view === 'whatsapp' ? 'secondary' : 'ghost'}
+                        aria-pressed={view === 'whatsapp'}
+                        onClick={() => setView('whatsapp')}
+                    >
+                        {t('whatsapp.viewHandoffs')}
+                        {pendingHandoffs > 0 && (
+                            <Badge variant="warning" className="ml-1.5 px-1.5 py-0 text-[10px]">{pendingHandoffs}</Badge>
+                        )}
+                    </Button>
+                </div>
+            )}
+
+            {canViewHandoffs && view === 'whatsapp' ? (
+                <div className="min-h-0 flex-1 overflow-hidden">
+                    <WhatsappIntakesPanel onPendingCountChange={setPendingHandoffs} />
+                </div>
+            ) : (
             <TwoPanelLayout
                 isRightPanelOpen={!!selected}
                 onBack={handleCloseDetail}
@@ -536,6 +591,7 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                     )
                 }
             />
+            )}
 
             <StudyOrderRescheduleDialog
                 open={!!reschedulingOrder}

@@ -968,6 +968,10 @@ export type StudyOrderSubmittedNotification = {
   itemsSummary: string;
   itemsTotal: number;
   sedeName?: string | null;
+  /** 'whatsapp' cuando la orden la creó el asistente: no tiene doctor derivador. */
+  source?: string | null;
+  /** Qué provocó el aviso: '' = orden nueva, 'cancelled' = el derivador la anuló, 'patient_booked' = el paciente agendó solo. */
+  change?: string;
   /** Se marca al tomar la orden desde la tarjeta, para no ofrecerlo dos veces. */
   acknowledged?: boolean;
 };
@@ -3503,6 +3507,62 @@ export type StudyOrderEventType =
   | 'session_saved' | 'completed' | 'reopened' | 'cancelled'
   | 'link_created' | 'patient_booked';
 
+/** Por dónde entró la orden: la creó un usuario en el portal o el agente de WhatsApp a partir de una foto o PDF. */
+export type StudyOrderSource = 'portal' | 'whatsapp';
+
+/** Un original (foto o PDF) que el usuario mandó por WhatsApp. El archivo se pide aparte, con sesión. */
+export interface WhatsappIntakeFile {
+  id: string;
+  file_name: string;
+  mime_type?: string | null;
+  web_view_link?: string | null;
+  thumbnail_link?: string | null;
+  created_at?: string | null;
+}
+
+/** Motivos por los que el agente deriva una orden a una persona. */
+export type WhatsappHandoffReason =
+  | 'service_not_found' | 'unreadable' | 'low_confidence' | 'patient_mismatch'
+  | 'booking_failed' | 'user_request' | 'system_error';
+
+export interface WhatsappIntakeWarning {
+  code: string;
+  detail?: string | null;
+}
+
+/** Lo que recepción necesita para auditar una orden que llegó por WhatsApp. */
+export interface StudyOrderWhatsappInfo {
+  intake_id: string;
+  phone?: string | null;
+  received_at: string;
+  warnings: WhatsappIntakeWarning[];
+  extraction_meta?: Record<string, unknown> | null;
+  files: WhatsappIntakeFile[];
+}
+
+/** Una orden de WhatsApp derivada a una persona. No tiene orden en Invoke hasta que recepción la crea. */
+export interface WhatsappOrderIntake {
+  id: string;
+  phone: string;
+  handoff_reason: WhatsappHandoffReason;
+  handoff_detail?: string | null;
+  created_at: string;
+  resolved_at?: string | null;
+  resolved_by_name?: string | null;
+  resolution_note?: string | null;
+  patient_name?: string | null;
+  patient_document?: string | null;
+  /** Nombre del doctor tal como figura en el papel. Sólo referencia: no está vinculado a ningún usuario. */
+  doctor_as_written?: string | null;
+  sender_name?: string | null;
+  studies: string[];
+  /** Estudios que figuran en la orden pero no en el sistema. */
+  unmatched_lines: string[];
+  study_order_id?: string | null;
+  order_number?: string | null;
+  files: WhatsappIntakeFile[];
+}
+
 export interface StudyOrderEvent {
   id: string;
   event_type: StudyOrderEventType;
@@ -3518,8 +3578,15 @@ export interface StudyOrderEvent {
 export interface StudyOrder {
   id: string;
   order_number: string;
-  doctor_id: string;
+  /** Opcional: las órdenes de WhatsApp no se vinculan a ningún doctor. */
+  doctor_id?: string | null;
   doctor_name?: string | null;
+  source?: StudyOrderSource;
+  /** Doctor tal como figura en el papel (órdenes de WhatsApp). Sólo referencia. */
+  referring_doctor_name?: string | null;
+  source_intake_id?: string | null;
+  /** Originales y lectura del asistente, sólo en órdenes de WhatsApp. */
+  whatsapp?: StudyOrderWhatsappInfo | null;
   /** Puede faltar mientras la clínica no haya vinculado la ficha del paciente. */
   patient_id?: string | null;
   patient_name: string;
@@ -3557,8 +3624,10 @@ export interface StudyOrder {
 export interface StudyOrderListItem {
   id: string;
   order_number: string;
-  doctor_id: string;
+  doctor_id?: string | null;
   doctor_name?: string | null;
+  source?: StudyOrderSource;
+  referring_doctor_name?: string | null;
   patient_id?: string | null;
   patient_name: string;
   patient_document?: string | null;
