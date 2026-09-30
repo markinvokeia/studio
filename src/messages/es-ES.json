@@ -429,7 +429,12 @@
     "ReportBalanceMensual": "Balance Mensual",
     "Sedes": "Sedes",
     "PatientsPortal": "Portal del Paciente",
-    "PrescriptionTemplates": "Plantillas de Receta"
+    "PrescriptionTemplates": "Plantillas de Receta",
+    "StudyOrders": "Órdenes de Estudio",
+    "MyStudyOrders": "Mis Órdenes",
+    "ClinicStudyOrders": "Órdenes",
+    "Technicians": "Técnicos y Operadores",
+    "Tasks": "Mis Tareas"
   },
   "TVDisplayPage": {
     "title": "Pantalla TV",
@@ -603,7 +608,23 @@
     "appointmentRescheduledTitle": "Cita reagendada",
     "appointmentReassignedTitle": "Cita reasignada",
     "appointmentUpdatedTitle": "Cita editada",
-    "reminderDueTitle": "Recordatorio vencido"
+    "reminderDueTitle": "Recordatorio vencido",
+    "studyOrderSubmittedBy": "Orden derivada por {doctor}",
+    "studyOrderActionSchedule": "Agendar",
+    "studyOrderActionTake": "Tomar",
+    "studyOrderActionTaken": "Tomada",
+    "studyOrderActionCancel": "Anular",
+    "studyOrderActionView": "Ver la orden",
+    "studyOrderTakenTitle": "Orden tomada",
+    "studyOrderTakeError": "No se pudo tomar la orden",
+    "studyOrderStatusChanged": "La clínica actualizó el estado de tu orden: {status}",
+    "studyOrderChange_appointment_cancelled": "Se canceló la cita: los estudios quedaron pendientes de agendar.",
+    "studyOrderChange_reopened": "Se dio de baja la cita que la cerraba: la orden volvió a quedar abierta.",
+    "studyOrderChange_completed": "Los estudios ya fueron realizados.",
+    "studyOrderChange_scheduled": "Ya tiene cita agendada.",
+    "studyOrderChange_rescheduled": "Se movió la fecha de la cita.",
+    "studyOrderSubmittedTitle": "Nueva orden de estudio",
+    "studyOrderStatusTitle": "Tu orden cambió de estado"
   },
   "Header": {
     "toggleLanguage": "Cambiar idioma",
@@ -1147,6 +1168,12 @@
     "noSuggestions": "Sin sugerencias",
     "search": "Buscar",
     "selectedServices": "Servicios Seleccionados",
+    "loadErrors": {
+      "title": "No se pudo cargar la agenda",
+      "description": "Hubo un problema al cargar consultorios, servicios o doctores. Revisá la conexión e intentá de nuevo.",
+      "fetchError": "No se pudieron actualizar las citas. Se muestran los últimos datos cargados.",
+      "retry": "Reintentar"
+    },
     "toasts": {
       "appointmentCancelled": "Cita cancelada",
       "appointmentCancelledDesc": "La cita ha sido cancelada.",
@@ -1177,6 +1204,9 @@
       "sessionUpdated": "Sesión clínica actualizada",
       "errorCreatingSession": "Error al guardar sesión",
       "errorCreatingSessionDesc": "Ocurrió un error al guardar la sesión clínica.",
+      "sessionFailedAppointmentCreated": "Cita creada, pero la sesión no se pudo guardar",
+      "sessionFailedAppointmentCreatedDesc": "La cita quedó guardada. Complete la sesión clínica desde el historial del paciente.",
+      "createdWithoutSessionId": "La cita se creó, pero no se pudo obtener su ID. Cree la sesión manualmente desde el historial del paciente.",
       "patientIdRequired": "Se requiere el ID del paciente",
       "errorLoadingQuoteItems": "Error al cargar tratamientos",
       "errorLoadingQuoteItemsDesc": "No se pudieron cargar los tratamientos del presupuesto.",
@@ -1190,7 +1220,9 @@
       "appointmentMoved": "Cita movida",
       "appointmentMovedDesc": "Nuevo horario: {date} · {time}",
       "appointmentResized": "Duración actualizada",
-      "appointmentResizedDesc": "{start} – {end} ({minutes} min)"
+      "appointmentResizedDesc": "{start} – {end} ({minutes} min)",
+      "pendingSessionTitle": "Sesión pendiente",
+      "pendingSessionDesc": "Completa la sesión clínica antes de cerrar."
     },
     "inlineCreate": {
       "title": "Nueva cita",
@@ -1285,7 +1317,12 @@
       "title": "Plan de Tratamiento",
       "stepRef": "Paso del plan #{id}"
     },
-    "importedFromGoogle": "Importado de Google Calendar"
+    "importedFromGoogle": "Importado de Google Calendar",
+    "technician": {
+      "label": "Técnico asignado",
+      "placeholder": "Sin técnico",
+      "unassigned": "Sin técnico asignado"
+    }
   },
   "PrintScheduleDialog": {
     "title": "Exportar agenda a Excel",
@@ -1428,7 +1465,12 @@
         "cancellation_reason": "Motivo de cancelación",
         "cancellation_note": "Detalle de cancelación"
       }
-    }
+    },
+    "assignTechnician": "Asignar técnico",
+    "changeTechnician": "Cambiar técnico",
+    "noTechnician": "Sin técnico asignado",
+    "technicianAssigned": "Técnico asignado",
+    "technicianCleared": "Se quitó el técnico"
   },
   "AppointmentReschedule": {
     "action": "Reagendar",
@@ -2987,7 +3029,19 @@
       "title": "Acciones",
       "edit": "Editar",
       "print": "Imprimir",
-      "sendEmail": "Enviar Correo"
+      "sendEmail": "Enviar Correo",
+      "confirm": "Confirmar",
+      "confirmSuccess": "Factura confirmada",
+      "confirmError": "Error al confirmar la factura",
+      "printError": "Error al descargar la factura",
+      "emailSuccess": "Factura enviada por email",
+      "emailError": "Error al enviar la factura",
+      "paymentSuccess": "Pago registrado correctamente",
+      "paymentError": "Error al registrar el pago",
+      "registerPayment": "Registrar pago",
+      "paymentDialogDescription": "Ingrese los detalles del pago de la factura {docNo}",
+      "cancel": "Cancelar",
+      "register": "Registrar"
     },
     "confirmation": {
       "confirm": "Confirmar",
@@ -3043,6 +3097,17 @@
     },
     "notes": {
       "noNotes": "No hay notas."
+    },
+    "fields": {
+      "amount": "Monto",
+      "paymentMethod": "Método de pago",
+      "reference": "Referencia",
+      "referencePlaceholder": "Número de referencia"
+    },
+    "paymentMethods": {
+      "cash": "Efectivo",
+      "card": "Tarjeta",
+      "transfer": "Transferencia"
     }
   },
   "CashierPage": {
@@ -4317,7 +4382,8 @@
       "count": "{count} con acceso",
       "save": "Guardar accesos",
       "saved": "Accesos actualizados",
-      "saveError": "No se pudieron guardar los accesos"
+      "saveError": "No se pudieron guardar los accesos",
+      "partialSaveError": "Se aplicaron {done} de {total} cambios antes del error. Se muestra el estado actual guardado; revíselo y vuelva a intentarlo."
     }
   },
   "UserLogsPage": {
@@ -4636,6 +4702,7 @@
     "initialPasswordSentTitle": "Correo enviado",
     "initialPasswordSentDescription": "Se ha enviado un correo con el enlace para restablecer la contraseña.",
     "initialPasswordError": "Ocurrió un error inesperado. Intente de nuevo.",
+    "initialPasswordPartialError": "El usuario se creó, pero no se pudo enviar el correo para establecer la contraseña. Puede reenviarlo desde el panel de detalles con \"Restablecer Contraseña\".",
     "toggleStatus": {
       "successTitle": "Éxito",
       "activatedDescription": "El usuario {name} ha sido activado.",
@@ -4918,7 +4985,8 @@
       "keyRequired": "La clave es obligatoria.",
       "valueRequired": "El valor es obligatorio.",
       "dataTypeRequired": "El tipo de dato es obligatorio."
-    }
+    },
+    "noAccess": "No tiene acceso para ver esta sección."
   },
   "AuditLog": {
     "title": "Registro de Auditoría",
@@ -4950,7 +5018,8 @@
       "INSERT": "Creación",
       "UPDATE": "Actualización",
       "DELETE": "Eliminación"
-    }
+    },
+    "noAccess": "No tiene acceso para ver esta sección."
   },
   "AccessLogPage": {
     "title": "Registro de Acceso",
@@ -4970,7 +5039,8 @@
       "openMenu": "Abrir Menú",
       "yes": "Sí",
       "no": "No"
-    }
+    },
+    "noAccess": "No tiene acceso para ver esta sección."
   },
   "ErrorLogPage": {
     "title": "Registro de Errores",
@@ -4986,7 +5056,8 @@
       "viewDetails": "Ver detalles",
       "id": "ID",
       "openMenu": "Abrir Menú"
-    }
+    },
+    "noAccess": "No tiene acceso para ver esta sección."
   },
   "ClinicHistoryPrint": {
     "title": "Historia Clínica",
@@ -5683,6 +5754,8 @@
       "hint": "Busca por título de la cita o por nombre, teléfono, email o documento del paciente. Incluye todas las fechas.",
       "minChars": "Escribe al menos {count} caracteres.",
       "empty": "Ninguna cita coincide con la búsqueda.",
+      "error": "No se pudo completar la búsqueda.",
+      "retry": "Reintentar",
       "untitled": "Cita sin título",
       "clear": "Limpiar",
       "close": "Cerrar",
@@ -6171,7 +6244,8 @@
       "deleteSuccessDescription": "La regla \"{name}\" ha sido eliminada.",
       "testSuccessTitle": "Prueba Iniciada",
       "testSuccessDescription": "La prueba de la regla \"{name}\" ha sido iniciada.",
-      "testErrorDescription": "Error al ejecutar la prueba de la regla."
+      "testErrorDescription": "Error al ejecutar la prueba de la regla.",
+      "deleteErrorDescription": "No se pudo eliminar la regla."
     },
     "validation": {
       "categoryRequired": "La categoría es obligatoria.",
@@ -6187,7 +6261,8 @@
       "medium": "Media",
       "high": "Alta",
       "critical": "Crítica"
-    }
+    },
+    "noAccess": "No tiene acceso para ver esta sección."
   },
   "CommunicationTemplatesPage": {
     "title": "Plantillas de Comunicación",
@@ -6310,7 +6385,8 @@
         "name": "Nombre"
       },
       "badRequest": "Error de validación. Por favor verifique los datos ingresados."
-    }
+    },
+    "noAccess": "No tiene acceso para ver esta sección."
   },
   "MedicalInstructionTemplatesPage": {
     "title": "Plantillas de Indicaciones Médicas",
@@ -6480,7 +6556,8 @@
       "errorDetails": "Detalles de Error",
       "noErrors": "No hay detalles de error disponibles",
       "status": "Estado"
-    }
+    },
+    "noAccess": "No tiene acceso para ver esta sección."
   },
   "AlertsConfigPage": {
     "title": "Configuración del Sistema de Alertas",
@@ -6497,7 +6574,12 @@
       "runNowSuccessTitle": "Programador Ejecutado",
       "runNowSuccessDescription": "El programador de alertas se ha ejecutado correctamente.",
       "runNowErrorTitle": "Error al Ejecutar",
-      "runNowErrorDescription": "Ocurrió un error al ejecutar el programador. Por favor, inténtelo nuevamente."
+      "runNowErrorDescription": "Ocurrió un error al ejecutar el programador. Por favor, inténtelo nuevamente.",
+      "runNowConfirm": {
+        "title": "¿Ejecutar el programador ahora?",
+        "description": "Se evaluarán todas las reglas activas y se generarán alertas; las que tengan acciones automáticas enviarán emails o mensajes a los pacientes. Esta acción no se puede deshacer.",
+        "cancel": "Cancelar"
+      }
     },
     "email": {
       "title": "Configuración de Correo Electrónico",
@@ -6534,7 +6616,8 @@
       "saveSuccessDescription": "Sus cambios de configuración se han guardado.",
       "saveErrorTitle": "Error al Guardar",
       "saveErrorDescription": "Ocurrió un error al guardar los cambios. Por favor, inténtelo nuevamente."
-    }
+    },
+    "loadError": "No se pudo cargar la configuración de alertas"
   },
   "WhatsAppAgentConfigPage": {
     "title": "Agente de WhatsApp",
@@ -6582,7 +6665,8 @@
       "loadError": "No se pudo cargar la configuración del agente.",
       "saveSuccess": "La configuración del agente de WhatsApp se guardó correctamente.",
       "saveError": "No se pudo guardar la configuración. Intente nuevamente.",
-      "validationError": "Revise los rangos horarios: la hora de inicio debe ser menor que la de fin."
+      "validationError": "Revise los rangos horarios: la hora de inicio debe ser menor que la de fin.",
+      "partialSaveError": "Se guardó la activación del agente, pero no el horario de atención. Revise los cambios y vuelva a guardar."
     }
   },
   "SequencesPage": {
@@ -7171,6 +7255,15 @@
         "alert": "Alerta",
         "treatment": "Tratamiento",
         "cash": "Caja"
+      },
+      "loadError": "No se pudieron cargar las plantillas",
+      "resetError": "No se pudo restaurar la plantilla",
+      "unsavedChanges": "Cambios sin guardar",
+      "textMode": "Texto",
+      "resetConfirm": {
+        "title": "¿Restaurar la plantilla predeterminada?",
+        "description": "Se eliminará la versión personalizada de \"{name}\" (incluidos los cambios sin guardar) y se volverá a usar la predeterminada. Esta acción no se puede deshacer.",
+        "cancel": "Cancelar"
       }
     }
   },
@@ -7200,7 +7293,13 @@
   "Common": {
     "accessDenied": "Acceso Denegado",
     "noPermission": "No tienes permisos para acceder a esta página.",
-    "loading": "Cargando..."
+    "loading": "Cargando...",
+    "errorTitle": "Algo salió mal",
+    "genericError": "No se pudo completar la acción. Inténtalo de nuevo.",
+    "timeoutError": "El servidor tardó demasiado en responder. Es posible que el cambio se haya guardado: actualiza antes de volver a intentarlo.",
+    "loadError": "No se pudieron cargar los datos.",
+    "retry": "Reintentar",
+    "unsavedChangesConfirm": "Tienes cambios sin guardar. ¿Descartarlos?"
   },
   "ImportPage": {
     "title": "Importar Datos",
@@ -7273,7 +7372,8 @@
       "error": "Error",
       "importValid": "Importar solo los válidos",
       "fixCsv": "Corregir CSV y volver a subir",
-      "noErrors": "¡Todos los registros son válidos!"
+      "noErrors": "¡Todos los registros son válidos!",
+      "importing": "Importando..."
     },
     "result": {
       "inserted": "Insertados",
@@ -7288,6 +7388,13 @@
       "back": "Anterior",
       "next": "Siguiente",
       "import": "Importar",
+      "cancel": "Cancelar"
+    },
+    "importError": "No se pudo completar la importación",
+    "importTimeout": "El servidor tardó demasiado en responder y la importación pudo haberse procesado. No vuelva a importar el archivo: revise los registros antes de intentarlo de nuevo.",
+    "confirm": {
+      "title": "¿Importar {count} registros?",
+      "description": "Se crearán o actualizarán {count} registros de {type} a partir de «{file}». La importación no se puede deshacer desde el sistema.",
       "cancel": "Cancelar"
     }
   },
@@ -8588,7 +8695,16 @@
       "aiAccess": "Acceso IA",
       "notes": "Notas",
       "generate": "Generar Licencia",
-      "generating": "Generando..."
+      "generating": "Generando...",
+      "generateSuccess": "Licencia generada y activada",
+      "generateError": "No se pudo generar la licencia",
+      "subscriptionPartialError": "La licencia se guardó y ya está activa, pero no se pudo registrar la suscripción. No genere otra: registre la suscripción manualmente o contacte a soporte.",
+      "loadError": "No se pudo cargar la licencia actual",
+      "generateConfirm": {
+        "title": "¿Generar y activar una nueva licencia?",
+        "description": "La nueva licencia ({type}, {start} → {end}) reemplazará a la actual de inmediato y sus límites se aplicarán a todos los usuarios. Esta acción no se puede deshacer.",
+        "cancel": "Cancelar"
+      }
     },
     "enforcement": {
       "limitReachedTitle": "Límite de licencia alcanzado",
@@ -8993,6 +9109,48 @@
     "readOnlyNotice": "Solo lectura: no tienes permiso para modificar los colores de calendario.",
     "restoreDefaults": "Restaurar por defecto",
     "unsavedChangesConfirm": "Tienes cambios sin guardar en esta vista. ¿Descartarlos y cambiar de calendario?",
+    "colorSource": {
+      "title": "Origen del color",
+      "description": "Elige qué niveles se tienen en cuenta al pintar una cita. La cadena va de lo más específico a lo más general: color de la cita > servicio > doctor > calendario. Desactiva un nivel para saltarlo.",
+      "save": "Guardar origen del color",
+      "saved": "Origen del color guardado",
+      "saveError": "No pudimos guardar el origen del color",
+      "revert": "Usar General",
+      "revertSuccess": "El calendario vuelve a usar el origen de color general",
+      "revertError": "No pudimos revertir el origen del color",
+      "alwaysActive": "Siempre activo",
+      "levels": {
+        "appointment": {
+          "label": "Etiqueta de color de la cita",
+          "help": "El color que un usuario elige en la propia cita. Siempre gana."
+        },
+        "service": {
+          "label": "Color del servicio",
+          "help": "Usar el color del servicio de la cita."
+        },
+        "doctor": {
+          "label": "Color del doctor",
+          "help": "Usar el color del doctor asignado."
+        },
+        "calendar": {
+          "label": "Color del calendario",
+          "help": "Usar el color del calendario (consultorio) al que pertenece la cita."
+        }
+      },
+      "highlight": {
+        "label": "Resaltar la vista con el color del calendario",
+        "help": "Cuando hay un único calendario en pantalla, su color se refleja en la vista del calendario para distinguir de un vistazo entre sedes (un calendario por sede). \"Franja superior\" y \"Marco y etiqueta\" solo marcan los bordes; \"Toda la vista\" tiñe casi todo (marco, panel de agendas, encabezado y grilla) y deja solo la barra de navegación con el tema normal. Usa el color definido en Configuración → Calendarios.",
+        "options": {
+          "off": "Desactivado",
+          "subtle": "Franja superior",
+          "strong": "Marco y etiqueta",
+          "full": "Toda la vista"
+        }
+      },
+      "allOffWarning": "Con todos los niveles desactivados, las citas sin etiqueta de color propia quedan sin color y usan el aspecto por defecto.",
+      "customizedHint": "Este calendario tiene su propio origen de color, que reemplaza al General.",
+      "inheritedHint": "Este calendario hereda el origen de color General. Al guardar se crea su propia configuración."
+    },
     "table": {
       "status": "Estado",
       "scope": "Alcance",
@@ -9012,7 +9170,12 @@
       "revertStatusError": "No se pudo revertir ese estado",
       "revertAll": "Revertir todo a General",
       "revertAllSuccess": "El calendario vuelve a usar la matriz general",
-      "revertAllError": "No se pudo revertir la configuración de ese calendario"
+      "revertAllError": "No se pudo revertir la configuración de ese calendario",
+      "revertAllConfirm": {
+        "title": "¿Volver a la matriz general?",
+        "description": "Se borrarán todas las personalizaciones de \"{name}\" y volverá a usar la matriz general. Esta acción no se puede deshacer.",
+        "confirm": "Revertir todo"
+      }
     },
     "calendarMode": {
       "always": {
@@ -9326,5 +9489,363 @@
     "clear": "Borrar todo",
     "cancel": "Cancelar",
     "use": "Usar esta firma"
+  },
+  "StudyOrdersPage": {
+    "titleMine": "Mis Órdenes",
+    "titleClinic": "Órdenes de Estudio",
+    "descriptionMine": "Las órdenes que derivaste a Clínica Imagen y en qué estado está cada una.",
+    "descriptionClinic": "Bandeja de órdenes recibidas. Qué entró, qué falta agendar y qué está atrasado.",
+    "filterPlaceholder": "Buscar por paciente...",
+    "newOrder": "Nueva orden",
+    "noResults": "No hay órdenes que coincidan con el filtro.",
+    "itemsCount": "{scheduled} de {total} agendados",
+    "buckets": {
+      "all": "Todas",
+      "new": "Nuevas",
+      "pending": "Pendientes",
+      "overdue": "Atrasadas",
+      "scheduled": "Agendadas",
+      "completed": "Completadas",
+      "drafts": "Borradores"
+    },
+    "columns": {
+      "orderNumber": "Nº",
+      "patient": "Paciente",
+      "doctor": "Derivador",
+      "items": "Estudios",
+      "status": "Estado",
+      "submittedAt": "Enviada",
+      "sede": "Sede",
+      "progress": "Avance",
+      "actions": "Acciones"
+    },
+    "status": {
+      "draft": "Borrador",
+      "new": "Nueva",
+      "unscheduled": "Sin agendar",
+      "partially_scheduled": "Parcial",
+      "scheduled": "Agendada",
+      "in_progress": "En curso",
+      "completed": "Completada",
+      "cancelled": "Anulada",
+      "overdue": "Atrasada"
+    },
+    "tabs": {
+      "order": "Orden",
+      "appointments": "Citas",
+      "patient": "Paciente",
+      "link": "Link",
+      "activity": "Actividad",
+      "sessions": "Sesión"
+    },
+    "form": {
+      "title": "Nueva orden de estudio",
+      "editTitle": "Editar orden {number}",
+      "patientSection": "Datos del paciente",
+      "patientName": "Nombre y apellido",
+      "patientDocument": "Cédula de identidad",
+      "patientPhone": "Celular",
+      "patientEmail": "Email",
+      "preferredSede": "Sede sugerida",
+      "preferredSedePlaceholder": "Sin preferencia",
+      "deliverySection": "Medio de envío",
+      "clinicalNotes": "Aclaración",
+      "clinicalNotesPlaceholder": "Lo que la clínica tenga que saber antes del estudio",
+      "regionsLabel": "Piezas",
+      "noServicesSelected": "Seleccioná al menos un estudio.",
+      "saveDraft": "Guardar borrador",
+      "submit": "Enviar a la clínica",
+      "selectedCount": "{count} estudios seleccionados",
+      "textsSection": "Detalles"
+    },
+    "submitDialog": {
+      "title": "¿Enviar la orden a la clínica?",
+      "description": "Una vez enviada no podrás editarla. La clínica recibe el aviso en el momento.",
+      "confirm": "Enviar",
+      "cancel": "Volver"
+    },
+    "deleteDialog": {
+      "title": "¿Eliminar el borrador?",
+      "description": "Se elimina la orden de {patient} y todo lo que cargaste. No se puede deshacer.",
+      "confirm": "Eliminar",
+      "cancel": "Cancelar"
+    },
+    "cancelDialog": {
+      "title": "¿Anular la orden?",
+      "description": "La orden {number} queda anulada. Indicá el motivo.",
+      "reasonLabel": "Motivo",
+      "confirm": "Anular",
+      "cancel": "Volver"
+    },
+    "actions": {
+      "edit": "Editar",
+      "submit": "Enviar",
+      "delete": "Eliminar",
+      "acknowledge": "Tomar",
+      "schedule": "Agendar",
+      "cancel": "Anular",
+      "shareLink": "Link paciente",
+      "print": "Imprimir",
+      "cancelBlocked": "La clínica ya tomó esta orden y no se puede anular desde aquí. Llama a la clínica para darla de baja.",
+      "reschedule": "Reagendar"
+    },
+    "toast": {
+      "savedTitle": "Orden guardada",
+      "submittedTitle": "Orden enviada",
+      "submittedDescription": "La clínica ya recibió la orden {number}.",
+      "deletedTitle": "Borrador eliminado",
+      "acknowledgedTitle": "Orden tomada",
+      "cancelledTitle": "Orden anulada",
+      "errorTitle": "No se pudo completar la acción",
+      "genericError": "Ocurrió un error inesperado. Intentá de nuevo."
+    },
+    "validation": {
+      "patientNameRequired": "El nombre del paciente es obligatorio",
+      "itemsRequired": "Seleccioná al menos un estudio",
+      "reasonRequired": "El motivo es obligatorio"
+    },
+    "noAccess": "No tienes permisos para ver las órdenes de estudio.",
+    "wizard": {
+      "back": "Atrás",
+      "next": "Siguiente",
+      "review": "Resumen",
+      "skipToReview": "Ir al resumen",
+      "noCatalog": "El catálogo de estudios todavía no está cargado. Avisa a la clínica para que lo configure.",
+      "steps": "Secciones de la orden",
+      "closeSteps": "Cerrar secciones"
+    },
+    "itemsCountShort": "{count} estudios",
+    "rescheduleDialog": {
+      "title": "Reagendar la cita",
+      "description": "Elegí la nueva fecha y hora. La duración se mantiene.",
+      "date": "Fecha",
+      "time": "Hora",
+      "confirm": "Reagendar",
+      "cancel": "Cancelar",
+      "noAppointments": "Esta orden no tiene citas para mover.",
+      "success": "Cita reprogramada"
+    },
+    "scheduling": {
+      "active": "Estás agendando para la orden <order></order> de <patient></patient>. La cita que crees va a quedar asociada a esa orden.",
+      "cancelOperation": "Cancelar operación",
+      "orderField": "Orden de estudio",
+      "orderPlaceholder": "Sin orden asociada",
+      "noOrder": "Sin orden asociada",
+      "noOrdersForPatient": "Este paciente no tiene órdenes de estudio."
+    },
+    "bookingLink": {
+      "description": "Genera un enlace para que el paciente elija día y hora por su cuenta. Vale {days} días y sirve para una reserva.",
+      "generate": "Generar link",
+      "copy": "Copiar link",
+      "copied": "Link copiado",
+      "copyFailed": "No se pudo copiar. Seleccionalo y copialo a mano.",
+      "expiresAt": "Vence el {date}",
+      "showOnce": "Copialo ahora: por seguridad no se vuelve a mostrar.",
+      "revokesPrevious": "Generar un link nuevo anula el anterior.",
+      "error": "No se pudo generar el link",
+      "blockedNotSubmitted": "La orden tiene que estar enviada para poder generar el link.",
+      "blockedNoPatient": "Falta vincular la ficha del paciente antes de generar el link.",
+      "blockedScheduled": "Esta orden ya tiene todos sus estudios agendados.",
+      "send": "Enviar link",
+      "sendWhatsapp": "Enviar por WhatsApp",
+      "sendEmail": "Enviar por email",
+      "noContact": "Este paciente no tiene teléfono ni email cargados. Copia el enlace y envíaselo por otra vía.",
+      "shareSubject": "Reservá el horario de tus estudios · {order}",
+      "shareMessage": "Hola {patient}, ya puedes elegir el día y la hora de tus estudios (orden {order}). Entra aquí: {url}"
+    },
+    "printTitle": "Orden de Estudio",
+    "timeline": {
+      "empty": "Todavía no hay actividad registrada en esta orden.",
+      "actorPatient": "El paciente",
+      "actorSystem": "El sistema",
+      "movedTo": "Nueva fecha: {date}",
+      "event": {
+        "created": "Se creó la orden",
+        "updated": "Se editó el borrador",
+        "submitted": "Se envió a la clínica",
+        "acknowledged": "La clínica tomó la orden",
+        "scheduled": "Se agendó una cita",
+        "rescheduled": "Se reagendó la cita",
+        "appointment_updated": "Se editó la cita",
+        "appointment_cancelled": "Se canceló la cita",
+        "session_saved": "Se registró la sesión clínica",
+        "completed": "Se completaron los estudios",
+        "reopened": "La orden volvió a abrirse",
+        "cancelled": "Se anuló la orden",
+        "link_created": "Se generó el link para el paciente",
+        "patient_booked": "El paciente reservó su horario"
+      }
+    },
+    "appointmentCard": {
+      "none": "Esta orden todavía no tiene citas.",
+      "minutes": "{minutes} min",
+      "session": "Sesión clínica",
+      "createdAt": "Creada el {date}",
+      "fromGoogle": "Importada de Google Calendar",
+      "doctor": "Doctor",
+      "sede": "Sede",
+      "calendar": "Calendario",
+      "summary": "Título",
+      "services": "Estudios",
+      "notes": "Notas"
+    },
+    "patientTab": {
+      "notLinked": "Esta orden todavía no está vinculada a una ficha de paciente. Estos son los datos que cargó el derivador.",
+      "inactive": "Inactivo",
+      "birthday": "Fecha de nacimiento",
+      "years": "{age} años",
+      "sex": "Sexo",
+      "alternativePhone": "Teléfono alternativo",
+      "mutualSociety": "Mutualista",
+      "assignedDoctor": "Doctor asignado",
+      "address": "Dirección"
+    },
+    "sessionTab": {
+      "title": "Sesión clínica",
+      "none": "Todavía no se registró ninguna sesión clínica para esta orden.",
+      "registeredBy": "Registrada por",
+      "registeredAt": "Fecha de registro",
+      "forAppointment": "Cita",
+      "procedure": "Procedimiento realizado",
+      "diagnosis": "Diagnóstico",
+      "saved": "Sesión clínica registrada",
+      "recordTitle": "Registrar la sesión clínica",
+      "chooseAppointment": "¿Sobre qué cita?",
+      "record": "Registrar sesión",
+      "recordHint": "Va a quedar registrada a nombre de {name}.",
+      "attachments": "{count, plural, =1 {1 adjunto} other {# adjuntos}}",
+      "openAttachment": "Abrir archivo"
+    },
+    "referredByShort": "derivado por {doctor}"
+  },
+  "StudyOrderBooking": {
+    "greeting": "Hola {name}",
+    "intro": "Elige el día y la hora para tus estudios.",
+    "introWithDoctor": "{doctor} te derivó estos estudios. Elige el día y la hora que mejor te vengan.",
+    "chooseSede": "¿En qué sede prefieres que te atiendan?",
+    "noSedes": "No hay sedes disponibles en este momento. Comunícate con la clínica.",
+    "previousDays": "Días anteriores",
+    "nextDays": "Días siguientes",
+    "noSlots": "No quedan horarios libres ese día. Prueba con otro.",
+    "durationHint": "Los estudios llevan unos {minutes} minutos.",
+    "bookingError": "No pudimos reservar el horario. Probá de nuevo.",
+    "invalidTitle": "Este link ya no sirve",
+    "invalidBody": "Puede haber caducado o haberse usado. Comunícate con la clínica para que te envíen uno nuevo.",
+    "doneTitle": "¡Listo!",
+    "doneBody": "Te esperamos el {date} a las {time} en {sede}.",
+    "doneHint": "Si necesitas cambiar el horario, comunícate con la clínica.",
+    "genericClinicName": "la clínica",
+    "chooseSlot": "Elige día y hora",
+    "header": {
+      "tagline": "Reserva de estudios"
+    },
+    "hero": {
+      "title": "Hola {name}, reservá tus estudios",
+      "videoTitle": "Bienvenida de {clinic}",
+      "studies": "Orden {order}",
+      "cta": "Elegir día y hora"
+    }
+  },
+  "TechniciansPage": {
+    "title": "Técnicos y Operadores",
+    "description": "Todos los técnicos y operadores para la clínica",
+    "filterPlaceholder": "Filtrar aquí...",
+    "DoctorColumns": {
+      "name": "Nombre",
+      "email": "Correo Electrónico",
+      "identity_document": "Documento de Identidad",
+      "phone": "Teléfono",
+      "status": "Estado",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "deactivate": "Desactivar",
+      "activate": "Activar",
+      "copyId": "Copiar ID",
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "openMenu": "Abrir menú",
+      "selectRow": "Seleccionar fila"
+    },
+    "createDialog": {
+      "createTitle": "Crear técnico",
+      "createDescription": "Crear un nuevo técnico para la clínica",
+      "name": "Nombre",
+      "namePlaceholder": "ej. Dr. Smith",
+      "email": "Correo Electrónico",
+      "emailPlaceholder": "ej. dr.smith@ejemplo.com",
+      "phone": "Teléfono",
+      "phonePlaceholder": "ej. 123-456-7890",
+      "identity_document": "Documento de Identidad",
+      "identity_document_placeholder": "ej. 1234567890",
+      "color": "Color",
+      "isActive": "¿Está Activo?",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "editTitle": "Editar técnico",
+      "editDescription": "Editar el técnico para la clínica",
+      "editSave": "Guardar Cambios",
+      "createSuccessTitle": "Técnico Creado",
+      "createSuccessDescription": "El técnico ha sido guardado exitosamente.",
+      "editSuccessTitle": "Técnico Actualizado",
+      "editSuccessDescription": "El técnico ha sido actualizado exitosamente.",
+      "SuccessActivate": "Técnico Activado",
+      "SuccessActivateDescription": "El técnico ha sido activado exitosamente.",
+      "SuccessDeactivate": "Técnico Desactivado",
+      "SuccessDeactivateDescription": "El técnico ha sido desactivado exitosamente.",
+      "ErrorActivate": "Error Activando Técnico",
+      "ErrorActivateDescription": "No se pudo activar el técnico.",
+      "ErrorDeactivate": "Error Desactivando Técnico",
+      "ErrorDeactivateDescription": "No se pudo desactivar el técnico.",
+      "validation": {
+        "errorTitle": "Error",
+        "nameRequired": "Nombre es obligatorio.",
+        "emailInvalid": "Correo electrónico inválido.",
+        "phoneInvalid": "Número de teléfono inválido.",
+        "identityInvalid": "Documento de identidad inválido.",
+        "identityRequired": "La cedula de identidad es requerida.",
+        "identityMaxLength": "Documento de identidad debe tener como máximo 10 caracteres.",
+        "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono.",
+        "genericError": "Ocurrió un error inesperado. Inténtalo de nuevo.",
+        "serverError": "Error del servidor, inténtalo de nuevo más tarde.",
+        "uniqueConflict": "Los siguientes campos ya están registrados: {fields}",
+        "fields": {
+          "email": "Correo Electrónico",
+          "phone": "Teléfono",
+          "identity_document": "Documento de Identidad"
+        }
+      },
+      "defaultCalendar": "Consultorio por defecto",
+      "selectCalendar": "Seleccionar consultorio...",
+      "searchCalendarPlaceholder": "Buscar consultorio...",
+      "noCalendar": "Sin consultorio por defecto"
+    },
+    "filters": {
+      "showOnlyActive": "Mostrar solo activos"
+    },
+    "tabs": {
+      "details": "Detalles",
+      "availability": "Disponibilidad",
+      "exceptions": "Excepciones",
+      "calendars": "Calendarios con acceso",
+      "preferences": "Preferencias",
+      "signature": "Firma"
+    },
+    "calendarAccess": {
+      "title": "Calendarios con acceso",
+      "description": "Selecciona los calendarios cuyas citas podrá ver este técnico desde su workspace.",
+      "selectPlaceholder": "Seleccionar calendarios...",
+      "search": "Buscar calendario...",
+      "noItems": "No hay calendarios disponibles",
+      "empty": "Sin acceso a calendarios",
+      "count": "{count} con acceso",
+      "save": "Guardar accesos",
+      "saved": "Accesos actualizados",
+      "saveError": "No se pudieron guardar los accesos"
+    }
+  },
+  "TasksPage": {
+    "title": "Mis Tareas",
+    "accessDenied": "Acceso denegado",
+    "noPermission": "No tienes permiso para ver este panel."
   }
 }

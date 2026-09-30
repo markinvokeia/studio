@@ -1220,7 +1220,9 @@
       "appointmentMoved": "Appointment moved",
       "appointmentMovedDesc": "New time: {date} · {time}",
       "appointmentResized": "Duration updated",
-      "appointmentResizedDesc": "{start} – {end} ({minutes} min)"
+      "appointmentResizedDesc": "{start} – {end} ({minutes} min)",
+      "pendingSessionTitle": "Session pending",
+      "pendingSessionDesc": "Please complete the clinical session before closing."
     },
     "inlineCreate": {
       "title": "New appointment",
@@ -1315,7 +1317,12 @@
       "title": "Treatment Plan",
       "stepRef": "Plan step #{id}"
     },
-    "importedFromGoogle": "Imported from Google Calendar"
+    "importedFromGoogle": "Imported from Google Calendar",
+    "technician": {
+      "label": "Assigned technician",
+      "placeholder": "No technician",
+      "unassigned": "No technician assigned"
+    }
   },
   "PrintScheduleDialog": {
     "title": "Export schedule to Excel",

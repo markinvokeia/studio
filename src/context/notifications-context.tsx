@@ -449,7 +449,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
   // ── SSE event stream ──────────────────────────────────────────────────────
 
-  const handleSSEEvent = React.useCallback((eventType: string, data: unknown) => {
+  const handleSSEEvent = React.useCallback((_eventType: string, data: unknown) => {
     // `calendar_changed` (citas y notas/recordatorios, ver `useCalendarLiveRefresh`)
     // ya tiene su propio consumidor dedicado (el patch en vivo del calendario) y no
     // es un `BackendNotification`. Sin este corte, un evento de nota/recordatorio

@@ -60,7 +60,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
 import { API_ROUTES } from '@/constants/routes';
-import { BUSINESS_CONFIG_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS, PATIENTS_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS, SYSTEM_PERMISSIONS } from '@/constants/permissions';
+import { BUSINESS_CONFIG_PERMISSIONS, PATIENTS_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS, SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
@@ -3881,7 +3881,7 @@ export default function AppointmentsPage() {
             markSessionAction(pendingScheduleNotifId, 'schedule');
             setPendingScheduleNotifId(undefined);
         }
-        / Si la cita nació de una orden de estudio, se la ata ahora. El id llega
+        // Si la cita nació de una orden de estudio, se la ata ahora. El id llega
         // en formas distintas según el camino de guardado, de ahí las variantes.
         const studyOrderId = studyOrderScheduling?.orderId;
         if (studyOrderId) {
