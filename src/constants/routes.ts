@@ -26,6 +26,19 @@ export const API_ROUTES = {
     SERVICES_STEPS: '/services/steps',
     SERVICES_STEPS_UPSERT: '/services/steps/upsert',
     SERVICES_STEPS_DELETE: '/services/steps/delete',
+    /**
+     * GET binario de la imagen del servicio: ?service_id=… (mismo contrato que
+     * /clinic/logo y /users/signature). Es público: lo consume la landing del
+     * portal, donde el paciente todavía no tiene token.
+     */
+    /**
+     * Prende o apaga `service_catalog.bookable_online`, y nada más. Es el único
+     * escritor de esa columna: `/catalogoservicios/upsert` no la toca.
+     */
+    SERVICE_BOOKABLE_ONLINE: '/services/bookable-online',
+    SERVICE_IMAGE: '/services/image',
+    SERVICE_IMAGE_UPLOAD: '/services/image/upload',
+    SERVICE_IMAGE_DELETE: '/services/image/delete',
     USER_SERVICES: '/services/user_services',
     USERS_SERVICES: '/users_services',
     USER_SERVICES_ASSIGN: '/services/assign',
@@ -216,6 +229,12 @@ export const API_ROUTES = {
         PUBLIC_CALENDARS: '/calendars_noauth',
         /** Horarios de atención de una sede. Requiere `sede_id`. */
         PUBLIC_SCHEDULES: '/schedules_noauth',
+        /**
+         * Servicios que el paciente puede auto-agendar (`bookable_online`).
+         * Devuelve sólo campos públicos, y omite los precios cuando la clínica
+         * eligió no mostrarlos.
+         */
+        PUBLIC_SERVICES: '/services_noauth',
         /** Envía la confirmación de la cita al paciente y a la clínica. */
         APPOINTMENT_NOTIFY: '/api/public/appointment-notify',
     },

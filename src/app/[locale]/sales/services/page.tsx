@@ -42,6 +42,10 @@ import { useFieldArray, useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { ServicesColumnsWrapper } from './columns';
 import { useDebounce } from '@/hooks/use-debounce';
+import { ServiceImageUploader, uploadPendingServiceImage } from '@/components/services/service-image-uploader';
+
+import { setServiceBookableOnline } from '@/services/services';
+
 import { useDeepLink } from '@/hooks/use-deep-link';
 import { currencySchema } from '@/lib/currency';
 import { CurrencySelect } from '@/components/ui/currency-select';
@@ -61,6 +65,7 @@ const serviceFormSchema = (t: (key: string) => string) => z.object({
   indications: z.string().optional(),
   color: z.string().optional(),
   is_active: z.boolean().default(true),
+  bookable_online: z.boolean().default(false),
   service_type: z.enum(['single', 'workflow']).default('single'),
   treatment_steps: z.array(z.object({
     position: z.number(),
@@ -92,6 +97,9 @@ const defaultServiceFormValues = (): ServiceFormValues => ({
   indications: '',
   color: '',
   is_active: true,
+  // Desmarcado a propósito: el catálogo entero no es auto-agendable. La clínica
+  // publica caso por caso lo que un paciente puede reservar sin intermediarios.
+  bookable_online: false,
   service_type: 'single',
   treatment_steps: [],
 });
@@ -123,6 +131,8 @@ async function getServices(params: { page: number; limit: number; search: string
       indications: apiService.indications,
       color: apiService.color || null,
       is_active: apiService.is_active,
+      bookable_online: apiService.bookable_online === true,
+      image_updated_at: apiService.image_updated_at || null,
       service_type: apiService.service_type || 'single',
       treatment_steps: apiService.treatment_steps || [],
     }));
@@ -146,7 +156,11 @@ async function getMiscellaneousCategories(): Promise<MiscellaneousCategory[]> {
 
 async function upsertService(serviceData: ServiceFormValues, categories: MiscellaneousCategory[]) {
   const category = categories.find(cat => cat.id === serviceData.category_id)?.name || '';
-  const responseData = await api.post(API_ROUTES.PURCHASES.SERVICES_UPSERT, { ...serviceData, category, is_sales: true });
+  // `bookable_online` se excluye a propósito: lo escribe su propio endpoint
+  // (ver setServiceBookableOnline). Mandarlo acá además crearía dos escritores
+  // de la misma columna, y este upsert no lo persiste.
+  const { bookable_online: _bookableOnline, ...payload } = serviceData;
+  const responseData = await api.post(API_ROUTES.PURCHASES.SERVICES_UPSERT, { ...payload, category, is_sales: true });
   if (Array.isArray(responseData) && responseData.length > 0) {
     const firstItem = responseData[0];
     if (firstItem && (firstItem.code >= 400 || firstItem.error)) throw new Error(firstItem.message || firstItem.error || 'Failed to save service');
@@ -155,6 +169,19 @@ async function upsertService(serviceData: ServiceFormValues, categories: Miscell
     if (responseData.error || responseData.code >= 400) throw new Error(responseData.message || responseData.error || 'Failed to save service');
   }
   return responseData;
+}
+
+/**
+ * Id del servicio recién creado, dentro de la respuesta del upsert.
+ *
+ * `/catalogoservicios/upsert` no tiene una forma de respuesta documentada y n8n
+ * devuelve indistintamente `{...}`, `[{...}]` o `[{ json: {...} }]`, así que se
+ * buscan los nombres plausibles en vez de asumir uno. `null` ⇒ no vino el id.
+ */
+function extractServiceId(response: unknown): string | null {
+  const row: any = Array.isArray(response) ? (response[0]?.json ?? response[0]) : response;
+  const id = row?.id ?? row?.service_id ?? row?.data?.id ?? row?.service?.id;
+  return id != null && String(id).trim() ? String(id) : null;
 }
 
 async function deleteService(id: string) {
@@ -169,7 +196,7 @@ async function deleteService(id: string) {
   return responseData;
 }
 
-function ServiceFormFields({ form, categories, onCategoryCreated, t }: { form: any; categories: MiscellaneousCategory[]; onCategoryCreated: (category: MiscellaneousCategory) => void; t: (key: string) => string }) {
+function ServiceFormFields({ form, categories, onCategoryCreated, t, imageSlot }: { form: any; categories: MiscellaneousCategory[]; onCategoryCreated: (category: MiscellaneousCategory) => void; t: (key: string) => string; imageSlot?: React.ReactNode }) {
   return (
     <>
       <div className="grid grid-cols-2 gap-3">
@@ -219,6 +246,21 @@ function ServiceFormFields({ form, categories, onCategoryCreated, t }: { form: a
           <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
         </FormItem>
       )} />
+      {/* El paciente puede auto-agendar este servicio desde el portal. No todo
+          el catálogo es ofrecible sin intermediarios: una cirugía existe como
+          servicio pero nadie la reserva solo desde una landing. */}
+      <FormField control={form.control} name="bookable_online" render={({ field }) => (
+        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+          <div className="space-y-0.5">
+            <FormLabel className="text-sm">{t('createDialog.bookableOnline.label')}</FormLabel>
+            <p className="text-xs text-muted-foreground">{t('createDialog.bookableOnline.help')}</p>
+          </div>
+          <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+        </FormItem>
+      )} />
+      {/* La imagen sólo se ve en las tarjetas del portal, así que acompaña al
+          flag que las habilita. */}
+      {imageSlot}
       {/* Workflow service toggle */}
       <FormField control={form.control} name="service_type" render={({ field }) => (
         <FormItem className="flex items-center justify-between rounded-lg border p-3">
@@ -737,6 +779,12 @@ export default function ServicesPage() {
   const [selectedService, setSelectedService] = React.useState<Service | null>(null);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
+  /**
+   * Imagen elegida en el diálogo de creación, en espera. No se puede subir
+   * antes de guardar porque el endpoint necesita el id del servicio.
+   */
+  const [pendingImage, setPendingImage] = React.useState<File | null>(null);
+
   const canCreate = hasPermission(SALES_PERMISSIONS.SERVICES_CREATE);
   const canUpdate = hasPermission(SALES_PERMISSIONS.SERVICES_UPDATE);
   const canDelete = hasPermission(SALES_PERMISSIONS.SERVICES_DELETE);
@@ -821,6 +869,7 @@ export default function ServicesPage() {
       indications: selectedService.indications || '',
       color: selectedService.color || '',
       is_active: selectedService.is_active ?? true,
+      bookable_online: selectedService.bookable_online ?? false,
       service_type: selectedService.service_type || 'single',
       treatment_steps: selectedService.treatment_steps || [],
     });
@@ -830,6 +879,7 @@ export default function ServicesPage() {
   const handleCreate = () => {
     if (!canCreate) return;
     createForm.reset(defaultServiceFormValues());
+    setPendingImage(null);
     setCreateError(null);
     setIsCreateDialogOpen(true);
   };
@@ -856,8 +906,42 @@ export default function ServicesPage() {
   const onCreateSubmit = async (values: ServiceFormValues) => {
     setCreateError(null);
     try {
-      await upsertService(values, categories);
+      const response = await upsertService(values, categories);
       toast({ title: t('toast.createSuccessTitle'), description: t('toast.successDescription', { name: values.name }) });
+
+      // Todo lo que sigue necesita el id que devolvió el upsert, y tiene que
+      // pasar ANTES de recargar el listado: si no, la recarga traería el estado
+      // viejo de la base y la pantalla mostraría algo que ya no es cierto.
+      const newId = extractServiceId(response);
+
+      // El flag se escribe SIEMPRE al crear: el upsert no lo guarda, así que un
+      // servicio creado con la opción activada la perdería en silencio.
+      const flagApplied = newId ? await setServiceBookableOnline(newId, values.bookable_online) : false;
+      // Sólo se avisa si el usuario la había activado. Con la opción apagada el
+      // estado que queda en la base es el que pidió —es el default—, así que un
+      // fallo ahí no cambia nada y el aviso sería ruido.
+      if (!flagApplied && values.bookable_online) {
+        toast({
+          variant: 'destructive',
+          title: t('toast.bookableOnlineFailedTitle'),
+          description: t('toast.bookableOnlineFailedDescription'),
+        });
+      }
+
+      // La imagen también espera al id. Si el backend no lo devolvió se avisa
+      // en vez de descartar el archivo en silencio — el servicio ya se creó.
+      if (pendingImage) {
+        const uploaded = newId ? await uploadPendingServiceImage(newId, pendingImage) : false;
+        if (!uploaded) {
+          toast({
+            variant: 'destructive',
+            title: t('toast.imagePendingTitle'),
+            description: t('toast.imagePendingDescription'),
+          });
+        }
+      }
+
+      setPendingImage(null);
       setIsCreateDialogOpen(false);
       loadServices();
     } catch (error) {
@@ -870,6 +954,20 @@ export default function ServicesPage() {
     setIsSavingDetail(true);
     try {
       await upsertService(values, categories);
+
+      // El flag se manda SÓLO si el usuario lo tocó. `selectedService` tiene el
+      // valor guardado, así que editar el precio sin mirar esta opción no
+      // dispara ninguna escritura sobre ella. Va antes de refrescar para que la
+      // recarga lea de la base el valor nuevo.
+      const flagChanged = values.bookable_online !== (selectedService?.bookable_online ?? false);
+      if (flagChanged && !(await setServiceBookableOnline(values.id ?? '', values.bookable_online))) {
+        toast({
+          variant: 'destructive',
+          title: t('toast.bookableOnlineFailedTitle'),
+          description: t('toast.bookableOnlineFailedDescription'),
+        });
+      }
+
       toast({ title: t('toast.editSuccessTitle'), description: t('toast.successDescription', { name: values.name }) });
       const categoryName = categories.find(cat => cat.id === values.category_id)?.name || selectedService!.category;
       const updatedService: Service = {
@@ -882,6 +980,7 @@ export default function ServicesPage() {
         indications: values.indications,
         color: values.color || null,
         is_active: values.is_active,
+        bookable_online: values.bookable_online,
         category_id: values.category_id,
         category: categoryName,
         service_type: values.service_type,
@@ -1021,7 +1120,17 @@ export default function ServicesPage() {
                               <AlertDescription>{detailError}</AlertDescription>
                             </Alert>
                           )}
-                          <ServiceFormFields form={detailForm} categories={categories} onCategoryCreated={handleCategoryCreated} t={t} />
+                          <ServiceFormFields
+                            form={detailForm}
+                            categories={categories}
+                            onCategoryCreated={handleCategoryCreated}
+                            t={t}
+                            imageSlot={
+                              <div className="rounded-lg border p-3">
+                                <ServiceImageUploader serviceId={selectedService.id} canManage={canUpdate} />
+                              </div>
+                            }
+                          />
                           {canUpdate && (
                             <div className="flex gap-2 pt-2">
                               <Button type="submit" disabled={isSavingDetail}>
@@ -1060,7 +1169,23 @@ export default function ServicesPage() {
                     <AlertDescription>{createError}</AlertDescription>
                   </Alert>
                 )}
-                <ServiceFormFields form={createForm} categories={categories} onCategoryCreated={handleCategoryCreated} t={t} />
+                <ServiceFormFields
+                  form={createForm}
+                  categories={categories}
+                  onCategoryCreated={handleCategoryCreated}
+                  t={t}
+                  imageSlot={
+                    <div className="rounded-lg border p-3">
+                      {/* Sin id todavía: el archivo queda en espera y se sube
+                          en cuanto el upsert devuelve el servicio creado. */}
+                      <ServiceImageUploader
+                        serviceId={null}
+                        canManage={canCreate}
+                        onPendingFileChange={setPendingImage}
+                      />
+                    </div>
+                  }
+                />
               </DialogBody>
               <DialogFooter>
                 <Button type="submit">{t('createDialog.save')}</Button>

@@ -3,7 +3,6 @@
 import { ArrowDown, Check, Globe, Moon, Phone, Sun } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
-import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
 
@@ -19,15 +18,16 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EsFlagIcon } from '@/components/icons/es-flag-icon';
 import { UsFlagIcon } from '@/components/icons/us-flag-icon';
 import { UyFlagIcon } from '@/components/icons/uy-flag-icon';
+import { ClinicBrandLogo } from '@/components/patient-portal/clinic-brand-logo';
 import { ClinicFooter } from '@/components/patient-portal/clinic-footer';
 import { PatientLoginWizard } from '@/components/patient-portal/patient-login-wizard';
 import { WelcomeVideo } from '@/components/patient-portal/welcome-video';
 
 import type { PublicClinicInfo } from '@/lib/types';
+import { cn } from '@/lib/utils';
 import { resolveVideoEmbed } from '@/lib/video-embed';
 import { DEFAULT_WELCOME_VIDEO_URL, fetchPublicClinicInfo } from '@/services/public-clinic';
 
-const INVOKEIA_LOGO = 'https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp';
 const WIZARD_ANCHOR = 'acceso';
 
 /**
@@ -52,6 +52,11 @@ export default function PatientLoginPage() {
 
   const [clinic, setClinic] = React.useState<PublicClinicInfo | null>(null);
   const [isLoadingClinic, setIsLoadingClinic] = React.useState(true);
+  /**
+   * El wizard está en la pantalla de reserva. Mientras lo esté, la bienvenida
+   * con el video cede el lugar para que la reserva use todo el ancho.
+   */
+  const [isBooking, setIsBooking] = React.useState(false);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -163,9 +168,17 @@ export default function PatientLoginPage() {
           aria-hidden
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(70%_55%_at_50%_0%,hsl(var(--primary)/0.12),transparent_70%)]"
         />
-        <div className="relative mx-auto grid w-full max-w-6xl gap-8 px-4 py-6 sm:px-6 lg:h-full lg:grid-cols-[1fr_minmax(0,26rem)] lg:items-center lg:gap-14 lg:py-0">
-          {/* Bienvenida + video */}
-          <section className="space-y-5 text-center lg:text-left">
+        <div
+          className={cn(
+            'relative mx-auto grid w-full max-w-6xl gap-8 px-4 py-6 sm:px-6 lg:h-full lg:items-center lg:gap-14 lg:py-0',
+            // Mientras el paciente reserva, la bienvenida se va y la reserva se
+            // queda con todo el ancho: el paso de elegir servicios muestra
+            // tarjetas con imagen y en una columna de 26rem no se puede leer.
+            isBooking ? 'lg:grid-cols-1' : 'lg:grid-cols-[1fr_minmax(0,26rem)]',
+          )}
+        >
+          {/* Bienvenida + video — se oculta durante la reserva y vuelve al salir */}
+          <section className={cn('space-y-5 text-center lg:text-left', isBooking && 'hidden')}>
             <div className="space-y-3">
               <h1 className="text-3xl font-extrabold leading-[1.1] tracking-tight sm:text-4xl xl:text-5xl">
                 {isLoadingClinic ? (
@@ -210,12 +223,20 @@ export default function PatientLoginPage() {
           {/* Acceso — sin marco: comparte la superficie con la bienvenida */}
           <section
             id={WIZARD_ANCHOR}
-            className="scroll-mt-4 pb-6 lg:max-h-full lg:overflow-y-auto lg:py-8 lg:pl-10 lg:pr-1 lg:[border-left:1px_solid_hsl(var(--border))]"
+            className={cn(
+              'scroll-mt-4 pb-6 lg:max-h-full lg:overflow-y-auto lg:py-8',
+              // El borde y la sangría separan el acceso de la bienvenida; sin
+              // bienvenida al lado no separan nada.
+              isBooking
+                ? 'lg:pr-0'
+                : 'lg:pl-10 lg:pr-1 lg:[border-left:1px_solid_hsl(var(--border))]',
+            )}
           >
             {portalEnabled ? (
               <PatientLoginWizard
                 onlineBookingEnabled={clinic?.online_booking_enabled ?? true}
                 appointmentsOnly={clinic?.appointments_only ?? false}
+                onBookingActiveChange={setIsBooking}
               />
             ) : (
               <div className="space-y-3 text-center lg:text-left">
@@ -245,18 +266,21 @@ export default function PatientLoginPage() {
 
 // ── Piezas de presentación ───────────────────────────────────────────────────
 
-/** Logo de la clínica, con el isotipo de Invoke IA como respaldo. */
+/**
+ * Logo de la clínica, con el isotipo de Invoke IA como respaldo.
+ *
+ * Se le pasa el logo ya resuelto —la landing ya tiene los datos públicos
+ * cargados— para no repetir el fetch que `ClinicBrandLogo` haría por su cuenta.
+ */
 function ClinicLogo({ clinic, isLoading }: { clinic: PublicClinicInfo | null; isLoading: boolean }) {
   if (isLoading) return <Skeleton className="h-9 w-9 shrink-0 rounded-lg" />;
 
-  if (clinic?.logo_url) {
-    return (
-      // El logo llega como data URI desde el endpoint público: `next/image` no
-      // aporta nada acá y `unoptimized` obligaría a configurar el loader.
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={clinic.logo_url} alt={clinic.name} className="h-9 w-9 shrink-0 rounded-lg object-contain" />
-    );
-  }
-
-  return <Image src={INVOKEIA_LOGO} width={36} height={36} alt="" className="h-9 w-9 shrink-0" />;
+  return (
+    <ClinicBrandLogo
+      logoUrl={clinic?.logo_url ?? null}
+      name={clinic?.name}
+      size={36}
+      className="h-9 w-9 rounded-lg"
+    />
+  );
 }

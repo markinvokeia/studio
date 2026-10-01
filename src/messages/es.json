@@ -3723,7 +3723,11 @@
       "color": "Color",
       "activeLabel": "Activo",
       "activeDescription": "Servicio activado",
-      "colorLabel": "Color"
+      "colorLabel": "Color",
+      "bookableOnline": {
+        "label": "Agendable online por el paciente",
+        "help": "Aparece en el portal del paciente para que lo reserve solo. Dejalo apagado para lo que tiene que pasar por la clínica."
+      }
     },
     "serviceType": {
       "label": "Servicio con Flujo",
@@ -3770,7 +3774,11 @@
       "editSuccessTitle": "Servicio Actualizado",
       "errorTitle": "Error",
       "genericError": "Ocurrió un error inesperado.",
-      "successDescription": "Operación completada exitosamente."
+      "successDescription": "Operación completada exitosamente.",
+      "imagePendingTitle": "El servicio se creó, pero la imagen no",
+      "imagePendingDescription": "Abrí el servicio en el listado y subí la imagen desde ahí.",
+      "bookableOnlineFailedTitle": "No se pudo cambiar la agenda online",
+      "bookableOnlineFailedDescription": "El servicio se guardó, pero la opción de que el paciente lo reserve quedó como estaba. Volvé a intentarlo."
     },
     "validation": {
       "categoryRequired": "La categoría es obligatoria.",
@@ -3799,7 +3807,9 @@
     "inactive": "Inactivo",
     "actions": "Acciones",
     "edit": "Editar",
-    "delete": "Eliminar"
+    "delete": "Eliminar",
+    "bookableOnline": "Online",
+    "bookableOnlineYes": "Agendable"
   },
   "ProvidersPage": {
     "title": "Proveedores",
@@ -8978,14 +8988,30 @@
       "steps": {
         "sede": "Sede",
         "slot": "Horario",
-        "confirm": "Confirmar"
+        "confirm": "Confirmar",
+        "services": "Servicios"
       },
       "summary": {
         "title": "Resumen de tu cita",
         "when": "Cuándo",
         "who": "Te va a atender",
-        "where": "Dónde"
-      }
+        "where": "Dónde",
+        "services": "Qué te vamos a hacer",
+        "duration": "Cuánto dura",
+        "total": "Total estimado"
+      },
+      "pickServices": "¿Qué necesitás?",
+      "servicesHint": "Marcá todo lo que quieras resolver en esta visita. Podés elegir más de uno, y así reservamos el tiempo que haga falta.",
+      "selectedServices": "{count, plural, one {# servicio elegido} other {# servicios elegidos}}",
+      "selectionSummary": "{minutes} min · {total}",
+      "removeService": "Quitar {name}",
+      "continue": "Continuar",
+      "continueWithoutServices": "Si no elegís nada, la clínica define el motivo de la cita.",
+      "defaultServiceNotice": "Si no elegís nada, la cita se agenda como {name}.",
+      "noBookableServices": "Todavía no hay servicios disponibles para reservar online. Continuá y la clínica define el motivo de la cita.",
+      "servicesLoadError": "No pudimos cargar los servicios.",
+      "minutesShort": "{minutes} min",
+      "rescheduleNoServices": "Si no marcás ninguno, la cita se reagenda sin servicios asociados."
     },
     "info": {
       "emailLocked": "El correo no se puede cambiar: es a donde te llega tu código de acceso. Si necesitás actualizarlo, avisale a la clínica."
@@ -9246,6 +9272,21 @@
         "help": "Reemplaza el texto que acompaña al título en la portada del portal. Si lo dejás vacío se usa el texto por defecto del sistema.",
         "placeholder": "Reservá y gestioná tus citas cuando quieras…",
         "hint": "Dejalo vacío para usar el texto por defecto."
+      },
+      "serviceSelection": {
+        "label": "Habilitar selección de servicios",
+        "help": "El paciente elige qué se va a hacer, en un paso previo a la fecha y hora, entre los servicios que marcaste como agendables online en Ventas → Servicios. Si está apagado, todas las reservas se crean con el servicio por defecto y el paciente no elige nada."
+      },
+      "defaultService": {
+        "label": "Servicio por defecto de la reserva",
+        "help": "Con qué servicio se crea la cita cuando el paciente no elige ninguno. Sirve para que todas las reservas del portal entren como, por ejemplo, Consulta general, y recepción las revise después.",
+        "placeholder": "Elegí un servicio",
+        "none": "Sin servicio por defecto",
+        "hint": "Se usa cuando la selección de servicios está apagada, y también cuando está encendida pero el paciente no marca nada."
+      },
+      "showPricing": {
+        "label": "Mostrar duración y precios",
+        "help": "El paciente ve el precio de cada servicio y el total de tiempo y dinero de lo que eligió. Si está apagado sólo ve los nombres: la duración se sigue usando para reservar el hueco correcto en la agenda, pero no se le muestra, y los precios tampoco salen del sistema."
       }
     },
     "qr": {
@@ -9493,5 +9534,31 @@
     "clear": "Borrar todo",
     "cancel": "Cancelar",
     "use": "Usar esta firma"
+  },
+  "ServiceImageUploader": {
+    "label": "Imagen del servicio",
+    "description": "Se muestra en las tarjetas del portal del paciente, al elegir qué reservar. La vista previa tiene el mismo ancho que va a tener ahí.",
+    "alt": "Imagen del servicio",
+    "empty": "Sin imagen",
+    "hint": "Tamaño ideal {width} × {height} px. PNG, JPG o WEBP, hasta {maxMb} MB (para fotos conviene JPG o WEBP: en PNG se pasan de peso).",
+    "pendingCreate": "Se sube cuando guardes el servicio.",
+    "save": "Guardar imagen",
+    "cancel": "Descartar",
+    "delete": "Quitar",
+    "errors": {
+      "tooLarge": "La imagen supera {maxMb} MB. Reducila e intentá de nuevo.",
+      "generic": "No se pudo guardar la imagen."
+    },
+    "toast": {
+      "saved": "Imagen guardada",
+      "deleted": "Imagen eliminada"
+    },
+    "deleteDialog": {
+      "title": "¿Quitar la imagen?",
+      "description": "El servicio va a aparecer sin imagen en el portal del paciente. Podés subir otra cuando quieras.",
+      "cancel": "Cancelar",
+      "confirm": "Quitar"
+    },
+    "ratioHint": "Se muestra completa y a todo el ancho, sin recortarse: el alto sale de la proporción de tu imagen. Si usás la misma proporción en todos los servicios, las tarjetas quedan alineadas."
   }
 }

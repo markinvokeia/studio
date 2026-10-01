@@ -1,0 +1,181 @@
+{
+  "name": "Services — Image Delete",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "services/image/delete",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-validate",
+      "name": "Validar Entrada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        300
+      ],
+      "parameters": {
+        "jsCode": "\nconst assertServiceId = (value) => {\n  const text = String(value ?? '').trim();\n  if (!/^[0-9]+$/.test(text)) {\n    throw new Error(`Invalid service_id: ${value}`);\n  }\n  return text;\n};\n\nconst input = $input.first().json;\nconst body = input.body ?? input;\nreturn [{ json: { service_id: assertServiceId(body.service_id) } }];\n"
+      }
+    },
+    {
+      "id": "node-clear",
+      "name": "Limpiar en service_catalog",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        540,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "continueOnFail": true,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE public.service_catalog\nSET image_filename      = NULL,\n    image_mimetype      = NULL,\n    image_drive_file_id = NULL,\n    image_web_view_link = NULL,\n    image_updated_at    = NULL\nWHERE id = $1::integer\nRETURNING id::text AS id,\n          image_drive_file_id AS previous_drive_file_id",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.service_id ] }}"
+        }
+      }
+    },
+    {
+      "id": "node-drive-delete",
+      "name": "Borrar de Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        760,
+        300
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "GOOGLE_DRIVE_CREDENTIAL_ID",
+          "name": "Google Drive"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "operation": "deleteFile",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Limpiar en service_catalog').first().json.previous_drive_file_id }}"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "node-format",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        300
+      ],
+      "parameters": {
+        "jsCode": "\n// El borrado en Drive es best-effort: la fila ya quedó limpia, que es lo que\n// ve el usuario. Un archivo huérfano en Drive no justifica devolver un error.\nconst cleared = $('Limpiar en service_catalog').first().json;\n\nif (!cleared || cleared.error || !cleared.id) {\n  return [{ json: { statusCode: 500, body: { message: 'No se pudo quitar la imagen.' } } }];\n}\n\nreturn [{ json: { statusCode: 200, body: { success: true, service_id: cleared.id } } }];\n"
+      }
+    },
+    {
+      "id": "node-respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar Entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Entrada": {
+      "main": [
+        [
+          {
+            "node": "Limpiar en service_catalog",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpiar en service_catalog": {
+      "main": [
+        [
+          {
+            "node": "Borrar de Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Borrar de Drive": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Credencial 'Postgres' (POSTGRES_CREDENTIAL_ID).\n2. Credencial 'Google Drive' (GOOGLE_DRIVE_CREDENTIAL_ID).\n3. Webhook CON autenticación Bearer.\n\nRUTA: POST https://<tu-n8n>/webhook/services/image/delete\nREQUEST: { \"service_id\": 48 }\nRESPONSE 200: { \"success\": true, \"service_id\": \"48\" }\n\nREQUISITOS: database/scripts/122_20260930_service-booking-and-images.sql\nCONTRATO:   src/constants/routes.ts → SERVICE_IMAGE_DELETE\nCONSUMIDOR: src/components/services/service-image-uploader.tsx\n"
+  }
+}

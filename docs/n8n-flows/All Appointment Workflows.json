@@ -5437,7 +5437,8 @@
             "status": "={{ $('appointments/upsert_noauth').item.json.body.status || 'confirmed' }}",
             "updated_at": "={{ $now.toISO() }}",
             "notes": "={{ $('appointments/upsert_noauth').item.json.body.notes || null }}",
-            "quote_id": "={{ $('appointments/upsert_noauth').item.json.body.quote_id || null }}"
+            "quote_id": "={{ $('appointments/upsert_noauth').item.json.body.quote_id || null }}",
+            "calendar_source_id": "={{ $('appointments/upsert_noauth').item.json.body.calendar_source_id || null }}"
           },
           "matchingColumns": [
             "id"

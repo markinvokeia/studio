@@ -1,0 +1,117 @@
+{
+  "name": "Patient Portal — Public Bookable Services",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "services_noauth",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-query",
+      "name": "Buscar Servicios Agendables",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        320,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "continueOnFail": true,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Sólo el subconjunto que la clínica publicó para auto-agenda. El catálogo\n-- entero NO es ofrecible al paciente: una cirugía existe como servicio pero\n-- nadie la reserva solo desde una landing.\n--\n-- `show_pricing` viaja con cada fila para que el nodo siguiente decida si\n-- incluye los precios: si la clínica eligió no mostrarlos, tampoco tienen que\n-- salir por un endpoint sin token.\nSELECT\n    s.id,\n    s.name,\n    s.description,\n    COALESCE(s.duration_minutes, 0) AS duration_minutes,\n    s.price,\n    s.currency,\n    s.image_updated_at::text        AS image_updated_at,\n    -- Fuente de verdad de \"tiene imagen\": el archivo en Drive. La UI usa esto\n    -- para no pedir una imagen que no existe.\n    (s.image_drive_file_id IS NOT NULL) AS has_image,\n    (\n      SELECT COALESCE(c.patient_portal_show_pricing, FALSE)\n      FROM public.clinic c\n      WHERE c.is_active IS NOT FALSE\n      ORDER BY c.id\n      LIMIT 1\n    ) AS show_pricing\nFROM public.service_catalog s\nWHERE s.bookable_online IS TRUE\n  AND s.is_active IS NOT FALSE\n  AND s.is_sales IS NOT FALSE\nORDER BY s.name",
+        "additionalFields": {}
+      }
+    },
+    {
+      "id": "node-format",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        300
+      ],
+      "parameters": {
+        "jsCode": "\n// Payload público: este endpoint lo consume la landing /patient-login sin\n// token. NUNCA agregar costos internos, categorías internas ni ids ajenos al\n// servicio.\nconst rows = $input.all().map((i) => i.json).filter((r) => r && r.id != null && !r.error);\n\n// Si la clínica no muestra precios, `price` y `currency` no se devuelven —\n// omitirlos es más seguro que mandarlos y confiar en que la UI los esconda.\nconst showPricing = rows.length > 0 && rows[0].show_pricing === true;\n\nconst services = rows.map((s) => {\n  const service = {\n    id: String(s.id),\n    name: s.name,\n    description: s.description || null,\n    duration_minutes: Number(s.duration_minutes) || 0,\n    // La URL la arma el cliente a partir del id (la base del webhook es\n    // configuración de entorno). Acá sólo se dice si vale la pena pedirla.\n    has_image: s.has_image === true,\n    image_updated_at: s.image_updated_at || null,\n  };\n  if (showPricing) {\n    service.price = s.price == null ? null : Number(s.price);\n    service.currency = s.currency || null;\n  }\n  // Redundantes —la consulta ya garantiza las dos cosas— pero explícitos:\n  // dejan el payload legible cuando se inspecciona a mano y evitan que quien\n  // lo consuma tenga que inferirlo.\n  service.bookable_online = true;\n  service.is_active = true;\n  return service;\n});\n\nreturn [{ json: { statusCode: 200, body: services } }];\n"
+      }
+    },
+    {
+      "id": "node-respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        760,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Buscar Servicios Agendables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Servicios Agendables": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Credencial 'Postgres' (POSTGRES_CREDENTIAL_ID).\n2. Webhook SIN autenticación — variante `_noauth`, igual que /sedes_noauth.\n\n   Es deliberado: en modo \"sólo citas\" el paciente reserva sin token, así que\n   necesita ver los servicios antes de identificarse. Sólo se exponen los que\n   la clínica marcó como agendables online.\n\nRUTA: GET https://<tu-n8n>/webhook/services_noauth\n\nRESPONSE 200:\n[ { \"id\": \"48\", \"name\": \"Limpieza\", \"description\": null,\n    \"duration_minutes\": 45,\n    \"has_image\": true, \"image_updated_at\": \"2026-09-30 10:00:00\",\n    \"price\": 1500, \"currency\": \"UYU\",\n    \"bookable_online\": true, \"is_active\": true } ]\n\n`price` y `currency` SÓLO aparecen si clinic.patient_portal_show_pricing es\nTRUE. Si la clínica eligió no mostrar precios, no salen del sistema.\n\nLa imagen de cada servicio se pide aparte, a GET /services/image?service_id=\n(ver n8n-workflows/service-image-get.json). `has_image` existe para que la UI\nno haga ese request cuando no hay nada que traer; la URL la arma el cliente,\nporque la base del webhook es configuración de entorno y este flujo no sabe\ncon qué host lo están consultando.\n\n⚠️ ESTE FLUJO LO USA EL PORTAL **CON SESIÓN Y SIN ELLA**. No alcanza con\n`/services`: ese flujo devuelve el catálogo entero y no incluye\n`bookable_online`, así que el portal no puede distinguir qué está publicado.\n\nREQUISITOS: database/scripts/122_20260930_service-booking-and-images.sql\nCONTRATO:   src/constants/routes.ts → PATIENT_AUTH.PUBLIC_SERVICES\n            docs/patient-portal.md §2.10\nCONSUMIDOR: src/services/patient-services.ts → fetchBookableServices()\n"
+  }
+}

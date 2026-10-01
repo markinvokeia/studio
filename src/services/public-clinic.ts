@@ -1,6 +1,8 @@
 import { API_ROUTES } from '@/constants/routes';
+import { getWebhookBaseUrl } from '@/lib/runtime-config';
 import type { PublicClinicInfo, PublicClinicSchedule, PublicSede } from '@/lib/types';
 import { api } from '@/services/api';
+import { mapBookableService } from '@/services/patient-services';
 
 /**
  * Video genérico de Invoke IA, usado mientras la clínica no cargue el suyo.
@@ -63,7 +65,11 @@ async function requestPublicClinicInfo(): Promise<PublicClinicInfo | null> {
       address: raw.address || null,
       phone: raw.phone || null,
       email: raw.email || null,
-      logo_url: raw.logo_url || raw.logo_base64 || null,
+      // El endpoint puede devolver el logo como data URI o no devolverlo. En ese
+      // caso NO se cae al isotipo de Invoke: se apunta al webhook binario
+      // `/clinic/logo`, el mismo que usan los reportes. Es público y resuelve la
+      // auth de Drive, así que la landing muestra el logo de la clínica sin token.
+      logo_url: raw.logo_url || raw.logo_base64 || `${getWebhookBaseUrl()}${API_ROUTES.CLINIC_LOGO}`,
       welcome_video_url: raw.welcome_video_url || null,
       welcome_message: raw.welcome_message || null,
       // Se asume habilitado salvo que el backend diga explícitamente que no,
@@ -71,6 +77,11 @@ async function requestPublicClinicInfo(): Promise<PublicClinicInfo | null> {
       patient_portal_enabled: raw.patient_portal_enabled !== false,
       online_booking_enabled: raw.online_booking_enabled !== false,
       appointments_only: raw.appointments_only === true,
+      // Estos dos sí arrancan apagados salvo confirmación explícita: son
+      // funcionalidad nueva, y el default de la clínica es no ofrecerla.
+      service_selection_enabled: raw.service_selection_enabled === true,
+      show_pricing: raw.show_pricing === true,
+      default_service: raw.default_service ? mapBookableService(raw.default_service) : null,
       schedules,
     };
   } catch (error) {

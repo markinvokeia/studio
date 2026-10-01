@@ -492,6 +492,14 @@ export type Service = {
   is_sales?: boolean;
   service_type?: ServiceType;
   treatment_steps?: TreatmentStep[];
+  /**
+   * El paciente puede elegir este servicio al reservar desde el portal. Separa
+   * el catálogo que la clínica brinda del subconjunto auto-agendable: una
+   * cirugía existe como servicio pero no es algo que un paciente reserve solo.
+   */
+  bookable_online?: boolean;
+  /** Última vez que se reemplazó la imagen. Se usa para invalidar la caché. */
+  image_updated_at?: string | null;
 };
 
 export interface UserServicesEntry {
@@ -3065,7 +3073,11 @@ export type PublicClinicInfo = {
   address: string | null;
   phone: string | null;
   email: string | null;
-  /** Logo como data URI. `null` ⇒ la landing cae al isotipo de Invoke IA. */
+  /**
+   * Logo de la clínica: data URI si el endpoint lo devuelve así, o la URL del
+   * webhook binario `/clinic/logo` (el mismo que usan los reportes). La landing
+   * sólo cae al isotipo de Invoke IA si la imagen **falla al cargar**.
+   */
   logo_url: string | null;
   /** Video de bienvenida. `null` ⇒ el genérico de Invoke IA. */
   welcome_video_url: string | null;
@@ -3080,8 +3092,49 @@ export type PublicClinicInfo = {
    * y se pasa a la agenda, sin OTP ni acceso al perfil.
    */
   appointments_only: boolean;
+  /**
+   * `true` ⇒ el paciente elige servicios en un paso previo a la fecha y hora.
+   * `false` ⇒ toda reserva se crea con `default_service`.
+   */
+  service_selection_enabled: boolean;
+  /**
+   * `true` ⇒ el portal muestra precios y duraciones. Es sólo presentación: la
+   * duración de los servicios dimensiona el hueco de la agenda en cualquier caso.
+   */
+  show_pricing: boolean;
+  /**
+   * Servicio con el que se crea la reserva cuando el paciente no elige ninguno.
+   * `null` ⇒ la cita se crea sin servicio y con la duración genérica.
+   */
+  default_service: BookableService | null;
   /** Horarios de atención de la clínica, si no están cargados por sede. */
   schedules?: PublicClinicSchedule[];
+};
+
+/**
+ * Servicio tal como lo ve un paciente al reservar. Es una proyección mínima del
+ * catálogo: sólo lo que hace falta para elegir y para dimensionar la cita.
+ *
+ * `price` y `currency` son opcionales porque el backend los omite cuando la
+ * clínica eligió no mostrar precios — si no se muestran, tampoco se exponen en
+ * un endpoint sin token.
+ */
+export type BookableService = {
+  id: string;
+  name: string;
+  description?: string | null;
+  duration_minutes: number;
+  price?: number | null;
+  currency?: CurrencyCode | null;
+  /**
+   * El servicio tiene imagen cargada. Lo resuelve el backend contra
+   * `image_drive_file_id`, que es la fuente de verdad. Ausente ⇒ no se sabe, y
+   * entonces se pide la imagen igual: mejor un 204 de más que esconder una
+   * imagen que sí existe.
+   */
+  has_image?: boolean;
+  /** Cache-buster de la imagen: cambia cada vez que se reemplaza. */
+  image_updated_at?: string | null;
 };
 
 /**
@@ -3212,6 +3265,15 @@ export type PatientPortalConfig = {
   patient_portal_enabled: boolean;
   online_booking_enabled: boolean;
   appointments_only: boolean;
+  /** El paciente elige los servicios de su reserva. */
+  service_selection_enabled: boolean;
+  /**
+   * Servicio con el que se crea la reserva cuando el paciente no elige.
+   * Cadena vacía ⇒ sin servicio por defecto.
+   */
+  default_service_id: string;
+  /** Muestra precios y duraciones en el portal. Sólo presentación. */
+  show_pricing: boolean;
   welcome_video_url: string;
   welcome_message: string;
 };

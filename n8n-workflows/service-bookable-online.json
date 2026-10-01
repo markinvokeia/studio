@@ -1,0 +1,143 @@
+{
+  "name": "Services — Bookable Online Toggle",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "services/bookable-online",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-validate",
+      "name": "Validar Entrada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        300
+      ],
+      "parameters": {
+        "jsCode": "\n// Este flujo hace UNA sola cosa: prender o apagar `bookable_online`. No toca\n// nombre, precio, duración ni nada más del servicio — de eso se encarga\n// /catalogoservicios/upsert. Mantenerlo mínimo es el punto: es el único\n// escritor de esa columna.\nconst input = $input.first().json;\nconst body = input.body ?? input;\n\nconst serviceId = String(body.service_id ?? '').trim();\nif (!/^[0-9]+$/.test(serviceId)) {\n  throw new Error(`Invalid service_id: ${body.service_id}`);\n}\n\n// Se exige un booleano explícito. Un valor ausente o raro NO se interpreta\n// como `false`: apagar la agenda online de un servicio por un payload mal\n// armado sería peor que rechazar la llamada.\nconst raw = body.bookable_online;\nconst isTrue = raw === true || raw === 'true';\nconst isFalse = raw === false || raw === 'false';\nif (!isTrue && !isFalse) {\n  throw new Error(`Invalid bookable_online: ${raw}`);\n}\n\nreturn [{ json: { service_id: serviceId, bookable_online: isTrue } }];\n"
+      }
+    },
+    {
+      "id": "node-update",
+      "name": "Actualizar Flag",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        540,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "continueOnFail": true,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- UPDATE de una sola columna. Nada más.\nUPDATE public.service_catalog\nSET bookable_online = $2\nWHERE id = $1::integer\nRETURNING id::text AS id,\n          name,\n          bookable_online",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.service_id, $json.bookable_online ] }}"
+        }
+      }
+    },
+    {
+      "id": "node-format",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        760,
+        300
+      ],
+      "parameters": {
+        "jsCode": "\nconst row = $input.first().json;\n\nif (!row || row.error || !row.id) {\n  return [{ json: { statusCode: 404, body: { message: 'No se encontró el servicio.' } } }];\n}\n\nreturn [{ json: { statusCode: 200, body: {\n  success: true,\n  service_id: row.id,\n  name: row.name,\n  bookable_online: row.bookable_online === true,\n} } }];\n"
+      }
+    },
+    {
+      "id": "node-respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        980,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar Entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Entrada": {
+      "main": [
+        [
+          {
+            "node": "Actualizar Flag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar Flag": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Credencial 'Postgres' (POSTGRES_CREDENTIAL_ID).\n2. Webhook CON autenticación Bearer — sólo el staff publica servicios.\n\nRUTA: POST https://<tu-n8n>/webhook/services/bookable-online\n\nREQUEST:  { \"service_id\": 48, \"bookable_online\": true }\nRESPONSE 200: { \"success\": true, \"service_id\": \"48\", \"name\": \"Limpieza\",\n                \"bookable_online\": true }\nRESPONSE 404: el servicio no existe.\n\nPOR QUÉ ES UN FLUJO APARTE\n`/catalogoservicios/upsert` (workflow \"Web APIs\") no persiste\n`bookable_online` y no está versionado en este repo, así que extenderlo\nobligaba a un cambio manual difícil de auditar. Este flujo toca UNA columna de\nUNA tabla: es el único escritor de `service_catalog.bookable_online`, lo que\ndeja un solo lugar donde mirar cuando un servicio aparece —o no aparece— en el\nportal del paciente.\n\nCUÁNDO LO LLAMA EL FRONT (src/app/[locale]/sales/services/page.tsx)\n  - Siempre después de CREAR un servicio: el upsert no guarda el flag, así que\n    sin esta llamada un servicio creado con la opción activada la perdería.\n  - Al EDITAR, sólo si el flag cambió respecto del valor guardado. Si el usuario\n    editó el precio y no tocó la opción, no se llama.\n  - Siempre ANTES de refrescar el listado, para que la recarga ya traiga el\n    valor nuevo desde la base y no el anterior.\n\nREQUISITOS: database/scripts/122_20260930_service-booking-and-images.sql\nCONTRATO:   src/constants/routes.ts → SERVICE_BOOKABLE_ONLINE\n            docs/patient-portal.md §2.12\n"
+  }
+}

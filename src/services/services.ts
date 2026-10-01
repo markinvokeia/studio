@@ -1,7 +1,7 @@
 import { API_ROUTES } from '@/constants/routes';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { Service, UserServicesEntry } from '@/lib/types';
-import { api } from './api';
+import { api, REQUEST_TIMEOUT_MS } from './api';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 export interface ServicesResponse {
@@ -83,6 +83,36 @@ export async function getServices(params: GetServicesParams = {}): Promise<Servi
  */
 export async function getSalesServices(params: Omit<GetServicesParams, 'is_sales'> = {}): Promise<ServicesResponse> {
     return getServices({ ...params, is_sales: true });
+}
+
+/**
+ * Prende o apaga la agenda online de un servicio.
+ *
+ * Endpoint propio porque `/catalogoservicios/upsert` no persiste
+ * `bookable_online`: este es el único escritor de esa columna. Se llama siempre
+ * al crear un servicio, y al editar **sólo si el flag cambió** — ver
+ * `src/app/[locale]/sales/services/page.tsx`.
+ *
+ * Nunca lanza: devuelve `false` si no se pudo aplicar. Quien llama ya guardó el
+ * servicio, así que el fallo se avisa sin deshacer lo que sí se guardó.
+ */
+export async function setServiceBookableOnline(serviceId: string, bookableOnline: boolean): Promise<boolean> {
+    if (!serviceId) return false;
+    try {
+        const response = await api.post(
+            API_ROUTES.SERVICE_BOOKABLE_ONLINE,
+            { service_id: Number(serviceId), bookable_online: bookableOnline },
+            undefined,
+            undefined,
+            { timeoutMs: REQUEST_TIMEOUT_MS.mutation },
+        );
+        const result = Array.isArray(response) ? (response[0]?.json ?? response[0]) : response;
+        if (result?.error || (result?.code && result.code >= 400)) return false;
+        return true;
+    } catch (error) {
+        console.error('Failed to update the online booking flag:', error);
+        return false;
+    }
 }
 
 /**

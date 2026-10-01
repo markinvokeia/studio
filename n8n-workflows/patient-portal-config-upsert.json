@@ -27,7 +27,7 @@
         300
       ],
       "parameters": {
-        "jsCode": "\n// Sólo se aceptan estos cinco campos. Nada de nombre, RUT ni datos fiscales:\n// esos se editan en Datos de la Clínica, no acá.\nconst body = $input.first().json.body ?? $input.first().json ?? {};\n\nconst asBool = (v) => v === true || v === 'true';\nconst asText = (v) => {\n  const s = v == null ? '' : String(v).trim();\n  return s === '' ? null : s;\n};\n\nreturn [{ json: {\n  patient_portal_enabled:           asBool(body.patient_portal_enabled),\n  patient_portal_online_booking:    asBool(body.online_booking_enabled),\n  patient_portal_appointments_only: asBool(body.appointments_only),\n  welcome_video_url:                asText(body.welcome_video_url),\n  welcome_message:                  asText(body.welcome_message),\n} }];\n"
+        "jsCode": "\n// Sólo se aceptan estos ocho campos. Nada de nombre, RUT ni datos fiscales:\n// esos se editan en Datos de la Clínica, no acá.\nconst body = $input.first().json.body ?? $input.first().json ?? {};\n\nconst asBool = (v) => v === true || v === 'true';\nconst asText = (v) => {\n  const s = v == null ? '' : String(v).trim();\n  return s === '' ? null : s;\n};\n// El id del servicio por defecto es un entero; cualquier cosa que no lo sea\n// (vacío, null, texto) se guarda como NULL ⇒ sin servicio por defecto.\nconst asServiceId = (v) => {\n  const n = Number(v);\n  return Number.isInteger(n) && n > 0 ? n : null;\n};\n\nreturn [{ json: {\n  patient_portal_enabled:           asBool(body.patient_portal_enabled),\n  patient_portal_online_booking:    asBool(body.online_booking_enabled),\n  patient_portal_appointments_only: asBool(body.appointments_only),\n  patient_portal_service_selection: asBool(body.service_selection_enabled),\n  patient_portal_show_pricing:      asBool(body.show_pricing),\n  patient_portal_default_service_id: asServiceId(body.default_service_id),\n  welcome_video_url:                asText(body.welcome_video_url),\n  welcome_message:                  asText(body.welcome_message),\n} }];\n"
       }
     },
     {
@@ -41,9 +41,9 @@
       ],
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- UPDATE puro: este endpoint nunca crea una clínica.\nUPDATE public.clinic\nSET patient_portal_enabled           = $1,\n    patient_portal_online_booking    = $2,\n    patient_portal_appointments_only = $3,\n    welcome_video_url                = $4,\n    welcome_message                  = $5\nWHERE id = (SELECT id FROM public.clinic WHERE is_active IS NOT FALSE ORDER BY id LIMIT 1)\nRETURNING id,\n          patient_portal_enabled,\n          patient_portal_online_booking,\n          patient_portal_appointments_only,\n          welcome_video_url,\n          welcome_message",
+        "query": "-- UPDATE puro: este endpoint nunca crea una clínica.\nUPDATE public.clinic\nSET patient_portal_enabled            = $1,\n    patient_portal_online_booking     = $2,\n    patient_portal_appointments_only  = $3,\n    patient_portal_service_selection  = $4,\n    patient_portal_show_pricing       = $5,\n    patient_portal_default_service_id = $6,\n    welcome_video_url                 = $7,\n    welcome_message                   = $8\nWHERE id = (SELECT id FROM public.clinic WHERE is_active IS NOT FALSE ORDER BY id LIMIT 1)\nRETURNING id,\n          patient_portal_enabled,\n          patient_portal_online_booking,\n          patient_portal_appointments_only,\n          patient_portal_service_selection,\n          patient_portal_show_pricing,\n          patient_portal_default_service_id,\n          welcome_video_url,\n          welcome_message",
         "additionalFields": {
-          "queryParams": "={{ [ $json.patient_portal_enabled, $json.patient_portal_online_booking, $json.patient_portal_appointments_only, $json.welcome_video_url, $json.welcome_message ] }}"
+          "queryParams": "={{ [ $json.patient_portal_enabled, $json.patient_portal_online_booking, $json.patient_portal_appointments_only, $json.patient_portal_service_selection, $json.patient_portal_show_pricing, $json.patient_portal_default_service_id, $json.welcome_video_url, $json.welcome_message ] }}"
         }
       },
       "credentials": {
@@ -65,7 +65,7 @@
         300
       ],
       "parameters": {
-        "jsCode": "\nconst row = $input.first().json;\n\nif (!row || row.error || !row.id) {\n  return [{ json: { statusCode: 500, body: { message: 'No se pudo guardar la configuración del portal.' } } }];\n}\n\nreturn [{ json: { statusCode: 200, body: {\n  success: true,\n  patient_portal_enabled: row.patient_portal_enabled === true,\n  online_booking_enabled: row.patient_portal_online_booking === true,\n  appointments_only:      row.patient_portal_appointments_only === true,\n  welcome_video_url:      row.welcome_video_url,\n  welcome_message:        row.welcome_message,\n} } }];\n"
+        "jsCode": "\nconst row = $input.first().json;\n\nif (!row || row.error || !row.id) {\n  return [{ json: { statusCode: 500, body: { message: 'No se pudo guardar la configuración del portal.' } } }];\n}\n\nreturn [{ json: { statusCode: 200, body: {\n  success: true,\n  patient_portal_enabled: row.patient_portal_enabled === true,\n  online_booking_enabled: row.patient_portal_online_booking === true,\n  appointments_only:      row.patient_portal_appointments_only === true,\n  service_selection_enabled: row.patient_portal_service_selection === true,\n  show_pricing:              row.patient_portal_show_pricing === true,\n  default_service_id:        row.patient_portal_default_service_id,\n  welcome_video_url:      row.welcome_video_url,\n  welcome_message:        row.welcome_message,\n} } }];\n"
       }
     },
     {

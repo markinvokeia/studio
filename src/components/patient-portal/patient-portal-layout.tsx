@@ -3,7 +3,6 @@
 import { Check, Globe, LayoutDashboard, LogOut, Moon, Sun } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
-import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
 
@@ -19,6 +18,7 @@ import {
 import { EsFlagIcon } from '@/components/icons/es-flag-icon';
 import { UsFlagIcon } from '@/components/icons/us-flag-icon';
 import { UyFlagIcon } from '@/components/icons/uy-flag-icon';
+import { ClinicBrandLogo } from '@/components/patient-portal/clinic-brand-logo';
 import { ClinicFooter } from '@/components/patient-portal/clinic-footer';
 import { ReadOnlyProvider } from '@/components/patient-portal/read-only-context';
 
@@ -66,13 +66,7 @@ export function PatientPortalLayout({ children }: { children: React.ReactNode })
   return (
     <div className="flex h-[100dvh] flex-col overflow-hidden bg-background text-foreground">
       <header className="flex flex-none items-center gap-3 border-b border-[var(--nav-border)] bg-[var(--nav-bg)] px-3 py-2 text-[var(--nav-foreground)] sm:px-6 sm:py-3">
-        <Image
-          src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp"
-          width={32}
-          height={32}
-          alt="Invoke IA"
-          className="h-8 w-8 shrink-0"
-        />
+        <ClinicBrandLogo size={32} className="h-8 w-8 rounded-sm bg-white/10 p-0.5" />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold leading-tight">{patientName}</p>
           <p className="truncate text-xs text-[var(--nav-text-muted)]">{t('subtitle')}</p>

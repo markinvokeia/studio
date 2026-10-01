@@ -7,7 +7,7 @@ import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
 
-const INVOKEIA_LOGO = 'https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp';
+import { INVOKEIA_LOGO } from '@/components/patient-portal/invokeia-logo';
 
 /** Lado del canvas oculto del que se extrae el PNG: alto para que imprima nítido. */
 const QR_RENDER_SIZE = 620;

@@ -95,11 +95,18 @@ interface PatientLoginWizardProps {
    * verificación de identidad por cero fricción.
    */
   appointmentsOnly?: boolean;
+  /**
+   * Avisa cuando el wizard entra o sale de la pantalla de reserva, para que la
+   * landing le ceda todo el ancho. El paso de elegir servicios muestra tarjetas
+   * con imagen y en una columna de 26rem no se puede leer.
+   */
+  onBookingActiveChange?: (active: boolean) => void;
 }
 
 export function PatientLoginWizard({
   onlineBookingEnabled = true,
   appointmentsOnly = false,
+  onBookingActiveChange,
 }: PatientLoginWizardProps) {
   const t = useTranslations('PatientLogin');
   const locale = useLocale();
@@ -123,6 +130,12 @@ export function PatientLoginWizard({
     resolver: zodResolver(registerSchema(t)),
     defaultValues: { name: '', phone: '', email: '', identity_document: '', birth_date: '', address: '' },
   });
+
+  // Sólo la reserva necesita la pantalla completa. Al confirmar —o al volver
+  // atrás— la landing recupera su bienvenida con el video.
+  React.useEffect(() => {
+    onBookingActiveChange?.(step === 'booking');
+  }, [step, onBookingActiveChange]);
 
   React.useEffect(() => {
     if (resendIn <= 0) return;
@@ -551,8 +564,11 @@ export function PatientLoginWizard({
 
         {/* ── Reserva sin sesión (modo "sólo citas") ───────────────────── */}
         {step === 'booking' && guest && (
-          /* Alto acotado: el panel reparte scroll interno y footer fijo. */
-          <div className="flex h-[32rem] min-h-0 flex-col sm:h-[34rem]">
+          /* Alto acotado: el panel reparte scroll interno y footer fijo. Con
+             las tarjetas de servicio el contenido es más alto que antes, y el
+             tope en `vh` evita que en pantallas chicas el recuadro empuje el
+             scroll a la página entera. */
+          <div className="flex h-[min(38rem,80vh)] min-h-0 w-full flex-col sm:h-[min(40rem,82vh)]">
             <PatientBookingPanel
               authMode="public"
               patient={{

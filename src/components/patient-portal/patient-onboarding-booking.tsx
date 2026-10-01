@@ -61,7 +61,10 @@ export function PatientOnboardingBooking({
   }
 
   return (
-    <div className="mx-auto flex min-h-0 w-full max-w-lg flex-1 flex-col px-4 py-4">
+    // `max-w-3xl` y no `max-w-lg`: con el paso de servicios las tarjetas
+    // necesitan ancho. El texto de arriba se sigue leyendo bien porque tiene su
+    // propio `max-w-prose`.
+    <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-4 py-4">
       <div className="flex flex-none flex-col items-center pb-4 text-center">
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
           <CalendarCheck className="h-6 w-6 text-primary" />
@@ -69,7 +72,7 @@ export function PatientOnboardingBooking({
         <h1 className="mt-3 text-xl font-bold tracking-tight sm:text-2xl">
           {t('title', { name: patient.name.split(' ')[0] || patient.name })}
         </h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">{t('description')}</p>
+        <p className="mt-1.5 max-w-prose text-sm text-muted-foreground">{t('description')}</p>
       </div>
 
       <div className="min-h-0 flex-1">

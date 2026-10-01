@@ -1,0 +1,262 @@
+{
+  "name": "Services — Image Upload",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "services/image/upload",
+        "responseMode": "responseNode",
+        "options": {
+          "binaryPropertyName": "data",
+          "rawBody": false
+        }
+      }
+    },
+    {
+      "id": "node-validate",
+      "name": "Validar Entrada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        300
+      ],
+      "parameters": {
+        "jsCode": "\nconst assertServiceId = (value) => {\n  const text = String(value ?? '').trim();\n  if (!/^[0-9]+$/.test(text)) {\n    throw new Error(`Invalid service_id: ${value}`);\n  }\n  return text;\n};\n\nconst item = $input.first();\nconst body = item.json.body ?? item.json ?? {};\n\nconst serviceId = assertServiceId(body.service_id);\n\n// El archivo llega en la propiedad binaria `data` (el front hace\n// formData.append('data', file), igual que el logo de clínica y la firma).\nconst binary = item.binary?.data;\nif (!binary) throw new Error('image file is required (binary property \"data\")');\n\nconst allowed = ['image/png', 'image/jpeg', 'image/webp'];\nif (!allowed.includes(binary.mimeType)) {\n  throw new Error(`Unsupported image type: ${binary.mimeType}`);\n}\n\n// 1 MB, el mismo límite que valida el front.\nif (binary.fileSize && Number(String(binary.fileSize).replace(/[^0-9]/g, '')) > 1024 * 1024) {\n  throw new Error('Image file exceeds 1 MB');\n}\n\nconst extension = binary.mimeType === 'image/webp' ? 'webp'\n  : binary.mimeType === 'image/jpeg' ? 'jpg' : 'png';\n\nreturn [{\n  json: {\n    service_id: serviceId,\n    filename: binary.fileName || `service-${serviceId}.${extension}`,\n    mimetype: binary.mimeType,\n  },\n  binary: item.binary,\n}];\n"
+      }
+    },
+    {
+      "id": "node-old-file",
+      "name": "Leer Imagen Anterior",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        540,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "continueOnFail": true,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT image_drive_file_id\nFROM public.service_catalog\nWHERE id = $1::integer",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.service_id ] }}"
+        }
+      }
+    },
+    {
+      "id": "node-upload",
+      "name": "Subir a Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        760,
+        300
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "GOOGLE_DRIVE_CREDENTIAL_ID",
+          "name": "Google Drive"
+        }
+      },
+      "parameters": {
+        "name": "={{ $('Validar Entrada').first().json.filename }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "GOOGLE_DRIVE_SERVICE_IMAGES_FOLDER_ID"
+        },
+        "inputDataFieldName": "data",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-save",
+      "name": "Guardar en service_catalog",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        980,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "continueOnFail": true,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE public.service_catalog\nSET image_filename      = $2,\n    image_mimetype      = $3,\n    image_drive_file_id = $4,\n    image_web_view_link = $5,\n    image_updated_at    = NOW()\nWHERE id = $1::integer\nRETURNING id::text AS id,\n          image_filename,\n          image_mimetype,\n          image_drive_file_id,\n          image_updated_at::text AS image_updated_at",
+        "additionalFields": {
+          "queryParams": "={{ [ $('Validar Entrada').first().json.service_id, $('Validar Entrada').first().json.filename, $('Validar Entrada').first().json.mimetype, $json.id, $json.webViewLink ] }}"
+        }
+      }
+    },
+    {
+      "id": "node-cleanup",
+      "name": "Borrar Imagen Anterior de Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1200,
+        300
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "GOOGLE_DRIVE_CREDENTIAL_ID",
+          "name": "Google Drive"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "operation": "deleteFile",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Leer Imagen Anterior').first().json.image_drive_file_id }}"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "node-format",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1420,
+        300
+      ],
+      "parameters": {
+        "jsCode": "\n// El borrado del archivo anterior es best-effort: si falla, la imagen nueva ya\n// quedó guardada y no hay razón para devolver un error al usuario.\nconst saved = $('Guardar en service_catalog').first().json;\n\nif (!saved || saved.error || !saved.id) {\n  return [{ json: { statusCode: 500, body: { message: 'No se pudo guardar la imagen.' } } }];\n}\n\nreturn [{ json: { statusCode: 200, body: {\n  success: true,\n  service_id: saved.id,\n  filename: saved.image_filename,\n  mimetype: saved.image_mimetype,\n  image_updated_at: saved.image_updated_at,\n} } }];\n"
+      }
+    },
+    {
+      "id": "node-respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1640,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar Entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Entrada": {
+      "main": [
+        [
+          {
+            "node": "Leer Imagen Anterior",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Imagen Anterior": {
+      "main": [
+        [
+          {
+            "node": "Subir a Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Subir a Drive": {
+      "main": [
+        [
+          {
+            "node": "Guardar en service_catalog",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar en service_catalog": {
+      "main": [
+        [
+          {
+            "node": "Borrar Imagen Anterior de Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Borrar Imagen Anterior de Drive": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Credencial 'Postgres' (POSTGRES_CREDENTIAL_ID) en los nodos Postgres.\n2. Credencial 'Google Drive' (GOOGLE_DRIVE_CREDENTIAL_ID) en los nodos Drive.\n3. Carpeta de imágenes de servicios en Drive: reemplazar\n   GOOGLE_DRIVE_SERVICE_IMAGES_FOLDER_ID.\n4. Webhook CON autenticación Bearer — sólo el staff sube imágenes.\n5. Verificar el permiso de edición del catálogo (SERVICES_UPDATE).\n\nRUTA: POST https://<tu-n8n>/webhook/services/image/upload\n\nREQUEST: multipart/form-data\n  service_id: <entero>   ← service_catalog.id NO es un UUID\n  data:       <archivo image/png|image/jpeg|image/webp, máx 1 MB>\n\nRESPONSE 200:\n{ \"success\": true, \"service_id\": \"48\", \"filename\": \"limpieza.png\",\n  \"mimetype\": \"image/png\", \"image_updated_at\": \"2026-09-30 10:00:00\" }\n\nEl archivo anterior se borra de Drive después de guardar el nuevo, y ese\nborrado es best-effort: perder un archivo huérfano en Drive es preferible a\nfallar una operación que ya se completó.\n\nREQUISITOS: database/scripts/122_20260930_service-booking-and-images.sql\nCONTRATO:   src/constants/routes.ts → SERVICE_IMAGE_UPLOAD\nCONSUMIDOR: src/components/services/service-image-uploader.tsx\n"
+  }
+}

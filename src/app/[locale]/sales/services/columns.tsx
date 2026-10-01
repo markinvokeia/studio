@@ -97,6 +97,19 @@ export const ServicesColumnsWrapper = ({ onDelete }: ServicesColumnsProps): Colu
             },
         },
         {
+            accessorKey: 'bookable_online',
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title={t('bookableOnline')} />
+            ),
+            // Sólo se marca lo publicado: un badge en cada fila del catálogo
+            // sería ruido, porque lo normal es que un servicio NO se auto-agende.
+            cell: ({ row }) => (
+                row.original.bookable_online
+                    ? <Badge variant="secondary">{t('bookableOnlineYes')}</Badge>
+                    : <span className="text-muted-foreground">—</span>
+            ),
+        },
+        {
             id: 'actions',
             cell: ({ row }) => {
                 const service = row.original;

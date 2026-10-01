@@ -2,7 +2,7 @@ import { addMonths, format, isValid, parseISO } from 'date-fns';
 
 import { API_ROUTES } from '@/constants/routes';
 import { normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
-import type { Appointment, AppointmentStatus, Calendar, CancellationReason, User } from '@/lib/types';
+import type { Appointment, AppointmentStatus, Calendar, CancellationReason, Service, User } from '@/lib/types';
 import { api, REQUEST_TIMEOUT_MS } from '@/services/api';
 
 /**
@@ -195,6 +195,49 @@ export async function fetchFuturePatientAppointments(
 }
 
 /**
+ * Servicios de una cita, desde las varias formas en que el backend los devuelve:
+ * un array de objetos, un array de ids, o ids y nombres en paralelo.
+ *
+ * Devuelve `undefined` —y no `[]`— cuando no viene nada: "sin servicios" y "no
+ * sabemos qué servicios" no son lo mismo para quien reagenda.
+ */
+function mapAppointmentServices(apiAppt: any): Service[] | undefined {
+  const raw = apiAppt.services ?? apiAppt.appointment_services;
+  if (Array.isArray(raw) && raw.length > 0) {
+    const mapped = raw
+      .map((s: any) => {
+        if (s == null) return null;
+        if (typeof s === 'object') {
+          const id = s.id ?? s.service_id;
+          if (id == null) return null;
+          return {
+            id: String(id),
+            name: s.name ?? s.service_name ?? '',
+            duration_minutes: Number(s.duration_minutes) || 0,
+          } as Service;
+        }
+        return { id: String(s), name: '', duration_minutes: 0 } as Service;
+      })
+      .filter((s): s is Service => s !== null);
+    return mapped.length > 0 ? mapped : undefined;
+  }
+
+  const ids = apiAppt.service_ids;
+  if (Array.isArray(ids) && ids.length > 0) {
+    const names = String(apiAppt.service_names ?? '')
+      .split(',')
+      .map((n) => n.trim());
+    return ids.map((id: any, index: number) => ({
+      id: String(id),
+      name: names[index] ?? '',
+      duration_minutes: 0,
+    }) as Service);
+  }
+
+  return undefined;
+}
+
+/**
  * Citas futuras de un paciente como objetos `Appointment` completos, listos para
  * alimentar `AppointmentFormDialog` (reagendar) y `updateAppointmentStatusRequest`
  * (cancelar) — a diferencia de `fetchFuturePatientAppointments`, que devuelve una
@@ -258,6 +301,11 @@ export async function fetchUpcomingPatientAppointments(
         doctorEmail: apiAppt.doctor_email || apiAppt.doctorEmail,
         summary: apiAppt.summary || '',
         service_name: apiAppt.service_name || apiAppt.serviceName,
+        // Se mapean defensivamente porque los necesita el reagendado del portal:
+        // mover una cita no puede cambiar lo que se va a hacer en ella. Si el
+        // backend no los devuelve queda `undefined`, y quien reagenda lo trata
+        // como "no se pudieron resolver" en vez de asumir otros.
+        services: mapAppointmentServices(apiAppt),
         date: format(start, 'yyyy-MM-dd'),
         time: format(start, 'HH:mm'),
         status,

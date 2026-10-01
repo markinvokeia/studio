@@ -198,7 +198,10 @@ export default function MyProfilePage() {
             /* Reserva embebida — sin popup: el wizard usa el alto completo del
                panel y su footer queda fijo abajo, por encima del scroll. */
             <div className="flex min-h-0 flex-1 flex-col p-3">
-              <div className="mx-auto flex min-h-0 w-full max-w-2xl flex-1 flex-col">
+              {/* Sin el `max-w-2xl` del resto de las pestañas: la reserva es la
+                  vista que más ancho necesita —el paso de servicios muestra
+                  tarjetas con imagen— y acá no compite con nada. */}
+              <div className="flex min-h-0 w-full flex-1 flex-col">
                 <div className="mb-3 flex flex-none items-center gap-2">
                   <Button
                     variant="ghost"

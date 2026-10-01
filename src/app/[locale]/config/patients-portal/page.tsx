@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, CalendarCheck, Download, ExternalLink, HelpCircle, MessageSquareText, Save, Video } from 'lucide-react';
+import { AlertTriangle, CalendarCheck, Download, ExternalLink, HelpCircle, MessageSquareText, Save, Sparkles, Video } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { QRCodeCanvas } from 'qrcode.react';
 import * as React from 'react';
@@ -11,6 +11,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PageHeader } from '@/components/ui/page-header';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
@@ -27,12 +34,19 @@ import { useDataLoader } from '@/hooks/use-data-loader';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { REQUEST_TIMEOUT_MS, isTimeoutError } from '@/services/api';
-import type { PatientPortalConfig } from '@/lib/types';
+import type { PatientPortalConfig, Service } from '@/lib/types';
 import {
   DEFAULT_PATIENT_PORTAL_CONFIG,
   fetchPatientPortalConfig,
   updatePatientPortalConfig,
 } from '@/services/patient-portal-config';
+import { getSalesServices } from '@/services/services';
+
+/**
+ * Centinela del selector de servicio por defecto: Radix Select no acepta
+ * `value=""`, y "sin servicio por defecto" es una opción legítima.
+ */
+const NO_DEFAULT_SERVICE = '__none__';
 
 /**
  * Configuración → Portal del Paciente.
@@ -62,6 +76,24 @@ export default function PatientsPortalConfigPage() {
   React.useEffect(() => {
     setConfig(initial);
   }, [initial]);
+
+  /**
+   * Catálogo de venta para elegir el servicio por defecto. Se ofrece el
+   * catálogo completo y no sólo los `bookable_online`: el servicio por defecto
+   * lo aplica la clínica, no el paciente, así que no tiene por qué estar
+   * publicado para auto-agenda.
+   */
+  const [services, setServices] = React.useState<Service[]>([]);
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { items } = await getSalesServices({ limit: 500 });
+      if (!cancelled) setServices(items.filter((s) => s.is_active !== false));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   /**
    * URL pública del portal, sobre el origen desde el que se está navegando.
@@ -265,6 +297,70 @@ export default function PatientsPortalConfigPage() {
                   </div>
                 )}
               </div>
+            </CardContent>
+          </Card>
+
+          {/* ── Servicios de la reserva ────────────────────────────────── */}
+          <Card>
+            <CardContent className="space-y-4 p-5">
+              <SettingRow
+                label={t('fields.serviceSelection.label')}
+                help={t('fields.serviceSelection.help')}
+                disabled={!config.patient_portal_enabled || !config.online_booking_enabled}
+                control={
+                  <Switch
+                    checked={config.service_selection_enabled}
+                    disabled={!canEdit || !config.patient_portal_enabled || !config.online_booking_enabled}
+                    onCheckedChange={(v) => patch({ service_selection_enabled: v })}
+                  />
+                }
+              />
+
+              <div className="space-y-2">
+                <FieldLabel
+                  htmlFor="default-service"
+                  icon={Sparkles}
+                  label={t('fields.defaultService.label')}
+                  help={t('fields.defaultService.help')}
+                />
+                <Select
+                  value={config.default_service_id || NO_DEFAULT_SERVICE}
+                  disabled={!canEdit}
+                  onValueChange={(v) =>
+                    patch({ default_service_id: v === NO_DEFAULT_SERVICE ? '' : v })
+                  }
+                >
+                  <SelectTrigger id="default-service" className="max-w-sm">
+                    <SelectValue placeholder={t('fields.defaultService.placeholder')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {/* Radix no admite `value=""`, así que el "sin servicio" va
+                        con un centinela que se traduce a cadena vacía al guardar. */}
+                    <SelectItem value={NO_DEFAULT_SERVICE}>
+                      {t('fields.defaultService.none')}
+                    </SelectItem>
+                    {services.map((service) => (
+                      <SelectItem key={service.id} value={service.id}>
+                        {service.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">{t('fields.defaultService.hint')}</p>
+              </div>
+
+              <SettingRow
+                label={t('fields.showPricing.label')}
+                help={t('fields.showPricing.help')}
+                disabled={!config.patient_portal_enabled}
+                control={
+                  <Switch
+                    checked={config.show_pricing}
+                    disabled={!canEdit || !config.patient_portal_enabled}
+                    onCheckedChange={(v) => patch({ show_pricing: v })}
+                  />
+                }
+              />
             </CardContent>
           </Card>
 

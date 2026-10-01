@@ -3723,7 +3723,11 @@
       "color": "Color",
       "activeLabel": "Active",
       "activeDescription": "Set service active",
-      "colorLabel": "Color"
+      "colorLabel": "Color",
+      "bookableOnline": {
+        "label": "Patient can book this online",
+        "help": "Shows up in the patient portal for self-booking. Leave it off for anything that has to go through the clinic."
+      }
     },
     "serviceType": {
       "label": "Workflow Service",
@@ -3770,7 +3774,11 @@
       "editSuccessTitle": "Service Updated",
       "errorTitle": "Error",
       "genericError": "An unexpected error occurred.",
-      "successDescription": "Operation completed successfully."
+      "successDescription": "Operation completed successfully.",
+      "imagePendingTitle": "Service created, image was not",
+      "imagePendingDescription": "Open the service from the list and upload the image from there.",
+      "bookableOnlineFailedTitle": "Couldn't change online booking",
+      "bookableOnlineFailedDescription": "The service was saved, but the patient self-booking option stayed as it was. Please try again."
     },
     "validation": {
       "categoryRequired": "Category is required.",
@@ -3799,7 +3807,9 @@
     "inactive": "Inactive",
     "actions": "Actions",
     "edit": "Edit",
-    "delete": "Delete"
+    "delete": "Delete",
+    "bookableOnline": "Online",
+    "bookableOnlineYes": "Bookable"
   },
   "ProvidersPage": {
     "title": "Providers",
@@ -8978,14 +8988,30 @@
       "steps": {
         "sede": "Location",
         "slot": "Time",
-        "confirm": "Confirm"
+        "confirm": "Confirm",
+        "services": "Services"
       },
       "summary": {
         "title": "Appointment summary",
         "when": "When",
         "who": "You'll be seen by",
-        "where": "Where"
-      }
+        "where": "Where",
+        "services": "What we'll do",
+        "duration": "Duration",
+        "total": "Estimated total"
+      },
+      "pickServices": "What do you need?",
+      "servicesHint": "Pick everything you want to cover in this visit. You can choose more than one, and we'll book the time it takes.",
+      "selectedServices": "{count, plural, one {# service selected} other {# services selected}}",
+      "selectionSummary": "{minutes} min · {total}",
+      "removeService": "Remove {name}",
+      "continue": "Continue",
+      "continueWithoutServices": "If you don't pick anything, the clinic decides the reason for the visit.",
+      "defaultServiceNotice": "If you don't pick anything, the appointment is booked as {name}.",
+      "noBookableServices": "There are no services available to book online yet. Continue and the clinic will set the reason for the visit.",
+      "servicesLoadError": "We couldn't load the services.",
+      "minutesShort": "{minutes} min",
+      "rescheduleNoServices": "If you don't pick any, the appointment is rescheduled with no services attached."
     },
     "info": {
       "emailLocked": "Your email can't be changed here — it's where your access code is sent. Ask the clinic if you need to update it."
@@ -9246,6 +9272,21 @@
         "help": "Replaces the text next to the title on the portal landing. Leave it empty to use the system default.",
         "placeholder": "Book and manage your appointments anytime…",
         "hint": "Leave empty to use the default text."
+      },
+      "serviceSelection": {
+        "label": "Enable service selection",
+        "help": "The patient picks what they need, in a step before date and time, from the services you marked as bookable online under Sales → Services. When off, every booking is created with the default service and the patient picks nothing."
+      },
+      "defaultService": {
+        "label": "Default service for bookings",
+        "help": "Which service the appointment is created with when the patient picks none. Use it so every portal booking comes in as, for example, General consultation, for the front desk to review later.",
+        "placeholder": "Pick a service",
+        "none": "No default service",
+        "hint": "Used when service selection is off, and also when it's on but the patient picks nothing."
+      },
+      "showPricing": {
+        "label": "Show duration and prices",
+        "help": "The patient sees each service's price and the total time and cost of what they picked. When off they only see the names: the duration is still used to book the right slot, but it isn't shown, and prices never leave the system."
       }
     },
     "qr": {
@@ -9493,5 +9534,31 @@
     "clear": "Clear all",
     "cancel": "Cancel",
     "use": "Use this signature"
+  },
+  "ServiceImageUploader": {
+    "label": "Service image",
+    "description": "Shown on the patient portal cards when choosing what to book. The preview is exactly as wide as it will be there.",
+    "alt": "Service image",
+    "empty": "No image",
+    "hint": "Ideal size {width} × {height} px. PNG, JPG or WEBP, up to {maxMb} MB (for photos prefer JPG or WEBP — PNG runs over).",
+    "pendingCreate": "It'll be uploaded when you save the service.",
+    "save": "Save image",
+    "cancel": "Discard",
+    "delete": "Remove",
+    "errors": {
+      "tooLarge": "The image is over {maxMb} MB. Shrink it and try again.",
+      "generic": "The image couldn't be saved."
+    },
+    "toast": {
+      "saved": "Image saved",
+      "deleted": "Image removed"
+    },
+    "deleteDialog": {
+      "title": "Remove the image?",
+      "description": "The service will show without an image in the patient portal. You can upload another one any time.",
+      "cancel": "Cancel",
+      "confirm": "Remove"
+    },
+    "ratioHint": "It's shown in full at the card's full width, never cropped: the height follows your image's aspect ratio. Using the same ratio across services keeps the cards aligned."
   }
 }

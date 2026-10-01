@@ -2,7 +2,7 @@ import { addDays, format, parse, startOfDay } from 'date-fns';
 
 import { API_ROUTES } from '@/constants/routes';
 import { getBusinessWindow } from '@/components/calendar/calendar-gaps';
-import type { Appointment, ClinicSchedule, User } from '@/lib/types';
+import type { Appointment, BookableService, ClinicSchedule, User } from '@/lib/types';
 import { api } from '@/services/api';
 import { updateAppointmentStatusRequest } from '@/services/appointments';
 import { toLocalISOString } from '@/lib/utils';
@@ -241,6 +241,12 @@ export interface CreatePatientAppointmentInput {
   reason: string;
   slotMinutes?: number;
   authMode?: BookingAuthMode;
+  /**
+   * Servicios de la cita: los que eligió el paciente, o el que la clínica
+   * configuró por defecto. Quien llama ya resolvió ese fallback, para que lo
+   * que el paciente vio en el resumen y lo que se manda sean la misma cosa.
+   */
+  services?: BookableService[];
 }
 
 /**
@@ -257,9 +263,14 @@ export async function createPatientAppointment({
   reason,
   slotMinutes = PATIENT_SLOT_MINUTES,
   authMode = 'session',
+  services = [],
 }: CreatePatientAppointmentInput) {
   const start = parse(`${date} ${slot.time}`, 'yyyy-MM-dd HH:mm', new Date());
   const end = new Date(start.getTime() + slotMinutes * 60_000);
+
+  // Mismo formato que arma el formulario del staff, así la cita se lee igual en
+  // la agenda venga del portal o de recepción.
+  const serviceNames = services.map((s) => s.name).join(', ');
 
   const payload = {
     start: toLocalISOString(start),
@@ -272,9 +283,11 @@ export async function createPatientAppointment({
     patient_name: patient.name,
     patient_email: patient.email ?? '',
     patient_phone: patient.phone_number ?? '',
-    summary: `${patient.name} - Solicitud del paciente`,
-    service_ids: [] as string[],
-    service_names: '',
+    summary: serviceNames ? `${patient.name} - ${serviceNames}` : `${patient.name} - Solicitud del paciente`,
+    // `/appointments/upsert` ya consume estos dos campos: con ellos inserta en
+    // `appointment_service_catalog` y arma la descripción de la cita.
+    service_ids: services.map((s) => String(s.id)),
+    service_names: serviceNames,
     notes: reason.trim(),
     calendar_source_id: slot.calendarSourceId ?? '',
     quote_id: null,

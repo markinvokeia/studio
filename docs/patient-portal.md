@@ -295,6 +295,12 @@ Datos públicos de la clínica para la landing `/patient-login`. **Sin autentica
   "welcome_video_url": null,                  // null ⇒ video genérico de Invoke IA
   "welcome_message": null,                    // null ⇒ copy por defecto traducido
   "patient_portal_enabled": true,
+  "online_booking_enabled": true,
+  "appointments_only": false,
+  "service_selection_enabled": false,         // el paciente elige servicios
+  "show_pricing": false,                      // muestra precios y duraciones
+  "default_service": { "id": "48", "name": "Consulta general",
+                       "duration_minutes": 30 },   // o null
   "schedules": [ { "day_of_week": 1, "start_time": "09:00", "end_time": "18:00" } ]
 }
 ```
@@ -303,7 +309,9 @@ Datos públicos de la clínica para la landing `/patient-login`. **Sin autentica
 - ⚠️ La tabla es **`clinic`, en singular**, y sus columnas de contacto son **`address` / `phone` / `email`**. El baseline de Liquibase (`v1_baseline.xml`) declara una tabla `clinics` con `location` / `phone_number` / `contact_email`: **está desactualizado**. La referencia son los flujos n8n en producción (`Whats App.json`, `Alert Scheduler.json`), que consultan `public.clinic`.
 - `clinic_schedules` (ese sí en plural) **no tiene `clinic_id`**: la instalación es de una sola clínica, así que la subconsulta no filtra por clínica.
 - `schedules` son los horarios **sin sede asignada** (`clinic_schedules.sede_id IS NULL`), los que valen para toda la clínica. Los de cada sede se piden a `/schedules_noauth?sede_id=`.
-- `logo_url` se puede dejar en `null`; la landing cae al isotipo de Invoke IA sin romperse. Para servirlo, reusar la lectura de binario de `/clinic/logo` y convertirla a data URI.
+- `logo_url` se puede dejar en `null`: el cliente cae entonces a la URL del webhook binario **`/clinic/logo`** —el mismo que usan los membretes de los reportes—, así que el logo de la clínica se muestra igual sin que este flujo tenga que adjuntarlo. El isotipo de Invoke IA sólo aparece si esa imagen tampoco carga. Ver `fetchPublicClinicInfo()` y `ClinicBrandLogo`.
+- `default_service` sale de `clinic.patient_portal_default_service_id` y **no exige `bookable_online`**: el servicio por defecto lo aplica la clínica, no el paciente, así que no tiene por qué estar publicado para auto-agenda.
+- `show_pricing` es **sólo presentación**. La duración de los servicios dimensiona el hueco de la agenda con el flag encendido o apagado; lo único que cambia es si el paciente ve los números.
 - **Nunca** agregar campos sensibles acá: RUT, facturación, ids internos, datos de pacientes o de staff.
 
 > El frontend asume `patient_portal_enabled: true` cuando el campo viene ausente, para no dejar la landing muerta si la columna todavía no está migrada. Es explícito el `!== false` en `src/services/public-clinic.ts`.
@@ -316,7 +324,10 @@ Guarda los ajustes de Configuración → Portal del Paciente. **Sólo actualiza*
 
 ```jsonc
 { "patient_portal_enabled": true, "online_booking_enabled": true,
-  "appointments_only": false, "welcome_video_url": null, "welcome_message": null }
+  "appointments_only": false,
+  "service_selection_enabled": false, "show_pricing": false,
+  "default_service_id": 48,              // entero, o null ⇒ sin servicio por defecto
+  "welcome_video_url": null, "welcome_message": null }
 ```
 Requiere el permiso `PATIENT_PORTAL_CONFIG_UPDATE`. La lectura no tiene endpoint propio: reutiliza `/api/public/clinic`, que ya devuelve estos campos.
 
@@ -351,6 +362,77 @@ Recibe el webhook de rebote del proveedor SMTP, marca `users.email_bounced` y de
 
 > ⚠️ **Hay que registrar esta URL en el proveedor de correo** (SendGrid Event Webhook, Mailgun `permanent_fail`, Postmark Bounce, SNS de SES). Sin ese registro el flujo no se ejecuta nunca y los contactos falsos no se detectan.
 
+### 2.10 `GET /services_noauth`  *(noauth)*
+
+Servicios que el paciente puede auto-agendar. Sólo los que la clínica marcó con
+`service_catalog.bookable_online`: el catálogo entero no es ofrecible sin
+intermediarios —una cirugía existe como servicio pero nadie la reserva solo
+desde una landing—.
+
+```jsonc
+[ { "id": "48", "name": "Limpieza", "description": null,
+    "duration_minutes": 45,
+    "has_image": true, "image_updated_at": "2026-09-30 10:00:00",
+    "price": 1500, "currency": "UYU",
+    "bookable_online": true, "is_active": true } ]
+```
+
+- **`price` y `currency` sólo se devuelven si `clinic.patient_portal_show_pricing` es `TRUE`.** Si la clínica eligió no mostrar precios, tampoco salen por un endpoint sin token: esconderlos en la UI no alcanza.
+- Es `noauth` porque en modo "sólo citas" el paciente reserva sin haberse identificado.
+- ⚠️ **El portal lo usa con sesión y sin ella.** No alcanza con `/services`: ese flujo devuelve el catálogo entero y **no incluye `bookable_online`**, así que el portal no puede distinguir qué está publicado — filtrando del lado del cliente contra un campo que no viene, el paso quedaba vacío. Esta es la proyección hecha para el portal y es la única que se consulta.
+- `has_image` sale de `image_drive_file_id IS NOT NULL`, que es la fuente de verdad. Existe para que la UI no pida una imagen que no está: con `false` va directo al placeholder. **La URL de la imagen no la manda este endpoint** —la arma el cliente con el id, igual que con `/clinic/logo`— porque la base del webhook es configuración de entorno y el flujo no sabe con qué host lo consultan.
+
+### 2.11 `GET /services/image?service_id=`  *(noauth)* · `POST /services/image/upload` · `POST /services/image/delete`
+
+Imagen del servicio, para las tarjetas del paso de selección. **Mismo mecanismo
+que el logo de la clínica y la firma del doctor**: el archivo vive en Google
+Drive y en `service_catalog` quedan sólo los metadatos
+(`image_filename`, `image_mimetype`, `image_drive_file_id`,
+`image_web_view_link`, `image_updated_at`).
+
+| Endpoint | Auth | Contrato |
+|---|---|---|
+| `GET /services/image?service_id=` | **noauth** | Binario con su `Content-Type`, o **204** si el servicio no tiene imagen. El front lo trata como "sin imagen", no como error. Sólo sirve servicios activos |
+| `POST /services/image/upload` | Bearer | `multipart/form-data` con `service_id` (entero) y el archivo en el campo binario **`data`**. PNG/JPEG/WEBP, **máx. 1 MB**, validado en el front *y* en n8n |
+| `POST /services/image/delete` | Bearer | `{ "service_id": 48 }`. Limpia las columnas y borra de Drive |
+
+- El `GET` es público por la misma razón que `/clinic/logo`: la landing lo muestra sin token y no hay nada sensible en la imagen de un servicio.
+- ⚠️ `service_catalog.id` es un **entero autoincremental**, no un UUID como `users.id`. La validación de los flujos lo refleja.
+- El borrado del archivo anterior en Drive es best-effort: un archivo huérfano es preferible a fallar una operación que ya se completó.
+- `image_updated_at` viaja al cliente y se manda como query param `v=` para invalidar la caché del navegador cuando la clínica reemplaza la imagen. **La imagen se pide siempre, sin condicionarla a ese campo**: `/services` (la ruta con sesión) no devuelve esa columna, así que gatear el request en ella dejaba el portal sin imágenes. Si no hay imagen, el 204 hace caer la tarjeta al placeholder — igual que en la vista de edición del servicio.
+
+### 2.12 `POST /services/bookable-online`  *(con Bearer)*
+
+Prende o apaga `service_catalog.bookable_online`. **Nada más.**
+
+```jsonc
+// Request
+{ "service_id": 48, "bookable_online": true }
+// Response
+{ "success": true, "service_id": "48", "name": "Limpieza", "bookable_online": true }
+```
+
+Es un flujo aparte y no un campo más en `/catalogoservicios/upsert` porque ese
+workflow vive en "Web APIs", no está versionado en este repo y lo usan tres
+pantallas distintas del catálogo. Con un endpoint propio **hay un solo escritor
+de esa columna**: cuando un servicio aparece —o no aparece— en el portal, hay un
+único lugar donde mirar.
+
+Rechaza un `bookable_online` ausente o no booleano en vez de interpretarlo como
+`false`: apagar la agenda online de un servicio por un payload mal armado sería
+peor que rechazar la llamada.
+
+**Cuándo lo llama el front** (`src/app/[locale]/sales/services/page.tsx`):
+
+| Momento | ¿Se llama? |
+|---|---|
+| Al **crear** un servicio | **Siempre.** El upsert no guarda el flag, así que crear con la opción activada la perdería |
+| Al **editar**, habiendo tocado la opción | Sí |
+| Al **editar** sin tocarla (p. ej. sólo el precio) | **No.** Se compara contra el valor guardado |
+
+Siempre **antes** de recargar el listado, para que la recarga ya lea de la base
+el valor nuevo y la pantalla no muestre el anterior.
+
 ---
 
 ## 3. Modos del portal y flujo de acceso
@@ -362,6 +444,9 @@ El comportamiento de `/patient-login` depende de dos flags de `clinic`:
 | `patient_portal_enabled` | `false` ⇒ la landing muestra "portal no disponible". |
 | `patient_portal_online_booking` | `false` ⇒ el paciente sólo consulta; no puede reservar. |
 | `patient_portal_appointments_only` | `true` ⇒ el portal es **sólo para reservar**. |
+| `patient_portal_service_selection` | `true` ⇒ el paciente elige servicios en un paso previo a la fecha. `false` (default) ⇒ toda reserva usa el servicio por defecto. |
+| `patient_portal_show_pricing` | `true` ⇒ se muestran precios y duraciones. Sólo presentación. |
+| `patient_portal_default_service_id` | Servicio con el que se crea la cita si el paciente no elige. |
 
 **El código es siempre la puerta.** Ningún camino reserva ni entra al portal sin verificar el correo:
 
@@ -384,7 +469,7 @@ Una versión anterior lo salteaba para el paciente nuevo y para el que no tenía
 
 La verificación por rebote (§2.9) sigue siendo útil como red de seguridad para detectar correos falsos, pero **no reemplaza al OTP**: llega tarde, cuando la cita ya está creada.
 
-> Consecuencia: la reserva ocurre siempre con sesión. Los endpoints `_noauth` de disponibilidad y alta (§3.2) quedaron sin uso desde el portal.
+> Consecuencia: la reserva ocurre siempre con sesión. Los endpoints `_noauth` de disponibilidad y alta (§3.3) quedaron sin uso desde el portal, salvo en modo "sólo citas".
 
 ---
 
@@ -408,7 +493,55 @@ El vínculo es `calendars.sede_id`: elegir sede se traduce en pasar sus `calenda
 
 ---
 
-## 3.2 Endpoints reutilizados (no se crean workflows nuevos)
+## 3.2 Selección de servicios
+
+El paso va **antes** de fecha y hora, y no es un detalle de orden: de los
+servicios elegidos depende cuánto dura la cita, y por lo tanto qué huecos se
+pueden ofrecer. Elegirlos después obligaría a descartar el horario ya elegido.
+
+Lo único que decide si el paso se muestra es **`patient_portal_service_selection`**.
+No depende de `patient_portal_appointments_only`: el paso aparece igual en el
+modo "sólo citas" y dentro del perfil del paciente. Sí requiere
+`patient_portal_online_booking`, porque sin reserva no hay paso que mostrar.
+
+| Situación | Qué pasa |
+|---|---|
+| `service_selection_enabled = false` | No hay paso. La cita se crea con `default_service` |
+| `= true`, con servicios agendables | El paciente marca **varios** (checkboxes). Los elegidos quedan fijos arriba, fuera del scroll |
+| `= true`, sin ninguno `bookable_online` | El paso no aparece; se sigue con el servicio por defecto |
+| `= true` y el paciente no marca nada | Puede continuar igual: cae al servicio por defecto |
+| **Reagendando** | El paso aparece, con los servicios de la cita original **ya marcados**: no tocar nada los conserva. Los que no estén en el catálogo agendable (los puso recepción) se agregan a la lista igual, para que no desaparezcan sin que nadie lo pida. Si desmarca todo se reagenda **sin** servicios — no se aplica el default, porque eso cambiaría el motivo de una cita que ya existía |
+
+**Ancho de pantalla.** El paso de servicios es el que más espacio pide, así que
+las superficies que alojan la reserva le dan el ancho completo: en la landing la
+bienvenida con el video se oculta mientras se reserva y vuelve al terminar
+(`onBookingActiveChange`), y en `/my-profile` la pestaña de reserva no usa el
+`max-w-2xl` del resto. La grilla de tarjetas va de una a tres columnas.
+
+**Duración.** `slotMinutes` = suma de `duration_minutes` de los servicios
+efectivos, con piso de 15 min y con `PATIENT_SLOT_MINUTES` (30) como fallback
+cuando no hay servicios o no se pudo resolver su duración. Ese valor alimenta el
+paso de la grilla **y** el `durationInMinutes` de `/appointments_availability`,
+así que el backend verifica que el doctor esté libre todo ese rato. Cambiar la
+selección **invalida el horario elegido**: un hueco de 30 min no sirve para una
+cita de 90.
+
+**Cómo llegan al backend.** `/appointments/upsert` ya consumía `service_ids` y
+`service_names` —los usa el formulario del staff— e inserta en
+`appointment_service_catalog`. El portal sólo dejó de mandarlos vacíos; **no
+hubo que tocar el flujo de alta de citas**.
+
+**Qué servicios se publican.** `service_catalog.bookable_online` lo escribe un
+único endpoint, `POST /services/bookable-online` (§2.12), llamado desde Ventas →
+Servicios. El upsert del catálogo no toca esa columna.
+
+> ⚠️ Si `default_service` no está configurado y el paciente no elige nada, la
+> cita se crea sin servicios. Es válido —recepción la completa— pero conviene
+> dejar un servicio por defecto para que no llegue sin motivo.
+
+---
+
+## 3.3 Endpoints reutilizados (no se crean workflows nuevos)
 
 | Uso en el portal | Endpoint existente |
 |---|---|
@@ -418,6 +551,7 @@ El vínculo es `calendars.sede_id`: elegir sede se traduce en pasar sus `calenda
 | Sedes | `GET /sedes` · sin sesión: **`/sedes_noauth`** |
 | Consultorios | `GET /calendars` · sin sesión: **`/calendars_noauth`** |
 | Slots libres | `GET /appointments_availability` · sin sesión: `/appointments_availability_noauth` |
+| Servicios agendables | `GET /services` (filtrado por `bookable_online`) · sin sesión: **`/services_noauth`** |
 | Reservar | `POST /appointments/upsert` · sin sesión: `/appointments/upsert_noauth` |
 | Reagendar | `POST /appointments/reschedule` |
 | Cancelar | `POST /appointments/update_status` (`status:'cancelled'`) |
@@ -433,7 +567,21 @@ El vínculo es `calendars.sede_id`: elegir sede se traduce en pasar sus `calenda
 2. `psql < database/scripts/066_20260806_clinic-patient-portal-settings.sql`
 3. `UPDATE public.clinic SET patient_portal_enabled = TRUE;` — sin esto la landing muestra el aviso de "portal no disponible".
 4. `psql < database/scripts/067_20260806_patient-portal-booking-mode.sql`
-5. Importar `n8n-workflows/patient-*.json` (auth, public-clinic, ai-query, portal-config-upsert, appointment-notify, email-bounce); asignar la credencial SMTP y el secreto JWT existentes.
+4b. `psql < database/scripts/122_20260930_service-booking-and-images.sql` — agrega
+    `service_catalog.bookable_online` + columnas de imagen, y los tres ajustes
+    de servicios en `clinic`.
+4c. Crear en Google Drive la carpeta de imágenes de servicios y poner su id en
+    `service-image-upload.json` (`GOOGLE_DRIVE_SERVICE_IMAGES_FOLDER_ID`).
+4d. Importar `n8n-workflows/service-bookable-online.json`. **No hay que tocar
+    `/catalogoservicios/upsert`**: ese flujo no persiste `bookable_online` y no
+    hace falta que lo haga — el switch escribe por este endpoint dedicado.
+4e. En `docs/n8n-flows/All Appointment Workflows.json`, nodo
+    `Insert_Appointment1` (rama `_noauth`): ya quedó mapeado
+    `calendar_source_id`, que antes se perdía. Reimportar ese workflow.
+5. Importar `n8n-workflows/patient-*.json` (auth, public-clinic, ai-query, portal-config-upsert, appointment-notify, email-bounce); asignar la credencial SMTP y el secreto JWT existentes. **Reimportar `patient-public-clinic.json` y `patient-portal-config-upsert.json`**: cambiaron para los campos de servicios.
+5b. Importar `n8n-workflows/service-image-{upload,get,delete}.json` y
+    `n8n-workflows/services-bookable-noauth.json`. **`service-image-get` y
+    `services_noauth` van SIN autenticación**; los otros dos, con Bearer.
 5. Agregar `assert_self_or_staff` a los workflows de la lista de §1.
 6. Verificar con un token de paciente que `GET /webhook/users?filter_type=PACIENTE` devuelve **403** y que `GET /webhook/user_financial?user_id=<otro>` devuelve **403**.
 7. Recién ahí, publicar el portal.
