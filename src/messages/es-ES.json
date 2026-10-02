@@ -6135,8 +6135,17 @@
       "save": "Guardar Cambios",
       "conditions": "Condiciones",
       "selectSourceTable": "Seleccionar Tabla de Origen",
+      "sourceTablesGroup": "Tablas",
+      "sourceViewsGroup": "Vistas",
+      "sourceViewHint": "Las alertas generadas desde esta vista se vinculan a la tabla \"{table}\".",
       "recurrenceType": "Tipo de Recurrencia",
       "selectRecurrenceType": "Seleccionar Tipo de Recurrencia",
+      "recurrenceOptions": {
+        "ONCE": "Una vez",
+        "DAILY": "Diaria",
+        "WEEKLY": "Semanal",
+        "MONTHLY": "Mensual"
+      },
       "emailTemplate": "Plantilla de Correo",
       "selectEmailTemplate": "Seleccionar Plantilla de Correo",
       "smsTemplate": "Plantilla de SMS",
@@ -6155,7 +6164,9 @@
       "fieldSourceColumn": "Columna",
       "fieldType": "Tipo de Dato",
       "selectFieldColumn": "Seleccionar columna",
-      "selectFieldType": "Seleccionar tipo"
+      "selectFieldType": "Seleccionar tipo",
+      "conditionColumnPlaceholder": "Columna",
+      "conditionOperatorPlaceholder": "Operador"
     },
     "deleteDialog": {
       "title": "Eliminar Regla",
@@ -6173,7 +6184,8 @@
       "deleteSuccessDescription": "La regla \"{name}\" ha sido eliminada.",
       "testSuccessTitle": "Prueba Iniciada",
       "testSuccessDescription": "La prueba de la regla \"{name}\" ha sido iniciada.",
-      "testErrorDescription": "Error al ejecutar la prueba de la regla."
+      "testErrorDescription": "Error al ejecutar la prueba de la regla.",
+      "deleteErrorDescription": "No se pudo eliminar la regla."
     },
     "validation": {
       "categoryRequired": "La categoría es obligatoria.",
@@ -6189,7 +6201,8 @@
       "medium": "Media",
       "high": "Alta",
       "critical": "Crítica"
-    }
+    },
+    "noAccess": "No tiene acceso para ver esta sección."
   },
   "CommunicationTemplatesPage": {
     "title": "Plantillas de Comunicación",
@@ -7202,7 +7215,13 @@
   "Common": {
     "accessDenied": "Acceso Denegado",
     "noPermission": "No tienes permisos para acceder a esta página.",
-    "loading": "Cargando..."
+    "loading": "Cargando...",
+    "errorTitle": "Algo salió mal",
+    "genericError": "No se pudo completar la acción. Inténtalo de nuevo.",
+    "timeoutError": "El servidor tardó demasiado en responder. Es posible que el cambio se haya guardado: actualiza antes de volver a intentarlo.",
+    "loadError": "No se pudieron cargar los datos.",
+    "retry": "Reintentar",
+    "unsavedChangesConfirm": "Tienes cambios sin guardar. ¿Descartarlos?"
   },
   "ImportPage": {
     "title": "Importar Datos",

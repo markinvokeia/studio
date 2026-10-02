@@ -51,6 +51,7 @@ function normalizeInvoice(raw: any, userId: string): Invoice {
     status: raw.status || 'draft',
     payment_status: raw.payment_state || raw.payment_status || 'unpaid',
     paid_amount: raw.paid_amount != null ? parseFloat(raw.paid_amount) : undefined,
+    due_date: raw.due_date || undefined,
     type: raw.type || 'invoice',
     parent_id: raw.parent_id ? String(raw.parent_id) : undefined,
     is_historical: Boolean(raw.is_historical),

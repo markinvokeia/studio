@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { format, parseISO } from 'date-fns';
+import { addMonths, format, parseISO } from 'date-fns';
 import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -189,6 +189,8 @@ export function QuickTreatmentDialog({ open, onOpenChange, mode, patient, isSale
           sede_id: Number(values.sede_id),
           currency,
           created_at: createdAt,
+          // No due-date field here: same one-month default as a new treatment in the ledger.
+          due_date: toLocalISOString(addMonths(values.created_at, 1)),
           notes: values.description || '',
           is_historical: false,
           items,

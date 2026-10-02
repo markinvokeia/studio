@@ -60,7 +60,7 @@ import { api } from '@/services/api';
 import { getPurchaseServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { PaginationState, RowSelectionState } from '@tanstack/react-table';
-import { format, parseISO } from 'date-fns';
+import { addDays, format, parseISO } from 'date-fns';
 import { AlertTriangle, CheckCircle, CreditCard, FileText, Loader2, Maximize2, Minimize2, Pencil, Printer, Receipt, RefreshCw, Send, ShoppingCart, StickyNote, Trash2, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -728,6 +728,7 @@ function QuotesPageContent() {
                 orderId: selectedOrder.id,
                 userId: selectedOrder.user_id,
                 mode: 'purchases',
+                dueDate: addDays(new Date(), 30),
             });
             toast({
                 title: t('actions.invoiceSuccess'),

@@ -21,7 +21,7 @@ import { DynamicFieldInput } from '@/components/ui/dynamic-field-input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
@@ -30,7 +30,7 @@ import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { getErrorMessage } from '@/lib/error-utils';
-import { AlertCategory, AlertRule } from '@/lib/types';
+import { AlertCategory, AlertRule, AlertSourceColumn, AlertSourceMeta } from '@/lib/types';
 import { DataCard } from '@/components/ui/data-card';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { api, isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
@@ -115,17 +115,15 @@ async function getCategories(): Promise<{ data: AlertCategory[], total: number, 
     }
 }
 
-async function getTablesAndColumns(): Promise<Record<string, { name: string, type: string, is_nullable: string }[]>> {
+async function getTablesAndColumns(): Promise<{ tables: Record<string, AlertSourceColumn[]>, sources: Record<string, AlertSourceMeta> }> {
     try {
         const response = await api.get(API_ROUTES.SYSTEM.TABLES);
-        if (Array.isArray(response) && response[0]?.tables) {
-            return response[0].tables;
-        }
-        const tablesData = response.tables || response;
-        return tablesData || {};
+        const payload = Array.isArray(response) && response[0]?.tables ? response[0] : response;
+        const tables = payload?.tables || payload || {};
+        return { tables, sources: payload?.sources || {} };
     } catch (error) {
         console.error('Error fetching tables:', error);
-        return {};
+        return { tables: {}, sources: {} };
     }
 }
 
@@ -188,7 +186,7 @@ export default function AlertRulesPage() {
     });
 
     const {
-        data: { rules, categories, tablesAndColumns, emailTemplates, smsTemplates, whatsappTemplates },
+        data: { rules, categories, tablesAndColumns, sourcesMeta, emailTemplates, smsTemplates, whatsappTemplates },
         isLoading,
         isRefreshing,
         error: loadError,
@@ -211,7 +209,8 @@ export default function AlertRulesPage() {
             return {
                 rules: mappedRules as AlertRule[],
                 categories: fetchedCategories.data as AlertCategory[],
-                tablesAndColumns: fetchedTables,
+                tablesAndColumns: fetchedTables.tables,
+                sourcesMeta: fetchedTables.sources,
                 emailTemplates: fetchedEmailTemplates,
                 smsTemplates: fetchedSmsTemplates,
                 whatsappTemplates: fetchedWhatsappTemplates,
@@ -220,7 +219,8 @@ export default function AlertRulesPage() {
         {
             rules: [] as AlertRule[],
             categories: [] as AlertCategory[],
-            tablesAndColumns: {} as Record<string, { name: string, type: string, is_nullable: string }[]>,
+            tablesAndColumns: {} as Record<string, AlertSourceColumn[]>,
+            sourcesMeta: {} as Record<string, AlertSourceMeta>,
             emailTemplates: [] as any[],
             smsTemplates: [] as any[],
             whatsappTemplates: [] as any[],
@@ -228,6 +228,11 @@ export default function AlertRulesPage() {
         [],
         { enabled: canViewList }
     );
+
+    const sourceNames = Object.keys(tablesAndColumns).sort();
+    const sourceViews = sourceNames.filter(name => sourcesMeta[name]?.kind === 'view');
+    const sourceTables = sourceNames.filter(name => sourcesMeta[name]?.kind !== 'view');
+    const selectedSourceMeta = selectedTable ? sourcesMeta[selectedTable] : undefined;
 
     const getColumnType = (columnName: string): string | undefined => {
         const tableCols = tablesAndColumns[selectedTable] || [];
@@ -456,7 +461,10 @@ export default function AlertRulesPage() {
                         name: values.table_id_field,
                         type: getColumnType(values.table_id_field) || ''
                     },
-                    user_id_field: values.user_id_field || null
+                    user_id_field: values.user_id_field || null,
+                    // A view's alerts point at its underlying table (WhatsApp entity resolution
+                    // and the scheduler's de-duplication key off alert_instances.reference_table).
+                    reference_table: sourcesMeta[values.source_table]?.reference_table || values.source_table,
                 },
                 display_config: {
                     fields: displayFields.map(({ id, ...rest }) => rest)
@@ -667,7 +675,7 @@ export default function AlertRulesPage() {
                         <dd className="text-foreground">{categories.find(c => String(c.id) === String(selectedRule!.category_id))?.name || selectedRule!.category_id}</dd>
                     </div>
                     <div>
-                        <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">Tabla fuente</dt>
+                        <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('dialog.sourceTable')}</dt>
                         <dd className="text-foreground font-mono text-xs">{selectedRule!.source_table || '-'}</dd>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
@@ -831,11 +839,28 @@ export default function AlertRulesPage() {
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    {Object.keys(tablesAndColumns).map(table => (
-                                                        <SelectItem key={table} value={table}>{table}</SelectItem>
-                                                    ))}
+                                                    {sourceViews.length > 0 && (
+                                                        <SelectGroup>
+                                                            <SelectLabel>{t('dialog.sourceViewsGroup')}</SelectLabel>
+                                                            {sourceViews.map(view => (
+                                                                <SelectItem key={view} value={view}>{view}</SelectItem>
+                                                            ))}
+                                                        </SelectGroup>
+                                                    )}
+                                                    <SelectGroup>
+                                                        {sourceViews.length > 0 && <SelectLabel>{t('dialog.sourceTablesGroup')}</SelectLabel>}
+                                                        {sourceTables.map(table => (
+                                                            <SelectItem key={table} value={table}>{table}</SelectItem>
+                                                        ))}
+                                                    </SelectGroup>
                                                 </SelectContent>
                                             </Select>
+                                            {selectedSourceMeta?.kind === 'view' && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    {selectedSourceMeta.label ? `${selectedSourceMeta.label}. ` : ''}
+                                                    {t('dialog.sourceViewHint', { table: selectedSourceMeta.reference_table })}
+                                                </p>
+                                            )}
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -854,10 +879,10 @@ export default function AlertRulesPage() {
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="ONCE">Once</SelectItem>
-                                                    <SelectItem value="DAILY">Daily</SelectItem>
-                                                    <SelectItem value="WEEKLY">Weekly</SelectItem>
-                                                    <SelectItem value="MONTHLY">Monthly</SelectItem>
+                                                    <SelectItem value="ONCE">{t('dialog.recurrenceOptions.ONCE')}</SelectItem>
+                                                    <SelectItem value="DAILY">{t('dialog.recurrenceOptions.DAILY')}</SelectItem>
+                                                    <SelectItem value="WEEKLY">{t('dialog.recurrenceOptions.WEEKLY')}</SelectItem>
+                                                    <SelectItem value="MONTHLY">{t('dialog.recurrenceOptions.MONTHLY')}</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage />
@@ -969,7 +994,7 @@ export default function AlertRulesPage() {
                                                 setConditions(newConds);
                                             }}
                                         >
-                                            <SelectTrigger className="w-full min-w-0 sm:flex-1"><SelectValue placeholder="Column" /></SelectTrigger>
+                                            <SelectTrigger className="w-full min-w-0 sm:flex-1"><SelectValue placeholder={t('dialog.conditionColumnPlaceholder')} /></SelectTrigger>
                                             <SelectContent>
                                                 {(tablesAndColumns[selectedTable] || []).map(col => (
                                                     <SelectItem key={col.name} value={col.name}>{col.name}</SelectItem>
@@ -984,7 +1009,7 @@ export default function AlertRulesPage() {
                                                 setConditions(newConds);
                                             }}
                                         >
-                                            <SelectTrigger className="w-full sm:w-24"><SelectValue placeholder="Op" /></SelectTrigger>
+                                            <SelectTrigger className="w-full sm:w-24"><SelectValue placeholder={t('dialog.conditionOperatorPlaceholder')} /></SelectTrigger>
                                             <SelectContent>
                                                 {getAvailableOperators(cond.column).map(op => (
                                                     <SelectItem key={op} value={op}>{op}</SelectItem>

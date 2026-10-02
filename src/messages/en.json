@@ -6185,8 +6185,17 @@
       "save": "Save Changes",
       "conditions": "Conditions",
       "selectSourceTable": "Select Source Table",
+      "sourceTablesGroup": "Tables",
+      "sourceViewsGroup": "Views",
+      "sourceViewHint": "Alerts generated from this view are linked to the \"{table}\" table.",
       "recurrenceType": "Recurrence Type",
       "selectRecurrenceType": "Select Recurrence Type",
+      "recurrenceOptions": {
+        "ONCE": "Once",
+        "DAILY": "Daily",
+        "WEEKLY": "Weekly",
+        "MONTHLY": "Monthly"
+      },
       "emailTemplate": "Email Template",
       "selectEmailTemplate": "Select Email Template",
       "smsTemplate": "SMS Template",
@@ -6205,7 +6214,9 @@
       "fieldSourceColumn": "Column",
       "fieldType": "Data Type",
       "selectFieldColumn": "Select column",
-      "selectFieldType": "Select type"
+      "selectFieldType": "Select type",
+      "conditionColumnPlaceholder": "Column",
+      "conditionOperatorPlaceholder": "Operator"
     },
     "deleteDialog": {
       "title": "Delete Rule",

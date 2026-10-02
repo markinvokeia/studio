@@ -1829,6 +1829,21 @@ export type AlertRule = {
   ui_display_config?: { fields: AlertDisplayField[] };
 };
 
+export interface AlertSourceColumn {
+  name: string;
+  type: string;
+  is_nullable: string;
+}
+
+/** Metadata of a selectable alert rule origin (GET /system/tables → `sources`). Views
+ *  (`v_alert_*`) declare in their COMMENT the real table their alert instances point to,
+ *  so `reference_table` is what ends up in alert_instances.reference_table. */
+export interface AlertSourceMeta {
+  kind: 'table' | 'view';
+  reference_table: string;
+  label?: string | null;
+}
+
 export type AlertInstance = {
   id: string;
   rule_id?: number;

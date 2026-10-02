@@ -1,0 +1,1565 @@
+{
+  "name": "Alert Rules",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "system/tables",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "4d83c9e6-5360-418b-b2bb-f87e19cc716d",
+      "name": "get_tables_and_columns",
+      "webhookId": "25044b66-dd4e-44e8-8103-f643697f996a",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Origenes posibles para una regla de alerta: tablas base + vistas \"v_alert_*\".\n-- Cada vista declara en su COMMENT un JSON {\"reference_table\": \"...\", \"label\": \"...\"}\n-- con la tabla real a la que apuntan las alert_instances que genera.\nWITH sources AS (\n    SELECT t.table_name,\n           CASE WHEN t.table_type = 'VIEW' THEN 'view' ELSE 'table' END AS kind,\n           d.description\n    FROM information_schema.tables t\n    LEFT JOIN pg_class pc\n           ON pc.relname = t.table_name\n          AND pc.relnamespace = 'public'::regnamespace\n    LEFT JOIN pg_description d\n           ON d.objoid = pc.oid\n          AND d.objsubid = 0\n          AND d.classoid = 'pg_class'::regclass\n    WHERE t.table_schema = 'public'\n      AND (\n          t.table_type = 'BASE TABLE'\n          OR (t.table_type = 'VIEW' AND t.table_name LIKE 'v\\_alert\\_%')\n      )\n),\nmeta AS (\n    SELECT s.table_name,\n           s.kind,\n           CASE WHEN s.kind = 'view' AND pg_input_is_valid(s.description, 'jsonb')\n                THEN s.description::jsonb END AS cfg\n    FROM sources s\n)\nSELECT\n    json_object_agg(\n        m.table_name,\n        (\n            SELECT json_agg(\n                json_build_object(\n                    'name', c.column_name,\n                    'type', c.data_type,\n                    'is_nullable', c.is_nullable\n                )\n                ORDER BY c.ordinal_position\n            )\n            FROM information_schema.columns c\n            WHERE c.table_name = m.table_name\n              AND c.table_schema = 'public'\n        )\n    ) AS \"tables\",\n    json_object_agg(\n        m.table_name,\n        json_build_object(\n            'kind', m.kind,\n            'reference_table', CASE\n                WHEN m.kind = 'view' THEN COALESCE(m.cfg->>'reference_table', m.table_name)\n                ELSE m.table_name\n            END,\n            'label', m.cfg->>'label'\n        )\n    ) AS \"sources\"\nFROM meta m;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        208,
+        0
+      ],
+      "id": "022c04f2-7641-4e86-bddc-e9167a17f4e0",
+      "name": "Select tables and columns",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1520,
+        544
+      ],
+      "id": "bca6f9ce-c5a1-4f30-af01-0a6822687bb4",
+      "name": "Error"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1520,
+        352
+      ],
+      "id": "240df4b5-9d55-43fe-9c4c-6e5070d894f5",
+      "name": "OK"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "system/alert-rules",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        272
+      ],
+      "id": "44731d9c-1fbd-4c9c-a583-65cf0fed4a0a",
+      "name": "UPSERT /alert-rules",
+      "webhookId": "15f21bd0-5172-4a29-ae00-5557f8977663",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "89f0babb-3d7a-4be8-b6e2-e90c00ee1537",
+              "leftValue": "={{ $json.body.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        208,
+        272
+      ],
+      "id": "24fa8f4a-a00e-4da6-affa-a846f82baa86",
+      "name": "Alert rule exists?"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "alert_rules",
+          "mode": "list",
+          "cachedResultName": "alert_rules"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "is_active": "={{ $json.body.is_active }}",
+            "code": "={{ $json.body.code }}",
+            "name": "={{ $json.body.name }}",
+            "updated_at": "={{ $now }}",
+            "created_at": "={{ $now }}",
+            "created_by": "={{ $('UPSERT /alert-rules').item.json.jwtPayload.userId }}",
+            "category_id": "={{ $json.body.category_id }}",
+            "sms_template_id": "={{ $json.body.sms_template_id }}",
+            "email_template_id": "={{ $json.body.email_template_id }}",
+            "days_after": "={{ $json.body.days_after }}",
+            "days_before": "={{ $json.body.days_before }}",
+            "description": "={{ $json.body.description }}",
+            "priority": "={{ $json.body.priority }}",
+            "source_table": "={{ $json.body.source_table }}",
+            "condition_config": "={{ $json.body.condition_config }}",
+            "recurrence_type": "={{ $json.body.recurrence_type }}",
+            "auto_send_email": "={{ $json.body.auto_send_email }}",
+            "auto_send_sms": "={{ $json.body.auto_send_sms }}",
+            "ui_display_config": "={{ $json.body.display_config }}",
+            "whatsapp_template_id": "={{ $json.body.whatsapp_template_id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "category_id",
+              "displayName": "category_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "code",
+              "displayName": "code",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "priority",
+              "displayName": "priority",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "source_table",
+              "displayName": "source_table",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "condition_config",
+              "displayName": "condition_config",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "days_before",
+              "displayName": "days_before",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "days_after",
+              "displayName": "days_after",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "recurrence_type",
+              "displayName": "recurrence_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "auto_send_email",
+              "displayName": "auto_send_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "auto_send_sms",
+              "displayName": "auto_send_sms",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "email_template_id",
+              "displayName": "email_template_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "sms_template_id",
+              "displayName": "sms_template_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "is_active",
+              "displayName": "is_active",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_by",
+              "displayName": "created_by",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "next_execution_at",
+              "displayName": "next_execution_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "ui_display_config",
+              "displayName": "ui_display_config",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "whatsapp_template_id",
+              "displayName": "whatsapp_template_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        432,
+        352
+      ],
+      "id": "36c586f8-30f0-4039-a96c-a50cac8235b3",
+      "name": "Insert alert rule",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM public.alert_rules\nWHERE id = $1\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ $json.query.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        208,
+        464
+      ],
+      "id": "1e29b462-6c8d-458a-a055-d630ceb33c2f",
+      "name": "Select alert rule",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "path": "system/alert-rules",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        656
+      ],
+      "id": "1a1f1cea-ff7e-4b4e-b8a2-114a2a6744d7",
+      "name": "LIST /alert-rules",
+      "webhookId": "15f21bd0-5172-4a29-ae00-5557f8977663",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM\n    public.alert_rules\nWHERE\n    (\n        $1 IS NULL\n        OR name ILIKE '%' || $1 || '%'\n        OR code ILIKE '%' || $1 || '%'\n    )\n    AND ($2 IS NULL OR is_active = $2)\nORDER BY\n    created_at DESC\nLIMIT $3\nOFFSET $4;",
+        "options": {
+          "queryReplacement": "={{ [$json.query.search, $json.query.is_active, $json.query.limit, (($json.query.page - 1) * $json.query.limit)] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        208,
+        656
+      ],
+      "id": "4f526ada-10b6-46fa-bd2f-6d5118a109f6",
+      "name": "Select alert rules",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM public.alert_rules\nWHERE id = $1;",
+        "options": {
+          "queryReplacement": "={{ $json.body.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        208,
+        848
+      ],
+      "id": "544e3e9d-632e-4cca-89d4-8af319f44702",
+      "name": "Delete alert rule",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "DELETE",
+        "path": "system/alert-rules",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        848
+      ],
+      "id": "84cecf1a-5b1b-4fb1-b448-430fa42e7967",
+      "name": "DELETE /alert-rules",
+      "webhookId": "15f21bd0-5172-4a29-ae00-5557f8977663",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "alert_rules",
+          "mode": "list",
+          "cachedResultName": "alert_rules"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "is_active": "={{ $json.body.is_active }}",
+            "code": "={{ $json.body.code }}",
+            "name": "={{ $json.body.name }}",
+            "updated_at": "={{ $now }}",
+            "id": "={{ $json.body.id }}",
+            "category_id": "={{ $json.body.category_id }}",
+            "sms_template_id": "={{ $json.body.sms_template_id }}",
+            "email_template_id": "={{ $json.body.email_template_id }}",
+            "days_after": "={{ $json.body.days_after }}",
+            "days_before": "={{ $json.body.days_before }}",
+            "description": "={{ $json.body.description }}",
+            "priority": "={{ $json.body.priority }}",
+            "source_table": "={{ $json.body.source_table }}",
+            "condition_config": "={{ $json.body.condition_config }}",
+            "recurrence_type": "={{ $json.body.recurrence_type }}",
+            "auto_send_email": "={{ $json.body.auto_send_email }}",
+            "auto_send_sms": "={{ $json.body.auto_send_sms }}",
+            "ui_display_config": "={{ $json.body.display_config }}",
+            "whatsapp_template_id": "={{ $json.body.whatsapp_template_id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "category_id",
+              "displayName": "category_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "code",
+              "displayName": "code",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "priority",
+              "displayName": "priority",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "source_table",
+              "displayName": "source_table",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "condition_config",
+              "displayName": "condition_config",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "days_before",
+              "displayName": "days_before",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "days_after",
+              "displayName": "days_after",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "recurrence_type",
+              "displayName": "recurrence_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "auto_send_email",
+              "displayName": "auto_send_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "auto_send_sms",
+              "displayName": "auto_send_sms",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "email_template_id",
+              "displayName": "email_template_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "sms_template_id",
+              "displayName": "sms_template_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "is_active",
+              "displayName": "is_active",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_by",
+              "displayName": "created_by",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "next_execution_at",
+              "displayName": "next_execution_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "ui_display_config",
+              "displayName": "ui_display_config",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "whatsapp_template_id",
+              "displayName": "whatsapp_template_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        432,
+        176
+      ],
+      "id": "a8bbf4b4-5897-45f3-88bf-dd055b559a29",
+      "name": "Update alert rule",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "system/alert-rules/test",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        1040
+      ],
+      "id": "16b731c3-3188-4127-9188-9f7de81693db",
+      "name": "POST /alert-rules/test",
+      "webhookId": "15f21bd0-5172-4a29-ae00-5557f8977663",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = [];\nconst target_date = $now.toFormat(\"yyyy-MM-dd\");\n\n// El origen de una regla puede ser una tabla o una vista \"v_alert_*\". Todo lo\n// que se interpola como identificador se valida para no inyectar SQL.\nconst IDENT = /^[a-z_][a-z0-9_]*$/;\nconst ident = (name, what) => {\n  if (typeof name !== \"string\" || !IDENT.test(name)) {\n    throw new Error(`Alert rule: invalid ${what} \"${name}\"`);\n  }\n  return name;\n};\nconst lit = (v) => `'${String(v ?? \"\").replace(/'/g, \"''\")}'`;\n\nfor (const item of items) {\n  const rule = item.json;\n\n  const conditionConfig = rule.condition_config || {};\n  const conditions = conditionConfig.conditions || [];\n  const userIdField =\n    conditionConfig.user_id_field !== undefined &&\n    conditionConfig.user_id_field !== null &&\n    conditionConfig.user_id_field !== \"\"\n      ? ident(conditionConfig.user_id_field, \"user_id_field\")\n      : null;\n\n  const sourceTable = ident(rule.source_table, \"source_table\");\n  // Con una vista, las alert_instances siguen apuntando a la tabla real\n  // (reference_table/reference_id): el envio de WhatsApp resuelve la entidad\n  // por reference_table y el anti-duplicado tambien la usa. El frontend guarda\n  // condition_config.reference_table al elegir la vista (sale del COMMENT de\n  // la vista via GET /system/tables). Sin ese dato se usa el propio origen.\n  const referenceTable = ident(\n    conditionConfig.reference_table || sourceTable,\n    \"reference_table\",\n  );\n\n  const daysBefore = Math.max(0, Number(rule.days_before) || 0);\n  const daysAfter = Math.max(0, Number(rule.days_after) || 0);\n\n  const dateOffsetSql = ` + INTERVAL '${daysBefore} days' - INTERVAL '${daysAfter} days'`;\n\n  let isYearlyRecurring = false;\n\n  const whereClauses = conditions.map((c, index) => {\n    const column = ident(c.column, \"condition column\");\n    let val = c.value;\n\n    if (typeof val === \"string\" && val.includes(\"{{\") && val.includes(\"}}\")) {\n      const cleanVar = val.replace(/[{}\\s]/g, \"\").toUpperCase();\n\n      const dateMappings = {\n        TODAY_NO_YEAR: `TO_CHAR('${target_date}'::date${dateOffsetSql}, 'MM-DD')`,\n        TODAY: `('${target_date}'::date${dateOffsetSql})::date`,\n        TOMORROW: `('${target_date}'::date + INTERVAL '1 day'${dateOffsetSql})::date`,\n        YESTERDAY: `('${target_date}'::date - INTERVAL '1 day'${dateOffsetSql})::date`,\n        WEEK_START: `(DATE_TRUNC('week', '${target_date}'::date)${dateOffsetSql})::date`,\n        WEEK_END: `(DATE_TRUNC('week', '${target_date}'::date) + INTERVAL '6 days'${dateOffsetSql})::date`,\n        DOW: `EXTRACT(DOW FROM '${target_date}'::date${dateOffsetSql})`,\n        MONTH_START: `(DATE_TRUNC('month', '${target_date}'::date)${dateOffsetSql})::date`,\n        MONTH_END: `(DATE_TRUNC('month', '${target_date}'::date) + INTERVAL '1 month - 1 day'${dateOffsetSql})::date`,\n        YEAR_START: `(DATE_TRUNC('year', '${target_date}'::date)${dateOffsetSql})::date`,\n        YEAR_END: `(DATE_TRUNC('year', '${target_date}'::date) + INTERVAL '1 year - 1 day'${dateOffsetSql})::date`,\n      };\n\n      const baseKey = Object.keys(dateMappings).find((key) =>\n        cleanVar.startsWith(key),\n      );\n\n      if (baseKey) {\n        let baseSql = dateMappings[baseKey];\n        const arithmetic = cleanVar.replace(baseKey, \"\");\n\n        if (arithmetic) {\n          val = `(${baseSql} ${arithmetic})`;\n        } else {\n          val = baseSql;\n        }\n      }\n    } else if (typeof val === \"string\") {\n      val = lit(val);\n    }\n\n    const columnSql = String(val).includes(\"MM-DD\")\n      ? `TO_CHAR(t.${column}, 'MM-DD')`\n      : `t.${column}`;\n\n    if (columnSql.includes(\"MM-DD\")) {\n      isYearlyRecurring = true;\n    }\n\n    let clause = \"\";\n    const operator = String(c.operator || \"\").toUpperCase();\n    if (operator === \"BETWEEN\") {\n      // days_before / days_after son offsets respecto al EVENTO, no una ventana\n      // que siempre incluye el dia de hoy:\n      //   days_before = N -> el evento ocurre N dias despues del target\n      //   days_after  = N -> el evento ocurrio N dias antes del target\n      // Si ambos son > 0 el rango cubre la ventana completa entre ambos extremos\n      // (ej. facturas a vencer dentro de +/- 5 dias). Si solo uno esta seteado,\n      // apunta a ese dia exacto (ej. recordatorio 24h: 1 y 0 -> solo manana).\n      let startOffset;\n      let endOffset;\n      if (daysBefore > 0 && daysAfter > 0) {\n        startOffset = -daysAfter;\n        endOffset = daysBefore + 1;\n      } else if (daysBefore > 0) {\n        startOffset = daysBefore;\n        endOffset = daysBefore + 1;\n      } else if (daysAfter > 0) {\n        startOffset = -daysAfter;\n        endOffset = -daysAfter + 1;\n      } else {\n        startOffset = 0;\n        endOffset = 1;\n      }\n      const startRange = `('${target_date}'::date + INTERVAL '${startOffset} days')`;\n      const endRange = `('${target_date}'::date + INTERVAL '${endOffset} days')`;\n      clause = `${columnSql} >= ${startRange} AND ${columnSql} < ${endRange}`;\n    } else if (operator === \"IS NULL\" || operator === \"IS NOT NULL\") {\n      clause = `${columnSql} ${operator}`;\n    } else {\n      clause = `${columnSql} ${c.operator} ${val}`;\n    }\n\n    const logic = index === 0 ? \"\" : c.logic || \"\";\n    return `${logic} ${clause}`.trim();\n  });\n\n  const shouldJoinUser = userIdField !== null;\n  const u = shouldJoinUser ? \"u\" : \"t\";\n\n  const userJoinClause = shouldJoinUser\n    ? `LEFT JOIN public.users u ON t.${userIdField} = u.id`\n    : \"\";\n\n  const finalUserId = shouldJoinUser ? `t.${userIdField}` : \"t.id\";\n\n  // Anti-duplicado:\n  //  - Reglas anuales (cumpleaños, aniversarios): una alerta por año.\n  //  - Resto de reglas: no re-crear mientras exista una alerta ABIERTA para\n  //    este item, y nunca dos para el mismo alert_date (el scheduler puede\n  //    dispararse mas de una vez por dia). Si la alerta anterior ya fue\n  //    resuelta y la condicion sigue vigente, se genera una nueva.\n  const dedupExtraClause = isYearlyRecurring\n    ? `AND EXTRACT(YEAR FROM ai.alert_date) = EXTRACT(YEAR FROM CAST('${target_date}' AS DATE))`\n    : `AND (ai.alert_date = CAST('${target_date}' AS DATE) OR ai.status NOT IN ('COMPLETED', 'ACTION_TAKEN', 'IGNORED', 'SUPPRESSED', 'SNOOZED'))`;\n\n  const duplicatePrevention = `NOT EXISTS (\n    SELECT 1 FROM public.alert_instances ai\n    WHERE ai.rule_id::text = ${lit(rule.id)}::text\n      AND ai.reference_table = '${referenceTable}'\n      AND ai.reference_id::text = t.id::text\n      ${dedupExtraClause}\n  )`;\n\n  const whereSql =\n    whereClauses.length > 0\n      ? `WHERE (${whereClauses.join(\" \")}) AND ${duplicatePrevention}`\n      : `WHERE ${duplicatePrevention}`;\n\n  const dynamicQuery = `\n    SELECT\n      ${lit(rule.id)} as rule_id,\n      '${referenceTable}' as reference_table,\n      t.id as reference_id,\n      ${finalUserId} as user_id,\n      CAST('${target_date}' AS DATE) as alert_date,\n      ${lit(rule.name)} as title,\n      ${lit(rule.priority)} as priority,\n      ${lit(rule.description)} as description,\n      jsonb_build_object(\n        'data', to_jsonb(t.*),\n        'patient', jsonb_build_object(\n          'full_name', ${u}.name,\n          'email', ${u}.email,\n          'phone', ${u}.phone_number,\n          'document_id', ${u}.identity_document\n        ),\n        'clinic', jsonb_build_object(\n          'name', c.name,\n          'address', c.address,\n          'phone', c.phone,\n          'email', c.email\n        )\n      ) as details_json\n    FROM public.${sourceTable} t\n    ${userJoinClause}\n    CROSS JOIN (SELECT * FROM public.clinic LIMIT 1) c\n    ${whereSql}\n  `;\n\n  results.push({\n    json: { ...rule, dynamicQuery },\n  });\n}\n\nreturn results;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        1040
+      ],
+      "id": "d4b8be71-9b13-4a47-a052-e3f84d38cd7f",
+      "name": "Build dynamic query"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT ar.*\nFROM public.alert_rules ar\nWHERE ar.id = $1",
+        "options": {
+          "queryReplacement": "={{ [$('POST /alert-rules/test').item.json.body.id] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        208,
+        1040
+      ],
+      "id": "181c5181-1e04-4f06-ad9b-c07e9d61e3a9",
+      "name": "Select alert rules2",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "95bf0b69-2ecf-4f11-b2f1-61578c134731",
+              "leftValue": "={{ $json.isEmpty() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1072,
+        1040
+      ],
+      "id": "08a28ac8-dd0c-4eef-86e1-50b0c009fd3f",
+      "name": "Has results?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.alert_instances (\n  rule_id, \n  reference_table, \n  reference_id, \n  patient_id, \n  alert_date, \n  event_date, \n  title, \n  priority,\n  details_json,\n  status,\n  summary\n) \nVALUES (\n  $1, $2, $3, $4, $5, '{{ $now }}', $6, $7, $8,\n  'PENDING', $9\n)\nON CONFLICT (rule_id, reference_table, reference_id, alert_date) \nDO NOTHING\nRETURNING *;",
+        "options": {
+          "queryReplacement": "={{ [$json.rule_id, $json.reference_table, $json.reference_id, $json.user_id, $json.alert_date, $json.title + ' - ' + $json.details_json.patient.full_name, $json.priority, $json.details_json, $json.description] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1296,
+        928
+      ],
+      "id": "cf6666dc-a795-4592-b398-2219ed65aa3d",
+      "name": "Create alert instance",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "{{ $json.dynamicQuery }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        848,
+        1152
+      ],
+      "id": "318821a7-5a64-43a9-927f-0542e29c14e0",
+      "name": "Execute dynamic query",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        624,
+        1040
+      ],
+      "id": "3a8d66a4-a7f3-46cf-9454-b4116af7f736",
+      "name": "Loop Over Results"
+    },
+    {
+      "parameters": {
+        "path": "system/alert-rule",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        464
+      ],
+      "id": "33fb8a8a-4f5e-479a-b7c2-960667c57ba2",
+      "name": "GET /alert-rule",
+      "webhookId": "15f21bd0-5172-4a29-ae00-5557f8977663",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "get_tables_and_columns": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.8",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3NjY1OTA1NzJ9.WnZ5C14V9AhihaZKNr1Ivkw6TqXCxWKH1ohZssVDRMY",
+            "origin": "http://localhost:3000",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/",
+            "sec-ch-ua": "\"Brave\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "sec-gpc": "1",
+            "x-forwarded-for": "177.7.143.97",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "6c8052c64eb2",
+            "x-real-ip": "177.7.143.97"
+          },
+          "params": {},
+          "query": {},
+          "body": {},
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/system/tables",
+          "executionMode": "production",
+          "jwtPayload": {
+            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "email": "raidel@invokeia.com",
+            "expiresIn": "24h",
+            "iat": 1766590572
+          }
+        }
+      }
+    ],
+    "LIST /alert-rules": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.8",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3NjY1OTA1NzJ9.WnZ5C14V9AhihaZKNr1Ivkw6TqXCxWKH1ohZssVDRMY",
+            "origin": "http://localhost:3000",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/",
+            "sec-ch-ua": "\"Brave\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "sec-gpc": "1",
+            "x-forwarded-for": "177.7.143.97",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "6c8052c64eb2",
+            "x-real-ip": "177.7.143.97"
+          },
+          "params": {},
+          "query": {
+            "page": "1",
+            "limit": "10"
+          },
+          "body": {},
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/system/communication-templates",
+          "executionMode": "production",
+          "jwtPayload": {
+            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "email": "raidel@invokeia.com",
+            "expiresIn": "24h",
+            "iat": 1766590572
+          }
+        }
+      }
+    ],
+    "POST /alert-rules/test": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.8",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3NjY1OTA1NzJ9.WnZ5C14V9AhihaZKNr1Ivkw6TqXCxWKH1ohZssVDRMY",
+            "origin": "http://localhost:3000",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/",
+            "sec-ch-ua": "\"Brave\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "sec-gpc": "1",
+            "x-forwarded-for": "177.7.143.97",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "6c8052c64eb2",
+            "x-real-ip": "177.7.143.97"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "alert_rule_id": 10
+          },
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/system/communication-templates",
+          "executionMode": "production",
+          "jwtPayload": {
+            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "email": "raidel@invokeia.com",
+            "expiresIn": "24h",
+            "iat": 1766590572
+          }
+        }
+      }
+    ],
+    "UPSERT /alert-rules": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
+            "content-length": "972",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.5",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3ODM0Mzg4ODB9.qGRCYRCSlhWJNSer2oElP1ryEoZKltSvY5IySjdONAw",
+            "cache-control": "no-cache",
+            "content-type": "application/json",
+            "origin": "http://localhost:3000",
+            "pragma": "no-cache",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/",
+            "sec-ch-ua": "\"Not;A=Brand\";v=\"8\", \"Chromium\";v=\"150\", \"Brave\";v=\"150\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "sec-gpc": "1",
+            "x-forwarded-for": "177.3.104.80",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "d4e738525fe6",
+            "x-real-ip": "177.3.104.80"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "id": 8,
+            "category_id": 9,
+            "code": "INV_DUE_SOON",
+            "name": "Factura próxima a vencer",
+            "description": "Factura próxima a vencer.",
+            "priority": "MEDIUM",
+            "source_table": "invoices",
+            "table_id_field": "id",
+            "user_id_field": "user_id",
+            "days_before": 5,
+            "days_after": 5,
+            "recurrence_type": "DAILY",
+            "auto_send_email": false,
+            "auto_send_sms": false,
+            "email_template_id": 9,
+            "sms_template_id": null,
+            "whatsapp_template_id": 32,
+            "is_active": true,
+            "condition_config": {
+              "conditions": [
+                {
+                  "value": "{{TODAY}}",
+                  "column": "due_date",
+                  "operator": ">="
+                },
+                {
+                  "logic": "AND",
+                  "value": "true",
+                  "column": "is_sales",
+                  "operator": "="
+                },
+                {
+                  "logic": "AND",
+                  "value": "paid",
+                  "column": "status",
+                  "operator": "!="
+                }
+              ],
+              "table_id_field": {
+                "name": "id",
+                "type": "integer"
+              },
+              "user_id_field": "user_id"
+            },
+            "display_config": {
+              "fields": [
+                {
+                  "type": "text",
+                  "label": "Doc No.",
+                  "source_column": "doc_no"
+                },
+                {
+                  "type": "character varying",
+                  "label": "Estado de pago",
+                  "source_column": "payment_state"
+                },
+                {
+                  "type": "date",
+                  "label": "Fecha de vencimiento",
+                  "source_column": "due_date"
+                }
+              ]
+            },
+            "created_by": 1
+          },
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/system/alert-rules",
+          "executionMode": "production",
+          "jwtPayload": {
+            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "email": "raidel@invokeia.com",
+            "expiresIn": "24h",
+            "iat": 1783438880
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "get_tables_and_columns": {
+      "main": [
+        [
+          {
+            "node": "Select tables and columns",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select tables and columns": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UPSERT /alert-rules": {
+      "main": [
+        [
+          {
+            "node": "Alert rule exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alert rule exists?": {
+      "main": [
+        [
+          {
+            "node": "Update alert rule",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert alert rule",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert alert rule": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select alert rule": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LIST /alert-rules": {
+      "main": [
+        [
+          {
+            "node": "Select alert rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select alert rules": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete alert rule": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DELETE /alert-rules": {
+      "main": [
+        [
+          {
+            "node": "Delete alert rule",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update alert rule": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /alert-rules/test": {
+      "main": [
+        [
+          {
+            "node": "Select alert rules2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select alert rules2": {
+      "main": [
+        [
+          {
+            "node": "Build dynamic query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has results?": {
+      "main": [
+        [
+          {
+            "node": "Create alert instance",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute dynamic query": {
+      "main": [
+        [
+          {
+            "node": "Has results?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Results": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Execute dynamic query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build dynamic query": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create alert instance": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Results",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET /alert-rule": {
+      "main": [
+        [
+          {
+            "node": "Select alert rule",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "90897b32-400c-489a-ad97-2f928a6d1485",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
+  },
+  "nodeGroups": [],
+  "id": "tUagfaPar6YA0Gp6",
+  "tags": []
+}

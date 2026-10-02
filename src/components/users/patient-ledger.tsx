@@ -46,7 +46,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { buildPatientLedger, splitLedgerByRange, type LedgerRow, type LedgerRowStatus } from '@/lib/patient-ledger';
 import type { CreditNote, Invoice, InvoiceItem, Payment, PaymentMethod, Quote, QuoteItem } from '@/lib/types';
-import { cn, formatDisplayDate, preserveTimeIfToday, toLocalISOString } from '@/lib/utils';
+import { cn, formatDate, formatDisplayDate, preserveTimeIfToday, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { fetchPatientLedgerData, type PatientLedgerData } from '@/services/patient-ledger-data';
 import { currencySchema, currencySymbol, formatMoney } from '@/lib/currency';
@@ -753,10 +753,12 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
       created_at: editInvoice?.createdAt ? new Date(editInvoice.createdAt) : editRow?.date ? new Date(editRow.date) : new Date(),
       // New treatments default their due date to one month out; editing an existing one
       // just carries over whatever it already has (or nothing, if it never had one).
+      // `due_date` is a DATE column — parsed by its calendar day, since `new Date('yyyy-MM-dd')`
+      // reads it as UTC midnight and shows the previous day in UTC-3.
       due_date: editInvoice?.due_date
-        ? new Date(editInvoice.due_date)
+        ? parseISO(formatDate(editInvoice.due_date))
         : editRow?.dueDate
-          ? new Date(editRow.dueDate)
+          ? parseISO(formatDate(editRow.dueDate))
           : (!isEdit && doc === 'invoice')
             ? addMonths(new Date(), 1)
             : undefined,
@@ -1874,6 +1876,9 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
         doctor_id: row.doctorId,
         currency: row.currency,
         invoice_date: toLocalISOString(new Date()),
+        // Same default as a new treatment in this ledger (one month out) — without it the
+        // billed invoice is saved with no due date at all.
+        due_date: toLocalISOString(addMonths(new Date(), 1)),
         notes: '',
         items: [{
           quote_item_id: Number(row.itemId),

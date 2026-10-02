@@ -6185,8 +6185,17 @@
       "save": "Guardar Cambios",
       "conditions": "Condiciones",
       "selectSourceTable": "Seleccionar Tabla de Origen",
+      "sourceTablesGroup": "Tablas",
+      "sourceViewsGroup": "Vistas",
+      "sourceViewHint": "Las alertas generadas desde esta vista se vinculan a la tabla \"{table}\".",
       "recurrenceType": "Tipo de Recurrencia",
       "selectRecurrenceType": "Seleccionar Tipo de Recurrencia",
+      "recurrenceOptions": {
+        "ONCE": "Una vez",
+        "DAILY": "Diaria",
+        "WEEKLY": "Semanal",
+        "MONTHLY": "Mensual"
+      },
       "emailTemplate": "Plantilla de Correo",
       "selectEmailTemplate": "Seleccionar Plantilla de Correo",
       "smsTemplate": "Plantilla de SMS",
@@ -6205,7 +6214,9 @@
       "fieldSourceColumn": "Columna",
       "fieldType": "Tipo de Dato",
       "selectFieldColumn": "Seleccionar columna",
-      "selectFieldType": "Seleccionar tipo"
+      "selectFieldType": "Seleccionar tipo",
+      "conditionColumnPlaceholder": "Columna",
+      "conditionOperatorPlaceholder": "Operador"
     },
     "deleteDialog": {
       "title": "Eliminar Regla",

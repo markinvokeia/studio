@@ -17,10 +17,10 @@
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
       "position": [
-        192,
-        0
+        -2272,
+        736
       ],
-      "id": "71cdfa93-4671-4e1a-b467-c47dd255665e",
+      "id": "aa5aa74b-bdf9-4b33-9226-7a2cdc5c427f",
       "name": "When Executed by Another Workflow"
     },
     {
@@ -34,12 +34,12 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        624,
-        0
+        -1840,
+        736
       ],
-      "id": "35011d56-88f5-4d04-9b8f-0595298c5cb9",
+      "id": "b85fbb1f-faf5-47dd-8f25-c5bac55f64b6",
       "name": "Select alert rules",
-      "alwaysOutputData": false,
+      "alwaysOutputData": true,
       "credentials": {
         "postgres": {
           "id": "6b7Sjdnppbfve8ka",
@@ -75,10 +75,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1488,
-        176
+        -960,
+        912
       ],
-      "id": "bfd9e215-c9a9-4d4f-9dcf-692e97d51078",
+      "id": "606049b5-4946-450f-8101-8fe4c09e0a4f",
       "name": "Has results?"
     },
     {
@@ -92,10 +92,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1712,
-        48
+        -736,
+        784
       ],
-      "id": "6c815f29-8131-4dbf-9876-f910cf30a9be",
+      "id": "68a5add7-9b0c-4710-872d-014c265c2cd6",
       "name": "Create alert instance",
       "credentials": {
         "postgres": {
@@ -114,10 +114,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1264,
-        288
+        -1200,
+        1024
       ],
-      "id": "eee53302-b2cb-4dc7-ad2b-db3897418163",
+      "id": "bc05912b-1a1d-456c-8aba-57aea2fa5ea2",
       "name": "Execute dynamic query",
       "alwaysOutputData": true,
       "credentials": {
@@ -308,10 +308,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        416,
-        0
+        -2048,
+        736
       ],
-      "id": "86d83963-0cc3-4475-8ef5-6dcf32773f6c",
+      "id": "dd006003-9ff9-4f12-be43-56659033b8b2",
       "name": "Register schedule run",
       "credentials": {
         "postgres": {
@@ -511,10 +511,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1488,
-        -128
+        -960,
+        608
       ],
-      "id": "d518e904-be37-404e-89ef-817a5dad4d3b",
+      "id": "7d7bf9e7-10bc-4f82-8dba-2ddc18c0e810",
       "name": "Update schedule run",
       "credentials": {
         "postgres": {
@@ -525,28 +525,28 @@
     },
     {
       "parameters": {
-        "jsCode": "let metrics = {\n    rules_processed: 0,\n    alerts_created: 0,\n    alerts_skipped: 0,\n    emails_queued: 0,\n    emails_sent: 0,\n    sms_sent: 0,\n    errors_count: 0,\n    error_details: [],\n    execution_log_summary: []\n};\n\nconst items = Array.isArray($input.all()) ? $input.all() : [$input.all()];\nmetrics.rules_processed = items.length;\n\nfor (const item of items) {\n    const data = item.json;\n\n    if (data.success === false) {\n        metrics.errors_count++;\n        metrics.error_details.push(`Error en ejecución: ${data.error || 'Sin detalle'}`);\n        continue;\n    }\n\n    if (data.execution_log && Array.isArray(data.execution_log)) {\n        for (const log of data.execution_log) {\n            if (Object.keys(log).length === 0) {\n                metrics.alerts_skipped++;\n                continue;\n            }\n\n            if (log.id) {\n                metrics.alerts_created++;\n\n                if (log.status === \"PENDING\") {\n                    if (log.details_json?.patient?.email && log.details_json.patient.email !== \"null\") {\n                        metrics.emails_queued++;\n                    }\n                }\n\n                // if (log.details_json?.patient?.phone) metrics.sms_sent++;\n\n                metrics.execution_log_summary.push({\n                    id: log.id,\n                    rule_id: log.rule_id,\n                    title: log.title,\n                    status: log.status,\n                    patient: log.details_json?.patient?.full_name || \"N/A\"\n                });\n            } else {\n                metrics.alerts_skipped++;\n            }\n        }\n    }\n}\n\nreturn [{\n    json: metrics\n}];"
+        "jsCode": "let metrics = {\n    rules_processed: 0,\n    alerts_created: 0,\n    alerts_skipped: 0,\n    emails_queued: 0,\n    emails_sent: 0,\n    sms_sent: 0,\n    errors_count: 0,\n    error_details: [],\n    execution_log_summary: []\n};\n\nconst items = Array.isArray($input.all()) ? $input.all() : [$input.all()];\nmetrics.rules_processed = items.length;\n\nfor (const item of items) {\n    const data = item.json;\n\n    if (data.success === false) {\n        metrics.errors_count++;\n        metrics.error_details.push(`Error en ejecución: ${data.error || 'Sin detalle'}`);\n        continue;\n    }\n\n    if (data.execution_log && Array.isArray(data.execution_log)) {\n        for (const log of data.execution_log) {\n            if (Object.keys(log).length === 0) {\n                metrics.alerts_skipped++;\n                continue;\n            }\n\n            if (log.id) {\n                metrics.alerts_created++;\n\n                if (log.status === \"PENDING\") {\n                    if (log.details_json?.patient?.email && log.details_json.patient.email !== \"null\") {\n                        metrics.emails_queued++;\n                    }\n                }\n\n                // Estimate only (mirrors emails_queued): counts alerts whose patient has a phone,\n                // not confirmed WhatsApp deliveries. The authoritative record of what was actually\n                // sent/failed lives in alert_actions (SEND_WHATSAPP rows written by the\n                // \"Alert WhatsApp Auto-Send\" sub-workflow), surfaced in alerts/page.tsx.\n                if (log.details_json?.patient?.phone) metrics.sms_sent++;\n\n                metrics.execution_log_summary.push({\n                    id: log.id,\n                    rule_id: log.rule_id,\n                    title: log.title,\n                    status: log.status,\n                    patient: log.details_json?.patient?.full_name || \"N/A\"\n                });\n            } else {\n                metrics.alerts_skipped++;\n            }\n        }\n    }\n}\n\nreturn [{\n    json: metrics\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1264,
-        -128
+        -1200,
+        608
       ],
-      "id": "03d65dcb-274a-42d6-8f5a-367ed825ea49",
+      "id": "3329c324-90a1-4bd3-88e1-6bfb9b57b7e3",
       "name": "Calculate metrics"
     },
     {
       "parameters": {
-        "jsCode": "const results = [];\nconst target_date = $('When Executed by Another Workflow').first().json.target_date;\n\nfor (const item of items) {\n  const rule = item.json;\n\n  const conditionConfig = rule.condition_config || {};\n  const conditions = conditionConfig.conditions || [];\n  const userIdField = conditionConfig.user_id_field !== undefined ? conditionConfig.user_id_field : null;\n  \n  const daysBefore = rule.days_before || 0;\n  const daysAfter = rule.days_after || 0;\n\n  const dateOffsetSql = ` + INTERVAL '${daysBefore} days' - INTERVAL '${daysAfter} days'`;\n\n  let isYearlyRecurring = false;\n\n  const whereClauses = conditions.map((c, index) => {\n    let val = c.value;\n\n    if (typeof val === 'string' && val.includes('{{') && val.includes('}}')) {\n      const cleanVar = val.replace(/[{{\\\\s}}]/g, '').toUpperCase();\n      \n      const dateMappings = {\n        'TODAY_NO_YEAR':  `TO_CHAR('${target_date}'::date${dateOffsetSql}, 'MM-DD')`,\n        'TODAY':          `('${target_date}'::date${dateOffsetSql})::date`,\n        'TOMORROW':       `('${target_date}'::date + INTERVAL '1 day'${dateOffsetSql})::date`,\n        'YESTERDAY':      `('${target_date}'::date - INTERVAL '1 day'${dateOffsetSql})::date`,\n        'WEEK_START':     `(DATE_TRUNC('week', '${target_date}'::date)${dateOffsetSql})::date`,\n        'WEEK_END':       `(DATE_TRUNC('week', '${target_date}'::date) + INTERVAL '6 days'${dateOffsetSql})::date`,\n        'DOW':            `EXTRACT(DOW FROM '${target_date}'::date${dateOffsetSql})`,\n        'MONTH_START':    `(DATE_TRUNC('month', '${target_date}'::date)${dateOffsetSql})::date`,\n        'MONTH_END':      `(DATE_TRUNC('month', '${target_date}'::date) + INTERVAL '1 month - 1 day'${dateOffsetSql})::date`,\n        'YEAR_START':     `(DATE_TRUNC('year', '${target_date}'::date)${dateOffsetSql})::date`,\n        'YEAR_END':       `(DATE_TRUNC('year', '${target_date}'::date) + INTERVAL '1 year - 1 day'${dateOffsetSql})::date`\n      };\n\n      const baseKey = Object.keys(dateMappings).find(key => cleanVar.startsWith(key));\n\n      if (baseKey) {\n        let baseSql = dateMappings[baseKey];\n        const arithmetic = cleanVar.replace(baseKey, '');\n        \n        if (arithmetic) {\n          val = `(${baseSql} ${arithmetic})`;\n        } else {\n          val = baseSql;\n        }\n      }\n    } else if (typeof val === 'string') {\n      val = `'${val}'`;\n    }\n\n    const columnSql = val.includes('MM-DD') ? `TO_CHAR(t.${c.column}, 'MM-DD')` : `t.${c.column}`;\n\n    if (columnSql.includes('MM-DD')) {\n      isYearlyRecurring = true;\n    }\n\n    let clause = \"\";\n    if (c.operator.toUpperCase() === 'BETWEEN') {\n      const startRange = `'${target_date}'::date`;\n      const endRange = val;\n      clause = `${columnSql} BETWEEN ${startRange} AND ${endRange}`;\n    } else {\n      clause = `${columnSql} ${c.operator} ${val}`;\n    }\n\n    return `${c.logic === undefined ? '' : c.logic} ${clause}`;\n\n    const logic = index === 0 ? '' : (c.logic || '');\n    return `${logic} ${clause}`.trim();\n  });\n\n  const shouldJoinUser = userIdField !== null;\n  const u = shouldJoinUser ? 'u' : 't';\n  \n  const userJoinClause = shouldJoinUser \n    ? `LEFT JOIN public.users u ON t.${userIdField} = u.id` \n    : '';\n\n  const finalUserId = shouldJoinUser ? `t.${userIdField}` : 't.id';\n\n  const yearlyDedupClause = isYearlyRecurring \n    ? `AND EXTRACT(YEAR FROM ai.alert_date) = EXTRACT(YEAR FROM CAST('${target_date}' AS DATE))` \n    : '';\n\n  const duplicatePrevention = `NOT EXISTS (\n    SELECT 1 FROM public.alert_instances ai \n    WHERE ai.rule_id::text = '${rule.id}'::text \n      AND ai.reference_table = '${rule.source_table}' \n      AND ai.reference_id::text = t.id::text\n      ${yearlyDedupClause}\n  )`;\n\n  const whereSql = whereClauses.length > 0 \n    ? `WHERE (${whereClauses.join(' ')}) AND ${duplicatePrevention}` \n    : `WHERE ${duplicatePrevention}`;\n\n  const dynamicQuery = `\n    SELECT \n      '${rule.id}' as rule_id,\n      '${rule.source_table}' as reference_table,\n      t.id as reference_id,\n      ${finalUserId} as user_id,\n      CAST('${target_date}' AS DATE) as alert_date,\n      '${rule.name}' as title,\n      '${rule.priority}' as priority,\n      '${rule.description}' as description,\n      jsonb_build_object(\n        'data', to_jsonb(t.*),\n        'patient', jsonb_build_object(\n          'full_name', ${u}.name,\n          'email', ${u}.email,\n          'phone', ${u}.phone_number,\n          'document_id', ${u}.identity_document\n        ),\n        'clinic', jsonb_build_object(\n          'name', c.name,\n          'address', c.address,\n          'phone', c.phone,\n          'email', c.email\n        )\n      ) as details_json\n    FROM ${rule.source_table} t\n    ${userJoinClause}\n    CROSS JOIN (SELECT * FROM public.clinic LIMIT 1) c\n    ${whereSql}\n  `;\n\n  results.push({\n    json: { ...rule, dynamicQuery }\n  });\n}\n\nreturn results;"
+        "jsCode": "const results = [];\nconst target_date = $(\"When Executed by Another Workflow\").first().json\n  .target_date;\n\n// El origen de una regla puede ser una tabla o una vista \"v_alert_*\". Todo lo\n// que se interpola como identificador se valida para no inyectar SQL.\nconst IDENT = /^[a-z_][a-z0-9_]*$/;\nconst ident = (name, what) => {\n  if (typeof name !== \"string\" || !IDENT.test(name)) {\n    throw new Error(`Alert rule: invalid ${what} \"${name}\"`);\n  }\n  return name;\n};\nconst lit = (v) => `'${String(v ?? \"\").replace(/'/g, \"''\")}'`;\n\nfor (const item of items) {\n  const rule = item.json;\n\n  const conditionConfig = rule.condition_config || {};\n  const conditions = conditionConfig.conditions || [];\n  const userIdField =\n    conditionConfig.user_id_field !== undefined &&\n    conditionConfig.user_id_field !== null &&\n    conditionConfig.user_id_field !== \"\"\n      ? ident(conditionConfig.user_id_field, \"user_id_field\")\n      : null;\n\n  const sourceTable = ident(rule.source_table, \"source_table\");\n  // Con una vista, las alert_instances siguen apuntando a la tabla real\n  // (reference_table/reference_id): el envio de WhatsApp resuelve la entidad\n  // por reference_table y el anti-duplicado tambien la usa. El frontend guarda\n  // condition_config.reference_table al elegir la vista (sale del COMMENT de\n  // la vista via GET /system/tables). Sin ese dato se usa el propio origen.\n  const referenceTable = ident(\n    conditionConfig.reference_table || sourceTable,\n    \"reference_table\",\n  );\n\n  const daysBefore = Math.max(0, Number(rule.days_before) || 0);\n  const daysAfter = Math.max(0, Number(rule.days_after) || 0);\n\n  const dateOffsetSql = ` + INTERVAL '${daysBefore} days' - INTERVAL '${daysAfter} days'`;\n\n  let isYearlyRecurring = false;\n\n  const whereClauses = conditions.map((c, index) => {\n    const column = ident(c.column, \"condition column\");\n    let val = c.value;\n\n    if (typeof val === \"string\" && val.includes(\"{{\") && val.includes(\"}}\")) {\n      const cleanVar = val.replace(/[{}\\s]/g, \"\").toUpperCase();\n\n      const dateMappings = {\n        TODAY_NO_YEAR: `TO_CHAR('${target_date}'::date${dateOffsetSql}, 'MM-DD')`,\n        TODAY: `('${target_date}'::date${dateOffsetSql})::date`,\n        TOMORROW: `('${target_date}'::date + INTERVAL '1 day'${dateOffsetSql})::date`,\n        YESTERDAY: `('${target_date}'::date - INTERVAL '1 day'${dateOffsetSql})::date`,\n        WEEK_START: `(DATE_TRUNC('week', '${target_date}'::date)${dateOffsetSql})::date`,\n        WEEK_END: `(DATE_TRUNC('week', '${target_date}'::date) + INTERVAL '6 days'${dateOffsetSql})::date`,\n        DOW: `EXTRACT(DOW FROM '${target_date}'::date${dateOffsetSql})`,\n        MONTH_START: `(DATE_TRUNC('month', '${target_date}'::date)${dateOffsetSql})::date`,\n        MONTH_END: `(DATE_TRUNC('month', '${target_date}'::date) + INTERVAL '1 month - 1 day'${dateOffsetSql})::date`,\n        YEAR_START: `(DATE_TRUNC('year', '${target_date}'::date)${dateOffsetSql})::date`,\n        YEAR_END: `(DATE_TRUNC('year', '${target_date}'::date) + INTERVAL '1 year - 1 day'${dateOffsetSql})::date`,\n      };\n\n      const baseKey = Object.keys(dateMappings).find((key) =>\n        cleanVar.startsWith(key),\n      );\n\n      if (baseKey) {\n        let baseSql = dateMappings[baseKey];\n        const arithmetic = cleanVar.replace(baseKey, \"\");\n\n        if (arithmetic) {\n          val = `(${baseSql} ${arithmetic})`;\n        } else {\n          val = baseSql;\n        }\n      }\n    } else if (typeof val === \"string\") {\n      val = lit(val);\n    }\n\n    const columnSql = String(val).includes(\"MM-DD\")\n      ? `TO_CHAR(t.${column}, 'MM-DD')`\n      : `t.${column}`;\n\n    if (columnSql.includes(\"MM-DD\")) {\n      isYearlyRecurring = true;\n    }\n\n    let clause = \"\";\n    const operator = String(c.operator || \"\").toUpperCase();\n    if (operator === \"BETWEEN\") {\n      // days_before / days_after son offsets respecto al EVENTO, no una ventana\n      // que siempre incluye el dia de hoy:\n      //   days_before = N -> el evento ocurre N dias despues del target\n      //   days_after  = N -> el evento ocurrio N dias antes del target\n      // Si ambos son > 0 el rango cubre la ventana completa entre ambos extremos\n      // (ej. facturas a vencer dentro de +/- 5 dias). Si solo uno esta seteado,\n      // apunta a ese dia exacto (ej. recordatorio 24h: 1 y 0 -> solo manana).\n      let startOffset;\n      let endOffset;\n      if (daysBefore > 0 && daysAfter > 0) {\n        startOffset = -daysAfter;\n        endOffset = daysBefore + 1;\n      } else if (daysBefore > 0) {\n        startOffset = daysBefore;\n        endOffset = daysBefore + 1;\n      } else if (daysAfter > 0) {\n        startOffset = -daysAfter;\n        endOffset = -daysAfter + 1;\n      } else {\n        startOffset = 0;\n        endOffset = 1;\n      }\n      const startRange = `('${target_date}'::date + INTERVAL '${startOffset} days')`;\n      const endRange = `('${target_date}'::date + INTERVAL '${endOffset} days')`;\n      clause = `${columnSql} >= ${startRange} AND ${columnSql} < ${endRange}`;\n    } else if (operator === \"IS NULL\" || operator === \"IS NOT NULL\") {\n      clause = `${columnSql} ${operator}`;\n    } else {\n      clause = `${columnSql} ${c.operator} ${val}`;\n    }\n\n    const logic = index === 0 ? \"\" : c.logic || \"\";\n    return `${logic} ${clause}`.trim();\n  });\n\n  const shouldJoinUser = userIdField !== null;\n  const u = shouldJoinUser ? \"u\" : \"t\";\n\n  const userJoinClause = shouldJoinUser\n    ? `LEFT JOIN public.users u ON t.${userIdField} = u.id`\n    : \"\";\n\n  const finalUserId = shouldJoinUser ? `t.${userIdField}` : \"t.id\";\n\n  // Anti-duplicado:\n  //  - Reglas anuales (cumpleaños, aniversarios): una alerta por año.\n  //  - Resto de reglas: no re-crear mientras exista una alerta ABIERTA para\n  //    este item, y nunca dos para el mismo alert_date (el scheduler puede\n  //    dispararse mas de una vez por dia). Si la alerta anterior ya fue\n  //    resuelta y la condicion sigue vigente, se genera una nueva.\n  const dedupExtraClause = isYearlyRecurring\n    ? `AND EXTRACT(YEAR FROM ai.alert_date) = EXTRACT(YEAR FROM CAST('${target_date}' AS DATE))`\n    : `AND (ai.alert_date = CAST('${target_date}' AS DATE) OR ai.status NOT IN ('COMPLETED', 'ACTION_TAKEN', 'IGNORED', 'SUPPRESSED', 'SNOOZED'))`;\n\n  const duplicatePrevention = `NOT EXISTS (\n    SELECT 1 FROM public.alert_instances ai\n    WHERE ai.rule_id::text = ${lit(rule.id)}::text\n      AND ai.reference_table = '${referenceTable}'\n      AND ai.reference_id::text = t.id::text\n      ${dedupExtraClause}\n  )`;\n\n  const whereSql =\n    whereClauses.length > 0\n      ? `WHERE (${whereClauses.join(\" \")}) AND ${duplicatePrevention}`\n      : `WHERE ${duplicatePrevention}`;\n\n  const dynamicQuery = `\n    SELECT\n      ${lit(rule.id)} as rule_id,\n      '${referenceTable}' as reference_table,\n      t.id as reference_id,\n      ${finalUserId} as user_id,\n      CAST('${target_date}' AS DATE) as alert_date,\n      ${lit(rule.name)} as title,\n      ${lit(rule.priority)} as priority,\n      ${lit(rule.description)} as description,\n      jsonb_build_object(\n        'data', to_jsonb(t.*),\n        'patient', jsonb_build_object(\n          'full_name', ${u}.name,\n          'email', ${u}.email,\n          'phone', ${u}.phone_number,\n          'document_id', ${u}.identity_document\n        ),\n        'clinic', jsonb_build_object(\n          'name', c.name,\n          'address', c.address,\n          'phone', c.phone,\n          'email', c.email\n        )\n      ) as details_json\n    FROM public.${sourceTable} t\n    ${userJoinClause}\n    CROSS JOIN (SELECT * FROM public.clinic LIMIT 1) c\n    ${whereSql}\n  `;\n\n  results.push({\n    json: { ...rule, dynamicQuery },\n  });\n}\n\nreturn results;\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        832,
-        0
+        -1632,
+        736
       ],
-      "id": "59a6bdb1-1ef3-41a5-901b-812df0930373",
+      "id": "b69c8211-ec79-4958-b704-22b0e1840476",
       "name": "Build dynamic query"
     },
     {
@@ -556,10 +556,10 @@
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        1040,
-        0
+        -1424,
+        736
       ],
-      "id": "cb824406-fa75-442b-bdc4-59fc9eacaad9",
+      "id": "5b70a234-69e7-4637-9613-4ea5f7cf3113",
       "name": "Loop Over Results"
     },
     {
@@ -569,10 +569,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2192,
-        368
+        256,
+        688
       ],
-      "id": "32022e81-5f7d-4048-93b4-4fdf33f3e881",
+      "id": "65027087-00d7-4dcb-b4d2-96aa6641b716",
       "name": "Success"
     },
     {
@@ -582,10 +582,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2192,
-        592
+        -496,
+        1024
       ],
-      "id": "f81d74a4-7437-4f65-866a-30a651fa46f9",
+      "id": "a3f0af39-453d-46de-920d-8077dc81a0de",
       "name": "Failed"
     },
     {
@@ -599,10 +599,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1968,
-        368
+        32,
+        688
       ],
-      "id": "063e957d-4553-450a-aa3b-a59195740390",
+      "id": "abc51a99-2e1a-4de7-81c9-64ea7058069e",
       "name": "Update rule next execution",
       "credentials": {
         "postgres": {
@@ -610,14 +610,160 @@
           "name": "Postgres account"
         }
       }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $('Loop Over Results').item.json.auto_send_sms }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "id": "ee378069-f239-4ca8-a518-6c649a401328"
+            },
+            {
+              "leftValue": "={{ $('Loop Over Results').item.json.whatsapp_template_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              },
+              "id": "6e8048a9-578f-47dd-bac1-6d9b6aaacd8a"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -496,
+        688
+      ],
+      "id": "fdbd12cb-cdda-4cf3-ad5d-1e2cddfad47a",
+      "name": "Should Auto-Send WhatsApp?"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "WlxkMz1nFkh6cwJh",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/WlxkMz1nFkh6cwJh",
+          "cachedResultName": "Alert WhatsApp Auto-Send"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "alert_instance_id": "={{ $json.id }}",
+            "rule_id": "={{ $('Loop Over Results').item.json.id }}",
+            "patient_id": "={{ $json.patient_id }}",
+            "reference_table": "={{ $json.reference_table }}",
+            "reference_id": "={{ $json.reference_id }}",
+            "whatsapp_template_id": "={{ $('Loop Over Results').item.json.whatsapp_template_id }}",
+            "performed_by": "={{ $env.ALERT_SYSTEM_USER_ID || '00000000-0000-0000-0000-000000000000' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "alert_instance_id",
+              "displayName": "alert_instance_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "rule_id",
+              "displayName": "rule_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "patient_id",
+              "displayName": "patient_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "reference_table",
+              "displayName": "reference_table",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "reference_id",
+              "displayName": "reference_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "whatsapp_template_id",
+              "displayName": "whatsapp_template_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "performed_by",
+              "displayName": "performed_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -240,
+        592
+      ],
+      "id": "43406a53-359f-4104-a822-7ba8e3e90f2e",
+      "name": "Send Alert WhatsApp",
+      "onError": "continueErrorOutput"
     }
   ],
   "pinData": {
     "When Executed by Another Workflow": [
       {
         "json": {
-          "triggered_by": "MANUAL",
-          "target_date": "2026-01-15"
+          "triggered_by": "SCHEDULER",
+          "target_date": "2026-09-04"
         }
       }
     ]
@@ -667,7 +813,7 @@
       "main": [
         [
           {
-            "node": "Update rule next execution",
+            "node": "Should Auto-Send WhatsApp?",
             "type": "main",
             "index": 0
           }
@@ -675,6 +821,42 @@
         [
           {
             "node": "Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Auto-Send WhatsApp?": {
+      "main": [
+        [
+          {
+            "node": "Send Alert WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update rule next execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Alert WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Update rule next execution",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update rule next execution",
             "type": "main",
             "index": 0
           }
@@ -789,7 +971,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "a6b03846-5aa9-4494-84d8-71658159444d",
+  "versionId": "26f4a41b-13f3-4059-87e8-3a6cc24aae94",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"

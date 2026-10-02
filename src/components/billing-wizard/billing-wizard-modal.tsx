@@ -129,6 +129,8 @@ async function createInvoiceFromOrder(
     user_id: quote.user_id,
     currency: quote.currency || getClinicCurrency(),
     invoice_date: toLocalISOString(new Date()),
+    // Same 30-day default as the direct invoice below (`createDirectInvoice`).
+    due_date: toLocalISOString(addDays(new Date(), 30)),
     notes: '',
     items: billingItems,
   };
