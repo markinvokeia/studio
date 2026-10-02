@@ -3,7 +3,7 @@ import { addMonths, format, isValid, parseISO } from 'date-fns';
 import { API_ROUTES } from '@/constants/routes';
 import { normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
 import type { Appointment, AppointmentStatus, Calendar, CancellationReason, Service, User } from '@/lib/types';
-import { api, REQUEST_TIMEOUT_MS } from '@/services/api';
+import { api, REQUEST_TIMEOUT_MS, type ApiRequestOptions } from '@/services/api';
 
 /**
  * Agendas activas para los formularios de cita. Vive acá y no en una pantalla porque
@@ -115,6 +115,47 @@ export async function updateAppointmentStatusRequest({
   }
 
   return result;
+}
+
+export interface CheckSlotAvailabilityParams {
+  start: Date;
+  end: Date;
+  doctorId?: string;
+  calendarId?: string;
+  patientId?: string;
+  /** Cita que se está editando: no cuenta como ocupación de su propio horario. */
+  appointmentId?: string;
+}
+
+export interface SlotAvailabilityResult {
+  isAvailable: boolean;
+  /** Motivo del backend cuando no hay disponibilidad (p. ej. `specified_doctor_unavailable`). */
+  reason?: string;
+}
+
+/**
+ * Verifica un horario puntual contra `/appointments_availability` en modo
+ * `checkAvailability`: consultorio libre y doctor disponible durante toda la cita.
+ * Es la misma consulta que hace el formulario completo de cita.
+ */
+export async function checkSlotAvailability(
+  { start, end, doctorId, calendarId, patientId, appointmentId }: CheckSlotAvailabilityParams,
+  options?: ApiRequestOptions,
+): Promise<SlotAvailabilityResult> {
+  const params: Record<string, string> = {
+    startingDateAndTime: start.toISOString(),
+    endingDateAndTime: end.toISOString(),
+    durationInMinutes: String(Math.max(5, Math.round((end.getTime() - start.getTime()) / 60000))),
+    mode: 'checkAvailability',
+    doctorId: doctorId ?? '',
+    patientId: patientId ?? '',
+  };
+  if (calendarId) params.calendar_source_ids = calendarId;
+  if (appointmentId) params.appointment_id = appointmentId;
+
+  const data = await api.get(API_ROUTES.APPOINTMENTS_AVAILABILITY, params, undefined, options);
+  const result = Array.isArray(data) ? (data[0]?.json ?? data[0]) : data;
+  return { isAvailable: result?.isAvailable === true, reason: result?.reason || undefined };
 }
 
 export interface FuturePatientAppointment {

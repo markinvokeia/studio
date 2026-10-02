@@ -11,6 +11,19 @@ import { toLocalISOString } from '@/lib/utils';
 export const PATIENT_SLOT_MINUTES = 30;
 
 /**
+ * Cada cuántos minutos arranca un horario ofrecido: min(duración, 30). Una cita
+ * de 60 min se puede ofrecer a las 09:00 y a las 09:30.
+ *
+ * Tiene que coincidir con el paso del generador de sugerencias del backend
+ * (`Select Available Doctors` en `docs/n8n-flows/Agent_Availability2.json`):
+ * los horarios se cruzan por hora exacta, así que un paso o un origen distinto
+ * deja todos los horarios marcados como ocupados.
+ */
+export function slotStepMinutes(slotMinutes: number): number {
+  return Math.max(5, Math.min(slotMinutes, 30));
+}
+
+/**
  * `true` cuando el paciente reserva desde la landing, sin haberse autenticado
  * (registro nuevo, o modo "sólo citas"). En ese caso se usan las variantes
  * `_noauth` de los webhooks de citas, que ya existen en el workflow de agenda.
@@ -134,6 +147,11 @@ export async function fetchBookingSedes(authMode: BookingAuthMode = 'session'): 
  *
  * Reutiliza `getBusinessWindow` del calendario, así el portal y la agenda del
  * staff interpretan `clinic_schedules` exactamente igual.
+ *
+ * La grilla arranca en el primer múltiplo de `slotStepMinutes` desde la
+ * medianoche, no en la apertura exacta: con una apertura a las 08:01 la grilla
+ * quedaba en 08:01, 09:01… y ningún horario coincidía con los del backend, que
+ * van en punto.
  */
 export async function fetchPatientDaySlots(
   day: Date,
@@ -153,8 +171,11 @@ export async function fetchPatientDaySlots(
   const dayKey = format(dayStart, 'yyyy-MM-dd');
   const now = new Date();
 
+  const step = slotStepMinutes(slotMinutes);
+  const firstStart = Math.ceil(startMin / step) * step;
+
   const slots: BookingSlot[] = [];
-  for (let minutes = startMin; minutes + slotMinutes <= endMin; minutes += slotMinutes) {
+  for (let minutes = firstStart; minutes + slotMinutes <= endMin; minutes += step) {
     const time = `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
     const slotDate = parse(`${dayKey} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
 

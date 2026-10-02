@@ -1208,6 +1208,8 @@
       "cancelledAppointments": "{count} citas canceladas",
       "createService": "Crear \"{name}\"",
       "overlapWarning": "Cuidado: se solapa con otra cita",
+      "slotUnavailable": "Horario no disponible: el consultorio o el doctor están ocupados",
+      "checkingAvailability": "Comprobando disponibilidad…",
       "cancel": "Cancelar",
       "save": "Guardar",
       "date": "Fecha",

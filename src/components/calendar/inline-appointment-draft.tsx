@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { InlineEntityPicker } from '@/components/appointments/InlineEntityPicker';
 import { InlineServicePicker } from '@/components/calendar/inline-service-picker';
 import { UserSelector } from '@/components/ui/user-selector';
+import type { SlotAvailabilityStatus } from '@/hooks/use-slot-availability';
 import type { Calendar as CalendarType, Service, User } from '@/lib/types';
 
 interface InlineColorOption {
@@ -54,6 +55,8 @@ interface InlineAppointmentDraftProps {
   summary?: string;
   onSummaryChange?: (summary: string) => void;
   overlapWarning?: boolean;
+  /** Resultado de la verificación de disponibilidad en el backend (consultorio y doctor). */
+  availabilityStatus?: SlotAvailabilityStatus;
   patientDebt?: { currency: string; amount: number }[];
   /** Number of cancelled appointments the patient has (shown next to the debt). */
   cancelledCount?: number;
@@ -299,6 +302,7 @@ export function InlineAppointmentDraft({
   summary = '',
   onSummaryChange,
   overlapWarning,
+  availabilityStatus = 'idle',
   patientDebt,
   cancelledCount,
   onViewStatement,
@@ -483,10 +487,21 @@ export function InlineAppointmentDraft({
           <X className="h-3.5 w-3.5" />
         </button>
       </div>
-      {overlapWarning && (
+      {availabilityStatus === 'unavailable' ? (
+        <span role="status" className="flex items-center gap-1 text-[11px] font-medium text-destructive">
+          <AlertTriangle className="h-3 w-3 shrink-0" />
+          {t('slotUnavailable')}
+        </span>
+      ) : overlapWarning ? (
         <span className="flex items-center gap-1 text-[11px] font-medium text-amber-700 dark:text-amber-400">
           <AlertTriangle className="h-3 w-3 shrink-0" />
           {t('overlapWarning')}
+        </span>
+      ) : null}
+      {availabilityStatus === 'checking' && (
+        <span role="status" className="flex items-center gap-1 text-[11px] text-muted-foreground">
+          <Loader2 className="h-3 w-3 shrink-0 animate-spin" />
+          {t('checkingAvailability')}
         </span>
       )}
 

@@ -20,6 +20,7 @@ import { InlineAppointmentDraft } from '@/components/calendar/inline-appointment
 import { GOOGLE_CALENDAR_COLORS } from '@/components/calendar/calendar-constants';
 
 import { API_ROUTES } from '@/constants/routes';
+import { useSlotAvailability } from '@/hooks/use-slot-availability';
 import { useToast } from '@/hooks/use-toast';
 import { toLocalISOString } from '@/lib/utils';
 import api from '@/services/api';
@@ -57,6 +58,8 @@ interface InlineAppointmentDraftHostProps {
   onOpenChange: (open: boolean) => void;
   /** Se llama después de guardar con éxito, para que el consumidor refresque. */
   onSaved?: () => void;
+  /** `calendar_settings.check_availability`: verifica el horario contra el backend mientras se edita. */
+  checkAvailability?: boolean;
 }
 
 const colorHexById = new Map(GOOGLE_CALENDAR_COLORS.map((c) => [c.id, c.hex]));
@@ -78,6 +81,7 @@ export function InlineAppointmentDraftHost({
   open,
   onOpenChange,
   onSaved,
+  checkAvailability = false,
 }: InlineAppointmentDraftHostProps) {
   const tToasts = useTranslations('AppointmentsPage.toasts');
   const tInline = useTranslations('AppointmentsPage.inlineCreate');
@@ -109,6 +113,19 @@ export function InlineAppointmentDraftHost({
 
   const calendars = calendarsProp ?? loadedCalendars;
   const doctors = doctorsProp ?? loadedDoctors;
+
+  const availabilityStatus = useSlotAvailability(
+    checkAvailability && open && draft?.calendar && !draft.editing?.imported_from_google
+      ? {
+          start: draft.date,
+          end: addMinutes(draft.date, draft.durationMin || DEFAULT_DURATION_MINUTES),
+          doctorId: draft.doctor?.id ? String(draft.doctor.id) : undefined,
+          calendarId: String(draft.calendar.id),
+          patientId: draft.patient?.id ? String(draft.patient.id) : undefined,
+          appointmentId: draft.editing?.id ? String(draft.editing.id) : undefined,
+        }
+      : null,
+  );
 
   // Se arma UNA vez por apertura. El ref es lo que evita que un cambio de identidad en
   // `calendars`/`doctors`/`patient` —o la llegada de los datos que carga el host— vuelva
@@ -292,6 +309,7 @@ export function InlineAppointmentDraftHost({
           })}
           notes={draft.notes}
           onNotesChange={(n) => setDraft((d) => (d ? { ...d, notes: n } : d))}
+          availabilityStatus={availabilityStatus}
           isSaving={isSaving}
           onSave={handleSave}
           onCancel={requestClose}

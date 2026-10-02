@@ -1984,6 +1984,7 @@ export default function UsersPage() {
           patient={selectedUser}
           calendars={apptCalendars}
           doctors={apptDoctors}
+          checkAvailability={checkCalendarAvailability}
           onOpenChange={(open) => { if (!open) setInlineAppt(null); }}
           onSaved={() => {
             setInlineAppt(null);

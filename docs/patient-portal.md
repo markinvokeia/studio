@@ -520,11 +520,16 @@ bienvenida con el video se oculta mientras se reserva y vuelve al terminar
 
 **Duración.** `slotMinutes` = suma de `duration_minutes` de los servicios
 efectivos, con piso de 15 min y con `PATIENT_SLOT_MINUTES` (30) como fallback
-cuando no hay servicios o no se pudo resolver su duración. Ese valor alimenta el
-paso de la grilla **y** el `durationInMinutes` de `/appointments_availability`,
-así que el backend verifica que el doctor esté libre todo ese rato. Cambiar la
-selección **invalida el horario elegido**: un hueco de 30 min no sirve para una
-cita de 90.
+cuando no hay servicios o no se pudo resolver su duración. Ese valor es el
+`durationInMinutes` de `/appointments_availability`, así que el backend verifica
+que el consultorio y el doctor estén libres todo ese rato. Cambiar la selección
+**invalida el horario elegido**: un hueco de 30 min no sirve para una cita de 90.
+
+**Paso de la grilla.** Los horarios arrancan cada `min(slotMinutes, 30)` minutos,
+alineados desde la medianoche (`slotStepMinutes()`): una cita de 60 min se ofrece
+a las 09:00 y a las 09:30. El backend genera las sugerencias con el mismo paso y
+el portal las cruza por hora exacta, así que ambos tienen que coincidir — una
+apertura a las 08:01 ya no corre la grilla.
 
 **Cómo llegan al backend.** `/appointments/upsert` ya consumía `service_ids` y
 `service_names` —los usa el formulario del staff— e inserta en

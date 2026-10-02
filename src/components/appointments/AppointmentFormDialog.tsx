@@ -627,7 +627,11 @@ export function AppointmentFormDialog({
         };
 
         if (doctor?.email) params.doctorEmail = doctor.email;
-        if (editingAppointment) params.eventId = editingAppointment.id;
+        if (editingAppointment) {
+            params.eventId = editingAppointment.id;
+            // The appointment being edited must not count as its own conflict.
+            params.appointment_id = String(editingAppointment.id);
+        }
         if (attendeeEmails.length > 0) params.attendeesEmails = attendeeEmails.join(',');
         if (calendar?.id) params.calendar_source_ids = String(calendar.id);
 

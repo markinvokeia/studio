@@ -75,6 +75,7 @@ import { getQuoteItems } from '@/services/quotes';
 import { updateAppointmentStatusRequest, fetchFuturePatientAppointments, searchAppointments, type FuturePatientAppointment } from '@/services/appointments';
 import { FutureAppointmentsConfirmDialog } from '@/components/appointments/future-appointments-confirm-dialog';
 import { useAsyncAction, useKeyedAsyncAction } from '@/hooks/use-async-action';
+import { useSlotAvailability } from '@/hooks/use-slot-availability';
 import { getSalesServices, getUsersServicesBatch, fetchServicesByIds } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
 import { addMinutes, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isValid, parseISO, set, startOfMonth, startOfWeek } from 'date-fns';
@@ -1569,6 +1570,20 @@ export default function AppointmentsPage() {
     const [inlineCancelledCount, setInlineCancelledCount] = React.useState(0);
     // "New patient" full-form dialog opened from the inline draft's patient picker.
     const [inlineCreatePatient, setInlineCreatePatient] = React.useState<{ open: boolean; initialName: string }>({ open: false, initialName: '' });
+    // Backend availability check for the inline card (room + doctor over the whole
+    // duration). Same setting and endpoint as the full appointment form; informative only.
+    const inlineAvailability = useSlotAvailability(
+        checkCalendarAvailability && inlineDraft && inlineDraft.calendar && !inlineDraft.editing?.imported_from_google
+            ? {
+                start: inlineDraft.date,
+                end: addMinutes(inlineDraft.date, inlineDraft.durationMin || 30),
+                doctorId: inlineDraft.doctor?.id ? String(inlineDraft.doctor.id) : undefined,
+                calendarId: String(inlineDraft.calendar.id),
+                patientId: inlineDraft.patient?.id ? String(inlineDraft.patient.id) : undefined,
+                appointmentId: inlineDraft.editing?.id ? String(inlineDraft.editing.id) : undefined,
+            }
+            : null,
+    );
     // Future-appointments confirmation for the quick inline-create flow.
     const [inlineFutureConfirm, setInlineFutureConfirm] = React.useState<{ appointments: FuturePatientAppointment[]; patientName: string } | null>(null);
     const skipInlineFutureCheckRef = React.useRef(false);
@@ -1797,13 +1812,18 @@ export default function AppointmentsPage() {
         if (!inlineDraft) return null;
         const draftStart = inlineDraft.date.getTime();
         const draftEnd = addMinutes(inlineDraft.date, inlineDraft.durationMin || 30).getTime();
-        // Overlap: a non-cancelled appointment in the same column starting within the draft span.
+        // Overlap among the loaded appointments: any non-cancelled appointment of the
+        // same doctor OR the same room whose span intersects the draft (including one
+        // that started earlier and is still running). Without doctor and room, any.
         const overlap = appointments.some((a) => {
             if (a.status === 'cancelled') return false;
-            if (inlineDraft.doctor && String(a.doctorId) !== String(inlineDraft.doctor.id)) return false;
-            if (inlineDraft.calendar && String(a.calendar_source_id) !== String(inlineDraft.calendar.id)) return false;
+            if (inlineDraft.editing && String(a.id) === String(inlineDraft.editing.id)) return false;
+            const sameDoctor = !!inlineDraft.doctor && String(a.doctorId) === String(inlineDraft.doctor.id);
+            const sameRoom = !!inlineDraft.calendar && String(a.calendar_source_id) === String(inlineDraft.calendar.id);
+            if ((inlineDraft.doctor || inlineDraft.calendar) && !sameDoctor && !sameRoom) return false;
             const s = a.start?.dateTime ? parseISO(a.start.dateTime.replace(/Z$/, '')).getTime() : NaN;
-            return !Number.isNaN(s) && s > draftStart && s < draftEnd;
+            const e = a.end?.dateTime ? parseISO(a.end.dateTime.replace(/Z$/, '')).getTime() : s;
+            return !Number.isNaN(s) && s < draftEnd && e > draftStart;
         });
         const isEditing = !!inlineDraft.editing;
         const isRescheduling = isEditing && !!inlineDraft.rescheduling;
@@ -1853,6 +1873,7 @@ export default function AppointmentsPage() {
                 summary={inlineDraft.summary}
                 onSummaryChange={(v) => setInlineDraft((d) => (d ? { ...d, summary: v } : d))}
                 overlapWarning={overlap}
+                availabilityStatus={inlineAvailability}
                 patientDebt={inlineDebt}
                 cancelledCount={inlineCancelledCount}
                 onViewStatement={inlineDraft.patient && canViewPatientStatement ? () => openAccountStatement(inlineDraft.patient!.id, inlineDraft.patient!.name) : undefined}

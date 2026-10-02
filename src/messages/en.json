@@ -1208,6 +1208,8 @@
       "cancelledAppointments": "{count} cancelled appointments",
       "createService": "Create \"{name}\"",
       "overlapWarning": "Careful: overlaps another appointment",
+      "slotUnavailable": "Time not available: the room or the doctor is busy",
+      "checkingAvailability": "Checking availability…",
       "cancel": "Cancel",
       "save": "Save",
       "date": "Date",
