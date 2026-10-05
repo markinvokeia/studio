@@ -61,6 +61,7 @@ import { DoctorsColumnsWrapper } from './columns';
 import { useDeepLink } from '@/hooks/use-deep-link';
 import { extractCreatedUserId, sendFirstTimePasswordToken } from '@/services/users';
 import { useCheckFirstPassword } from '@/hooks/use-check-first-password';
+import { createDefaultPagination } from '@/lib/pagination';
 
 
 const doctorFormSchema = (t: (key: string) => string) => z.object({
@@ -295,10 +296,7 @@ export default function DoctorsPage() {
   const canUpdateDoctor = hasPermission(BUSINESS_CONFIG_PERMISSIONS.DOCTORS_UPDATE);
 
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
-  const [pagination, setPagination] = React.useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 25,
-  });
+  const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [showOnlyActive, setShowOnlyActive] = React.useState(true);
   const [sedes, setSedes] = React.useState<Sede[]>([]);

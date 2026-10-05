@@ -33,6 +33,7 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { createDefaultPagination } from '@/lib/pagination';
 
 const mutualSocietyFormSchema = (t: (key: string) => string) => z.object({
     id: z.union([z.string(), z.number()]).optional(),
@@ -118,7 +119,7 @@ export default function MutualSocietiesPage() {
     const canUpdate = hasPermission(BUSINESS_CONFIG_PERMISSIONS.MUTUAL_SOC_UPDATE);
     const canDelete = hasPermission(BUSINESS_CONFIG_PERMISSIONS.MUTUAL_SOC_DELETE);
 
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
+    const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedMutualSociety, setSelectedMutualSociety] = React.useState<MutualSociety | null>(null);

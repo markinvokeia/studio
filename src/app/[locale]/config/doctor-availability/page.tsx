@@ -44,6 +44,7 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { createDefaultPagination } from '@/lib/pagination';
 
 const availabilityFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
@@ -145,7 +146,7 @@ export default function DoctorAvailabilityPage() {
     const [deletingRule, setDeletingRule] = React.useState<AvailabilityRule | null>(null);
 
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
+    const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedRule, setSelectedRule] = React.useState<AvailabilityRule | null>(null);

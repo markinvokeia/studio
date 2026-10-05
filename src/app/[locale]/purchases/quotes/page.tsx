@@ -71,6 +71,7 @@ import { CurrencySelect } from '@/components/ui/currency-select';
 import { convertAmount } from '@/lib/currency';
 import { useCurrencySettings } from '@/hooks/useCurrencySettings';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
+import { createDefaultPagination } from '@/lib/pagination';
 
 
 const quoteFormSchema = (t: (key: string) => string) => z.object({
@@ -432,7 +433,7 @@ function QuotesPageContent() {
 
     const [quotes, setQuotes] = React.useState<Quote[]>([]);
     const [totalQuotes, setTotalQuotes] = React.useState(0);
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
+    const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
     const [searchTerm, setSearchTerm] = React.useState('');
     const debouncedSearch = useDebounce(searchTerm, 300);
     const quotesPageCount = totalQuotes > 0 ? Math.ceil(totalQuotes / pagination.pageSize) : 1;

@@ -19,6 +19,7 @@ import { ColumnDef, PaginationState, RowSelectionState, VisibilityState } from '
 import { FileWarning } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { createDefaultPagination } from '@/lib/pagination';
 
 type GetErrorLogsResponse = {
     errorLogs: ErrorLog[];
@@ -64,7 +65,7 @@ export default function ErrorLogPage() {
     const canViewList = hasPermission(SYSTEM_PERMISSIONS.ERROR_LOG_VIEW_LIST);
     const isNarrow = useViewportNarrow();
 
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
+    const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({ id: false });
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedLog, setSelectedLog] = React.useState<ErrorLog | null>(null);

@@ -32,6 +32,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { MiscellaneousCategory, Service } from '@/lib/types';
 import { formatServicePrice } from '@/lib/utils';
+import { createDefaultPagination } from '@/lib/pagination';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, Briefcase, PlusCircle, Trash2, X } from 'lucide-react';
@@ -103,8 +104,6 @@ const defaultServiceFormValues = (): ServiceFormValues => ({
   service_type: 'single',
   treatment_steps: [],
 });
-
-const PAGE_SIZE = 10;
 
 /** Filtro de estado del catálogo: 'all' no envía `is_active` al endpoint. */
 type ServiceStatusFilter = 'all' | 'true' | 'false';
@@ -766,7 +765,7 @@ export default function ServicesPage() {
   const { hasPermission } = usePermissions();
   const [services, setServices] = React.useState<Service[]>([]);
   const [totalCount, setTotalCount] = React.useState(0);
-  const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: PAGE_SIZE });
+  const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [categories, setCategories] = React.useState<MiscellaneousCategory[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);

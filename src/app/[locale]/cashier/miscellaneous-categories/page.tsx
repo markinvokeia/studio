@@ -32,6 +32,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { MiscellaneousCategoriesColumnsWrapper } from './columns';
+import { createDefaultPagination } from '@/lib/pagination';
 
 const categoryFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
@@ -138,7 +139,7 @@ export default function MiscellaneousCategoriesPage() {
 
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
+    const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
 
     const form = useForm<CategoryFormValues>({
         resolver: zodResolver(categoryFormSchema(tValidation)),

@@ -24,6 +24,7 @@ import { cn, formatServicePrice } from '@/lib/utils';
 import { api, isAbortError, isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { getSalesServices } from '@/services/services';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
+import { createDefaultPagination } from '@/lib/pagination';
 
 interface PatientGroupServicesTabProps {
     groupId: string;
@@ -116,7 +117,7 @@ export function PatientGroupServicesTab({ groupId, canManage }: PatientGroupServ
     const isNarrow = viewportNarrow || useListView;
     const viewToggleEl = showToggle ? <ViewModeToggle value={viewMode} onChange={setViewMode} /> : undefined;
 
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
+    const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 
     // Add popover

@@ -46,6 +46,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
+import { createDefaultPagination } from '@/lib/pagination';
 
 const invoiceItemSchema = z.object({
     id: z.string().optional(),
@@ -220,7 +221,7 @@ function InvoicesPageContent() {
 
     const [invoices, setInvoices] = React.useState<Invoice[]>([]);
     const [totalInvoices, setTotalInvoices] = React.useState(0);
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
+    const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});

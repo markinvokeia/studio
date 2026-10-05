@@ -35,6 +35,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
+import { createDefaultPagination } from '@/lib/pagination';
 
 const sequenceFormSchema = (t: (key: string) => string) => z.object({
   id: z.number().optional(),
@@ -171,10 +172,7 @@ export default function SequencesPage() {
   const { toast } = useToast();
   const isNarrow = useViewportNarrow();
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
-  const [pagination, setPagination] = React.useState({
-    pageIndex: 0,
-    pageSize: 25,
-  });
+  const [pagination, setPagination] = React.useState(createDefaultPagination);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [activeOnly, setActiveOnly] = React.useState(true);
   const [dateRange, setDateRange] = React.useState<{

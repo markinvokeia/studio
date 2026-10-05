@@ -26,6 +26,7 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { createDefaultPagination } from '@/lib/pagination';
 
 const medicationFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
@@ -112,7 +113,7 @@ export default function MedicationsPage() {
     const [medications, setMedications] = React.useState<Medication[]>([]);
     const [totalItems, setTotalItems] = React.useState(0);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
+    const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedMedication, setSelectedMedication] = React.useState<Medication | null>(null);

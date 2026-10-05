@@ -22,6 +22,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { getErrorMessage } from '@/lib/error-utils';
 import { cn } from '@/lib/utils';
 import { api, isAbortError, isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
+import { createDefaultPagination } from '@/lib/pagination';
 
 interface PatientGroupPatientsTabProps {
     groupId: string;
@@ -124,7 +125,7 @@ export function PatientGroupPatientsTab({ groupId, canManage }: PatientGroupPati
     const isNarrow = viewportNarrow || useListView;
     const viewToggleEl = showToggle ? <ViewModeToggle value={viewMode} onChange={setViewMode} /> : undefined;
 
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
+    const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 
     // Add popover

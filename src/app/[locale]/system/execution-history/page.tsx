@@ -20,6 +20,7 @@ import { format } from 'date-fns';
 import { FileClock } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { createDefaultPagination } from '@/lib/pagination';
 
 export default function ExecutionHistoryPage() {
   const t = useTranslations('ExecutionHistoryPage');
@@ -27,7 +28,7 @@ export default function ExecutionHistoryPage() {
   const { hasPermission } = usePermissions();
   const canViewList = hasPermission(SYSTEM_PERMISSIONS.ALERT_EXECUTIONS_VIEW_LIST);
   const isNarrow = useViewportNarrow();
-  const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
+  const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [selectedRun, setSelectedRun] = React.useState<AlertScheduleRun | null>(null);
 

@@ -55,6 +55,7 @@ import * as z from 'zod';
 import { currencySchema } from '@/lib/currency';
 import { CurrencySelect } from '@/components/ui/currency-select';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
+import { createDefaultPagination } from '@/lib/pagination';
 
 const transactionFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
@@ -252,7 +253,7 @@ export default function MiscellaneousTransactionsPage() {
     const [deletingTransaction, setDeletingTransaction] = React.useState<MiscellaneousTransaction | null>(null);
 
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
+    const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [visibility, setVisibility] = React.useState<VisibilityState>({ id: false });
     const [quickFilter, setQuickFilter] = React.useState('pending');

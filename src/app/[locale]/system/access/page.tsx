@@ -19,6 +19,7 @@ import { ColumnDef, PaginationState, RowSelectionState, VisibilityState } from '
 import { UserCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { createDefaultPagination } from '@/lib/pagination';
 
 type GetAccessLogsResponse = {
     accessLogs: AccessLog[];
@@ -58,7 +59,7 @@ export default function AccessLogPage() {
     const canViewList = hasPermission(SYSTEM_PERMISSIONS.ACCESS_LOG_VIEW_LIST);
     const isNarrow = useViewportNarrow();
 
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
+    const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({ id: false, ip_address: false });
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedLog, setSelectedLog] = React.useState<AccessLog | null>(null);

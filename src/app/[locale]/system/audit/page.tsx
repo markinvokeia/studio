@@ -26,6 +26,7 @@ import { BarChart, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import type { DateRange } from 'react-day-picker';
+import { createDefaultPagination } from '@/lib/pagination';
 
 type GetAuditLogsResponse = {
     auditLogs: AuditLog[];
@@ -127,7 +128,7 @@ export default function AuditLogPage() {
     const canViewList = hasPermission(SYSTEM_PERMISSIONS.AUDIT_LOG_VIEW_LIST);
     const isNarrow = useViewportNarrow();
 
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
+    const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
     const [sorting, setSorting] = React.useState<SortingState>([{ id: 'changed_at', desc: true }]);
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({ id: false });
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});

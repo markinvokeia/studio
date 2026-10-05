@@ -108,8 +108,7 @@ export default function PaymentsPage() {
         handleTypeFilterChange,
         refreshPayments
     } = usePaymentsPagination({
-        fetchFunction: getSalesPayments,
-        initialPageSize: 25
+        fetchFunction: getSalesPayments
     });
 
     // Server-side transaction-type filter (prepaid / allocations / ...)

@@ -114,6 +114,7 @@ import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
 import { useLicenseStore } from '@/stores/license-store';
 import { usePatientDetailNavigation } from '@/hooks/patients/use-patient-detail-navigation';
+import { createDefaultPagination } from '@/lib/pagination';
 
 
 type GetUsersResponse = {
@@ -464,10 +465,7 @@ export default function UsersPage() {
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const latestUsersRequestRef = React.useRef(0);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
-  const [pagination, setPagination] = React.useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 25,
-  });
+  const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     initialQ ? [{ id: 'email', value: initialQ }] : []
   );

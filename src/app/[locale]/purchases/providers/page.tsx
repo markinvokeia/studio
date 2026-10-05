@@ -73,6 +73,7 @@ import * as z from 'zod';
 import { ProviderColumnsWrapper } from './columns';
 import { useDeepLink } from '@/hooks/use-deep-link';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
+import { createDefaultPagination } from '@/lib/pagination';
 
 const providerFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
@@ -389,10 +390,7 @@ function ProvidersPageContent() {
 
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
-  const [pagination, setPagination] = React.useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 25,
-  });
+  const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [activeTab, setActiveTab] = React.useState('info');
   const [providerFinancialData, setProviderFinancialData] = React.useState<UserFinancial | null>(null);

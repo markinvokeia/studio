@@ -35,6 +35,7 @@ import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { getDefaultPageSize } from '@/lib/pagination';
 import { AlertTriangle, ArrowUp, ArrowDown, ArrowUpDown, RefreshCw } from 'lucide-react';
 
 interface DataTableProps<TData, TValue> {
@@ -96,7 +97,7 @@ interface DataTableProps<TData, TValue> {
   primaryActions?: React.ReactNode;
   /** View controls (e.g. a view-mode toggle) rendered after pagination in the toolbar */
   viewControls?: React.ReactNode;
-  /** Override the default initial page size (default: 25) */
+  /** Override the default initial page size (default: 25 on tablet/desktop, 10 on mobile) */
   initialPageSize?: number;
   /** A `<TableRow>` (or several) rendered in a `<TableFooter>` right after the body —
    *  outside react-table's row model, so it's unaffected by sorting/filtering/pagination
@@ -179,11 +180,14 @@ export function DataTable<TData, TValue>({
   cardListClassName,
   primaryActions,
   viewControls,
-  initialPageSize = 25,
+  initialPageSize,
   footerRow,
   loadError,
 }: DataTableProps<TData, TValue>) {
   const t = useTranslations('General');
+  // Resolve the page size once at mount: an explicit prop wins; otherwise
+  // 10 on mobile and 25 on tablet/desktop.
+  const [resolvedInitialPageSize] = React.useState(() => initialPageSize ?? getDefaultPageSize());
   const showCardList = Boolean(isNarrow && renderCard);
   const [internalRowSelection, setInternalRowSelection] = React.useState({});
   const [internalColumnVisibility, setInternalColumnVisibility] =
@@ -234,7 +238,7 @@ export function DataTable<TData, TValue>({
     pageCount: pageCount,
     ...(rowCount !== undefined && { rowCount }),
     initialState: {
-      pagination: { pageSize: initialPageSize },
+      pagination: { pageSize: resolvedInitialPageSize },
     },
     state: {
       sorting,

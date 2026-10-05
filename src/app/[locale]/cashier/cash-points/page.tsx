@@ -32,6 +32,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { CashPointsColumnsWrapper } from './columns';
+import { createDefaultPagination } from '@/lib/pagination';
 
 const cashPointFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
@@ -125,7 +126,7 @@ export default function CashPointsPage() {
     const [deletingCashPoint, setDeletingCashPoint] = React.useState<CashPoint | null>(null);
 
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
+    const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 
     const form = useForm<CashPointFormValues>({

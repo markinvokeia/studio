@@ -38,6 +38,7 @@ import { useNarrowMode } from '@/components/layout/two-panel-layout';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { Quote } from '@/lib/types';
 import { cn, formatDisplayDate, getDocumentFileName } from '@/lib/utils';
+import { getDefaultPageSize } from '@/lib/pagination';
 import { api } from '@/services/api';
 import { ColumnDef, ColumnFiltersState, flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, PaginationState, RowSelectionState, SortingState, useReactTable } from '@tanstack/react-table';
 import { CheckCircle, Download, Loader2, MoreHorizontal, Pencil, Printer, Send, Trash2, XCircle } from 'lucide-react';
@@ -588,6 +589,8 @@ export function RecentQuotesTable({
     columns,
     pageCount: isServerPagination ? pageCount : undefined,
     ...(isServerPagination && rowCount !== undefined && { rowCount }),
+    // Client-side fallback default (in server mode the page controls pagination).
+    initialState: { pagination: { pageSize: getDefaultPageSize() } },
     state: {
       sorting,
       columnFilters,

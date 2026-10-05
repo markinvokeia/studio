@@ -22,6 +22,7 @@ import { DollarSign, History, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { getCurrency } from '@/constants/currencies';
 import { useCurrencySettings } from '@/hooks/useCurrencySettings';
+import { createDefaultPagination } from '@/lib/pagination';
 
 export default function CurrenciesPage() {
     const t = useTranslations('CurrenciesPage');
@@ -31,7 +32,7 @@ export default function CurrenciesPage() {
     const { def, secondaryCode, hasAutoRate } = useCurrencySettings();
     const isNarrow = useViewportNarrow();
 
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
+    const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
     const [selectedItem, setSelectedItem] = React.useState<ExchangeRateHistoryItem | null>(null);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [startDate, setStartDate] = React.useState<string>('');

@@ -84,6 +84,7 @@ import * as z from 'zod';
 import { currencySchema } from '@/lib/currency';
 import { CurrencySelect } from '@/components/ui/currency-select';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
+import { createDefaultPagination } from '@/lib/pagination';
 
 
 const quoteFormSchema = (t: (key: string) => string, maxDiscountPct: number) => z.object({
@@ -686,7 +687,7 @@ export default function QuotesPage() {
     const canInvoice = hasPermission(SALES_PERMISSIONS.INVOICES_CREATE) || hasPermission(SALES_PERMISSIONS.ORDERS_INVOICE_FROM_ORDER);
     const [quotes, setQuotes] = React.useState<Quote[]>([]);
     const [totalQuotes, setTotalQuotes] = React.useState(0);
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
+    const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
     const [searchTerm, setSearchTerm] = React.useState('');
     const debouncedSearch = useDebounce(searchTerm, 300);
     const quotesPageCount = totalQuotes > 0 ? Math.ceil(totalQuotes / pagination.pageSize) : 1;

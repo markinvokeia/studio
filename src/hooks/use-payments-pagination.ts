@@ -5,6 +5,8 @@ import { Payment, PaymentListResponse, PaymentSearchParams, PaymentTypeFilter } 
 import { PaginationState } from '@tanstack/react-table';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { getDefaultPageSize } from '@/lib/pagination';
+
 interface UsePaymentsPaginationOptions {
   fetchFunction: (params: PaymentSearchParams) => Promise<PaymentListResponse>;
   initialPageSize?: number;
@@ -26,7 +28,7 @@ interface UsePaymentsPaginationReturn {
 
 export function usePaymentsPagination({
   fetchFunction,
-  initialPageSize = 10,
+  initialPageSize = getDefaultPageSize(),
   onError
 }: UsePaymentsPaginationOptions): UsePaymentsPaginationReturn {
   const { toast } = useToast();

@@ -23,6 +23,7 @@ import { useTranslations } from 'next-intl';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import * as React from 'react';
 import { CashSessionsColumnsWrapper } from './columns';
+import { createDefaultPagination } from '@/lib/pagination';
 
 
 type GetCashSessionsResponse = {
@@ -312,7 +313,7 @@ export default function CashSessionsPage() {
     const [isPrinting, setIsPrinting] = React.useState(false);
     const [isPrintingClose, setIsPrintingClose] = React.useState(false);
 
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
+    const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
         id: false,

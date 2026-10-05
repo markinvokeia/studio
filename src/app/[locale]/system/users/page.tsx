@@ -53,6 +53,7 @@ import * as z from 'zod';
 import { SystemUserColumnsWrapper } from './columns';
 import { useDeepLink } from '@/hooks/use-deep-link';
 import { useCheckFirstPassword } from '@/hooks/use-check-first-password';
+import { createDefaultPagination } from '@/lib/pagination';
 
 
 const userFormSchema = (t: (key: string) => string) => z.object({
@@ -287,10 +288,7 @@ export default function SystemUsersPage() {
   const [isSavingDetail, setIsSavingDetail] = React.useState(false);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
-  const [pagination, setPagination] = React.useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 25,
-  });
+  const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [showOnlyActive, setShowOnlyActive] = React.useState(true);
 

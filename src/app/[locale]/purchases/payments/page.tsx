@@ -64,8 +64,7 @@ function PaymentsPageContent() {
         handleTypeFilterChange,
         refreshPayments
     } = usePaymentsPagination({
-        fetchFunction: getPurchasePayments,
-        initialPageSize: 25
+        fetchFunction: getPurchasePayments
     });
 
     // Server-side transaction-type filter (prepaid / allocations / ...)
