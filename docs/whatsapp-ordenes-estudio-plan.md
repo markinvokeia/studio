@@ -1,6 +1,7 @@
 # Órdenes de estudio por WhatsApp — diseño y plan de implementación
 
 > Estado: **Fases 0 a 5 escritas en el repo (nada ejecutado en n8n ni probado en navegador); falta medir la extracción con órdenes reales (compuerta) y la Fase 6 (QA y despliegue)** · Rama: `orden-servicio` · Fecha: 2026-09-30
+> **Actualización 2026-10-05 — Separación de workflows:** el agente de órdenes ya no vive dentro de `Whats App`. Quedó en el workflow **`WhatsApp - Order Agent`** (`docs/n8n-flows/WhatsApp - Order Agent.json`), que el router del workflow normal invoca con **Execute Workflow**; los 6 webhooks `agent-tools/order-*` quedaron embebidos ahí. Ver §15.
 > Documento de partida: artefacto "Órdenes de Estudio por WhatsApp" (Parte A funcional, Parte B diseño técnico).
 > Este documento recoge las decisiones tomadas tras revisar el código real de `docs/n8n-flows/Whats App.json` y `scripts/n8n/`.
 
@@ -21,7 +22,7 @@ La orden que llega por WhatsApp es una orden normal de Invoke. A partir de ahí 
 
 | # | Tema | Decisión |
 | --- | --- | --- |
-| D1 | Arquitectura | Un solo workflow (`Whats App`), un **router determinista** y **dos agentes**: el general (actual) y uno de órdenes. No hay switch de "personalidad" elegido por el usuario. |
+| D1 | Arquitectura | **Dos workflows**: `Whats App` (general, con un **router determinista**) y **`WhatsApp - Order Agent`** (ingesta, extracción y agente de órdenes), que el router invoca con **Execute Workflow**. No hay switch de "personalidad" elegido por el usuario. |
 | D2 | Doctor y técnico | **Ninguno es obligatorio.** El doctor es quien crea la orden y el técnico quien la ejecuta, pero la orden de WhatsApp se crea sin doctor derivador y su cita sin técnico (recepción lo asigna después). El nombre del doctor que figura en el papel se guarda como texto de referencia (`referring_doctor_name`), sin vincularlo a ningún usuario. No se busca ni se valida al doctor. |
 | D3 | Paciente distinto del remitente (ej. un padre manda la orden de su hijo) | **Derivar a un humano.** |
 | D4 | Sede | **La elige el usuario**: el agente lista las sedes con su dirección y el usuario escoge la que quiera o la que le quede más cerca. No se elige automáticamente. |
@@ -56,33 +57,32 @@ Sobre D4: las sedes no guardan coordenadas (el mapa las geocodifica en el navega
 sequenceDiagram
   autonumber
   participant U as Usuario
-  participant W as n8n "Whats App"
-  participant R as Router
-  participant X as Intake (extraer + validar)
-  participant A as Agente de órdenes
+  participant W as n8n "Whats App" (router)
+  participant O as "WhatsApp - Order Agent"
   participant S as Endpoints study-orders
   participant C as Clínica (Invoke)
   U->>W: foto / PDF de la orden
-  W->>W: descarga + hash + guarda original (Drive/attachments)
-  W->>R: lote con adjuntos o intake activo
-  R->>X: extracción con visión → JSON contra el catálogo
-  X->>X: validación determinista (servicios, paciente, doctor)
+  W->>W: dedupe, debounce, identidad, pausa, horario y lock
+  W->>O: Execute Workflow (adjuntos o intake activo)
+  O->>O: descarga + hash + guarda original (Drive/attachments)
+  O->>O: extracción con visión + validación determinista
   alt caso de derivación (sección 5)
-    X-->>C: intake + fotos + motivo → tarjeta a recepción, agente pausado
-    X-->>U: "Una persona de la clínica te contactará"
+    O-->>C: intake + fotos + motivo → tarjeta a recepción, agente pausado
+    O-->>U: "Una persona de la clínica te contactará"
   else todo en orden
-    X->>A: intake validado
-    A-->>U: resumen (paciente, doctor, estudios, duración) + "¿Correcto? ¿Qué sede, día y hora?"
-    U->>A: sede + fecha/hora
-    A->>S: confirm_order_and_book (registra paciente si falta, upsert + submit, recheck de slot, reserva)
+    O-->>U: resumen (paciente, doctor, estudios, duración) + "¿Correcto? ¿Qué sede, día y hora?"
+    U->>O: sede + fecha/hora
+    O->>S: confirm_order_and_book (registra paciente si falta, upsert + submit, recheck de slot, reserva)
     S->>C: avisos normales (+ source=whatsapp)
-    A-->>U: confirmación con OE-…, sede, fecha y hora
+    O-->>U: confirmación con OE-…, sede, fecha y hora
   end
 ```
 
+Las respuestas que llegan al usuario las envía siempre el workflow `Whats App` (el de órdenes solo devuelve el texto).
+
 ### 4.1 Router
 
-Tras `Combine Buffered Messages`: si el lote trae imagen o PDF, o el teléfono tiene un intake activo, va al **agente de órdenes**. Si no, al **general**. Comparten el lock, la memoria por teléfono y la pausa humana. Si el intake se abandona o expira, el router vuelve al general. El agente de órdenes conserva `get_clinic_info` y `list_sedes` para preguntas sueltas.
+Tras `Combine Buffered Messages`: si el lote trae imagen o PDF, o el teléfono tiene un intake activo, va al **agente de órdenes**. Si no, al **general**. Comparten el lock, la memoria por teléfono y la pausa humana. Si el intake se abandona o expira, el router vuelve al general. El agente de órdenes conserva `get_clinic_info` y `list_sedes` para preguntas sueltas. **Desde la separación (2026-10-05)**, el router ejecuta el workflow `WhatsApp - Order Agent` con **Execute Workflow** y este devuelve la respuesta; el envío, el tracking y el lock siguen en `Whats App`.
 
 ### 4.2 Estado del intake
 
@@ -376,22 +376,25 @@ SELECT o.option_kind, o.code, o.label, o.section_code, o.group_code, o.input_typ
 
 ### Resumen
 
-Un solo workflow (`Whats App`), dos agentes. Las herramientas del agente de órdenes son webhooks de un workflow nuevo, y los horarios salen de una lógica propia (no de `Agent_Availability2`).
+**Dos workflows** desde la separación (2026-10-05): `Whats App` conserva la entrada pública y el pipeline compartido (dedupe, debounce, identidad, pausa, horario, lock y router); el agente de órdenes y toda su ingesta viven en **`WhatsApp - Order Agent`**, que el router invoca con **Execute Workflow** y devuelve la respuesta para que `Whats App` la envíe y registre. Los horarios salen de una lógica propia (no de `Agent_Availability2`).
 
 | Pieza | Dónde |
 | --- | --- |
-| Router, agente de órdenes (`Order Agent`), sus 6 herramientas, continuación tras guardar los originales, respuesta a formatos no soportados | `docs/n8n-flows/Whats App.json` |
-| Webhooks `agent-tools/order-*` (93 nodos, generado) | `n8n-workflows/whatsapp-order-agent-tools.json` ← `scripts/n8n/generate-order-agent-tools-workflow.mjs` |
+| Entrada, dedupe/debounce, identidad, pausa, horario, lock, router (`Route To Orders?` → `Run Orders Agent`) y respuesta a formatos no soportados | `docs/n8n-flows/Whats App.json` |
+| Ingesta de adjuntos, extracción, `Order Agent`, sus 6 herramientas, continuación tras guardar los originales y respuesta fija de derivación | `docs/n8n-flows/WhatsApp - Order Agent.json` |
+| Webhooks `agent-tools/order-*` (93 nodos, generado) — **ahora embebidos** en `WhatsApp - Order Agent.json`; `n8n-workflows/whatsapp-order-agent-tools.json` queda solo como referencia y **no se importa** | `scripts/n8n/generate-order-agent-tools-workflow.mjs` |
 | Horarios libres (puro, con 11 pruebas) | `scripts/n8n/study-order-intake/slots-lib.mjs` |
 | Clave `whatsapp_orders_calendar_ids` | migración 123 |
 
+El snapshot de trabajo `docs/n8n-flows/WhatsApp Agent.json` (unificado + tools mergeados en un solo workflow) también queda obsoleto como fuente: las versiones vigentes son los dos archivos de la tabla.
+
 ### Flujo de un mensaje
 
-1. **Llega un archivo** (flag encendido): se guardan los originales (Fase 2) → se vencen los intakes inactivos (`Expire Old Intakes`) → **extracción + validación** (subflujo de la Fase 3).
-   - Si el resultado es **derivación**: `order-handoff` marca el intake, avisa a recepción (reutiliza `agent-tools/handoff`: pausa la conversación y notifica con el motivo y el link del primer original) y se le envía al usuario un mensaje fijo. No interviene ningún LLM.
-   - Si no, sigue por el camino normal (identidad → pausa → horario → lock) hasta el agente.
-2. **Router** (`Route To Orders?`, después del lock): va al **agente de órdenes** si el lote trae un archivo o si ese teléfono tiene un intake en curso (`Get Active Intake`), y solo con `whatsapp_orders_enabled = true`. Si no, al agente general de siempre.
-3. **Formatos no soportados** (audio, video, sticker, documentos que no son PDF, imágenes que no son JPEG/PNG/WebP), con el flag encendido: respuesta fija pidiendo foto o PDF. Pasa por la lista blanca del modo test y por el dedupe.
+1. **Entrada y pipeline compartido** (`Whats App`, flag encendido): imagen/PDF se consideran "procesables" y se bufferizan con sus metadatos. Pasa por la lista blanca del modo test, dedupe, debounce, identidad, pausa, horario y lock. El original **no** se descarga todavía.
+2. **Formatos no soportados** (audio, video, sticker, documentos que no son PDF, imágenes que no son JPEG/PNG/WebP), con el flag encendido: respuesta fija pidiendo foto o PDF. Pasa por la lista blanca del modo test y por el dedupe.
+3. **Router** (`Route To Orders?`, después del lock): va al workflow de órdenes si el lote trae un archivo o si ese teléfono tiene un intake en curso (`Get Active Intake`), y solo con `whatsapp_orders_enabled = true`. Si no, al agente general de siempre.
+4. **`WhatsApp - Order Agent`** (Execute Workflow): si el lote trae archivos → se vencen los intakes inactivos (`Expire Old Intakes`) → se guardan los originales (Fase 2) → **extracción + validación** (subflujo de la Fase 3). Si el resultado es **derivación**: `order-handoff` marca el intake, avisa a recepción (reutiliza `agent-tools/handoff`: pausa la conversación y notifica con el motivo y el link del primer original) y devuelve al workflow principal el mensaje fijo (no interviene ningún LLM). Si no, sigue al agente.
+5. **Agente de órdenes** (`Order Agent`): conversa y agenda con sus herramientas y devuelve el texto al workflow principal, que quita el marcador `<<PENDING:…>>`, lo formatea, lo envía y actualiza tracking, logs y lock.
 
 ### Herramientas del agente de órdenes
 
@@ -429,21 +432,23 @@ La orden de WhatsApp y su cita **no llevan doctor ni técnico** (D2); el nombre 
 
 1. Credenciales en n8n (Header Auth): **`WhatsApp Agent Tools Header Auth`** (`X-Agent-Key`, Fase 0) y **`Invoke Agent Service JWT`** (`Authorization: Bearer <jwt>`, generado con `generate-agent-jwt.mjs`).
 2. Migraciones 122 y 123.
-3. Importar, en este orden: `whatsapp-study-order-intake.json` → `whatsapp-order-agent-tools.json` → `Whats App.json` (y los demás importados antes).
-4. **Reemplazar los placeholders** `REPLACE_WITH_…`: la credencial de los nodos con Header Auth y JWT; y el id del workflow `WhatsApp - Study Order Intake` en **dos** lugares (`Answer: Run Intake Subflow` en el workflow de herramientas y `Run Order Extraction` en `Whats App`).
+3. Importar, en este orden: `whatsapp-study-order-intake.json` → **`WhatsApp - Order Agent.json`** → **`Whats App.json`** (y los demás importados antes). **No importar `whatsapp-order-agent-tools.json`**: sus 6 webhooks quedaron embebidos en `WhatsApp - Order Agent`; si ya está importado, desactivarlo/eliminarlo para no duplicar los paths `agent-tools/order-*`.
+4. **Reemplazar los placeholders** `REPLACE_WITH_…`: credenciales Header Auth y JWT; el id del workflow `WhatsApp - Study Order Intake` en **dos** lugares (`Answer: Run Intake Subflow` y `Run Order Extraction`); y el id de `WhatsApp - Order Agent` en el nodo `Run Orders Agent` de `Whats App`.
 5. Comprobar `whatsapp_orders_vision_model` y, si hace falta, `whatsapp_orders_calendar_ids`.
 6. Probar en modo test (lista blanca) con `whatsapp_orders_enabled = true`; al terminar, volver a `false`.
 
 ### Limitaciones conocidas
 
-- **No se ejecutó nada en n8n**, y el comportamiento del agente (cómo usa las herramientas, el tono, el manejo de errores) **solo se puede validar conversando con él**. El prompt es un primer borrador.
+- **No hay ejecuciones verificadas en n8n**: la separación en dos workflows (2026-10-05) se preparó en el repo y todavía no se desplegó ni probó; el comportamiento del agente (cómo usa las herramientas, el tono, el manejo de errores) **solo se puede validar conversando con él**. El prompt es un primer borrador.
 - **Un usuario con una orden en curso queda en el agente de órdenes** hasta que se agende, se derive o pasen 24 h (la vigencia del intake): durante ese tiempo no puede consultar su cuenta ni sus citas por el agente general. El agente de órdenes lo deriva a una persona en esos casos. Un router que distinga la intención es una mejora posible.
 - **Horarios:** solo se consideran `clinic_schedules` y las citas del calendario. No hay feriados ni cierres de la clínica en la base que yo haya podido identificar, así que un feriado con horario cargado se ofrecería.
 - **Sin relación servicio → sede/equipo:** el usuario puede elegir una sede que no tenga el equipo del estudio (p. ej. Cone Beam). Aceptado en el primer corte.
 - **Carrera de reservas:** `public-book` la reduce, no la elimina (ver sección 10).
 - **Una orden duplicada** se deriva a una persona; agendar una orden ya existente por WhatsApp no está construido.
 - **Cancelar o reagendar** una cita de una orden por WhatsApp (Fase 1 del plan original) **no está construido**; el agente deriva.
-- **Conversación pausada o fuera de horario:** la extracción corre igual antes de esos controles; si la conversación estaba en manos de una persona, el usuario puede recibir de nuevo el mensaje fijo de "te va a escribir una persona".
+- **Conversación pausada o fuera de horario:** desde la separación, la descarga y la extracción ya **no** corren antes de esos controles: el workflow de órdenes se invoca recién después del lock. Un archivo enviado fuera de horario o con la conversación pausada queda sin procesar hasta que llegue un mensaje en condiciones (antes se procesaba igual y podía repetirse el mensaje fijo de "te va a escribir una persona").
+- **Duración del lock:** la extracción con visión ahora corre **dentro** del lock (antes corría antes de tomarlo). Si supera `whatsapp_agent_lock_timeout_seconds` (90 s por defecto), otro mensaje del mismo teléfono puede tomar el lock; conviene medirlo en las pruebas y subir el valor si hace falta.
+- **Dependencia entre workflows:** con el flag encendido, las órdenes necesitan que `WhatsApp - Order Agent` esté importado y activo (ahí viven los webhooks `agent-tools/order-*`). Con el flag apagado no hay dependencia: todo va al agente general.
 - Las respuestas fijas (formato no soportado, derivación) no pasan por la memoria del chat.
 
 ### Casos para la batería de pruebas (`docs/qa/whatsapp-agent-test-battery.xlsx`, desde WA-049)
